@@ -6,10 +6,18 @@ of every clip, on each mannequin's real skinned mesh, how deep any body part is 
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute:
 
     blender -b --factory-startup -P limb_overlap.py -- --clips <clips.glb> --model <mannequin.glb> [--model ...]
-        [--clip <name> ...] [--limit <mm>] [--json <file>] [--self-test]
+        [--clip <name> ...] [--limit <mm>] [--fps <rate>] [--json <file>] [--self-test]
 
 It exits 1 when a clip goes deeper than `--limit` (default `LIMIT_MM`). A build that keys clips imports this file
 and calls `measure()` on its baked actions before it exports (`vault/build_vault.py`).
+
+Which frames it measures: every key, at the clips' own frame rate. A glb stores key times in seconds and no frame
+rate, and Blender puts a key at its seconds times the scene's rate. So the command line reads the rate from the
+file's key times (`clip_rate()`: the lowest usual rate at which every key is a whole frame) and sets the scene to
+it before the import; the frames it prints are then the frames the build keyed, and both read the same depth
+(`test_limb_overlap.py` runs a clip both ways). `--fps` names the rate for a file whose keys fit none. A script
+that calls `measure()` itself has the scene at the clip's rate first (kit #1035: the scene was at 24 for every
+file, so a 30 frames a second clip was measured between its keys and a crossing read 7.0 mm for 13.2).
 
 How it measures. The mesh is cut into parts by each vertex's heaviest bone (`PARTS`): the pelvis, the chest, the
 head, and each upper arm, forearm, hand, thigh, calf and foot. On a frame, every part's deformed triangles go into a
@@ -25,6 +33,7 @@ lengths, and the pelvis's place. So the male mannequin is measured with his long
 
 import argparse
 import json
+import struct
 import sys
 from pathlib import Path
 
@@ -37,6 +46,8 @@ from mathutils.bvhtree import BVHTree
 ## own Sprint, Jog and Crouch clips read 0 on both mannequins, and none of its 43 clips crosses the legs.
 LIMIT_MM = 5.0
 ## The ways a sample looks to tell inside from outside (all but one must first meet the back of a face).
+## The frame rates a clip file is tried at, lowest first (`clip_rate`).
+RATES = (24, 25, 30, 48, 50, 60, 120)
 RAYS = [Vector(v) for v in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))]
 
 ## The part of each bone of the universal rig; a bone not named takes its parent's part. The lowest spine bone
@@ -248,8 +259,36 @@ class Body:
         return out
 
 
+def key_times(path):
+    """Every key time, in seconds, of every animation in a glb (read from the file, without Blender)."""
+    data = Path(path).read_bytes()
+    magic, _version, _length, json_length, _json_type = struct.unpack_from("<5I", data, 0)
+    assert magic == 0x46546C67, f"{path} is not a glb"
+    doc = json.loads(data[20 : 20 + json_length])
+    binary = 20 + json_length + 8
+    times = set()
+    for index in {s["input"] for a in doc.get("animations", []) for s in a["samplers"]}:
+        accessor = doc["accessors"][index]
+        view = doc["bufferViews"][accessor["bufferView"]]
+        offset = binary + view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
+        times.update(np.frombuffer(data, "<f4", accessor["count"], offset).tolist())
+    return sorted(times)
+
+
+def clip_rate(path):
+    """The frame rate a glb's clips were keyed at: the lowest of `RATES` at which every key time is a whole
+    frame. A glb has no frame rate of its own, only key times. None when the keys fit no rate."""
+    times = np.array(key_times(path))
+    for rate in RATES:
+        frames = times * rate
+        if not len(frames) or np.abs(frames - np.round(frames)).max() < 0.01:
+            return rate
+    return None
+
+
 def measure(source, action, frames, bodies):
-    """Play `action` on the `source` armature over `frames` and measure every body on every frame. Returns
+    """Play `action` on the `source` armature over `frames` and measure every body on every frame. The frames are
+    the scene's: the caller has the scene at the clip's frame rate, so each whole frame is a key. Returns
     `{body name: {"deepest_mm", "frame", "pair", "place", "by_class": {class: [mm, frame, pair]}, "frames": [mm],
     "pairs": {pair: [mm, frame]}}}`."""
     scene = bpy.context.scene
@@ -334,12 +373,18 @@ def main():
     parser.add_argument("--model", action="append", required=True)
     parser.add_argument("--clip", action="append", default=[])
     parser.add_argument("--limit", type=float, default=LIMIT_MM)
+    parser.add_argument("--fps", type=int, default=0)
     parser.add_argument("--json", default="")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args(argv)
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.context.scene.render.fps = 24
+    # Blender puts a key at its seconds times the scene's rate: the scene takes the file's rate before any import.
+    rate = args.fps or clip_rate(args.clips)
+    if not rate:
+        sys.exit(f"the keys of {args.clips} are whole frames at none of {RATES} frames a second: name it with --fps")
+    bpy.context.scene.render.fps = rate
+    print(f"RATE {Path(args.clips).name}: {rate} frames a second ({'--fps' if args.fps else 'from its key times'})")
     bodies = [load_body(path) for path in args.model]
     if args.self_test:
         for body in bodies:
@@ -355,13 +400,18 @@ def main():
     report, failed = {}, False
     for action in sorted(own, key=lambda a: a.name):
         first, last = (round(f) for f in action.frame_range)
+        off = max(abs(f - round(f)) for f in action.frame_range)
+        assert off < 0.01, f"{action.name} ends {off:.2f} of a frame off a key at {rate} frames a second"
         result = measure(source, action, range(first, last + 1), bodies)
         report[action.name] = result
         for name, entry in result.items():
+            entry.update(fps=rate, first_frame=first, last_frame=last)
             verdict = "ok" if entry["deepest_mm"] <= args.limit else "CROSSES"
             failed = failed or verdict != "ok"
+            at = entry["frame"]
+            when = "" if at is None else f" of {first} to {last} at {rate} fps, {at / rate:.3f} s"
             print(
-                f"OVERLAP {action.name} {name}: {entry['deepest_mm']} mm at frame {entry['frame']} "
+                f"OVERLAP {action.name} {name}: {entry['deepest_mm']} mm at frame {at}{when} "
                 f"({entry['pair']}) {verdict} {json.dumps(entry['by_class'])}"
             )
     if args.json:

@@ -1,11 +1,12 @@
 class_name OnlineStatus
 extends CanvasLayer
-## What an online game shows while it is not simply playing: "Connecting" until the server seats
-## the player, then nothing; a message and a way back when the server refuses the player (it runs
-## another version: reload; the game is full; it was built from another map), when nothing answers
-## within `connect_seconds`, and when a seated game's connection is lost. Its `client`'s signals
-## drive it; it sends nothing. While a message shows, the game is dimmed behind it, the player's
-## input is off and the mouse free.
+## What an online game shows while it is not simply playing: "Loading" while the client waits for
+## the level's warm-up before it joins (`NetClient.is_waiting_to_join`), "Connecting" until the
+## server seats the player, then nothing; a message and a way back when the server refuses the
+## player (it runs another version: reload; the game is full; it was built from another map), when
+## nothing answers within `connect_seconds`, and when a seated game's connection is lost. Its
+## `client`'s signals drive it; it sends nothing. While a message shows, the game is dimmed behind
+## it, the player's input is off and the mouse free.
 ##
 ## The texts are exports: open the scene to reword or restyle them. The overlay is not under the
 ## router's stage, so it builds its theme from the tokens itself (the panel's padding, the title's
@@ -14,16 +15,21 @@ extends CanvasLayer
 ## Said when the shown state changes.
 signal state_changed(state: State)
 
-enum State { CONNECTING, PLAYING, OLD_VERSION, FULL, OTHER_MAP, UNREACHABLE, LOST, NO_ADDRESS }
+enum State {
+	CONNECTING, PLAYING, OLD_VERSION, FULL, OTHER_MAP, UNREACHABLE, LOST, NO_ADDRESS, LOADING
+}
 
 ## The scene "Back to menu" goes to.
 @export_file("*.tscn") var menu_scene := "res://ui/menus/menu_scene.tscn"
 ## Seconds the link may take to open and seat the player before it counts as unreachable. Only
 ## frames shorter than `StallGuard.STALL_SECONDS` count: a page that spends its first seconds
-## compiling shaders has not waited for the server.
+## compiling shaders has not waited for the server, and the wait for the warm-up (Loading) is not
+## counted at all.
 @export_range(1.0, 60.0, 0.5, "suffix:s") var connect_seconds := 10.0
 
 @export_group("Texts")
+## Shown while the client waits for the level to be ready before it joins.
+@export var loading_text := "Loading"
 @export var connecting_text := "Connecting"
 @export_multiline var old_version_text := "The server runs another version of the game."
 ## The way out of `old_version_text`: a page reloads to get the server's version.
@@ -60,10 +66,15 @@ func _ready() -> void:
 		client.welcomed.connect(_on_welcomed)
 		client.refused.connect(_on_refused)
 		client.disconnected.connect(_on_disconnected)
-	_show(State.CONNECTING)
+	var loading := client != null and client.is_waiting_to_join()
+	_show(State.LOADING if loading else State.CONNECTING)
 
 
 func _process(delta: float) -> void:
+	if state == State.LOADING:
+		if not client.is_waiting_to_join():
+			_show(State.CONNECTING)
+		return
 	if state != State.CONNECTING:
 		return
 	if delta < StallGuard.STALL_SECONDS:
@@ -79,6 +90,7 @@ func _process(delta: float) -> void:
 func text_of(shown: State) -> String:
 	var hint := reload_hint_web if OS.has_feature("web") else reload_hint_desktop
 	var texts := {
+		State.LOADING: loading_text,
 		State.CONNECTING: connecting_text,
 		State.OLD_VERSION: "%s %s" % [old_version_text, hint],
 		State.FULL: full_text,
@@ -107,12 +119,12 @@ func _show(shown: State) -> void:
 	var playing := shown == State.PLAYING
 	# The dimmed screen behind the panel also keeps a click off the game (the camera's capture).
 	_root.visible = not playing
-	_title.text = connecting_text if shown == State.CONNECTING else ""
-	_title.visible = shown == State.CONNECTING
-	_message.text = "" if shown == State.CONNECTING else text_of(shown)
+	var waiting := shown == State.CONNECTING or shown == State.LOADING
+	_title.text = text_of(shown) if waiting else ""
+	_title.visible = waiting
+	_message.text = "" if waiting else text_of(shown)
 	_message.visible = not _message.text.is_empty()
-	var stuck := not playing and shown != State.CONNECTING
-	_back.visible = stuck or shown == State.CONNECTING
+	_back.visible = not playing
 	_reload.visible = shown == State.OLD_VERSION and OS.has_feature("web")
 	if client != null and client.player != null:
 		client.player.input_enabled = playing

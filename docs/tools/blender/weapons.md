@@ -147,6 +147,12 @@ The 3D Third Person template's pistol (kit #834, `templates/3d-third-person/game
 Deadnight's service pistol on Quaternius's mannequin (1.8 m, a real-sized hand), held in the Universal Animation
 Library's six pistol clips on the `hand_r` bone.
 
+The two mannequins' skins differ at the fingertips: the female's are weighted up to half to the fingertip leaf bones
+(`index_04_leaf_r` and its like), the male's are not. A hold solver or a contact test that moves or sorts the skin by
+a finger's three bones leaves those vertices where the last pose had them (up to 28 mm off), so count the leaf with
+the finger's last bone. The fix and its entry come with the rifle's hands (kit #889 and #1040, on 3D Third Person's
+shooting page once that work lands).
+
 - **Size it at real length and keep the chunky cross-sections.** Deadnight holds the drawing at 1.95 for its chibi
   Soldier; on the mannequin the drawing at 1.0 (0.25 m overall) puts three fingers on the grip and the index finger
   along the frame to the trigger. Three candidates were seated and captured: real cross-sections (the drawing at

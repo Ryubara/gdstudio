@@ -71,6 +71,10 @@ func _ready() -> void:
 	super()
 	if Engine.is_editor_hint():
 		return
+	# On a client of a server the AI is the server's: this body is drawn from its snapshots.
+	if not AiAuthority.runs_here(self):
+		AiAuthority.retire(self, false)
+		return
 	if profile == null:
 		profile = AiProfile.new()
 	add_to_group(GROUP)
@@ -78,10 +82,20 @@ func _ready() -> void:
 	situation.changed.connect(_on_situation_changed)
 	died.connect(situation.die)
 	revived.connect(situation.revive)
-	var found := AiDirector.find(get_tree())
+	var found := AiDirector.find_for(self)
 	if found != null:
 		found.register(self)
 	_show_debug()
+
+
+# A character taken out of the level (a pool) and put back joins the director again; the first
+# time, `_ready` does it.
+func _enter_tree() -> void:
+	if Engine.is_editor_hint() or not is_node_ready():
+		return
+	var found := AiDirector.find(get_tree())
+	if found != null:
+		found.register(self)
 
 
 func _exit_tree() -> void:
@@ -121,6 +135,29 @@ func think(seconds: float) -> void:
 	thought.emit(seconds)
 	if debug:
 		_show_debug()
+
+
+## Starts its mind over as a new character's (a pooled body spawned again, `AiSpawner`): the
+## senses forget, the navigator stops, the tasks start again from the default and the routine,
+## the brain starts again at its next think where it stands then, and personal grudges go. The
+## body, its health and its weapon are the spawner's (`revive_at`).
+func restart_mind() -> void:
+	think_count = 0
+	situation.revive()
+	if senses is AiSenses:
+		(senses as AiSenses).forget_all()
+	if navigator is AiNavigator:
+		(navigator as AiNavigator).stop()
+	if task_runner is AiTasks:
+		(task_runner as AiTasks).restart()
+	if brain is AiBrain:
+		(brain as AiBrain).restart()
+	var member := AiFactionMember.of(self)
+	if member != null:
+		member.forgive_all()
+	if ai_controller() != null:
+		ai_controller().release()
+	_show_debug()
 
 
 ## Called by the director when the tier changes.

@@ -18,8 +18,8 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Disk | under `[disk] hard_gb` free (10 GB): a task agent's start, `git worktree add` (and `gds issue start`) ([below](#disk)) | `gds disk guard`; report what is left to the coordinator and the maintainer |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
-| Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations ([below](#hold)) | stop and report; only the maintainer takes a hold off |
-| Behind main | a merge command (as in Hold) on a pull request whose head lacks the tip of its base, by GitHub's compare (`behind_by` > 0); an API failure only warns ([Starting work](starting-work.md#landing)) | `gds merge-main --path <worktree>`, push, merge once the checks pass |
+| Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations; a session writing the hold switch ([below](#hold)) | stop and report; only the maintainer takes a hold off, or the coordinator while the maintainer's switch is on |
+| Behind main | a merge command (as in Hold) on a pull request whose head lacks the tip of its base, by GitHub's compare (`behind_by` > 0); an API failure only warns ([Landing](landing.md#landing)) | `gds merge-main --path <worktree>`, push, merge once the checks pass |
 | Comments | any `gh` command that posts a comment or a review under the maintainer's account: the `comment` commands, `gh pr review`, `--comment` or `-c` on a close or reopen, `gh api` writes to a comments or reviews path, GraphQL mutations ([below](#comments)) | the same command without the text; the text goes in the scratch folder and the report |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
 | Windowed Godot | Godot started from a shell without `--headless`: its window takes the keyboard focus (docs/engines/godot/no-focus.md) | `gds godot -- <arguments>` or `gds capture frames`; `--headless` when nothing is drawn |
@@ -39,13 +39,19 @@ The guards that read a shell line split it into simple commands (`&&`, `||`, `;`
 Before naming the program they drop the leading `NAME=value` words (a quoted value or a `$(...)` with spaces
 included) and the words `&`, `.`, `call`, `exec`, `time` and `sudo`, so `GODOT="$(gds tool path godot)"` is an
 assignment, never a Godot start, and `FOO=1 git push` is judged as `git push` (`segments` in
-`.claude/hooks/guards.py`; gdstudio #1004). A plain `cd <dir>` is followed: the commands after it are judged in that
-folder.
+`.claude/hooks/guards/shell.py`; gdstudio #1004). A launcher (`env`, `nohup`, `timeout`, `cmd /c`, `start`,
+`Start-Process`) is judged by the program it starts, and a continued line (`\` or a backtick) stays one command. A
+plain `cd <dir>` is followed: the commands after it are judged in that folder.
+
+- **Approach:** Judge each simple command by its program word, after any launcher, never by a word after it.
+  **Watch out for:** a newline after `find \` made `godot -name '*.gd'` a Godot start, while `env godot` passed; a
+  bare `env` is a command itself. **Seen:** gdstudio #1192, 2026-11-11.
 
 ## Pull request bodies before they are sent {#pr-body}
 
 Moved to [Pull requests: the body guard](pull-requests.md#pr-body): `gds pr check-body`, the guard before `gh pr
-create|edit` and what neither can judge. This page had reached its size limit.
+create|edit` and what neither can judge. This page had reached its size limit. `gds pr check-body --attach <file>`
+counts a reference to a file about to be attached as uploaded, as the guard does.
 
 ## Which paths the image guard covers {#attach-paths}
 
@@ -82,32 +88,15 @@ branch deletion and an empty push pass. `--no-verify` is refused by the Git guar
 
 ## The hold {#hold}
 
-A pull request the maintainer must see first carries the label `S-hold`. GitHub enforces it, not this hook: the `hold`
-job of `.github/workflows/hold.yml` fails while the label is on, and the `Main` ruleset requires that job, so no route
-merges it. The rule is `merge.hold` in `.github/conventions.yml`. A failed `hold` is a decision, not a broken build: it
-stays out of `merge.required_checks`, so `pr-status` does not label it `S-ci-failing`.
+<!-- moved: hooks.md went over 50 KB with #1202; the anchor stays for the links in code and AGENTS.md -->
 
-- **Set it** with `gds pr hold <owner/repo>#N`: it adds the label and returns once the check is red, because until then
-  the green run before it still counts (on a real pull request: 3 s to pending, 7 to 10 s to red). Better still, open
-  the pull request held: `gh pr create --label S-hold`.
-- **Take it off** only on the maintainer's word, and only by hand on the pull request's page. The check re-runs with no
-  new commit. Auto-merge that is on stays on through the hold, so the pull request merges the moment the label comes
-  off.
-- **The guard** in `guards.py` gives a session the reason, and it is the only thing that stops a session taking the
-  label off: every agent uses the maintainer's token, so GitHub cannot tell them apart. It reads shell commands, so it
-  does not see a script that calls the API itself.
-- **A pull request opened before the check was required** has no run on its head and stays pending: run
-  `gh workflow run hold-sweep.yml` once. It reports the check through the Checks API and does not touch the pull
-  request. A new game runs it once when its ruleset starts requiring `hold`.
-
-Do not put an `if:` or a `paths:` filter on `hold`: a job skipped by `if:` reports success, so a filter on the label's
-name would let any other label replace a failed run. `python/tests/test_hold.py` has a test for each such reason.
+How `S-hold` stops a merge, who may take it off, and the maintainer's switch that lets the coordinator lift it: [The hold](hooks-hold.md#hold).
 
 ## Comments {#comments}
 
 Nothing an agent runs posts a comment or a review under the maintainer's GitHub account (their decision of 2026-10-12);
-status labels say that work is under way. `check_comments` in `guards.py` judges what `gh` would do, because a rule
-that lists the commands named `comment` let `gh issue close --comment` post on #691
+status labels say that work is under way. `check_comments` in `guards/comments.py` judges what `gh` would do, because a
+rule that lists the commands named `comment` let `gh issue close --comment` post on #691
 ([Writing checks](writing-checks.md#effects)). The routes come from every page
 of `gh help` in gh 2.102 and the mutations from GitHub's schema, read on 2026-11-05; a later `gh` can add a route, so
 the list is only as current as that walk.
@@ -272,17 +261,17 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
   `origin/main`, cherry-pick the commit, open a new pull request, and reset the old branch. A commit
   that reached `origin/main` through a new pull request has the same patch id and is not named; one squashed there
   with others is read by content: stranded only if a path it touches differs from `origin/main`'s blob. If the tip is
-  unknown in the worktree (the branch was rewritten), the hook lets go ([Starting work](starting-work.md#landing)).
+  unknown in the worktree (the branch was rewritten), the hook lets go ([Landing](landing.md#landing)).
 - **The report.** `SubagentStop` reads the agent's last message (`last_assistant_message`, else the end of its
   transcript). A non-empty `Mistakes` section (a heading, or `Mistakes:` / `**Mistakes**`; `none` is empty) must name a
   section as `page.md#anchor` that a kit worktree (or the kit checkout) has, with that anchor, and changes against
-  `origin/main`: the rule was written there. A file of `docs/lessons/` or the corrections log does not count. Otherwise
-  the agent is held back once. A task agent's report that names a pull request also needs a `Read:` line naming the
-  sections it read and a `Docs gaps:` line (`none` is fine), or it is held back once ([The
-  report](starting-work.md#the-report); `[brief] report`); a `Blocked:` end is not judged. A `Read:` or `Docs gaps:`
-  line ends a `Mistakes` section, so `Mistakes: none` above them stays empty, and a section named only on a `Read:`
-  line is one the agent read, so it never satisfies the Mistakes check. Helpers and the `reviewer` are exempt.
-  Settings: `[docs]` and `[brief]` in `hooks.toml`.
+  `origin/main`: the rule was written there. A file of `docs/lessons/` or the corrections log (its page or a page of
+  `studio/corrections-log/`) does not count. Otherwise the agent is held back once. A task agent's report that names a
+  pull request also needs a `Read:` line naming the sections it read and a `Docs gaps:` line (`none` is fine), or it is
+  held back once ([The report](starting-work.md#the-report); `[brief] report`); a `Blocked:` end is not judged. A
+  `Read:` or `Docs gaps:` line ends a `Mistakes` section, so `Mistakes: none` above them stays empty, and a section
+  named only on a `Read:` line is one the agent read, so it never satisfies the Mistakes check. Helpers and the
+  `reviewer` are exempt. Settings: `[docs]` and `[brief]` in `hooks.toml`.
 
 - **The pull request.** The `body` check of `pr.yml` judges the description with what GitHub knows
   (`groundwork.py pr-history` lists the watched checks that failed on an earlier commit and the issues the pull request
@@ -458,21 +447,70 @@ Registered in `.claude/settings.json` and in the game template (`templates/game/
   corrections depended on the coordinator remembering; nothing tied a correction to a docs change, and agents did not
   read past corrections before starting. **Seen:** Deadnight, 2026-11-01 (fix: the learning hooks (kit #72)).
 
+## The guards' modules {#modules}
+
+<!-- new section: the page said what each guard refuses, never where its code lives; guards.py became a package -->
+
+The dispatcher runs the package `.claude/hooks/guards/`, one module per job, so two hook changes rarely touch one file.
+Standard library only: the hooks start under `uv run --no-project`.
+
+| Module | Its job |
+| --- | --- |
+| `__init__.py` | the entry points the dispatcher calls: `pre_tool_use`, `post_tool_use`, `stop` and `subagent_stop` run the guards of every module, each importing the modules it needs when it runs |
+| `shell.py` | reading a shell line: heredocs left out, simple commands as words, the program, the folder of `git -C` and `cd`, a flag's values |
+| `workspace.py` | the tool groups, the warnings of a guard that failed open (`take_warnings`), globs, git, the workspace by its marker, the kit (`KIT`, `kit_root`), `load_kit_module`, and `gds` commands started in the background |
+| `agents.py` | agent types, and the `Read:` lines of a task agent's prompt ([below](#docs)) |
+| `issues.py` | issue order and the labels of progress ([below](#issues)) |
+| `bodies.py` | pull request bodies before `gh pr create\|edit` runs and after it ran ([the image guard](pull-requests.md#attach-paths)) |
+| `commits.py` | commits and pushes |
+| `merges.py` | `gh pr merge`, manual paths, the hold and its switch ([above](#hold)) |
+| `behind_base.py` | a merge only of a head that holds its base's tip |
+| `comments.py` | no comment or review under the maintainer's account ([above](#comments)) |
+| `launches.py` | pinned tools, windowed Godot, Godot audio, browser probes, kills by name |
+| `protected.py` | secrets printed, protected and generated files edited, the hold switch |
+| `proof.py`, `session.py`, `mains.py`, `disk.py`, `sweep.py`, `learning.py`, `docs.py`, `stall.py`, `idle.py` | the sections of the same names below |
+
+A module imports what it uses from another (`from .shell import segments`), and `guards.<name>` still finds any name
+of the package (a module `__getattr__`), as it did when the guards were one file. The entry points import a module
+when a call needs it: a Read loads `disk.py` and `workspace.py` only, a shell command the `git` or `gh` guards only
+when it runs `git` or `gh`. The kit modules the hooks load
+by file (`gds_tools/pr.py`, `lessons.py`, `issues.py`, `hold_switch.py`) go through `load_kit_module(name)`, so
+they must use the
+standard library only; `python/tests/hooks/test_hook_modules.py` loads them under `python -I -S`.
+
+- **Approach:** Replace a name of the guards in a test with `hook_support.patch(monkeypatch, name, value)`
+  (`python/tests/hook_support.py`), which sets it in every module of the package that holds it. **Watch out for:**
+  `monkeypatch.setattr(guards, name, ...)` changes only the package's binding, so the guard that imported the name
+  still calls the real one and a test reaches GitHub or the real disk; and a module named like one of the package's
+  functions hides it, because importing `guards.behind` set the package's `behind` to the module (hence
+  `behind_base.py`). **Seen:** gdstudio #929, 2026-11-11 (the split; `guards.behind(...)` raised "'module' object is
+  not callable" until the module was renamed).
+
+- **Approach:** Import a guard module inside the entry point that calls it, and time a hook change against the code
+  before it, interleaved (A, B, A, B) on the same payloads, Read among them. **Watch out for:** the PreToolUse hook
+  runs on every tool call (matcher `*`), so each module imported with the package costs every Read and Grep a file
+  open; the twenty modules imported at once cost 10 to 15 ms more than the single file, a run of one after the other
+  hides it in noise. **Seen:** gdstudio #929, 2026-11-11 (fixed by imports in `pre_tool_use`; a Read went from 120 to
+  115 ms, a shell command stayed within noise).
+
 ## Tests {#tests}
 
 How the run works (the command, CI's four workers, the seeded repositories of `python/tests/git_seed.py`, the
 allowed skips) is on [The kit's tests](kit-tests.md); this section says which file covers which hook.
 
-`python/tests/test_hooks.py` covers every guard (the comment guard with one case per route, spelling and mutation, and
-one per command that must keep working), the answer protocol, the fail-open path, the issue-order checks, the
-stall gate (reports, blockers, the refusal limit, the reviewer), the idle-issue check (the refusal and both commands,
-a task agent never judged, the refusal limit and its reset, the `gh` cache, failing open) and the learning loop (each
-event's text, the queue gate and its loop guard, and the dispatcher run as a process) and the background sweep (started
-once, throttled, switched off, log moved aside; started by session start, a merge and Stop).
+`python/tests/hooks/` covers every guard, one file per job as [the modules](#modules) are (`test_hook_<job>.py`; its
+`conftest.py` keeps every test away from GitHub, the sweep, the disk guard and the real disk): the comment guard (one
+case per route, spelling and mutation, and one per command that must keep working), the answer protocol, the fail-open
+path, the issue-order checks, the stall gate (reports, blockers, the refusal limit, the reviewer), the idle-issue check
+(the refusal and both commands, a task agent never judged, the refusal limit and its reset, the `gh` cache, failing
+open) and the learning loop (each event's text, the queue gate and its loop guard, and the dispatcher run as a process)
+and the background sweep (started once, throttled, switched off, log moved aside; started by session start, a merge and
+Stop).
 `python/tests/test_sweep.py` covers `gds worktree sweep` on real git repositories.
 `python/tests/test_brief.py` and the brief tests of `python/tests/test_lessons.py` cover `gds brief`: an issue and a
 pull request read through recorded `gh` answers, the order of the proposed sections, a path mention far from the issue's
 words left out (#909's body in `python/tests/fixtures/issue_bodies/`), and that the kit's own brief names sections that
-exist; `test_hooks.py` covers the `Read:` guard and the report's `Read:` and `Docs gaps:` lines.
+exist; `hooks/test_hook_issues.py` and `hooks/test_hook_docs.py` cover the `Read:` guard and the report's `Read:` and
+`Docs gaps:` lines.
 `python/tests/test_issues.py` covers the window, `gds issue` (including `block`, `unblock` and the parsing of the
 `Blocked (...)` line) against `gh` JSON recorded in `python/tests/fixtures/`.

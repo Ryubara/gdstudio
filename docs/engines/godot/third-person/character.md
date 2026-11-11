@@ -7,24 +7,15 @@ slide, the ragdoll and touch controls. Part of [the 3D Third Person template](..
 
 ## The animation libraries {#animation-libraries}
 
-<!-- new section: no page said how the Universal Animation Library reaches a Godot character -->
+<!-- new section: a pointer left when the section moved to its own page at the size limit (#1016) -->
 
-- **Approach:** Import each Universal Animation Library glb as an `AnimationLibrary` (`importer="animation_library"` in
-  its `.import`, the "Import As" choice of the Import dock), add it to the player's `AnimationPlayer` under a library
-  name (`ual1`, `ual2`), and keep the mannequin as a plain scene whose root is the `AnimationPlayer`'s `root_node`.
-  **Watch out for:** the importer drops the glb's mesh (the library is 0.75 MB where the file is 7.6 MB), removes the
-  `_Loop` suffix and makes the clip loop (`Idle_Loop` is `ual1/Idle`, `Jump_Loop` is `ual1/Jump`), and the track paths
-  are `Armature/Skeleton3D:<bone>`, which match the mannequin's scene (`mannequin/Armature/Skeleton3D`) with no
-  retargeting, since the libraries and the mannequin share the Quaternius universal rig. A test walks every track of all
-  86 clips and finds its bone. **Seen:** gdstudio #821, 2026-11-08.
-- **Approach:** Name every point of an `AnimationNodeBlendSpace1D` (`add_blend_point(node, pos, -1, &"walk")`) and
-  travel a state machine between states that all have transitions to each other. **Watch out for:** Godot 4.7 warns "No
-  name provided" for an unnamed point, once per point and per player. **Seen:** gdstudio #821, 2026-11-08.
-- The Pro and Source tiers of the packs are not free; the template holds the Standard files only (43 clips each, 86 in
-  all). Their licence is CC0 on the official pages (itch.io and quaternius.com) and in each zip's `License.txt`.
-  A download needs the itch.io page's free "name your own price" path (a CSRF token, then `download_url`, then
-  `file/<id>`, all within seconds of each other); keep the zips in `<workspace>/cache/downloads/` and record their
-  sha256 in the licence entry.
+Moved to [The character's clips](clips.md#animation-libraries).
+
+## The vault clips {#vault-clips}
+
+<!-- new section: a pointer left when the section moved to its own page at the size limit (#1016) -->
+
+Moved to [The character's clips](clips.md#vault-clips).
 
 ## The two mannequins {#mannequins}
 
@@ -82,6 +73,12 @@ A model without `Armature/Skeleton3D` gets one configuration warning on `Animati
 one line for the player, not one for every bone of every clip). `tools/editor_swap/` does the steps above through the
 Scene dock and checks the result.
 
+**A second look without deleting** (kit #969): an inherited character scene cannot delete its base's model, so
+`CharacterModel.variant` takes another model of the same rig. When the game runs the slot frees the scene's model and
+puts the variant in its place at `_ready` (the seats and clips follow as for a swap); in the editor it draws the
+variant as an internal child and hides the scene's model through `RenderingServer` alone, so the scene saves nothing.
+The enemies of [the AI section](ai-characters.md#parts) set the male mannequin on the female base this way.
+
 - **Approach:** Put a part that people replace (the model, a weapon) under a stable slot node and reference only the
   slot (an export); a `@tool` script on the slot finds the part and rewrites the paths that depend on it (the
   `AnimationPlayer`'s Root Node, a `BoneAttachment3D`'s `external_skeleton`) one idle frame after a child enters or
@@ -114,6 +111,10 @@ Scene dock and checks the result.
   without an error. `bone_name = bone_name` also looks the bone up again by name: a model with another bone order is
   not bound to the old index, and an empty skeleton is not connected (it logged "Index p_bone = 34 is out of bounds").
   **Seen:** gdstudio #860, 2026-11-09.
+- **Approach:** Before seating an attachment, drop any `skeleton_updated` connection the skeleton still holds to it
+  (`CharacterModel._drop_connection`). **Watch out for:** a pooled character whose model was swapped at run time (a
+  `variant`) re-entered the tree, the attachment connected itself on entering, and the seat's setters then logged
+  "already connected" for each spawn. **Seen:** kit #969, 2026-11-11 (`test_ai_spawner.gd`, a spawn of a parked male).
 - **Approach:** Measure a seat against its bone, not the thing hung on it, to a few centimetres, in every frame of a
   crouch-walk after the swap, in the game scene as well as in the test arena, and check that the bone moved. **Watch out
   for:** the first test compared the pistol (0.13 m from its seat) with the hand 4 ticks after the swap against 0.35
@@ -152,8 +153,8 @@ Scene dock and checks the result.
   with one stream in two `SubViewport` worlds (one camera looking elsewhere, one none) and with a grep of the body's
   source for `Input.`, `get_camera_3d(` and `get_viewport(`. **Watch out for:** the body read `Input` in 14 places and
   the camera in 2, so a second `player.tscn` walked in step with the first and died on the same key, and a headless
-  server could not move one. **Seen:** gdstudio #901, 2026-11-10 (`test_two_characters.gd`; position, velocity and
-  state bit-equal on all 780 ticks of `test_command_stream.gd` in two Jolt spaces of one process).
+  server could not move one. **Seen:** gdstudio #901, 2026-11-10 (`test_two_characters.gd`, bit-equal in
+  `test_command_stream.gd`); gdstudio #1138, 2026-11-11 (the grep caught a camera-reading throttle put there).
 - **Approach:** Keep out of the step what only its owner or its picture knows: call `step` inside a physics frame with
   the physics step, show `facing` on the model through one null-safe method called in the tick, and on a fall out of
   the map say `fell` once and let the owner answer. **Watch out for:** `move_and_slide()` moves by the engine's own
@@ -223,7 +224,7 @@ Scene dock and checks the result.
   | Pushing a prop | `CharacterPush.push_props(body, before, delta)` (`character_push.gd`), static | the body's `_push_cap`, `_push_hold` |
   | Dying and getting up | `CharacterDeath` (`character_death.gd`), static: `die`, `revive`, the dead tick | none (death is an event) |
   | The capsule and the eye point | `CharacterCapsule` (`character_capsule.gd`), static: `height`, `fit`, the room to stand | none |
-  | An AI's lean tick (#1059) | `CharacterLean` (`character_lean.gd`), static, when `lean_step` is on | none |
+  | An AI's lean tick (#1059; the aim and the trigger since #1104) | `CharacterLean` (`character_lean.gd`), static, when `lean_step` is on | none |
   | Taking and putting back a snapshot | `CharacterState.take(body)`, `put_back(body)` (`character_state.gd`) | it is the step state |
   | Health, using things, steps | the `Health` child ([Health](../third-person-hits.md#health)), `Interactor` ([Interact](interact.md#interactable)), `StepClimber` | none |
 
@@ -360,6 +361,13 @@ differs, from run to run. What Chrome still pays is the WAV's own start.
 
 The desktop rows are three interleaved runs of each build (before, after, before, ...), the browser rows two, headless,
 on a machine other agents were using; a range is the lowest and the highest run.
+
+- **Approach:** Empty the `RagdollPool` (`clear()`) before counting a living character's nodes, so it makes the pool's
+  sets whatever ran first; leave out the controller the test added and hold the count equal. The count includes the
+  empty `PhysicalBoneSimulator3D` every `Skeleton3D` adds as an internal child on entering the tree (4.7.2's
+  `setup_simulator`): `find_children` lists it. **Watch out for:** handing a set to the pool left its `RagdollDrawing`
+  on the skeleton that made it: 57 nodes alone, 56 in the full run, where earlier suites had filled the pool;
+  `_release` now drops it. **Seen:** gdstudio #1210, 2026-11-11.
 
 ## Prone and the crawl {#prone}
 
