@@ -325,6 +325,7 @@ the node or on the `WeaponDef`, builds the tree again):
 | `WeaponDef.grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
 | `WeaponDef.aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clips`, `reload_clip` | the `Pistol_*` clips | The aim pose by pitch, the recoil (the fists: `Punch_Jab` and `Punch_Cross` in turn) and the reload, stretched to the reload's time. |
 | `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
+| `aim_brace` | on | Holds the upper body's turn on the stance the aim poses were made on while the character aims standing, walking or running (`AimBrace`, a skeleton modifier): the pistol points along the view whatever the legs' clip does to the pelvis. Off, the aim pose turns with that pelvis. |
 | `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | How far the character looks up or down for the full aim up and down poses, and the recoil's speed. |
 | `shot_hold_time` | 0.2 s | How long the arm stays up after a shot, so a shot fired without aiming (hip fire) shows. The walk and the turn are normal at once; 0 lowers the arm as soon as the buttons are let go. |
 
