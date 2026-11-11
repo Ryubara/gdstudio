@@ -262,12 +262,13 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   **Seen:** gdstudio #1110, 2026-11-11 (from #1109); gdstudio #1146, 2026-11-11 (a camera fix, 2 snaps against 1).
 
 - **Approach:** Number the commands from the smallest round trip of the last eight PONGs (`NetClient.RTT_WINDOW`),
-  never the last one; read the floor over 5 s of `seq - server_tick` in the stall run's `by_second` (a TICK stale
-  behind a down stall spikes it for a second). **Watch out for:** a number may jump, never go back (the server drops
-  a `seq` at or under its last), so one PONG held behind a stall of the network (450 to 590 ms, not 250) put the
-  numbering 15 to 18 ticks ahead for good, and the map's moving parts stood up to 0.5 s apart on the two sides, inside
-  `COMMAND_TICKS_AHEAD`. #1108's check of the client's own stalls never sees the network's. **Seen:** gdstudio #1116,
-  2026-11-11 (six stall runs ended 17 to 27 ahead, main's client 33 to 82 in five; held-PONG test).
+  never the last; read the 5 s floor of `seq - server_tick` in the gate's `by_second` (a stale TICK spikes a second).
+  **Watch out for:** a number may jump, never go back (the server drops a `seq` at or under its last), so one PONG
+  held behind a stall of the network (450 to 590 ms, not 250) put the numbering 15 to 18 ticks ahead for good, and
+  the map's moving parts stood up to 0.5 s apart on the two sides. #1108's check misses that PONG, and a freeze's
+  too: it is read in the first poll after the freeze, before the stall guard's resync (main's client stood 43, 129,
+  then 310 ticks ahead after the 0.5, 2 and 5 s freezes). **Seen:** gdstudio #1116, 2026-11-11 (stall runs ended 17
+  to 27 ahead, main's 33 to 82; freeze runs 11 to 20 throughout; the held-PONG test).
 - **Approach:** Judge a change's stall runs against main's client in the same made game, interleaved run by run
   (copy the one script in), and read the CPU load beside each. **Watch out for:** at 97 to 100 % CPU the starvation
   check failed on both sides (main's client 441 to 597 puppet-steps, the fix 498 to 867, bounds 530 to 620); its two

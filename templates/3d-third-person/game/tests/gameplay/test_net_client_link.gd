@@ -226,6 +226,20 @@ func test_a_pong_held_behind_a_network_stall_does_not_move_the_numbering_on() ->
 	step.call(-1)
 	assert_int(client.renumbered).is_equal(1)
 	assert_int(client.seq - server[0]).is_equal(ahead - 1)
+	# A freeze of this client's thread (gdstudio #1127's data): the PONG to a ping sent before it is
+	# read in the first poll after it, before the stall guard's resync can refuse it (5.1 s), with
+	# a TICK of the same burst; on main the numbering jumped up to 310 ticks ahead and stayed.
+	now[0] += 5.0
+	server[0] += 300
+	var frozen_at := int(now[0] * 1000.0) - 5100
+	ends[1].send(NetWire.pong(NetWire.read_ping(NetWire.ping(frozen_at)), 1))
+	ends[1].poll()
+	client._physics_process(1.0 / 60.0)
+	assert_int(client.rtt_ms).is_equal(5100)
+	client.resync()
+	for index in 60:
+		step.call(250 if index % 30 == 29 else -1)
+	assert_int(client.seq - server[0]).is_equal(ahead - 1)
 	# A round trip that stays longer for the whole window is the network's: the numbering follows.
 	for index in NetClient.RTT_WINDOW:
 		step.call(550)
