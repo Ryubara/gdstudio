@@ -8,6 +8,7 @@ extends MeshInstance3D
 ## cosmetic: nothing of it is sent).
 
 static var _material: StandardMaterial3D
+static var _ground_material: StandardMaterial3D
 
 ## The cone's fill and its edges.
 @export var cone_color := Color(1.0, 0.85, 0.2, 0.16)
@@ -39,13 +40,27 @@ var _mesh := ImmediateMesh.new()
 ## The material every debug drawing of the senses uses: unshaded vertex colours with alpha.
 static func line_material() -> StandardMaterial3D:
 	if _material == null:
-		_material = StandardMaterial3D.new()
-		_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_material.vertex_color_use_as_albedo = true
-		_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-		_material.no_depth_test = true
+		_material = _new_material(true)
 	return _material
+
+
+## The material of what lies on the ground (the cone, the rings, the crosses): drawn behind walls
+## and bodies, so the cone reads as a patch of floor.
+static func ground_material() -> StandardMaterial3D:
+	if _ground_material == null:
+		_ground_material = _new_material(false)
+	return _ground_material
+
+
+static func _new_material(on_top: bool) -> StandardMaterial3D:
+	var made := StandardMaterial3D.new()
+	made.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	made.vertex_color_use_as_albedo = true
+	made.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	made.cull_mode = BaseMaterial3D.CULL_DISABLED
+	made.no_depth_test = on_top
+	made.render_priority = 1 if on_top else 0
+	return made
 
 
 ## Adds a flat ring of `radius` around `center` on the ground plane, `width` wide, as triangles
@@ -84,7 +99,6 @@ func _ready() -> void:
 	global_transform = Transform3D.IDENTITY
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mesh = _mesh
-	material_override = line_material()
 	_senses = get_parent() as AiSenses
 	set_process(visible)
 	visibility_changed.connect(func() -> void: set_process(visible))
@@ -106,26 +120,26 @@ func redraw() -> void:
 	var looks := _senses.sight and not character.is_dead()
 	if not looks and not _senses.hearing and _senses.beliefs.size() == 0:
 		return
-	_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, ground_material())
 	if looks:
 		_draw_cone(feet, _senses.look_direction(), profile)
 		add_ring(_mesh, feet, profile.near_radius, line_width * 1.5, near_color, segments)
-	if _senses.hearing:
+	if _senses.hearing or not looks:
 		add_ring(_mesh, feet, profile.hearing_range, line_width, hearing_color, segments * 2)
+	for belief: AiBelief in _senses.beliefs.by_id.values():
+		if not belief.seen_now:
+			_cross(belief.last_position + Vector3.UP * 0.06, _color_of(belief))
+	_mesh.surface_end()
+	if _senses.beliefs.size() == 0:
+		return
 	var eye := _senses.eye_position()
 	var right := camera.global_basis.x if camera != null else Vector3.RIGHT
 	var up := camera.global_basis.y if camera != null else Vector3.UP
 	var row := 0
+	_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, line_material())
 	for belief: AiBelief in _senses.beliefs.by_id.values():
-		var color := heard_color
-		if belief.seen_now:
-			color = seen_color
-		elif belief.source == AiBelief.Source.SEEN or belief.source == AiBelief.Source.TOUCHED:
-			color = memory_color
-		var target := belief.last_position + Vector3.UP * 1.2
-		_ribbon(eye, target, color, camera)
-		if not belief.seen_now:
-			_cross(belief.last_position + Vector3.UP * 0.06, color)
+		var color := _color_of(belief)
+		_ribbon(eye, belief.last_position + Vector3.UP * 1.2, color, camera)
 		_bar(
 			character.global_position + Vector3.UP * (bar_height + row * bar_thickness * 1.6),
 			belief,
@@ -136,6 +150,14 @@ func redraw() -> void:
 		)
 		row += 1
 	_mesh.surface_end()
+
+
+func _color_of(belief: AiBelief) -> Color:
+	if belief.seen_now:
+		return seen_color
+	if belief.source == AiBelief.Source.SEEN or belief.source == AiBelief.Source.TOUCHED:
+		return memory_color
+	return heard_color
 
 
 func _draw_cone(feet: Vector3, look: Vector3, profile: AiProfile) -> void:

@@ -248,7 +248,7 @@ func test_the_view_draws_when_shown_and_costs_nothing_hidden() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	assert_bool(senses.view.visible).is_true()
-	assert_int(mesh.get_surface_count()).is_equal(1)
+	assert_int(mesh.get_surface_count()).is_equal(2)
 	var vertices: PackedVector3Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
 	assert_int(vertices.size()).is_greater(100)
 

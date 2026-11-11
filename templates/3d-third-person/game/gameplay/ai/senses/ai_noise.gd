@@ -164,7 +164,7 @@ func _draw() -> void:
 		_view.top_level = true
 		_view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_view.mesh = ImmediateMesh.new()
-		_view.material_override = AiSensesView.line_material()
+		_view.material_override = AiSensesView.ground_material()
 		add_child(_view)
 	_view.visible = true
 	var mesh := _view.mesh as ImmediateMesh
