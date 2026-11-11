@@ -93,7 +93,7 @@ HOOK = r"""
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
     """Serves the export without a log line a request."""
 
-    def log_message(self, *_args: object) -> None:  # noqa: D102
+    def log_message(self, *_args: object) -> None:
         return
 
 
@@ -119,7 +119,11 @@ def encode(programs: list[dict], godot: str) -> dict:
             best_start, best_length = 0, 0
             for start in places.get(lines[at], [])[-CANDIDATES:]:
                 length = 0
-                while at + length < len(lines) and start + length < len(stream) and stream[start + length] == lines[at + length]:
+                while (
+                    at + length < len(lines)
+                    and start + length < len(stream)
+                    and stream[start + length] == lines[at + length]
+                ):
                     length += 1
                 if length > best_length:
                     best_start, best_length = start, length
@@ -197,7 +201,12 @@ def slowest_links(seen: dict, keys: list[str], listed: set[str], count: int = 6)
     """The slowest links: milliseconds, the second it began, whether the list had the program, its defines."""
     # Every program recorded at `linkProgram` is read at once (`LINK_STATUS`), so the two lists keep one order.
     rows = [
-        [round(ms), round(at / 1000, 2), keys[i] in listed if i < len(keys) else None, defines(seen["programs"][i]) if i < len(keys) else ""]
+        [
+            round(ms),
+            round(at / 1000, 2),
+            keys[i] in listed if i < len(keys) else None,
+            defines(seen["programs"][i]) if i < len(keys) else "",
+        ]
         for i, (at, ms) in enumerate(seen["links"])
     ]
     return sorted(rows, key=lambda row: -row[0])[:count]
@@ -286,7 +295,8 @@ def main() -> int:
             programs = decode(json.loads(args.write.read_text(encoding="utf-8"))) + programs
         kept = unique(programs)
         args.write.parent.mkdir(parents=True, exist_ok=True)
-        args.write.write_text(json.dumps(encode(kept, godot), separators=(",", ":")) + "\n", encoding="utf-8")
+        text = json.dumps(encode(kept, godot), separators=(",", ":")) + "\n"
+        args.write.write_text(text, encoding="utf-8", newline="\n")
         result["written"] = {"path": str(args.write), "programs": len(kept), "bytes": args.write.stat().st_size}
         print(json.dumps(result["written"]))
     (args.out / "result.json").write_text(json.dumps(result, indent=1), encoding="utf-8")
