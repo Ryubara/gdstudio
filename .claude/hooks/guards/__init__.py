@@ -36,6 +36,7 @@ MODULES = (
     "merges",
     "proof",
     "protected",
+    "red_default",
     "session",
     "shell",
     "stall",
@@ -75,19 +76,19 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
             + check_disk_agent(payload, config)
         )
     if tool in EDIT_TOOLS:
-        from .protected import check_edit, check_switch_edit
+        from .protected import check_edit, check_transcript_edit
 
-        return check_edit(payload, config) + check_switch_edit(payload)
+        return check_edit(payload, config) + check_transcript_edit(payload)
     if tool not in SHELL_TOOLS:
         return []
     from .comments import check_comments
     from .launches import check_browser_probe, check_godot_audio, check_godot_window, check_kill, check_tools
-    from .protected import check_secrets, check_switch_shell, check_switch_text
+    from .protected import check_secrets, check_transcript_shell, check_transcript_text
     from .shell import change_dir, program, segments
 
     command = (payload.get("tool_input") or {}).get("command", "")
     cwd = Path(payload.get("cwd") or ".")
-    reasons = check_comments(command) + check_switch_text(command)
+    reasons = check_comments(command) + check_transcript_text(command)
     lost = False  # a `cd` this cannot follow came before: a relative path no longer has a known folder
     for words in segments(command):
         moved, folder = change_dir(words, cwd)
@@ -107,10 +108,12 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
             from .bodies import check_pr_body
             from .issues import check_labels
             from .merges import check_hold, check_merge, coordinator_lift
+            from .red_default import check_red_main
 
             reasons += check_merge(words, cwd)
             reasons += check_hold(words, cwd, coordinator_lift(payload))
             reasons += check_behind(words, cwd)
+            reasons += check_red_main(words, cwd)
             reasons += check_labels(words)
             reasons += check_pr_body(words, cwd, config, lost)
         reasons += check_tools(words, config)
@@ -119,7 +122,7 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
         reasons += check_browser_probe(words, config)
         reasons += check_kill(words, config)
         reasons += check_secrets(words, command, config)
-        reasons += check_switch_shell(words, cwd)
+        reasons += check_transcript_shell(words)
     return list(dict.fromkeys(reasons))
 
 

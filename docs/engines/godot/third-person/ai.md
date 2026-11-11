@@ -18,7 +18,7 @@ it.
 | `AiCharacter` | `gameplay/ai/ai_character.gd`, `ai_character.tscn` | The template's `Character` (its body, `Model` slot, animation, `Health` and ragdoll, as the player has them: the scene inherits `character_dressed.tscn`) driven by an `AiController`. Joins the group `ai_characters`, never `player`. Signals `situation_changed`, `tier_changed`, `thought`. A hit comes through `Health`, a death goes into the same ragdoll. |
 | `AiController` | `gameplay/ai/ai_controller.gd` | The `CharacterController` the parts write: the movement channel (`walk_direction`, `walk_strength`) and the action channel (`look_direction`, `aim`, `fire`), turned into one `PlayerCommand` a tick with `set_from_world`. A fire that starts is a press in exactly one command; `is_still()` says it asks for nothing. |
 | `AiProfile` | `gameplay/ai/ai_profile.gd`, `profiles/grunt.tres`, `ally.tres`, `civilian.tres` | Every number a kind of character reads, in six groups (Movement, Senses, Combat, Nerve, Social, Budget), each an `@export` with a range, a unit and a tooltip, read where it is used so an edit applies live. |
-| `AiDirector` | `gameplay/ai/ai_director.gd`, a node of `world/world.tscn` (group `ai_director`) | Steps every registered character's body, runs its think at its rate on its own phase, puts it in a tier by distance, and holds the shared `AiBudget`. It gives a character its `tier` and its `budget` and nothing else. |
+| `AiDirector` | `gameplay/ai/ai_director.gd`, a node of `world/world.tscn` (group `ai_director`) | Steps every registered character's body, runs its think at its rate on its own phase, puts it in a tier by distance, and holds the shared `AiBudget` and the fight's attack slots ([Attack slots](ai-behaviour.md#attack-slots)). It gives a character its `tier` and its `budget` and nothing else. |
 | `AiAnimationThrottle` | `gameplay/ai/ai_animation_throttle.gd`, the `AnimationThrottle` child of the `AiDirector` in `world/world.tscn` (the director's `animation_throttle`) | Moves each managed character's `AnimationTree` on less often where nobody would see it (far, out of view, Dormant), with the footsteps only near the camera: [The animation throttle](#animation-throttle). |
 | `AiBudget` | `gameplay/ai/ai_budget.gd` | Rays, path queries and thinks all characters together may spend in one physics tick; `take_ray()`, `take_path()`, `take_think()` refuse the one over the count. |
 | `AiSituation` | `gameplay/ai/ai_situation.gd` | Unaware, Suspicious, Alert, Engaged, Fleeing, Dead: rising is at once, calming down or turning sideways waits `situation_dwell`, awareness crosses its lines with `awareness_hysteresis`, death is at once and only `revive()` leaves it. |
@@ -64,7 +64,9 @@ finds it through the group; a character with no director steps itself and never 
 - **`AiDirector`**: Population `web_cap` 40, `desktop_cap` 120, `web_full_cap` 12, `desktop_full_cap` 60,
   `player_group`; Budget a tick `rays_per_tick` 8, `paths_per_tick` 4, `thinks_per_tick` 12; Steps
   `reduced_step_ticks` 4, `dormant_step_ticks` 6, `rest_step_ticks` 3; Animation `animation_throttle` (the
-  `AnimationThrottle` node in `world.tscn`; empty: every character animates every frame).
+  `AnimationThrottle` node in `world.tscn`; empty: every character animates every frame); Attack slots
+  `web_attack_slots` 6, `desktop_attack_slots` 16 (a target), `web_fight_cap` 12, `desktop_fight_cap` 48 (all
+  targets), `slot_lease_seconds` 3 s ([Attack slots](ai-behaviour.md#attack-slots)).
 - **`AiAnimationThrottle`**: `enabled`; Distances `near_distance` 15 m, `far_distance` 25 m, `footstep_range` 15 m
   (all from the camera); Periods `reduced_period` 3, `far_period` 6 (frames), `freeze_unseen`, `max_catch_up` 0.25 s,
   `hit_hold` 1 s; Work `recheck_frames` 4, `throttle_skeleton`, `camera` (empty: the viewport's).
@@ -79,14 +81,20 @@ finds it through the group; a character with no director steps itself and never 
 - **Tiers.** Every 8th tick on each character's own slot, by its distance to the nearest body of `player_group`:
   Full under `full_range`, Reduced under `reduced_range`, Dormant past it, and a character keeps a nearer tier until it
   is `tier_margin` past that tier's range. At most `web_full_cap` (in a browser) or `desktop_full_cap` are Full; a
-  nearer character takes the slot of the farthest Full one. No player at all is infinitely far: every character is
-  Dormant.
+  nearer character takes the place of the farthest Full one, and one that holds an attack slot takes the place of one
+  that does not, nearer or not ([Attack slots](ai-behaviour.md#attack-slots)). No player at all is infinitely far:
+  every character is Dormant.
 - **Steps.** A Full body is stepped every tick, a Reduced one every `reduced_step_ticks` and a Dormant one every
   `dormant_step_ticks`, on its own slot, with the missed time handed on: `Character.step(command, delta)` takes a whole
   number of physics steps and scales the velocity for the move, so a far character walks as far in the same time
   (`test_a_far_character_stepped_less_often_walks_as_far`). A character at rest (on a floor that does not move, still,
   its controller asking for nothing) or dead is stepped at most every `rest_step_ticks`. A far body moves in steps of
   four or six ticks, which shows only to a camera near it.
+- **Population.** `web_cap` (in a browser) or `desktop_cap`, at most `match_cap`, counts the living characters
+  (`living_count()`); one more living is refused and stands frozen, with a warning. A corpse stays registered, stepped
+  at the rest cadence, and is not counted, so a population at the cap respawns while its dead lie (kit #1247). What
+  lies on top is bounded by the spawners' `max_corpses` ([The spawner and its pool](ai-characters.md#spawner)). A pool's
+  spare readied in the tree (`warming`) never asks; `refused` counts the refusals.
 
 ## The navigator {#navigator}
 
@@ -198,7 +206,8 @@ refused), `revoke(issuer, force)`, `clear(layer, force)`, `force_cancel(task)`, 
 `set_can_think(bool)`, `describe()` (a dictionary for an overlay or a test) and `describe_text()`, `active_kind()` and
 `active_target_id()` (all that replication sends of tasks, #969). A failure budget (the profile's `failure_budget`
 failures in `failure_window` seconds, or one script error) stops ORDER and ROUTINE for `fallback_seconds`, so DEFAULT
-runs and a failing task cannot storm.
+runs and a failing task cannot storm. It stops retries too, but not a task's own `on_fail` FALLBACK: that runs once per
+task, so it cannot loop, and it is the answer left when the task cannot be done (a cornered flight's cower).
 
 ### Every edge case {#edge-cases}
 
@@ -212,7 +221,7 @@ The 13 rows of research 3.3 as built, each with the test that fails on a runner 
 | 3 | Must complete | Higher layers deferred and delivered after; `clear()` skips it; it still ends at its hard timeout as `TIMED_OUT`; `force_cancel` always wins | `test_a_must_complete_task_defers_events_and_ends_at_its_hard_timeout`, `test_force_cancel_ends_a_must_complete_task` |
 | 4 | Attacked while uninterruptible | The four `under_attack` policies | `test_attacked_under_ignore_changes_nothing` and the three after it |
 | 5 | Resume after a changed world | `resume()` answers RESUME, RESTART, SUCCEEDED or FAILED (a movement task asks for its path again there and fails `NO_PATH` for a goal now unreachable); `resume_valid_for` and `still_valid()` | `test_resume_after_a_changed_world_follows_the_task_answer`, `test_resume_can_restart_or_finish_the_task`, `test_a_long_interruption_asks_still_valid` |
-| 6 | A failure | Each `on_fail`; the failure budget | `test_a_failure_follows_on_fail`, `test_propagate_fails_the_sequence_and_skip_goes_on`, `test_a_failing_task_cannot_storm` (3 starts, not one a step) |
+| 6 | A failure | Each `on_fail`; the failure budget, which stops retries but still runs a task's own fallback | `test_a_failure_follows_on_fail`, `test_propagate_fails_the_sequence_and_skip_goes_on`, `test_a_failing_task_cannot_storm` (3 starts, not one a step), `test_a_failure_storm_still_runs_a_tasks_own_fallback` |
 | 7 | Time-outs | Soft once, hard ends it; -1 is the profile's; a task with no limit and no end is a warning (`AiTasks` shows it) | `test_soft_and_hard_timeouts`, `test_a_task_with_no_timeout_and_no_end_is_a_warning` |
 | 8 | Orders from other systems | Authority, revoke, refusal by obedience, needs against orders | `test_orders_follow_authority_and_revoke`, `test_a_character_that_obeys_little_refuses_a_low_order`, `test_an_order_gives_way_to_a_need_only_as_the_table_says` |
 | 9 | The body cannot act | `set_can_think(false)` suspends the active task with its timers frozen and lets go of its channels; true resumes it | `test_death_pauses_the_runner_and_a_revive_resumes_it`, `test_death_pauses_it_and_a_revive_resumes_it` (the node) |
@@ -220,6 +229,13 @@ The 13 rows of research 3.3 as built, each with the test that fails on a runner 
 | 11 | Assigned while dead | Queued, delivered on revive, dropped `EXPIRED` past `expires_after` | `test_a_task_assigned_while_dead_waits_or_expires` |
 | 12 | A script error in a task | The watchdog ends it `FAILED(INVALID)` (no retry), warns with the decision log and starts the fallback, so DEFAULT runs | `test_a_task_that_errors_ends_invalid_and_default_runs` |
 | 13 | Idle, and replication | An empty runner returns at once (no work, no decision, no growth of memory or objects); only `active_kind()` and `active_target_id()` leave the machine | `test_an_idle_runner_does_no_work_and_allocates_nothing_per_step`; the replay: `test_a_replay_gives_the_same_decisions` |
+
+- **Approach:** Let the failure budget stop what repeats (retries) and keep what answers once (a task's own `on_fail`
+  FALLBACK), and test a response's fallback while the budget is spent. **Watch out for:** the first runner skipped
+  every `on_fail` during the storm, so a penned civilian whose walks had failed then saw its flee fail `NO_PATH` with
+  no cower: it stood looking about with a hostile in view, and each reminder's flee failed again and kept the budget
+  spent (`test_ai_cornered_civilian.gd` holds it). **Seen:** gdstudio #1246 (from #971's AI soak, seeds 6, 7, 10
+  and 11), 2026-11-11.
 
 ### Writing a task {#writing-a-task}
 
@@ -295,5 +311,6 @@ Online (#970): `test_net_ai_snapshot.gd` (a row's limits, full and delta round t
 interest radius, the tier rates, hostile bytes), `test_net_ai_glide.gd` (even steps, set-downs, the buffer, the guess
 ahead capped and stopped at a wall) and `test_net_ai_online.gd` (a client runs no AI, a walker drawn where the server
 has it, a late joiner's one snapshot, a death's ragdoll on another screen from one event, a player's shot as a HIT on
-the puppet, a browser's cap); the capture is `tools/capture/ai_online_tour.tscn` (the server's world beside Bo's
+the puppet, a browser's cap) and `test_net_ai_section.gd` (the AI section's population on a server, drawn by a
+client); the capture is `tools/capture/ai_online_tour.tscn` (the server's world beside Bo's
 screen) and the cost `tools/net/bandwidth.py --ai` ([the numbers](ai-online.md#replication-cost)).

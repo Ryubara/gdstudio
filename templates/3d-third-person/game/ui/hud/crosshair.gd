@@ -4,7 +4,8 @@ extends HudWidget
 ## The aiming reticle: a small filled circle in the middle of the screen with a thin, darker
 ## ring around it so it reads on bright and dark ground alike. It draws itself (no texture) and
 ## is placed by anchors, so it sits at the middle of the screen at any size; the editor always
-## shows it, the game shows it only while the player aims.
+## shows it, the game shows it only while the player aims, and never while the weapon in the hands
+## says so (`WeaponDef.show_crosshair`, read every frame, so a change shows at once).
 ##
 ## The weapon aims through the middle of the viewport, which is where this node's middle is, so
 ## the circle is where the shot goes. It is a `HudWidget`, placed in the HUD's `Center` region,
@@ -40,10 +41,20 @@ extends HudWidget
 		only_while_aiming = value
 		update()
 
+var _shown := false
+
 
 func _ready() -> void:
 	_resize()
 	super()
+	set_process(not Engine.is_editor_hint())
+
+
+# A switch of weapon or a change to its `show_crosshair` sends no signal the part can hear, so it
+# looks each frame and updates only when the answer changes.
+func _process(_delta: float) -> void:
+	if _has_data() != _shown:
+		update()
 
 
 func _draw() -> void:
@@ -62,7 +73,10 @@ func _on_bound(node: Node) -> void:
 # It has something to show while the player aims, or always when it is told not to hide. A scene
 # with no player keeps it only in the second case.
 func _has_data() -> bool:
-	return not only_while_aiming or (_bound != null and _bound.get(&"aiming") == true)
+	return (
+		(not only_while_aiming or (_bound != null and _bound.get(&"aiming") == true))
+		and _weapon_shows_it()
+	)
 
 
 func _apply_visibility() -> void:
@@ -70,6 +84,13 @@ func _apply_visibility() -> void:
 		visible = true
 		return
 	super()
+	_shown = _has_data()
+
+
+# The weapon in the bound player's hands lets the crosshair show (none: it does).
+func _weapon_shows_it() -> bool:
+	var held: Weapon = _bound.get(&"weapon") as Weapon if _bound != null else null
+	return held == null or held.definition == null or held.definition.show_crosshair
 
 
 # The control is a square just big enough for the circle and its ring, growing from its middle

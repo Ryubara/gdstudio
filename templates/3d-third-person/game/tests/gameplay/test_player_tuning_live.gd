@@ -92,6 +92,9 @@ func test_every_number_has_its_default_pinned() -> void:
 		&"fall_limit": -25.0,
 	}
 	var file := load(TUNING) as CharacterTuning
+	# Their values are pinned in `test_aim_layer.gd`.
+	pins[&"aim_limits"] = file.aim_limits
+	pins[&"crouch_aim_limits"] = file.crouch_aim_limits
 	assert_array(ExportPins.differences(file, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(file, pins)).is_empty()
 
