@@ -136,7 +136,11 @@ func _measure(two_handed: bool) -> String:
 func _parts(parts: Dictionary) -> String:
 	var text := PackedStringArray()
 	for part: String in parts:
-		text.append("%s %.1f" % [part, parts[part].distance * 1000.0])
+		var entry := "%s %.1f" % [part, parts[part].distance * 1000.0]
+		# A part near the other hand: how far it is from that hand and from the gun.
+		if parts[part].hand < HandContact.MARGIN:
+			entry += " (hand %.1f, gun %.1f)" % [parts[part].hand * 1e3, parts[part].gun * 1e3]
+		text.append(entry)
 	return "[" + ", ".join(text) + "]"
 
 

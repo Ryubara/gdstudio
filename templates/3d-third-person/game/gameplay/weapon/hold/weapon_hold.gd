@@ -47,6 +47,11 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 ## the trigger guard on its own side before it lifts, so it never crosses the left thumb, which
 ## lies along the frame on the other side. Solved with the poses, never typed.
 @export var trigger_way_pose: HandPose
+## The right thumb while the left hand is on the weapon too (kit #1084): it rests on the root of
+## the left thumb, which takes its place on the frame, as a two-handed grip is taught. Blended
+## over `grip_pose` while the left hand waits at the far end of `support_way`, before it comes in
+## (`SupportHandPlan.room`).
+@export var thumb_pose: HandPose
 ## How far the right hand is on `grip_pose` (0 the clip's own fist).
 @export_range(0.0, 1.0, 0.01) var held_weight := 1.0
 ## The arm that carries the weapon, and how many degrees it is held out from the body while the
@@ -142,6 +147,9 @@ func refresh() -> void:
 	if _arm == null:
 		return
 	_plan_left()
+	# The right thumb makes room while the left hand waits at the far end of its way, before it
+	# comes in, and lies on the weapon again once that hand is back out there.
+	_grip.open_weight = _left.room
 	_weigh(_arm, held_weight * _left.arm)
 	_weigh(_fingers, held_weight * _left.arm)
 	if _arm.active:
@@ -236,6 +244,7 @@ func _build() -> void:
 	_grip.pose = grip_pose
 	_grip.second = trigger_pose
 	_grip.second_via = trigger_way_pose
+	_grip.open = thumb_pose
 	_skeleton.add_child(_grip)
 	_marker = seat.get_child(0).get_node_or_null(support_marker) as Node3D
 	if _marker != null and _marker.get_parent() == seat.get_child(0) and support_arm.size() == 3:

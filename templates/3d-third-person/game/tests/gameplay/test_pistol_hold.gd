@@ -52,6 +52,18 @@ const LIVE_NEAR := 0.2
 const TRIGGER_WAY_STEPS := 20
 ## How far the left hand's bone may stop from its marker, in metres (a clamped arm stops short).
 const REACH := 0.005
+## The parts of the left hand's fingers that lie on the right hand's in a two-handed grip (kit
+## #1084): each is within `HandContact.MAX_FLOAT` of the right hand's own skin, whatever else it
+## touches. The index finger is the one under the trigger guard, on the gun.
+const OVER_RIGHT_HAND: Array[String] = [
+	"middle_mid", "middle_tip", "ring_mid", "ring_tip", "pinky_mid", "pinky_tip"
+]
+## How far the left hand is canted, in degrees: its knuckle line (index to little finger) from
+## the gun's own down toward its back. A hand held like the right one mirrored is at 0 to 16; a
+## support hand is taught at about 45, the wrist bent forward so that the thumb points ahead.
+const CANT := Vector2(25.0, 50.0)
+## How far ahead of the right thumb's last bone the left one's is, along the barrel, at least.
+const THUMB_AHEAD := 0.03
 ## How near the trigger the index finger's tip is while aiming, and how far off it otherwise.
 const ON_TRIGGER := 0.012
 const OFF_TRIGGER := 0.02
@@ -102,7 +114,7 @@ func test_both_hands_hold_the_pistol_in_the_aim_and_shoot_clips() -> void:
 				stage.pose(clip_name, time, 1.0)
 				await stage.settle()
 				var tag := "%s %s at %.2f" % [model, clip_name, time]
-				_assert_holds(stage, "r", tag)
+				_assert_holds(stage, "r", tag, true)
 				_assert_holds(stage, "l", tag)
 				(
 					assert_float(_reach(stage))
@@ -120,7 +132,7 @@ func test_the_right_hand_holds_the_pistol_through_the_reload() -> void:
 		for share in _reload_shares():
 			_pose_reload(stage, share, 1.0)
 			await stage.settle()
-			_assert_holds(stage, "r", "%s reload at %.2f" % [model, share])
+			_assert_holds(stage, "r", "%s reload at %.2f" % [model, share], true)
 			var off := _tip_to_trigger(stage)
 			(
 				assert_float(off)
@@ -131,6 +143,58 @@ func test_the_right_hand_holds_the_pistol_through_the_reload() -> void:
 					)
 				)
 				. is_greater(OFF_TRIGGER)
+			)
+		stage.free()
+
+
+# The two hands hold the pistol together as a two-handed grip is taught (kit #1084; the research
+# is the kit's docs, tools/blender/weapon-hands/two-handed-pistol-grip.md), in every aim and shoot
+# clip on both mannequins: the left hand canted, its fingers over the right hand's fingers and
+# round the front of the grip, its index finger on the gun under the trigger guard, its palm on
+# the right hand's fingertips, its thumb forward along the frame ahead of the right one, and the
+# right thumb resting on the left hand. Each contact is within the limit the gun's are.
+func test_the_two_hands_hold_the_pistol_together() -> void:
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		for clip_name: StringName in TWO_HANDED:
+			stage.pose(clip_name, TWO_HANDED[clip_name][0], 1.0)
+			await stage.settle()
+			var tag := "%s %s" % [model, clip_name]
+			var left := stage.contact.measure("l", true)
+			var right := stage.contact.measure("r", true)
+			var fails: Array[String] = []
+			for part in OVER_RIGHT_HAND:
+				if left[part].hand > HandContact.MAX_FLOAT:
+					fails.append(
+						"the left %s is %.1f mm off the right hand" % [part, left[part].hand * 1e3]
+					)
+			var under_guard := minf(left.index_base.gun, left.index_mid.gun)
+			if under_guard > HandContact.MAX_FLOAT:
+				fails.append("the left index finger is %.1f mm off the gun" % (under_guard * 1e3))
+			if left.index_tip.hand > HandContact.MAX_FLOAT:
+				fails.append(
+					"the left index_tip is %.1f mm off the right hand" % (left.index_tip.hand * 1e3)
+				)
+			# The palm lies on the right hand's fingertips, which cover the grip's panel there.
+			if left.palm.hand > HandContact.MAX_FLOAT:
+				fails.append("the left palm is %.1f mm off the right hand" % (left.palm.hand * 1e3))
+			if left.thumb_tip.gun > HandContact.MAX_FLOAT:
+				fails.append("the left thumb is %.1f mm off the gun" % (left.thumb_tip.gun * 1e3))
+			if right.thumb_tip.hand > HandContact.MAX_FLOAT:
+				fails.append(
+					"the right thumb is %.1f mm off the left hand" % (right.thumb_tip.hand * 1e3)
+				)
+			var ahead := _in_gun(stage, &"thumb_03_r").x - _in_gun(stage, &"thumb_03_l").x
+			if ahead < THUMB_AHEAD:
+				fails.append("the left thumb is %.0f mm ahead of the right one" % (ahead * 1e3))
+			var knuckles := _in_gun(stage, &"pinky_01_l") - _in_gun(stage, &"index_01_l")
+			var cant := rad_to_deg(atan2(knuckles.x, -knuckles.y))
+			if cant < CANT.x or cant > CANT.y:
+				fails.append("the left hand is canted %.0f degrees" % cant)
+			(
+				assert_array(fails)
+				. override_failure_message("%s: %s" % [tag, "; ".join(fails)])
+				. is_empty()
 			)
 		stage.free()
 
@@ -562,11 +626,25 @@ func _compare_with_marker(hand: Vector3) -> void:
 		_live_gaps.append(hand.distance_to(_live_marker.global_position))
 
 
-func _assert_holds(stage: HoldStage, side: String, tag: String) -> void:
-	var parts := stage.contact.measure(side, side == "l")
+# One hand holds: nothing deeper than the limit in the gun, every holding part on it. The left
+# hand is measured against the right one too, and with `both` the right against the left (a
+# fingertip that enters a flat face of the other hand shows only from its own side); the right
+# thumb then counts as holding only while the left hand is on the gun or away from it, since it
+# moves between the frame and the left thumb's root as that hand comes and goes.
+func _assert_holds(stage: HoldStage, side: String, tag: String, both := false) -> void:
+	var parts := stage.contact.measure(side, side == "l" or both)
 	var contacts := HoldStage.RIGHT_CONTACTS if side == "r" else HoldStage.LEFT_CONTACTS
+	if both and stage.hold != null:
+		var on_gun: float = stage.hold.call(&"support_weights").x
+		if on_gun > 0.0 and on_gun < 1.0:
+			contacts = contacts.filter(func(part: String) -> bool: return part != "thumb_tip")
 	var fails := HandContact.failures("%s %s:" % [tag, side], parts, contacts)
 	assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
+
+
+# Where a bone is in the pistol's own space (the muzzle along -X, up +Y, the gun's left +Z).
+func _in_gun(stage: HoldStage, bone_name: StringName) -> Vector3:
+	return stage.pistol.global_transform.affine_inverse() * stage.bone_origin(bone_name)
 
 
 # How far the left hand's bone is from a marker of the pistol, in metres (a pistol with no such

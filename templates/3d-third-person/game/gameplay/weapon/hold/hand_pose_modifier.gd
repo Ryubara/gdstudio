@@ -19,7 +19,7 @@ extends SkeletonModifier3D
 ## the trigger guard on its own side before it lifts to the frame).
 @export var second_via: HandPose
 ## A pose blended over both on the bones it names, by `open_weight`: the hand opened, as it lets
-## go of the weapon or comes back to it.
+## go of the weapon or comes back to it, or a thumb moved over to make room for the other hand.
 @export var open: HandPose
 @export_range(0.0, 1.0, 0.01) var open_weight := 0.0
 ## An upper arm lifted away from the body before the pose is put on, and by how many degrees: the
