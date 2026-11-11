@@ -151,13 +151,19 @@ func test_a_body_with_no_loadout_leaves_it() -> void:
 
 func test_the_step_state_takes_a_given_weapon_back() -> void:
 	var before_pickup := _player.state_snapshot()
+	var changes: Array[int] = []
+	_player.loadout.slots_changed.connect(
+		func() -> void: changes.append(_player.loadout.slots.size())
+	)
 	var pickup := _pickup()
 	await _walk_through()
+	assert_array(changes).is_equal([2])
 	assert_bool(pickup.is_available()).is_false()
 	assert_int(_player.loadout.slots.size()).is_equal(2)
 	_player.restore(before_pickup)
 	assert_int(_player.loadout.slots.size()).is_equal(1)
 	assert_int(_rifle_slot()).is_equal(-1)
+	assert_array(changes).is_equal([2, 1])
 	assert_bool((_player.model.get_node("RifleHeld") as Node3D).visible).is_false()
 	assert_str(_player.weapon.definition.display_name).is_equal("Pistol")
 

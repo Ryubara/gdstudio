@@ -269,7 +269,7 @@ pickup is a scene that inherits it and puts the model under `Visual`: the templa
 - **Gameplay and cosmetics.** The carried list is in the loadout's step state (`CharacterState.loadout[6]`), so a
   server and a predicting client agree on what a pickup gave, and a restore takes a given weapon back. The spin, the
   glow, the light and the sound are cosmetic. Adding to `slots` at run time is additive: a screen that lists the
-  weapons (an inventory) reads `slots` and `weapon_added`.
+  weapons (an inventory) reads `slots` and redraws on `slots_changed` (a weapon given, or taken back by a restore).
 - **The two-handed hold** is `TwoHandHold` (`gameplay/weapon/two_hand_hold.gd` + `two_hand_hold.tscn`; the rifle's
   `rifle_held.tscn` inherits it and adds the gun and the hands' targets under `Pivot`), the definition's `view`. It is
   not in the character's scene: the loadout makes the definition's `view_scene` under the `Model` slot the first time

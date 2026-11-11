@@ -25,6 +25,9 @@ signal switch_started(definition: WeaponDef)
 signal switch_finished(definition: WeaponDef)
 ## `give()` put a weapon the loadout did not carry in a new slot, `slot`.
 signal weapon_added(definition: WeaponDef, slot: int)
+## The carried weapons changed while the game runs (`give()` added one, or a restored step state
+## took one back): a screen that lists `slots` (an inventory) redraws.
+signal slots_changed
 
 enum Phase { READY, HOLSTER, DRAW }
 ## What `give()` did.
@@ -229,6 +232,7 @@ func give(definition: WeaponDef, rounds: int) -> Given:
 	slot = slots.size() - 1
 	_show_views()
 	weapon_added.emit(definition, slot)
+	slots_changed.emit()
 	if switch_to_new:
 		select(slot)
 	return Given.WEAPON
@@ -275,6 +279,7 @@ func load_step_state(kept: Array) -> void:
 		_set_views_visible(false)
 		slots.assign(kept[6])
 		_show_views()
+		slots_changed.emit()
 	if kept[0] != _held:
 		_equip(kept[0])
 	_target = kept[1]
