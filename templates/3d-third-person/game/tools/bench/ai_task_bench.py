@@ -1,9 +1,9 @@
 """What AI characters cost in the web build: runs `tools/bench/ai_cost_bench.tscn` in headless Chrome.
 
-Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
-the preset's exclude filter), waits for `window.__ai_task_bench`, and prints, for 1 to 120 characters standing and
-walking, the `AiDirector`'s step a physics tick (mean, 95th percentile, per character), the median frame work and the
-count at each tier. The optional second argument is a CPU throttle (4 is the weak-machine stand-in).
+Serves a web export of the bench (`gds template bench-web 3d-third-person ai_task_bench` makes it: kit
+docs/engines/godot/web-probes.md#bench-web), waits for `window.__ai_task_bench`, and prints, for 1 to 120 characters
+standing and walking, the `AiDirector`'s step a physics tick (mean, 95th percentile, per character), the median frame
+work and the count at each tier. The optional second argument is a CPU throttle (4 is the weak-machine stand-in).
 
     uv run --project <kit>/python gds quiet -- \
         uv run --with playwright==1.64.1 python tools/bench/ai_cost_bench.py build/web 4

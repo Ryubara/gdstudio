@@ -66,6 +66,12 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   cond else [b, c]` parses, then fails when the line runs (`Trying to assign an array of type "Array" to a variable of
   type "Array[String]"`) because the ternary makes an untyped array; the process went on running, so a measurement
   matrix recorded cells from a node that never set up. **Seen:** gdstudio #883, 2026-11-10 (fix: the if).
+- **Approach:** Pass an exported node to a typed parameter of a helper only through `is_instance_valid(node)`
+  (`model if is_instance_valid(model) else null`), and test the body with its model freed. **Watch out for:** a node
+  freed while the export still names it is not `null`, so `model != null` passed and the call failed on the type
+  (`argument 1 (previously freed) is not a subclass`) every frame: 120 errors in one suite of the full template run,
+  while every prone suite passed. **Seen:** gdstudio #1026, 2026-11-11 (`ProneAnimation.stow_view`; the suite
+  `test_player_step.gd` frees the model).
 
 ## Script errors at run time {#runtime-errors}
 
@@ -85,6 +91,13 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   reference as a `WeakRef` (`weakref(runner)`, read with `get_ref()`) or pass the owner as an argument. **Watch out
   for:** a strong reference both ways is a cycle that reference counting never frees, which shows as objects leaked
   at exit, a line CI refuses. **Seen:** gdstudio #965, 2026-11-10 (`AiTask.runner()`).
+
+- **Approach:** Pass a node that may have been freed (one that lived under a skeleton a model swap deleted) as an
+  untyped `Variant`, or check `is_instance_valid()` before the call, and test the path that frees it. **Watch out
+  for:** a typed parameter refuses a freed instance at the call (`The Object-derived class of argument 1 (previously
+  freed) is not a subclass of the expected argument class`), before the function's own `is_instance_valid()` check
+  runs; the suites of the new code passed, and only the death test that swaps to the male mannequin met it, in the
+  whole template run. **Seen:** gdstudio #1126, 2026-11-11 (`RagdollDrawing.place`).
 
 ## Lambdas {#lambdas}
 

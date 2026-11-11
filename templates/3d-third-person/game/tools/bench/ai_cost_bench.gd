@@ -11,17 +11,17 @@ extends Node
 ##
 ## One line of JSON, `AI_COST_BENCH {...}`: for each count and mode the director's step per tick
 ## (`step_mean_us`, `step_p95_us`, `us_each`), the median frame work in milliseconds (from the
-## frame's first physics tick to its last node processed, as `parts_cost_bench.gd` reads it) and
-## the count at each tier. Since #1046 each row is run without and with the director's
+## frame's first physics tick to its last node processed, as `parts_cost_bench.gd` reads it) and the
+## count at each tier. Since #1046 each row is run without and with the director's
 ## `AiAnimationThrottle` (`throttle`, with the tree advances a frame it made, `advances`), and a
 ## fixed loop of GDScript is timed before each row (`calibration_ms`): a busy machine reads slower
-## there too, so two runs compare by it. Desktop:
-## `godot --headless --fixed-fps 60 --path game res://tools/bench/ai_cost_bench.tscn
-## [-- --counts=40 --throttle=on|off|both --lean=on|off]`; browser: a web export with this scene as
-## `run/main_scene` and `tools/*` out of the exclude filter, read by
-## `tools/bench/ai_cost_bench.py` (`window.__ai_cost_bench`; the same options as the page's query,
-## `?counts=40&throttle=on`). Since #1059 `lean=off` steps every body's full tick (the AI's
-## controller asks for the lean one, `CharacterLean`), to compare the two in one build.
+## there too, so two runs compare by it. Desktop: `godot --headless --fixed-fps 60 --path game
+## res://tools/bench/ai_cost_bench.tscn [-- --counts=40 --throttle=on|off|both --lean=on|off]`;
+## browser: the web export `gds template bench-web 3d-third-person ai_cost_bench` makes (kit
+## docs/engines/godot/web-probes.md#bench-web), read by `tools/bench/ai_cost_bench.py`
+## (`window.__ai_cost_bench`; the same options as the page's query, `?counts=40&throttle=on`). Since
+## #1059 `lean=off` steps every body's full tick (the AI's controller asks for the lean one,
+## `CharacterLean`), to compare the two in one build.
 
 const COUNTS: Array[int] = [1, 20, 40, 120]
 const WARM_FRAMES := 60

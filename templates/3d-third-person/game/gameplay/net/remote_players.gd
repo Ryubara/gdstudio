@@ -25,9 +25,9 @@ const CLOCK_PULL := 0.1
 ## Seconds behind the newest snapshot a puppet is drawn: three snapshots at 30 a second, so one
 ## late or lost one does not starve it.
 @export_range(0.0, 0.5, 0.01, "suffix:s") var delay := 0.1
-## Moves the puppets' animation on less often where the camera would not see it (off-screen, far):
-## a puppet's skinned body is most of its frame cost in a browser (gdstudio #1138). Empty: every
-## puppet animates every frame.
+## Moves the puppets' animation on less often where the camera would not see it (off-screen, far),
+## so a puppet's tree and skinning cost a browser frame only when it is seen (gdstudio #1138).
+## Empty: every puppet animates every frame.
 @export var animation_throttle: CharacterAnimationThrottle
 
 ## The local player's slot: no puppet is made for it.
@@ -36,7 +36,8 @@ var local_slot := -1
 ## drawn at the client's predicted tick, ahead of the moment a puppet is drawn at, so a puppet that
 ## stands on one is moved with it to where it is drawn.
 var map_parts: NetWorld
-## Physics steps on which a puppet's track had no snapshot as new as the moment drawn.
+## Puppet steps on which a puppet's track had no snapshot as new as the moment drawn: one count a
+## starved puppet a physics step, so two starved puppets on one step count 2.
 var starved := 0
 ## The microseconds the last physics step spent placing the puppets (their own animation and
 ## drawing are the characters' cost, not counted here).

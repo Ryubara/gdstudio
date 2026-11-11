@@ -244,8 +244,37 @@ def test_clip_length_is_capped(tmp_path: Path) -> None:
     make_frames(folder, 40, size=(8, 8))
     (folder / capture.META_FILE).write_text('{"fps": 1}', encoding="utf-8")  # 40 s of frames
     fake = FakeFfmpeg([1])
-    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lambda m: None)
+    lines: list[str] = []
+    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lines.append)
     assert fake.calls[0][fake.calls[0].index("-t") + 1] == "30.000"
+    # the cut is said, with what was left out (#1132)
+    assert "clip cut at 30 s: 10 frames (10 s) of 40 left out; --max-seconds for a longer clip" in lines
+
+
+def test_clip_max_seconds_changes_the_cut(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 40, size=(8, 8))
+    (folder / capture.META_FILE).write_text('{"fps": 1}', encoding="utf-8")
+    fake = FakeFfmpeg([1])
+    lines: list[str] = []
+    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lines.append, max_seconds=45)
+    assert fake.calls[0][fake.calls[0].index("-t") + 1] == "40.000"
+    assert not any("cut" in line for line in lines)
+    fake = FakeFfmpeg([1])
+    lines.clear()
+    capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lines.append, max_seconds=12.5)
+    assert fake.calls[0][fake.calls[0].index("-t") + 1] == "12.500"
+    assert "clip cut at 12.5 s: 27 frames (27.5 s) of 40 left out; --max-seconds for a longer clip" in lines
+    with pytest.raises(CaptureError, match="--max-seconds"):
+        capture.encode_clip(Path("ffmpeg"), folder, run=FakeFfmpeg([]), max_seconds=0)
+
+
+def test_clip_short_enough_says_nothing_about_a_cut(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 20, size=(8, 8))
+    lines: list[str] = []
+    capture.encode_clip(Path("ffmpeg"), folder, run=FakeFfmpeg([1]), log=lines.append)
+    assert not any("cut" in line for line in lines)
 
 
 def test_gif_command_line_and_ffmpeg_failure(tmp_path: Path) -> None:
@@ -287,3 +316,91 @@ def test_a_movie_runs_end_is_told_to_the_game_and_other_runs_are_left_alone() ->
         "--quit-after",
         "3",
     ]
+
+
+def test_gif_frame_rate_gives_whole_hundredths(tmp_path: Path) -> None:
+    # a GIF's delays are whole hundredths of a second: 12 fps came out as 8, 8 and 9 (a judder), 10 and 20 are even
+    assert [capture.gif_fps(f) for f in (60, 30, 20, 12, 10, 5, 3)] == [20, 10, 20, 10, 10, 5, 2]
+    folder = tmp_path / "run"
+    make_frames(folder, 30, size=(8, 8))
+    (folder / capture.META_FILE).write_text('{"fps": 30}', encoding="utf-8")
+    fake = FakeFfmpeg([1])
+    capture.encode_clip(Path("ffmpeg"), folder, gif=True, run=fake, log=lambda m: None)
+    graph = fake.calls[0][fake.calls[0].index("-filter_complex") + 1]
+    assert graph.startswith("fps=10,") and f"min({capture.GIF_WIDTHS[0]}," in graph
+
+
+def test_gif_budget_grows_with_its_length() -> None:
+    # measured in #1153: GIFs up to 4.6 Mbit/s played without a stall while they downloaded at 10 Mbps
+    mb = 1024 * 1024
+    assert [capture.gif_budget(s) for s in (0.5, 2, 5, 10, 25)] == [mb, mb, 2.5 * mb, 5 * mb, 5 * mb]
+
+
+def test_gif_steps_down_in_width_to_its_budget(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 20, size=(8, 8))
+    over = capture.gif_budget(2.0) + 1  # 20 frames at 10 fps
+    fake = FakeFfmpeg([over, over, 10])
+    lines: list[str] = []
+    clip = capture.encode_clip(Path("ffmpeg"), folder, gif=True, run=fake, log=lines.append)
+    assert clip.stat().st_size == 10
+    graphs = [c[c.index("-filter_complex") + 1] for c in fake.calls]
+    assert [f"min({w}," in g for g, w in zip(graphs, capture.GIF_WIDTHS, strict=True)] == [True] * 3
+    assert not any("warning" in line for line in lines)
+
+
+def test_gif_over_its_budget_warns_and_names_the_mp4(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 20, size=(8, 8))
+    over = capture.gif_budget(2.0) + 1  # 20 frames at 10 fps
+    lines: list[str] = []
+    clip = capture.encode_clip(
+        Path("ffmpeg"), folder, gif=True, run=FakeFfmpeg([over] * len(capture.GIF_WIDTHS)), log=lines.append
+    )
+    assert clip == folder / "run.gif" and clip.stat().st_size == over  # kept: it still fits GitHub's limit
+    warning = [line for line in lines if line.startswith("warning:")]
+    assert len(warning) == 1
+    assert "over the 1 MB a 2 s GIF" in warning[0] and "MP4" in warning[0]
+
+
+def test_gif_past_githubs_limit_fails_and_names_the_mp4(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 20, size=(8, 8))
+    fake = FakeFfmpeg([capture.CLIP_MAX_BYTES + 1] * len(capture.GIF_WIDTHS))
+    with pytest.raises(CaptureError, match="MP4"):
+        capture.encode_clip(Path("ffmpeg"), folder, gif=True, run=fake, log=lambda m: None)
+    assert not (folder / "run.gif").exists()
+
+
+def test_a_long_gif_warns_and_names_the_mp4(tmp_path: Path) -> None:
+    folder = tmp_path / "run"
+    make_frames(folder, 12, size=(8, 8))
+    (folder / capture.META_FILE).write_text('{"fps": 1}', encoding="utf-8")  # 12 s
+    lines: list[str] = []
+    capture.encode_clip(Path("ffmpeg"), folder, gif=True, run=FakeFfmpeg([1]), log=lines.append)
+    assert any(line.startswith("warning:") and "12 s" in line and "MP4" in line for line in lines)
+    lines.clear()
+    short = tmp_path / "short"
+    make_frames(short, int(capture.GIF_MAX_SECONDS), size=(8, 8))
+    (short / capture.META_FILE).write_text('{"fps": 1}', encoding="utf-8")  # exactly the limit
+    capture.encode_clip(Path("ffmpeg"), short, gif=True, run=FakeFfmpeg([1]), log=lines.append)
+    assert not any(line.startswith("warning:") for line in lines)
+
+
+def test_clip_cli_takes_max_seconds() -> None:
+    from gds_tools import cli
+
+    args = cli.build_parser().parse_args(["capture", "clip", "frames", "--max-seconds", "50"])
+    assert args.max_seconds == 50.0
+    assert cli.build_parser().parse_args(["capture", "clip", "frames"]).max_seconds == capture.CLIP_MAX_SECONDS
+
+
+def test_clip_of_a_folder_whose_name_ends_in_a_digit(tmp_path: Path) -> None:
+    # Movie Maker names frames <name><8 digits>: `run2` gives run200000000.png, whose number is still 8 digits
+    folder = tmp_path / "run2"
+    make_frames(folder, 12, prefix="run2", size=(8, 8))
+    assert [p.name for p in capture.frame_files(folder)][:2] == ["run200000000.png", "run200000001.png"]
+    fake = FakeFfmpeg([1])
+    clip = capture.encode_clip(Path("ffmpeg"), folder, run=fake, log=lambda m: None)
+    assert clip == folder / "run2.mp4"
+    assert fake.calls[0][fake.calls[0].index("-i") + 1] == str(folder / "run2%08d.png")

@@ -58,18 +58,17 @@ game/
   the uid and the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and
   `template` CI jobs; copy the uid files back, not only the scripts (a script that syncs the game and the branch copies
   `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
-  2026-11-08; gdstudio #868, 2026-11-10 (`test_aim_release.gd.uid`); gdstudio #872, 2026-11-10
-  (`test_ragdoll_natural.gd.uid`, never copied back); gdstudio #925, 2026-11-10 (a template has no project: a throwaway
-  script imported in the kit's `godot/`); #910, #1074 and #1091, 2026-11-11 (caught by `gds
-  template test`).
+  #868, #872 (never copied back), #925 (a template has no project: import a throwaway in the kit's `godot/`), #910,
+  #1074, #1091, 2026-11-08 to 11 (caught by `gds template test`); gdstudio #968, 2026-11-11 (36 at once).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
   a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and
   run `gds check layout templates/<name>/game` before the push. **Watch out for:** a left `.ruff_cache/` or
   `__pycache__/` failed the layout check (`snake-case`) and `test_new_game.py`, and looked like a problem of the change.
-  From the kit's root ruff reads no config and wraps a template's Python at 88: pass `--line-length 120`. **Seen:**
+  From the kit's root ruff reads no config and wraps a template's Python at 88: pass `--line-length 120` (to undo an
+  88 run, first `--config "format.skip-magic-trailing-comma=true"`). **Seen:**
   gdstudio #884, 2026-11-10; gdstudio #908, 2026-11-11 (`tools/net/__pycache__`); gdstudio #1110, 2026-11-11 (a kit
-  test loading `bad_network.py` failed CI's `test_layout.py`).
+  test loading `bad_network.py` failed CI's `test_layout.py`); gdstudio #1106, #1105, 2026-11-11 (gate files rewrapped).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or
