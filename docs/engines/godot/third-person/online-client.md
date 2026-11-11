@@ -222,6 +222,9 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   (the warm-up it joined during: below), so snaps are allowed per stall the stall guard saw. The CI runner (ubuntu,
   four cores) drew the same page at 14 frames a second, so the browser half is not a CI step. **Seen:** gdstudio #908, 2026-11-11
   (`net_play_smoke.py` `MIN_FPS`; the first CI run of #1077 failed on it).
+- **Approach:** Run the browser half with `--gpu` whenever the page draws AI puppets (`net_play_smoke.py --gpu --ai N`).
+  **Watch out for:** SwiftShader drew 40 puppets at 7 frames a second, far under the floor above, while the GPU page
+  passed every gate at 42. **Seen:** gdstudio #970, 2026-11-11.
 - **Approach:** Before comparing a browser client with a native one, trace each answer taken whole after a resync
   (its error, the stalls since the last answer taken), and judge it per stall (`Reconciler.resync`,
   `worst_stall_error`). **Watch out for:** every page answer past 3 m came in its first three seconds, after two to
@@ -501,7 +504,8 @@ there), and the 60 s unread client is a client whose downlink stalls while it st
   no node more; server step 0.29 ms mean, 0.42 ms at the 95th percentile; no `ERROR` in the verbose log. `--break solid`
   (a wall in one client's world only) and `--break leak` (a node kept at every check) each fail.
 - **Bandwidth** (`tools/net/bandwidth.py`, in the same workflow): every client through the relay, which counts each
-  connection; 10 s once all are seated. The research's budgets (down 5 KB/s, up 2 KB/s a client):
+  connection; 10 s once all are seated (`--ai 40,120` adds an AI crowd on the server: [the AI's
+  numbers](ai.md#replication-cost)). The research's budgets (down 5 KB/s, up 2 KB/s a client):
 
 | Players | Down a client | Up a client |
 | ---: | ---: | ---: |

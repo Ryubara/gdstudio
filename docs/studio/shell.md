@@ -87,7 +87,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   `/c/Repositories` is read as a folder named `c` on the current drive ("the body file does not exist yet"); a
   `gdt.sh` under a shared name changed into another agent's worktree and reported its pass for my branch. **Seen:**
   gdstudio, 2026-11-02; Deadnight, 2026-11-01 and 2026-11-05 (fix: read the line that names the scanned folder before
-  trusting a result); gdstudio #879, #903, #966, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
+  trusting a result); gdstudio #879, #903, #966, #970, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
   branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
 
 ## Background commands and processes {#background}

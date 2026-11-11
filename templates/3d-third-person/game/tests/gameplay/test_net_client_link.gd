@@ -77,7 +77,8 @@ func test_a_tick_for_eight_players_is_108_bytes() -> void:
 		await get_tree().physics_frame
 	assert_array(sizes).is_not_empty()
 	prints("tick for 8 players:", sizes.max(), "bytes")
-	assert_int(sizes.max()).is_less_equal(108)
+	# 108 and the AI block's mode byte (gdstudio #970).
+	assert_int(sizes.max()).is_less_equal(109)
 	for link in links:
 		link.close()
 

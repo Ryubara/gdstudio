@@ -19,6 +19,9 @@ one in the first 3 s after the seat (the probe joins after the level's warm-up a
         --godot <pinned godot> --project game [--url wss://<deployment> --delay-ms 0] [--stall-chance 0.01]
         [--break hold --expect-fail]
 
+With `--ai 40` the server also runs a crowd of 40 AI characters (`gate_server.gd --ai`): the page draws them from the
+TICK's AI block and its report's `ai` holds what applying them cost (gdstudio #970).
+
 With `--unread 60` the page does not freeze: the relay stops reading what the server sends for 60 s from 8 s after
 the seat (the page still plays and sends; a page that also stops sending is hung up on after the server's 15 s of
 silence), with `--bots 7` for eight players' TICKs; then the burst of what waited must reach the page without a
@@ -211,6 +214,7 @@ def main() -> int:
     parser.add_argument("--expect-fail", action="store_true", help="exit 0 only when the gate failed")
     parser.add_argument("--gpu", action="store_true", help="draw with the machine's GPU instead of SwiftShader")
     parser.add_argument("--viewport", default="320x180", help="the page's size, WxH (a small page draws faster)")
+    parser.add_argument("--ai", type=int, default=0, help="an AI crowd of this many on the server (gate_server --ai)")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     project = args.project.resolve()
@@ -224,6 +228,7 @@ def main() -> int:
         url = args.url
         if not url:
             server_args = ["--port", "0"] + (["--hold-ticks", "0"] if args.broken else [])
+            server_args += ["--ai", str(args.ai)] if args.ai > 0 else []
             server = start(
                 godot_cmd(args.godot, project, "res://tools/net/gate_server.gd", *server_args),
                 args.out / "server.log",

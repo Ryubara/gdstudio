@@ -44,6 +44,7 @@ class UnshiftedReconciler:
 
 var _client: NetClient
 var _remote: RemotePlayers
+var _ai: AiReplica
 var _bot: CirclingController
 var _seconds := 30.0
 var _freezes: Dictionary[int, int] = {}
@@ -88,10 +89,16 @@ func _initialize() -> void:
 	holder.add_child(player)
 	_remote = RemotePlayers.new()
 	holder.add_child(_remote)
+	# The server's AI characters, drawn and timed (gdstudio #970).
+	_ai = AiReplica.new()
+	_ai.name = "AiReplica"
+	_ai.keep_times = true
+	holder.add_child(_ai)
 	_client = NetClient.new()
 	_client.join_on_ready = false
 	_client.player = player
 	_client.remote_players = _remote
+	_client.ai_replica = _ai
 	_client.world_root = world
 	_client.player_name = args.get_string("name", "Predictor")
 	_client.keep_frame_times = true
