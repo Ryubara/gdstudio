@@ -1,10 +1,10 @@
 # Map sections
 
-Two spaces behind the prototype level's outer wall, each reached through a 4 m wide, 3 m high doorway: an **AI
-section** to the west, where enemies and friendlies are introduced and seen or not seen, and a **pathing section** to
-the east, a course of routes, heights, gaps, a door and moving obstacles for walking agents. Neither holds any AI: they
-are the places an AI is built and tested in, with their spawn points, markers and baked navigation mesh named so a test
-can ask for them.
+Two spaces behind the prototype level's outer wall, each reached through a 4 m wide, 3 m high doorway: an **AI section**
+to the west, where enemies and friendlies are introduced and seen or not seen, and a **pathing section** to the east, a
+course of routes, heights, gaps, a door and moving obstacles for walking agents. The AI section holds the template's
+population (below); the pathing section holds no AI. Both are the places an AI is built and tested in, with their spawn
+points, markers and baked navigation mesh named so a test can ask for them.
 
 Each section is its own scene, instanced in `game/world/world.tscn`; work on a section changes only its folder:
 
@@ -34,6 +34,8 @@ screen's gaps. Between them, open ground with cover.
 | Friendly spawns | `Spawns/Friendly1` to `Friendly4` | `SpawnPoint`s in the group `friendly`, by the doorway, facing in (-X). |
 | Perception markers | `Perception/` | `Marker3D`s for sight tests (below). |
 | Navigation | `Navigation` | A `NavigationRegion3D`; its children are the mesh's source. |
+| AI markers | `AiMarkers/` | `AiMarker`s: the guard lane `GuardLane/Stop1` to `Stop4` (route `guard_lane`), the shooters' posts `ShooterPosts/Post1` and `Post2`, eight cover spots `Cover/` by the low walls, the tall cover and the shed, the civilians' homes `CivilianHomes/Home1` to `Home3`. |
+| Population | `Population/` | One `AiSpawner` per kind: `Grunts` (3 at Enemy1 to 3, patrolling `guard_lane`), `Shooters` (2 at the posts, route `hold`), `Allies` (2 at the friendly spawns, following the player), `Civilians` (3 at their homes). Each wakes when a player is within 25 m, respawns 15 to 20 s after a death and leaves at most 2 bodies lying. Set `enabled` off on one to empty that kind. |
 
 `SpawnPoint.pick(get_tree(), &"enemy", rng)` picks an enemy spawn; `spawn_transform(rng)` gives the place and the
 facing. The perception markers stand on the floor; a test looks from 1.55 m over a watch post (the character's eye):
