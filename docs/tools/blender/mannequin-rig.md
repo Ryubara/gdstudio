@@ -115,4 +115,34 @@ stays at rest and `pelvis` carries the body's bob and sway only. A root-motion c
 The numbers below are written by the build (`build_mannequins.py --report`); a body's whole rest is in the
 `rig_<body>.json` beside the models.
 
-BODIES_TABLE
+| Joint (left side, metres: x, y, z) | `male` | `female` | `chibi` |
+| --- | --- | --- | --- |
+| `motion_scale` | 1.0 | 1.0 | 0.545 |
+| Top of the head (`socket_head`) | 1.800 | 1.745 | 1.250 |
+| `pelvis` | 0, 0.917, -0.050 | 0, 0.917, -0.050 | 0, 0.500, -0.027 |
+| `spine_03` | 0, 1.315, -0.005 | 0, 1.290, -0.005 | 0, 0.715, -0.003 |
+| `Head` | 0, 1.569, 0.005 | 0, 1.526, 0.005 | 0, 0.860, 0.003 |
+| `upperarm_l` | 0.190, 1.441, -0.045 | 0.160, 1.404, -0.045 | 0.135, 0.790, -0.020 |
+| `lowerarm_l` | 0.470, 1.441, -0.048 | 0.422, 1.404, -0.048 | 0.290, 0.790, -0.023 |
+| `hand_l` | 0.735, 1.441, -0.045 | 0.670, 1.404, -0.045 | 0.440, 0.790, -0.020 |
+| `thigh_l` | 0.089, 0.932, 0.001 | 0.092, 0.932, 0.001 | 0.070, 0.508, 0.000 |
+| `calf_l` | 0.089, 0.532, -0.001 | 0.092, 0.532, -0.001 | 0.070, 0.290, -0.001 |
+| `foot_l` | 0.089, 0.104, -0.036 | 0.092, 0.104, -0.036 | 0.070, 0.057, -0.020 |
+| `socket_hand_r` | -0.806, 1.406, -0.050 | -0.735, 1.373, -0.050 | -0.492, 0.755, -0.024 |
+| `socket_camera` | 0, 1.680, 0.120 | 0, 1.632, 0.115 | 0, 1.048, 0.192 |
+
+The male's and the female's legs are the library's own, so clips plant their feet as they do the library's mannequins;
+the chibi's leg is the same leg at 0.545 ([why the leg keeps its ratio](prototype-mannequins.md#bodies-and-looks)).
+
+## What a clip made on this rig must keep {#clip-rules}
+
+<!-- new section: the rules kit #1150's clips follow so that they carry over to every body -->
+
+- Key rotations on the 65 library bones only; positions only on `pelvis`, `root` and the `ik_` targets, in the
+  reference body's metres (hips at 0.9166 m); never a scale key.
+- Make the clip on the `male` body (or the library's mannequin: the legs and trunk are the same) and check it on the
+  `female` and the `chibi` with the template's `tools/mannequin/measure_bodies.gd`: every track finds its bone, the
+  feet stay on the floor, the limbs stay out of each other.
+- A ground speed belongs to the reference body: a body moves at the clip's speed times its `motion_scale`.
+- A contact that must hold on every body (a foot through a turn, two hands on one thing) is keyed on its `ik_` target
+  as well as posed.

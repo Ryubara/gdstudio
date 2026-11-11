@@ -4,9 +4,10 @@ Run it with the pinned Blender, headless, every path absolute:
 
     blender -b --factory-startup -P render_mannequins.py -- --model <a.glb> [--model <b.glb> ...] --out <png>
         [--views front,side,back,quarter] [--lod 0] [--mode solid|wire|rig] [--pose rest|relaxed|reach]
-        [--clip <library.glb> --action <name> --frame <n>] [--zoom <part>] [--px 520]
+        [--clip <library.glb> --action <name> --frame <n> | --frames <n,n,...>] [--zoom <part>] [--px 520]
 
-One row a model, one column a view, all at one scale on a ground line, so bodies are compared like for like.
+One row a model, one column a view (or a frame of the clip), all at one scale on a ground line, so bodies are
+compared like for like. Each cell is rendered alone and the sheet is put together from the cells.
 `--pose relaxed` lowers the arms and bends the elbows and knees a little, by bone rotations (the twist bones are
 turned as the engine's `MannequinTwist` turns them); `--clip` poses the body from a frame of a clip file instead, the
 way Godot plays it: each bone's rotation in its parent and the pelvis's place times the body's `motion_scale`.
@@ -18,11 +19,13 @@ import sys
 from pathlib import Path
 
 import bpy
+import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 
-VIEWS = {"front": 0.0, "quarter": 35.0, "side": 90.0, "back": 180.0, "rear": 215.0}
+## A view is the turn of the model about the vertical, then its tip toward the camera (degrees).
+VIEWS = {"front": (0, 0), "quarter": (35, 0), "side": (90, 0), "back": (180, 0), "rear": (215, 0), "top": (0, 90), "under": (0, -90), "high": (35, 30)}
 ZOOMS = {
-    "hand": ("hand_l", 0.28),
+    "hand": ("middle_01_l", 0.34),
     "shoulder": ("upperarm_l", 0.55),
     "foot": ("foot_l", 0.4),
     "head": ("Head", 0.5),
@@ -174,6 +177,93 @@ def bone_sticks(rig, offset):
     return obj
 
 
+def render_cell(args, path, view, clip, size, out):
+    """One model from one view, alone in the scene, to a PNG of `size` pixels."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    scene = bpy.context.scene
+    scene.render.fps = 30
+    clip_rig = action = None
+    if clip:
+        clip_rig, _meshes, new = load(clip)
+        names = sorted(a.name for a in bpy.data.actions)
+        action = bpy.data.actions.get(args.action) or next((bpy.data.actions[n] for n in names if n.startswith(args.action)), None)
+        if action is None:
+            raise SystemExit(f"no clip {args.action} in {clip.name}: {names}")
+        for obj in new:
+            obj.hide_render = True
+    rig, meshes, _new = load(path)
+    for i, mesh in enumerate(meshes):
+        mesh.hide_render = i != args.lod
+    if clip_rig is not None:
+        pose_from_clip(rig, clip_rig, action, args.frame)
+    elif args.pose != "rest":
+        pose(rig, args.pose)
+    body = meshes[args.lod]
+    yaw, pitch = VIEWS[view]
+    rig.rotation_mode = "XYZ"
+    rig.rotation_euler = (math.radians(pitch), 0, math.radians(yaw))
+    bpy.context.view_layer.update()
+    if args.mode == "wire":
+        wire = body.modifiers.new("wire", "WIREFRAME")
+        wire.thickness = 0.0022 if not args.zoom else 0.0007
+        wire.use_replace = False
+        wire.material_offset = 1
+        dark = bpy.data.materials.new("wire")
+        dark.diffuse_color = (0.02, 0.02, 0.02, 1)
+        body.data.materials.append(dark)
+    if args.mode == "rig":
+        sticks = bone_sticks(rig, Vector((0, 0, 0)))
+        sticks.matrix_world = rig.matrix_world
+        body.hide_render = True
+        ghost = body.copy()
+        ghost.data = body.data.copy()
+        scene.collection.objects.link(ghost)
+        ghost.hide_render = False
+        ghost.data.materials.clear()
+        pale = bpy.data.materials.new("ghost")
+        pale.diffuse_color = (0.82, 0.84, 0.88, 1)
+        ghost.data.materials.append(pale)
+        wire = ghost.modifiers.new("wire", "WIREFRAME")
+        wire.thickness = 0.0012
+        wire.use_replace = True
+
+    scene.render.engine = "BLENDER_WORKBENCH"
+    shading = scene.display.shading
+    shading.light = "STUDIO"
+    shading.color_type = "TEXTURE" if args.mode != "rig" else "MATERIAL"
+    shading.show_cavity = True
+    shading.cavity_type = "BOTH"
+    shading.show_shadows = False
+    shading.show_specular_highlight = False
+    shading.show_object_outline = args.mode != "rig"
+    scene.display.render_aa = "8"
+    scene.view_settings.view_transform = "Standard"
+    world = bpy.data.worlds.new("world")
+    scene.world = world
+    world.color = (0.62, 0.64, 0.67)
+    camera_data = bpy.data.cameras.new("camera")
+    camera_data.type = "ORTHO"
+    camera = bpy.data.objects.new("camera", camera_data)
+    scene.collection.objects.link(camera)
+    scene.camera = camera
+    if args.zoom:
+        bone, span = ZOOMS[args.zoom]
+        target = rig.matrix_world @ rig.pose.bones[bone].head
+        width = height = span
+    else:
+        width, height = args.width, args.height
+        target = Vector((0, 0, height / 2 - 0.05))
+    camera.location = Vector((target.x, -10, target.z))
+    camera.rotation_euler = (math.radians(90), 0, 0)
+    camera_data.ortho_scale = max(width, height)
+    camera_data.clip_end = 50
+    scene.render.resolution_x = int(size * width / height)
+    scene.render.resolution_y = size
+    scene.render.image_settings.file_format = "PNG"
+    scene.render.filepath = str(out)
+    bpy.ops.render.render(write_still=True)
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
@@ -186,103 +276,36 @@ def main():
     parser.add_argument("--clip", type=Path)
     parser.add_argument("--action")
     parser.add_argument("--frame", type=int, default=0)
+    parser.add_argument("--frames", help="frames of the clip as columns, in place of the views (the first view is used)")
     parser.add_argument("--zoom")
-    parser.add_argument("--px", type=int, default=520)
+    parser.add_argument("--px", type=int, default=520, help="the height of one cell")
     parser.add_argument("--height", type=float, default=1.95)
+    parser.add_argument("--width", type=float, default=1.3)
     args = parser.parse_args(argv)
 
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    scene = bpy.context.scene
-    scene.render.fps = 30
     views = args.views.split(",")
-    clip_rig = action = None
-    if args.clip:
-        clip_rig, _meshes, new = load(args.clip)
-        action = bpy.data.actions[args.action]
-        for obj in new:
-            obj.hide_render = True
-
-    step = 1.9 if not args.zoom else 3.0
-    row_step = args.height + 0.12
-    shown = []
+    columns = [(views[0], int(f)) for f in args.frames.split(",")] if args.frames else [(v, args.frame) for v in views]
+    cells = []
     for row, path in enumerate(args.model):
-        for column, view in enumerate(views):
-            rig, meshes, _new = load(path)
-            for i, mesh in enumerate(meshes):
-                mesh.hide_render = i != args.lod
-            if clip_rig is not None:
-                pose_from_clip(rig, clip_rig, action, args.frame)
-            elif args.pose != "rest":
-                pose(rig, args.pose)
-            body = meshes[args.lod]
-            spot = Vector((column * step, 0, -row * row_step))
-            pivot = Vector((0, 0, 0))
-            if args.zoom:
-                pivot = rig.pose.bones[ZOOMS[args.zoom][0]].head.copy()
-            rig.rotation_mode = "XYZ"
-            rig.rotation_euler = (0, 0, math.radians(VIEWS[view]))
-            bpy.context.view_layer.update()
-            rig.location = spot - (rig.matrix_world.to_3x3() @ pivot if args.zoom else Vector((0, 0, 0)))
-            if args.mode == "wire":
-                wire = body.modifiers.new("wire", "WIREFRAME")
-                wire.thickness = 0.0022 if not args.zoom else 0.0008
-                wire.use_replace = False
-                wire.material_offset = 1
-                dark = bpy.data.materials.new("wire")
-                dark.diffuse_color = (0.02, 0.02, 0.02, 1)
-                body.data.materials.append(dark)
-            if args.mode == "rig":
-                bpy.context.view_layer.update()
-                sticks = bone_sticks(rig, Vector((0, 0, 0)))
-                sticks.matrix_world = rig.matrix_world
-                sticks.show_in_front = True
-                body.color = (1, 1, 1, 0.25)
-            shown.append(body)
-
-    scene.render.engine = "BLENDER_WORKBENCH"
-    shading = scene.display.shading
-    shading.light = "STUDIO"
-    shading.color_type = "TEXTURE" if args.mode != "rig" else "MATERIAL"
-    shading.show_cavity = True
-    shading.cavity_type = "BOTH"
-    shading.show_shadows = False
-    shading.show_specular_highlight = False
-    shading.show_object_outline = True
-    if args.mode == "rig":
-        shading.show_xray = True
-        shading.xray_alpha = 0.35
-    scene.display.render_aa = "8"
-    scene.view_settings.view_transform = "Standard"
-    world = bpy.data.worlds.new("world")
-    scene.world = world
-    scene.render.film_transparent = False
-    world.color = (0.62, 0.64, 0.67)
-
-    columns, rows = len(views), len(args.model)
-    camera_data = bpy.data.cameras.new("camera")
-    camera_data.type = "ORTHO"
-    camera = bpy.data.objects.new("camera", camera_data)
-    scene.collection.objects.link(camera)
-    scene.camera = camera
-    if args.zoom:
-        span = ZOOMS[args.zoom][1]
-        width, height = step * (columns - 1) + span, row_step * (rows - 1) + span
-        middle = Vector((step * (columns - 1) / 2, -10, -row_step * (rows - 1) / 2))
-        cell = span
-    else:
-        width, height = step * columns, row_step * rows
-        middle = Vector((step * (columns - 1) / 2, -10, args.height / 2 - 0.04 - row_step * (rows - 1) / 2))
-        cell = step
-    camera.location = middle
-    camera.rotation_euler = (math.radians(90), 0, 0)
-    camera_data.ortho_scale = max(width, height * 1.0) if width >= height else height
-    scene.render.resolution_x = int(args.px * width / cell)
-    scene.render.resolution_y = int(args.px * height / cell)
-    camera_data.ortho_scale = max(width, height)
-    scene.render.image_settings.file_format = "PNG"
-    scene.render.filepath = str(args.out)
-    bpy.ops.render.render(write_still=True)
-    print("RENDERED", args.out)
+        line = []
+        for column, (view, frame) in enumerate(columns):
+            args.frame = frame
+            cell = args.out.with_name(f"{args.out.stem}_cell_{row}_{column}.png")
+            render_cell(args, path, view, args.clip, args.px, cell)
+            image = bpy.data.images.load(str(cell))
+            pixels = np.array(image.pixels[:], np.float32).reshape(image.size[1], image.size[0], 4)
+            line.append(pixels)
+            bpy.data.images.remove(image)
+            cell.unlink()
+        cells.append(np.concatenate(line, axis=1))
+    # Rows run from the bottom in Blender's pixels: the first model goes on top.
+    sheet = np.concatenate(list(reversed(cells)), axis=0)
+    out = bpy.data.images.new("sheet", sheet.shape[1], sheet.shape[0], alpha=True)
+    out.pixels.foreach_set(sheet.ravel())
+    out.filepath_raw = str(args.out)
+    out.file_format = "PNG"
+    out.save()
+    print("RENDERED", args.out, sheet.shape[1], sheet.shape[0])
 
 
 main()

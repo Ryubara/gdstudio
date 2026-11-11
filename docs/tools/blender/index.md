@@ -25,6 +25,8 @@ Each stage of making an asset has a page; the asset classes and the tooling have
 | Triangle budgets per class, decimation, levels of detail, fewer meshes | [Optimisation](optimisation.md) |
 | glTF flags, axes, shared atlases, reading a glb back, checks after the import | [Export to Godot](export.md) |
 | Running build scripts, rebuilding committed files, the checks a build makes | [Build scripts](build-scripts.md) |
+| GDStudio's own prototype bodies: what they are for, the three looks, the proof in Godot, building | [Prototype mannequins](prototype-mannequins.md) |
+| The skeleton of GDStudio's own rig: bones, rest pose, twist bones, sockets, IK targets, clip rules | [The prototype mannequin rig](mannequin-rig.md) |
 | Cleaning Quaternius characters and exporting their clips for a shared animation library | [Rig sharing](rig-sharing.md) |
 | Locomotion clips from a kit's Run, at a known ground speed | [Gaits](gaits.md) |
 | Modular kit pieces, props, stairs and backdrops for a map | [Modular kits](modular-kits.md) |

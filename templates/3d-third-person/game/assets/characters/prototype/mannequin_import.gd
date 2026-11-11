@@ -12,10 +12,9 @@ extends EditorScenePostImport
 
 ## The hips height (m) the clip libraries key the `pelvis` for (`skeleton.py`).
 const REFERENCE_HIPS := 0.916607
-## The distance (m) from which each level of detail shows, and the overlap that stops a
-## character at the edge from flickering between two.
+## The distance (m) from which each level of detail shows. The ranges meet with no margin: with
+## a margin, a body that starts inside the band between two levels is drawn at neither.
 const LOD_DISTANCE: Array[float] = [0.0, 9.0, 22.0]
-const LOD_MARGIN := 0.75
 
 const TWIST := preload("res://assets/characters/prototype/mannequin_twist.gd")
 
@@ -38,8 +37,6 @@ func _post_import(scene: Node) -> Object:
 		if mesh == null:
 			continue
 		mesh.visibility_range_begin = LOD_DISTANCE[level]
-		mesh.visibility_range_begin_margin = LOD_MARGIN if level > 0 else 0.0
 		if level + 1 < LOD_DISTANCE.size():
 			mesh.visibility_range_end = LOD_DISTANCE[level + 1]
-			mesh.visibility_range_end_margin = LOD_MARGIN
 	return scene

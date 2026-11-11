@@ -53,26 +53,38 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var skeleton := get_skeleton()
 	if skeleton == null:
 		return
-	if skeleton != _resolved:
-		_resolve(skeleton)
 	if skip_beyond > 0.0 and _is_far(skeleton):
 		if not _rested:
-			for job: Array in _jobs:
-				skeleton.set_bone_pose_rotation(job[0], job[4])
+			rest(skeleton)
 			_rested = true
 		return
 	_rested = false
+	apply(skeleton)
+
+
+## Turn the twist bones of `skeleton` for the pose its limbs hold now.
+func apply(skeleton: Skeleton3D) -> void:
+	if skeleton != _resolved:
+		_resolve(skeleton)
 	for job: Array in _jobs:
-		var rest: Quaternion = job[3]
+		var limb_rest: Quaternion = job[3]
 		var pose := skeleton.get_bone_pose_rotation(job[1])
 		if job[2]:
 			# The limb's turn from its rest, in its own axes; its roll about Y is taken back out.
-			var roll := twist_about_y(rest.inverse() * pose)
+			var roll := twist_about_y(limb_rest.inverse() * pose)
 			skeleton.set_bone_pose_rotation(job[0], job[4] * roll.inverse())
 		else:
 			# The hand's turn from its rest, in the forearm's axes; the wrist end takes its roll.
-			var roll := twist_about_y(pose * rest.inverse())
+			var roll := twist_about_y(pose * limb_rest.inverse())
 			skeleton.set_bone_pose_rotation(job[0], roll * job[4])
+
+
+## Put the twist bones of `skeleton` back on their rest.
+func rest(skeleton: Skeleton3D) -> void:
+	if skeleton != _resolved:
+		_resolve(skeleton)
+	for job: Array in _jobs:
+		skeleton.set_bone_pose_rotation(job[0], job[4])
 
 
 func _is_far(skeleton: Skeleton3D) -> bool:

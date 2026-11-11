@@ -28,7 +28,11 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   heredocs for a few lines with no apostrophe, and open text files with `newline=""` when a Python one-liner rewrites
   them. **Watch out for:** a quoted heredoc holding an apostrophe (a docstring's "the clip's") failed in the agent's
   Bash tool with `unexpected EOF while looking for matching`, twice, and Python's text mode on Windows rewrote a
-  script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10.
+  script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1149, 2026-11-11 (a heredoc that wrote
+  `styles.py` held "an artist's"; and a patch that matched whole lines stopped matching once `gdformat` had rewritten
+  the file with CRLF: read with `
+` folded to `
+`).
 - **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
   old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
   last good file in place, so the next step copied and rendered the old clips as if they were the new ones.
