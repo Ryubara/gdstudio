@@ -119,3 +119,10 @@ says where it was learned (Deadnight, the first game).
   milestone. **Watch out for:** the issue bodies named what is sent, not the path, keys or who pays the one-offs, so the
   game side of a report was filled in from guesses and rebuilt when the backend landed. **Seen:** Deadnight #1059,
   2026-11-04 (fix: the report was rebuilt to `POST /internal/matches/:id/report` as #1075 shipped it).
+- **Approach:** Treat the command's flag bits as a shared resource: the issue that needs one names the bit it takes,
+  a branch checks the open pull requests for bits they already hold before it picks one, and the protocol version is
+  raised once per landing, past the highest any open pull request names. When no bit is left, the next protocol
+  change widens the flags field first. **Watch out for:** prone took bit 15 and a version bump while the weapon
+  presses' branch held bits 11 to 14, so the two were settled only at the merge; after them no flag bit is free.
+  **Seen:** gdstudio #1012 (PR #1021) and #887, 2026-11-10
+  ([the template's packets](../engines/godot/multiplayer.md#template-packets)).

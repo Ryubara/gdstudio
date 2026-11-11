@@ -34,9 +34,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   tool; after the script, or a `gdformat` run, `sed -i 's/\r$//' <files>` and `file <path>` (`ASCII text`, not `with
   CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n`, whatever the file had, and reading
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
-  and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #429, #415
-  and #442, 2026-11-01; gdstudio, 2026-11-02; Deadnight, 2026-11-03 to 2026-11-05 (fix: the habit above);
-  gdstudio #830, 2026-11-08; gdstudio #875, #903, #1011 and tether #31, 2026-11-10 (CRLF again).
+  and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429
+  and #442, 2026-11-01 to 11-05 (fix: the habit above); gdstudio #830, #875, #903, #1011 and tether #31, 2026-11-02
+  to 11-10; gdstudio #1130 and #1123, 2026-11-11 (a tool's own `write_text`; 16
+  pages).
 
 ## Scripted edits {#scripted-edits}
 
@@ -149,3 +150,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   working-tree changes); tether #28, 2026-11-10 (`git stash push -- src hooks` to run the new tests on the old code
   was refused by the permission settings; fix: `git archive HEAD` unpacked in the scratch folder with the new tests
   copied in).
+- **Approach:** Take an old copy of a Git LFS file (a sound, a model, a lightmap) with `git checkout <rev> -- <file>`
+  in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size before using it.
+  **Watch out for:** `git show <rev>:<file>` prints the LFS pointer, about 130 bytes of text, so a "before" sound
+  decoded as nothing and a model imported as a broken file. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound
+  clip); Deadnight #1282, 2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding)).

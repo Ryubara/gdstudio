@@ -8,6 +8,7 @@ names what it guards (kit docs: engines/godot/third-person/online-client.md#bad-
 
 from __future__ import annotations
 
+import itertools
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -51,6 +52,12 @@ CORRECTED_M_AN_UP_STALL = 3.0
 # commands around it come late, as around a freeze. The browser read 0.7 to 5.2 m with 7 to 9 hitches; without the
 # hold 31 m.
 CORRECTED_M_A_HITCH = 0.75
+# A browser page (24 to 35 frames a second on SwiftShader, two or three steps a frame) corrects more after each stall
+# of its thread than the native client does: 1 to 5 m in the second after a freeze, where the native client reads
+# 0.7 to 0.9 m for all three. Its hitches used to hide that (0.75 m each, 8 to 9 of them); once the page joins after
+# the level's warm-up it has none, and 11 runs with three freezes read 1.6 to 5.2 m (kit #1106). So a page is allowed
+# this much for every stall of its thread, the planned freezes included (why: #1127); without the hold it read 45 m.
+CORRECTED_M_A_PAGE_STALL = 1.5
 # The puppets are drawn 100 ms behind: at a steady 100 ms each way they never starve (under 1 % of the steps,
 # issue #908). A stall of the snapshots' way (down) starves them for what it holds past that delay and no longer:
 # the stall's length less the delay, a snapshot's interval more (the burst shows the moves at once, never a wrong
@@ -61,6 +68,11 @@ STARVED_SLACK_STEPS = 12
 # puppets' clock on while a page receives nothing until the next frame: up to that many starved steps a puppet. The
 # page read 0.7 to 1.3 % of its puppet-steps starved with 11 stalls of its thread.
 STARVED_A_CLIENT_STALL = 8
+# A server that lost more steps than this between two of its `stats` lines (ten seconds apart) was itself starved of
+# the machine: its TICKs came late and every client's puppets starved with them. On the shared workstation 4 of 19
+# browser runs lost 19 to 101 steps in a window, and each of them failed its starvation bound (279 to 657 puppet-steps)
+# whatever the page did; the other 15 lost 0 to 10 (kit #1106). A quarter of a second, the stall guard's own stall.
+SERVER_LOST_STEPS = 15
 # A body more than 6 m off is lost: never.
 LOST = 0
 TICK_RATE = 60
@@ -78,6 +90,7 @@ class Network:
     stalls_up: int = 0
     stalls_down: int = 0
     real: bool = False
+    page: bool = False
 
     def starved_allowed(self, steps: int, puppets: int, client_stalls: int = 0) -> int:
         """Puppet-steps that may starve (`RemotePlayers.starved` counts each puppet of a step)."""
@@ -90,9 +103,10 @@ class Network:
     def corrected_allowed(self, client_stalls: int = 0) -> float:
         hitches = max(0, client_stalls - self.freezes)
         per_minute = CORRECTED_M_PER_MINUTE_REAL if self.real else CORRECTED_M_PER_MINUTE
-        return (
-            per_minute * self.seconds / 60.0 + CORRECTED_M_AN_UP_STALL * self.stalls_up + CORRECTED_M_A_HITCH * hitches
+        stalls = (
+            CORRECTED_M_A_PAGE_STALL * max(client_stalls, self.freezes) if self.page else CORRECTED_M_A_HITCH * hitches
         )
+        return per_minute * self.seconds / 60.0 + CORRECTED_M_AN_UP_STALL * self.stalls_up + stalls
 
 
 @dataclass
@@ -215,7 +229,24 @@ def server_log(path: Path) -> dict:
             left.append(entry)
         elif event == "stats":
             stats.append(entry)
-    return {"kicked": kicked, "left": left, "stats": stats[-3:], "errors": errors[:10]}
+    return {"kicked": kicked, "left": left, "stats": stats[-3:], "errors": errors[:10], "lost_steps": lost_steps(stats)}
+
+
+def lost_steps(stats: list[dict]) -> int:
+    """The most steps the server fell further behind its clock between two `stats` lines (0 with fewer than two)."""
+    behind = [round(entry["t"] * TICK_RATE) - entry["tick"] for entry in stats if "t" in entry and "tick" in entry]
+    return max((b - a for a, b in itertools.pairwise(behind)), default=0)
+
+
+def judge_server_clock(log: dict, verdict: Verdict) -> Verdict:
+    """Fails a run whose server lost the machine (its TICKs late), so its starved puppets are named for what they are."""
+    lost = log.get("lost_steps", 0)
+    verdict.check(
+        f"the server lost at most {SERVER_LOST_STEPS} steps in a window (else the run measures the machine)",
+        lost <= SERVER_LOST_STEPS,
+        lost,
+    )
+    return verdict
 
 
 def judge_server(log: dict, verdict: Verdict) -> Verdict:

@@ -42,7 +42,14 @@ CLIP_MAX_SECONDS = 30.0
 CLIP_MAX_BYTES = 9 * 1024 * 1024  # GitHub takes 10 MB images and GIFs; stay under it
 CLIP_WIDTHS = (1280, 960, 720, 480)  # tried in order until the file fits
 MP4_CRF = 26
-GIF_MAX_FPS = 12
+# A GIF for a pull request (docs/studio/capture.md#gif-or-mp4, measured in #1153): GitHub's description column is
+# 814 px wide, a GIF's delays are whole hundredths of a second, and a GIF plays without a stall while it downloads
+# only when its bytes a second stay under the viewer's connection.
+GIF_WIDTHS = (800, 640, 480)  # tried in order until the file fits gif_budget()
+GIF_FPS_CHOICES = (20, 10, 5, 4, 2, 1)  # each a whole number of hundredths a frame
+GIF_BYTES_PER_SECOND = 512 * 1024  # 4.2 Mbit/s: no stall on the first play while downloading at 10 Mbps
+GIF_MIN_BUDGET_SECONDS = 2.0  # a shorter loop may stall once, for under a second, on its first play
+GIF_MAX_SECONDS = 10.0  # longer is an MP4; also caps the budget at 5 MB
 
 
 USER_ARGS = ("--", "++")  # Godot hands every argument after either of these to the game's scripts
@@ -270,6 +277,21 @@ def contact_sheet(folder: Path, every: int = 1, columns: int = 4, output: Path |
     return target
 
 
+def gif_budget(seconds: float) -> int:
+    """The most bytes a GIF of `seconds` should take: `GIF_BYTES_PER_SECOND` of it, counted for at least
+    `GIF_MIN_BUDGET_SECONDS` and at most `GIF_MAX_SECONDS` (1 to 5 MB)."""
+    return int(GIF_BYTES_PER_SECOND * min(max(seconds, GIF_MIN_BUDGET_SECONDS), GIF_MAX_SECONDS))
+
+
+def gif_fps(fps: int) -> int:
+    """The GIF frame rate for frames recorded at `fps`: one whose delay is a whole number of hundredths of a second
+    (12 fps came out as delays of 8, 8 and 9, a judder), dividing `fps` when it can so the frames kept are even."""
+    for choice in GIF_FPS_CHOICES:
+        if choice <= fps and fps % choice == 0 and choice >= 10:
+            return choice
+    return next((choice for choice in GIF_FPS_CHOICES if choice <= fps), 1)
+
+
 def _ffmpeg_cmd(
     ffmpeg: Path, pattern: Path, fps: int, width: int, seconds: float, gif: bool, target: Path
 ) -> list[str]:
@@ -277,7 +299,7 @@ def _ffmpeg_cmd(
     cmd = [str(ffmpeg), "-y", "-hide_banner", "-loglevel", "error", "-framerate", str(fps), "-i", str(pattern)]
     cmd += ["-t", f"{seconds:.3f}"]
     if gif:
-        out_fps = min(fps, GIF_MAX_FPS)
+        out_fps = gif_fps(fps)
         palette = "split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4"
         graph = f"fps={out_fps},{scale},{palette}"
         return [*cmd, "-filter_complex", graph, "-loop", "0", str(target)]
@@ -318,17 +340,37 @@ def encode_clip(
             f"clip cut at {max_seconds:g} s: {left_out} frames ({total - max_seconds:g} s) of {len(frames)} left out;"
             " --max-seconds for a longer clip"
         )
+    if gif and seconds > GIF_MAX_SECONDS:
+        log(
+            f"warning: a {seconds:g} s GIF is longer than the {GIF_MAX_SECONDS:g} s a GIF is for; make an MP4 (no"
+            " --gif) or a shorter capture (docs/studio/capture.md#gif-or-mp4)"
+        )
     target = folder / f"{folder.name}.{'gif' if gif else 'mp4'}"
-    for width in CLIP_WIDTHS:
+    widths, budget = (GIF_WIDTHS, gif_budget(seconds)) if gif else (CLIP_WIDTHS, CLIP_MAX_BYTES)
+    size = 0
+    for width in widths:
         target.unlink(missing_ok=True)
         result = run(_ffmpeg_cmd(ffmpeg, pattern, fps, width, seconds, gif, target), None)
         if result.returncode != 0 or not target.exists():
             raise CaptureError(f"ffmpeg failed with code {result.returncode}:\n{result.output.strip()[-600:]}")
         size = target.stat().st_size
-        log(f"encoded {target.name}: {size / 1024:.0f} KB at up to {width} px wide")
-        if size <= CLIP_MAX_BYTES:
+        log(f"encoded {target.name}: {_size_text(size)} at up to {width} px wide")
+        if size <= budget:
             return target
+    if gif and size <= CLIP_MAX_BYTES:
+        log(
+            f"warning: {target.name} is {_size_text(size)} at {widths[-1]} px, over the {_size_text(budget)} a"
+            f" {seconds:g} s GIF plays smoothly in on GitHub; make an MP4 (no --gif) or a shorter capture"
+            " (docs/studio/capture.md#gif-or-mp4)"
+        )
+        return target
     target.unlink(missing_ok=True)
-    raise CaptureError(
-        f"the clip is still over {CLIP_MAX_BYTES // 1024 // 1024} MB at {CLIP_WIDTHS[-1]} px; shorten it"
-    )
+    what, advice = ("GIF", "make an MP4 (no --gif) or shorten it") if gif else ("clip", "shorten it")
+    raise CaptureError(f"the {what} is still over {_size_text(CLIP_MAX_BYTES)} at {widths[-1]} px; {advice}")
+
+
+def _size_text(size: int) -> str:
+    """`size` bytes as people read it: `4.2 MB`, `850 KB`."""
+    if size < 1024 * 1024:
+        return f"{size / 1024:.0f} KB"
+    return f"{size / 1024 / 1024:.1f}".removesuffix(".0") + " MB"

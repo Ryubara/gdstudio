@@ -17,10 +17,10 @@ extends Node
 ## sum of one read a navigator, as #967 read it, is no measure there; a read around the loop of
 ## hundreds of microseconds is.
 ##
-## One line of JSON, `NAV_COST_BENCH {...}`. Desktop:
-## `godot --headless --fixed-fps 60 --path game res://tools/bench/nav_cost_bench.tscn`; browser:
-## a web export with this scene as `run/main_scene` and `tools/*` out of the exclude filter, read
-## by `tools/bench/nav_cost_bench.py` (`window.__nav_cost_bench`).
+## One line of JSON, `NAV_COST_BENCH {...}`. Desktop: `godot --headless --fixed-fps 60 --path game
+## res://tools/bench/nav_cost_bench.tscn`; browser: the web export `gds template bench-web
+## 3d-third-person nav_cost_bench` makes (kit docs/engines/godot/web-probes.md#bench-web), read by
+## `tools/bench/nav_cost_bench.py` (`window.__nav_cost_bench`).
 
 const COUNTS: Array[int] = [50, 100, 200]
 const WARM_FRAMES := 60
