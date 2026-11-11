@@ -132,6 +132,8 @@ def run(args: argparse.Namespace, name: str, out: Path) -> tuple[Verdict, dict]:
         client_args = ["--connect", client_url, "--seconds", str(args.seconds), "--freeze", freeze]
         if args.broken == "reconciler":
             client_args += ["--break", "reconciler"]
+        if relay is not None:
+            result["client_started_s"] = round(time.perf_counter() - relay.began, 3)
         client = start(
             godot_cmd(args.godot, project, "res://tools/net/predict_bot.gd", *client_args), out / "client.log"
         )
@@ -157,6 +159,7 @@ def run(args: argparse.Namespace, name: str, out: Path) -> tuple[Verdict, dict]:
     )
     if relay is not None:
         result["relay"] = relay.counts()
+        result["relay_stalls"] = relay.stall_log
     judge_client(report, network, verdict)
     client_errors = errors_in(out / "client.log")
     verdict.check("no ERROR in the client's log", not client_errors, client_errors)
@@ -167,6 +170,22 @@ def run(args: argparse.Namespace, name: str, out: Path) -> tuple[Verdict, dict]:
     result["checks"] = verdict.checks
     result["passed"] = verdict.passed
     return verdict, result
+
+
+def worst_seconds(result: dict, count: int = 5) -> list[str]:
+    """The seconds of a run that corrected most, each with its snaps, its gap and the relay's stalls near it (on the
+    relay's clock less the client's start, so a stall may read a second or two late: the client's boot and join)."""
+    seconds = result.get("client", {}).get("by_second", [])
+    stalls = result.get("relay_stalls", [])
+    start = result.get("client_started_s", 0.0)
+    lines = []
+    for entry in sorted(seconds, key=lambda e: -e["corrected_m"])[:count]:
+        near = [f"{way}@{t - start:.1f}" for t, way in stalls if entry["s"] - 1 <= t - start <= entry["s"] + 3]
+        lines.append(
+            f"s={entry['s']} corrected={entry['corrected_m']} snaps={entry['snaps']} gap={entry['gap_m']}"
+            f" stalls={' '.join(near) or '-'}"
+        )
+    return lines
 
 
 def main() -> int:
@@ -202,6 +221,9 @@ def main() -> int:
         verdict.print(f"[{name}] ")
         if "relay" in result:
             print(f"RELAY [{name}] {result['relay']}", flush=True)
+        if not verdict.passed:
+            for line in worst_seconds(result):
+                print(f"WORST [{name}] {line}", flush=True)
         results.append(result)
         failures += [f"{name}: {f}" for f in verdict.failures()]
     passed = not failures

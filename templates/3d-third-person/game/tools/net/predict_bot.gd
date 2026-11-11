@@ -7,7 +7,9 @@
 ## JSON that starts with `PREDICT_BOT`: the reconciler's corrections, snaps, losses and worst
 ## error, the gap to its own entry in the last TICK, the stalls and skipped ticks, the puppets
 ## drawn and how often they starved, the round trip, what the client costs a physics step, and the
-## shots, hits and deaths it played from the server's events (`combat`).
+## shots, hits and deaths it played from the server's events (`combat`), and `by_second`: for
+## each second after the WELCOME the metres corrected, the snaps and the gap to the last TICK at
+## its end, so a failed gate shows when it went wrong (`tools/net/bad_network_gate.py`).
 ##
 ## `<godot> --headless --path game -s res://tools/net/predict_bot.gd -- --connect
 ## ws://127.0.0.1:8910 --seconds 30 [--delay-ms 100] [--freeze 8:500,16:2000,24:5000]`; a
@@ -44,6 +46,8 @@ var _end_tick := 0
 var _puppet_us := PackedInt32Array()
 var _most_puppets := 0
 var _started := false
+var _by_second: Array[Dictionary] = []
+var _second_from := {"corrected": 0.0, "snaps": 0}
 
 
 func _initialize() -> void:
@@ -103,6 +107,8 @@ func _physics_process(_delta: float) -> bool:
 	_tick += 1
 	_puppet_us.append(_remote.last_frame_us)
 	_most_puppets = maxi(_most_puppets, _remote.slots().size())
+	if _tick % NetLimits.TICK_RATE == 0:
+		_note_second()
 	if _freezes.has(_tick):
 		OS.delay_msec(_freezes[_tick])
 	if _tick >= _end_tick:
@@ -118,11 +124,24 @@ func _on_welcomed(_slot: int) -> void:
 	_bot.restart(_client.player.global_position)
 
 
+func _note_second() -> void:
+	var reconciler := _client.reconciler
+	var second := {
+		"s": floori(float(_tick) / NetLimits.TICK_RATE),
+		"corrected_m": snappedf(reconciler.corrected - _second_from["corrected"], 0.001),
+		"snaps": reconciler.snaps - _second_from["snaps"],
+		"gap_m": snappedf(NetPlayReport.gap(_client), 0.001),
+	}
+	_by_second.append(second)
+	_second_from = {"corrected": reconciler.corrected, "snaps": reconciler.snaps}
+
+
 func _report() -> void:
 	var line := NetPlayReport.of(_client, _remote, _tick, _puppet_us)
 	line["seconds"] = _seconds
 	line["end_gap_m"] = line["gap_m"]
 	line["puppets"] = _most_puppets
+	line["by_second"] = _by_second
 	# The server's shots, hits and deaths this screen played (gdstudio #906).
 	line["combat"] = {
 		"shots": _client.combat.shots,
