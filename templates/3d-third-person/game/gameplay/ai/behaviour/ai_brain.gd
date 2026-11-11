@@ -11,7 +11,8 @@ extends Node
 ##   that matches the band toward the subject, the situation and the play state places a copy of
 ##   its task and may move the situation. The brain has no branch for any behaviour.
 ## - **The play state** (`play`, an `AiPlayState`) is fed each think from the health share and the
-##   hostiles seen now; turning Safe is the `hurt` event.
+##   hostiles seen now; turning Safe with a hostile in view is the `hurt` event, and a Safe
+##   character's roaming tasks (a patrol, a wander) do not run.
 ## - **One reminder.** While a hostile is seen and the running task does not answer a threat, the
 ##   noticed event is routed again every `threat_recheck_seconds`, so a character never stands
 ##   idle with a threat in view (a response refused inside the commit time is asked again).
@@ -54,6 +55,12 @@ static var _crowd_said: Dictionary[StringName, float] = {}
 @export_range(0.1, 10.0, 0.05, "suffix:s") var threat_recheck_seconds := 1.0
 ## The score a target already chosen keeps over the others (its commitment).
 @export_range(0.0, 5.0, 0.05) var target_bonus := 0.3
+## The least friendly band the reminder counts as a threat: Hostile for a fighter (a civilian in
+## view is watched once, not every second), Unfriendly for a civilian (an enemy is a threat to it).
+@export var remind_up_to := AiRelations.Band.HOSTILE
+## Seconds an answer the runner did not place (a response inside another's commit time) is asked
+## again, at each think.
+@export_range(0.0, 5.0, 0.05, "suffix:s") var retry_seconds := 1.0
 
 @export_group("Barks")
 ## Seconds before the same line again from this character.
@@ -90,6 +97,9 @@ var _since_reminder := 0.0
 var _said: Dictionary[StringName, float] = {}
 var _said_any := -INF
 var _started := false
+var _retry: Array = []
+var _retry_left := 0.0
+var _retrying := false
 
 
 ## True when `task` (or a step of it, for a composite) answers a threat.
@@ -158,6 +168,14 @@ func think(seconds: float) -> void:
 	var most := _character.max_health
 	var share := _character.health / most if most > 0.0 else 1.0
 	play.feed(share, _hostiles_seen(), seconds, profile)
+	if not _retry.is_empty():
+		_retry_left -= seconds
+		var again := _retry
+		_retry = []
+		if _retry_left > 0.0 and (again[1] == null or is_instance_valid(again[1])):
+			_retrying = true
+			route(again[0], again[1], again[2], again[3], again[4])
+			_retrying = false
 	_since_reminder += seconds
 	if _since_reminder >= threat_recheck_seconds:
 		_remind()
@@ -200,6 +218,8 @@ func route(
 			focus = subject
 			focus_point = task.goal
 			placed = at.assign(task, ISSUER)
+			if placed == null:
+				_keep_for_retry([event, subject, place, awareness, band])
 	last_answer = row.task.display_label() if row.task != null else "situation"
 	reacted.emit(event, row, placed)
 	_show()
@@ -284,11 +304,38 @@ func _remind() -> void:
 		return
 	if at.active != null and not at.active.is_done() and AiBrain.answers_threat(at.active):
 		return
-	var threat := choose_target()
-	if threat == null:
+	var belief := _threat_in_view()
+	if belief == null:
 		return
-	var belief := beliefs().of(threat)
-	route(AiBehaviourSet.NOTICED, threat, belief.last_position, belief.awareness, belief.band)
+	route(
+		AiBehaviourSet.NOTICED, belief.entity(), belief.last_position, belief.awareness, belief.band
+	)
+
+
+# The nearest thing believed, in view and at most `remind_up_to` (the fight's target first).
+func _threat_in_view() -> AiBelief:
+	var fight := choose_target()
+	var known := beliefs()
+	if fight != null:
+		return known.of(fight)
+	var best: AiBelief = null
+	var nearest := INF
+	var at := _character.global_position
+	for belief: AiBelief in known.by_id.values():
+		if not belief.can_fire_at() or belief.band > remind_up_to:
+			continue
+		var far := at.distance_squared_to(belief.last_position)
+		if far < nearest:
+			nearest = far
+			best = belief
+	return best
+
+
+# An answer the runner did not place is asked again at the next thinks, for `retry_seconds`.
+func _keep_for_retry(asked: Array) -> void:
+	if not _retrying:
+		_retry_left = retry_seconds
+	_retry = asked
 
 
 func _hostiles_seen() -> int:
@@ -407,8 +454,8 @@ func _on_link_reached(_link: Node, from: Vector3, to: Vector3) -> void:
 
 func _on_play_changed(now: AiPlayState.State, previous: AiPlayState.State) -> void:
 	play_state_changed.emit(now, previous)
-	if now == AiPlayState.State.SAFE:
-		var threat := choose_target()
-		var place := threat.global_position if threat != null else _character.global_position
-		route(AiBehaviourSet.HURT, threat, place)
+	# Turning Safe with a hostile in view is the `hurt` event; with none it only stops roaming.
+	var threat := choose_target() if now == AiPlayState.State.SAFE else null
+	if threat != null:
+		route(AiBehaviourSet.HURT, threat, beliefs().of(threat).last_position)
 	_show()

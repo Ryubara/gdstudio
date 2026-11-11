@@ -576,6 +576,9 @@ func _listen(profile: AiProfile) -> void:
 		var source := noise.source()
 		if source == _character:
 			continue
+		# Its maker was freed since (a despawn): the record's member is gone with it.
+		if noise.maker_gone():
+			continue
 		var band := _noise_band(noise.member, table, mine)
 		if band > care_up_to:
 			continue

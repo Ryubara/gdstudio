@@ -25,6 +25,7 @@ seconds = 0.0
 id = &"look_around"
 layer = 4
 channels = 4
+replace_policy = 3
 hard_timeout = 0.0
 
 [sub_resource type="Resource" id="Resource_6ur1j"]
@@ -193,6 +194,7 @@ seconds = 2.5
 id = &"look_at"
 layer = 1
 channels = 4
+replace_policy = 3
 
 [sub_resource type="Resource" id="Resource_hesgt"]
 script = ExtResource("2_tm7u4")
@@ -207,6 +209,7 @@ seconds = 2.5
 id = &"look_at"
 layer = 1
 channels = 4
+replace_policy = 3
 
 [sub_resource type="Resource" id="Resource_lcun7"]
 script = ExtResource("2_tm7u4")

@@ -49,6 +49,7 @@ var swings := 0
 
 var _unseen := 0.0
 var _windup := 0.0
+var _press_fists := false
 var _approach_at := Vector3.INF
 
 
@@ -66,13 +67,14 @@ func start() -> void:
 	_unseen = 0.0
 	_windup = 0.0
 	_approach_at = Vector3.INF
-	if draw_fists and body() != null and body().loadout != null and not _is_melee():
-		controller.unarmed = true
+	_press_fists = draw_fists and body() != null and body().loadout != null and not _is_melee()
 
 
 func update(delta: float) -> Status:
+	# The empty-hands button is held for one think (the body reads a press between thinks).
 	if controller != null:
-		controller.unarmed = false
+		controller.unarmed = _press_fists
+	_press_fists = false
 	var foe := subject()
 	var belief := belief_of(foe)
 	if foe == null or belief == null:
@@ -100,6 +102,7 @@ func _fight(delta: float, belief: AiBelief) -> Status:
 		# The fists are on their way up: face the subject meanwhile.
 		_stand()
 		look_toward(belief.last_position)
+		controller.aim = true
 		if elapsed < FISTS_SECONDS:
 			return Status.RUNNING
 		shot = AiAim.Shot.DRY

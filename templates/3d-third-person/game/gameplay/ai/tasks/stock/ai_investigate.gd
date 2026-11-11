@@ -3,7 +3,8 @@ class_name AiInvestigate
 extends AiStockTask
 ## Goes to look at a place (a noise, a glimpse): walks to `goal`, looking toward it, then looks
 ## around for `look_seconds`. A goal it cannot reach is looked at from where it stands. It ends
-## at once when a hostile comes into view (the brain's noticed answer takes over).
+## at once when a hostile comes into view (the brain's noticed answer takes over); a newer noise
+## merged into it sends it to the newer place.
 
 ## How fast it goes.
 @export var speed := Speed.WALK
@@ -48,6 +49,14 @@ func resume() -> Resume:
 	if _there_at < 0.0 and not go(goal, speed):
 		_arrive()
 	return Resume.RESUME
+
+
+## A newer noise of the same kind of task: it goes to the newer place.
+func merge(incoming: AiTaskContract) -> void:
+	var was := goal
+	super(incoming)
+	if state == State.RUNNING and goal.distance_to(was) > 1.0:
+		start()
 
 
 func has_end_condition() -> bool:

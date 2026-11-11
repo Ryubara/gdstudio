@@ -9,3 +9,4 @@ profile = ExtResource("2_profile")
 
 [node name="Brain" parent="."]
 behaviour = ExtResource("3_behaviour")
+remind_up_to = 1

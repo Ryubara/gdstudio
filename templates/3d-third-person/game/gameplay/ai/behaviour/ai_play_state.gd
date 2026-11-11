@@ -36,7 +36,7 @@ func feed(share: float, threats: int, seconds: float, profile: AiProfile) -> boo
 	if profile == null:
 		return false
 	var pressure := minf(profile.pressure_per_threat * threats, profile.max_pressure)
-	score = share - pressure
+	score = clampf(share - pressure, 0.0, 1.0)
 	var safe_at := profile.safe_line()
 	var careful_at := profile.careful_line()
 	var wanted := current

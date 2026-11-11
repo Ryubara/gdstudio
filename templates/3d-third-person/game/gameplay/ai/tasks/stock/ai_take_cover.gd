@@ -3,9 +3,10 @@ class_name AiTakeCover
 extends AiStockTask
 ## Runs to a cover spot (an `AiMarker` of kind COVER) and fights from it: crouched for
 ## `hide_seconds`, then up for `peek_seconds` to shoot at the threat with the aim model of
-## `AiAim`, and down again. Playing Safe, it only hides. It ends `hold_seconds` after the threat
-## was last believed; with no free spot that covers from the threat within `search_radius` it fails
-## `NO_PATH` (a row's fallback runs).
+## `AiAim`, and down again. Playing Safe (or with `peek` off), it only hides. It ends
+## `hold_seconds` after the threat was last believed. With no free spot within `search_radius`, or
+## when the way to it is lost, it hunkers down where it stands and does the same there; a dry gun at
+## a peek fails it `NO_AMMO` (a row's fallback runs).
 ##
 ## Which spot is the second choice point that is scored (`AiChoice`): walking cost first, a spot
 ## facing the threat preferred, the spot already chosen keeping `commitment`. A spot is taken by
@@ -50,15 +51,16 @@ func start() -> void:
 	_peeking = false
 	_calm = 0.0
 	spot = choose_spot()
-	if spot != null:
-		spot.taken_by = character
-		go(spot.global_position, Speed.RUN)
+	if spot == null:
+		# No spot: it hunkers down where it stands and fights from there.
+		in_cover = true
+		_phase = 0.0
+		return
+	spot.taken_by = character
+	go(spot.global_position, Speed.RUN)
 
 
 func update(delta: float) -> Status:
-	if spot == null:
-		reason = Reason.NO_PATH
-		return Status.FAILED
 	var threat := subject()
 	var belief := belief_of(threat)
 	if belief != null and belief.believed:
@@ -76,11 +78,9 @@ func update(delta: float) -> Status:
 				in_cover = true
 				_phase = 0.0
 			Walk.FAILED:
-				if flat_distance(spot.global_position) > 1.5:
-					_leave()
-					reason = Reason.NO_PATH
-					return Status.FAILED
+				# The way there is gone: it hunkers down where it got to.
 				in_cover = true
+				_phase = 0.0
 		return Status.RUNNING
 	return _fight(delta, belief)
 
@@ -99,7 +99,7 @@ func cancel() -> void:
 
 func detail() -> String:
 	if spot == null:
-		return ""
+		return "in place"
 	if not in_cover:
 		return "to " + String(spot.name)
 	return "peek" if _peeking else "hide"
