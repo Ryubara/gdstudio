@@ -29,7 +29,7 @@ game/
 | Folders named for things | No `common`, `misc`, `vendor`, `utils`, `util`, `helpers`, `stuff`, `temp` or `tmp`: a folder that has to be called one of these has no owner yet. | `vague-folder` |
 | The file is the class | A script's `class_name` is its file name in PascalCase (`ui_router.gd` holds `UIRouter` or `UiRouter`). | `class-name` |
 | A scene beside its script | The script on a scene's root node has the scene's name and folder (`player.tscn`, `player.gd`). | `scene-script` |
-| Committed uids | Godot writes `<script>.uid` (and one for a shader) beside each; commit it, so moving a file does not break references. | `uid` |
+| Committed uids | Godot writes `<script>.uid` (and one for a shader) beside each; commit it, so moving a file does not break references. The text is one Godot writes (`uid://`, then `a`-`y` and `0`-`8`, at most 63 bits): never a hand-made one. In a template, `gds template uids <template>` writes the missing ones. | `uid` |
 | Dependencies run one way | `addons`, `assets` < `core` < `gameplay`, `world`, `net` < `ui` < the root scene. A file refers only to folders at its own level or below: `core` never names `gameplay`, `gameplay` never names `ui`. `tests/` and `tools/` and the root scenes may use anything. | `dependency` |
 | Tools stay out of the build | Shipped code never names `res://tools/` or `res://tests/`, and every export preset's `exclude_filter` holds `tests/*` and `tools/*`. A probe that the exported game itself must carry (a browser test reads `window.gdprobe` from the web build: `ui/probe/web_probe.gd`, which a scene's script adds at run time on `?probe`, so no scene holds it) is shipped code, not a tool: it lives under `ui/probe/`, does nothing unless asked (the page has `?probe`), and names nothing in `tools/`; the script that drives it stays in `tools/web_smoke/`. | `ships-tools`, `export` |
 | An addon the kit puts in a game is registered | `gds sync` copies `gds_ui` into `addons/` and enables nothing (the 3D Blank template also commits Phantom Camera, registered the same way): the game's `project.godot` enables `res://addons/gds_ui/plugin.cfg` under `[editor_plugins]` and has `UIRouter="*res://addons/gds_ui/router/ui_router.gd"` under `[autoload]`, as the plugin does when it is enabled. Without the autoload the addon's demo and focus ring do not parse. | `addon-plugin`, `addon-autoload` (`gds sync` also warns) |
@@ -53,23 +53,22 @@ game/
   Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
   own); gdstudio #1041, 2026-11-10 (3D Third Person's `character.gd` at 1000 lines failed three pull requests that each
   passed alone; four parts moved into modules: [the body's modules](third-person/character.md#controller)).
-- **Approach:** After writing a new script (a test too) in a template, open the project once (`godot --headless
-  --import`) and commit the `.gd.uid` it writes beside it. **Watch out for:** a tested copy in the scratch folder had
-  the uid and the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and
-  `template` CI jobs; copy the uid files back, not only the scripts (a script that syncs the game and the branch copies
-  `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
-  2026-11-08; gdstudio #868, 2026-11-10 (`test_aim_release.gd.uid`); gdstudio #872, 2026-11-10
-  (`test_ragdoll_natural.gd.uid`, never copied back); gdstudio #925, 2026-11-10 (a template has no project: a throwaway
-  script imported in the kit's `godot/`); #910, #1074 and #1091, 2026-11-11 (caught by `gds
-  template test`).
+- **Approach:** After writing a new script or shader in a template, run `gds template uids <template>` and commit
+  the `.uid` files it writes (Godot's form; a valid file is never changed, an invalid one exits 1 until
+  `--replace-invalid`). Never write a uid by hand. **Watch out for:** uids copied from a kept game were left behind
+  and failed the `uid` rule in CI, and hand-made ones held a `z`, a `9`, a word or over 63 bits, which Godot imports
+  silently. **Seen:** gdstudio #845, #868, #872, #925 (2026-11-08 to 11-10); #910, #1074, #1091, #968 (36 at
+  once; 2026-11-11); seven
+  hand-made uids in 3D Third Person replaced, kit #1129, 2026-11-11.
 
-- **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
-  the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx
-  ruff check` inside `templates/3d-third-person/game/tools/` left a `.ruff_cache/` folder; the layout check
-  (`snake-case`) and the kit's `test_new_game.py` (a made game has every file of its template) failed on it, and it
-  looked like a problem of the change; importing a tool's module to try it (`python -c "import bad_network"`) leaves
-  `__pycache__/` the same way (`PYTHONDONTWRITEBYTECODE=1`, or delete it). **Seen:** gdstudio #884, 2026-11-10; gdstudio
-  #908, 2026-11-11 (`tools/net/__pycache__`, caught by `gds check layout` before the push).
+- **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
+  a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and
+  run `gds check layout templates/<name>/game` before the push. **Watch out for:** a left `.ruff_cache/` or
+  `__pycache__/` failed the layout check (`snake-case`) and `test_new_game.py`, and looked like a problem of the change.
+  From the kit's root ruff reads no config and wraps a template's Python at 88: pass `--line-length 120` (to undo an
+  88 run, first `--config "format.skip-magic-trailing-comma=true"`). **Seen:**
+  gdstudio #884, 2026-11-10; gdstudio #908, 2026-11-11 (`tools/net/__pycache__`); gdstudio #1110, 2026-11-11 (a kit
+  test loading `bad_network.py` failed CI's `test_layout.py`); gdstudio #1106, #1105, 2026-11-11 (gate files rewrapped).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or

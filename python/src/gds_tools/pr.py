@@ -5,7 +5,7 @@ there. `check_body` runs the same function, from the checkout of the repository 
 repository has its own `.github/conventions.yml` (a game's differs from the kit's), so the checker is run with that
 folder as its working directory and that file as its conventions, and the repository's own copy of `groundwork.py` is
 preferred over the kit's. Used by `gds pr check-body` and, loaded by file, by the Git/GitHub guard in
-`.claude/hooks/guards.py`, so this module uses the standard library only.
+`.claude/hooks/guards/bodies.py`, so this module uses the standard library only.
 """
 
 from __future__ import annotations
@@ -78,9 +78,11 @@ def check_body(
     repo: Path, body: str, title: str | None = None, kit: Path | None = None, changed: list[str] | None = None
 ) -> BodyCheck:
     """Run `groundwork.py check-body` for a description (and a title, which turns on the screenshots, failed-first and
-    lessons rules) in the checkout `repo`. The pull request's history is not asked (no network): a pull request that
-    GitHub knows failed an earlier check or closes a bug issue is still judged by `pr-rules` alone on that part.
-    `changed` (the branch's files, `branch_changes`) lets the `Lessons:` rule see that its section's page changes."""
+    lessons rules) in the checkout `repo`. The pull request's history is not asked (no network): the issues it closes
+    are read from its `Fixes #N` lines, and a pull request that GitHub knows failed an earlier check or closes a bug
+    issue is still judged by `pr-rules` alone on that part. `changed` (the branch's files, `branch_changes`) lets the
+    `Lessons:` rule see that its section's page changes. The `Read first:` sections are looked up in origin/main's docs
+    when the checkout knows origin/main, as `pr-rules` reads its checkout of the base branch (kit #1131)."""
     conventions = repo / CONVENTIONS
     if not conventions.is_file():
         raise PrCheckError(f"{CONVENTIONS.as_posix()} is missing in {repo}")
@@ -93,14 +95,20 @@ def check_body(
             title_file = Path(folder) / "title.txt"
             title_file.write_text(title, encoding="utf-8", newline="\n")
             arguments += ["--title", str(title_file)]
-        if changed is None:
-            return _run_checker(repo, checker, arguments)
-        changed_file = Path(folder) / "changed.txt"
-        changed_file.write_text("\n".join(changed) + "\n", encoding="utf-8", newline="\n")
-        try:
-            return _run_checker(repo, checker, [*arguments, "--changed", str(changed_file)])
-        except PrCheckError:  # a game's older groundwork.py has no `check-body --changed`
-            return _run_checker(repo, checker, arguments)
+        extras: list[list[str]] = []
+        if changed is not None:
+            changed_file = Path(folder) / "changed.txt"
+            changed_file.write_text("\n".join(changed) + "\n", encoding="utf-8", newline="\n")
+            extras.append(["--changed", str(changed_file)])
+        if title is not None and _git(repo, "rev-parse", "--verify", "--quiet", BASE)[0] == 0:
+            extras.append(["--docs-ref", BASE])
+        # A game's older groundwork.py may not know `--changed` or `--docs-ref`: drop the newest first.
+        for kept in range(len(extras), 0, -1):
+            try:
+                return _run_checker(repo, checker, [*arguments, *(word for extra in extras[:kept] for word in extra)])
+            except PrCheckError:
+                continue
+        return _run_checker(repo, checker, arguments)
 
 
 def _run_checker(repo: Path, checker: Path, arguments: list[str]) -> BodyCheck:

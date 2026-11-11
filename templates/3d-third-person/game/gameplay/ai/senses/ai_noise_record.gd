@@ -15,6 +15,8 @@ var loudness := 1.0
 var radius := 0.0
 ## The faction member of what made it; null for a noise with no source or one in no faction.
 var member: AiFactionMember
+## The faction id of its member when it was made (`&""` with no member): the board's index.
+var faction := &""
 ## The physics frame it was made on.
 var frame := 0
 
@@ -30,3 +32,9 @@ func source() -> Node3D:
 func set_source(node: Node3D) -> void:
 	_source = weakref(node) if node != null else null
 	member = AiFactionMember.of(node)
+	faction = member.faction_id() if member != null else &""
+
+
+## True when something made it and is gone since (freed): its `member` is gone with it.
+func maker_gone() -> bool:
+	return _source != null and _source.get_ref() == null

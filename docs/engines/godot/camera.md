@@ -159,6 +159,20 @@ turn, `keep_aim_on_swap` off is the old slide, and a time of 0 swaps at once and
 frame. The client's camera is local and never sent: what it sends is the shot under its crosshair, so the server's body
 fires at the kept point (0.04 degrees off in `test_net_swap_aim.gd`).
 
+**When the point is kept.** Only on a swap that starts while the player is aiming (the aim or fire button held, the same
+test that picks `aim_shoulder_time`). A swap while walking or sprinting without aiming only slides the view: the yaw and
+pitch stay as they are, and so does the way the character runs, because the run follows the view's yaw.
+`keep_aim_when_not_aiming` (off) keeps the point on every swap; `keep_aim_on_swap` off keeps it on none. A swap begun
+while aiming keeps its point to the end even if the aim is let go mid-swap.
+
+- **Approach:** Tie the aimed-point keeping to aiming: decide when the swap starts (`PlayerCamera._keeps_aim_now()`),
+  and offer keeping on every swap as an inspector option that is off by default. Test it with simulated input: a
+  sprint (W and Shift held) plus a swap keeps the view's yaw and the run's heading within 0.05 degrees, an aimed swap
+  still keeps the point, and the option on keeps it while sprinting (`test_camera_swap_aim.gd`).
+  **Watch out for:** a turn the camera makes on its own, with the player not aiming, also turns a moving player who
+  is not aiming; on the main branch a sprinting swap past a near pillar turned the run by about 11 degrees (the
+  `sprint_swap_tour` capture). **Seen:** gdstudio #1124, 2026-11-11 (the maintainer's review of #1094).
+
 - **Approach:** Keep an aimed point through a change of view offset by applying the difference of two exact solutions
   (the yaw and pitch through the point from the new offset, minus those from the starting offset, about the arm's
   pivot now) on top of the current turn, and test it on the real `Camera3D`'s crosshair on a near board, a far board

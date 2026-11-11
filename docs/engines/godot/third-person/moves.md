@@ -35,14 +35,19 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   the body each step); the look held to `look_up_limit` and `look_down_limit` (the view, the aim pose and the aim ray,
   so an AI is held too), and `PlayerCamera.pitch_limits()` draws the orbit in to the same limits as the body lies down.
 - **The picture.** `Character.State.PRONE` (after `DEAD`, so the snapshot's state byte keeps its old numbers),
-  `prone_changed(down)`, the read-only `prone` and `prone_amount`. `CharacterAnimation` has a `prone` state: the prone
-  idle at `prone_idle_pace`, the crawl clip blended in by ground speed and played at `ground speed / crawl_clip_speed`,
-  and `to_prone_clip` and `to_crouch_clip` played over the body for the enter and exit times. Until the template's own
-  clips land (gdstudio #1009), the placeholder is the library's swim stroke held on its first pose for the idle and
-  played for the crawl, lifted and moved ahead by `prone_pose_offset` (the stroke floats under a water line) and
-  tipped by `prone_pose_lean`; with real clips the offset and the lean are zero. Those clips rest the forearms on
-  their outer edges with the hands in fists and hold no weapon
-  ([how they are solved](../../../tools/blender/animation.md#solved-clips)).
+  `prone_changed(down)`, the read-only `prone` and `prone_amount`. `CharacterAnimation` has a `prone` state that
+  plays the template's own clips (gdstudio #1009, the library `prone` from `assets/animation/prone/prone.glb`;
+  [how they are solved](../../../tools/blender/animation.md#solved-clips)): `prone/Prone_Idle` at `prone_idle_pace`,
+  and `prone/Crawl_Fwd`, which replaces the idle over `blend_time` as soon as the body moves and plays at
+  `ground speed / crawl_clip_speed` (0.618 m/s, the clip's stride), backwards when the body moves away from the way it
+  faces (aiming and pulling back; without aim the body turns toward the push at `turn_speed` while the crawl plays).
+  `prone/Crouch_To_Prone` and `prone/Prone_To_Crouch` play over the body for `enter_time` and `exit_time` (0.9 s and
+  1.0 s clips played in 0.5 and 0.7 s), from and to the crouch idle's first pose. The clips rest the body on the
+  forearms and fists, so lying puts the weapon away (`ProneAnimation.stow_share`: its model hidden and the grip off)
+  until the body aims. A model whose body needs clips of its own gets them from `prone_libraries` (its scene file to a
+  library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the
+  pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`), cosmetic and
+  never sent.
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
 studios; the template's run is 4.0 m/s and its walk 1.7):
@@ -66,7 +71,7 @@ every 5 s; microseconds a body a physics tick, 40 bodies, two headless desktop r
 `commands` 32.7 and 28.0, this branch's `commands` 31.4 and 32.5, `prone` 32.4 and 31.2. Lying costs what standing
 does; the only new query is the room check, made only while a body that was let go of is still down. On the web the
 same ratio is expected (the bench's browser rows track the desktop's within a few microseconds at 40 bodies); nothing
-of the stance is sent but the command's bit, and the cosmetic placeholder pose is set on the model in `_process`.
+of the stance is sent but the command's bit; the clips are cosmetic and played in `_process`.
 
 - **Approach:** Derive a prone camera's look-up limit from the follow distance and the target height (`target +
   offset - distance * sin(limit)` stays over the floor by more than the spring arm's margin) and test the lens height
@@ -77,7 +82,15 @@ of the stance is sent but the command's bit, and the cosmetic placeholder pose i
   down the body is and nothing at all while it is zero, and look at the capture before picking the clip. **Watch out
   for:** the crouch clips tipped forward still knelt, and the library's swim stroke is horizontal but floats under a
   water line (0.42 m low) with a treading idle; the stroke held on its first pose (`prone_idle_pace` 0) is the idle.
-  **Seen:** gdstudio #1012, 2026-11-10 (captures of three tries).
+  **Seen:** gdstudio #1012, 2026-11-10 (captures of three tries); the offset and the swim stroke were removed when
+  the real clips landed (gdstudio #1026).
+- **Approach:** Blend a crawl in over a time as soon as the body moves and let its pace (ground speed over the clip's
+  stride) follow the speed, and measure a planted joint in the game: throttle the tree (`set_throttled(true)`) and
+  `advance()` it by the tick after each physics frame, read the bone in world space and take the least drift over
+  most of its planted share of the cycle, at the slowest, the default and the fastest crawl. **Watch out for:** the
+  crawl first blended with the idle by ground speed up to 0.2 m/s, so at the slowest crawl the tuning allows
+  (0.1 m/s) half the idle stayed in and a planted elbow slid 12 cm a stride (the swim stand-in: 8.5 cm); eased in
+  time it is 0.1 to 2.4 mm from 0.1 to 3 m/s. **Seen:** gdstudio #1026, 2026-11-11 (`test_prone_animation.gd`).
 - **Approach:** Keep a body's stance changes out of its state names when the capsule is what matters: getting up from
   prone passes the crouch height on the way (test the height the tick the stance reaches zero), and the state goes
   from `PRONE` to `IDLE` as a released crouch does. **Watch out for:** a test that expected a `CROUCH` state between

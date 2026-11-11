@@ -150,7 +150,7 @@ The pause covers pull requests too. While it is set, no agent works a pull reque
 no rerun, no edit, no hold and no merge, and no new pull request in it, a docs move made for kit work included.
 
 - Open pull requests are left as they are, turned into drafts (`gh pr ready --undo`), and are out of the
-  [landing queue](#landing).
+  [landing queue](landing.md#landing).
 - Kit work that would change a paused game waits as a note on the game's own issue, or in the kit issue's "left for
   later" list, until the pause is lifted.
 - `gds merge-main` on a worktree of the repository, `gds pr hold` on one of its pull requests and `gds pr check-body`
@@ -190,7 +190,11 @@ changes:
    `.pre-commit-config.yaml` has none to check. On Windows, Git LFS's own `pre-push` (`#!/bin/sh`) is moved aside by
    `pre-commit install` and then fails every push with `Executable /bin/sh not found`; the start rewrites its
    shebang to `#!/usr/bin/env sh`;
-3. records the worktree in the ledger and prints `Worktree: <absolute path>` for the prompt.
+3. installs the pinned Godot addons (GdUnit4, the MCP addon) into the worktree's Godot project (`game/` in a game,
+   `godot/` in the kit), untracked as `gds workspace init` installs them
+   ([Integrations](workspace.md#integrations)); a reused worktree gets the ones it lacks. An addon not fetched yet is
+   named in the output (`gds workspace init` fetches it) and the start goes on;
+4. records the worktree in the ledger and prints `Worktree: <absolute path>` for the prompt.
 
 If the worktree cannot be made, or a hook stays missing, the issue is left as it was and the worktree and branch it
 made are removed; if GitHub fails after the worktree exists, it is removed too. `--no-worktree` skips the step for an
@@ -248,6 +252,14 @@ because
 the pull request still closes it. Skip both. Give the new agent `PR: <owner/repo>#N` and the `Worktree:` line of the old
 one, whose folder is the pull request's branch.
 
+- **Approach:** Once an agent has handed over (at its retire line, its notes written), send new work only to its
+  successor, and stop the old agent itself (TaskStop on its agent id), not only its background tasks, before the
+  successor starts. **Watch out for:** a retiring agent at its context limit was sent a new task (record videos),
+  then a fresh agent was started on the same work after only the old one's background CI wait was stopped; ending
+  that task woke the old agent, which read the queued message and began writing the same files as the new one
+  (`mannequin_parade.gd`) until the new agent noticed and stood down. **Seen:** gdstudio #1149 (PR #1172),
+  2026-11-11 (a coordinator mistake).
+
 ## Starting an agent {#starting-an-agent}
 
 The prompt of every task agent (`godot-engineer`, `backend-engineer`, `blender-artist`, `level-designer`, any agent
@@ -272,10 +284,15 @@ It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), a
 
 1. every section the issue names as `page.md#anchor`;
 2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
-   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards.py` finds the hooks
-   pages);
+   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards/` finds the hooks
+   pages), when that section's words score at least a third of the best section's (a pull request's changed files
+   need no such closeness);
 3. the rest by the issue's words: its title, its area labels with their descriptions (`A-agents`, "Agents and their
    instructions"), then its body, which counts least.
+
+It names only headings with an explicit `{#anchor}`, never a page's `#` title or a heading the site slugged itself:
+`ai.md#ai-characters-in-3d-third-person` and `index.md#blender`, the slugs of two titles, read as missing to the
+agents given them (gdstudio #1193).
 
 `--why` adds each section's title and why it is there. The coordinator copies the lines into the prompt as they are,
 adds a section the task needs that the brief missed (`gds learn <words>` finds one), and drops one that does not fit.
@@ -308,6 +325,12 @@ they exist.
   the brief proposed. **Watch out for:** `gds brief` ranks by the issue's words, and a visual issue rarely names how
   captures are attached, so its agent met the image rules only as refusals and a failed `pr-rules`. **Seen:** gdstudio
   #880 and #886, 2026-11-10.
+- **Approach:** Let a path the issue names pick a section only when that section's words are also close to the
+  issue's (`MENTION_FLOOR` in `lessons.py`: a third of the best section's score). **Watch out for:** an issue's `Area`
+  line repeats its label's folders (`game/core/`) and many sections cite a file as an example, so the one section that
+  mentions such a path was named however far its subject; #909 (online play) was briefed with the voice-lines section.
+  **Seen:** gdstudio #1133, 2026-11-11 (fix: the floor, tuned on 120 kit issues; the far mentions scored 0.17 to 0.31
+  of the best, the fitting ones 0.35 and up).
 
 ## The report {#the-report}
 
@@ -412,142 +435,13 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
 
 ## Landing pull requests {#landing}
 
-Open pull requests come before new work: each one left open goes stale against `main` and makes the next harder.
-
-- **Land, then start.** Each time the queue is read, a red `main` is fixed first, then every conflicting or failing
-  pull request gets an owner, oldest first, before new feature work starts. On 2026-11-01 pull requests stacked up red
-  and conflicting for hours while new ones kept landing, and each merge made the old ones worse; on 2026-11-02, 21 were
-  open with 33 jobs queued.
-- **Land what you would recommend.** A pull request the coordinator would recommend is refreshed and landed, and its
-  trade-off reported afterwards, so the maintainer can reverse it. It is not parked behind "merge? recommended". Only
-  `S-hold` ([Hooks: the hold](hooks.md#hold)), a maintainer decision of `AGENTS.md`, or having no recommendation waits
-  for the maintainer.
-- **Refresh a parked pull request.** One whose last run is older than recent merges to `main` gets `main` merged in and
-  its checks rerun before it lands, even when GitHub says CLEAN: CLEAN only says the text merges and the last checks
-  passed, and new commits that look unrelated are no exception. Several land one at a time. On 2026-11-06 three parked
-  pull requests landed unrefreshed and `main` went red: a shorter reload met a test added after its last run; on
-  2026-11-10 #972 and #977 landed past unrelated-looking commits, and #954 nearly did the same with #986 and #989.
-- **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
-  rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
-  ([Pausing a game](#paused)). Landing what you would recommend does not reach past the pause.
-- **Hand-merge paths** (`AGENTS.md`: conventions, `AGENTS.md`, settings, hooks, `tools.toml`) are merged by hand, never
-  by auto-merge, by the maintainer or by an agent the maintainer has authorized for it.
-
-- **Approach:** After `gds merge-main`, rerun the suites the branch touches as CI runs them now (`gds template test`
-  defaults to CI's `--fixed-fps 60`; `--real-clock` opts out) and every web probe of the branch, before pushing.
-  **Watch out for:** a branch that was green meets what `main` gained meanwhile: a new clock for the suites, a new
-  main menu in front of the probe. **Seen:** gdstudio #903 (PR #935), 2026-11-10: the local run on the real clock
-  passed 876 cases while CI failed 5 socket cases, and the web probe stopped at the new menu (fix: the command
-  defaults to the CI clock, a test pins it against `ci.yml`, kit #976).
-
-- **Approach:** Look up the owner of any pull request red for over 30 minutes and assign one at once if none is live;
-  when an agent is moved to other work, hand each pull request it leaves to someone. **Watch out for:** every open pull
-  request needs a live owner: #488's owner was moved to probes and the pull request dropped off the owner map, so its
-  hung `godot` job sat red about 80 minutes; it was not a model-capability problem. **Seen:** Deadnight #488, 2026-11-02
-  (fix: `gds issue list` shows every issue in progress with its owner and pull request and calls out the ones with none
-  ([Looking](#looking))).
-
-- **Approach:** Before opening a new pull request, fix a red `main` and check that every older open one has a live owner
-  and moved in the last hour; work the queue oldest first, one pull request per agent, only on files no open one
-  touches; start each status report with the old ones; rerun a known flake at the head of the queue at once (`gh run
-  rerun <id> --failed`) and file it. **Watch out for:** parallel pull requests touched the same files, a flaky check
-  stalled `main`, and a pull request in work looks abandoned from GitHub, so Deadnight #402 sat four hours on a flake.
-  **Seen:** Deadnight, 2026-11-01; Deadnight #402, 2026-11-02 (fix: `S-conflict` and `S-ci-failing` kept in sync
-  (kit #76)).
-- **Approach:** Rerun the balance gate on `main` after each merge that touches tuning, and let one balance owner rebase
-  on the others. **Watch out for:** two pull requests each passed the gate alone (#260 changed speeds, #271 the crane
-  price) and broke it once both were on `main`. **Seen:** Deadnight #260 and #271, 2026-11-01 (fix: the gate on the next
-  pull request caught it).
-- **Approach:** Land a fix several pull requests need once and have the rest merge `main`; parallel agents add their own
-  rows to shared docs tables and never reword others', and the coordinator names the shared files in each prompt.
-  **Watch out for:** five parallel art pull requests added rows to the same two docs and three rewrote one test with the
-  same fix; auto-merge lands the first green pull request, not the oldest, so merge order only picks who settles a
-  clash. **Seen:** Deadnight #655, #656, #660 and #661, 2026-11-03 (fix: the rule above).
-- **Approach:** Before asking whether to merge, check the maintainer decisions list and `S-hold`; if neither applies and
-  you would recommend the pull request, refresh it, land it, and report the trade-off afterwards. **Watch out for:** the
-  coordinator had decided, then parked green pull requests for a yes though merging is not a maintainer decision, and
-  each handoff carried the parked state on. **Seen:** Deadnight #1199, #1244 and #1252, 2026-11-06 (fix: land what you
-  would recommend, above).
-
-- **Approach:** Before pushing a follow-up commit to a branch that has a pull request, run `gh pr view <branch> --json
-  state -q .state`; when it is `MERGED`, branch from `origin/main`, cherry-pick the commit and open a new pull request,
-  and put every doc a task needs into the first pull request before turning auto-merge on. **Watch out for:** on a green
-  docs pull request `--auto` merges within a minute, so a later push goes to a branch whose pull request is closed; the
-  Stop gate looks for kit branches with commits and no pull request, and this one had one. **Seen:** gdstudio #175
-  and #176, 2026-11-02; gdstudio, 2026-11-05 (fix: a new branch and pull request each time; the hooks name a branch that
-  holds commits `main` lacks).
-- **Approach:** Turn auto-merge on only after the proof is read: when the test plan is a long run, every job of that run
-  (`gh run view <id> --json jobs`, none queued or in progress, each conclusion explained, named in the body), and turn
-  it off in the same step as asking for changes. **Watch out for:** on a green, clean pull request `--auto` merges at
-  once, so the step is a merge, not a setting: a pull request the maintainer meant to see first merged past its hold, a
-  nightly fix merged before its dispatch finished a job that failed on a limit it had called harmless, and a pull
-  request with stale numbers landed before the three fixes asked for. **Seen:** Deadnight #1115, 2026-11-04 (fix: the
-  hold is a label and a required check, [Hooks](hooks.md#hold)); Deadnight #1324, 2026-11-06; Deadnight #1084,
-  2026-11-04.
-
-- **Approach:** Before any merge call (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`), have
-  the head contain the current tip of its base: `gds merge-main --path <worktree>`, push once, wait for the checks on
-  that head. The merge guard asks GitHub, not the local clone, to compare `base...head`, refuses when `behind_by` is
-  above 0 and names the missing commits; when GitHub cannot be asked the call goes through with a warning, so read
-  `mergeStateStatus` yourself ([Hooks](hooks.md#what-it-refuses)). **Watch out for:** a pull request can be CLEAN and
-  green on a head that never met the newest commits of `main`, and the new commits looked unrelated. **Seen:** gdstudio
-  #972 (two commits behind) and #977 (#956 and #959), 2026-11-10, merged unrefreshed; on 2026-11-06 the same turned
-  `main` red (fix: the guard, kit #982).
+Open pull requests land before new work starts, oldest stuck one first, each refreshed against `main` before it
+lands: the rules and their entries are on [Landing a pull request](landing.md#landing).
 
 ## Merging main into a pull request {#merging-main-into-a-pull-request}
 
-Merge `origin/main` into the branch only when the pull request is DIRTY or `main` broke one of its checks: every push
-restarts its CI. A pull request parked for a while is refreshed before it lands ([above](#landing)). Test the merge
-locally first, and push once. The merge commit's message is checked like any other: it
-ends with the single `Co-Authored-By` trailer and nothing after it. `gds merge-main` makes that commit:
-
-```bash
-uv run --project <workspace>/repos/gdstudio/python gds merge-main     # in the worktree
-# conflicts: it stops, lists the files and leaves the merge in progress; fix them, git add each, then
-uv run --project <workspace>/repos/gdstudio/python gds merge-main --continue
-```
-
-It fetches `origin/main`, merges with `--no-commit`, and commits with the whole message from a file
-(`git commit --cleanup=strip -F`): `Merge origin/main into <branch>`, a blank line, and the `Co-Authored-By` line of the
-branch's newest commit (`--co-author "<model> <noreply address>"` names another). It refuses a dirty tree and a branch
-that already has `main`. Never `git merge -m ...` and `git commit --no-edit` a merge that had conflicts: git adds a
-`# Conflicts:` paragraph after the message, which pushes the trailer out of the last paragraph and fails `pr-rules`. The
-`pre-push` hook now stops
-such a commit before it leaves the machine ([Hooks](hooks.md#pre-push)); reword it with
-`git commit --amend --cleanup=strip -F <message file>`. A commit that is already pushed cannot be reworded without a
-force push, which is the maintainer's decision: open the same change from a new branch instead.
-
-- **Approach:** Push only when a merge needs it (DIRTY, or `main` broke a check) and merge `main` locally for tests;
-  read `gh run list --status queued` and the open count each cycle, and when the queue grows stop new pull requests,
-  land the oldest, and land a flake's fix first. **Watch out for:** with many agents CI is the bottleneck: with 21 open,
-  20 jobs running and 33 queued, every push restarted a 15-minute run and about ten workflows. **Seen:** Deadnight #447,
-  2026-11-02 (fix: the rule above).
-- **Approach:** After a conflicted merge, read the diff of every test file against `main` before rerunning the suites.
-  **Watch out for:** a merge of `main` doubled a step in a test, so the branch failed for a reason the change never had.
-  **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge).
-
-- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, with the whole message from a file and
-  nothing after the trailer, through `gds merge-main`; run `uvx pre-commit run --files <resolved files>` before
-  `--continue`, run `--continue` unpiped, and check that `git log -1` shows the merge before rebuilding or pushing.
-  **Watch out for:** a hand-written title (`ui: Merge main into x`) is refused because `Merge` is not on the verb list,
-  so the merge stayed open; `--continue` commits through pre-commit and a licence line of 155 characters met the 120
-  limit there; a merge left staged for hours (248 files, `MERGE_HEAD` set) first met `gdlint` at commit time, when
-  `main`'s growth had put a file at 1,016 lines. **Seen:** Deadnight #539, 2026-11-02;
-  Deadnight #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (another branch merged with `--no-edit`).
-- **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
-  after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
-  HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply
-  --3way mine.patch`; a pull request stacked on a hand-merged sync one takes its own side of the synced files, runs `gds
-  sync <game>` and `gds sync --check`, and says what it is stacked on. **Watch out for:** a squash merge writes a commit
-  no branch contains, so 17 files conflicted with none of the agent's own lines, and `.claude/gds-sync.json` and
-  `groundwork.py` conflicted on identical content. **Seen:** Deadnight #230 on #643, 2026-11-03; Deadnight #575 on #571,
-  2026-11-02.
-- **Approach:** After every `gds merge-main`, diff the branch against `origin/main` for each file it shares with a
-  merged pull request (`git diff origin/main -- <file>`), delete the branch's own copy of a fix `main` landed, and drop
-  a workaround whose blocking issue has closed. **Watch out for:** a clean textual merge hid a second copy: a stub
-  `has_voice` and a `near_only` grip option stayed beside the real female voices and the same far-hand fix that `main`
-  had landed. **Seen:** Deadnight #678, 2026-11-03 (fix: the branch wired to `main`'s mechanism, the workaround and its
-  test dropped).
+Only when the pull request is DIRTY or `main` broke one of its checks, through `gds merge-main`: on
+[Landing a pull request](landing.md#merging-main-into-a-pull-request).
 
 ## Why a tool and a hook {#why-a-tool-and-a-hook}
 

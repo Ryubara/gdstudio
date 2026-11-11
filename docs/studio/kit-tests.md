@@ -20,10 +20,18 @@ python/tests/allowed_skips.toml` added (`.github/workflows/ci.yml`). `pytest-xdi
 `python/pyproject.toml`, so `uv run` has it; one file stays on one worker (`--dist loadfile`), since the fixtures a
 file makes once are shared by its tests. Four workers at most, here as in CI: the machine is shared
 ([Sharing the machine](workspace.md#shared-machine)). A run of one file while you work needs no workers:
-`uv run --project python pytest python/tests/test_brief.py -q`.
+`uv run --project python pytest python/tests/test_brief.py -q`. A bare `pytest` from the root collects the same set:
+the root `pytest.ini` names `python/tests` (`testpaths`) and repeats `python/pyproject.toml`'s warning filters
+(`python/tests/test_root_pytest_config.py` keeps the two in step), so the eval acceptance suites under `evals/` run
+only through `gds eval check` ([Agent evals](agent-evals.md#running)).
 
 Run it from the checkout whose code you changed (your worktree), with `--project` naming that checkout's `python`
 folder: `uv run --project <another checkout>/python pytest` tests the other checkout's code.
+
+- **Approach:** Name `python/tests` on every full run, as above. **Watch out for:** a bare `pytest` from the checkout's
+  root also collects the eval tasks' acceptance suites under `evals/`, which start services and fail with socket
+  timeouts that have nothing to do with your change, so the run looks red when the kit is fine. **Seen:** gdstudio
+  #1145 (2026-11-11), after a merge of main.
 
 ## What the tests share {#shared}
 
@@ -39,6 +47,10 @@ folder: `uv run --project <another checkout>/python pytest` tests the other chec
 - **No real services.** The `no_real_services` fixture makes any `gh`, PowerShell or process listing that reaches
   `subprocess.run` fail the test; the suites that delete or post use it, so a forgotten fake fails instead of acting.
 - **Recorded answers.** `gh` answers live as JSON under `python/tests/fixtures/` (issues, pull requests, briefs).
+- **Approach:** Keep an issue or pull request body a test reads as a `.txt` file under `python/tests/fixtures/`
+  (`pr_bodies/`, `issue_bodies/`). **Watch out for:** saved as `.md`, a GitHub body fails markdownlint in pre-commit
+  (no top heading, long lines, a `#904` line read as a heading), and rewrapping it changes the text the test is about.
+  **Seen:** gdstudio #1133, 2026-11-11 (#909's body, renamed to `.txt`).
 
 ## Skips {#skips}
 
@@ -46,6 +58,13 @@ A test may skip in CI only when `python/tests/allowed_skips.toml` names it with 
 (`python/tests/skip_allowlist.py`, kit #797): a skip it does not name fails the run, and so does an entry whose test
 ran on a platform it names. Every entry is a platform fact (a junction is a Windows folder link); a tool a test needs is
 installed on the runner instead. A local run without `--allowed-skips` reports skips and does not judge them.
+
+- **Approach:** When a new test runs a pinned tool, add the tool to the Windows test job's `--fetch` in
+  `.github/workflows/ci.yml` and an entry for the other platforms (one per test, without its `[parameter]`), then run
+  the test file with `--allowed-skips python/tests/allowed_skips.toml` before the push. **Watch out for:** on a machine
+  with the tool the test runs and passes, so nothing local shows the skip that fails all three CI test jobs.
+  **Seen:** gdstudio #1190, 2026-11-11 (the pinned-ffmpeg clip test; fix: ffmpeg fetched on windows-2025, linux and
+  darwin allowed).
 
 ## Speed {#speed}
 

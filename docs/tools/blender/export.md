@@ -20,6 +20,10 @@ an import in Godot that is checked, not trusted. How Godot then uses the model i
 | `export_image_format` | `"AUTO"`: a PNG atlas goes in as PNG, its pixels unchanged | `"AUTO"` |
 | Animation | | `export_animation_mode="NLA_TRACKS"`, `export_force_sampling=True`, `export_def_bones=False`, `export_leaf_bone=False`, `export_optimize_animation_size=False` |
 
+`export_materials="PLACEHOLDER"` keeps the material slots (one surface per slot) and writes no material: Godot gets
+the surfaces with no named material, so a game that builds the materials itself (a realistic character's, whose
+maps glTF cannot describe) matches each surface by its mesh's node name (gdstudio #1151).
+
 Deadnight's props, map pieces and helicopter use `GLTF_SEPARATE` with `export_keep_originals=True`, so a dozen models
 load one palette image once; its characters, zombies and weapons are GLB. The rig flags and why each is set are on
 [Rig sharing](rig-sharing.md); the clip export on [Animation](animation.md#export).
@@ -51,12 +55,19 @@ vertex buffers and triangle set, never by bytes, since the exporter does not kee
 ([Build scripts](build-scripts.md#rebuilding)). Models are Git LFS files: `git show` of one prints its pointer, and a
 pointer imported as a model leaves a broken `.import` behind ([Build scripts](build-scripts.md#rebuilding)).
 
+- **Approach:** Give a new glb that holds only clips `importer="animation_library"` in its `.import` (the Import dock's
+  "Import As: Animation Library") before the commit, as the template's other clip files have. **Watch out for:**
+  Godot imports a new glb as a scene by default, so the clips sat in a scene nothing loads as a library and the
+  player found no animation under the library's name. **Seen:** gdstudio #1090 (PR #1113), 2026-11-11
+  ([the libraries](../../engines/godot/third-person/character.md#animation-libraries)).
+
 ## Reading a glb back in Blender {#reimport}
 
 A script that measures or rebuilds from an exported file reads it back with Blender's glTF importer, which does not
 give back what was exported: vertices are split at every hard edge and UV seam (weld them before anything that reads
 the topology, [Optimisation](optimisation.md#decimation)), bone tails are guessed ([Rigging](rigging.md#joints)), and
-an armature brings an extra object.
+an armature brings an extra object. An older revision of a model is read through `git show <rev>:<file> | git lfs
+smudge`, never `git show` alone, which gives the LFS pointer ([Build scripts](build-scripts.md#rebuilding)).
 
 - **Approach:** After importing a file with an armature, take the meshes skinned to it (an Armature modifier pointing
   at the rig) instead of every mesh in the scene, or delete the collection `glTF_not_exported`. **Watch out for:**

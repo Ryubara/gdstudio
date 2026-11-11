@@ -32,6 +32,7 @@ const MAX_TICK := (
 	+ NetLimits.MAX_PLAYERS * PLAYER_SIZE
 	+ NetWire.TICK_TAIL
 	+ NetLimits.MAX_STREAMED_PARTS * (NetWire.STREAM_ROW_HEADER + NetLimits.MAX_ENTITY_STATE)
+	+ AiSnapshot.MAX_BLOCK
 )
 ## A world row: u16 id, u8 kind, u8 state length (then the state).
 const ENTITY_HEADER := 4
@@ -56,6 +57,8 @@ class Tick:
 	var players: Array[PlayerEntry] = []
 	## The moving props' rows (an id and a state each; the kind is left 0).
 	var parts: Array[EntityEntry] = []
+	## The AI characters for this client (`AiSnapshot`): NONE when nothing changed.
+	var ai := AiSnapshot.Block.new()
 
 
 ## A WELCOME, read.
@@ -81,7 +84,8 @@ static func tick(
 	events: Array[NetEvent],
 	players: Array[PlayerEntry],
 	drops: NetDrops = null,
-	parts: Array[EntityEntry] = []
+	parts: Array[EntityEntry] = [],
+	ai := PackedByteArray()
 ) -> PackedByteArray:
 	if events.size() > NetLimits.MAX_EVENTS or players.size() > NetLimits.MAX_PLAYERS:
 		NetDrops.note(drops, NetDrops.TOO_MANY)
@@ -116,6 +120,14 @@ static func tick(
 		out.put_u16(row.id)
 		out.put_u8(row.state.size())
 		out.put_data(row.state)
+	# The AI block, made by `AiSnapshot.encode` for this client (NONE when there is none).
+	if ai.is_empty():
+		out.put_u8(AiSnapshot.Mode.NONE)
+	elif ai.size() > AiSnapshot.MAX_BLOCK:
+		NetDrops.note(drops, NetDrops.TOO_LONG)
+		return PackedByteArray()
+	else:
+		out.put_data(ai)
 	return out.data_array
 
 
@@ -155,7 +167,8 @@ static func read_tick(data: PackedByteArray, drops: NetDrops = null) -> Tick:
 		return _drop(drops, NetDrops.COUNT_PAST_END)
 	if part_count > NetLimits.MAX_STREAMED_PARTS:
 		return _drop(drops, NetDrops.TOO_MANY)
-	if part_count * NetWire.STREAM_ROW_HEADER > reader.left():
+	# The rows, then at least the AI block's mode.
+	if part_count * NetWire.STREAM_ROW_HEADER > reader.left() - 1:
 		return _drop(drops, NetDrops.COUNT_PAST_END)
 	for _index in part_count:
 		var row := EntityEntry.new()
@@ -167,6 +180,10 @@ static func read_tick(data: PackedByteArray, drops: NetDrops = null) -> Tick:
 		if not reader.ok:
 			return _drop(drops, NetDrops.COUNT_PAST_END)
 		result.parts.append(row)
+	var block := AiSnapshot.read_block(reader, drops)
+	if block == null:
+		return null
+	result.ai = block
 	if reader.left() != 0:
 		return _drop(drops, NetDrops.TOO_LONG)
 	return result
@@ -441,6 +458,13 @@ static func write_event(out: StreamPeerBuffer, event: NetEvent) -> StringName:
 		NetEvent.Kind.REJECTED:
 			out.put_u32(event.seq & 0xFFFFFFFF)
 			out.put_u8(event.code)
+		NetEvent.Kind.AI:
+			if event.id > NetLimits.MAX_AI_ID:
+				return NetDrops.BAD_VALUE
+			out.put_u16(event.id)
+			out.put_u8(event.code)
+			_put_point(out, event.point)
+			_put_direction(out, event.direction)
 		_:
 			return NetDrops.BAD_VALUE
 	return &""
@@ -495,6 +519,13 @@ static func read_event(reader: WireReader, drops: NetDrops = null) -> NetEvent:
 		NetEvent.Kind.REJECTED:
 			event.seq = reader.u32()
 			event.code = reader.u8()
+		NetEvent.Kind.AI:
+			event.id = reader.u16()
+			event.code = reader.u8()
+			event.point = _get_point(reader)
+			event.direction = _get_direction(reader)
+			if reader.ok and event.id > NetLimits.MAX_AI_ID:
+				return _drop(drops, NetDrops.BAD_VALUE)
 		_:
 			return _drop(drops, NetDrops.BAD_VALUE)
 	if not reader.ok:

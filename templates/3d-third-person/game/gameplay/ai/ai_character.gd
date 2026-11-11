@@ -50,6 +50,10 @@ const GROUP := &"ai_characters"
 @export var navigator: Node
 ## What it is doing (the task layers), deciding what the navigator and the action channel do.
 @export var task_runner: Node
+## What it makes of what happens (the router, the play state): an `AiBrain`, run after the senses
+## in each think, placing tasks in the task runner. Empty, or with no behaviour set: it reacts to
+## nothing.
+@export var brain: Node
 
 ## How near a player it is (`AiDirector.Tier`), set by the director; Full without one.
 var tier := 0
@@ -67,6 +71,10 @@ func _ready() -> void:
 	super()
 	if Engine.is_editor_hint():
 		return
+	# On a client of a server the AI is the server's: this body is drawn from its snapshots.
+	if not AiAuthority.runs_here(self):
+		AiAuthority.retire(self, false)
+		return
 	if profile == null:
 		profile = AiProfile.new()
 	add_to_group(GROUP)
@@ -74,7 +82,7 @@ func _ready() -> void:
 	situation.changed.connect(_on_situation_changed)
 	died.connect(situation.die)
 	revived.connect(situation.revive)
-	var found := AiDirector.find(get_tree())
+	var found := AiDirector.find_for(self)
 	if found != null:
 		found.register(self)
 	_show_debug()
@@ -112,6 +120,8 @@ func think(seconds: float) -> void:
 	situation.advance(seconds)
 	if senses is AiSenses:
 		(senses as AiSenses).sense(seconds)
+	if brain is AiBrain:
+		(brain as AiBrain).think(seconds)
 	thought.emit(seconds)
 	if debug:
 		_show_debug()
@@ -123,6 +133,11 @@ func set_tier(value: int) -> void:
 		return
 	tier = value
 	tier_changed.emit(tier)
+	_show_debug()
+
+
+## Writes the debug overlay again (a part that changed what it shows calls it while `debug` is on).
+func refresh_debug() -> void:
 	_show_debug()
 
 
@@ -141,5 +156,7 @@ func _show_debug() -> void:
 	debug_label.text = (
 		"%s\n%s · %s" % [kind, AiSituation.name_of(situation.current), AiDirector.TIER_NAMES[tier]]
 	)
+	if brain is AiBrain and (brain as AiBrain).behaviour != null:
+		debug_label.text += "\n" + (brain as AiBrain).debug_text()
 	if navigator is AiNavigator:
 		debug_label.text += "\n" + (navigator as AiNavigator).debug_text()

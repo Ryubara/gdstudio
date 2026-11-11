@@ -23,7 +23,7 @@ def make(root: Path, files: dict[str, str]) -> Path:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
         if path.suffix in {".gd", ".gdshader"}:
-            path.with_name(path.name + ".uid").write_text("uid://abc\n", encoding="utf-8")
+            path.with_name(path.name + ".uid").write_text("uid://bc\n", encoding="utf-8")
     return project
 
 

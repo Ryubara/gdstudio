@@ -1,9 +1,9 @@
 """What the AI navigator costs in the web build: runs `tools/bench/nav_cost_bench.tscn` in headless Chrome.
 
-Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
-the preset's exclude filter), waits for `window.__nav_cost_bench`, and prints, for 50, 100 and 200 walkers, the
-navigators' work a physics tick (one clock read around a loop that steps only navigators: the mean a tick and
-per character), the calibration loop, the director's step without them, the path queries against the budget and the
+Serves a web export of the bench (`gds template bench-web 3d-third-person nav_cost_bench` makes it: kit
+docs/engines/godot/web-probes.md#bench-web), waits for `window.__nav_cost_bench`, and prints, for 50, 100 and 200
+walkers, the navigators' work a physics tick (one clock read around a loop that steps only navigators: the mean a tick
+and per character), the calibration loop, the director's step without them, the path queries against the budget and the
 timer, the tiers, and how much of the time the crowd walked. The optional second argument is a CPU throttle (4 is the
 weak-machine stand-in). Run it under `gds quiet`:
 

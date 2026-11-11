@@ -575,7 +575,7 @@ def learn_text(root: Path, words: str, limit: int = 5, rules_per: int = 4) -> st
 # `gds brief`: the sections a task agent reads before it starts, proposed from its issue
 # --------------------------------------------------------------------------------------------------------------------
 
-# A path an issue names: a file with a known extension (`tools.toml`, `.claude/hooks/guards.py`) or a folder of two
+# A path an issue names: a file with a known extension (`tools.toml`, `.claude/hooks/dispatch.py`) or a folder of two
 # parts or more that ends in a slash (`docs/lessons/`; a bare `design/` matches too much prose). Words that merely
 # contain a dot (`e.g.`, `v1.2`) are not paths.
 _PATH = re.compile(
@@ -592,6 +592,11 @@ LENGTH_B = 0.9
 PER_PAGE = 2
 #: A section whose own text (without its subsections) is shorter than this is a heading over subsections: skipped.
 MIN_BODY_CHARS = 80
+#: A section found only because it mentions a path the issue names is named when its word score is at least this share
+#: of the best section's: a path named in passing (an `Area` line's `game/core/`, a file a section cites as an example)
+#: otherwise briefs a section about something else (gdstudio #1133: voice lines for online play, at 0.19). Tuned on
+#: 120 kit issues of 2026-11-11: the mentions far from the task scored 0.17 to 0.31, those that fit 0.35 and up.
+MENTION_FLOOR = 1 / 3
 
 
 @dataclass(frozen=True)
@@ -683,14 +688,18 @@ def propose(
 
     1. every `page.md#anchor` the issue names that exists;
     2. for each path it names (then `paths`, such as a pull request's changed files): a docs page gives its section
-       closest to the issue's words, any other path the closest section that mentions it;
+       closest to the issue's words, any other path the closest section that mentions it, when its words are not far
+       from the issue's (`MENTION_FLOOR`; a pull request's changed files need no such closeness);
     3. the rest by the issue's words (`_query`: title, area labels with their descriptions, body), at most `PER_PAGE`
        from one page.
 
-    The corrections log and the format page (rules.md) are left out, as in `learn`."""
+    The corrections log and the format page (rules.md) are left out, as in `learn`, and so is every heading without an
+    explicit `{#anchor}` (a page's `#` title, a heading outside the anchored folders): a `Read:` line names an anchor
+    the reader finds written in the page (gdstudio #1193: `ai.md#ai-characters-in-3d-third-person` and
+    `index.md#blender`, the slugs of two titles, read as missing to the agents given them)."""
     query = _query(title, labels or {}, body)
     skip = {RULES_DOC.relative_to(DOCS).as_posix()}
-    sections = [s for s in sections_in(root) if s.page not in skip and not is_corrections_page(s.page)]
+    sections = [s for s in sections_in(root) if s.explicit and s.page not in skip and not is_corrections_page(s.page)]
     by_ref = {s.ref: s for s in sections}
     docs = [(s, terms(s.title), terms(s.page.replace(".md", "")), terms(s.body)) for s in sections]
     ranked = _weighted_rank(query, docs)
@@ -718,6 +727,8 @@ def propose(
         if not mentions and "." in name and len(name) >= 8:
             alone = re.compile(rf"(?<![\w.-]){re.escape(name)}(?![\w-])")
             mentions = [s for s in sections if alone.search(s.body)]
+        floor = MENTION_FLOOR * ranked[0][0] if ranked and path not in (paths or []) else 0.0
+        mentions = [s for s in mentions if score.get(s.ref, 0.0) >= floor]
         if mentions:
             add(max(mentions, key=lambda s: (score.get(s.ref, 0.0), -len(s.body))), f"mentions {path}")
     from_page: dict[str, int] = {}

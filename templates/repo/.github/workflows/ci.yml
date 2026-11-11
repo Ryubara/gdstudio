@@ -157,7 +157,13 @@ jobs:
           if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
       - name: The browser for the boot check
         # Playwright's own headless Chromium, the one the local probes use (the kit's docs/engines/godot/web-probes.md).
-        run: uvx playwright@1.64.1 install --with-deps chromium-headless-shell
+        # The runner image already has the shared libraries Chromium needs; --with-deps adds fonts from the Ubuntu
+        # mirror, which was unreachable for an hour on 2026-11-11 (#1224). An apt failure takes
+        # about eight minutes of retries, so it is tried once, then the browser alone.
+        run: |
+          uvx playwright@1.64.1 install --with-deps chromium-headless-shell && exit 0
+          echo "::warning::apt mirror unreachable; installing Chromium without its system packages"
+          uvx playwright@1.64.1 install chromium-headless-shell
       - name: Boot the web export in a browser
         # The export served and opened with `?probe`: it fails on a console error, a page error, a failed request or
         # no first frames within 60 s, and writes the time to them and the pack's size to the job summary
@@ -176,6 +182,21 @@ jobs:
           uv run --project repos/gdstudio/python gds quiet -- \
             uv run --with playwright==1.64.1 python "$smoke" repos/{GAME_SLUG}/build/web repos/{GAME_SLUG}/build/smoke --ratio 1 --no-shots
           echo "Touch smoke: every check passed" >> "$GITHUB_STEP_SUMMARY"
+      - name: The game's web program list is current
+        # 3D Third Person serves its recorded GL program list beside the page, which links it before the engine boots
+        # (ShaderPrelink). A material, shader or light the list lacks is linked at its first draw, up to a second's wait
+        # on a fresh GPU browser: the page plays on SwiftShader (which records the same programs as a GPU) and the step
+        # fails when it links more than 10 the list lacks (kit docs/engines/godot/first-use-hitches.md#prelink-check).
+        run: |
+          list=repos/{GAME_SLUG}/game/assets/shaders/web/shader_programs.json
+          probe=repos/{GAME_SLUG}/game/tools/web_smoke/shader_programs.py
+          if [ ! -f "$list" ] || [ ! -f "$probe" ]; then echo "no program list: nothing to check"; exit 0; fi
+          if [ ! -s repos/{GAME_SLUG}/build/web/shader_programs.json ]; then echo "the export served no list: turn the gds_game editor plugin on"; exit 1; fi
+          grep -q "gdsPrelink.load(" repos/{GAME_SLUG}/build/web/index.html
+          uv run --project repos/gdstudio/python gds quiet -- \
+            uv run --with playwright==1.64.1 python "$probe" repos/{GAME_SLUG}/build/web repos/{GAME_SLUG}/build/programs \
+            --list "$list" --max-missed 10 --quiet-s 20 --timeout-s 300
+          echo "Program list: current" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload the browser captures
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -184,6 +205,7 @@ jobs:
           path: |
             repos/{GAME_SLUG}/build/boot
             repos/{GAME_SLUG}/build/smoke
+            repos/{GAME_SLUG}/build/programs
           if-no-files-found: ignore
           retention-days: 7
 
