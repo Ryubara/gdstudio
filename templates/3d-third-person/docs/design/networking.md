@@ -46,7 +46,11 @@ Its numbers are on the `NetServer` node in the inspector (`net_server.tscn`): `m
 `command_ticks`, `silent_seconds`, `hello_seconds`, the spawn group and seed, and the body scene; its AI group says
 how often each client hears of each AI character by distance (`ai_rates`), where positions are measured from
 (`ai_section_origin`), which profiles map to which look (`ai_variants`), and whether the AI sees the players
-(`ai_sees_players`). The AI runs here and nowhere else.
+(`ai_sees_players`). The AI runs here and nowhere else. A player's shot on an AI character is met where that
+player's screen drew the character, a few tenths of a second ago (the server keeps each character's body for
+`ai_rewind_seconds`, and a round meets the drawn characters for its first `ai_rewind_flight_seconds`): aim at the
+guard you see. Only the body a shot meets is wound back, never what the AI thinks or where it goes; another player is
+met where the server has them.
 
 ## The client
 

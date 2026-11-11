@@ -84,7 +84,7 @@ the real program, so stop it with `taskkill /T /F /PID` (the tree) in a `finally
 the server running, and the next run cannot open its log ([Processes a probe starts](headless-probes.md#processes)).
 
 3D Third Person runs the same proof as a gate with thresholds, native and in the browser, in CI
-([the bad-network gate](third-person/online-client.md#bad-network-gate)).
+([the bad-network gate](third-person/online-gate.md#bad-network-gate)).
 
 ## Godot's raw WebSocket, without the high-level multiplayer {#godots-raw-websocket-without-the-high-level-multiplayer}
 
@@ -222,7 +222,7 @@ and the rows of the moving props, and a world part's state may be 12 bytes
 ([pushed props online](third-person/net-world.md#props)). `NetWire.VERSION` 6 (#970): a TICK ends with the AI block
 for its client (`AiSnapshot`: none, full or a delta of rows, moves and the ids that left), a HELLO carries a flags
 byte (`F_WEB`: the client is a browser), an `AI` event (id, what happened, a point, a direction) and a HIT names an AI
-as `NetHits.AI_BASE + id` ([the AI online](third-person/ai.md#replication)). The socket buffers are 1 MB since: five
+as `NetHits.AI_BASE + id` ([the AI online](third-person/ai-online.md#replication)). The socket buffers are 1 MB since: five
 seconds of a full AI snapshot of 120 characters every TICK is 252 KB.
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to

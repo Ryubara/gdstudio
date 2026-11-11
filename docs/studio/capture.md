@@ -70,6 +70,12 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   both runs showed two Carhops. **Seen:** Deadnight, 2026-11-03 (backdrop tour); Deadnight, 2026-11-02 (shoulder views)
   (fix: `[female] loadout character: ...` is printed by each run).
 
+- **Approach:** Record a capture of an online rig (a server and its clients in one process, `OnlineRig`) at
+  `--fps 60`, one physics tick a frame, and crop or slow the clip afterwards. **Watch out for:** at `--fps 10` Movie
+  Maker runs six ticks in each frame, and a client that judges its stalls by process frames (`StallGuard`) no longer
+  plays as it does at a game's frame rate, so the clip is not the game: the AI rewind's tour hit 1 of 3 at 10 frames
+  a second, 2 of 3 at 30 and 3 of 3 at 60, where the same scene run headless hit 3 of 3. **Seen:** gdstudio #1198,
+  2026-11-11 (`tools/capture/ai_rewind_tour.tscn`).
 - **Approach:** Count a capture scene's waits in physics ticks and size `--quit-after` (which counts rendered frames)
   as ticks / 6 at `--fixed-fps 10`; make effects in a captured scene live 0.2 to 0.3 s, look at single frames next to
   a shot (not only a sheet), and cross-check them against a headless log of the events. **Watch out for:** Movie Maker
@@ -81,6 +87,11 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   `RenderingServer.frame_post_draw` twice, or take the shot twice and keep the second). **Watch out for:** the first
   image saved after the move still showed the view before it, so a close-up sheet had one stale tile per view.
   **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.
+- **Approach:** When a tour's printed lines are part of the proof (each step's name, a measured number), have the
+  scene also write them to a file under the capture folder, or record with `gds godot -- --path <game> --write-movie
+  ...`, which keeps the game's output in the terminal. **Watch out for:** `gds capture frames` keeps Godot's output
+  to itself and shows only its `ERROR` lines, so a tour's `print` step lines never appear and its log cannot be read
+  beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11.
 
 ## sheet {#sheet}
 
@@ -123,6 +134,28 @@ already whole keeps every frame (10 fps with `--slow 3` plays at 10/3 fps, 30 hu
 prints its size. A GIF longer than 10 s, or still over its budget at 480 px, is kept with a `warning:` line that names
 the MP4; one over 9 MB fails.
 
+A clip has no sound: `gds capture frames` writes the run's audio beside the frames as a `.wav` when the scene plays
+any, and a gameplay clip whose sound matters is muxed from the two with the pinned ffmpeg (`gds tool path ffmpeg`),
+scaled to the 1280 px `clip` uses:
+
+```text
+ffmpeg -framerate <fps> -i <folder>/<prefix>%08d.png -i <folder>/<name>.wav -vf scale=1280:-2 \
+  -c:v libx264 -pix_fmt yuv420p -crf 23 -c:a aac -b:a 192k -shortest -movflags +faststart <name>.mp4
+```
+
+Match `%08d` to the frame names' digits, and read [Sound](#sound-a-clip-you-can-listen-to) for a clip made to be
+listened to.
+
+- **Approach:** Give a failing `clip` run a new name, or copy the clip that works aside before encoding again into the
+  same folder. **Watch out for:** `clip` deletes `<folder>.mp4` or `<folder>.gif` before each encoding, so a run that
+  fails (ffmpeg's error, still too big at 480 px) leaves no clip at all where a good one was. **Seen:** gdstudio
+  #1190 (PR #1197), 2026-11-11.
+- **Approach:** For a GIF of several bodies side by side (a grid of variants), capture at 20 fps or more so the GIF
+  keeps 20 fps, and plan on 480 px: give each body the frame's full height and few pixels of empty floor, or make an
+  MP4 when the detail matters. **Watch out for:** `--gif` plays 60 fps frames at 20 fps (whole hundredths), and three
+  bodies on a grid fitted the GIF budget only at 480 px, where a hand or a foot is a few pixels. **Seen:** gdstudio
+  #1172, 2026-11-11.
+
 ## GIF or MP4 {#gif-or-mp4}
 
 <!-- new section: clip said how to make a GIF and never when a clip should be one; agents chose by habit (#1153) -->
@@ -133,8 +166,8 @@ needs no click, so the maintainer prefers it for simple things; an MP4 carries s
 | The clip | Make | Write it in the body as |
 | --- | --- | --- |
 | Short (10 s or less), silent, showing one thing: a UI change, a pose, a short motion | a GIF: `gds capture clip <folder> --gif` | an image on the `Before:` or `After:` line: `![after](./<name>.gif)` |
-| Any sound (the [listening clip](#sound-a-clip-you-can-listen-to)) | an MP4 with its audio track | the bare upload address on its own line |
-| Longer than 10 s, or a change that unfolds over time | an MP4: `gds capture clip <folder>` | the bare upload address on its own line, a still or [sheet](#sheet) on `After:` |
+| Any sound (the [listening clip](#sound-a-clip-you-can-listen-to)) | an MP4 with its audio track | `![listen](./<name>.mp4)` alone on its line, which `--attach` turns into the bare upload address (a player) |
+| Longer than 10 s, or a change that unfolds over time | an MP4: `gds capture clip <folder>` | `![clip](./<name>.mp4)` alone on its line under `After:`, a still or [sheet](#sheet) on `After:` |
 | Detail a 128-colour palette loses (gradients, fog, light falloff, fine texture), fast or fine motion, slowed playback | an MP4 | the same |
 | A loop that helps the reader beside detail that needs the MP4 | both | the GIF on `After:`, the MP4's address below it |
 
@@ -181,6 +214,12 @@ the new one (2 and 0).
   `drawImage` of the GIF saw no frame change at all, since drawing an animated image draws its first frame, and
   headless shell showed the same; a 68-run sweep was stopped at 900 s with its rows printed and its JSON never
   written. **Seen:** gdstudio #1153, 2026-11-11.
+- **Approach:** Give every file on an `--attach` its own `![name](./<file>)` reference inside `## Screenshots`, a
+  video as well as a picture, and write a video's reference in image form alone on its line. **Watch out for:** the
+  guard refuses an attached file the section does not refer to, and a bare `./clip.mp4` line or a plain-text name is
+  not a reference; written as `![clip](./clip.mp4)`, `--attach` turns it into the bare upload address that plays
+  inline, so the old advice to write the bare address yourself misled. **Seen:** gdstudio #1154 (PR #1195), #1190
+  (PR #1197) and #1203 (PR #1215), 2026-11-11 (the guard refused each, three times on #1215).
 
 ## Attaching {#attaching}
 
@@ -218,26 +257,26 @@ report only after reading the body back.
   reference by name only, so `![after](./gate-after.mp4)` beside `--attach ./gate-after.png` stays a local path and
   the upload goes to the end of the body. **Seen:** gdstudio #847, 2026-11-08 (its first body linked
   `./gate-after.mp4`; the one sent links `./gate-after.png`, the file attached).
-- **Approach:** For an MP4, put a still or a [sheet](#sheet) on the `After:` line and the clip's bare upload address
-  beside it (a GIF is the image itself: [GIF or MP4](#gif-or-mp4)); run `gds pr check-body` with the same
-  `--attach` files as `gh pr create`, from the same folder. **Watch out for:** `![after](./x.mp4)` becomes a
-  plain link after the upload, which the screenshots rule does not count as a capture, and before the upload the rule
-  refuses every local `./file`, since only a `github.com/user-attachments/` address counts; a body with no image
-  reference got past the guard (`--repo`, run from scratch) to CI. **Seen:** gdstudio #847, 2026-11-08; gdstudio
-  #937, 2026-11-10 (the uploads moved onto `After:` with `gh pr edit --body-file`); gdstudio #880 and #886, 2026-11-10
-  (the guard of today refuses that `--repo` command with no reference: checked for gdstudio #1003).
+- **Approach:** For an MP4, put a still or a [sheet](#sheet) on the `After:` line and the clip as
+  `![clip](./<name>.mp4)` alone on the line below it (a GIF is the image itself: [GIF or MP4](#gif-or-mp4)); run
+  `gds pr check-body` with the same `--attach` files as `gh pr create`, from the same folder. **Watch out for:** the
+  uploaded video becomes a bare address, which the screenshots rule does not count as the `After:` picture, and before
+  the upload the rule refuses every local `./file` (only a `github.com/user-attachments/` address counts); a body with
+  no image reference got past the guard (`--repo`, run from scratch) to CI. **Seen:** gdstudio #847, 2026-11-08;
+  #937, #880 and #886, 2026-11-10 (the uploads moved onto `After:`; the guard now refuses that command, checked for
+  #1003).
 - **Approach:** Read the `## Screenshots` section of the body file back (`sed -n '/## Screenshots/,/## AI/p'`) after
   editing it and before the send. **Watch out for:** a scripted edit that was to add the image references matched
   nothing and said nothing, so the guard's "no reference" was true for three tries. **Seen:** gdstudio #1012,
   2026-11-10.
-- **Approach:** Write the body file in an earlier command and name it by its absolute path when the `gh` command
-  starts with `cd <folder>`; run `gds pr check-body` by hand from that folder with `--repo <worktree>` and the same
-  `--attach ./<file>` arguments as `gh pr create` (kit #1188).
-  **Watch out for:** a relative `--body-file` is read from the folder after the `cd`, so a path written from the
-  worktree was "does not exist yet"; and the hand check, which has no `--attach`, refused the `Before:` and `After:`
-  lines that the `gh pr create` guard accepted. **Seen:** gdstudio #1001 (PR #1038) and #1031 (PR #1054), 2026-11-11
-  (the body file); gdstudio #1011, #1020, #1016, #1040 and #1090, 2026-11-10 and 11, and PRs #1165, #1168 and
-  #1175, 2026-11-11 (the hand check, before it took `--attach`).
+- **Approach:** Write the body file in an earlier command and name it by its absolute path, spelled out (not a shell
+  variable), when the `gh` command starts with `cd <folder>`; run `gds pr check-body` by hand from that folder with
+  `--repo <worktree>` and the same `--attach ./<file>` arguments as `gh pr create` (kit #1188). **Watch out for:** the
+  hook reads `--body-file` as written, so a relative path is read from the folder after the `cd` ("does not exist
+  yet") and a `$BODY` it cannot expand is not read; without `--repo`, the hand check run from a captures folder finds
+  no checkout. **Seen:** gdstudio #1001, #1031, #1137 (PR #1170), #1203 (PR #1215) and #1035 (PR #1217),
+  2026-11-11; the hand check refused `Before:`/`After:` before it took `--attach` (#1011 to #1090, PRs #1165 to
+  #1175, 11-10 and 11-11).
 
 ## Sound: a clip you can listen to {#sound-a-clip-you-can-listen-to}
 
@@ -267,10 +306,10 @@ ffmpeg -i mix.wav -f concat -safe 0 -i cards.txt \
 `duration <seconds>` for each section (repeat the last `file` line). A 36 s clip of twelve sections is about 5 MB; keep
 it under the 9 MB of [clip](#clip).
 
-Attach it in two steps. `--attach` with `![listen](../<name>.mp4)` under `## Screenshots` uploads the file, but the
-reference becomes a plain link, not a player: **GitHub draws a player only for the bare upload address on its own
-line.** Read the body back, replace the link with the address alone, with a blank line on each side, and `gh pr edit
---body-file` again. Check it with `gh api
+Write it as `![listen](./<name>.mp4)` alone on its line under `## Screenshots`, with a blank line on each side, and
+attach it from its folder: **GitHub draws a player only for the bare upload address on its own line**, and `gh pr
+create|edit --attach` turns such a line into exactly that, so no second edit is needed (gdstudio #970 and #1190,
+2026-11-11; before them this page said to replace a plain link by hand). Check it with `gh api
 repos/<owner>/<repo>/pulls/<N> -H 'Accept: application/vnd.github.html+json' --jq .body_html`: the body holds a
 `<video` tag.
 

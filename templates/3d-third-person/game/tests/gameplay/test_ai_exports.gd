@@ -218,6 +218,7 @@ func test_the_brain_marker_and_router_defaults_are_pinned() -> void:
 		&"bands": 31,
 		&"situations": 31,
 		&"play_states": 7,
+		&"noises": [],
 		&"min_awareness": 0.0,
 		&"min_courage": 0.0,
 		&"max_courage": 1.0,

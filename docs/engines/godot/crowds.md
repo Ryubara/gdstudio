@@ -411,7 +411,9 @@ frame in brackets, ms):
   fighting guards fit the 1 ms budget, **6** the 5 ms at 4x, more fighting at once are over it in a browser
   ([the table](third-person/ai-behaviour.md#cost-follow-up)). Since #1203 the director's attack slots hold a fight to
   that count: 6 guards a target and 12 in all engage in a browser, the rest hold
-  ([attack slots](third-person/ai-behaviour.md#attack-slots)).
+  ([attack slots](third-person/ai-behaviour.md#attack-slots)). The AI section's population of 10 (#969: 3 grunts,
+  2 shooters, 2 allies, 3 civilians, in `main.tscn` round the player) is 0.52 ms a tick in Chrome and 2.6 ms at 4x,
+  about 50 µs a character, half of each budget ([the table](third-person/ai-characters.md#cost)).
 
 **The template's real character (#963).** `tools/bench/ai_cost_bench.tscn` (`ai_cost_bench.py` for Chrome) times the
 `AiDirector`'s step (tiers, thinks and every body's `Character.step`: what the budget above holds) for

@@ -17,9 +17,11 @@ extends RefCounted
 ##   `revive_seconds` the server gets it up where it died (or at its spawn point,
 ##   `revive_at_spawn`) and says where in a REVIVED event.
 ##
-## The server checks a shot against the world as it is now: no rewind to what the shooter saw.
-## A projectile flies for many ticks, so a rewind would not match what it meets; the shooter's
-## own shot and every puppet's are cosmetic and decide nothing.
+## The server checks a shot against the players as they are now: no rewind to what the shooter
+## saw. A projectile flies for many ticks, so a rewind would not match what it meets; the
+## shooter's own shot and every puppet's are cosmetic and decide nothing. The AI is the exception:
+## a shot meets each AI character where the shooter's screen drew it (`ShotRewind`, which
+## `NetServer` hands the body's weapon for the step of a command with a shot block).
 
 ## Why a shot was refused (the REJECTED event's code).
 enum Reason {

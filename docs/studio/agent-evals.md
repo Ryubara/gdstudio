@@ -52,6 +52,11 @@ A run records, in the eval folder:
 - `checks.jsonl`: one line per `gds eval check`, so the number of checks a run needed and what the first one met are
   known.
 
+A `service` task's acceptance suite (`evals/service/<task>/acceptance/test_acceptance.py`) is run by `gds eval check`
+itself, with `python -m unittest -v` in the delivery's folder (`gds_tools/eval_service.py`), not by pytest: the kit's
+`pytest` never collects it ([The command](kit-tests.md#command)), and a case's failure is read from unittest's output
+into the check's rows (gdstudio #1189).
+
 - **Approach:** Open the pull request of the branch the evals run from (its `gds` and checks) before starting the
   runs, or run them from a branch that is merged. **Watch out for:** the stop hook holds back a task agent while any kit
   worktree has commits and no pull request, so a run that finished its work was held for the coordinator's branch and

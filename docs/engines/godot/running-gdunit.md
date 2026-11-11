@@ -54,6 +54,10 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   2026-11-10; gdstudio #1087, 2026-11-11 (a camera swap suite run by hand without the flag: 6 of 15 cases about 0.8
   degrees off, all green at `--fixed-fps 60` and in `gds template test`; the command at the top of this page now has
   the flag).
+- **Approach:** Run the kit's own Godot project (`godot/`, the shared addons' suites) without `--fixed-fps`, as the
+  kit's CI does; the flag is for a game's and a template's suites. **Watch out for:** several of the kit project's
+  suites wait on the real clock, and `--fixed-fps 60` ran their frames without waiting, so they failed on a run whose
+  code was fine. **Seen:** gdstudio #1183 (PR #1214), 2026-11-11.
 
 - **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
   `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`); grep a new suite for them, and for a local named like one of
@@ -140,6 +144,13 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   `Statistics:` line in the kept folder's `gdunit.log`. **Watch out for:** the per-suite `ok` lines print cases,
   failures and seconds only, and the log is kept only when the run fails, so a green run says nothing of the orphans
   it left. **Seen:** gdstudio #924 (PR #954), 2026-11-10 (read again in `template_test.py` for gdstudio #1003).
+- **Approach:** To find what a suite leaves alive at exit, keep a game (`gds template test <t> --keep --suite <s>`)
+  and run GdUnit's command line on its `game/` yourself with `--verbose`, one suite and one log at a time:
+  `Leaked instance:` names the objects, `Resource still in use: res://...` the scripts. Then cut the suite's cases and
+  the game's scripts ([the typed array pattern](test-exit-leaks.md#typed-array-export-and-self-cast)). **Watch out
+  for:** `gds template test` says only that leak lines exist; a list of scripts alone (GdUnit4's, the autoloads') with
+  a few bare `RefCounted` and `RegEx` is that engine pattern, not a node a test forgot. **Seen:** gdstudio #1236,
+  2026-11-11.
 
 ## Before the push {#before-the-push}
 
@@ -165,6 +176,12 @@ game](new-game.md#proof), gdstudio #830 and #917).
   -n "<name>(" -- '*.gd'`) and run the full suite once, not only `--suite` on the files you changed. **Watch out
   for:** GDScript finds a wrong call only when the calling script loads, so the changed suites passed and the callers
   in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10.
+- **Approach:** Read the run's exit code, not only its summary: free or clear in `after_test` every node a suite keeps
+  out of the tree (a pool's parked characters, a node removed with `remove_child`). **Watch out for:** GdUnit counts a
+  node outside the tree as an orphan and exits 101 with every case green; CI pipes the run with `pipefail`, so the job
+  fails. 1710 cases passed and the exit was 101 from the spawner's parked pools in the net suites, which load the map
+  ([the spawner](third-person/ai-characters.md#spawner): it now makes its pool on the approach). **Seen:** kit #969,
+  2026-11-11.
 
 ## Change nothing a run reads {#inputs-of-a-run}
 

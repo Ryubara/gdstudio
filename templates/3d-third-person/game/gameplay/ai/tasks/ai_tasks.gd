@@ -62,6 +62,18 @@ func _ready() -> void:
 	_show()
 
 
+## Starts the tasks over as at the start (a pooled character spawned again): the runner forgets
+## everything, then `default_task` and `routine` are assigned again.
+func restart() -> void:
+	runner.reset()
+	_sync()
+	if default_task != null:
+		runner.assign(default_task.fresh_copy(), self)
+	if routine != null:
+		runner.assign(routine.fresh_copy(), self)
+	_show()
+
+
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings := PackedStringArray()
 	for task: AiTask in [default_task, routine, attack_task]:

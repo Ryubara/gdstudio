@@ -451,10 +451,28 @@ bands = 31
 situations = 8
 reason = "The civilian set never enters Engaged (it flees or cowers)."
 
+[sub_resource type="Resource" id="Resource_shotfl"]
+script = ExtResource("2_tm7u4")
+event = &"heard"
+noises = Array[StringName]([&"shot"])
+play_states = 3
+min_courage = 0.05
+task = SubResource("Resource_4q50x")
+enter = 5
+note = "A gunshot, whoever fired it: it runs from it, calling for help."
+
+[sub_resource type="Resource" id="Resource_shotcw"]
+script = ExtResource("2_tm7u4")
+event = &"heard"
+noises = Array[StringName]([&"shot"])
+task = SubResource("Resource_w4kso")
+enter = 5
+note = "A gunshot, too frightened (Safe) or with no courage to run: it cowers."
+
 [resource]
 script = ExtResource("16_xemb3")
 display_name = "Civilian"
-rows = Array[ExtResource("2_tm7u4")]([SubResource("Resource_ilflk"), SubResource("Resource_6s4r3"), SubResource("Resource_f810w"), SubResource("Resource_5td6u"), SubResource("Resource_a5w2d"), SubResource("Resource_q13k5"), SubResource("Resource_fd7nb"), SubResource("Resource_hesgt"), SubResource("Resource_lcun7"), SubResource("Resource_ge8we"), SubResource("Resource_25j4s"), SubResource("Resource_4tnp2"), SubResource("Resource_jvte5"), SubResource("Resource_jilj3"), SubResource("Resource_82nmm")])
+rows = Array[ExtResource("2_tm7u4")]([SubResource("Resource_ilflk"), SubResource("Resource_6s4r3"), SubResource("Resource_f810w"), SubResource("Resource_5td6u"), SubResource("Resource_a5w2d"), SubResource("Resource_q13k5"), SubResource("Resource_fd7nb"), SubResource("Resource_hesgt"), SubResource("Resource_shotfl"), SubResource("Resource_shotcw"), SubResource("Resource_lcun7"), SubResource("Resource_ge8we"), SubResource("Resource_25j4s"), SubResource("Resource_4tnp2"), SubResource("Resource_jvte5"), SubResource("Resource_jilj3"), SubResource("Resource_82nmm")])
 waivers = Array[ExtResource("18_4lmxb")]([SubResource("Resource_p2wl5"), SubResource("Resource_e5u1d"), SubResource("Resource_nrh1x"), SubResource("Resource_i3wnb"), SubResource("Resource_tnr77"), SubResource("Resource_26qbp"), SubResource("Resource_1vy3a"), SubResource("Resource_nhw76"), SubResource("Resource_dy10q"), SubResource("Resource_27578"), SubResource("Resource_71q8c"), SubResource("Resource_8r276"), SubResource("Resource_3a7ms"), SubResource("Resource_1jkxc"), SubResource("Resource_gs40v"), SubResource("Resource_iowjn"), SubResource("Resource_hvemu"), SubResource("Resource_wpuhv"), SubResource("Resource_e7fpw"), SubResource("Resource_5p1mr")])
 situation_rules = Array[ExtResource("17_wxc44")]([SubResource("Resource_nbwgu")])
 default_task = SubResource("Resource_ul1v1")

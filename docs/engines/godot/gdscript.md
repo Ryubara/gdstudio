@@ -33,7 +33,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   `Array[Projectile]` passes the parser and fails at run time ("Trying to assign an array of type Array to a variable
   of type Array[Projectile]"), only on the path that runs it: the weapon's pool hit it once its live list was full.
   **Seen:** gdstudio #887, 2026-11-10 (`Weapon._take_projectile`, found by `test_weapon_ray.gd`; in the same task a
-  tool's `root` and `sign` met the shadowing rule above).
+  tool's `root` and `sign` met the shadowing rule above); gdstudio #1198, 2026-11-11 (a ternary's `else []` is
+  untyped too: every hitscan shot and blow failed in `_scan`; declare `[]`, then assign in an `if`).
 
 - **Approach:** Before naming a global class, grep `class_name <Name>` in the branch and on `origin/main`, and prefer
   a name specific to the subject; when errors show up in many unrelated scripts at once after an import or a merge,
@@ -72,6 +73,11 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   (`argument 1 (previously freed) is not a subclass`) every frame: 120 errors in one suite of the full template run,
   while every prone suite passed. **Seen:** gdstudio #1026, 2026-11-11 (`ProneAnimation.stow_view`; the suite
   `test_player_step.gd` frees the model).
+- **Approach:** Set a typed-array export from code with a typed array (`var list: Array[Node3D] = [node]`, then
+  `spawner.set(&"markers", list)`), or assign the property by name, which converts. **Watch out for:**
+  `Object.set("markers", [node])` with a plain `Array` leaves an `Array[Node3D]` export as it was, with no error, so a
+  spawner in a test spawned at its own place instead of the markers. **Seen:** kit #969, 2026-11-11
+  (`test_ai_spawner.gd`).
 
 ## Script errors at run time {#runtime-errors}
 
