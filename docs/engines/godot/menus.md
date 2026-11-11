@@ -60,6 +60,14 @@ High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `
   its own CI and fails after `gds merge-main`, so rerun every web probe of the branch after the merge. **Seen:**
   gdstudio #881, 2026-11-10; #903, 2026-11-10 (`net_link_smoke.py` waited on `window.gdnet` that never came; fix:
   `?play&netprobe`).
+- **Approach:** Give a `gds_ui` card that is not under the router's stage (an overlay in a `CanvasLayer` of a game
+  scene, a HUD button) its theme from the tokens, `UIThemeBuilder.build(UITokens.active())` on its root `Control`,
+  rebuilt on `UITokens.active_changed()`, as `PauseButton` and `OnlineStatus` do; test that its parts sit inside the
+  panel's padding and that a title is the token's size. **Watch out for:** the type variations (`UIPanelMarquee`'s
+  padding, `UILabelTitle`'s size) live only in that theme, so without it the online overlay's panel had no padding and
+  its 16 px title sat on the marquee's row of bulbs, at every window size; it looked so from the day it was made, and
+  only a capture showed it. **Seen:** gdstudio #1166, 2026-11-11 (fix: `OnlineStatus._apply_theme`,
+  `tests/ui/test_online_status.gd`, which fails without it).
 
 ## A menu over a game that pauses: the screen host {#screen-host}
 
