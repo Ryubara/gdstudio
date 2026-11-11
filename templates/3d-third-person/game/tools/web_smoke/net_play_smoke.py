@@ -68,6 +68,8 @@ JOIN_HITCHES = 1
 # A frame longer than the server's hold (four steps at 60 a second) sends its commands too late for it: the server
 # repeats the last one, and the answers correct the body. Counted, not judged.
 HOLD_MS = 4000 / 60
+# A frame longer than two at 60 a second: the join's window lists each one (gdstudio #1208).
+SLOW_MS = 2000 / 60
 # The seconds after the seat whose hitches the report lists apart (kit issue #1106: the join's).
 JOIN_WINDOW_S = 3.0
 # Before the game loads: every frame's length (`performance.now()` read inside the requestAnimationFrame callback,
@@ -144,6 +146,9 @@ def hitches(page: Page) -> dict:
     joined = [h for h in unplanned if h["at_s"] < JOIN_WINDOW_S]
     after = [f for f in frames if f[0] >= seat]
     lengths = sorted(f[1] for f in after if not any(f[0] <= at + 50 and at <= f[0] + f[1] for at, _ in freezes))
+    # The longest frame of the join's window, whatever its length (the first AI snapshot's puppets, gdstudio #1208).
+    joining = [f for f in after if f[0] - seat < JOIN_WINDOW_S * 1000]
+    join_frames = [f[1] for f in joining]
     return {
         "frames": len(after),
         "frame_ms_p50": round(lengths[len(lengths) // 2]) if lengths else -1,
@@ -152,6 +157,10 @@ def hitches(page: Page) -> dict:
         "unplanned": len(unplanned),
         "in_join_window": len(joined),
         "join_window_ms": sum(h["ms"] for h in joined),
+        "join_worst_ms": round(max(join_frames, default=0)),
+        # Each frame of the join's window longer than two at 60 a second: seconds after the seat, its length, programs
+        # linked and their milliseconds.
+        "join_slow": [[round((f[0] - seat) / 1000, 2), round(f[1]), f[2], f[3]] for f in joining if f[1] > SLOW_MS],
         "links_after_seat": sum(f[2] for f in after),
         "worst_unplanned_ms": max((h["ms"] for h in unplanned), default=0),
         "list": out,

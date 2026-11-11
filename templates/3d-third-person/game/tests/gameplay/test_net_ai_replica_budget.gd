@@ -1,7 +1,8 @@
 # The AI puppets of a client made over several frames (gdstudio #1208): a full snapshot of 120
 # rows (a join, or a crowd walking into the interest radius) makes no more than the replica's
-# budget of puppets in one frame, the nearest to the viewer first, and every puppet then exists
-# and stands at the server's place within a set number of frames. A row that comes for a puppet
+# budget of puppets in one frame, the nearest to the viewer first, shows no more than its budget
+# for the first time in one frame, and every puppet then exists and stands at the server's place
+# within a set number of frames. A row that comes for a puppet
 # not made yet is kept, so it appears where the character is when its turn comes.
 extends GdUnitTestSuite
 
@@ -29,6 +30,7 @@ func before_test() -> void:
 	if &"puppets_per_frame" in _replica:
 		_replica.set(&"puppets_per_frame", BUDGET)
 		_replica.set(&"puppet_budget_usec", 0)
+		_replica.set(&"puppets_shown_per_frame", BUDGET)
 		_replica.set(&"viewer", _viewer)
 	stage.add_child(_replica)
 	_made_this_frame = 0
@@ -73,9 +75,10 @@ func test_a_full_snapshot_of_120_makes_no_more_than_the_budget_a_frame() -> void
 	print("ai replica: %d puppets in %d frames, at most %d a frame" % [CROWD, frames, most])
 	assert_int(most).is_less_equal(BUDGET)
 	assert_int(_replica.count()).is_equal(CROWD)
-	# Every puppet then stands where the server had it, drawn once its row is due.
-	for _frame in 12:
+	# Every puppet then stands where the server had it, shown a budget a frame once its row is due.
+	for _frame in SETTLE_FRAMES:
 		await get_tree().physics_frame
+	assert_int(_replica.most_shown).is_equal(BUDGET)
 	for id in _replica.ids():
 		var puppet := _replica.puppet_of(id)
 		assert_bool(puppet.visible).override_failure_message("Ai%d not drawn" % id).is_true()

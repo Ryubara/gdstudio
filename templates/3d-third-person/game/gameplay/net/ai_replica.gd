@@ -13,10 +13,12 @@ extends Node3D
 ## one from the puppet's muzzle; a HIT on it flinches it (`ClientCombat`). Nothing here is sent.
 ##
 ## Puppets are made a few a physics step (`puppets_per_frame`, `puppet_budget_usec`; gdstudio
-## #1208), the nearest to `viewer` first: a full snapshot of a crowd (a join, a crowd walking into
-## the interest radius) made all 120 in one frame, 185 ms. A character whose puppet is not made
-## yet has its glide all the same, so its puppet appears where the character is when its turn
-## comes; `count` and `ids` are the puppets made, `waiting` the characters still to make.
+## #1208), the nearest to `viewer` first, and shown for the first time a few a step
+## (`puppets_shown_per_frame`): a full snapshot of a crowd (a join, a crowd walking into the
+## interest radius) made all 120 in one frame, 185 ms, and its first draw cost Chrome another
+## 50 ms. A character whose puppet is not made yet has its glide all the same, so its puppet
+## appears where the character is when its turn comes; `count` and `ids` are the puppets made,
+## `waiting` the characters still to make.
 
 ## Said when a puppet was made (its first row) and freed (it left this client's interest).
 signal puppet_added(id: int, puppet: Character)
@@ -53,6 +55,10 @@ const CLOCK_PULL := 0.1
 ## Microseconds of making puppets after which a step makes no more (at least one is made a step);
 ## 0 for no time limit, only `puppets_per_frame`.
 @export_range(0, 16000, 100, "suffix:us") var puppet_budget_usec := 4000
+## The most puppets shown for the first time in one physics step: a puppet's first draw costs
+## about 4 ms in Chrome (its skinned mesh's buffers), so a crowd made a few a step and shown all at
+## once still made a 100 ms frame there.
+@export_range(1, 120, 1) var puppets_shown_per_frame := 2
 ## Who the puppets are made nearest first for (the `NetClient` sets its player): the characters
 ## a player can see appear first. None: the order the rows came in.
 @export var viewer: Node3D
@@ -61,15 +67,17 @@ const CLOCK_PULL := 0.1
 var snapshot := AiSnapshot.new()
 var drops := NetDrops.new()
 ## Microseconds the last TICK's block took to apply, and the last physics step took to make its
-## share of the puppets and place every one; the most a block took, and the most one physics step
-## took with the blocks applied since the step before (the replica's share of the worst frame).
+## share of the puppets and place every one; the most either took.
 var last_apply_us := 0
 var last_frame_us := 0
 var worst_apply_us := 0
 var worst_frame_us := 0
-## Puppets made in the last physics step, and the most made in one.
+## Puppets made, and puppets shown for the first time, in the last physics step; the most of each
+## in one.
 var last_made := 0
 var most_made := 0
+var last_shown := 0
+var most_shown := 0
 ## While on, every TICK's apply time and every physics step's placing time are kept (a probe's).
 var keep_times := false
 var apply_times := PackedInt32Array()
@@ -86,7 +94,6 @@ var _looks: Dictionary[int, int] = {}
 ## The characters whose puppet is still to make: id -> its newest row (world metres).
 var _waiting: Dictionary[int, AiRow] = {}
 var _clock := -1.0
-var _applied_us := 0
 
 
 func _ready() -> void:
@@ -101,6 +108,7 @@ func _physics_process(delta: float) -> void:
 	var began := Time.get_ticks_usec()
 	_clock += delta
 	_make_waiting(began)
+	last_shown = 0
 	var drawn := roundi((_clock - interp_delay) * NetLimits.TICK_RATE)
 	var space := get_world_3d().direct_space_state if is_inside_tree() else null
 	for id: int in _glides:
@@ -110,8 +118,8 @@ func _physics_process(delta: float) -> void:
 		if puppet != null:
 			_place(puppet, glide, delta)
 	last_frame_us = Time.get_ticks_usec() - began
-	worst_frame_us = maxi(worst_frame_us, last_frame_us + _applied_us)
-	_applied_us = 0
+	worst_frame_us = maxi(worst_frame_us, last_frame_us)
+	most_shown = maxi(most_shown, last_shown)
 	if keep_times:
 		frame_times.append(last_frame_us)
 
@@ -169,7 +177,6 @@ func on_tick(tick: SnapshotCodec.Tick) -> void:
 			_glides[id].push(tick.server_tick, row)
 	last_apply_us = Time.get_ticks_usec() - began
 	worst_apply_us = maxi(worst_apply_us, last_apply_us)
-	_applied_us += last_apply_us
 	if keep_times:
 		apply_times.append(last_apply_us)
 
@@ -291,6 +298,10 @@ func _place(puppet: Character, glide: AiGlide, delta: float) -> void:
 	if row == null:
 		return
 	if not puppet.visible:
+		# Its first draw costs more than its making in a browser: shown a few a step.
+		if last_shown >= puppets_shown_per_frame:
+			return
+		last_shown += 1
 		puppet.visible = true
 		puppet.global_position = glide.position
 		puppet.reset_physics_interpolation()

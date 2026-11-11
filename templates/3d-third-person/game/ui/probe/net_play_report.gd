@@ -48,9 +48,9 @@ static func of(
 
 ## What the client's AI puppets cost (gdstudio #970): the most drawn, the blocks applied and
 ## refused, and the microseconds of applying a TICK's block and of placing every puppet a step
-## (their animation and drawing are the characters' own cost); the most puppets made in one step
-## and the replica's worst step, made, placed and applied together (gdstudio #1208: the join's
-## first full snapshot). Empty without a replica.
+## (their animation and drawing are the characters' own cost); the most puppets made and shown
+## for the first time in one step and the replica's worst step (gdstudio #1208: the join's first
+## full snapshot). Empty without a replica.
 static func ai_of(replica: AiReplica) -> Dictionary:
 	if replica == null:
 		return {}
@@ -64,6 +64,7 @@ static func ai_of(replica: AiReplica) -> Dictionary:
 		"place_us_p50": percentile(replica.frame_times, 0.5),
 		"place_us_p95": percentile(replica.frame_times, 0.95),
 		"most_made": replica.most_made,
+		"most_shown": replica.most_shown,
 		"step_us_worst": replica.worst_frame_us,
 	}
 
