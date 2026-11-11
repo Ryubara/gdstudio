@@ -84,13 +84,13 @@ one clip and `PARADE_REFERENCE=1` adds the Quaternius male.
   so in `_seat_attachments` did not), while GdUnit's swap and a scene saved with the male glb were right: the test
   passed and the capture showed the pistol on the floor. **Seen:** gdstudio #843, 2026-11-09 (follow-up issue opened).
 
-- **Approach:** When the template's body changes, solve each body's hold on its own and hand each body its own fit
-  (`HoldFit` in `WeaponHold.fits`, chosen by the model's file), then run the hold suite on every body, carried, aimed
-  and through the reload. **Watch out for:** the old solver measured both bodies at once and asserted that the two
-  skeletons match from the hands down, which a pair of differently sized hands cannot; and the reload's carry swing
-  (`carry_arm_out`, the right arm held out while not aiming) put the gun past the left hand's reach at the reload's
-  start on both new bodies (9 and 29 mm short), which the solver's reach table (aim and shoot poses only) did not
-  show: the swing now fades with the reload as it does with the aim. **Seen:** gdstudio #1187, 2026-11-11.
+- **Approach:** When the template's body changes, solve each body's hold on its own and give each body its own
+  `HoldFit` (chosen by the model's file), then run the whole template suite, not only the hold, ragdoll and hit
+  suites. **Watch out for:** the old solver asserted that the two skeletons match from the hands down; the reload's
+  carry swing put the gun 9 and 29 mm past the left hand's reach on the new bodies, which the solver's aim-only reach
+  table missed (the swing now fades with the reload); and three numbers measured on the old body sat in suites that
+  never name it: the node count, `Weapon.no_muzzle_offset` and the crawl's planted elbows (1.5 to 2.6 cm of slide on
+  the longer upper arms, gdstudio #1286). **Seen:** gdstudio #1187, 2026-11-11.
 
 ## Replacing the model {#replacing-the-model}
 
