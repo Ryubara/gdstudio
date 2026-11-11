@@ -229,12 +229,12 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   parse its scripts; the edge answered the client's upgrade with a 502. **Seen:** gdstudio #908, 2026-11-11 (the
   deployment from the made game listened on `$PORT` at once).
 - **Approach:** Keep a gate's walk off every ledge the body can fall from or climb, and read a failed run by second:
-  `by_second` (where the body stood, metres corrected, snaps, gap) and the relay's stalls near it (`WORST` lines). Count
-  a snap by its cause: with up stalls, one under 4 m per up stall (`size_snaps_m`). **Watch out for:** the walk round
-  the spawn crossed the dais's edge; a command repeated in an up stall took the server's body down while the client's
-  stayed up, and each quarter of the correction landed inside the dais and was pushed back on top (#1119): 141 m
-  corrected in one local run, 75.5 m and 1.65 m apart standing on 31cc1793. On the dais top, six two-core runs: 22.6
-  to 23.9 m, worst 1.0 to 1.31 m. **Seen:** gdstudio #1110, 2026-11-11 (from #1109).
+  `by_second` and the relay's stalls near it (`WORST` lines). Count a snap by its cause: with up stalls, one under 4 m
+  per up stall (`size_snaps_m`). **Watch out for:** the walk round the spawn crossed the dais's edge; a command
+  repeated in an up stall took the server's body down while the client's stayed up, and each quarter of the correction
+  landed inside the dais (#1119): 141 m corrected in one local run. On the dais top: 22.6 to 23.9 m, worst 1.31 m. A
+  branch cut before the fix fails the stall run the same way with nothing networked changed: merge main, never rerun.
+  **Seen:** gdstudio #1110, 2026-11-11 (from #1109); gdstudio #1146, 2026-11-11 (a camera fix, 2 snaps against 1).
 
 ## Playing online {#play-online}
 
@@ -255,6 +255,11 @@ Reload button on the web and "update the game" on the desktop; the game is full;
 before the WELCOME or `connect_seconds` of frames (each under the stall guard's 0.25 s) without one it says the server
 did not answer, and on a seated link that closes, Connection lost. Every message has Back to menu, the player's input
 is off while one shows, and the texts are exports of `online_status.tscn`.
+The overlay is not under the router's stage, so it builds its `gds_ui` theme from the tokens itself (the marquee
+panel's padding, the title's size; [Menus](../menus.md#menus)); `tests/ui/test_online_status.gd` holds every part
+inside the panel's bulbs at the desktop and the phone layout, and `tools/capture/online_status_tour.tscn` shows
+Connecting, a message and the other-version message in the real online game (Movie Maker at 1920 x 1080, or
+`-- --shots=<folder>` in an 844 x 390 window).
 
 `PlayerBot` (`gameplay/player/player_bot.gd`, `--bot` or `?bot`) plays through the player's own `PlayerInput`: it
 presses the input actions (`Input.action_press`) and turns the camera with `PlayerCamera.orbit`, so the server hears a

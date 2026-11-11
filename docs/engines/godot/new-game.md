@@ -166,7 +166,7 @@ every exit, kept with `--keep`, two calls at once).
   <template>`, import, copy it back). **Watch out for:** the layout check refuses a script without its `.uid` and the
   template's own folder cannot be opened to make one, so agents copied uids back from a kept game or wrote them by
   hand, and hand-made ones held text Godot never writes. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR
-  #1092), 2026-11-11; kit #1129, 2026-11-11 (the
+  #1092), 2026-11-11; gdstudio #1148, 2026-11-11 (a suite written after the scripts); kit #1129, 2026-11-11 (the
   command).
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game`
   (the `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree. Send a
@@ -175,7 +175,7 @@ every exit, kept with `--keep`, two calls at once).
   two agents sent their runs to the same `full2.log` in the shared scratchpad, and the later run's header landed in the
   file the first read back. **Seen:** gdstudio #1011 (PR #1019), 2026-11-10 (fix: gdstudio #1048, the `kit` line and
   `python/tests/test_kit_source.py` with two worktrees); gdstudio #1047, 2026-11-10 (`--project` of main's
-  checkout built main; use `--project ./python`); gdstudio #1026, 2026-11-11 (the same).
+  checkout built main; use `--project ./python`); gdstudio #1026 and #1148, 2026-11-11 (the same).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty

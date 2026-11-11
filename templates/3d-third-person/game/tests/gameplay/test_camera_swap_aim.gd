@@ -2,7 +2,11 @@
 # turns inward as it slides, so the point the weapon aims at stays on the crosshair through the
 # swap, on a near board, a far one and the empty sky, and a shot fired mid-swap goes there. The
 # player's look during the swap adds to the turn (`SwapLook.ADD`) or lets the point go past an
-# angle (`RELEASE`); with the anchor off the view slides and the aim drifts as before. The rig's
+# angle (`RELEASE`); with the anchor off the view slides and the aim drifts as before. By default
+# the point is kept only on a swap made while aiming (`keep_aim_when_not_aiming` off): a swap
+# while running only slides the view, so the run keeps its way. The suite turns that option on
+# for the tests of the anchor's geometry, which swap standing; the tests of the default turn it
+# off again. The rig's
 # own `_process` is off: every frame is `advance(1/60)` and then the engine's frames, so the
 # Phantom Camera and the real `Camera3D` catch up before the crosshair is read.
 extends GdUnitTestSuite
@@ -17,6 +21,8 @@ var _scene: Node
 var _rig: PlayerCamera
 var _player: Player
 var _camera: Camera3D
+## The scene's own `keep_aim_when_not_aiming`, read before the suite turns it on.
+var _keeps_when_not_aiming := true
 
 
 func before_test() -> void:
@@ -32,6 +38,8 @@ func before_test() -> void:
 	_rig.pitch = 0.0
 	await InputSim.ticks(get_tree(), 30)
 	_rig.set_process(false)
+	_keeps_when_not_aiming = _rig.keep_aim_when_not_aiming
+	_rig.keep_aim_when_not_aiming = true
 
 
 func after_test() -> void:
@@ -120,6 +128,7 @@ func _assert_kept(result: Dictionary, label: String) -> void:
 
 func test_the_anchor_is_on_by_default_and_every_choice_is_exported() -> void:
 	assert_bool(_rig.keep_aim_on_swap).is_true()
+	assert_bool(_keeps_when_not_aiming).is_false()
 	var names: Array[String] = []
 	for property in _rig.get_property_list():
 		if property["usage"] & PROPERTY_USAGE_EDITOR:
@@ -128,6 +137,7 @@ func test_the_anchor_is_on_by_default_and_every_choice_is_exported() -> void:
 		"shoulder_time",
 		"aim_shoulder_time",
 		"keep_aim_on_swap",
+		"keep_aim_when_not_aiming",
 		"swap_anchor_strength",
 		"swap_look",
 		"swap_release_angle",
@@ -346,3 +356,68 @@ func test_crouched_the_point_is_kept_too() -> void:
 	await InputSim.ticks(get_tree(), 40)
 	assert_bool(_player.crouching).is_true()
 	_assert_kept(await _swap_and_track(), "crouched")
+
+
+# Holds forward and sprint until the character is at a full sprint.
+func _sprint() -> void:
+	InputSim.key(KEY_W, true)
+	InputSim.key(KEY_SHIFT, true)
+	for _i in 50:
+		await _frame()
+	assert_bool(_player.is_sprinting()).is_true()
+
+
+func _flat(vector: Vector3) -> Vector2:
+	return Vector2(vector.x, vector.z)
+
+
+func test_by_default_a_sprinting_swap_turns_neither_the_view_nor_the_run() -> void:
+	_rig.keep_aim_when_not_aiming = false
+	_board(30.0)
+	await _sprint()
+	var yaw_before := _rig.yaw
+	var pitch_before := _rig.pitch
+	var run_before := _flat(_player.velocity)
+	_rig.swap_shoulder()
+	assert_bool(_rig.aim_anchored()).is_false()
+	var worst_run := 0.0
+	for _i in 24:
+		await _frame()
+		worst_run = maxf(worst_run, absf(rad_to_deg(run_before.angle_to(_flat(_player.velocity)))))
+	assert_bool(_player.is_sprinting()).is_true()
+	assert_float(_rig.yaw).is_equal_approx(yaw_before, 0.001)
+	assert_float(_rig.pitch).is_equal_approx(pitch_before, 0.001)
+	(
+		assert_float(worst_run)
+		. override_failure_message("the run turned %.3f degrees across the swap" % worst_run)
+		. is_less(0.05)
+	)
+	# The swap did happen: the view is on the left shoulder.
+	assert_float(_camera.h_offset).is_equal_approx(-_rig.shoulder_offset, 0.001)
+
+
+func test_by_default_an_aimed_swap_keeps_the_point() -> void:
+	_rig.keep_aim_when_not_aiming = false
+	_board(10.0)
+	InputSim.pad_axis(JOY_AXIS_TRIGGER_LEFT, 1.0)
+	await InputSim.ticks(get_tree(), 4)
+	var result := await _swap_and_track()
+	assert_bool(_player.aiming).is_true()
+	_assert_kept(result, "aimed, default")
+
+
+func test_with_keeping_when_not_aiming_on_a_sprinting_swap_keeps_the_point() -> void:
+	_board(30.0)
+	await _sprint()
+	var point := _aimed_point()
+	var yaw_before := _rig.yaw
+	_rig.swap_shoulder()
+	assert_bool(_rig.aim_anchored()).is_true()
+	var worst := 0.0
+	for _i in 24:
+		await _frame()
+		worst = maxf(worst, _off_crosshair(point))
+	# Running, the follow damping keeps the arm a little behind the body (0.26 degrees seen).
+	assert_float(worst).is_less(TOLERANCE * 2.5)
+	# The view turned inward to keep it, and the run with it.
+	assert_float(absf(_rig.yaw - yaw_before)).is_greater(1.0)

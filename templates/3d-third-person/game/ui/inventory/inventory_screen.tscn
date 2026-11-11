@@ -104,13 +104,6 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="ItemsCaption" type="Label" parent="Fit/Margin/Center/Card/Row/Side"]
-unique_name_in_owner = true
-layout_mode = 2
-script = ExtResource("4_label")
-text = "BAG"
-style = 5
-
 [node name="Scroll" type="ScrollContainer" parent="Fit/Margin/Center/Card/Row/Side" node_paths=PackedStringArray("limit")]
 unique_name_in_owner = true
 layout_mode = 2
@@ -122,7 +115,38 @@ limit = NodePath("../../../../../..")
 margin = 24.0
 least = 124.0
 
-[node name="Grid" type="GridContainer" parent="Fit/Margin/Center/Card/Row/Side/Scroll"]
+[node name="Lists" type="VBoxContainer" parent="Fit/Margin/Center/Card/Row/Side/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="HotbarCaption" type="Label" parent="Fit/Margin/Center/Card/Row/Side/Scroll/Lists"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("4_label")
+text = "HOTBAR"
+style = 5
+
+[node name="HotbarMargin" type="MarginContainer" parent="Fit/Margin/Center/Card/Row/Side/Scroll/Lists"]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 8
+
+[node name="Hotbar" type="HBoxContainer" parent="Fit/Margin/Center/Card/Row/Side/Scroll/Lists/HotbarMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ItemsCaption" type="Label" parent="Fit/Margin/Center/Card/Row/Side/Scroll/Lists"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("4_label")
+text = "BAG"
+style = 5
+
+[node name="Grid" type="GridContainer" parent="Fit/Margin/Center/Card/Row/Side/Scroll/Lists"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/h_separation = 12

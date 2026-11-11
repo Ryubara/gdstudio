@@ -38,6 +38,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"shoulder_time": 0.3,
 		&"aim_shoulder_time": 0.15,
 		&"keep_aim_on_swap": true,
+		&"keep_aim_when_not_aiming": false,
 		&"swap_anchor_strength": 1.0,
 		&"swap_look": PlayerCamera.SwapLook.ADD,
 		&"swap_release_angle": 4.0,
