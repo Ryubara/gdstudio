@@ -58,10 +58,8 @@ game/
   the uid and the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and
   `template` CI jobs; copy the uid files back, not only the scripts (a script that syncs the game and the branch copies
   `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
-  2026-11-08; gdstudio #868, 2026-11-10 (`test_aim_release.gd.uid`); gdstudio #872, 2026-11-10
-  (`test_ragdoll_natural.gd.uid`, never copied back); gdstudio #925, 2026-11-10 (a template has no project: a throwaway
-  script imported in the kit's `godot/`); #910, #1074 and #1091, 2026-11-11 (caught by `gds
-  template test`).
+  #868, #872 (never copied back), #925 (a template has no project: import a throwaway in the kit's `godot/`), #910,
+  #1074, #1091, 2026-11-08 to 11 (caught by `gds template test`); gdstudio #968, 2026-11-11 (36 at once).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
   a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and
