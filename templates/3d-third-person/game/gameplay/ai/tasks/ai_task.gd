@@ -20,6 +20,9 @@ extends AiTaskContract
 ## Docs: the kit's `docs/engines/godot/third-person/ai.md#tasks` (the contract table and every
 ## edge case).
 
+## The hard timeout of a task with none of its own and no profile (the profile's default).
+const DEFAULT_HARD_TIMEOUT := 30.0
+
 var _owned := false
 var _soft_fired := false
 var _retries := 0
@@ -50,7 +53,7 @@ func run_time() -> float:
 func hard_limit(profile: AiProfile) -> float:
 	if hard_timeout >= 0.0:
 		return hard_timeout
-	return profile.task_hard_timeout if profile != null else 30.0
+	return profile.task_hard_timeout if profile != null else DEFAULT_HARD_TIMEOUT
 
 
 ## The copy the runner runs: itself when made in code and not yet run, else a deep copy with the
@@ -98,7 +101,7 @@ func bind(to: AiTaskRunner, body: Node, channels_of: AiController) -> void:
 ## SUCCEEDED or FAILED (`state` says which kind of end). The runner and the composites call it.
 func advance(delta: float, profile: AiProfile) -> Status:
 	_profile = profile
-	if not _ready_to_step(delta):
+	if (_retry_wait >= 0.0 or state == State.PENDING) and not _ready_to_step(delta):
 		return Status.RUNNING
 	if _running_fallback != null:
 		return _advance_fallback(delta, profile)
@@ -106,10 +109,15 @@ func advance(delta: float, profile: AiProfile) -> Status:
 	if timeout > 0.0 and not _soft_fired and elapsed >= timeout:
 		_soft_fired = true
 		on_timeout()
-	var limit := hard_limit(profile)
+	var limit := hard_timeout
+	if limit < 0.0:
+		limit = profile.task_hard_timeout if profile != null else DEFAULT_HARD_TIMEOUT
 	if limit > 0.0 and elapsed >= limit:
 		return _fail(Reason.TIMED_OUT, State.TIMED_OUT)
-	return _judge(update(delta))
+	var result: Variant = update(delta)
+	if result is int and result == Status.RUNNING:
+		return Status.RUNNING
+	return _judge(result)
 
 
 ## Takes it off and keeps it: the contract's `when_interrupted` decides whether it resumes or

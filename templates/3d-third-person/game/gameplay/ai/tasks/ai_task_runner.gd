@@ -80,6 +80,8 @@ var _damage := PackedFloat64Array()
 var _pending_attacker: Object = null
 var _side_owner: AiTask = null
 var _last_failure: AiTask = null
+var _dirty := true
+var _poll := false
 
 
 func _init() -> void:
@@ -98,11 +100,13 @@ func tick(delta: float) -> void:
 		return
 	think_time += delta
 	busy_steps += 1
-	var next := _select()
-	if next != active:
-		_switch(next)
-	elif active != null and active.state == AiTask.State.SUSPENDED:
-		_bring_back(active)
+	# The pick changes only when a task came or went, or a head waits on `can_run` or the fallback.
+	if _dirty or _poll or active == null or active.state != AiTask.State.RUNNING:
+		var next := _select()
+		if next != active:
+			_switch(next)
+		elif active != null and active.state == AiTask.State.SUSPENDED:
+			_bring_back(active)
 	if active != null and not active.is_done():
 		var result := active.advance(delta, profile)
 		if result != AiTask.Status.RUNNING:
@@ -203,6 +207,7 @@ func set_can_think(value: bool) -> void:
 	if value == can_think:
 		return
 	can_think = value
+	_dirty = true
 	if value:
 		_note(&"woke", active)
 		return
@@ -319,16 +324,19 @@ func describe_text() -> String:
 
 
 func _select() -> AiTask:
+	_dirty = false
+	_poll = in_fallback()
 	for index in LAYERS:
-		if _blocked(index):
-			continue
 		var queue: Array = _layers[index]
+		if queue.is_empty() or (_poll and _blocked(index)):
+			continue
 		while not queue.is_empty() and _expired(queue[0]):
 			_cancel(queue[0], AiTask.Reason.EXPIRED)
 		if queue.is_empty():
 			continue
 		var head: AiTask = queue[0]
 		if head != active and not head.can_run():
+			_poll = true
 			continue
 		return _keep_or(head)
 	return _keep_or(null)
@@ -541,6 +549,7 @@ func _place_order(task: AiTask) -> void:
 func _insert(task: AiTask, at: int) -> void:
 	_layers[task.layer].insert(at, task)
 	_count += 1
+	_dirty = true
 
 
 func _remove(task: AiTask) -> void:
@@ -549,6 +558,7 @@ func _remove(task: AiTask) -> void:
 	if at >= 0:
 		queue.remove_at(at)
 		_count -= 1
+		_dirty = true
 
 
 func _all_tasks() -> Array[AiTask]:
@@ -669,6 +679,7 @@ func _end_side() -> void:
 
 func _start_fallback(task: AiTask) -> void:
 	_fallback_until = think_time + profile.fallback_seconds
+	_dirty = true
 	_failure_times.clear()
 	_note(&"fallback", task)
 
