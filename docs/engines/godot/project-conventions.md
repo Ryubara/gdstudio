@@ -58,8 +58,8 @@ game/
   `--replace-invalid`). Never write a uid by hand. **Watch out for:** uids copied from a kept game were left behind
   and failed the `uid` rule in CI, and hand-made ones held a `z`, a `9`, a word or over 63 bits, which Godot imports
   silently. **Seen:** gdstudio #845, #868, #872, #925 (2026-11-08 to 11-10); #910, #1074, #1091, #968 (36 at
-  once; 2026-11-11); seven
-  hand-made uids in 3D Third Person replaced, kit #1129, 2026-11-11.
+  once; 2026-11-11); #1186 (a
+  bench built with `bench-web`, which never checks layout); seven hand-made uids replaced, kit #1129, 2026-11-11.
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
   a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and
