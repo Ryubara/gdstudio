@@ -36,6 +36,7 @@ MODULES = (
     "merges",
     "proof",
     "protected",
+    "red_default",
     "session",
     "shell",
     "stall",
@@ -107,10 +108,12 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
             from .bodies import check_pr_body
             from .issues import check_labels
             from .merges import check_hold, check_merge, coordinator_lift
+            from .red_default import check_red_main
 
             reasons += check_merge(words, cwd)
             reasons += check_hold(words, cwd, coordinator_lift(payload))
             reasons += check_behind(words, cwd)
+            reasons += check_red_main(words, cwd)
             reasons += check_labels(words)
             reasons += check_pr_body(words, cwd, config, lost)
         reasons += check_tools(words, config)
