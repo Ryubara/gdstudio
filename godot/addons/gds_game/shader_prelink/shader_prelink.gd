@@ -114,16 +114,18 @@ const PAGE_SCRIPT := """
       gl.linkProgram(program);
       programs.push(program);
     }
-    const pending = programs.slice();
+    const pending = programs;
     gl.flush();
     state.total = pending.length;
     state.left = pending.length;
+    // In the list's order, up to the first one not ready: each read is a round trip to the GPU
+    // process, so a poll makes few of them.
+    let next = 0;
+    const status = ext.COMPLETION_STATUS_KHR;
     const poll = () => {
-      for (let i = pending.length - 1; i >= 0; i--) {
-        if (gl.getProgramParameter(pending[i], ext.COMPLETION_STATUS_KHR)) { pending.splice(i, 1); }
-      }
-      state.left = pending.length;
-      if (pending.length) { setTimeout(poll, 30); return; }
+      while (next < pending.length && gl.getProgramParameter(pending[next], status)) { next += 1; }
+      state.left = pending.length - next;
+      if (next < pending.length) { setTimeout(poll, 30); return; }
       for (const program of programs) { gl.deleteProgram(program); }
       for (const made of shaders) { if (made) { gl.deleteShader(made); } }
       finish('');
