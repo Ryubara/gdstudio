@@ -116,6 +116,16 @@ still (Deadnight #733, #736). Turn it off for a server's map with
 machine. A
 check that finds it: print the end of `map_get_path` from a stuck dead one to its target.
 
+- **Approach:** Turn off both threaded builds for a game whose server must answer the same everywhere, in
+  `project.godot`: `navigation/world/map_use_async_iterations=false` and
+  `navigation/world/region_use_async_iterations=false`. Godot reads them when it makes a map or a region, so every
+  region a level adds, a section's or a door's, builds on the physics step with no call of its own. **Watch out for:**
+  the map's switch alone (what `AiNavigator` set) left each region's build on a worker thread, so a section added to
+  the 3D Third Person level reached the map after 3 ticks on an idle machine and 12 to 48 in a bench, more under load.
+  A web build has no threads (`THREADS_ENABLED` off), so both are off there whatever the project says. **Seen:**
+  gdstudio #1075, 2026-11-11 (`test_navigation_sync.gd` fails with the region's switch back on;
+  `tools/bench/nav_sync_bench.tscn` for the frame cost).
+
 ## A night stepped by hand has a stale map {#a-night-stepped-by-hand-has-a-stale-map}
 
 A loop of `night.tick()` calls with no `await get_tree().physics_frame` between them never lets the navigation server

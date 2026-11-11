@@ -14,8 +14,9 @@ extends Node3D
 ## Every number of a shot is the definition's, read when the shot is fired, so a change while the
 ## game runs shows in the next shot. The sounds play through the nodes of `weapon.tscn`
 ## (`ShotSound`, `EmptySound`, `ReloadSound`, `DrawSound`: volume, bus and voices are the nodes'),
-## with the streams of the definition. A `WeaponLoadout` gives the weapon another definition when
-## the character switches; the ammunition of each one is kept there.
+## with the streams of the definition, decoded once to PCM (`DecodedSounds`: an Ogg Vorbis start
+## set its decoder up, about 250 µs a shot, a decoded one about 1 µs). A `WeaponLoadout` gives the
+## weapon another definition when the character switches; the ammunition of each one is kept there.
 
 ## A shot left: `projectile` is the body that flies (null for a hitscan shot or a blow).
 signal fired(projectile: Projectile)
@@ -590,10 +591,12 @@ func _apply_definition(refill: bool) -> void:
 		return
 	var shot_sound := _player(&"ShotSound")
 	if shot_sound != null:
-		shot_sound.stream = definition.shot_sound
+		shot_sound.stream = DecodedSounds.decoded(definition.shot_sound)
 		shot_sound.volume_db = definition.shot_volume_db
-	_set_stream(&"EmptySound", definition.empty_sound)
-	_set_stream(&"DrawSound", definition.draw_sound)
+	_set_stream(&"EmptySound", DecodedSounds.decoded(definition.empty_sound))
+	_set_stream(&"DrawSound", DecodedSounds.decoded(definition.draw_sound))
+	# Decoded now, while the weapon is set up, not at the reload's first step.
+	DecodedSounds.decoded_all(definition.reload_sounds)
 	if definition.muzzle_flash != null:
 		var emitter := EffectEmitter.find(self)
 		if emitter != null:
@@ -639,7 +642,7 @@ func _play_reload_steps() -> void:
 		var stream := steps[_reload_sounds_played]
 		_reload_sounds_played += 1
 		if stream != null:
-			player.stream = stream
+			player.stream = DecodedSounds.decoded(stream)
 			player.global_position = _muzzle_point()
 			player.play()
 

@@ -470,14 +470,19 @@ def test_a_template_that_extends_another_adds_only_its_own_project_keys(kit, roo
 
 def test_the_third_person_project_file_holds_only_what_it_adds():
     """An extending template's `project.godot` is what it adds to 3D Blank's: the menu scene as the main scene, the
-    `Settings` autoload, the landscape setting, the input map, the navigation cell height and Jolt Physics."""
+    `Settings` autoload, the landscape setting, the input map, the navigation cell height, the navigation builds on
+    the physics step (no threaded region or map builds, kit #1075) and Jolt Physics."""
     third = project_file.parse((KIT / "templates" / "3d-third-person" / "game" / "project.godot").read_text("utf-8"))
     assert set(third.sections) == {"application", "autoload", "display", "input", "navigation", "physics"}
     assert list(third.sections["application"]) == ["run/main_scene"]
     assert list(third.sections["autoload"]) == ["Settings"]
     assert list(third.sections["display"]) == ["window/handheld/orientation"]
     assert list(third.sections["physics"]) == ["3d/physics_engine"]
-    assert list(third.sections["navigation"]) == ["3d/default_cell_height"]
+    assert list(third.sections["navigation"]) == [
+        "3d/default_cell_height",
+        "world/map_use_async_iterations",
+        "world/region_use_async_iterations",
+    ]
     assert "move_left" in third.sections["input"]
 
 
