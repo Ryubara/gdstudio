@@ -118,10 +118,14 @@ func test_a_death_is_a_nine_byte_event_and_the_body_gets_up_where_the_server_say
 	assert_int(SnapshotCodec.event_size(died)).is_equal(9)
 	assert_int(died.slot).is_equal(0)
 	assert_int(died.code).is_equal(ServerCombat.Cause.DAMAGE)
-	# Every TICK is exactly its header, its events and its players: there is no room for a bone.
+	# Every TICK is exactly its header, its events, its players and its moving props: there is no
+	# room for a bone.
 	for index in range(first_tick, bo.ticks.size()):
 		var tick := bo.ticks[index]
 		var expected := NetWire.TICK_HEADER + tick.players.size() * SnapshotCodec.PLAYER_SIZE
+		expected += NetWire.TICK_TAIL
+		for row in tick.parts:
+			expected += NetWire.STREAM_ROW_HEADER + row.state.size()
 		for event in tick.events:
 			expected += SnapshotCodec.event_size(event)
 		if index - first_tick < sizes.size():
