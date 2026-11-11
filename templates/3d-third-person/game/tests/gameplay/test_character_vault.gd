@@ -281,7 +281,9 @@ func test_the_clip_is_the_vault_or_the_climb_and_the_obstacles_own_wins() -> voi
 	var animation := _player.get_node("Animation") as CharacterAnimation
 	var wall := _wall(0.9, 0.4)
 	await _run_and_press(_space_key, 0.9, 10)
-	assert_str(str(animation.last_action())).is_equal(str(animation.vault_clip))
+	# The vault clip, joined to the step out of its landing.
+	assert_str(str(animation.last_action())).contains(str(animation.vault_clip).get_file())
+	assert_str(str(animation.last_action())).contains(str(animation.vault_land_clip).get_file())
 	await _reset()
 	animation = _player.get_node("Animation") as CharacterAnimation
 	_wall(1.0, 3.0)
