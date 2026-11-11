@@ -33,6 +33,8 @@ const PALM_TO_SUPPORT := 0.04
 ## otherwise.
 const ON_TRIGGER := 0.012
 const OFF_TRIGGER := 0.02
+## How deep any point of the rifle may be in the torso's skin, in metres.
+const STOCK_DEPTH := 0.01
 ## The shares of the reload that are measured.
 const RELOAD_STEP := 0.02
 ## How deep the left hand may pass through the rifle while it moves between its places, in
@@ -83,6 +85,47 @@ func test_both_hands_hold_the_rifle_while_it_follows_the_view_up_and_down() -> v
 				await stage.settle()
 				_assert_holds(stage, "%s %s pitch %.0f" % [model, clip_name, pitch])
 		stage.free()
+
+
+# The butt is on the shoulder, not in the chest (kit #1177): at the low ready and aimed, in every
+# locomotion clip and with the view up and down, on both mannequins, no point of the rifle is
+# deeper than `STOCK_DEPTH` in the torso's skin (`BodyClearance`, the arms, legs and head left
+# out), while both hands stay on their places.
+func test_the_stock_stays_out_of_the_chest() -> void:
+	for model in MODELS:
+		var stage := RifleStage.make_rifle(_holder, model)
+		var clearance := BodyClearance.new(stage.skeleton, stage.contact, _near(stage))
+		var poses: Array[Array] = []
+		for clip_name: StringName in CARRIED:
+			for time: float in CARRIED[clip_name]:
+				for aim: float in [0.0, 1.0]:
+					poses.append([clip_name, time, aim, 0.0])
+		for clip_name in PITCHED:
+			for pitch in PITCHES:
+				poses.append([clip_name, 0.0, 1.0, pitch])
+		for pose in poses:
+			stage.pose_rifle(pose[0], pose[1], pose[2], pose[3])
+			await stage.settle()
+			var tag := (
+				"%s %s at %.2f aim %.0f pitch %.0f" % [model, pose[0], pose[1], pose[2], pose[3]]
+			)
+			var found := clearance.deepest(_near(stage))
+			(
+				assert_float(found.depth)
+				. override_failure_message(
+					(
+						"%s: the rifle is %.1f mm in the %s (its point %s)"
+						% [tag, found.depth * 1e3, found.bone, found.point]
+					)
+				)
+				. is_less(STOCK_DEPTH)
+			)
+			_assert_holds(stage, tag)
+		stage.free()
+
+
+func _near(stage: RifleStage) -> Node3D:
+	return stage.rifle.get_node(^"Near") as Node3D
 
 
 func test_the_index_finger_is_on_the_trigger_only_while_the_rifle_is_up() -> void:
