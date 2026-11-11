@@ -37,6 +37,11 @@ command is the same there (off Windows it starts the program normally).
   card), a new Playwright version needs its own browser build (`playwright install chromium-headless-shell`), and
   three or four pages at once stalled the third and fourth on software GL. **Seen:** Deadnight, 2026-11-01 (fix: a
   `--gpu` mode on `channel="chrome"` for the multi-page smokes).
+- **Approach:** In CI, install the probe's browser so that an unreachable Ubuntu mirror cannot fail the job: try
+  `playwright install --with-deps` once, then fall back to the browser alone (the runner image has Chromium's libraries;
+  `--with-deps` only adds fonts). **Watch out for:** a DNS outage of `azure.archive.ubuntu.com` failed the `template`
+  job on main and on every PR for over an hour, and a rerun failed the same way; each apt try spends about eight
+  minutes retrying. **Seen:** gdstudio #1224, 2026-11-11 (fix: the fallback in the kit's and the game template's `ci`).
 - **Approach:** When the browser tools find no connected browser, start Chrome with `--headless=new
   --remote-debugging-port=9333` and a throwaway profile and speak the DevTools protocol over Node's built-in
   `WebSocket`: `Page.captureScreenshot`, `Page.startScreencast` for a transition (about 30 frames a second),
