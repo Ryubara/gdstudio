@@ -29,6 +29,9 @@ func test_a_sidestep_takes_it_round_a_block_it_did_not_know_of() -> void:
 	var block := _frozen_box(Vector3(0, 1, 0), Vector3(1.4, 2, 1.4))
 	_arena.add_child(block)
 	var navigator := _arena.add_walker(Vector3(-6, 0, 0))
+	# A path asked at every slot, as a crowd under a changing map would: the stuck window must
+	# still close (it restarts only on another route).
+	navigator.refresh_seconds = 0.25
 	# A slow walk (a push of 0.7 is a walk): the sidestep must clear the block all the same.
 	navigator.go_to(Vector3(6, 0, 0), 0.7)
 	assert_bool(await NavArena.walk(get_tree(), navigator)).is_true()
@@ -115,6 +118,8 @@ func test_it_crosses_a_link() -> void:
 	_arena.add_link(Vector3(-1.4, 0, 0), Vector3(1.4, 0, 0))
 	await _ready_arena()
 	var navigator := _arena.add_walker(Vector3(-6, 0, 0))
+	# A path asked at every slot: none may be asked from the middle of the gap.
+	navigator.refresh_seconds = 0.25
 	var links := [0]
 	navigator.link_reached.connect(
 		func(_link: Node, _from: Vector3, _to: Vector3) -> void: links[0] += 1
