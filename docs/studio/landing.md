@@ -89,8 +89,8 @@ Open pull requests come before new work: each one left open goes stale against `
   above 0 and names the missing commits; when GitHub cannot be asked the call goes through with a warning, so read
   `mergeStateStatus` yourself ([Hooks](hooks.md#what-it-refuses)). **Watch out for:** a pull request can be CLEAN and
   green on a head that never met the newest commits of `main`, and the new commits looked unrelated. **Seen:** gdstudio
-  #972 (two commits behind) and #977 (#956 and #959), 2026-11-10, merged unrefreshed; on 2026-11-06 the same turned
-  `main` red (fix: the guard, kit #982).
+  #972 (two commits behind) and #977 (#956 and #959), 2026-11-10, unrefreshed; on 2026-11-06 the same turned
+  `main` red (fix: the guard, kit #982); gdstudio #1199, 2026-11-11 (three behind at first push).
 
 - **Approach:** On a pull request off the hand-merge paths, with no `S-hold` and no long proof run still to read,
   turn auto-merge on (`gh pr merge --squash --auto`) in the step right after the refresh push, then read the checks.
