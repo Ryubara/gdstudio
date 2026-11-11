@@ -21,6 +21,11 @@ const DELAY := 0.15
 const ROUND_SPEED := 45.0
 ## About the round's flight to the lane (6 m at 45 m/s) and a server step's wait for the command.
 const LEAD_FLIGHT := 0.15
+## The share of that flight Ada leads by. The round leaves the muzzle, ahead of her, and meets the
+## capsule's near side: led by the whole flight from her feet it crossed the guard's middle 0.17 m
+## ahead of it (0.05 m at 0.8, 0.06 m behind at 0.6), which only a chest leaning far forward is
+## under (the library's jog; a guard running upright in `gds/Jog` was missed, gdstudio #1155).
+const LEAD_SHARE := 0.7
 ## How far the drawn guard may be from the history at the tick a shot is met at: a tick of its
 ## run (about 6 cm) on average, a send's at worst (the clock's pull moves the drawn tick).
 const MAX_MEAN_GAP := 0.1
@@ -125,7 +130,7 @@ func _drawn_chest(runner: AiCharacter) -> Vector3:
 	var puppet := _ada.ai_replica.puppet_of(_id_of(runner))
 	var chest := puppet.global_position + Vector3.UP * CHEST
 	var flight := _ada.player.global_position.distance_to(chest) / ROUND_SPEED
-	return chest + puppet.velocity * flight
+	return chest + puppet.velocity * flight * LEAD_SHARE
 
 
 # Where the server will have the guard's chest when the command and the round get there (a test
