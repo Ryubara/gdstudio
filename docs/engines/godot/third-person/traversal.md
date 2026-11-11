@@ -19,6 +19,7 @@ side is `gameplay/character/character_vault.gd`. Part of [the 3D Third Person te
 | `VaultPlan` | `addons/gds_game/traversal/vault_plan.gd` | The crossing: vault, mantle or none (with the reason), the measurements and a path of key points with the share of the time each is reached at. `position_at(share)` is where the feet are. |
 | `CharacterVault` | `gameplay/character/character_vault.gd` | Inside `Character.step`: asks for a plan when the command asks (a buffered jump press, or a sprint with the automatic trigger), then moves the body along the path tick by tick, by numbers alone, and leaves it on the landing with the crossing's speed. Its state (time in, cooldown, the plan's path) is `CharacterState.vault`. |
 | `CharacterAnimation` | Traversal group | Plays the vault or mantle clip (low or high by the plan, or the obstacle's own) over the whole body for the crossing's time. |
+| `PuppetVault` | `gameplay/character/puppet_vault.gd` | Online, a body drawn from the network (a player's puppet, an AI replica) plans the crossing itself when its drawn state turns to `VAULT` or `MANTLE`, so the clip plays on every screen with nothing sent ([online](#online)). |
 
 One clip serves every height because the body never follows the clip's root: the clips are in place (the library's
 `ClimbUp_1m` keeps its pelvis where it starts and ends), the path is made for the obstacle measured, and the clip is
@@ -108,6 +109,33 @@ seen only as a title: [Vault, Slide, Mantle: Building Brink's SMART System (GDC)
 
 Use the overrides only for a shape the probe misreads (a rounded rail: `height_override`), and the clip fields for a
 special crossing (a window: a clip of its own).
+
+## Online: a puppet's vault {#online}
+
+<!-- new section: the vault ran only on the body that steps it; nothing said how a body drawn from the network shows
+     one, and online-client.md is at its size limit -->
+
+A body drawn from the network (another player's puppet, [online-client.md#puppets](online-client.md#puppets); an AI's
+puppet, [ai.md#replication](ai.md#replication)) never steps, so its `CharacterVault` never planned and the clip never
+started: it showed the capsule's path over the wall in its gait. `PuppetVault` (`gameplay/character/puppet_vault.gd`,
+kit #1222) plans it on the screen that draws it. When the drawn state turns to `VAULT` or `MANTLE`, the puppet runs
+the same `VaultProbe` from where it was drawn the frame before, set down on the floor under it, along the heading the
+server sent (the stepping body turns square to the face as it starts), at the speed it was drawn moving; the plan goes
+into its `vault_motion`, `started` plays the clip as on the stepping body, the plan's time runs with the frames drawn
+and the crossing ends with the drawn state. `PlayerPuppet.place` and `AiReplica` call it after a puppet's place and
+state; the probe is lent the map's layers (an AI puppet's own mask is 0).
+
+Nothing is sent: the TICK, its 12-byte player entry and the AI row are unchanged, so the bandwidth is the same. On the
+course's 0.9 m wall at a run (`test_net_puppet_vault.gd`, loopback), the puppet's plan had the server's top to 0.1 mm,
+its start within 7 cm and its time within 16 ms (0.466 s against 0.482 s). A probe that finds no crossing of the
+server's kind (the map differs on this screen, something stands in the way here) plays no clip, as before. The clip
+tour is `tools/capture/puppet_vault_tour.tscn` (Ada's own screen beside Bo's).
+
+- **Approach:** Work out a puppet's one-off move (a vault's start) from a snapshot place, or set the drawn place down
+  on the floor, never from the place drawn the frame before as it is. **Watch out for:** that frame is drawn between
+  the last snapshot on the ground and the first one of the move, already part of the way up its path: the puppet's
+  vault planned from 0.22 m above the floor and started 0.23 m from the server's. **Seen:** gdstudio #1222,
+  2026-11-11 (`PuppetVault._on_floor`; `test_net_puppet_vault.gd`).
 
 ## Cost and the web {#cost}
 

@@ -60,7 +60,9 @@ stepped its own meanwhile (it walks on a moment, then stands), so both come out 
 The other players are drawn by `RemotePlayers` (`remote_players.gd`): one puppet `Player` a slot, the same
 `player.tscn` with no input, collision or simulation, a tenth of a second behind the newest TICK and smoothly between
 the two TICKs around that moment, so they walk, run, crouch, aim, jump and land with the same clips as the local body.
-Nothing that only looks (a footstep, a hand pose, a muzzle flash) crosses the network.
+A vault or a mantle is planned again on this screen when a puppet's state turns to one (`PuppetVault`, also used by
+the AI's puppets), so its clip plays as on the body that steps it with nothing more sent. Nothing that only looks
+(a footstep, a hand pose, a muzzle flash) crosses the network.
 
 The AI characters run on the server only. When the client joins, its own map's AI (the director and every AI
 character, with their senses, brain, tasks and navigator) stands down before it runs a frame, and an `AiReplica`
