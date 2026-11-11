@@ -42,8 +42,11 @@ TOL = 0.0012  # how deep the solver lets skin go (the test allows 2 mm)
 # Where the middle of the trigger finger's last bone sits when its pad is on the trigger, in the gun.
 TRIGGER_OFF = np.array([-0.010, -0.004, 0.0])
 THUMB_AT = np.array([-0.01, 0.070, 0.030])
-# Where the right thumb's last bone lies from the left thumb's root joint when both hands hold.
-THUMB_OVER = np.array([0.0, 0.02, 0.0])
+# Where the right thumb's last bone lies from the left thumb's root joint (`thumb_01_l`) when both hands
+# hold: above it and in toward the slide, the furthest forward the thumb reaches from behind the grip.
+THUMB_OVER = np.array([0.0, 0.025, -0.016])
+THUMB_OVER_OFF = 0.0005  # how far off the support hand its tip stays in this solver's measure, metres
+THUMB_OVER_Y = 0.10  # how high in the gun the right thumb may lie there, beside the slide, metres
 # The left thumb lies ahead of the right one along the frame, above the trigger guard and under the slide.
 LEFT_THUMB_AT = np.array([-0.095, 0.074, 0.029])
 UNDER_GUARD_Y = 0.006  # the middle of a finger that lies under the trigger guard is no higher
@@ -109,6 +112,8 @@ class Scene:
         # The same hand's vertices as it holds, and whose mannequin each is: measured against the other
         # hand's fingers (`Hand.finger_depth`).
         self.frozen_points = {}
+        # The right thumb's angles on the frame while its pose on the support hand is solved.
+        self.thumb_from = None
 
     def gun_global(self):
         return self.right.hand_global() @ self.seat
@@ -162,11 +167,45 @@ class Scene:
             # The triangles of this mannequin's hand, as indices into the hand's own points.
             mine = (self.rig.model[hand.ids][hand.tris[:, 0]] == index) & ~left_out
             tris = [points[hand.tris[mine]]] + [moved[hand.tris[mine & whole]] for whole, moved in extra]
+            tris.append(wrist_cap(tris[0]))
             grid = hold_field.PiecesField(np.concatenate(tris), HAND_LOW, HAND_HIGH, 0.0015, rays=(0, 1, 2))
             fields.append(lambda at, grid=grid: grid(self.to_gun(at)))
         self.frozen[hand.side] = fields
         kept = np.unique(hand.tris[~left_out])
         self.frozen_points[hand.side] = (hand.points()[kept], self.rig.model[hand.ids][kept])
+
+
+def wrist_cap(tris):
+    """Triangles that close a hand's skin where it is open (the palm ends at the wrist, a finger's bone
+    where the skin's selection ends): each ring of edges only one triangle has, joined to its own middle,
+    so every piece stays its own closed piece. The forearm goes on at the wrist, so what lies in that
+    opening is inside the arm; left open, the rays that count a point inside or out disagree there, and a
+    thumb laid in the other wrist read 0.7 mm off it where the game's measure read 8.9 mm in."""
+    keys = np.round(tris.reshape(-1, 3) * 1e5).astype(np.int64)
+    welded, ids = np.unique(keys, axis=0, return_inverse=True)
+    ids = ids.reshape(-1, 3)
+    edges = np.concatenate([ids[:, [0, 1]], ids[:, [1, 2]], ids[:, [2, 0]]])
+    lone, counts = np.unique(np.sort(edges, axis=1), axis=0, return_counts=True)
+    lone = lone[counts == 1]
+    if len(lone) == 0:
+        return np.empty((0, 3, 3))
+    ring = {int(v): int(v) for v in lone.ravel()}
+
+    def find(v):
+        while ring[v] != v:
+            ring[v] = ring[ring[v]]
+            v = ring[v]
+        return v
+
+    for a, b in lone:
+        ring[find(int(a))] = find(int(b))
+    of = np.array([find(int(a)) for a in lone[:, 0]])
+    caps = []
+    for root in np.unique(of):
+        corners = welded[lone[of == root]] * 1e-5
+        middle = np.broadcast_to(corners.reshape(-1, 3).mean(axis=0), (len(corners), 1, 3))
+        caps.append(np.concatenate([corners, middle], axis=1))
+    return np.concatenate(caps)
 
 
 def finger_cost(scene, hand, finger, angles, mode):
@@ -223,17 +262,28 @@ def finger_cost(scene, hand, finger, angles, mode):
         # The shooting thumb while the support hand is on the gun: it rests on the root of the support
         # thumb, which fills the place on the frame it has when the gun is held in one hand, and still
         # points forward, no higher than the slide's foot.
-        cost += np.abs(to_hand[:, tip].min(axis=1) - TARGET) + 0.7 * np.abs(to_hand[:, mid].min(axis=1) - TARGET)
-        # Its tip is over the support thumb's root joint, a thumb's thickness above it.
+        # Only its last bone lies on that hand, and where it lies counts for more than how closely: asked
+        # to lie on the hand with the middle bone too, or pulled to a place it cannot reach, it turned
+        # sideways behind the gun and put its tip in the support wrist's opening.
+        cost += 0.3 * np.abs(to_hand[:, tip].min(axis=1) - TARGET)
         rig, left = scene.rig, scene.left
-        root = scene.to_gun(left.glob[rig.index["thumb_02_l"]][:3, 3][None])[0]
-        cost += 0.5 * np.linalg.norm(tip_at - (root + THUMB_OVER), axis=1)
+        root = scene.to_gun(left.glob[rig.index["thumb_01_l"]][:3, 3][None])[0]
+        cost += np.linalg.norm(tip_at - (root + THUMB_OVER), axis=1)
+        # The game's measure reads the male thumb's tip 1.3 mm deeper in that hand than this one does.
+        cost += 100.0 * relu(THUMB_OVER_OFF - to_hand[:, tip].min(axis=1))
+        # Half-way from where it lies on the frame (the game blends the two poses while the support hand
+        # is away), it is no deeper in the gun than a finger that holds.
+        if scene.thumb_from is not None:
+            between = hand.finger_points(finger, 0.5 * (a + scene.thumb_from))
+            passing = scene.gun(scene.to_gun(between)).min(axis=1)
+            cost += 100.0 * relu(-passing - (TOL - 0.0004))
         # It stays on the gun's left: the left hand's fingertips, round on the gun's right, are skin of
         # that hand too, and a thumb laid on them would have crossed through the gun.
         cost += relu(0.012 - tip_at[:, 2]) + relu(0.012 - mid_at[:, 2])
-        cost += relu(tip_at[:, 1] - 0.084) + relu(mid_at[:, 1] - 0.08)
-        lie = tip_at - mid_at
-        cost += 1.0 * relu(lie[:, 0] + 0.01) + 1.0 * relu(lie[:, 1])
+        # Beside the slide it may lie higher than on the frame (the support thumb's root is under it).
+        cost += relu(tip_at[:, 1] - THUMB_OVER_Y) + relu(mid_at[:, 1] - THUMB_OVER_Y)
+        # It still points forward, and climbs onto the hand: the tip may be higher than the middle bone.
+        cost += 0.3 * relu((tip_at - mid_at)[:, 0] + 0.01)
         cost += 2e-4 * relu(a[:, 5] - 45.0)
     elif mode == "thumb":
         # Both thumbs lie on the gun's left (+Z), the left one ahead of the right one.
@@ -270,14 +320,29 @@ def start_grid(finger, mode):
     return np.array(list(itertools.product([0.0], range(-10, 96, 15), range(0, 111, 15), range(0, 81, 20))), float)
 
 
-def solve_finger(scene, hand, finger, mode, quick=False, start=None):
+def solve_finger(scene, hand, finger, mode, quick=False, start=None, wide=0):
+    """The angles of one finger that cost least in `mode`, and that cost: the best of a grid of starts
+    (and `start`), refined by steps that halve. `wide` adds that many random starts and refines the best
+    four of them all, each on its own: where the grid's best start leads to a pose that only looks
+    cheap from there (a thumb laid sideways), another start finds the one that is."""
     limits = LIMITS.get(finger, LIMITS["finger"])
     grid = start_grid(finger, mode)
     if start is not None:
         grid = np.concatenate([grid, np.atleast_2d(start)])
-    cost, _ = finger_cost(scene, hand, finger, grid, mode)
-    best = grid[cost.argmin()]
-    best_cost = cost.min()
+    if wide:
+        pool = np.random.default_rng(7).uniform(limits[:, 0], limits[:, 1], size=(wide, len(limits)))
+        grid = np.concatenate([grid, pool])
+    cost = np.concatenate(
+        [finger_cost(scene, hand, finger, grid[first : first + 200], mode)[0] for first in range(0, len(grid), 200)]
+    )
+    found = [
+        refine_finger(scene, hand, finger, mode, quick, grid[k], cost[k]) for k in np.argsort(cost)[: 4 if wide else 1]
+    ]
+    return min(found, key=lambda entry: entry[1])
+
+
+def refine_finger(scene, hand, finger, mode, quick, best, best_cost):
+    limits = LIMITS.get(finger, LIMITS["finger"])
     dims = len(best)
     rng = np.random.default_rng(1)
     for scale in (8.0, 4.0, 2.0, 1.0) if quick else (8.0, 4.0, 2.0, 1.0, 0.5, 0.25):
@@ -616,6 +681,9 @@ def main():
     if "--way-only" in sys.argv:
         way_only(scene, started)
         return
+    if "--thumb-only" in sys.argv:
+        thumb_only(scene, started)
+        return
     if "--left-only" in sys.argv:
         out = restore(scene)
     else:
@@ -719,21 +787,7 @@ def solve_left(scene, out, rounds, started):
     close_left(scene)
     # The right thumb on the left hand, then the left hand once more against the whole right hand.
     carried = scene.right.angles["thumb"].copy()
-    scene.freeze(hand)
-    over, _ = solve_finger(scene, scene.right, "thumb", "thumb_over", False, carried)
-    # The thumb's way between the two poses, as the game blends it, against the gun alone: the left hand
-    # is out at the far end of its way while the thumb moves.
-    shares = np.linspace(0.0, 1.0, TRIGGER_STEPS + 1)
-    turned = [
-        blended(a[0], b, shares)
-        for a, b in zip(local_rotations("thumb", carried), local_rotations("thumb", over[None]), strict=True)
-    ]
-    passes = -scene.gun(scene.to_gun(scene.right.finger_points_turned("thumb", turned))).min()
-    print("right thumb", np.round(carried, 1), "to", np.round(over, 1), "passes the gun %.1f mm" % (passes * 1000))
-    scene.right.set("thumb", over)
-    thumb = scene.right.quaternions(["thumb"])
-    report(scene, scene.right, "right (thumb over)")
-    scene.frozen.pop("l")
+    over, thumb = solve_thumb_over(scene, carried)
     scene.freeze(scene.right, index_poses(out, way=False))
     total, left_table = close_left(scene)
     report(scene, hand, "left")
@@ -761,6 +815,47 @@ def solve_left(scene, out, rounds, started):
         "support": hand.quaternions(),
         "thumb": thumb,
     }
+
+
+def solve_thumb_over(scene, carried):
+    """The right thumb laid on the left hand as it holds (frozen here, then let go): the angles, the bones'
+    rotations, and how deep the thumb's blend from `carried` passes through the gun alone (the left hand
+    is out at the far end of its way while the thumb moves)."""
+    scene.freeze(scene.left)
+    scene.thumb_from = carried
+    over, _ = solve_finger(scene, scene.right, "thumb", "thumb_over", False, carried, wide=6000)
+    scene.thumb_from = None
+    shares = np.linspace(0.0, 1.0, TRIGGER_STEPS + 1)
+    turned = [
+        blended(a[0], b, shares)
+        for a, b in zip(local_rotations("thumb", carried), local_rotations("thumb", over[None]), strict=True)
+    ]
+    passes = -scene.gun(scene.to_gun(scene.right.finger_points_turned("thumb", turned))).min()
+    print("right thumb", np.round(carried, 1), "to", np.round(over, 1), "passes the gun %.1f mm" % (passes * 1000))
+    scene.right.set("thumb", over)
+    thumb = scene.right.quaternions(["thumb"])
+    report(scene, scene.right, "right (thumb over)")
+    scene.frozen.pop("l")
+    return over, thumb
+
+
+def thumb_only(scene, started):
+    """Solves only the right thumb's pose on the left hand, on the two hands of the solve in the output file,
+    and adds it to that file; run `--way-only` after it (the way's far end clears the moving thumb)."""
+    out = restore(scene)
+    hand = scene.left
+    held = hand.angles_of(out["support"])
+    for finger in FINGERS:
+        hand.angles[finger] = held[finger].copy()
+    put_left(scene, np.array(out["support_hand"]))
+    carried = scene.right.angles["thumb"].copy()
+    over, out["thumb"] = solve_thumb_over(scene, carried)
+    out["angles"]["thumb_over"] = over.tolist()
+    scene.freeze(scene.right, index_poses(out, way=False))
+    report(scene, hand, "left")
+    scene.right.set("thumb", carried)
+    print("thumb in %.0f s" % (time.time() - started), flush=True)
+    save(out)
 
 
 def both_hands(scene, out):
@@ -837,7 +932,9 @@ def trigger_grid(frame, trigger):
     """The poses the trigger finger may pass through between `frame` and `trigger`: every lean and bend from
     one to the other and some past them (it may curl in or straighten to get by)."""
     spans = []
-    for index, (low, high, step) in enumerate(((0.0, 0.0, 4.0), (10.0, 10.0, 6.0), (10.0, 30.0, 8.0), (0.0, 20.0, 10.0))):
+    for index, (low, high, step) in enumerate(
+        ((0.0, 0.0, 4.0), (10.0, 10.0, 6.0), (10.0, 30.0, 8.0), (0.0, 20.0, 10.0))
+    ):
         first, last = sorted((frame[index], trigger[index]))
         spans.append(np.arange(first - low, last + high + 0.1, step))
     limits = LIMITS["index"]
@@ -921,7 +1018,8 @@ def solve_trigger_way(scene, out, started):
         np.round(best, 1),
         "to",
         np.round(trigger, 1),
-        "passes (female, male) the left hand %.1f, %.1f mm, the gun %.1f, %.1f mm" % (*[d * 1000 for d in passes_hand], *[d * 1000 for d in passes_gun]),
+        "passes (female, male) the left hand %.1f, %.1f mm, the gun %.1f, %.1f mm"
+        % (*[d * 1000 for d in passes_hand], *[d * 1000 for d in passes_gun]),
         "(straight: the left hand %.1f mm, the gun %.1f mm)" % (straight[1], straight[0]),
         "in %.0f s" % (time.time() - started),
         flush=True,
@@ -1083,13 +1181,12 @@ def solve_magazine(scene, out, support, started):
         total = close_magazine(scene)
     report(scene, scene.left, "magazine")
     print(
-        "magazine", np.round(params, 4).tolist(), "total %.2f mm" % (total * 1000), "in %.0f s" % (time.time() - started)
+        "magazine",
+        np.round(params, 4).tolist(),
+        "total %.2f mm" % (total * 1000),
+        "in %.0f s" % (time.time() - started),
     )
-    return {
-        "magazine_params": params.tolist(),
-        "magazine_hand": in_gun.tolist(),
-        "magazine": scene.left.quaternions(),
-    }
+    return {"magazine_params": params.tolist(), "magazine_hand": in_gun.tolist(), "magazine": scene.left.quaternions()}
 
 
 def magazine_only(scene, started):

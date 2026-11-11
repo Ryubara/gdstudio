@@ -70,6 +70,10 @@ const OVER_RIGHT_HAND: Array[String] = [
 const CANT := Vector2(25.0, 50.0)
 ## How far ahead of the right thumb's last bone the left one's is, along the barrel, at least.
 const THUMB_AHEAD := 0.03
+## How deep the left hand's opening fingers may press the right hand as they pass, in metres.
+const LEFT_HAND_PASSING := 0.0025
+## The right thumb's tip rests this near the skin of the left thumb's root bone at most, in metres.
+const ON_THUMB_ROOT := 0.012
 ## How near the trigger the index finger's tip is while aiming, and how far off it otherwise.
 const ON_TRIGGER := 0.012
 const OFF_TRIGGER := 0.02
@@ -189,6 +193,14 @@ func test_the_two_hands_hold_the_pistol_together() -> void:
 			if right.thumb_tip.hand > HandContact.MAX_FLOAT:
 				fails.append(
 					"the right thumb is %.1f mm off the left hand" % (right.thumb_tip.hand * 1e3)
+				)
+			# On the root of the left thumb, not anywhere on that hand: a thumb that lay sideways
+			# with its tip in the left wrist was on the left hand's skin too.
+			var rests := stage.skeleton.global_transform * (right.thumb_tip.point as Vector3)
+			var from_root := stage.contact.part_distance_to("l", "thumb_base", rests)
+			if from_root > ON_THUMB_ROOT:
+				fails.append(
+					"the right thumb is %.1f mm from the left thumb's root" % (from_root * 1e3)
 				)
 			var ahead := _in_gun(stage, &"thumb_03_r").x - _in_gun(stage, &"thumb_03_l").x
 			if ahead < THUMB_AHEAD:
@@ -645,15 +657,25 @@ func _compare_with_marker(hand: Vector3) -> void:
 # One hand holds: nothing deeper than the limit in the gun, every holding part on it. The left
 # hand is measured against the right one too, and with `both` the right against the left (a
 # fingertip that enters a flat face of the other hand shows only from its own side); the right
-# thumb then counts as holding only while the left hand is on the gun or away from it, since it
-# moves between the frame and the left thumb's root as that hand comes and goes.
+# thumb then counts as holding only while it lies on the frame (the left hand's plan asks for no
+# room) or the left hand holds under it, closed and at its place: between the two it is in the
+# air, moving to the left thumb's root or back while that hand is out on its way.
 func _assert_holds(stage: HoldStage, side: String, tag: String, both := false) -> void:
 	var parts := stage.contact.measure(side, side == "l" or both)
 	var contacts := HoldStage.RIGHT_CONTACTS if side == "r" else HoldStage.LEFT_CONTACTS
 	if both and stage.hold != null:
-		var on_gun: float = stage.hold.call(&"support_weights").x
-		if on_gun > 0.0 and on_gun < 1.0:
+		var plan: SupportHandPlan = stage.hold.call(&"left_hand")
+		var under := plan.room >= 1.0 and plan.off <= 0.0 and plan.opened <= 0.0
+		if plan.room > 0.0 and not under:
 			contacts = contacts.filter(func(part: String) -> bool: return part != "thumb_tip")
+		# While the left hand's fingers open or close over the right hand's, they press it
+		# `LEFT_HAND_PASSING` deep at most (2.1 mm at the right little finger's tip, which is
+		# 1.5 mm in the palm that lies on it while both hold).
+		if plan.opened > 0.0 and plan.opened < 1.0:
+			for part: String in parts:
+				var entry: Dictionary = parts[part]
+				if entry.gun >= -HandContact.MAX_DEPTH and entry.hand >= -LEFT_HAND_PASSING:
+					entry.distance = maxf(entry.distance, -HandContact.MAX_DEPTH)
 	var fails := HandContact.failures("%s %s:" % [tag, side], parts, contacts)
 	assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
 
