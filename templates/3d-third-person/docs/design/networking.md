@@ -1,8 +1,9 @@
 # Networking
 
 What the template gives an online game so far: the **link** that carries packets between a client and a server, the
-packets above it (`NetWire`, `CommandCodec`, `SnapshotCodec`), and the **game server** that admits players and steps
-their bodies. The client that predicts its body and draws the others is still to come.
+packets above it (`NetWire`, `CommandCodec`, `SnapshotCodec`), the **game server** that admits players and steps
+their bodies, the **client** that predicts its body and draws the others, and the **online game** a player starts
+from the menu.
 
 ## The link
 
@@ -42,7 +43,14 @@ map, or one over `max_players`, is refused; one that floods or sends what no cli
 JSON line for each player who comes or goes and every 10 s its numbers (players, bytes out a second, the step's time).
 
 Its numbers are on the `NetServer` node in the inspector (`net_server.tscn`): `max_players`, `hold_ticks`,
-`command_ticks`, `silent_seconds`, `hello_seconds`, the spawn group and seed, and the body scene.
+`command_ticks`, `silent_seconds`, `hello_seconds`, the spawn group and seed, and the body scene; its AI group says
+how often each client hears of each AI character by distance (`ai_rates`), where positions are measured from
+(`ai_section_origin`), which profiles map to which look (`ai_variants`), and whether the AI sees the players
+(`ai_sees_players`). The AI runs here and nowhere else. A player's shot on an AI character is met where that
+player's screen drew the character, a few tenths of a second ago (the server keeps each character's body for
+`ai_rewind_seconds`, and a round meets the drawn characters for its first `ai_rewind_flight_seconds`): aim at the
+guard you see. Only the body a shot meets is wound back, never what the AI thinks or where it goes; another player is
+met where the server has them.
 
 ## The client
 
@@ -50,16 +58,65 @@ A `NetClient` node (`game/gameplay/net/net_client.gd`) joins a server and plays 
 physics step it samples the player's controller, sends the command and steps the body with exactly the numbers the
 server will read, so the body moves the moment the key goes down. When a TICK says where the server's body stands after
 a command, a `Reconciler` slides the local body toward it a quarter of the way a frame (and puts it there at once when
-it is more than 2.5 m off); a `StallGuard` notices the game froze (a hidden tab) and skips the burst of catch-up steps.
+it is more than 2.5 m off, or when a quarter would put the body inside a ledge, `BodyOverlap`); a `StallGuard` notices
+the game froze (a hidden tab) and skips the burst of catch-up steps, and a `SilenceWalk` steps the body as the server
+stepped its own meanwhile (it walks on a moment, then stands), so both come out of the freeze at the same speed.
 The other players are drawn by `RemotePlayers` (`remote_players.gd`): one puppet `Player` a slot, the same
 `player.tscn` with no input, collision or simulation, a tenth of a second behind the newest TICK and smoothly between
 the two TICKs around that moment, so they walk, run, crouch, aim, jump and land with the same clips as the local body.
-Nothing that only looks (a footstep, a hand pose, a muzzle flash) crosses the network.
+A vault or a mantle is planned again on this screen when a puppet's state turns to one (`PuppetVault`, also used by
+the AI's puppets), so its clip plays as on the body that steps it with nothing more sent. Nothing that only looks
+(a footstep, a hand pose, a muzzle flash) crosses the network.
 
-The offline game (`main.tscn`) has no client yet: the online entry of the menu adds one. Until then
-`game/tests/fixtures/online_arena.tscn` holds a map, a `PlayerRig`, `RemotePlayers` and a `NetClient`. Inspector:
-`NetClient` `player`, `remote_players`, `world_root`, `join_on_ready`, `player_name`, `spawn_group`, `spawn_seed`;
-`RemotePlayers` `puppet_scene`, `delay`.
+The AI characters run on the server only. When the client joins, its own map's AI (the director and every AI
+character, with their senses, brain, tasks and navigator) stands down before it runs a frame, and an `AiReplica`
+(`ai_replica.gd`) draws the server's characters from the few bytes each TICK carries for this client: each one a
+dressed character with no AI and no collision, walked evenly from one row to the next a tenth of a second behind, its
+animation from the row (walking, running, crouching, aiming), its death a ragdoll this screen makes itself from one
+event, its shot a muzzle flash this screen plays. A crowd that arrives at once (the join, a crowd walking into range)
+is made and shown a few characters a frame, the nearest first, so joining does not freeze the screen. Characters
+farther away are sent less often (`ai_tier_rates.tres`
+on the server), and none past the interest radius. A browser among the players caps how many characters run for
+everyone.
+
+Inspector: `NetClient` `player`, `remote_players`, `ai_replica`, `world_root`, `join_on_ready`, `player_name`,
+`spawn_group`, `spawn_seed`, `rejoins`; `RemotePlayers` `puppet_scene`, `delay`; `AiReplica` `interp_delay`,
+`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes`, `puppets_per_frame`,
+`puppet_budget_usec`, `puppets_shown_per_frame`, `viewer`.
+
+## Playing online
+
+`game/online_main.tscn` is the online game: the offline game (`main.tscn`, unchanged) with a `NetClient`, the
+`RemotePlayers`, the `AiReplica` and an `OnlineStatus` overlay (`game/ui/online/`). Three ways in:
+
+- The main menu's **Play online** loads it and joins the address under the button. That field is a developer's: it
+  shows in a debug build (the editor, a debug export) and never in a release, where the menu's `server_address` is the
+  only address (set it to your deployed server, `wss://...`). `address_field` on `MainMenu` forces it on or off.
+- `godot --path game -- --connect ws://host:8910 [--name Ada]`: the project's first scene sees the address and goes
+  straight to the online game. Back to the menu from it shows the menu.
+- On the web, the page's address: `index.html?url=wss://host&name=Ada`. A page served over `https` can only open
+  `wss://`.
+
+The overlay says **Connecting** until the server seats the player, then hides. It says the server runs another version
+(reload the page, or update the game), that the game is full, that the server runs another map, that nobody answered
+within `connect_seconds`, or **Connection lost**, each with **Back to menu**; while it shows, the player's input is off.
+Its texts are exports of `online_status.tscn`. A server that hangs up on a hello that came too late (a browser
+compiling the game's shaders on its first visit holds its page for seconds) gets a new socket, up to `rejoins` times,
+while the overlay still says Connecting.
+
+`--bot route` or `--bot watch` (`?bot=route` on the web) hands the player to a `PlayerBot`, which presses the same
+actions a person would and turns the camera as the mouse does: `route` walks to the main door, opens it, comes back,
+fires past the other player and stands; `watch` keeps the nearest other player in view and, after `fire_after`
+seconds, shoots at it. Two clients and a server, one bot each, are the online game's capture.
+
+```text
+godot --headless --path game -- --server --port 8910
+godot --path game -- --connect ws://127.0.0.1:8910 --bot watch --name Two
+godot --path game -- --connect ws://127.0.0.1:8910 --bot route --name One
+```
+
+`--onlineprobe` (`?onlineprobe` on the web) prints what the client measured once a second (`ONLINE_PROBE {...}`: round
+trip, corrections, the gap to the server's point, players, frame time) or writes it to `window.gdonline`.
 
 ## The server image
 
@@ -94,6 +151,12 @@ image).
 - `game/tools/capture/online_tour.tscn` records two clients side by side (Ada's own screen and Bo's, where she is a
   puppet).
 - `game/tools/web_smoke/net_link_smoke.py` opens the web build against the echo server in a headless browser.
+- `game/tools/web_smoke/online.py` opens two pages of the web build against a server through a 100 ms relay, each with
+  a bot, and checks that both are seated and see each other; with `--other-version` the server is of the next
+  protocol version and every page must say so.
+- `game/tools/web_smoke/step_trace.py` steps a body through the map with scripted commands in the web build and on
+  the desktop (`?steptrace`, `-- --play --steptrace`) and compares the positions: they are the same floats, so a
+  browser predicts exactly what a server steps.
 
 The numbers and the engine behaviour the link was built around are in the kit's `docs/engines/godot/multiplayer.md`
 (The template's transport).

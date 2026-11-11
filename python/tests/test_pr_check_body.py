@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 from git_seed import slim
+from hook_support import patch
 
 pytest.importorskip("yaml")
 
@@ -256,7 +257,7 @@ def test_one_body_read_serves_both_checks(workspace, monkeypatch):
     """`--attach` and the description rules read the body once and both can refuse it in the same answer."""
     reads = []
     real = guards.body_of
-    monkeypatch.setattr(guards, "body_of", lambda *args: reads.append(1) or real(*args))
+    patch(monkeypatch, "body_of", lambda *args: reads.append(1) or real(*args))
     body = BODIES / "none-without-reason.txt"
     reason = denied(shell(f"gh pr edit 7 --body-file {body} --attach {workspace['root']}/after.png", workspace["kit"]))
     assert REASON_NONE in reason and "has no reference" in reason
@@ -393,6 +394,128 @@ def test_gds_pr_check_body_by_hand_still_wants_uploaded_captures(workspace, tmp_
     title.write_text("godot: Add y\n", encoding="utf-8")
     code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(workspace["kit"])], capsys)
     assert code == 1 and "'Before:' capture" in err
+
+
+# --- gds pr check-body --attach: the captures the command will upload (kit #1188) -----------------------------------
+# Three agents on 2026-11-11 (PRs #1165, #1168, #1175) could not pass `gds pr check-body` with `./after.png` references:
+# the file is only uploaded by `gh pr create --attach`, so the command run alone always said the captures were missing.
+
+
+def check_by_hand(workspace, folder: Path, body: Path, capsys, *attach: str) -> tuple[int, str]:
+    """`cd <folder> && gds pr check-body <body> --title <title> --attach ...`, as `gh pr create` would run there."""
+    title = folder / "title.txt"
+    title.write_text("godot: Add y\n", encoding="utf-8")
+    args = ["pr", "check-body", str(body), "--title", str(title), "--repo", str(workspace["kit"])]
+    for spec in attach:
+        args += ["--attach", spec]
+    return run_gds(args, capsys)
+
+
+def captures(folder: Path, *names: str) -> None:
+    for name in names:
+        (folder / name).write_bytes(b"PNG")
+
+
+def test_check_body_counts_local_files_about_to_be_attached(workspace, scratch, capsys, monkeypatch):
+    """Failed first: `--attach` was not an argument, and without it the pair was refused as missing."""
+    body = visual_body(scratch)
+    captures(scratch, "before.png", "after.png")
+    monkeypatch.chdir(scratch)
+    code, err = check_by_hand(workspace, scratch, body, capsys, "./before.png", f"{scratch}/after.png")
+    assert code == 0, err
+
+
+def test_check_body_still_refuses_a_reference_that_is_not_attached(workspace, scratch, capsys, monkeypatch):
+    """Attaching the after capture does not make `./before.png` an upload: CI's own words come back."""
+    body = visual_body(scratch)
+    captures(scratch, "before.png", "after.png")
+    monkeypatch.chdir(scratch)
+    code, err = check_by_hand(workspace, scratch, body, capsys, "./after.png")
+    assert code == 1
+    assert "the 'Before:' capture is missing" in err and "the 'After:' capture is missing" not in err
+
+
+def test_check_body_refuses_an_attach_file_that_does_not_exist(workspace, scratch, capsys, monkeypatch):
+    """`gh` cannot upload a file that is not there, so the reference stays local and the capture is missing."""
+    body = visual_body(scratch)
+    captures(scratch, "before.png")
+    monkeypatch.chdir(scratch)
+    code, err = check_by_hand(workspace, scratch, body, capsys, "./before.png", "./after.png")
+    assert code == 1
+    assert "`--attach ./after.png`: no such file" in err
+    assert "the 'After:' capture is missing" in err and "the 'Before:' capture is missing" not in err
+
+
+def test_check_body_passes_uploaded_addresses_without_attach(workspace, scratch, capsys):
+    upload = "https://github.com/user-attachments/assets/11111111-2222-3333-4444-555555555555"
+    body = visual_body(scratch, before=upload, after=upload)
+    code, err = check_by_hand(workspace, scratch, body, capsys)
+    assert code == 0, err
+
+
+def test_check_body_wording_is_the_checkers_own(workspace, scratch, capsys, monkeypatch):
+    """The reasons printed for a refused pair are the lines `groundwork.py check-body` (CI's `body` job) prints."""
+    body = visual_body(scratch)
+    captures(scratch, "after.png")
+    monkeypatch.chdir(scratch)
+    code, err = check_by_hand(workspace, scratch, body, capsys, "./after.png")
+    uploaded = scratch / "uploaded.md"
+    uploaded.write_text(
+        body.read_text(encoding="utf-8").replace("(./after.png)", f"({guards.UPLOAD_STAND_IN})"), encoding="utf-8"
+    )
+    direct = subprocess.run(
+        [
+            sys.executable,
+            str(KIT / ".github" / "scripts" / "groundwork.py"),
+            "check-body",
+            "--body",
+            str(uploaded),
+            "--title",
+            str(scratch / "title.txt"),
+        ],
+        cwd=workspace["kit"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    expected = [line.strip() for line in direct.stderr.splitlines() if line.strip().startswith("- ")]
+    assert code == 1 and direct.returncode == 1 and expected
+    for line in expected:
+        assert line in err
+
+
+def test_the_guard_names_the_check_body_command_with_the_same_attach_files(workspace, scratch):
+    """Failed first: the guard told the agent to run `gds pr check-body <file>` without `--attach`, which refuses the
+    very captures the guard had counted as uploaded."""
+    body = visual_body(scratch)
+    command = f"cd {scratch} && " + KIT_PR.format(
+        verb="create --title 'godot: Add y'", body=body, flags="--attach ./after.png"
+    )
+    reason = denied(shell(command, workspace["kit"]))
+    assert "the 'Before:' capture is missing" in reason
+    assert "gds pr check-body " in reason and " --title <title file> --attach ./after.png`" in reason
+    assert f"run it in {scratch.as_posix()}" in reason
+
+
+@pytest.mark.parametrize(
+    "files, cwd_name",
+    [
+        (["./before.png"], "task"),
+        (["before.png#Before", "after.png"], "task"),
+        (["{d}/after.png"], "elsewhere"),
+        (["https://example.com/x.png"], "task"),
+        ([], "task"),
+    ],
+)
+def test_the_command_and_the_hook_swap_the_same_references(files, cwd_name, scratch):
+    """`gds pr check-body --attach` and the PR-create guard judge one body: their swaps agree (writing-checks.md)."""
+    from gds_tools import pr
+
+    text = visual_body(scratch, before="./before.png", after=f"{scratch}/after.png").read_text(encoding="utf-8")
+    cwd = scratch if cwd_name == "task" else scratch.parent
+    specs = [f.format(d=scratch).split("#", 1)[0] for f in files]
+    assert pr.as_uploaded(text, specs, cwd) == guards.as_uploaded(text, specs, cwd)
+    assert pr.UPLOAD_STAND_IN == guards.UPLOAD_STAND_IN
 
 
 # --- a relative --body-file after a leading cd (kit #213) ------------------------------------------------------------
@@ -589,3 +712,59 @@ def test_a_listed_screenshots_none_line_still_needs_its_reason(line, workspace, 
     args = ["pr", "check-body", str(body), "--title", str(title), "--repo", str(workspace["kit"])]
     code, err = run_gds(args, capsys)
     assert code == 1 and "needs a reason in parentheses" in err
+
+
+# --- Read first: sections from origin/main, as CI reads them (kit #1131) ---------------------------------------------
+
+MAIN_PAGE = "# Hooks\n\n## Docs {#docs}\n\nOn main.\n"
+BRANCH_PAGE = "# New\n\n## Fresh {#fresh}\n\nOnly on the branch.\n"
+
+
+def read_first_branch(workspace: dict[str, Path]) -> Path:
+    """The kit with docs/studio/hooks.md#docs on origin/main and a branch that adds docs/studio/new.md#fresh."""
+    page = workspace["kit"] / "docs" / "studio" / "hooks.md"
+    page.parent.mkdir(parents=True)
+    page.write_text(MAIN_PAGE, encoding="utf-8", newline="\n")
+    return branch_with(workspace["kit"], {"docs/studio/new.md": BRANCH_PAGE})
+
+
+def read_first_body(tmp_path: Path, read_first: str, lessons: str) -> tuple[Path, Path]:
+    """good.txt with its `Read first:` and `Lessons:` lines replaced, and an Add title (no lesson is required)."""
+    text = (BODIES / "good.txt").read_text(encoding="utf-8")
+    text = text.replace("Read first: studio/hooks.md#docs", f"Read first: {read_first}")
+    text = text.replace("Lessons: docs/studio/hooks.md#pr-body", f"Lessons: {lessons}")
+    body, title = tmp_path / "read-first-body.md", tmp_path / "read-first-title.txt"
+    body.write_text(text, encoding="utf-8", newline="\n")
+    title.write_text("tools: Add a section lookup\n", encoding="utf-8", newline="\n")
+    return body, title
+
+
+def test_a_read_first_section_only_the_branch_has_is_refused(workspace, tmp_path, capsys):
+    kit = read_first_branch(workspace)
+    body, title = read_first_body(tmp_path, "studio/new.md#fresh", "studio/new.md#fresh")
+    code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(kit)], capsys)
+    assert code == 1 and "do not exist" in err and "studio/new.md#fresh" in err and "origin/main" in err
+
+
+def test_a_read_first_section_on_main_and_a_lessons_section_the_branch_adds_pass(workspace, tmp_path, capsys):
+    kit = read_first_branch(workspace)
+    body, title = read_first_body(tmp_path, "studio/hooks.md#docs", "studio/new.md#fresh")
+    code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(kit)], capsys)
+    assert code == 0, err
+
+
+def test_a_read_first_section_the_branch_removes_still_counts(workspace, tmp_path, capsys):
+    kit = read_first_branch(workspace)
+    (kit / "docs" / "studio" / "hooks.md").unlink()  # the author read it on main; the branch may move it
+    body, title = read_first_body(tmp_path, "studio/hooks.md#docs", "studio/new.md#fresh")
+    code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(kit)], capsys)
+    assert code == 0, err
+
+
+def test_the_guard_refuses_a_read_first_section_only_the_branch_has(workspace, tmp_path):
+    kit = read_first_branch(workspace)
+    body, _ = read_first_body(tmp_path, "studio/new.md#fresh", "studio/new.md#fresh")
+    command = f'gh pr create --title "tools: Add a section lookup" --body-file {body}'
+    assert "studio/new.md#fresh" in denied(shell(command, kit))
+    ok, _ = read_first_body(tmp_path, "studio/hooks.md#docs", "studio/new.md#fresh")
+    assert denied(shell(f'gh pr create --title "tools: Add a section lookup" --body-file {ok}', kit)) == ""

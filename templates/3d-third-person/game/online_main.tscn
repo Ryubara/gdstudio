@@ -1,0 +1,38 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://online_main.gd" id="1_online"]
+[ext_resource type="PackedScene" path="res://main.tscn" id="2_main"]
+[ext_resource type="Script" path="res://gameplay/net/remote_players.gd" id="3_remote"]
+[ext_resource type="Script" path="res://gameplay/net/net_client.gd" id="4_client"]
+[ext_resource type="PackedScene" path="res://ui/online/online_status.tscn" id="5_status"]
+[ext_resource type="Script" path="res://gameplay/animation_throttle/character_animation_throttle.gd" id="6_throttle"]
+[ext_resource type="Script" path="res://gameplay/net/ai_replica.gd" id="9_ai_replica"]
+
+[node name="OnlineMain" type="Node" node_paths=PackedStringArray("client", "remote_players", "player_rig", "status")]
+script = ExtResource("1_online")
+client = NodePath("NetClient")
+remote_players = NodePath("RemotePlayers")
+player_rig = NodePath("Main/PlayerRig")
+status = NodePath("OnlineStatus")
+
+[node name="Main" parent="." instance=ExtResource("2_main")]
+
+[node name="RemotePlayers" type="Node3D" parent="." node_paths=PackedStringArray("animation_throttle")]
+script = ExtResource("3_remote")
+animation_throttle = NodePath("../PuppetAnimationThrottle")
+
+[node name="PuppetAnimationThrottle" type="Node" parent="."]
+script = ExtResource("6_throttle")
+
+[node name="AiReplica" type="Node3D" parent="."]
+script = ExtResource("9_ai_replica")
+
+[node name="NetClient" type="Node" parent="." node_paths=PackedStringArray("player", "remote_players", "ai_replica", "world_root")]
+script = ExtResource("4_client")
+player = NodePath("../Main/PlayerRig/Player")
+remote_players = NodePath("../RemotePlayers")
+ai_replica = NodePath("../AiReplica")
+world_root = NodePath("../Main/World")
+
+[node name="OnlineStatus" parent="." node_paths=PackedStringArray("client") instance=ExtResource("5_status")]
+client = NodePath("../NetClient")

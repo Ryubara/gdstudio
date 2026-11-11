@@ -348,6 +348,14 @@ an old end within 3.5 m of the target, more than 1 m left to walk). To find it, 
 and its path's first points: a position that moves at full speed and goes nowhere, and a path that changes its second
 point from one second to the next.
 
+- **Approach:** Test the kept route with a target off the mesh within the goal snap's reach of the far edge
+  (`AiRouteRules.OPEN_GROUND`, 0.35 m), a walker with more than 1 m of route left, and an assertion on each route's end
+  (`path_changed`); see it fail with `keeps_route` made false. **Watch out for:** a target deep in a hole flips nothing
+  in the 3D Third Person navigator (`snap_goal` walks back toward the walker, so the near side), and the body keeps its
+  push between steers, so a turn count on `walk_direction` stayed 0 both ways: that test passed without the rule.
+  **Seen:** gdstudio #1093, 2026-11-11 (a 2 m hole, the target within 0.15 m of each edge: 3 far routes in 4 s without
+  the rule, none with it).
+
 ## AI characters: a brain, path queries and a body, apart from drawing (kit #882) {#ai-characters}
 
 <!-- new section: the zombie spike above measured whole animated zombies with Godot Physics; nothing held what the
@@ -396,7 +404,14 @@ frame in brackets, ms):
   defaults are **12** at the Full tier on the web and the rest moved every **4th** tick (below: the real character's
   body costs about twice the spike's capsule). The task layers (#965) cost 2.7 µs a think in Chrome (15 µs at 4x)
   with a typical stack of three tasks, 0.2 µs when empty: 17 µs a tick for 40 characters thinking at 10 Hz
-  ([the table](third-person/ai.md#task-cost)).
+  ([the table](third-person/ai.md#task-cost)). The brain (#968) adds nothing measurable when calm; a fight
+  does: 40 guards against two targets are 2.1 ms a tick in Chrome (0.84 with brains off) and 10.5 ms at 4x, over the
+  budget, mostly the bodies that aim and fire and no longer rest ([the table](third-person/ai-behaviour.md#cost)).
+  Since #1104 those bodies take the lean tick (14 to 25 % off the step) and a web fight is counted apart: **12**
+  fighting guards fit the 1 ms budget, **6** the 5 ms at 4x, more fighting at once are over it in a browser
+  ([the table](third-person/ai-behaviour.md#cost-follow-up)). The AI section's population of 10 (#969: 3 grunts,
+  2 shooters, 2 allies, 3 civilians, in `main.tscn` round the player) is 0.52 ms a tick in Chrome and 2.6 ms at 4x,
+  about 50 µs a character, half of each budget ([the table](third-person/ai-characters.md#cost)).
 
 **The template's real character (#963).** `tools/bench/ai_cost_bench.tscn` (`ai_cost_bench.py` for Chrome) times the
 `AiDirector`'s step (tiers, thinks and every body's `Character.step`: what the budget above holds) for
@@ -492,27 +507,55 @@ frame work, ms; ticks a frame after the slash):
 - What is left in a walking body is the engine's (`move_and_slide` 12 µs of about 25 in Chrome) and the step's
   prologue; the next cut is the frame's other 3 ms or fewer bodies stepped every tick, not the body's script.
 
-**The template's navigator (#967).** `tools/bench/nav_cost_bench.tscn` (`nav_cost_bench.py` for Chrome) times
-every `AiNavigator.navigate()` (the queries on their timer, the steering, the body-ray checks) for characters walking
-to seeded goals, one after another, on a baked 96 m map with 16 boxes (306 polygons), under the director's shipped
-defaults (12 at Full, the rest Reduced and stepped every 4th tick, 4 path queries a tick). Microseconds a character a
-tick (all the navigators' work a tick, over the count; in brackets the director's whole step, bodies included, ms):
+**The template's navigator (#967, #1062).** `tools/bench/nav_cost_bench.tscn` (`nav_cost_bench.py` for Chrome) reads
+the navigators' own work (the queries, the steering, the body-ray checks) for characters walking to seeded goals, one
+after another, on a baked 96 m map with 16 boxes (306 polygons), under the director's shipped defaults (12 at Full,
+the rest Reduced and stepped every 4th tick, 4 path queries a tick). It reads one clock a tick around a loop that steps
+only navigators: with `AiNavigator.holding` on, the director's steps only note each navigator's seconds, and the bench
+steps them all with `AiNavigator.step_held()` at the start of the next tick, before the director. Microseconds a
+character a tick (the loop over the count), Chrome on the fast desktop of the tables above, the range of 3 runs at 1x
+and 2 at 4x on a machine other agents were using; "before" is #967's navigator with the same bench:
 
 | | 50 | 100 | 200 |
 | --- | ---: | ---: | ---: |
-| Desktop, native | 1.2 (0.46) | 1.1 (0.85) | 1.1 (1.83) |
-| Chrome | 11.2 (1.84) | 8.4 (2.90) | 6.4 (5.22) |
-| Chrome 4x | 65 (11.3) | 46 (17.0) | 37 (31.5) |
+| Desktop, native (the editor's debug build), before | 8.9 to 9.4 | 7.3 to 8.0 | 6.7 to 7.9 |
+| Desktop, native, after | 1.6 to 2.3 | 2.0 to 2.4 | 2.1 to 2.8 |
+| Chrome, before | 8.8 to 10.5 | 6.7 to 7.3 | 4.4 to 5.3 |
+| Chrome, after | **2.8 to 3.8** (3.2) | 2.2 to 3.1 | 2.0 to 2.1 |
+| Chrome 4x, before | 53 to 63 | 46 to 48 | 35 to 38 |
+| Chrome 4x, after | 15 to 18 | 14 to 15 | 13 |
 
-- The path budget holds: never more than 4 queries a tick (3.1 on average at 50, 4.0 from 100 on), and each
-  character asks 3.7 times a second at 50 against `repath_seconds`' limit of 4; at 100 and 200 the budget, not the
-  timer, sets the rate (2.4 and 1.2 a second), so a crowd past about 60 walkers repaths less often than 0.25 s.
-- In Chrome the navigation is about 10 times its native cost, against the spike's 1.5: a query on this mesh is about
-  45 µs there (one every 0.25 s per character is a quarter of the navigators' work at 50), a walk step 2 µs in a
-  tight loop but 10 to 13 µs read one navigator at a time. The browser's clock is coarse (100 µs in Chrome without
-  cross-origin isolation), so the per-navigator sum is the less sure figure; the director's step around it, read
-  once a tick, rose by about 0.6 ms at 50 walkers against the AI bench's walking crowd. Above the spike's 3.5 µs:
-  kit #1062 follows it.
+- **Where the time went.** Timed natively one navigator step at a time, sorted by what the step did (a throwaway
+  probe; Chrome's parts measured in tight loops were only 1.2 to 1.5 times the native ones, so the native split
+  holds): a step that queried cost 46 µs (the query on this mesh 12 to 18 µs, the goal and route rules, the check's
+  rays and the headroom probe's two around it) and came 3.1 times a tick at 50; a step that steered cost 10 µs and
+  came 12.5 times a tick (a Full character every 3rd tick at `steer_seconds` 0.05 s, a Reduced one at every step); a
+  step that only kept the push cost 3 µs. Queries were 45 % of the work, steers 40 %.
+- **What changed.** A slot asks only when the answer can differ (a new goal, a map whose iteration moved, a body 1 m
+  off its stretch, a followed target that moved 0.5 m, a blocked path, a stuck rung, or `refresh_seconds`, 4 s): 3.1
+  queries a tick at 50 became 0.15 to 0.22, almost all of them new goals. A steer holds until the body may reach the
+  next point (0.05 to 0.5 s): 4 to 5 steers a second a walker on average instead of 15 (3.7 steers a tick at 50
+  against 12.5). A step that only keeps the push reads no map and calls nothing (1 µs native), and the path's ground
+  distances are written out rather than calls to `flat()`, which cost more than the sum in GDScript.
+- **The clock was not the fault.** The per-navigator sum #967 read (one `Time.get_ticks_usec()` pair a navigator,
+  with Chrome's clock coarse to 100 µs) gave 12.3 µs at 50 where the loop read once a tick gave 11.7 on the same
+  build: the sum of coarse reads is unbiased over thousands of steps. #967's table measured something else: its
+  bench waited for a closest point above -1, which an empty map answers at once, so its map never took the mesh, every
+  goal failed with "no open ground near the goal" and no character walked
+  ([navigation in tests](navigation-in-tests.md#a-small-mesh-of-your-own)). The bench now waits for its region's RID
+  and reports the share of the time the crowd walked (0.99 to 1.0), its arrivals and failures, and a calibration loop.
+- The 50-walker figure moves with how many arrive in the window (each arrival is a new goal: a query, the goal rules,
+  the check's rays): 2.8 with 5 arrivals, 3.8 with 11. At 100 and 200 the budget of 4 a tick is no longer what limits
+  the queries (0.4 and 0.9 a tick).
+- The native rows run the pinned editor binary, whose GDScript is the debug build: its calibration loop read 12 ms
+  against 9 ms in Chrome's release export, so "native" is no faster than the browser here and the browser rows are
+  the ones the budget holds.
+
+- **Approach:** Make a cost bench report what its crowd did beside the cost (the share of the time walking, arrivals,
+  failures) and check it before reading the cost. **Watch out for:** #967's navigator bench never had a mesh: a
+  crowd whose every goal fails costs a query and the goal rules a step and nothing else, and its table (1.1 µs native,
+  11.2 in Chrome) stood for a navigator that never walked, until #1062 found it with a profile whose paths held no
+  points. **Seen:** gdstudio #1062, 2026-11-11 (the bench reports `walking_share`, `arrivals`, `failures`).
 
 - **Approach:** Time a part that runs many times a tick in the browser in a tight loop of thousands of calls as well
   as one call at a time, and look for engine calls (a shape query, a physics test) in what runs every step.
@@ -529,7 +572,8 @@ tick (all the navigators' work a tick, over the count; in brackets the director'
   with the crowd itself as the candidates. **Watch out for:** the senses' first look asked every AI character its
   distance on every think (262 µs a think at 200 where 4 players were all it cared about), and every ally passed every
   telling on, so 40 grunts that saw the same players made thousands of tellings. **Seen:** gdstudio #966, 2026-11-10
-  (fix: `AiSensePool`, and a listener that knew already passes nothing on; [the cost](third-person/ai-senses.md#cost)).
+  (fix: `AiSensePool`, and a listener that knew already passes nothing on; [the cost](third-person/ai-senses.md#cost));
+  gdstudio #1204, 2026-11-11 (the noise board by faction: [the think](third-person/ai-behaviour.md#cost-think)).
 - **Approach:** Measure the cost of the real character before taking the spike's caps, and set the template's defaults
   from that table. **Watch out for:** the spike's 20 at the Full tier came from a 22 to 26 µs capsule; the template's
   character is about 50 µs in Chrome walking, and 40 walkers with 20 at Full missed the 1 ms and 5 ms budgets by about

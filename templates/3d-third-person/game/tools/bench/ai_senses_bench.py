@@ -1,9 +1,9 @@
 """What the AI senses cost in the web build: runs `tools/bench/ai_senses_bench.tscn` in headless Chrome.
 
-Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
-the preset's exclude filter), waits for `window.__ai_senses_bench`, and prints the senses' think (mean, p50, p99 in
-microseconds), their total a tick, thinks and rays a second for 40 and 200 characters with 4 targets, then the
-director's step and the frame work of 40 walking characters with the senses off and on. The optional second argument
+Serves a web export of the bench (`gds template bench-web 3d-third-person ai_senses_bench` makes it: kit
+docs/engines/godot/web-probes.md#bench-web), waits for `window.__ai_senses_bench`, and prints the senses' think (mean,
+p50, p99 in microseconds), their total a tick, thinks and rays a second for 40 and 200 characters with 4 targets, then
+the director's step and the frame work of 40 walking characters with the senses off and on. The optional second argument
 is a CPU throttle (4 is the weak-machine stand-in).
 
     uv run --project <kit>/python gds quiet --         uv run --with playwright==1.64.1 python tools/bench/ai_senses_bench.py build/web 4

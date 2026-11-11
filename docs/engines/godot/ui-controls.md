@@ -142,9 +142,10 @@ size (0.8 to 1.25) and the phone rule change the height, so the sizes to sweep a
 
 - **Bound the area, scroll the rest.** `UIFitScroll` (`gds_ui`) is a `UIScroll` that asks for its content's height and
   no more than the screen leaves (`limit`, `margin`, `card`, and `steady` to keep a height between short pages); the
-  title and the buttons around it stay on the screen. A tab's column goes in a scroll area the size of its panel
-  (`MenuPanel.hold`). A part that must not scroll (the wardrobe's picker list) takes the height its tab leaves
-  (`size_flags_vertical` expand, a minimum of 0), never a fixed `custom_minimum_size.y`.
+  title and the buttons around it stay on the screen. It fits again when the viewport, its content or its `limit`
+  changes size (a `MenuFit` turned to the phone factor resizes the limit only). A tab's column goes in a scroll area
+  the size of its panel (`MenuPanel.hold`). A part that must not scroll (the wardrobe's picker list) takes the height
+  its tab leaves (`size_flags_vertical` expand, a minimum of 0), never a fixed `custom_minimum_size.y`.
 - **A scroll area takes width too.** The theme gives every `ScrollContainer` `hover_room` at each side and the bar a
   track: content that was exactly the panel's width is 54 units wider than its panel once it sits in one. Extend the
   area past the panel by that room (`offset_left`, `offset_right`) or build the rows narrower by `UIScroll.side_room`;
@@ -173,6 +174,11 @@ size (0.8 to 1.25) and the phone rule change the height, so the sizes to sweep a
   centred cards that grew with their content and nothing bounded or scrolled them (the Loadout ran 47 units under the
   footer), and layout tests built screens outside the theme, so text measured too small. **Seen:** Deadnight #980,
   2026-11-04 (fix: the sweep).
+- **Approach:** Put a row added to a card that is bounded by a `UIFitScroll` inside the scroll's content, unless the card
+  has room for it at the phone factor, and open the card at 844 x 390 with the phone layout before the push. **Watch
+  out for:** the inventory's hotbar row went above the bag's scroll, which already sat at its `least` on a phone, so the
+  card grew 128 units past the screen; only a test from another pull request merged in later caught it. **Seen:**
+  gdstudio #1148, 2026-11-11 (fix: the hotbar and bag captions moved into the scroll's `Lists` column).
 
 ## Touch controls {#touch-controls}
 
@@ -188,7 +194,9 @@ part to its `touch_region` while the touch layer shows ([the template HUD](ui-la
 `refresh` must not need the tree: `global_transform` of a node not yet inside it is an error and an identity.
 
 A control for a verb the HUD already shows is a place of the HUD, not a button of the layer: the layer asks the HUD where
-its places are (`TouchControls.zones`) and presses the action of the first that holds the finger, so the order of the
+its places are (in the template, `TouchControls.add_zone_source(hud)` and `Hud.touch_zones()`, `{rect, action}` boxes
+in canvas pixels, the weapon slots' and the hotbar's) and presses the action of the first that holds the finger, before
+any button, so the order of the
 list is the rule (put the narrowest place first). Measure a place against every neighbour that stands at a share of the
 screen or reads a column's height (the stick's resting ring, the challenge card, the markers) with the touch layout on,
 before building it: a fingertip-high part in a card column makes the column a fingertip taller. A word in a
@@ -211,7 +219,7 @@ setting up its children. A test that names
   for:** the first version drew everything in `_draw` of an empty `CanvasLayer` (nothing in the scene, slots hidden in an
   angle table); a `@tool` script must not touch `Input` or `DisplayServer` at edit time; the saved sizes must equal what
   the script computes or every open dirties the scene. The 18 finger tests passed unchanged.
-  **Seen:** gdstudio #831, 2026-11-08 ([checklist](new-game.md#template-checklist)).
+  **Seen:** gdstudio #831, 2026-11-08 ([checklist](template-checklist.md#template-checklist)).
 - **Approach:** Start a new device's controls from the reusable `TouchControls` of the 3D Blank template (a floating
   stick, a look drag, buttons that press the game's actions; the settings are exports) and prove it as the template did:
   GdUnit4 with two fingers, a drag whose `relative` is wrong and mouse motion, then the web export in a phone-sized

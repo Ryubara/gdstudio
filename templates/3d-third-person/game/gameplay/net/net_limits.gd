@@ -24,11 +24,22 @@ const PING_RATE := 2
 const MAX_EVENTS := 32
 ## Networked world parts (doors, platforms, pickups, targets, props) one map may have.
 const MAX_ENTITIES := 128
-## The longest state one world part writes (an `entity` event, a WELCOME row), bytes.
-const MAX_ENTITY_STATE := 8
+## The longest state one world part writes (an `entity` event, a WELCOME row, a TICK's streamed
+## row), bytes: a pushed prop's is 11 (`PropState`).
+const MAX_ENTITY_STATE := 12
+## Streamed parts (moving props) one TICK carries; more take turns, each in every other TICK or so.
+## 8 keeps ten seconds of the longest TICKs inside `BUFFER_SIZE`.
+const MAX_STREAMED_PARTS := 8
 ## Bytes a socket buffers each way, the one size the transport reads (`WebSocketLink` inbound,
-## `WsListener` outbound): 256 KB holds a 5 s frozen tab of a 35 KB/s stream (175 KB) and ten
-## seconds of the longest TICKs at the snapshot rate; the engine's 64 KB lost packets there.
-const BUFFER_SIZE := 1 << 18
+## `WsListener` outbound): 1 MB holds ten seconds of the longest TICKs without AI and five of a
+## full AI snapshot of the desktop population every TICK (gdstudio #970); 256 KB held a 5 s frozen
+## tab of a 35 KB/s stream before the AI rode the TICK, and the engine's 64 KB lost packets there.
+const BUFFER_SIZE := 1 << 20
 ## Seconds of a stall the per-connection command budget takes in one burst (`PeerLimits`).
 const STALL_SECONDS := 4
+## AI characters one TICK carries (`AiSnapshot`): a full snapshot of the whole population within
+## a peer's interest radius fits, past the desktop cap (`AiDirector.desktop_cap`, 120).
+const MAX_AI_ROWS := 256
+## The highest id an AI character may have on the wire (u16 below `NetHits.AI_BASE`'s range end):
+## a HIT names an AI as `NetHits.AI_BASE + id`.
+const MAX_AI_ID := 0x7DFF

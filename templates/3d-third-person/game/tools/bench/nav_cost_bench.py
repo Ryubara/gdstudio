@@ -1,12 +1,14 @@
-"""What AI characters cost in the web build: runs `tools/bench/ai_cost_bench.tscn` in headless Chrome.
+"""What the AI navigator costs in the web build: runs `tools/bench/nav_cost_bench.tscn` in headless Chrome.
 
-Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
-the preset's exclude filter), waits for `window.__nav_cost_bench`, and prints, for 1 to 120 characters standing and
-walking, the `AiDirector`'s step a physics tick (mean, 95th percentile, per character), the median frame work and the
-count at each tier. The optional second argument is a CPU throttle (4 is the weak-machine stand-in).
+Serves a web export of the bench (`gds template bench-web 3d-third-person nav_cost_bench` makes it: kit
+docs/engines/godot/web-probes.md#bench-web), waits for `window.__nav_cost_bench`, and prints, for 50, 100 and 200
+walkers, the navigators' work a physics tick (one clock read around a loop that steps only navigators: the mean a tick
+and per character), the calibration loop, the director's step without them, the path queries against the budget and the
+timer, the tiers, and how much of the time the crowd walked. The optional second argument is a CPU throttle (4 is the
+weak-machine stand-in). Run it under `gds quiet`:
 
     uv run --project <kit>/python gds quiet -- \
-        uv run --with playwright==1.64.1 python tools/bench/ai_cost_bench.py build/web 4
+        uv run --with playwright==1.64.1 python tools/bench/nav_cost_bench.py build/web 4
 
 Exits 1 when the bench did not finish or the page logged an error.
 """
@@ -62,11 +64,13 @@ def main() -> int:
         print(f"throttle {throttle:g}x, {result['frames']} frames")
         for row in result["rows"]:
             print(
-                f"{row['characters']:>3} nav {row['nav_mean_us']:>7.1f} us a tick, {row['nav_us_each']:>5.2f} us each;"
+                f"{row['characters']:>3} nav {row['nav_mean_us']:>7.1f} us a tick, {row['nav_us_each']:>5.2f} us each"
+                f"; calibration {row['calibration_ms']:.1f} ms;"
                 f" director step {row['step_mean_us']:>8.1f} us; queries a tick {row['queries_mean_a_tick']:.2f}"
                 f" (most {row['queries_most_a_tick']} of {row['paths_per_tick']}); each"
                 f" {row['queries_each_a_second']:.2f}/s (limit {row['repath_limit_a_second']:g});"
-                f" tiers {row['full']}/{row['reduced']}/{row['dormant']}"
+                f" tiers {row['full']}/{row['reduced']}/{row['dormant']};"
+                f" walking {row['walking_share']:.2f}, arrived {row['arrivals']}, failed {row['failures']}"
             )
     for line in failed:
         print("FAIL", line)

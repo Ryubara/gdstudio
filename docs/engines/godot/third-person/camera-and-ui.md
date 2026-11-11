@@ -92,13 +92,30 @@ on a `HudStat` the Data (`source`, `value_property`, `max_property`, `extra_prop
 (`title`, `show_title`, `show_bar`, the three formats, `low_share`, `low_color`) and Parts groups; on `ItemCounter` the
 `separator`. The ammo part reads the weapon's `ammo`, `magazine_size` and, as its `extra_property`, `reserve`, shown
 `magazine | reserve` (`extra_format`), and hides for the fists, whose definition has no magazine ([Ammo, reloading and
-switching](shooting.md#weapons)); the player has no health yet, so that part stays hidden until the hit zones (#876)
-make `health`/`max_health` exist, and `tools/capture/hud_tour.tscn` shows it fed by a stand-in.
+switching](shooting.md#weapons)); the health part reads the character's `health` and `max_health`, which come from
+its `Health` child (since #876, a component since #925), and stays hidden on a character without one;
+`tools/capture/hud_tour.tscn` can still feed it from a stand-in.
 
 Cost, measured in Compatibility on Windows (an RTX 5080, vsync off, 150 frames after 150 of warm-up): the game with the
 HUD hidden draws 109 calls at 0.48 ms CPU and 0.27 ms GPU, and with the coin counter, health, ammo and the crosshair all
 showing it draws 118 calls at 0.54 ms and 0.29 ms (about 9 calls, 0.05 ms CPU, 0.015 ms GPU). The HUD is local: nothing
 in it is sent over a network.
+
+**The weapon slots and the hotbar** (gdstudio #1148) are two rows of `HudSlot` places (`hud_slot.tscn`: `IconMargin/Icon`,
+`Key`, `Count`), made by their row from `cell_scene` because their number is a setting (the editor shows them, a `@tool`
+script): `HudWeaponSlots` (`hud_weapon_slots.tscn`, under the ammo card) shows the first `place_count` weapons of the
+loadout's round with the one in hand (or asked for) lit, and `HudHotbar` (`hud_hotbar.tscn`, bottom middle) shows the
+player's `Hotbar` ([The hotbar](../inventory.md#hotbar)). A place shows the first key of its action (`weapon_1`,
+`hotbar_1`: a rebound key shows the new one), an empty place its key alone. The look is the theme's variations
+`HudSlot`, `HudSlotLit`, `HudSlotEmpty` (with an `icon_color` each), `HudSlotKey` and `HudSlotKeyLit`. On a touch screen
+each place is a place a finger presses (`touch_zones()`, through `Hud.touch_zones()` to the touch layer), and every
+place is at least 44 CSS pixels (84 units: the HUD's phone scale makes them 45 on an 844 x 390 and a 667 x 375 page).
+In the inspector: on both rows Keys (`action_format`, `first_key_number`), Parts (`row`, `cell_scene`) and Phone
+(`touch_region`: the slots `BottomLeft`, the hotbar `TopLeft`); `HudWeaponSlots` Places (`place_count` 2);
+`HudHotbar` Look (`flash_time` 0.3 s, `flash_scale` 1.15) and Places (`editor_places` 4, the editor's count; the game's
+is the `Hotbar`'s); on `HudSlot` Look (`panel_variations`, `key_variation`, `key_variation_lit`, `spent_alpha` 0.35) and
+Parts. Cost, measured as above on the same machine (1920 x 1080, 150 frames): the six places add about 24 draw calls
+(285 against 261 with them hidden) and 0.04 ms of CPU; the GPU time did not move past its noise.
 
 - **Approach:** Give a part its player in one place: `Hud.player` points every part that has none (or had the old one)
   at the rig's `Player`, and a part given its own `player` keeps it. **Watch out for:** a first version bound every part

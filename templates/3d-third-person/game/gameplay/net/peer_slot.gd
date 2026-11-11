@@ -55,6 +55,13 @@ var leaving := false
 var events: Array[NetEvent] = []
 ## A TICK to this client was refused since the last stats line (its socket was full).
 var stalled := false
+## TICKs to this client that still carry every prop's row in turn, not only those that moved: a
+## TICK was refused (a prop that fell asleep in it would stay where it was drawn).
+var stream_all := 0
+## What this client holds of the AI characters (`AiSnapshot.encode` keeps it).
+var ai_view := AiPeerView.new()
+## The client runs in a browser (its HELLO's `NetWire.F_WEB`): the match's AI cap is the browser's.
+var web := false
 ## When on, every step appends the `seq` it applied, or `HELD`, `REPEATED`, `STOOD` or `IDLE` (a
 ## test replays the same steps offline).
 var keep_history := false

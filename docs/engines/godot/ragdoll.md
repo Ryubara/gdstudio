@@ -14,7 +14,10 @@ Godot 4.7.2, Godot Physics and Jolt, on both mannequins.
 
 A ragdoll is a `PhysicalBoneSimulator3D` under the `Skeleton3D` with one `PhysicalBone3D` per bone that moves. The
 simulator is the only node that needs to exist while the character lives: with `active` off it costs nothing, and
-`physical_bones_start_simulation()` hands the skeleton to the bodies.
+`physical_bones_start_simulation()` hands the skeleton to the bodies. A bone that has never simulated keeps the
+collision layer it was made with in the physics server (the engine zeroes it only when a bone stops), so it sits in
+the world as a static body: zero the layer and mask of every bone not simulating
+([Shots meet ragdoll bones](physics-layers.md#shots-meet-bones), gdstudio #876).
 
 - **Approach:** Make every bone's `joint_offset` first, then put every body where its joint is to rest (a cone's centre,
   the middle of a hinge's range) in global space, and set the `joint_type` last, bone by bone. **Watch out for:** in
@@ -163,6 +166,41 @@ the joints. That is physics, and not what a death looks like.
   would do it too. **Seen:** gdstudio #872, 2026-11-10 (`test_ragdoll_natural.gd`: a hand or foot moves 0.2 m
   against the pelvis within 0.23 s of a death at the top of a jump).
 
+## Drawing between ticks {#drawing}
+
+<!-- new section: the ragdoll's sections covered the bodies and their joints; nothing said how its skin is drawn on a
+screen faster than the physics, which physics interpolation does not do for it -->
+
+With `physics/common/physics_interpolation` on, every `PhysicalBone3D` node is drawn between the last two ticks like
+any body (`get_global_transform_interpolated()` glides), but the skin is not: the `PhysicalBoneSimulator3D` writes each
+bone's pose once a tick (`PhysicalBone3D::_body_state_changed` sets the bone to the body's tick transform), and the
+skin follows the bones. At 144 frames a second over 60 ticks a moving body holds for two or three frames and jumps
+while the camera, a pusher and the bodies themselves glide: the judder of an un-blended camera, on the body instead.
+
+- **What draws it.** `RagdollDrawing`, a `SkeletonModifier3D` the `CharacterRagdoll` puts on the skeleton right after
+  its simulator, sets every simulated bone to `skeleton_drawn⁻¹ × body.get_global_transform_interpolated() ×
+  body_offset⁻¹` (the skeleton's own interpolated transform, so a flinch on a running body is right too); under an
+  `influence` below 1 (the get-up fade, a flinch) it moves the simulator's pose by that share of the way from the
+  tick's body to the drawn one. It is off while nothing is simulated and while the pelvis sleeps (Jolt sleeps and wakes
+  a jointed body as one island), so a body lying still costs one check a tick. `draw_between_ticks` on the Ragdoll
+  node turns it off.
+- **Bodies placed by hand.** Every bone whose transform a script sets before it is simulated (the start pose, a flinch
+  set, a body kept lying through a rebuild) calls `reset_physics_interpolation()`, or it is drawn sliding in from where
+  it was parked or held.
+- **Proof.** `test_ragdoll_drawing.gd` runs `main.tscn` at 25 ticks a second under the suite's 60 frames (2.4 frames
+  a tick, as 144 over 60) and lets the map's moving block push the body; a modifier last on the skeleton
+  (`DrawnPoseProbe`) reads the drawn pose each frame. The scene runner sets the project's tick rate when it is made:
+  set the test's rate after `scene_runner()`. `tools/capture/ragdoll_push.tscn` is the clip; `tools/bench/
+  ragdoll_drawing_bench` the cost.
+
+- **Approach:** Draw a ragdoll's skin from the bodies' interpolated transforms (a modifier after the simulator), and
+  measure it at 144 frames over 60 ticks against the camera, the pusher and the body nodes, one column each. **Watch
+  out for:** physics interpolation glides the `PhysicalBone3D` nodes and not the bones they write, so a body pushed
+  along by the moving block read a sawtooth on screen, 13.2 px RMS second difference at 1280 by 720 (peak 18.9) while
+  the body nodes read 0.10, the block 0.13 and the camera was smooth; the drawing took the skin to 0.12 px, and the
+  same push read 7.3 cm between skin and body on `main` against 0.0 with it. **Seen:** gdstudio #1126, 2026-11-11
+  (found by the maintainer playing; the probe's frame-by-frame table is in the pull request).
+
 ## What a ragdoll costs {#cost}
 
 <!-- new section: the template targets the web, and nothing said what a ragdoll costs there or how to bound it -->
@@ -212,6 +250,13 @@ desktop and in a single-threaded web export (Chromium, SwiftShader; the browser 
   of a browser's first death in a run is that death's own first-time work, not the bones. **Seen:** gdstudio #1022,
   2026-11-10 (`parts_cost_bench.tscn`, `test_ragdoll_pool.gd`).
 
+- **Approach:** Count the drawing between ticks per frame, not per tick ([Drawing between ticks](#drawing)): it runs
+  each drawn frame while a body moves and stops when the pelvis sleeps. **Watch out for:** a frame rate over the tick
+  rate multiplies a per-frame cost: 4 falling ragdolls cost 9 to 10 µs a ragdoll a frame on the desktop (p95 11 to
+  13) and 14 to 16 in Chrome (p95 25 to 50, the browser's 0.1 ms clock), 138 at a 4x CPU throttle, with a check of
+  1.4 to 1.8 µs (web 4 to 5) a ragdoll a tick; under a tenth of the limp body's own physics. **Seen:** gdstudio
+  #1126, 2026-11-11 (`tools/bench/ragdoll_drawing_bench`).
+
 ## Ragdoll in 3D Third Person {#template}
 
 <!-- new section: the template page reached its 50 KB limit, so the template's ragdoll moved here, beside the engine -->
@@ -245,8 +290,9 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   `angular_damp`, `friction`, `bounce`; Editor: `editor_preview` (the bones shown in the editor, on); Death and
   getting up:
   `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and `relax_time` (the limbs let
-  drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost: `max_active` (4 limp at once in the game), `settle_time` (8 s,
-  then `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer`
+  drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost: `draw_between_ticks` (the skin drawn between physics
+  ticks, on, [why](#drawing)), `max_active` (4 limp at once in the game), `settle_time` (8 s, then `settled` and the
+  cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer`
   (`PhysicsLayers.RAGDOLL`, the ragdoll's own, layer 5) and `collision_mask` (`RAGDOLL_MASK`: the level, props and its
   own layer, so limbs rest on the floor, a crate, the body and each other, never on the bone they hang from; no player
   capsule, camera wall, ground probe or trigger area sees a bone, and a shot does: it stops at the bone, pushes it and

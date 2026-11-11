@@ -12,7 +12,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from gds_tools import fetch, integrations
+from gds_tools import fetch, hold_switch, integrations
 from gds_tools.manifest import ManifestError, Tool, load_mcp, load_tools, load_workspace, platform_key, resolve_fetch
 
 #: A file at the workspace root that marks it, so every tool finds the workspace from any folder inside it.
@@ -153,7 +153,8 @@ def check_services(root: Path) -> list[Check]:
 
 
 def write_local_config(root: Path, tools: dict[str, Tool], key: str) -> Path:
-    """Write gdstudio.local.toml with the path of every installed tool's program; returns its path."""
+    """Write gdstudio.local.toml with the path of every installed tool's program, keeping its `[hold]` table (the
+    maintainer's switch, docs/studio/hooks.md#hold) as written; returns its path."""
     lines = [
         "# Written by `gds workspace init`; machine-specific, never committed. Rerun init to refresh it.",
         f'platform = "{key}"',
@@ -168,6 +169,9 @@ def write_local_config(root: Path, tools: dict[str, Tool], key: str) -> Path:
         if exe.exists():
             lines.append(f"{tool.name.replace('-', '_')} = {_toml_string(exe.as_posix())}")
     path = root / LOCAL_FILE
+    kept = hold_switch.section_text(path.read_text(encoding="utf-8")) if path.exists() else ""
+    if kept:  # the maintainer's hold switch survives a refresh as written: init never turns it on or off
+        lines += ["", kept]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
 
@@ -258,12 +262,9 @@ def init(
 
     if not dry_run:
         log(f"write   {write_local_config(root, tools, key).name}")
-        addons = [t for t in tools.values() if t.kind == "godot-addon" and (root / "tools" / t.folder).exists()]
-        for project in integrations.game_projects(root / "repos"):
-            for tool in addons:
-                integrations.install_godot_addon(
-                    root / "tools" / tool.folder, tool.extra["addon"], tool.extra["source"], project, log
-                )
+        integrations.install_pinned_addons(
+            tools.values(), root / "tools", integrations.game_projects(root / "repos"), log
+        )
         if mcp:
             folders = {t.name: t.folder for t in tools.values()}
             servers = {

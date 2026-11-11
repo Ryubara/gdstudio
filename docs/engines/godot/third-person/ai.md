@@ -5,9 +5,11 @@
 
 The base every enemy, friendly and civilian is made from, the resource that says what kind it is, and the one node that
 budgets them all (kit #963; the design is the research for #882, the costs [Crowds: AI
-characters](../crowds.md#ai-characters)). Relationships (#964) are [below](#relations), tasks (#965)
-[below](#tasks), the navigator (#967) [below](#navigator), senses, awareness and memory (#966) on [AI
-senses](ai-senses.md); reactions come in #968 to #971, each into a slot this base leaves for it.
+characters](../crowds.md#ai-characters)). Relationships (#964) are on [their own page](ai-relations.md#relations), tasks
+(#965) [below](#tasks), the navigator (#967) [below](#navigator), senses, awareness and memory (#966) on [AI
+senses](ai-senses.md), reactions (#968) on [AI behaviour](ai-behaviour.md), the level's enemies, friendlies and their
+spawner (#969) on [their own page](ai-characters.md#parts); #970 and #971 follow, each into a slot this base leaves for
+it.
 
 ## What is in it {#base}
 
@@ -20,8 +22,9 @@ senses](ai-senses.md); reactions come in #968 to #971, each into a slot this bas
 | `AiAnimationThrottle` | `gameplay/ai/ai_animation_throttle.gd`, the `AnimationThrottle` child of the `AiDirector` in `world/world.tscn` (the director's `animation_throttle`) | Moves each managed character's `AnimationTree` on less often where nobody would see it (far, out of view, Dormant), with the footsteps only near the camera: [The animation throttle](#animation-throttle). |
 | `AiBudget` | `gameplay/ai/ai_budget.gd` | Rays, path queries and thinks all characters together may spend in one physics tick; `take_ray()`, `take_path()`, `take_think()` refuse the one over the count. |
 | `AiSituation` | `gameplay/ai/ai_situation.gd` | Unaware, Suspicious, Alert, Engaged, Fleeing, Dead: rising is at once, calming down or turning sideways waits `situation_dwell`, awareness crosses its lines with `awareness_hysteresis`, death is at once and only `revive()` leaves it. |
-| Relationships | `gameplay/ai/relations/`: `AiRelations`, `AiFaction`, `AiRelationEvent`, `ai_relations.tres`, `AiFactions` (a node of `world/world.tscn`), `AiFactionMember` (a child of `ai_character.tscn` and `player.tscn`) | Who is hostile to whom and how it changes (kit #964): [Factions and relationships](#relations). |
+| Relationships | `gameplay/ai/relations/`: `AiRelations`, `AiFaction`, `AiRelationEvent`, `ai_relations.tres`, `AiFactions` (a node of `world/world.tscn`), `AiFactionMember` (a child of `ai_character.tscn` and `player.tscn`) | Who is hostile to whom and how it changes (kit #964): [Factions and relationships](ai-relations.md#relations). |
 | Senses | `gameplay/ai/senses/`: `AiSenses` (the `Senses` child of `ai_character.tscn`, its `senses` slot) with its `AiSensesView`, `AiBeliefs` and `AiBelief`, `AiSensePool`, the level's `AiNoise` board (a node of `world/world.tscn`) with `AiNoiseRecord`, and the `AiNoiseMaker` of `character.tscn` | What a character can know (kit #966): sight, hearing, touch and tellings turned into beliefs the brain reads instead of the world, on the think tick and the shared ray budget: [AI senses](ai-senses.md). |
+| Behaviour | `gameplay/ai/behaviour/` (`AiBrain`, the `Brain` child of `ai_character.tscn`, its `brain` slot; `AiBehaviourSet` and `sets/*.tres`), `tasks/stock/`, `ai_guard.tscn`, `ai_ally.tscn`, `ai_civilian.tscn` | What a character does (kit #968): events routed through a table into stock tasks, play states: [AI behaviour](ai-behaviour.md). |
 | Debug overlay | the `DebugLabel` (`Label3D`) of `ai_character.tscn` | The profile's name, the situation and the tier above the head, with `debug` on (off by default; written only on a change or a think while on). |
 
 The director lives in `world.tscn`, not `main.tscn`: the main scene holds only instances and wires
@@ -34,7 +37,8 @@ finds it through the group; a character with no director steps itself and never 
 - **`AiCharacter`** (group AI): `profile` (the grunt in `ai_character.tscn`), `debug`, `debug_label`; group Slots:
   `navigator` (the `Navigator` node, an `AiNavigator`, [below](#navigator)), `senses` (the `Senses` node of
   `ai_character.tscn`, [AI senses](ai-senses.md#inspector)), `task_runner` (the `AiTasks` node of
-  `ai_character.tscn`, [Tasks](#tasks)). Everything `Character` has (tuning, weapon, ragdoll) is there too.
+  `ai_character.tscn`, [Tasks](#tasks)), `brain` (the `Brain` node, [AI behaviour](ai-behaviour.md#inspector)).
+  Everything `Character` has (tuning, weapon, ragdoll) is there too.
 - **`AiProfile`**: `display_name`; Movement `walk_speed` 1.6 m/s, `run_speed` 4.5 m/s, `turn_rate` 360 °/s,
   `acceleration` 12 m/s²; Senses `sight_range` 24 m, `lose_sight_range` 32 m, `half_angle` 55°, `near_radius` 2 m,
   `hearing_range` 30 m, `time_to_notice` 0.6 s, `reaction_time` 0.35 s (never under 0.2), `memory_seconds` 6,
@@ -46,7 +50,7 @@ finds it through the group; a character with no director steps itself and never 
   25 m, `reduced_range` 70 m, `tier_margin` 4 m, `max_rays_per_think` 2, `repath_seconds` 0.25 s. The three files
   change only what makes the kind: the grunt (faction `enemy`, `accuracy` 0.4), the ally (`ally`, 0.6, `obeys_orders`
   0.9), the civilian (`civilian`, `engage_range` 0, `flee_below_health` 1, `courage` 0.1); the faction names are rows
-  of the relationships table ([Factions and relationships](#relations)). Tasks (#965): `under_attack`
+  of the relationships table ([Factions and relationships](ai-relations.md#relations)). Tasks (#965): `under_attack`
   FINISH_THEN_REACT, `task_hard_timeout` 30 s, `failure_budget` 3, `failure_window` 10 s, `fallback_seconds` 5 s,
   `commit_seconds` 0.5 s.
 - **`AiTasks`** (a child of the character): Tasks `default_task`, `routine`, `attack_task`, `needs`; Debug `label`
@@ -86,94 +90,8 @@ finds it through the group; a character with no director steps itself and never 
 
 ## The navigator {#navigator}
 
-<!-- new section: the navigator (kit #967) is the first part in a slot; nothing said how it moves the body, what it
-     spends or how it gets unstuck -->
-
-`AiNavigator` (`gameplay/ai/navigation/ai_navigator.gd`, the `Navigator` node of `ai_character.tscn`) moves its
-character along the navigation map by writing the controller's movement channel and the moves on the way (`jump`,
-`crouch`, `sprint`, added to `AiController`): the body walks, climbs steps with its step climber, crouches, slides,
-vaults a `Vaultable` and jumps a gap with its own moves, and nobody is moved by hand. `AiCharacter.before_step()`
-calls it before every step of the body with the time since the last one (the director's missed ticks included), so a
-far character stepped every 4th tick walks the same path.
-
-| Part | File (`gameplay/ai/navigation/`) | What it does |
-| --- | --- | --- |
-| `AiNavigator` | `ai_navigator.gd` | `go_to(point, speed)`, `follow(node, band, speed)`, `stop()`, `is_arrived()`, `path`; signals `arrived`, `failed(reason)` (`NO_PATH`, `UNREACHABLE`, `STUCK`, `BLOCKED`), `link_reached(link, from, to)`, `stranded(gap)`, `path_changed`. Idle, it leaves the controller alone. |
-| `AiNavQuery`, `AiNavAgentQuery` | `ai_nav_query.gd`, `ai_nav_agent_query.gd` | The SERVER backend (`NavigationServer3D.query_path`, no node, the default) and the AGENT backend (a `NavigationAgent3D` child of the character, its target set on the same timer). |
-| `AiNavPath` | `ai_nav_path.gd` | The points, the link starts, passing a corner run wide of, what is left (cached lengths), the point to steer to. |
-| `AiRouteRules` | `ai_route_rules.gd` | Goals snapped to open ground of the layers (a goal in a wall: the first open point back toward the walker), the kept route, remembered goals. |
-| `AiPathCheck` | `ai_path_check.gd` | A new path checked with knee-height rays as the body would walk it; a moving thing or an unlocked door is no block, a `Vaultable` is a place to jump. |
-| `AiStuckWatch`, `AiStuckLadder` | `ai_stuck_watch.gd`, `ai_stuck_ladder.gd` | Stuck from the path left (over 1 m/s asked, under 0.25 m/s of progress for 0.5 s; it ends on 0.5 m of net progress), and the rungs: sidestep, repath from the mesh to a moved goal, a jump where the level allows one, drop the goal for 10 s, walk back along the breadcrumbs, report. |
-| `AiNavAvoidance` | `ai_nav_avoidance.gd` | OFF, SEPARATION (a push from the characters near) or RVO (the server's avoidance agent, or the agent node's). |
-| `AiNavDebug` | `ai_nav_debug.gd` | With `debug` on: the path (a link's stretch orange), the point it steers to, a path ending short of the goal in red; the overlay's line says what it does, the stuck rung and why a goal was refused. |
-
-- **Queries.** One path query per character at most every `repath_seconds` (0: the profile's 0.25 s), on a phase of
-  its own, and only when the director's `AiBudget` gives one (`take_path()`; a refusal tries at the next step). None
-  before the map's first iteration (`map_get_iteration_id`), none while it crosses a link.
-- **The map's builds are on the physics step.** The template's `project.godot` turns off both of Godot's threaded
-  builds, `navigation/world/region_use_async_iterations` and `navigation/world/map_use_async_iterations` (#1075), and
-  the navigator turns the map's off again for a game that sets it back. A region added to the level (a section) or a
-  mesh swapped into one (a door) is then in the map at the next tick on every machine; with a region's build on a
-  worker thread it took 12 to 48 ticks for a section and 24 to over 300 for the test arena, as the machine's load
-  moved ([navigation in tests](../navigation-in-tests.md#a-thread-synced-map-drops-meshes-swapped-in-one-go)). A
-  web build has no threads, so it built on the step already: the switches change the desktop and the server only.
-  The test arena (`NavArena.build()`) also turns its region's switch off by its RID, for a game that sets the
-  project's back ([a small mesh of your own](../navigation-in-tests.md#a-small-mesh-of-your-own)).
-- **Goals and routes.** An unreachable goal (the path ends more than 1 m short) is asked once more with no polygon
-  limit, at the next slot, then `failed(UNREACHABLE)` and refused for 5 s without a query. Following, a path ending
-  3 m or more short of a target 12 m or more away is `stranded`, said once a goal; moving the character is the
-  director's choice. A route is kept while it ends within 3.5 m of the target and a new one is 6 m longer
-  ([crowds](../crowds.md#target-off-mesh)). A path found blocked on three checks in a row is `failed(BLOCKED)`.
-- **Links.** At a link's start it emits `link_reached` and, with `auto_traverse_links` on, sprints at it and jumps
-  where the floor ends (a drop is walked off); off, it waits for `finish_link()` from the task that crosses.
-- **Steering.** At most every `steer_seconds` (0.05 s) on a stretch, and at every step within 2 m of the end, on a
-  link, while stuck or jumping; between two steers the body keeps its push.
-
-The backend is SERVER: the research measured both the same once the target is set on a timer, and SERVER needs no
-node, answers the same on every machine and is what a test can hash; AGENT is there for its RVO in a crowd.
-
-- **Approach:** Restart the stuck window only when a new path is another route (what is left differs by more than a
-  metre), never on every repath. **Watch out for:** the first navigator restarted the window with every path it took;
-  with 0.25 s repaths and a 0.5 s window no window ever closed, so a body pressed against a block it did not know of
-  stood there for 20 s with no episode at all. **Seen:** gdstudio #967, 2026-11-11
-  (`test_a_sidestep_takes_it_round_a_block_it_did_not_know_of` fails with the restart put back).
-- **Approach:** Ask no path while a link is being crossed. **Watch out for:** a repath from the middle of a gap starts
-  at the nearest mesh point, back at the link's start; the walker turned back to it and announced the link again at
-  every repath, and never got across. **Seen:** gdstudio #967, 2026-11-11 (`test_it_crosses_a_link`).
-- **Approach:** Let a part in a slot leave the controller alone while it has nothing to do, and run the base's suites
-  (`test_ai_character.gd`, `test_ai_director.gd`) after filling a slot. **Watch out for:** the idle navigator cleared
-  `walk_direction` before every step, so six director and character tests that drive the channel by hand stood
-  still. **Seen:** gdstudio #967, 2026-11-11.
-- **Approach:** Check `is_instance_valid()` on every node of a list kept from one step to the next (the separation
-  push's neighbours). **Watch out for:** the capture freed a shot's characters and the others' kept list cast freed
-  objects: 18 `SCRIPT ERROR` lines in the Movie Maker run, none in the suites, which never free a walker mid-walk.
-  **Seen:** gdstudio #967, 2026-11-11 (`tools/capture/nav_tour.tscn`).
-
-**What a region costs the frame.** `tools/bench/nav_sync_bench.tscn` (`nav_sync_bench.py` for Chrome) adds a region
-with a mesh, waits until the map answers on it and frees it, 20 times, and reads the time after the frame's physics
-callbacks (the navigation step, on the main thread). Desktop (headless, `--fixed-fps 60`), step against thread: the AI
-section's 135 polygons 42 to 70 us once against 13 to 17 us (1 tick against 15 to 21), the pathing section's 106
-polygons 31 to 52 us against 11 to 13 us (1 tick against 12 to 48), a 128 m grid of 4096 quads 1.9 ms against 0.2 ms
-(1 tick against about 390). Chrome, which builds on the step either way: 0.2 ms for a section and 1.9 ms for the
-grid, 1 ms and 9.5 ms under a 4x CPU throttle. A section's swap costs the desktop frame some 40 us once; a level of
-thousands of polygons swapped in at once is a frame's budget on a weak phone either way, so a game that grows one
-splits it into regions.
-
-**What it costs.** `tools/bench/nav_cost_bench.tscn` (`nav_cost_bench.py` for Chrome) reads the navigators' own work
-a tick for 50, 100 and 200 characters walking to seeded goals on a baked 96 m map with 16 boxes, under the director's
-shipped defaults: [Crowds: AI characters](../crowds.md#ai-characters).
-
-**Proof.** `tests/gameplay/test_ai_nav_rules.gd` (the path, the stuck watch fed traces, the ladder, the kept route,
-remembered goals), `tests/world/test_navigation_sync.gd` (both switches off, a section added to the level and a mesh
-swapped out of it at the next tick: fails with the region's switch back on), `test_ai_navigator.gd` (walking, the
-first iteration, async iterations off, the repath count, the
-budget, the goal in a wall, the off-mesh target, the much longer route, the unreachable goal, the overlay, a far
-character, the AGENT backend with RVO, two walkers meeting), `test_ai_nav_recovery.gd` (the sidestep, the report with
-no teleport, the wall the mesh runs through, the door that shuts mid-walk, the locked door, the link crossed and left
-to a task) and `tests/world/test_ai_nav_course.gd` (every route of the pathing section at Full and stepped every 4th
-tick, and the AI section from its doorway: no stuck second on any of them). Each rule's test fails with that rule
-taken out. The capture is `tools/capture/nav_tour.tscn` (the course from above, a crowd through the doorway, a stuck
-recovery, from the player's camera).
+The `AiNavigator` in the character's navigator slot (kit #967, its web cost #1062): its rules, inspector, cost and
+proof are on [The AI navigator](ai-navigator.md).
 
 ## The animation throttle {#animation-throttle}
 
@@ -181,7 +99,8 @@ recovery, from the player's camera).
      ran every frame and put the 4x frame past the tick (gdstudio #1046); nothing said how a character's animation is
      cut down by its tier and the view -->
 
-`AiAnimationThrottle` (gdstudio #1046) is the first payoff of [the crowd spike](../crowds.md#recommendation). The
+`AiAnimationThrottle` (gdstudio #1046) is the first payoff of [the crowd spike](../crowds.md#recommendation). Its
+rules live in `CharacterAnimationThrottle` since #1138 (the online puppets use it too); the subclass adds the tier. The
 director hands it every character it registers and takes it back on `unregister`; it gives each one a period in frames,
 worked out again every `recheck_frames` on a frame of its own and at once on a tier change, a hit, a death or a revive:
 
@@ -223,7 +142,10 @@ Since #1059 an AI's body takes the lean tick (`CharacterLean`, chosen by `AiCont
 walks or stands: the same result as the full tick with the modules that have nothing to do left out, the step climber
 run only after the move met a wall, and the controller's command built again only when a channel changes. The
 director's step for 40 walkers is 22 to 30 % shorter (0.9 ms at 1x, 4.4 to 5.5 ms at 4x on a quiet machine) and the
-4x frame 7.2 to 8.9 ms ([the module profile and the runs](../crowds.md#ai-characters)). A part that gives an AI's body
+4x frame 7.2 to 8.9 ms ([the module profile and the runs](../crowds.md#ai-characters)). Since #1104 it takes the aim
+and the trigger too, so a fighting body is lean on every tick but the one its aim goes up or comes down, and a fight
+has a web count of its own: 12 fighting guards at 1x, 6 at 4x
+([AI behaviour: the follow-up](ai-behaviour.md#cost-follow-up)). A part that gives an AI's body
 something to do on a walking tick (a held bit, a timer) goes in `CharacterLean.can_take()`
 ([the body's modules](character.md#controller)).
 
@@ -315,6 +237,8 @@ For #968's stock tasks and a game's own: extend `AiTask`, export what an author 
 - Assign from a reaction router, a mission or a squad with `runner.assign(task, issuer)`; listen to `task_finished`
   and read `task.issuer`. A task kept in a file or in a scene is a template: the runner runs a copy (`fresh_copy()`),
   with `target`, `goal` and `issuer` carried over.
+- Four traps a task meets in a real body (routing from `update()`, a press in the first think, the commit time, the
+  walk's push line): [AI behaviour: writing a task](ai-behaviour.md#writing-a-task).
 
 ### What it costs {#task-cost}
 
@@ -344,131 +268,13 @@ Inside the AI budget of [Crowds: AI characters](../crowds.md#ai-characters) (1 m
   freed before the step returns does not show; a mutation run (removing the idle return) found the counter is the
   check that fails. **Seen:** gdstudio #965, 2026-11-10.
 
-## Factions and relationships {#relations}
+## Online {#online}
 
-<!-- new section: relationships (kit #964) are a part of their own with an API the senses (#966), the router and the
-     weapons call; the base's table holds only its row -->
+<!-- new section: the online part (where the AI runs, its wire, its costs and the lag compensation for shots on it)
+     moved to its own page when the lag compensation took this page past the size limit (kit #1198) -->
 
-Who is hostile, neutral or friendly to whom, and how that changes (kit #964; research for #882, section 4). Nothing in
-code names a faction: a game with three player teams edits `ai_relations.tres`. The model, apart from Godot:
-[Factions and relationships](../../../gamedev/simulation.md#relationships).
-
-| Part | Where (in `gameplay/ai/relations/`) | What it does |
-| --- | --- | --- |
-| `AiRelations` | `ai_relations.gd`, `ai_relations.tres` | The table: the factions, the events, the band lines and the recovery rate; for every ordered pair a base and a current attitude, -100 to 100, asymmetric (A toward B is not B toward A). Signals `band_changed(a, b, previous, now)` and `attitude_changed(i, j)` (set or moved by an event, not by recovery). |
-| `AiFaction` | `ai_faction.gd` (rows of the `.tres`) | `id`, `color`, `hurts_friends`, and `attitudes`: its row, the base attitude toward each faction it names (its own id included); one it does not name is at `default_attitude`. |
-| `AiRelationEvent` | `ai_relation_event.gd` (rows of the `.tres`) | `id`, `delta` and `witness` (`WITNESSED`: only the factions of characters that perceived it change; `ALWAYS`: the victim's faction changes unseen, for a mission's script or an alarm). |
-| `AiFactions` | `ai_factions.gd`, a node of `world/world.tscn` (group `ai_factions`) | Plays a copy of the table (`AiRelations.copy()`: a match never writes the file), answers between two entities (a grudge first, then the factions), turns reported acts into changes, calls `recover()` every physics tick, and colours the band rings when `show_bands` is on. |
-| `AiFactionMember` | `ai_faction_member.gd`, a child node of `ai_character.tscn` (faction empty: the profile's) and `player.tscn` (faction `player`) | Puts its parent in a faction (`AiFactionMember.of(node)` finds it through a meta on the parent), holds its personal grudges, caches its faction's index for the hot path, and reports a hit on its parent as an `attack` by the hit's source and a death as a `kill`, witnessed by the parent. Its `band_marker` is the `BandRing` under the character's feet. |
-
-**The shipped table.** Rows are from, columns toward:
-
-| | player | enemy | ally | civilian |
-| --- | ---: | ---: | ---: | ---: |
-| **player** (`hurts_friends`) | 100 | -100 | 80 | 20 |
-| **enemy** | -100 | 100 | -100 | -30 |
-| **ally** | 80 | -100 | 100 | 30 |
-| **civilian** | 20 | -50 | 30 | 60 |
-
-Events: `attack` -30, `kill` -60, `help` +10, `trespass` -10, all `WITNESSED`. A kill counts on top of the blow that
-made it. The enemy is Unfriendly to civilians (it does not shoot them unprovoked), civilians are Unfriendly to the enemy
-(their fear is the profile's `courage`).
-
-**Bands.** Hostile at or under `hostile_at` (-60), Unfriendly at or under `unfriendly_at` (-20), Neutral, Friendly at
-or over `friendly_at` (20), Allied at or over `allied_at` (60). A pair enters a band farther from Neutral at its line
-and leaves back toward Neutral only `hysteresis` (20) past it: Hostile is entered at -60 and left at -40, so a value
-that wobbles on a line changes the band once. A jump across Neutral takes the new band at once.
-
-**Change.** `set_attitude(a, b, value)` (a script), `add_attitude(a, b, delta, witnesses)` (nothing when `witnesses`
-is 0), and `AiFactions.report(event, actor, victim, witnesses)`: each faction among the witnesses (once however many
-of its members saw it) that is not Hostile toward the victim moves its attitude toward the actor's faction by the
-event's delta, so an ally that sees the player shoot a grunt does not mind. Without a witness list the witnesses are
-`witness_source`'s, or the victim alone (it feels a blow on itself). The current value drifts back to the base at
-`recovery_per_minute` (10). A personal grudge (`AiFactionMember.grudge(entity, value)`, `forgive(entity)`) beats the
-faction for one entity against one character.
-
-**Friendly fire.** `AiFactions.can_hurt(attacker, victim)` is false when the attacker is Friendly or Allied toward the
-victim and its faction's `hurts_friends` is off. `HitZones.deliver()` drops such a hit, so a stray shot of a grunt
-through another grunt does nothing; the player's faction hurts friends, so shooting an ally lands and costs attitude
-(five shots turn the allies Hostile; three and a half minutes bring them back to Unfriendly). With no `AiFactions` in
-the tree, or for an entity in no faction, everyone may hurt everyone. An AI's fire decision (#968) asks `can_hurt`
-before it pulls the trigger.
-
-**Network.** The table lives on the authority. A change is `encode_change(i, j)`: 3 bytes (the two faction indexes and
-the value as a signed byte), sent on `attitude_changed`; a late joiner gets `encode_all()` (1 byte and one a pair, 17
-for the shipped table) once; a client applies either with `apply(bytes)` and uses the bands for colours only. Recovery
-runs on both ends from the same rate; the next change or snapshot corrects any drift. Wiring it into the template's
-packets comes with the networked client (#905).
-
-### The API the senses read {#relations-api}
-
-The senses (#966) filter what a character perceives by affiliation first (do not sense what you do not care about).
-They call:
-
-- `AiFactionMember.of(node) -> AiFactionMember` once for each thing they start to track, and keep the member beside
-  its memory entry.
-- `factions.band_of_members(me, it) -> int` (`AiRelations.Band`) or `is_hostile_members(me, it)`: the hot path, a
-  grudge check only when `me` holds one, two cached faction indexes and one byte read. `factions` is
-  `my_member.level()`, found once and kept.
-- `band_between(a, b)` and `is_hostile_between(a, b)` take nodes (two meta reads more), for code that has no members.
-- `factions.witness_source = func(actor, victim) -> Array`: the characters that perceived an act, so a reported
-  `attack` or `kill` moves only the factions that saw it. The senses set it to `AiSenses.witnesses_of` (the victim and
-  every character that sees the actor or the victim now) when it is unset.
-- `relations.band_changed` to look again at a remembered entity whose band changed (a now-hostile entity in memory
-  raises the noticed response).
-
-A member caches its faction's index and reads it again when the table is built again or after a think of its
-character, so a profile's faction edited live applies at the next think; a member's own `faction` applies at once.
-
-### The inspector {#relations-inspector}
-
-- **`AiRelations`**: `factions`, `events`, `default_attitude` 0; Bands `hostile_at` -60, `unfriendly_at` -20,
-  `friendly_at` 20, `allied_at` 60, `hysteresis` 20; Change `recovery_per_minute` 10 /min.
-- **`AiFaction`**: `id`, `color`, `hurts_friends` (off), `attitudes`. **`AiRelationEvent`**: `id`, `delta`,
-  `witness`.
-- **`AiFactions`**: `relations` (`ai_relations.tres` in `world.tscn`); Debug `show_bands` (off),
-  `band_refresh_seconds` 0.25 s, `band_colors` (Hostile red to Allied blue), `player_group`.
-- **`AiFactionMember`**: `faction` (empty: the profile's), `reports_events` (on), `band_marker`.
-
-### What it costs {#relations-cost}
-
-`tools/bench/ai_relations_bench.tscn` (`ai_relations_bench.py` for Chrome) asks 200 entities 8 lookups each, 1600 a
-round, the mean of 200 rounds on the fast desktop (the machine shared with other agents):
-
-| A round of 1600 | Native (editor build) | Chrome | Chrome 4x |
-| --- | ---: | ---: | ---: |
-| `band_at(i, j)`, indexes known | 250 µs | 315 to 335 µs | 1.7 ms |
-| `band_of_members(a, b)`, members kept | 920 µs | 1.05 to 1.10 ms | 6.8 ms |
-| `band_between(a, b)`, nodes | 2.1 to 2.3 ms | 2.5 to 2.6 ms | 14.9 ms |
-| `can_hurt(a, b)` | 2.7 to 2.8 ms | 4.7 ms | 21.7 ms |
-
-A lookup allocates nothing. At 10 thinks a second and 60 ticks a character thinks every 6th tick, so 200 characters
-with 8 member lookups a think are 0.18 ms a tick in Chrome (1.1 ms at 4x), and the web's 40 characters 35 µs (0.23 ms
-at 4x), inside the AI budget of [Crowds: AI characters](../crowds.md#ai-characters) (1 ms a tick, 5 ms at 4x).
-`can_hurt` is for a shot, not for every look.
-
-- **Approach:** Give a lookup that a think makes many times a fast path that takes the parts it needs already found
-  (the members) and reads cached indexes, keep the node-taking form for convenience, and bench the round in Chrome at
-  1x and 4x before calling it cheap. **Watch out for:** the first lookup between two nodes made about 15 GDScript calls
-  (two meta reads, two faction names, two dictionary reads, the band) and cost 2.7 µs natively, 0.7 ms a tick for
-  200 characters; a call is 0.1 to 0.2 µs, so the count of calls, not the arrays, sets the cost. **Seen:** gdstudio
-  #964, 2026-11-10 (`band_of_members`: 0.58 µs native, 0.66 µs in Chrome).
-
-### Proof {#relations-proof}
-
-`tests/gameplay/test_ai_relations.gd` (the shipped table, asymmetry, a faction not in the table, the bands with their
-hysteresis and editable lines, a jump across Neutral, recovery toward base, a row edited live, the bytes a client
-rebuilds from, the pinned defaults) and `test_ai_factions.gd` (an unwitnessed act changes nothing, a witnessed one
-moves each witness faction once, a witness hostile to the victim does not mind, recovery on the physics clock, a grudge
-beating the faction, a friend's shot refused at the hit zones, no factions, the ally the player keeps shooting turning
-Hostile and back, a kill on top of the blow, the band rings, a profile's faction at the next think, the world playing
-the shipped table). The capture is `tools/capture/factions_tour.tscn`: grunts and allies trading shots across a lane
-with the band rings on, a grunt killed into its ragdoll, then the player shooting an ally until the allies' rings turn
-from blue through grey to red.
-
-- **Approach:** In a capture that lands hits on characters standing in rows, deliver a `HitRecord.shot` with no push,
-  not a `HitRecord.blow`. **Watch out for:** a blow staggers and throws the character away from its source, so after
-  four exchanges the two rows had slid out of the frame and into a pillar. **Seen:** gdstudio #964, 2026-11-10.
+Online the AI runs on the server only and reaches the clients as a few bytes a character each TICK; a player's shot
+on one is met where the shooter's screen drew it: [the AI online](ai-online.md).
 
 ## Proof {#proof}
 
@@ -485,3 +291,9 @@ capture is `tools/capture/ai_tasks_tour.tscn` (a patrol, a noise, the investigat
 its leg) and their cost `tools/bench/ai_task_bench.tscn` ([the numbers](#task-cost)). The capture is
 `tools/capture/ai_tour.tscn` (the three profiles side by side with the overlay, a grunt killed into its ragdoll) and the
 cost is `tools/bench/ai_cost_bench.tscn` with `ai_cost_bench.py` for Chrome ([the numbers](../crowds.md#ai-characters)).
+Online (#970): `test_net_ai_snapshot.gd` (a row's limits, full and delta round trips, moves, a refused baseline, the
+interest radius, the tier rates, hostile bytes), `test_net_ai_glide.gd` (even steps, set-downs, the buffer, the guess
+ahead capped and stopped at a wall) and `test_net_ai_online.gd` (a client runs no AI, a walker drawn where the server
+has it, a late joiner's one snapshot, a death's ragdoll on another screen from one event, a player's shot as a HIT on
+the puppet, a browser's cap); the capture is `tools/capture/ai_online_tour.tscn` (the server's world beside Bo's
+screen) and the cost `tools/net/bandwidth.py --ai` ([the numbers](ai-online.md#replication-cost)).

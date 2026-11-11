@@ -87,6 +87,9 @@ func test_the_pause_button() -> void:
 func test_the_main_menu_and_the_menu_scene() -> void:
 	var main_menu := auto_free(MainMenu.new()) as MainMenu
 	assert_str(main_menu.game_scene).is_equal("res://main.tscn")
+	assert_str(main_menu.online_scene).is_equal("res://online_main.tscn")
+	assert_str(main_menu.server_address).is_equal("ws://127.0.0.1:8910")
+	assert_int(main_menu.address_field).is_equal(MainMenu.AddressField.DEBUG_BUILDS)
 	assert_str(main_menu.title).is_empty()
 	assert_bool(main_menu.allow_back).is_true()
 	var menu_scene := auto_free(MenuScene.new()) as MenuScene
@@ -95,8 +98,10 @@ func test_the_main_menu_and_the_menu_scene() -> void:
 		{
 			&"main_menu": null,
 			&"game_scene": "res://main.tscn",
+			&"online_scene": "res://online_main.tscn",
 			&"server_scene": "res://gameplay/net/net_server.tscn",
 			&"skip_menu": false,
+			&"shader_programs": "res://assets/shaders/web/shader_programs.json",
 		}
 	)
 

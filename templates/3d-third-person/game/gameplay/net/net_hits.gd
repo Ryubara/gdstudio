@@ -5,7 +5,9 @@ extends RefCounted
 ## Kept in one file: the world table of networked parts (gdstudio #907) takes the low ids.
 ##
 ## Ids: a player is `PLAYER_BASE + slot` (its body carries the meta `net_slot`, set by the server
-## and by the client for its own body and every puppet); a `Target` is `TARGET_BASE` + its place
+## and by the client for its own body and every puppet); an AI character is `AI_BASE` + its wire id
+## (the meta `net_ai`, set by the server's `AiBroadcast` and on every puppet); a `Target` is
+## `TARGET_BASE` + its place
 ## among the map's targets by node path (both sides load the same map: the world hash); anything
 ## else is `NetEvent.NO_ID`, and the client finds the surface itself with a short ray.
 
@@ -15,10 +17,18 @@ enum Kind {
 	PLAYER = 1,  ## A player's body (the id names the slot).
 	TARGET = 2,  ## A shooting-range `Target` (the id names which).
 	PROP = 3,  ## A physics body (a crate): looked for by a ray, as the level.
+	AI = 4,  ## An AI character (the id names it: `AI_BASE` + its wire id).
 }
 
 ## The meta a player's body carries on every peer: its slot.
 const SLOT_META := &"net_slot"
+## The meta an AI character carries on the server and its puppet on every client: its wire id.
+const AI_META := &"net_ai"
+## AI ids: `AI_BASE` to `AI_BASE + NetLimits.MAX_AI_ID`, under the targets' and players'.
+const AI_BASE := 0x8000
+## How many parents up from what a shot met an AI character is looked for (its hit zones are a
+## child of it).
+const AI_DEPTH := 2
 const PLAYER_BASE := 0xFF00
 const TARGET_BASE := 0xFE00
 ## The most targets a map may have that a HIT can name.
@@ -30,6 +40,8 @@ const PROBE := 0.1
 
 ## The kind of `collider` for a HIT.
 static func kind_of(collider: Object) -> Kind:
+	if ai_of(collider) != null:
+		return Kind.AI
 	if collider is Node and (collider as Node).has_meta(SLOT_META):
 		return Kind.PLAYER
 	if target_of(collider) != null:
@@ -41,6 +53,9 @@ static func kind_of(collider: Object) -> Kind:
 
 ## The id a HIT on `collider` carries.
 static func id_of(collider: Object) -> int:
+	var ai := ai_of(collider)
+	if ai != null:
+		return AI_BASE + int(ai.get_meta(AI_META))
 	if collider is Node and (collider as Node).has_meta(SLOT_META):
 		return PLAYER_BASE + int((collider as Node).get_meta(SLOT_META))
 	var target := target_of(collider)
@@ -54,10 +69,29 @@ static func id_of(collider: Object) -> int:
 ## The health a HIT on `collider` left: its `Health`'s `wire_value()` (at most 254), or
 ## `NetEvent.NO_HEALTH`.
 static func health_of(collider: Object) -> int:
-	var health := Health.of(collider)
+	var ai := ai_of(collider)
+	var health := Health.of(ai if ai != null else collider)
 	if health == null:
 		return NetEvent.NO_HEALTH
 	return mini(health.wire_value(), NetEvent.NO_HEALTH - 1)
+
+
+## The character carrying `AI_META` that `collider` is, or is part of (its hit zones), or null.
+static func ai_of(collider: Object) -> Node3D:
+	var node := collider as Node
+	for _level in AI_DEPTH + 1:
+		if node == null:
+			return null
+		if node.has_meta(AI_META):
+			return node as Node3D
+		node = node.get_parent()
+	return null
+
+
+## The AI wire id a HIT's id names, or -1.
+static func ai_id_of(id: int) -> int:
+	var ai := id - AI_BASE
+	return ai if ai >= 0 and ai <= NetLimits.MAX_AI_ID else -1
 
 
 ## The slot a player id names, or -1.

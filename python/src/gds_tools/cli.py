@@ -5,16 +5,20 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import subprocess
 import sys
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
 from gds_tools import (
+    bench_web,
     brief,
     capture,
     disk,
     evals,
+    hold_switch,
+    integrations,
     issues,
     layout,
     lessons,
@@ -26,6 +30,7 @@ from gds_tools import (
     sweep,
     sync,
     template_test,
+    uids,
     workspace,
     worktrees,
 )
@@ -77,7 +82,15 @@ def _cmd_capture_sheet(args: argparse.Namespace) -> int:
 
 def _cmd_capture_clip(args: argparse.Namespace) -> int:
     ffmpeg = workspace.tool_path("ffmpeg")
-    print(f"written: {capture.encode_clip(ffmpeg, Path(args.folder).resolve(), gif=args.gif)}")
+    clip = capture.encode_clip(
+        ffmpeg,
+        Path(args.folder).resolve(),
+        gif=args.gif,
+        max_seconds=args.max_seconds,
+        fps=args.fps,
+        slow=args.slow,
+    )
+    print(f"written: {clip}")
     return 0
 
 
@@ -288,6 +301,19 @@ def _cmd_template_game(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_template_bench_web(args: argparse.Namespace) -> int:
+    kit, root = _template_context()
+    return bench_web.run_bench_web(
+        kit,
+        root,
+        args.name,
+        args.scene,
+        run=args.run,
+        probe_args=template_test.split_args(args.probe_args),
+        keep=args.keep,
+    ).code
+
+
 def _cmd_template_clean(args: argparse.Namespace) -> int:
     folder = template_test.throwaway_of(Path(args.path))
     if not template_test.remove_throwaway(folder):
@@ -295,6 +321,35 @@ def _cmd_template_clean(args: argparse.Namespace) -> int:
         return 1
     print(f"removed {folder}")
     return 0
+
+
+def _cmd_template_uids(args: argparse.Namespace) -> int:
+    folder = Path(args.template)
+    if not folder.is_dir():
+        kit, _ = _template_context()
+        new_game.load_template(kit, args.template)  # an unknown name fails with the list of templates
+        folder = kit / "templates" / args.template
+    code = 0
+    projects = (
+        [folder] if (folder / "project.godot").is_file() else sorted(p.parent for p in folder.glob("*/project.godot"))
+    )
+    if not projects:
+        print(f"gds: {folder} holds no project.godot, nor does any folder in it", file=sys.stderr)
+        return 1
+    for project in projects:
+        result = uids.write_missing(project, replace_invalid=args.replace_invalid)
+        for path in result.written:
+            print(f"wrote {path.relative_to(folder).as_posix()}  {uids.read(path)}")
+        for path in result.invalid:
+            print(
+                f"gds: {path.relative_to(folder).as_posix()} holds {uids.read(path)!r}, a uid Godot never writes; "
+                "--replace-invalid writes a new one (a scene that names the old text then loads the file by path)",
+                file=sys.stderr,
+            )
+            code = 1
+        if not result.written and not result.invalid:
+            print(f"{project.relative_to(folder.parent).as_posix()}: every script and shader has its uid")
+    return code
 
 
 def _cmd_check_layout(args: argparse.Namespace) -> int:
@@ -380,9 +435,30 @@ def _prepare_worktree(
                 ]
         except worktrees.WorktreeError as error:
             raise issues.IssueError(f"{repo}#{issue.number} was not started: {error}") from error
+        lines += _install_addons(root, made.path)
         return issues.Prepared(branch=made.branch, path=made.path.as_posix(), lines=lines, undo=undo)
 
     return prepare
+
+
+def _install_addons(root: Path, tree: Path) -> list[str]:
+    """The pinned Godot addons (GdUnit4, the MCP addon) installed into the Godot project of a worktree `gds issue start`
+    made or reused, untracked as `gds workspace init` installs them (docs/studio/workspace.md#integrations); the lines
+    say what was done. A failure here only says so: the worktree is made, and `gds workspace init` installs them too."""
+    projects = integrations.checkout_projects(tree)
+    if not projects:
+        return []
+    done: list[str] = []
+    try:
+        kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+        missing = integrations.install_pinned_addons(
+            load_tools(kit / "tools.toml").values(), root / "tools", projects, done.append
+        )
+    except (ManifestError, OSError, subprocess.CalledProcessError) as error:
+        return [f"addons: not installed ({error}); run `gds workspace init`"]
+    if missing:
+        done.append(f"addons: {', '.join(missing)} not fetched; run `gds workspace init` to fetch and install them")
+    return done
 
 
 def _cmd_issue_start(args: argparse.Namespace) -> int:
@@ -485,8 +561,18 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
         lines = read(args.title).splitlines()
         title = lines[0] if lines else ""
     body, kit = read(args.body), workspace.kit_checkout()
+    attach = [spec.split("#", 1)[0] for spec in args.attach or []]  # gh's `path#label` drops its label
+    missing = pr.missing_attachments(attach, Path.cwd())
+    body = pr.as_uploaded(body, [spec for spec in attach if spec not in missing], Path.cwd())
     changed, why = pr.branch_changes(repo)
     result = pr.check_body(repo, body, title, kit=kit, changed=None if why else changed)
+    if missing:
+        where = Path.cwd().as_posix()
+        result = pr.BodyCheck(
+            False,
+            [f"`--attach {spec}`: no such file (looked in {where}), so `gh` cannot upload it" for spec in missing]
+            + result.reasons,
+        )
     docs = pr.check_docs(repo, body, kit=kit)
     if result.ok:
         print("description: ok")
@@ -632,6 +718,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
             bad += 1
     for check in workspace.check_services(root):  # warnings: signing in is the person's step, not the bootstrap's
         print(f"  {'ok  ' if check.ok else 'WARN'}    {check.name}: {check.detail}")
+    print(f"  info    hold switch: {hold_switch.read(root).describe()}")  # the maintainer's (hooks.md#hold)
     print("\n".join(sweep.disk_lines(root)))  # a warning only: low space is not a missing prerequisite
     return 1 if bad else 0
 
@@ -692,7 +779,29 @@ def build_parser() -> argparse.ArgumentParser:
     sheet.set_defaults(func=_cmd_capture_sheet)
     clip = cap.add_parser("clip", help="encode a folder's frames to an MP4 (or GIF) small enough for GitHub")
     clip.add_argument("folder")
-    clip.add_argument("--gif", action="store_true", help="make a GIF instead of an MP4")
+    clip.add_argument(
+        "--gif",
+        action="store_true",
+        help="make a GIF (short, silent, one subject) instead of an MP4, within its budget",
+    )
+    clip.add_argument(
+        "--max-seconds",
+        type=float,
+        default=capture.CLIP_MAX_SECONDS,
+        help=f"cut the clip after this many seconds (default {capture.CLIP_MAX_SECONDS:g}); it still has to fit 9 MB",
+    )
+    clip.add_argument(
+        "--fps",
+        type=int,
+        default=None,
+        help=f"the rate the frames were recorded at (default: capture.json's, else {capture.DEFAULT_FPS})",
+    )
+    clip.add_argument(
+        "--slow",
+        type=float,
+        default=1.0,
+        help="play the frames N times slower, every frame kept (default 1); the cut counts the slowed clip",
+    )
     clip.set_defaults(func=_cmd_capture_clip)
 
     syn = sub.add_parser(
@@ -779,6 +888,38 @@ def build_parser() -> argparse.ArgumentParser:
     tpl_game = tpl.add_parser("game", help="the same game, imported and kept for captures and probes; prints its path")
     tpl_game.add_argument("name", help="a template of the kit's templates/")
     tpl_game.set_defaults(func=_cmd_template_game)
+    tpl_uids = tpl.add_parser(
+        "uids",
+        help="write the missing .uid file of each script and shader of a template, as Godot writes it; an existing "
+        "valid one is never changed (docs/engines/godot/project-conventions.md#rules)",
+    )
+    tpl_uids.add_argument(
+        "template", help="a template of the kit's templates/, or any folder holding project.godot (or folders that do)"
+    )
+    tpl_uids.add_argument(
+        "--replace-invalid",
+        action="store_true",
+        help="also replace a uid file whose text Godot would not write (a `z`, a `9`, a hand-made word)",
+    )
+    tpl_uids.set_defaults(func=_cmd_template_uids)
+    tpl_bench = tpl.add_parser(
+        "bench-web",
+        help="export a bench scene of the template to the web in a throwaway game (the bench as the main scene, "
+        "tools/* in the Web pack) and print the build's folder; --run reads it with the bench's probe under gds quiet "
+        "(docs/engines/godot/web-probes.md#bench-web)",
+    )
+    tpl_bench.add_argument("name", help="a template of the kit's templates/")
+    tpl_bench.add_argument(
+        "scene", help="the bench: its name (`nav_cost_bench`), `tools/bench/<name>.tscn` or its res:// path"
+    )
+    tpl_bench.add_argument(
+        "--run", action="store_true", help="run the bench's probe (<name>.py beside it) on the build, then remove it"
+    )
+    tpl_bench.add_argument(
+        "--probe-args", help="more arguments for the probe after the build folder, in one string (`--probe-args=4`)"
+    )
+    tpl_bench.add_argument("--keep", action="store_true", help="with --run: keep the game and its build")
+    tpl_bench.set_defaults(func=_cmd_template_bench_web)
     tpl_clean = tpl.add_parser("clean", help="remove a workspace made by `template test --keep` or `template game`")
     tpl_clean.add_argument("path", help="the game's path or its workspace folder")
     tpl_clean.set_defaults(func=_cmd_template_clean)
@@ -899,6 +1040,13 @@ def build_parser() -> argparse.ArgumentParser:
     chk.add_argument("body", help="the description: a file, or - for stdin")
     chk.add_argument("--title", help="the title (a file, first line): also checks the title-based rules")
     chk.add_argument("--repo", help="a folder in the checkout the pull request is for (default: the current folder)")
+    chk.add_argument(
+        "--attach",
+        action="append",
+        metavar="FILE",
+        help="a file `gh pr create|edit --attach` will upload: a `](FILE)` reference counts as uploaded; relative "
+        "paths are read from the current folder, as gh reads them (repeat for each file)",
+    )
     chk.set_defaults(func=_cmd_pr_check_body)
     hol = prs.add_parser("hold", help="hold a pull request: S-hold on, and wait until the `hold` check is red")
     hol.add_argument("ref", help="the pull request: owner/repo#N, or #N in its checkout")

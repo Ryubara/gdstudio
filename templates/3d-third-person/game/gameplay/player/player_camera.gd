@@ -30,7 +30,13 @@ signal orbited(yaw: float, pitch: float)
 
 ## Which side of the character the view sits on.
 enum Shoulder { LEFT, CENTER, RIGHT }
+## How the player's look during a shoulder swap goes with the kept aim point: `ADD` turns the view
+## by the look on top of the turn that keeps the point (the anchor stays to the end of the swap),
+## `RELEASE` does the same until the look adds up to `swap_release_angle`, then lets the point go.
+enum SwapLook { ADD, RELEASE }
 
+## The Phantom Camera host's physics priority: this rig writes a waiting view offset after it.
+const HOST_PHYSICS_PRIORITY := 300
 ## The Phantom Camera properties this wrapper sets from its own exports. This node is the one
 ## place to tune the camera: nobody needs to open the Phantom Camera node for these.
 const _FORWARDED: Array[StringName] = [
@@ -124,8 +130,42 @@ const _FORWARDED: Array[StringName] = [
 	set(value):
 		vertical_offset = value
 		_forward_view()
-## Seconds the view takes to cross from one shoulder to the other.
+## Seconds the view takes to cross from one shoulder to the other while not aiming. Zero swaps
+## at once.
 @export_range(0.0, 3.0, 0.05, "suffix:s") var shoulder_time := 0.3
+
+@export_subgroup("Shoulder swap")
+## Seconds a swap takes while the aim or fire button is held. Zero swaps at once (the aim point
+## is still kept: the view turns by the whole correction in one frame).
+@export_range(0.0, 3.0, 0.01, "suffix:s") var aim_shoulder_time := 0.15
+## A swap (`swap_shoulder()`, the `shoulder_swap` action) keeps the point under the crosshair
+## where it is: the point is found when the swap starts and the view turns inward as it slides,
+## so the point stays under the crosshair and a shot fired mid-swap goes there. Off slides the
+## view sideways and the point under the crosshair drifts (the old behaviour). The point is kept
+## on a swap made while aiming (the aim or fire button held); `keep_aim_when_not_aiming` keeps it
+## on every swap.
+@export var keep_aim_on_swap := true
+## Keeps the point on a swap made while not aiming too. Off (the default), a swap while walking or
+## sprinting only slides the view: the view's turn, and so the way the character runs, stays as
+## it is. While aiming the point is always kept (with `keep_aim_on_swap` on).
+@export var keep_aim_when_not_aiming := false
+## How much of the turn that keeps the point is made: 1 keeps it exactly, 0.5 lets it drift half
+## as far as with the anchor off. The turn stays when the swap ends, so nothing turns back.
+@export_range(0.0, 1.0, 0.01) var swap_anchor_strength := 1.0
+## How the player's look during a swap goes with the anchor (`SwapLook`): added to it, or added
+## until it reaches `swap_release_angle` and then the anchor lets go.
+@export var swap_look := SwapLook.ADD
+## With `swap_look` on `RELEASE`, the look in degrees (added up over the swap) that lets the
+## anchor go. Keep it above what a stick at rest sends past its dead zone.
+@export_range(0.0, 45.0, 0.1, "suffix:deg") var swap_release_angle := 4.0
+## How far the crosshair's ray looks for the point to keep; when it hits nothing the point is
+## the ray's end, this far out (the weapon's `aim_range` is 100 m too).
+@export_range(5.0, 1000.0, 1.0, "suffix:m") var aim_point_range := 100.0
+## A point nearer than this past the arm's start (a wall or a prop at the muzzle) is pushed out
+## to it along the ray, so a swap beside a wall does not swing the view round.
+@export_range(0.5, 20.0, 0.1, "suffix:m") var aim_point_min_distance := 2.0
+## The physics layers the crosshair's ray stops at when it finds the point (the shots' layers).
+@export_flags_3d_physics var aim_point_mask := PhysicsLayers.SHOT_MASK
 
 @export_group("Sprint")
 ## How much wider the field of view gets at a full sprint.
@@ -306,6 +346,18 @@ var _shoulder_pos := 1.0
 var _arm_ready := false
 var _sprint_shake := ShakePreset.new()
 var _shot_kick := ShakePreset.new()
+# The aim point a swap keeps under the crosshair, the side offset the swap started from, the turn
+# (yaw, pitch in degrees) made for it so far and the look added up during it.
+var _anchored := false
+var _anchor_point := Vector3.ZERO
+var _anchor_from := 0.0
+var _anchor_turn := Vector2.ZERO
+var _swap_look := 0.0
+# This frame's view offset waits for the host's physics tick (a swap is turning the view), and
+# the offset due then.
+var _view_waits := false
+var _view_pending := false
+var _view_due := Vector2.ZERO
 
 var _pcam: PhantomCamera3D
 var _player: Player
@@ -351,6 +403,7 @@ func _notification(what: int) -> void:
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
+	process_physics_priority = HOST_PHYSICS_PRIORITY + 1
 	pitch = start_pitch
 	_shoulder_pos = _shoulder_side()
 	_player = player
@@ -371,6 +424,12 @@ func _ready() -> void:
 		input.camera_rig = self
 
 
+# After the Phantom Camera host's own physics step (priority 300), which moves the Camera node.
+func _physics_process(_delta: float) -> void:
+	if _view_pending:
+		_write_view(_view_due)
+
+
 func _process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
@@ -389,6 +448,10 @@ func _process(delta: float) -> void:
 ## Turns the camera by `degrees` (x about the up axis, y up and down). The mouse, the stick and
 ## the touch layer all come through here.
 func orbit(degrees: Vector2) -> void:
+	if _anchored:
+		_swap_look += degrees.length()
+		if swap_look == SwapLook.RELEASE and _swap_look > swap_release_angle:
+			_anchored = false
 	yaw = wrapf(yaw - degrees.x, -180.0, 180.0)
 	var vertical := -degrees.y if invert_y != player_invert_y else degrees.y
 	var limits := pitch_limits()
@@ -430,20 +493,69 @@ func advance(delta: float) -> void:
 	_aim_blend = move_toward(_aim_blend, 1.0 if aiming else 0.0, aim_speed * delta)
 	var fire_speed := fire_in_speed if firing else fire_out_speed
 	_fire_blend = move_toward(_fire_blend, 1.0 if firing else 0.0, fire_speed * delta)
+	var swap_time := shoulder_time
+	if is_instance_valid(_player) and _player.aiming:
+		swap_time = aim_shoulder_time
 	_shoulder_pos = move_toward(
-		_shoulder_pos, _shoulder_side(), delta * 2.0 / maxf(shoulder_time, 0.001)
+		_shoulder_pos, _shoulder_side(), delta * 2.0 / maxf(swap_time, 0.001)
 	)
+	_view_waits = _anchored
+	_keep_aim()
 	_step_shake(sprinting and not sliding, delta)
 	var limits := pitch_limits()
 	pitch = clampf(pitch, limits.x, limits.y)
 	_forward_blend()
+	_view_waits = false
 	_apply()
 
 
 ## Turns the view to the other shoulder (the left one from the right, and the right from the left
-## or the center). The `shoulder_swap` action calls it.
+## or the center). The `shoulder_swap` action calls it. With `keep_aim_on_swap` the point under
+## the crosshair now stays under it through a swap made while aiming (any swap with
+## `keep_aim_when_not_aiming`); a swap pressed again before the last one ended keeps the same
+## point.
 func swap_shoulder() -> void:
+	var from := _shoulder_view().x
 	shoulder = Shoulder.LEFT if shoulder == Shoulder.RIGHT else Shoulder.RIGHT
+	if _keeps_aim_now() and not _anchored and is_instance_valid(camera) and camera.is_inside_tree():
+		_anchor_point = crosshair_point()
+		_anchor_from = from
+		_anchor_turn = Vector2.ZERO
+		_swap_look = 0.0
+		_anchored = true
+
+
+## The point under the crosshair now: the first thing on `aim_point_mask` the ray through the
+## middle of the screen hits past the character (looked along from the character's depth, as the
+## weapon does), the ray's end at `aim_point_range` when it hits nothing, and never nearer than
+## `aim_point_min_distance` past the arm's start.
+func crosshair_point() -> Vector3:
+	var centre := camera.get_viewport().get_visible_rect().size / 2.0
+	var origin := camera.project_ray_origin(centre)
+	var along := camera.project_ray_normal(centre)
+	var start := origin
+	if is_instance_valid(_player):
+		start += along * maxf((_player.global_position - origin).dot(along), 0.0)
+	var end := start + along * aim_point_range
+	var query := PhysicsRayQueryParameters3D.create(start, end, aim_point_mask)
+	if is_instance_valid(_player):
+		query.exclude = [_player.get_rid()]
+	var hit := camera.get_world_3d().direct_space_state.intersect_ray(query)
+	var point: Vector3 = hit["position"] if not hit.is_empty() else end
+	var nearest := (_pivot() - origin).dot(along) + aim_point_min_distance
+	if (point - origin).dot(along) < nearest:
+		point = origin + along * nearest
+	return point
+
+
+## A swap is keeping its aim point under the crosshair now.
+func aim_anchored() -> bool:
+	return _anchored
+
+
+## The world point the last swap kept (or keeps) under the crosshair.
+func anchor_point() -> Vector3:
+	return _anchor_point
 
 
 ## The distance behind the target now: `distance`, farther while sprinting, `fire_distance` while
@@ -475,12 +587,8 @@ func current_offset() -> Vector3:
 ## `shoulder_offset` (`aim_shoulder` while aiming, when `aim_shifts_shoulder` is on) and
 ## `vertical_offset`.
 func current_view_offset() -> Vector2:
-	var width := shoulder_offset
-	if aim_shifts_shoulder:
-		width = lerpf(shoulder_offset, aim_shoulder, _eased(_aim_blend))
-	var side := 2.0 * smoothstep(0.0, 1.0, (_shoulder_pos + 1.0) * 0.5) - 1.0
 	var slide := shaker.view_offset() if is_instance_valid(shaker) else Vector2.ZERO
-	return Vector2(side * width, vertical_offset) + slide
+	return _shoulder_view() + slide
 
 
 ## The shake right now as turns in degrees (x pitch, y yaw, z roll): the sprint shake and any
@@ -642,6 +750,19 @@ func _forward_blend() -> void:
 # changes, so the resource is kept equal to the view and nothing resets it.
 func _forward_view() -> void:
 	var view := current_view_offset()
+	# While a swap turns the view, the turn reaches the Camera node when the host next moves it,
+	# which is a physics tick when it follows a physics body: the offset waits for that tick too,
+	# or the picture (and a shot's ray) would have the new offset with the old turn for a frame.
+	if _view_waits and _host_steps_in_physics():
+		_view_due = view
+		_view_pending = true
+		return
+	_write_view(view)
+
+
+# Puts `view` on the lens resource and the Camera node's H and V Offset.
+func _write_view(view: Vector2) -> void:
+	_view_pending = false
 	var lens: Camera3DResource = null
 	if is_instance_valid(_pcam):
 		lens = _pcam.camera_3d_resource
@@ -655,6 +776,86 @@ func _forward_view() -> void:
 			camera.h_offset = view.x
 		if not is_equal_approx(camera.v_offset, view.y):
 			camera.v_offset = view.y
+
+
+# The shoulder's part of the view offset (no shake): the side times the width, and the height.
+func _shoulder_view() -> Vector2:
+	var width := shoulder_offset
+	if aim_shifts_shoulder:
+		width = lerpf(shoulder_offset, aim_shoulder, _eased(_aim_blend))
+	var side := 2.0 * smoothstep(0.0, 1.0, (_shoulder_pos + 1.0) * 0.5) - 1.0
+	return Vector2(side * width, vertical_offset)
+
+
+# A swap starting now keeps its aim point: the anchor is on, and the player is aiming (the aim or
+# fire button held, as for `aim_shoulder_time`) or `keep_aim_when_not_aiming` is on. A swap while
+# running and not aiming must not turn the view: the run follows the view's turn.
+func _keeps_aim_now() -> bool:
+	if not keep_aim_on_swap:
+		return false
+	return keep_aim_when_not_aiming or (is_instance_valid(_player) and _player.aiming)
+
+
+# Turns the view so the swap's aim point stays under the crosshair at the side offset the view
+# has now. The turn is the difference between the view that puts the point on the crosshair from
+# the offset now and the one from the offset the swap started at (both about where the arm starts
+# now), so the player's look and the character's moves add to it and nothing builds up.
+func _keep_aim() -> void:
+	if not _anchored:
+		return
+	if not keep_aim_on_swap:
+		_anchored = false
+		return
+	var pivot := _pivot()
+	var view := _shoulder_view()
+	var now := _view_through(_anchor_point, pivot, view.x, view.y)
+	var start := _view_through(_anchor_point, pivot, _anchor_from, view.y)
+	var turn := (
+		Vector2(rad_to_deg(angle_difference(start.x, now.x)), rad_to_deg(now.y - start.y))
+		* swap_anchor_strength
+	)
+	yaw = wrapf(yaw + turn.x - _anchor_turn.x, -180.0, 180.0)
+	pitch += turn.y - _anchor_turn.y
+	_anchor_turn = turn
+	if is_equal_approx(_shoulder_pos, _shoulder_side()):
+		_anchored = false
+
+
+# The yaw and pitch (radians, the rig's senses: pitch positive looks down) that put `point` on the
+# crosshair of a camera turning about `pivot` with the view shifted `side` to the right and
+# `height` up (the Camera node's H and V Offset): the crosshair's ray is the view's axis moved by
+# the offsets, so `point` must sit `side` to the right of the axis and `height` above it.
+static func _view_through(point: Vector3, pivot: Vector3, side: float, height: float) -> Vector2:
+	var to := point - pivot
+	var flat := Vector2(to.x, to.z).length()
+	var across := asin(clampf(side / maxf(flat, 0.001), -0.95, 0.95))
+	var ahead := flat * cos(across)
+	var reach := Vector2(ahead, to.y).length()
+	var lift := asin(clampf(height / maxf(reach, 0.001), -0.95, 0.95))
+	return Vector2(atan2(-to.x, -to.z) + across, lift - atan2(to.y, ahead))
+
+
+# The Phantom Camera host moves the Camera node in its physics step (it does when the camera
+# follows a physics body, or with physics interpolation on), not in its process step.
+func _host_steps_in_physics() -> bool:
+	if not is_instance_valid(camera):
+		return false
+	for child in camera.get_children():
+		if child is PhantomCameraHost:
+			return bool(child.get(&"_follow_target_physics_based"))
+	return false
+
+
+# Where the camera turns about: the spring arm's origin (the target plus `offset`, damped).
+func _pivot() -> Vector3:
+	var arm: SpringArm3D = null
+	if is_instance_valid(_pcam):
+		arm = _pcam.get_parent() as SpringArm3D
+	if arm != null and arm.is_inside_tree():
+		return arm.global_position
+	if is_instance_valid(target):
+		return target.global_position + offset
+	return global_position
 
 
 # -1 for the left shoulder, 0 for the center, 1 for the right.

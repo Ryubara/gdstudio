@@ -1,7 +1,8 @@
 """GDStudio's Claude Code hook dispatcher: the one entry point for every hook event (docs/studio/hooks.md).
 
 `.claude/settings.json` sends every event here (a game repository through its `launch.py`). Each event runs the guards
-registered for it in `guards.py`; every reason they give is returned at once, so an agent fixes all of them in one go.
+registered for it in the `guards` package (one module per job, docs/studio/hooks.md#modules); every reason they give
+is returned at once, so an agent fixes all of them in one go.
 
 Answers follow Claude Code's JSON protocol with exit code 0: `permissionDecision: deny` before a tool runs, `decision:
 block` at Stop and SubagentStop, `additionalContext` at SessionStart, UserPromptSubmit, SubagentStart and PostToolUse.
@@ -24,7 +25,7 @@ from typing import Any
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import guards  # noqa: E402  (after the path insert, so the module beside this file is found)
+import guards  # noqa: E402  (after the path insert, so the package beside this file is found)
 
 DEFAULTS = HERE / "hooks.toml"
 # The events that only add context, and the guard that writes it.
@@ -51,6 +52,7 @@ def answer(payload: dict[str, Any], config: dict[str, Any]) -> dict[str, Any] | 
     event = payload.get("hook_event_name")
     if event == "PreToolUse":
         reasons = guards.pre_tool_use(payload, config)
+        warnings = guards.take_warnings()  # a guard that failed open says so: the user sees it, and so does the model
         if reasons:
             text = "Refused by GDStudio's hooks:\n" + "\n".join(f"- {r}" for r in reasons)
             return {
@@ -59,6 +61,12 @@ def answer(payload: dict[str, Any], config: dict[str, Any]) -> dict[str, Any] | 
                     "permissionDecision": "deny",
                     "permissionDecisionReason": text,
                 }
+            }
+        if warnings:
+            text = "GDStudio's hooks let this through unchecked:\n" + "\n".join(f"- {w}" for w in warnings)
+            return {
+                "systemMessage": text,
+                "hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": text},
             }
     elif event in ("Stop", "SubagentStop"):
         reason = (guards.stop if event == "Stop" else guards.subagent_stop)(payload, config)

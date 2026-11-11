@@ -96,10 +96,10 @@ func test_another_version_or_another_map_is_refused() -> void:
 	elsewhere.say_hello("Away", _rig.server.world_hash ^ 0x5A5A)
 	var all_closed := func() -> bool: return old.closed and newer.closed and elsewhere.closed
 	assert_bool(await _rig.until(all_closed)).is_true()
-	# Version 4 (the shot's weapon and the hit's health, #906) is the oldest this server takes: a
-	# version 3 client is refused.
-	assert_int(NetWire.VERSION).is_equal(4)
-	assert_int(NetWire.MIN_VERSION).is_equal(4)
+	# Version 6 (the TICK's AI block and the HELLO's flags, #970) is the oldest this server takes:
+	# a version 5 client is refused.
+	assert_int(NetWire.VERSION).is_equal(6)
+	assert_int(NetWire.MIN_VERSION).is_equal(6)
 	assert_int(old.refusal).is_equal(NetWire.Refusal.VERSION)
 	assert_int(newer.refusal).is_equal(NetWire.Refusal.VERSION)
 	assert_int(elsewhere.refusal).is_equal(NetWire.Refusal.WORLD)

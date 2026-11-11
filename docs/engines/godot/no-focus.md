@@ -70,6 +70,11 @@ parent's id that a new program can be given (kit #229).
   request, the third fix of one test in a day. **Seen:** kit #227, #229, 2026-11-02 (fix: `python/tests/process_tree.py`,
   tested on a planted process table; on a third fix of one test, re-read the evidence before changing the design).
 
+- **Approach:** Give a browser sweep that can run past 15 minutes its own `gds quiet --timeout <seconds> --`, above
+  the sweep's measured length. **Watch out for:** `gds quiet` ends the whole tree at the same 900 s default as `gds
+  godot`, so a longer sweep stops with exit code 124 and its later probes never run. **Seen:** gdstudio #1153 (PR
+  #1167), 2026-11-11.
+
 ## How it works {#how-it-works}
 
 `gds godot` creates a second **Windows desktop** (`gds-quiet`, in the same window station) and starts Godot on it
@@ -194,6 +199,11 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   was found afterwards: GdUnit minimizes the window after every suite ([A minimized window draws
   nothing](minimized-window.md)); `-a file.gd:test_name` runs nothing of that file when more than one `-a` is
   given, so bisect by suite ([Running GdUnit4](running-gdunit.md#logs)).
+- **Keeping the pinned Godot in a variable works with the hook.** This passes:
+  `GODOT="$(uv run --project <kit>/python gds tool path godot)" && "$GODOT" --headless --path game`.
+  Without `--headless` the second part is refused like any windowed start. The hook used to read the assignment
+  word as a Godot start because shlex leaves a quoted `$(...)` value as one word with spaces and the assignment pattern
+  wanted none (fixed, kit #1004); a `NAME=value` word is never the program, whatever it holds.
 - **A suite can fail in a window and pass headless for a switch of the game's own.** Headless has a 64 pixel window and
   no loading screen or arrival show, so a menu shell never goes compact and a night starts with the player in control;
   a window has all three. Before a pull request, run the suites that open a menu shell or a night once through
@@ -208,9 +218,16 @@ script), and the Godot editor opened by a person or by the MCP add-on.
 - **Approach:** Switch off the driven player's device input in every capture. **Watch out for:** the real mouse of the
   person at the machine turned a capture's camera by up to 65 degrees. **Seen:** Deadnight #364, 2026-11-01 (fix: two
   runs of the same capture script differed).
-- **Approach:** Keep the pinned Godot's path in a variable whose name does not start with `godot` (`G="$(gds tool path
-  godot)"; "$G" --headless ...`), use `export GODOT=...`, or start it from a script file. **Watch out for:** the window
-  guard reads the first word of each command, and a bare assignment `GODOT="$(... gds tool path godot)"` reads as a
-  program named `godot=...` with no `--headless`, so the line is refused as a windowed start even when the Godot after
-  it is headless. **Seen:** gdstudio #997, 2026-11-10 (the cause found in `launches_godot`; the fix is
-  gdstudio #1004).
+- **Approach:** Make a bot that presses input actions (`Input.action_press`) press a held action again whenever
+  `Input.is_action_pressed` reads it up, and keep its one-tick presses (fire, interact) apart from its holds. **Watch
+  out for:** under `gds godot` a client's walk stopped half-way through its route and never went on: the engine lets
+  go of every pressed action when its window loses the focus, a window on the private desktop does now and then, and
+  the bot believed its key still down. The same bot ran its whole route headless and in a test. **Seen:** gdstudio
+  #909, 2026-11-11 (fix: `PlayerBot._hold`; `test_a_hold_the_window_let_go_of_is_pressed_again`).
+- **Approach:** Keep the pinned Godot's path in any variable (`GODOT="$(... gds tool path godot)" && "$GODOT"
+  --headless ...`), or start it from a script file; the guards drop a leading `NAME=value` word before naming the
+  program ([what the hooks refuse](../../studio/hooks.md#what-it-refuses)). **Watch out for:** until gdstudio #1004 the
+  window guard read a bare assignment `GODOT="$(...)"` as a program named `godot=...` with no `--headless` and refused
+  the line, even with a headless Godot after it; agents worked round it with another name or `export`, and #887 called
+  the program by its path. **Seen:** gdstudio #997, 2026-11-10 (the cause found in `launches_godot`); gdstudio #887,
+  2026-11-10 (fix: gdstudio #1004, PR #1007).

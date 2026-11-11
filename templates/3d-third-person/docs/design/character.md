@@ -199,7 +199,16 @@ needs the arm half up, so a tap shorter than about 75 ms shoots nothing).
 **Where each framing value lives.** The distance is on `PlayerCamera`. The over-the-shoulder view is the `Camera` node's
 own **H Offset** and **V Offset** (they shift the view without moving the camera or its wall cast), and `PlayerCamera`
 sets them from its Shoulder group: `shoulder` (left, center, right; Q or a click of the right stick swaps left and
-right), `shoulder_offset` (0.5 m to the side), `vertical_offset` and `shoulder_time` (the seconds a swap takes). Tune
+right), `shoulder_offset` (0.5 m to the side), `vertical_offset` and `shoulder_time` (the seconds a swap takes, 0.3; 0
+swaps at once). A swap made while aiming keeps what the crosshair is on under it (Shoulder swap subgroup; a swap while
+walking or sprinting only slides the view, so the run keeps its way, unless `keep_aim_when_not_aiming`, off, is on):
+`keep_aim_on_swap` (on) finds
+the point under the crosshair when the swap starts (what the weapon would hit, or the ray's end at `aim_point_range`,
+100 m, when nothing is there; never nearer than `aim_point_min_distance`, 2 m, past the arm, on `aim_point_mask`) and
+turns the view inward as it slides so the point stays put, so a shot fired mid-swap goes there; `aim_shoulder_time`
+(0.15 s) is the swap's time while aiming; `swap_anchor_strength` (1) is how much of that turn is made; `swap_look` says
+what the player's own look does during the swap: `ADD` (the default) turns the view by it on top of the anchor, `RELEASE`
+does too until it adds up to `swap_release_angle` (4 degrees) and then lets the point go. Tune
 the shoulder there, in the editor or in the remote inspector while the game runs; nothing else writes those two values
 (the Phantom Camera host copies its lens resource onto `Camera` whenever it changes, so `PlayerCamera` keeps the
 resource equal to them). With `aim_shifts_shoulder` on, aiming also moves the view to `aim_shoulder`. The settings are
@@ -279,12 +288,15 @@ with no point: it takes the health too, stops the character for the stun time an
 `CharacterAnimation` builds the player's `AnimationTree` in code, when the game starts and when the player scene is open
 in the editor (it is a `@tool` script), so the AnimationTree panel shows the graph with no warning. Nothing generated is
 saved into a scene file. The body is a state machine: `ground` (a blend space on ground speed: idle, walk, run, sprint),
-`crouch` (a blend space of the crouch idle and the crouch walk), `prone` (the prone idle and the crawl, blended by
-ground speed; the crawl plays at the pace of its stride, `crawl_clip_speed`), `jump`, `fall`, `land`, `push` and the
-slide's three clips (`slide_start`, which runs into the `slide` loop, and `slide_exit`, played when a slide ends
-standing, which runs into `ground`). Until the template's own prone clips land (kit #1009), `prone` plays the swim
-stroke laid on the ground by the Animation's placeholder pose (`prone_pose_offset`, `prone_pose_lean`); with the real
-clips, set `prone_idle_clip`, `crawl_clip`, `to_prone_clip`, `to_crouch_clip` and `crawl_clip_speed`, and zero the pose.
+`crouch` (a blend space of the crouch idle and the crouch walk), `prone` (the template's own prone idle and crawl,
+`prone/Prone_Idle` and `prone/Crawl_Fwd` from `assets/animation/prone/`: the crawl replaces the idle over `blend_time`
+as soon as the body moves and plays at `ground speed / crawl_clip_speed` (0.618 m/s, its stride), backwards when the
+body moves away from the way it faces), `jump`, `fall`, `land`, `push` and the slide's three clips (`slide_start`,
+which runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs into `ground`).
+Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up
+`prone/Prone_To_Crouch` for its `exit_time`. Lying, the weapon is put away (its model hidden, the grip off) because the
+fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male mannequin's,
+kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file.
 Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the locomotion clip drives the
 arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do unarmed) and only the gripping hand
 (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
@@ -367,6 +379,17 @@ with a `HoldArm` and moves the pistol's `Slide` node, as `tests/fixtures/rack_st
 hands are within the hold's 2 mm and 5 mm on every frame (`tests/gameplay/test_pistol_rack.gd`). The folder's
 `README.md` has the beats, the numbers, why it is an overhand rack and how to build it;
 `tools/capture/rack_closeups.tscn` films it.
+
+### Vault clips {#vault-clips}
+
+`assets/animation/vault/vault.glb` holds three clips of the template's own, made for the vault (the Universal
+Animation Library has none): `Vault_Low` (a one-handed speed vault over about 0.5 to 1.0 m; the right hand stays free
+for the pistol), `Vault_High` (both hands, about 1.0 to 1.3 m; no weapon in the hands) and `Vault_Land` (the step
+back into the sprint). They are in place like the library's clips, and `vault_clips.json` beside them gives each
+clip's reference obstacle, the speed the body is moved at and the times the hand and the feet touch, for the code
+that moves the body over an obstacle of another size. No scene uses them yet: add the file to an `AnimationPlayer` as
+a library (`vault`) and play `vault/Vault_Low`. `tools/capture/vault_study.tscn` plays them over their reference boxes,
+`tests/assets/test_vault_clips.gd` checks them, and the folder's README says how they are rebuilt.
 
 ### Prone and crawl clips {#prone-clips}
 

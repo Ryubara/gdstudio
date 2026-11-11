@@ -78,12 +78,19 @@ const VAULT_REACH := 1.2
 const SIDESTEP_ON := 0.3
 ## Within this many metres of the path's end it steers at every step.
 const STEER_EVERY_STEP_WITHIN := 2.0
+## The longest a steer holds (seconds) while nothing on the way calls for the next one.
+const MOST_HOLD := 0.5
 ## Following: metres past the band before it walks again.
 const FOLLOW_SLACK := 0.5
+## A body this far (metres, on the ground) off the stretch it walks has strayed: it asks again.
+const STRAY := 1.0
+## Following: a target this far (metres) from where the last path was asked for is asked again.
+const FOLLOW_MOVED := 0.5
 
-## A bench turns this on to add the microseconds every navigator's step takes to `spent_usec`.
-static var measuring := false
-static var spent_usec := 0
+## A bench turns this on to time the navigators with one clock read a tick: `navigate()` only
+## notes the seconds, and `step_held()` steps every navigator noted since, in one loop.
+static var holding := false
+static var _held: Array[AiNavigator] = []
 static var _spawned := 0
 static var _class_maps: Dictionary[int, RID] = {}
 
@@ -95,8 +102,13 @@ static var _class_maps: Dictionary[int, RID] = {}
 ## as AGENT, repeatable). AGENT: a `NavigationAgent3D` child, for its RVO avoidance.
 @export var backend := Backend.SERVER
 ## Seconds between two path queries (each character on a phase of its own); 0: the profile's
-## `repath_seconds` (0.25 s).
+## `repath_seconds` (0.25 s). A query falls due only when its answer can differ: a new goal, a
+## target that moved, a map that changed, a body off its path, a path found blocked, a stuck rung,
+## or `refresh_seconds` gone by.
 @export_range(0.0, 10.0, 0.05, "suffix:s") var repath_seconds := 0.0
+## Seconds after which a path is asked again although nothing said the answer changed (the net
+## for what the map does not say); 0: never.
+@export_range(0.0, 30.0, 0.5, "suffix:s") var refresh_seconds := 4.0
 ## How near (metres, on the ground) the goal counts as reached.
 @export_range(0.05, 5.0, 0.05, "suffix:m") var arrive_distance := 0.5
 ## How near (metres) a point of the path counts as passed.
@@ -147,6 +159,8 @@ var watch := AiStuckWatch.new()
 var ladder := AiStuckLadder.new()
 ## Path queries asked since the start.
 var path_queries := 0
+## Steers since the start (each one writes the controller's channel anew).
+var steers := 0
 ## The last failure (`Failure`), or -1.
 var last_failure := -1
 ## Why the last goal was refused or given up, for the overlay.
@@ -194,6 +208,14 @@ var _steer_at := Vector3.INF
 var _draw: AiNavDebug
 var _map_ready := false
 var _unsteered := 0.0
+var _hold := 0.0
+# Seconds after the last query (or look) the next is due, and whether a path check is running.
+var _query_after := 0.0
+var _checking := false
+var _held_seconds := -1.0
+var _asked_iteration := -1
+var _asked_target := Vector3.INF
+var _asked_at := -INF
 
 
 ## Gives size class `nav_class_wanted` its own map (a big creature's mesh, baked for its radius);
@@ -283,64 +305,92 @@ func finish_link() -> void:
 	_on_link = -1
 
 
+## Steps every navigator whose `navigate()` was held since the last call (`holding`), each with
+## the seconds it was given; returns how many it stepped.
+static func step_held() -> int:
+	# Untyped: a navigator freed since it was held is skipped, not cast.
+	var list: Array = _held
+	_held = []
+	for item: Variant in list:
+		if is_instance_valid(item):
+			var navigator := item as AiNavigator
+			var seconds := navigator._held_seconds
+			navigator._held_seconds = -1.0
+			navigator._navigate(seconds)
+	return list.size()
+
+
 ## One step of the walk, `seconds` after the last (called by the character before its body
 ## steps).
 func navigate(seconds: float) -> void:
+	if holding:
+		if _held_seconds < 0.0:
+			_held_seconds = 0.0
+			_held.append(self)
+		_held_seconds += seconds
+		return
+	_navigate(seconds)
+
+
+func _navigate(seconds: float) -> void:
 	if character == null or _query == null:
 		return
 	_clock += seconds
 	_since_query += seconds
-	_jump_for = maxf(_jump_for - seconds, 0.0)
-	_crouch_for = maxf(_crouch_for - seconds, 0.0)
+	if _jump_for > 0.0:
+		_jump_for = maxf(_jump_for - seconds, 0.0)
+	if _crouch_for > 0.0:
+		_crouch_for = maxf(_crouch_for - seconds, 0.0)
 	# Idle, it leaves the controller alone: a task or a test may drive it.
 	if mode == Mode.IDLE:
 		return
+	# A walker on a ready map skips the call (this runs for every walker at every step).
+	if (mode != Mode.GO_TO or not _map_ready or character.is_dead()) and not _may_walk():
+		return
+	if _since_query >= _query_after:
+		_maybe_query(navigation_map())
+	if mode == Mode.IDLE:
+		return
+	# Most steps end here: the push of the last steer holds and no path check is running.
+	_unsteered += seconds
+	if _unsteered < _hold and not _checking:
+		return
+	_check_and_walk()
+
+
+# False when it may not walk this step (dead, a map not yet ready, following within the band): it
+# stands.
+func _may_walk() -> bool:
 	if character.is_dead():
 		stop()
-		return
-	var map := navigation_map()
-	# A map that has not taken its first iteration answers nothing: wait, never a frame count.
-	if NavigationServer3D.map_get_iteration_id(map) == 0:
-		_release()
-		return
+		return false
 	if not _map_ready:
+		var map := navigation_map()
+		# A map that has not taken its first iteration answers nothing: wait, never a frame count.
+		if NavigationServer3D.map_get_iteration_id(map) == 0:
+			_release()
+			return false
 		_map_ready = true
 		NavigationServer3D.map_set_use_async_iterations(map, false)
 		_start_avoidance(map)
 	if mode == Mode.FOLLOW and not _follow_wants_walk():
 		_release()
-		return
-	var start := Time.get_ticks_usec() if measuring else 0
-	_maybe_query(map)
-	if mode != Mode.IDLE:
-		_check_and_walk(seconds)
-	if measuring:
-		spent_usec += Time.get_ticks_usec() - start
-
-
-# True when nothing calls for a steer at this step: the walk goes on as it was.
-func _cruising() -> bool:
-	return (
-		_on_link < 0
-		and not ladder.is_climbing()
-		and _jump_for <= 0.0
-		and path.has_points()
-		and path.left(character.global_position) > STEER_EVERY_STEP_WITHIN
-	)
+		return false
+	return true
 
 
 # The body-ray check of the path (as far as the budget allows this step), then the walk.
-func _check_and_walk(seconds: float) -> void:
-	if not _check.is_done(path):
+func _check_and_walk() -> void:
+	if _checking:
 		_check.run(path, character, character.budget)
 		if _check.is_done(path):
+			_checking = false
 			_judge_check()
 			if mode == Mode.IDLE:
 				return
-	# Between two steers the body keeps the push it was given; near the end, on a link, while
-	# stuck or jumping, it steers at every step.
-	_unsteered += seconds
-	if _unsteered < steer_seconds and _cruising():
+	# Between two steers the body keeps the push it was given (`_hold`, set by the last steer);
+	# near the end, on a link, while stuck or jumping, it steers at every step.
+	if _unsteered < _hold:
 		return
 	_walk(_unsteered)
 	_unsteered = 0.0
@@ -383,6 +433,7 @@ func _begin(new_mode: Mode, point: Vector3, speed: float) -> void:
 	_blocks = 0
 	_link_waiting = false
 	_on_link = -1
+	_hold = 0.0
 	path.clear()
 	watch.clear()
 	ladder.reset()
@@ -394,8 +445,9 @@ func _repath_interval() -> float:
 	return character.profile.repath_seconds if character.profile != null else 0.25
 
 
-# Asks for a path when one is due, never sooner than `repath_seconds` after the last, and only
-# when the shared budget allows (a refusal tries again at the next step).
+# Asks for a path when one is due, never sooner than `repath_seconds` after the last, only when
+# its answer can differ (`_answer_may_differ`), and only when the shared budget allows (a refusal
+# tries again at the next step).
 func _maybe_query(map: RID) -> void:
 	var interval := _repath_interval()
 	if _since_query < interval:
@@ -403,16 +455,60 @@ func _maybe_query(map: RID) -> void:
 	# On a link the body is off the mesh: a path asked from there starts back at the link.
 	if _link_waiting or _on_link >= 0:
 		return
+	if not _answer_may_differ(map):
+		# Looked at again an interval later, not at every step.
+		_since_query = 0.0
+		_query_after = interval
+		return
 	if character.budget != null and not character.budget.take_path():
 		return
 	_query_now(map, interval)
 
 
+# True when a new query could answer differently from the path it walks: the same map asked
+# again from a point on the same path gives the same route, and asking costs more than all the
+# rest of the step (kit #1062).
+func _answer_may_differ(map: RID) -> bool:
+	if _want_query or not path.has_points() or _check.blocked_at >= 0:
+		return true
+	if refresh_seconds > 0.0 and _clock - _asked_at >= refresh_seconds:
+		return true
+	if NavigationServer3D.map_get_iteration_id(map) != _asked_iteration:
+		return true
+	if (
+		mode == Mode.FOLLOW
+		and target.distance_squared_to(_asked_target) > FOLLOW_MOVED * FOLLOW_MOVED
+	):
+		return true
+	return _strayed(character.global_position)
+
+
+# True when the body at `at` is more than `STRAY` off the stretch it walks, on the ground, or a
+# storey off it.
+func _strayed(at: Vector3) -> bool:
+	if path.is_finished() or path.index == 0:
+		return false
+	var from := path.points[path.index - 1]
+	var to := path.points[path.index]
+	var along := AiNavPath.flat(to - from)
+	var offset := AiNavPath.flat(at - from)
+	var share := 0.0
+	if along.length_squared() > 0.0001:
+		share = clampf(offset.dot(along) / along.length_squared(), 0.0, 1.0)
+	if (offset - along * share).length_squared() > STRAY * STRAY:
+		return true
+	return absf(lerpf(from.y, to.y, share) - at.y) > AiNavPath.HEIGHT_REACH
+
+
 func _query_now(map: RID, interval: float) -> void:
 	path_queries += 1
+	_asked_at = _clock
+	_asked_iteration = NavigationServer3D.map_get_iteration_id(map)
+	_asked_target = target
 	# Each character repaths on its own phase: the first answer after a goal waits a share of
 	# the interval more, so a crowd given goals on one tick spreads its queries.
 	_since_query = -_phase * interval if _first_since_goal else 0.0
+	_query_after = interval
 	_first_since_goal = false
 	_want_query = false
 	if avoidance == AiNavAvoidance.Mode.SEPARATION:
@@ -466,9 +562,11 @@ func _query_now(map: RID, interval: float) -> void:
 	var swap := path
 	path = _fresh
 	_fresh = swap
+	_hold = 0.0
 	if changed or _check.blocked_at >= 0:
 		_check.reach = check_reach
 		_check.begin()
+		_checking = true
 		_vaulted_at = Vector3.INF
 	if rerouted:
 		watch.rebase(path.left(at))
@@ -499,6 +597,8 @@ func _judge_check() -> void:
 
 
 func _walk(seconds: float) -> void:
+	_hold = 0.0
+	steers += 1
 	var controller := character.ai_controller()
 	if controller == null:
 		return
@@ -531,7 +631,8 @@ func _walk(seconds: float) -> void:
 	_steer_at = steer
 	var wish := AiNavPath.flat(steer - at).normalized()
 	var strength := clampf(speed_scale, 0.0, 1.0)
-	var sprint := speed_scale > 1.0 or _on_link >= 0 or _heading_to_link(at)
+	var to_link := _heading_to_link(at)
+	var sprint := speed_scale > 1.0 or _on_link >= 0 or to_link
 	strength = _climb_cap(strength, at, steer)
 	if ladder.rung == AiStuckLadder.Rung.SIDESTEP and ladder.rung_seconds < ladder.sidestep_seconds:
 		# Off to the side and a little on, at a full push, so a slow walker clears the block too.
@@ -551,11 +652,39 @@ func _walk(seconds: float) -> void:
 	controller.crouch = (
 		_crouch_for > 0.0 or (character.crouching and not character.has_room_to_stand())
 	)
-	_judge_stuck(seconds, speed if wish != Vector3.ZERO else 0.0, at)
-
-
-func _judge_stuck(seconds: float, speed: float, at: Vector3) -> void:
 	var left := path.left(at)
+	_judge_stuck(seconds, speed if wish != Vector3.ZERO else 0.0, at, left)
+	_hold = 0.0 if to_link else _steer_hold(at, speed, left)
+
+
+# How long the push just given may hold before the next steer: 0 (every step) near the end, on or
+# heading to a link, while stuck, jumping or pushed by avoidance; otherwise until the body may
+# reach the next point of the path (or a vault, or the last 2 m), at least `steer_seconds` and at
+# most `MOST_HOLD`. A body on a long stretch is not steered 20 times a second (kit #1062).
+func _steer_hold(at: Vector3, speed: float, left: float) -> float:
+	if (
+		mode == Mode.IDLE
+		or _on_link >= 0
+		or ladder.is_climbing()
+		or _jump_for > 0.0
+		or path.is_finished()
+		or left <= STEER_EVERY_STEP_WITHIN
+	):
+		return 0.0
+	if avoidance != AiNavAvoidance.Mode.OFF:
+		return steer_seconds
+	var next := path.points[path.index]
+	var room := minf(
+		Vector2(next.x - at.x, next.z - at.z).length() - path_desired_distance,
+		left - STEER_EVERY_STEP_WITHIN
+	)
+	if _check.vault_at.is_finite() and _check.vault_at != _vaulted_at:
+		room = minf(room, AiNavPath.flat(_check.vault_at - at).length() - VAULT_REACH)
+	var fastest := maxf(maxf(speed, character.velocity.length()), 0.5)
+	return clampf(room / fastest, steer_seconds, maxf(MOST_HOLD, steer_seconds))
+
+
+func _judge_stuck(seconds: float, speed: float, at: Vector3, left: float) -> void:
 	if watch.sample(seconds, speed, left):
 		ladder.start()
 		_on_rung()

@@ -63,7 +63,7 @@ rules hold in any engine. What a crowd off physics costs, and how Godot's naviga
 
 Who is hostile, neutral or friendly to whom is data, not code: a table of factions and, for every ordered pair, an
 attitude from -100 to 100 with a base and a current value. The rules that keep it readable and cheap, in any engine
-(the Godot template's parts: [Factions and relationships](../engines/godot/third-person/ai.md#relations)):
+(the Godot template's parts: [Factions and relationships](../engines/godot/third-person/ai-relations.md#relations)):
 
 - **Asymmetric.** A toward B is set apart from B toward A: civilians fear soldiers who only distrust them, and the
   player's view of an ally says nothing about the ally's view of the player.
