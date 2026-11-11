@@ -456,12 +456,6 @@ func _get_configuration_warnings() -> PackedStringArray:
 	return PackedStringArray()
 
 
-## Where the character faces on the map plane, for a minimap's arrow (the body turns inside this
-## node).
-func get_minimap_heading() -> Vector2:
-	return Vector2(sin(facing), cos(facing))
-
-
 ## Uses the nearest `Interactable` in front: returns the node it makes usable, or null.
 func interact() -> Node3D:
 	var forward := Vector3.BACK.rotated(Vector3.UP, facing)
