@@ -64,7 +64,7 @@ jobs:
           mkdir -p net_soak
           "$godot" --headless --verbose --path repos/template-check/game --fixed-fps 60 -s res://tools/net/soak.gd \
             2>&1 | tee net_soak/soak.log
-          ! grep -E "ERROR" net_soak/soak.log
+          if grep -E "ERROR" net_soak/soak.log; then exit 1; fi
           grep "^SOAK {" net_soak/soak.log | sed 's/^SOAK /Soak: /' >> "$GITHUB_STEP_SUMMARY"
       - name: The soak's teeth (a client-only wall, a leak; each must fail)
         run: |
