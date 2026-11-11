@@ -511,7 +511,8 @@ other style files stay in the repository, so a game picks another vision by rebu
   `LIBRARY_*` constant, a constant per clip and every clip name to `CharacterClips.ALL` in the same commit, and raise
   the count in `test_character_clips.gd`. **Watch out for:** `test_every_listed_clip_exists_and_every_clip_is_listed`
   counts every clip of every library on the player, so a library added only to `character_dressed.tscn` passes every
-  targeted suite and fails only in the full run. **Seen:** kit #1254, the six melee clips (90 to 96).
+  targeted suite and fails only in the full run. **Seen:** kit #1254, the six melee clips (90 to 96, then 99
+  beside the three vault clips of #1239).
 
 ## The rig, and other proportions {#rig}
 
