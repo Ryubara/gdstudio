@@ -6,6 +6,7 @@
 [ext_resource type="AudioStream" path="res://assets/audio/coin/coin_pickup_3.ogg" id="c3"]
 [ext_resource type="AudioStream" path="res://assets/audio/coin/coin_pickup_4.ogg" id="c4"]
 [ext_resource type="Script" path="res://core/minimap/minimap_marker.gd" id="9_marker"]
+[ext_resource type="PackedScene" path="res://gameplay/net/net_entity.tscn" id="n_entity"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_gem"]
 resource_local_to_scene = true
@@ -50,3 +51,6 @@ script = ExtResource("9_marker")
 color = Color(1, 0.78, 0.2, 1)
 size = 10.0
 kind = &"pickup"
+
+[node name="NetEntity" parent="." instance=ExtResource("n_entity")]
+metadata/net_kind = &"pickup"

@@ -22,8 +22,11 @@ player's own `_physics_process` off. Each physics step:
    forgets its points and takes the next answer whole), and for 0.5 s after it every tick that is not the first of its
    process frame is skipped (the engine's catch-up ticks: no command, no step).
 3. The body moves by the correction under way (`Reconciler.take`).
-4. The controller is sampled, the command numbered and encoded; the body steps once with the decoded packet
-   (`Character.step`, the server's own step), and the point it reached is recorded for that number.
+4. The controller is sampled, the command numbered (by the server tick it is expected to be stepped at:
+   `first_seq` at the WELCOME, moved on when a TICK shows the numbers trail it, `renumbered`; the map's doors and
+   platforms are put at that tick first, [networked map parts](net-world.md#net-world)) and encoded; the body steps
+   once with the decoded packet (`Character.step`, the server's own step), and the point it reached is recorded for
+   that number.
 5. A ping goes out twice a second.
 
 Before the prediction the step plays the server's shots, hits and deaths that are due (`ClientCombat`, [shots

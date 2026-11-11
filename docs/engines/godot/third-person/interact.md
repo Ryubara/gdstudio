@@ -39,3 +39,8 @@ shape, its `interacted` signal connected in the scene to whatever it moves.
   finds it, the warning, the pins); `tests/gameplay/test_hit_and_interact_components.gd` (a `Node3D` with no script
   and an `Interactable` is found and used by a character; a door without one warns and is not found); `test_door.gd`
   (the reach measured from the closed gate).
+- **Approach:** When one part must drive another it does not know the class of (a world of networked map parts), have
+  the driven part hand its functions over as `Callable`s in its `_ready` (`NetEntity.serve`), never look them up by
+  name. **Watch out for:** `NetWorld` first called `has_method(&"net_place")` and `call(&"net_write", ...)` on each
+  part; every suite of the change passed and only the full run's
+  `test_no_part_in_gameplay_finds_another_by_a_method_name` named the nine lines. **Seen:** gdstudio #907, 2026-11-11.
