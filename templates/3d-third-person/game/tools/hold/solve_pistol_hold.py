@@ -65,7 +65,7 @@ FRAME_Y = 0.079
 REFERENCE_SEAT = [0.0234, -0.9867, 0.1609, -0.0805, 0.1585, 0.9841, -0.9965, -0.036, -0.0757, -0.0264, 0.1234, 0.0091]
 # The seat the template ships, as a move from the reference, and the left hand's place as a move from the right
 # hand's mirrored across the pistol.
-SEAT = [0.012, -0.013, 0.0258, -6.0, -25.0, -15.5]
+SEAT = [0.002, -0.017, 0.0287, -4.0, -13.0, -23.0]
 LEFT = [-0.0097, -0.0322, 0.0131, -11.85, -0.84, 26.56]
 # The left hand's place while it pushes the magazine in, as a move from `MAGAZINE_FROM` (about the middle of
 # the magazine's base): rolled about the barrel's line until the heel of the palm is under the base.
@@ -379,10 +379,16 @@ def close_right(scene, quick=False, trigger=True):
             hand.set(finger, best)
             total += cost
             table[finger] = (mode, best, cost)
-    palm = scene.field(hand, hand.points(hand.part["palm"]), hand.part["palm"])
+    palm = right_palm(scene)
     total += abs(palm.min() - TARGET) + 100.0 * relu(-palm.min() - TOL)
     table["palm"] = palm.min()
     return total, table
+
+
+def right_palm(scene):
+    """The distances from all over the right palm's faces to the gun (kit #1213): its vertices alone read the
+    male palm 1.0 mm in where the game's measure, which samples the faces, read 4.9 mm."""
+    return scene.gun(scene.to_gun(scene.right.palm_points()))
 
 
 def seat_from(scene, params):
@@ -407,7 +413,7 @@ def settle(scene, params):
     def gap(z):
         params[2] = z
         scene.seat = seat_from(scene, params)
-        return scene.field(scene.right, scene.right.points(scene.right.part["palm"])).min() - TARGET
+        return right_palm(scene).min() - TARGET
 
     low, high = -0.01, 0.08
     for _ in range(24):
