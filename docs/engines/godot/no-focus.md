@@ -219,9 +219,10 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   go of every pressed action when its window loses the focus, a window on the private desktop does now and then, and
   the bot believed its key still down. The same bot ran its whole route headless and in a test. **Seen:** gdstudio
   #909, 2026-11-11 (fix: `PlayerBot._hold`; `test_a_hold_the_window_let_go_of_is_pressed_again`).
-- **Approach:** Keep the pinned Godot's path in a variable whose name does not start with `godot` (`G="$(gds tool path
-  godot)"; "$G" --headless ...`), use `export GODOT=...`, or start it from a script file. **Watch out for:** the window
-  guard reads the first word of each command, and a bare assignment `GODOT="$(... gds tool path godot)"` reads as a
-  program named `godot=...` with no `--headless`, so the line is refused as a windowed start even when the Godot after
-  it is headless. **Seen:** gdstudio #997, 2026-11-10 (the cause found in `launches_godot`; the fix is
-  gdstudio #1004).
+- **Approach:** Keep the pinned Godot's path in any variable (`GODOT="$(... gds tool path godot)" && "$GODOT"
+  --headless ...`), or start it from a script file; the guards drop a leading `NAME=value` word before naming the
+  program ([what the hooks refuse](../../studio/hooks.md#what-it-refuses)). **Watch out for:** until gdstudio #1004 the
+  window guard read a bare assignment `GODOT="$(...)"` as a program named `godot=...` with no `--headless` and refused
+  the line, even with a headless Godot after it; agents worked round it with another name or `export`, and #887 called
+  the program by its path. **Seen:** gdstudio #997, 2026-11-10 (the cause found in `launches_godot`); gdstudio #887,
+  2026-11-10 (fix: gdstudio #1004, PR #1007).

@@ -236,7 +236,10 @@ Scene dock and checks the result.
   and a full body side by side and fails on the first tick their snapshots differ.
   Keep `character.gd` well under gdlint's 1000 lines
   ([project conventions](../project-conventions.md#rules)): #1041 moved the push, the death, the capsule and the
-  snapshot out when it reached 1000.
+  snapshot out when it reached 1000. It is also at gdlint's twenty public methods (19 on 2026-11-11), so a new public
+  function goes on a module, not on the body; and `test_ragdoll.gd`
+  (`test_the_character_the_player_and_the_ragdoll_pin_their_exports`) pins every export of `Character` and `Player`,
+  so a new export adds its line there in the same change (#1011, #1013).
 
 ## A second kind of controller {#second-controller}
 
