@@ -208,8 +208,8 @@ arms, the feet's turn and the shoulders' set.
 | In the air | never | frames 6 to 10 and 16 to 20 | 4 to 9 and 13 to 18 |
 | Tracks: bones' rotations and the pelvis's place | 52 and 1 | 52 and 1 | 52 and 1 |
 | Keys kept by the build, of every frame | 59 % | 77 % | 74 % |
-| Keys a half-degree reducer keeps on moving bones (budget 40 %) | 31 % | 40 % | 48 % |
-| Key bytes in the file | 14.1 KB | 13.9 KB | 12.0 KB |
+| Keys a half-degree reducer keeps on moving bones (budget 40 %) | 30 % | 40 % | 48 % |
+| Key bytes in the file | 14.1 KB | 13.9 KB | 12.1 KB |
 
 - **Imported size:** the library file is 57.6 KB imported with all four clips (39 KB with the idle alone), 4.8 KB a
   second over its 12.1 s, inside the 6 KB a second budget the test holds the file to. The three gaits add 18.6 KB
