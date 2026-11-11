@@ -81,7 +81,27 @@ with the director (12 at Full in a browser, 60 on the desktop) and the 4 targets
 Compatibility, Jolt, the machine shared with other agents (the rows moved by 15 to 20 % between runs). A browser's
 clock reads in steps of 100 µs, so a think there is read from the tick's total.
 
-SENSES_COST_TABLE
+| Thinks, 4 targets | think mean (p99) | senses a tick | thinks/s | rays/s |
+| --- | ---: | ---: | ---: | ---: |
+| 40, native | 21 µs (60) | 0.14 ms | 400 | 150 |
+| 200, native | 39 µs (215) | 1.3 ms | 2,000 | 473 |
+| 40, Chrome | 52 µs (200) | 0.36 ms | 400 | 150 |
+| 200, Chrome | 48 µs (300) | 1.6 ms | 2,000 | 473 |
+| 40, Chrome 4x | 205 µs (700) | 1.4 ms | 400 | 150 |
+| 200, Chrome 4x | 283 µs (1,600) | 9.7 ms | 2,000 | 473 |
+
+| Crowd: 40 walking | director's step, senses off | on | the senses' share | frame work off / on |
+| --- | ---: | ---: | ---: | ---: |
+| Native (60 at Full) | 1.68 ms | 2.19 ms | 0.37 ms | 3.9 / 4.4 ms |
+| Chrome (12 at Full) | 1.09 ms | 1.35 ms | 0.27 ms | 2.8 / 2.9 ms |
+| Chrome 4x | 5.37 ms | 6.81 ms | 1.07 ms | 31 / 65 ms |
+
+- A think is 20 to 50 µs, most of it GDScript's cost per step (sight 11 µs natively with 4 targets in view, hearing
+  4, the rest 5); rays are about 2 µs each and capped at 8 a tick for all, so rays a second stay flat as the crowd grows.
+- The senses add about a quarter of a millisecond a tick to 40 walkers in Chrome and a millisecond at 4x: the crowd was
+  already at the AI budget (1 ms, 5 ms at 4x) without them, and at 4x the frame was past the tick (31 ms) before the
+  senses, so the 4x frame rows are the catch-up spiral, not the senses' cost. Cutting the think further (a native
+  sight pass, or sight every other think) is a follow-up.
 
 - **Approach:** Bench a sense that loops over a group with the group itself as the crowd (characters among characters,
   not only the 4 targets), and give each think a fast path for what it does not care about (a faction it walks past
