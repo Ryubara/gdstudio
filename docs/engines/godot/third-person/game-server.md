@@ -142,3 +142,46 @@ TLS ends at Railway's edge, so the server speaks plain `ws://` and a client uses
 `rtt_ms_p95`. `ProcessStats` (`gameplay/net/process_stats.gd`) adds to each `stats` line the resident memory
 (`rss_mb`), the process's own part of it (`anon_mb`; the rest is the mapped Godot program, shared and reloadable, and
 a container's memory counts close to `anon_mb`) and the share of one core (`cpu_pct`), read from procfs on Linux.
+
+**Image and start.** 126 MB compressed, 272 MB in layers (the Godot program 146 MB, debian-slim 85 MB, `game/` 24 MB,
+the import 9 MB); a build with no cache takes 23 s locally. From `docker run` to the `listening` line takes 1.0 to
+1.2 s (Godot's own `t` 0.5 s); on Railway 1.1 s from `Starting Container` to `listening`, and 49 to 55 s from
+`railway up` to a live deployment (upload, remote build, push). `docker stop` takes 0.4 s under `tini`; with Godot as
+process 1 it took 10.3 s and ended in a kill (exit 137).
+
+**What it costs on Railway** (us-west2, Intel Xeon Icelake, 48 cores; gdstudio #910, 2026-11-11): 10 minutes each with
+2, 4 and 8 bots of `server_bot.gd` over `wss://` from a machine about 80 ms away, read from the 57 or 58 `stats` lines of
+each run with every bot in (median window, then the range of the windows).
+
+| Players | 0 | 2 | 4 | 8 |
+| --- | ---: | ---: | ---: | ---: |
+| Step p50 (ms) | 0.04 | 0.89 (0.82 to 1.07) | 1.33 (1.22 to 1.82) | 2.28 (2.06 to 2.84) |
+| Step p95 (ms) | 0.07 | 1.69 (1.29 to 2.65) | 2.48 (1.88 to 5.32) | 4.16 (3.36 to 7.02) |
+| Steps over 6 ms, of 36 000 | | 50 | 179 | 638 (1.8%) |
+| Share of a core | 5.4% | 10.4% | 13.2% | 18.8% |
+| Resident / own memory (MB) | 145.6 / 75.9 | 145.6 / 75.9 | 145.6 / 75.9 | 145.6 / 75.9 |
+| Out (payload B/s) | 0 | 2 144 | 7 168 | 25 854 |
+| Down / up a bot (B/s, frames included) | | 1 071 / 913 | 1 791 / 913 | 3 230 / 913 |
+| Connect (ms, TLS and WebSocket included) | | 325 | 320 to 416 | 273 to 370 |
+| Round trip p50 / p95 (ms) | | 83 / 90 | 82 / 90 | 82 / 89 |
+
+No bot lost its connection, the log held no `kicked` line and no stalled peer, every `left` was a `goodbye`, and a
+hello of version 2 was answered `REFUSED(version)`. The same image on a Ryzen 7 9800X3D (16 cores) under Docker
+Desktop, 8 bots for 60 s: step p50 0.64 to 0.75 ms and p95 1.0 to 1.26 ms with none over budget, 7.0 to 7.7% of a
+core, 145 MB resident and 77 MB own, round trip p50 14 ms; Railway's host steps the same work about 3.4 times slower.
+Memory does not grow with players: the map, the bodies and the engine are there before the first hello, and the own
+part (76 MB) is under the research's 80 MB budget, while the resident size (146 MB) counts the mapped Godot program.
+
+With Godot's default worker pool (a thread a core, 48 there) the same deployment idled at 50 to 62% of a core and ran 8
+bots at 64 to 82%, with the same step times (p50 2.0 to 2.6 ms, p95 3.4 to 6.0 ms): two threads cost a quarter of
+that ([why](../multiplayer.md#headless-server-image)).
+
+- **Approach:** Read a deployed server's step times against its host (`cpu` and `cores` in `listening`) and its p95
+  windows, and budget for the host the game runs on, not the workstation. **Watch out for:** the same image stepped 8
+  players in 0.68 ms median on a desktop and 2.28 ms on Railway's Icelake host, where 1.8% of the steps passed the
+  6 ms budget and a window's p95 reached 7 ms; a budget proved locally was proved for the wrong machine. **Seen:**
+  gdstudio #910, 2026-11-11 (the series above).
+- **Approach:** Probe a WebSocket-only server with a WebSocket client (`server/check.sh`), never with `curl`. **Watch
+  out for:** `curl -I` at the domain answered 502 from Railway's edge and left three engine lines `ERROR: Invalid
+  method or HTTP version` (`wsl_peer.cpp`) with a GDScript backtrace in the server's log, which read like a fault of
+  the server. **Seen:** gdstudio #910, 2026-11-11.
