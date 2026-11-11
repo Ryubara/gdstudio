@@ -62,7 +62,7 @@ func _ready() -> void:
 	_walker.body = player
 	player.add_child(_walker)
 	player.controller = _walker
-	# Beside the rig: the client's world root is the scene the map is in, as on the server.
+	# Beside the rig, in the scene that holds the map.
 	var scene := get_parent().get_parent()
 	remote = RemotePlayers.new()
 	remote.name = &"RemotePlayers"
@@ -72,7 +72,9 @@ func _ready() -> void:
 	client.join_on_ready = false
 	client.player = player
 	client.remote_players = remote
-	client.world_root = scene
+	# The map node hashes the world, as the server's `world_root` (`main.tscn`'s `World`).
+	var map := scene.get_node_or_null(^"World")
+	client.world_root = map if map != null else scene
 	client.player_name = "Browser"
 	client.welcomed.connect(_on_welcomed)
 	client.refused.connect(func(reason: int) -> void: _object.state = "refused %d" % reason)
