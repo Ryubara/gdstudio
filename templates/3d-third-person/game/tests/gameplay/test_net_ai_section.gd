@@ -72,10 +72,13 @@ func test_a_death_a_body_taken_back_and_a_respawn_reach_the_client() -> void:
 	var full := func() -> bool: return grunts.alive.size() == grunts.count
 	assert_bool(await _rig.until(full, 120)).is_true()
 	var grunt := grunts.alive[0]
+	# Its wire id comes with the TICK after it spawned.
+	var held := func() -> bool: return _id_of(grunt) >= 0 and _puppet(_id_of(grunt)) != null
+	assert_bool(await _rig.until(held, 120)).is_true()
 	var id := _id_of(grunt)
-	assert_bool(await _rig.until(func() -> bool: return _puppet(id) != null, 120)).is_true()
 	grunt.die()
-	assert_bool(await _rig.until(func() -> bool: return _puppet(id).is_dead(), 60)).is_true()
+	var fallen := func() -> bool: return _puppet(id) != null and _puppet(id).is_dead()
+	assert_bool(await _rig.until(fallen, 60)).is_true()
 	# The body goes back to the pool: out of the server's tree, so gone from her screen.
 	grunts.release(grunt)
 	assert_bool(await _rig.until(func() -> bool: return _puppet(id) == null, 60)).is_true()
