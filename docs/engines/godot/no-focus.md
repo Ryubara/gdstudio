@@ -194,6 +194,11 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   was found afterwards: GdUnit minimizes the window after every suite ([A minimized window draws
   nothing](minimized-window.md)); `-a file.gd:test_name` runs nothing of that file when more than one `-a` is
   given, so bisect by suite ([Running GdUnit4](running-gdunit.md#logs)).
+- **Keeping the pinned Godot in a variable works with the hook.** This passes:
+  `GODOT="$(uv run --project <kit>/python gds tool path godot)" && "$GODOT" --headless --path game`.
+  Without `--headless` the second part is refused like any windowed start. The hook used to read the assignment
+  word as a Godot start because shlex leaves a quoted `$(...)` value as one word with spaces and the assignment pattern
+  wanted none (fixed, kit #1004); a `NAME=value` word is never the program, whatever it holds.
 - **A suite can fail in a window and pass headless for a switch of the game's own.** Headless has a 64 pixel window and
   no loading screen or arrival show, so a menu shell never goes compact and a night starts with the player in control;
   a window has all three. Before a pull request, run the suites that open a menu shell or a night once through
