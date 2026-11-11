@@ -358,39 +358,14 @@ func aim_ray() -> PackedVector3Array:
 ## Everything the next step reads from this one, in `into` (or a new `CharacterState`).
 func state_snapshot(into: CharacterState = null) -> CharacterState:
 	var kept := into if into != null else CharacterState.new()
-	kept.position = global_position
-	kept.velocity = velocity
-	kept.values.resize(CharacterState.FIELDS.size())
-	for index in CharacterState.FIELDS.size():
-		kept.values[index] = get(CharacterState.FIELDS[index])
-	if weapon != null:
-		weapon.save_step_state(kept.weapon)
-	else:
-		kept.weapon.clear()
-	vault_motion.save_step_state(kept.vault)
-	if loadout != null:
-		loadout.save_step_state(kept.loadout)
-	else:
-		kept.loadout.clear()
-	_prone.save_step_state(kept.prone)
-	_slide.save_step_state(kept.slide)
+	kept.take(self)
 	return kept
 
 
 ## Puts the body back as `kept` holds it (a `state_snapshot()` of this character while it was
 ## alive). The engine's own floor contact is found again by the next step.
 func restore(kept: CharacterState) -> void:
-	global_position = kept.position
-	velocity = kept.velocity
-	for index in CharacterState.FIELDS.size():
-		set(CharacterState.FIELDS[index], kept.values[index])
-	if loadout != null:
-		loadout.load_step_state(kept.loadout)
-	if weapon != null:
-		weapon.load_step_state(kept.weapon)
-	vault_motion.load_step_state(kept.vault)
-	_prone.load_step_state(kept.prone)
-	_slide.load_step_state(kept.slide)
+	kept.put_back(self)
 	_fit_body()
 	_present_facing()
 
@@ -565,26 +540,12 @@ func is_sprinting() -> bool:
 ## The height of the capsule now, in metres: the standing height, or less while it crouches or
 ## lies down or slides.
 func body_height() -> float:
-	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	var crouched := minf(lerpf(tuning.height, _crouch_height(), shrink), _slide.body_height(self))
-	if prone_tuning == null or not _prone.is_prone():
-		return crouched
-	return lerpf(crouched, _prone_height(), _prone.share())
+	return CharacterCapsule.height(self)
 
 
 ## True when nothing is above the character that would stop it from standing up.
 func has_room_to_stand() -> bool:
-	# Geometry, not feel: a probe a little thinner and shorter than the standing capsule, lifted
-	# off the floor, so touching a wall or the ground is not a ceiling.
-	_stand_probe.radius = maxf(tuning.radius - 0.02, 0.05)
-	_stand_probe.height = tuning.height - 0.12
-	var query := PhysicsShapeQueryParameters3D.new()
-	query.shape = _stand_probe
-	var middle := global_position + Vector3.UP * (tuning.height / 2.0 + 0.06)
-	query.transform = Transform3D(Basis.IDENTITY, middle)
-	query.collision_mask = collision_mask
-	query.exclude = [get_rid()]
-	return get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty()
+	return CharacterCapsule.has_room_to_stand(self, _stand_probe)
 
 
 # The command of a body nobody controls: it asks for nothing and looks where it looked.
@@ -674,36 +635,9 @@ func _apply_tuning() -> void:
 	floor_snap_length = tuning.snap_length
 
 
-# Sizes the capsule and the camera's target for the crouch: the capsule keeps its feet on the
-# ground and loses height from the top.
+# Sizes the capsule and the camera's target for the crouch, the slide and the stance.
 func _fit_body() -> void:
-	var capsule := _body.shape as CapsuleShape3D
-	var height := body_height()
-	var lying := _prone.share() if prone_tuning != null else 0.0
-	capsule.radius = lerpf(tuning.radius, _prone_radius(), lying) if lying > 0.0 else tuning.radius
-	capsule.height = height
-	_body.position.y = height / 2.0
-	var shrink := smoothstep(0.0, 1.0, _crouch_amount)
-	var eye := minf(
-		lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink), _slide.camera_height(self)
-	)
-	if lying > 0.0:
-		eye = lerpf(eye, prone_tuning.camera_height, lying)
-	_camera_target.position.y = eye
-
-
-# The shortest the capsule can be: a capsule is at least two radii tall.
-func _crouch_height() -> float:
-	return clampf(tuning.crouch_height, tuning.radius * 2.0 + 0.01, tuning.height)
-
-
-# The lying capsule's radius and height (at least two radii tall, never above the crouch).
-func _prone_radius() -> float:
-	return minf(prone_tuning.radius, tuning.radius)
-
-
-func _prone_height() -> float:
-	return clampf(prone_tuning.height, _prone_radius() * 2.0 + 0.01, _crouch_height())
+	CharacterCapsule.fit(self)
 
 
 # Lies down or gets up as the command asks (`CharacterProne`), and fits the capsule as it goes.
