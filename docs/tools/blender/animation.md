@@ -129,6 +129,21 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   crawling soldier has the forearms 45 to 80 degrees inward and the hands under the chin; every check passed and
   the pose was still wrong. **Seen:** gdstudio #1020, 2026-11-10, a maintainer correction (fix: the research table
   in the clips' README, forearms 40 degrees inward, a hand planting 0.29 m ahead of the other, and a Godot test).
+- **Approach:** Rest a limb that carries weight for long the way a person can keep it up: a forearm lies rolled about
+  45 degrees onto its outer edge (the palm down and in), the hand a fist in line with it, the thumb outside. Palm
+  down is the end of the forearm's twist and bends the wrist back. Set the joint heights from the forearm's and
+  the fist's lowest vertex and look at every finger in close-ups. **Watch out for:** the reworked crawl still lay on
+  flat palms; a fist holds the wrist 6.6 cm up (a flat hand 4.5) and is 8 cm tall palm down, so a hand closing in a
+  transition lifts first (37 mm under otherwise); lower elbows sink the chest until the collarbones push down 11
+  degrees; one fist plays on both mannequins, so its curls sit between their hands. **Seen:** gdstudio #1020,
+  2026-11-11, a maintainer correction (fix: `FOREARM_ROLL`, `FIST_CURL`, `fist_numbers`, a Godot test).
+- **Approach:** Measure every model that plays a clip on its own skinned mesh, part by part against the floor, in
+  the build; read a pose helper's effect off the bone it should move; tell inside from outside with rays, not only
+  the nearest face's normal. **Watch out for:** the clips were held on the male by bone heights only, so nobody saw
+  his forearms 4.6 cm and his thighs 3 cm under the floor (one clip file cannot rest both bodies); the finger curl
+  never ran (`n[:-4]` of `index_01_l` is `index_`); a nearest-normal test called a finger 90 mm inside the thumb's
+  open base. **Seen:** gdstudio #1020, 2026-11-11 (fix: `floor_mm` and `fist_mm` in the build's report; the male's
+  own clip set is a follow-up).
 - **Approach:** Run the limb overlap check on both mannequins inside the build, and when a transition crosses, move
   the keys of the limb that can leave first in time before changing its path. **Watch out for:** the transitions
   passed their own checks with the chest 25 to 50 mm in the front thigh going down and the left arm 51 mm in the

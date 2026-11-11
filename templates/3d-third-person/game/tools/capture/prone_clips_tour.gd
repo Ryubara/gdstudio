@@ -11,7 +11,10 @@
 ## `gds capture frames --project game --seconds 39 --fps 30
 ## --scene res://tools/capture/prone_clips_tour.tscn`
 ## (`MODEL=male` films the male mannequin; `PRONE_SHOTS=<folder>` also saves one still of each
-## clip from the side, the front and the top).
+## clip from the side, the front and the top; `PRONE_FISTS=<folder>` saves one sheet of the
+## forearms and fists instead: the crawl at five moments of its cycle and the prone idle, from the
+## game camera's place and close from the side, the front and above; `PRONE_CLIPS=<res path>`
+## plays another clip file, for a Before).
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node3D
 
@@ -78,7 +81,8 @@ func _ready() -> void:
 	_holder.add_child(_player)
 	_player.root_node = _player.get_path_to(model)
 	_player.add_animation_library(&"ual1", load(UAL1))
-	_player.add_animation_library(&"prone", load(PRONE))
+	var clips := OS.get_environment("PRONE_CLIPS")
+	_player.add_animation_library(&"prone", load(clips if clips != "" else PRONE))
 	_camera = Camera3D.new()
 	add_child(_camera)
 	var layer := CanvasLayer.new()
@@ -88,7 +92,10 @@ func _ready() -> void:
 	_label.add_theme_font_size_override(&"font_size", 34)
 	layer.add_child(_label)
 	var shots := OS.get_environment("PRONE_SHOTS")
-	if shots != "":
+	var fists := OS.get_environment("PRONE_FISTS")
+	if fists != "":
+		_fists.call_deferred(fists, "male" if male else "female")
+	elif shots != "":
 		_stills.call_deferred(shots)
 	else:
 		_next()
@@ -148,6 +155,65 @@ func _stills(folder: String) -> void:
 			await RenderingServer.frame_post_draw
 			var image := get_viewport().get_texture().get_image()
 			image.save_png(folder.path_join("%s_%s.png" % [clip, shot.name]))
+	get_tree().quit()
+
+
+# The forearms and fists as one sheet, a row a view and a column a moment: the crawl at five
+# moments of its cycle (the right arm plants at 0 %, the left at 50 %) and the prone idle.
+func _fists(folder: String, model: String) -> void:
+	var views := [
+		{
+			"name": "game camera, closer",
+			"from": VIEWS[2].from,
+			"at": Vector3(0, 0.2, 0.5),
+			"fov": 16.0
+		},
+		{
+			"name": "side",
+			"from": Vector3(-1.7, 0.22, 0.86),
+			"at": Vector3(0, 0.14, 0.86),
+			"fov": 26.0
+		},
+		{"name": "front", "from": Vector3(0.0, 0.4, 2.5), "at": Vector3(0, 0.12, 0.8), "fov": 19.0},
+		{"name": "above", "from": Vector3(0.01, 1.7, 0.98), "at": Vector3(0, 0, 0.98), "fov": 30.0},
+	]
+	var moments := [
+		[&"prone/Crawl_Fwd", 0.0],
+		[&"prone/Crawl_Fwd", 0.2],
+		[&"prone/Crawl_Fwd", 0.4],
+		[&"prone/Crawl_Fwd", 0.6],
+		[&"prone/Crawl_Fwd", 0.8],
+		[&"prone/Prone_Idle", 0.0],
+	]
+	var tile := Vector2i(640, 360)
+	var sheet := Image.create(
+		tile.x * moments.size(), tile.y * views.size(), false, Image.FORMAT_RGB8
+	)
+	_label.add_theme_font_size_override(&"font_size", 64)
+	for column in moments.size():
+		var clip: StringName = moments[column][0]
+		_player.play(clip)
+		_player.seek(_player.get_animation(clip).length * moments[column][1], true)
+		_player.pause()
+		for row in views.size():
+			var view: Dictionary = views[row]
+			_label.text = (
+				"%s %d %%  (%s, %s)"
+				% [
+					String(clip).get_slice("/", 1),
+					roundi(moments[column][1] * 100.0),
+					view.name,
+					model
+				]
+			)
+			_aim(view)
+			await RenderingServer.frame_post_draw
+			await RenderingServer.frame_post_draw
+			var image := get_viewport().get_texture().get_image()
+			image.convert(Image.FORMAT_RGB8)
+			image.resize(tile.x, tile.y, Image.INTERPOLATE_LANCZOS)
+			sheet.blit_rect(image, Rect2i(Vector2i.ZERO, tile), Vector2i(column, row) * tile)
+	sheet.save_png(folder.path_join("prone_fists_%s.png" % model))
 	get_tree().quit()
 
 

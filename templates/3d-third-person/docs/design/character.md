@@ -354,8 +354,9 @@ worked out on each machine from the aim the game already has; nothing of it goes
 The player does not play them yet (the prone stance is kit #1012); add the library to an `AnimationPlayer` as `prone`
 to use them. The crawl covers 0.618 m/s at its own rate with its elbows and feet planted, the body lies 1.07 m ahead of
 and 1.03 m behind the origin and 0.5 m high, and the clips hold no weapon (both hands are on the floor). The arms move
-the way people crawl: the forearms point inward, the hands lie near the centre line in front of the head, and each
-hand in turn plants ahead of the other, with the opposite leg. The folder's `README.md` has every number, the research
+the way people crawl: the forearms point inward and rest on their outer edges, rolled 45 degrees, the hands are
+fists near the centre line in front of the head, and each fist in turn plants ahead of the other, with the opposite
+leg. The folder's `README.md` has every number, the research
 on how people crawl, how the clips are built and how to render them; `tools/capture/prone_clips_tour.tscn` plays
 them.
 
