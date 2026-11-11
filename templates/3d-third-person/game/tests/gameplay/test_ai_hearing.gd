@@ -185,3 +185,17 @@ func test_the_ray_budget_caps_the_rays_of_200_characters_a_tick() -> void:
 		total += _senses(character).rays_cast
 	assert_int(total).is_less_equal(90 * director.rays_per_tick)
 	assert_int(total).is_greater(60 * director.rays_per_tick)
+
+
+# A character that made a noise and was freed before a listener's think (a despawn, a test that
+# frees a body): the record's faction member went with it, and the listener skips the noise without
+# a script error (it was "previously freed" in `_noise_band`, kit #968's tables found it).
+func test_a_noise_whose_maker_was_freed_is_skipped() -> void:
+	_arena.add_director()
+	var character := _arena.add_watcher("Grunt", Vector3.ZERO, 0.0)
+	var maker := _arena.add_target("Maker", Vector3(0.0, 0.0, -4.0))
+	await _ticks(2)
+	AiNoise.emit(_arena, AiNoise.SHOT, maker.position, 1.0, maker)
+	maker.free()
+	await _ticks(20)
+	assert_int(_senses(character).beliefs.size()).is_equal(0)
