@@ -48,6 +48,7 @@ MOVED: dict[str, str] = {
     "res://core/camera_shake/camera_shake.gd": "res://addons/gds_game/camera_shake/camera_shake.gd",
     "res://core/camera_shake/shake_preset.gd": "res://addons/gds_game/camera_shake/shake_preset.gd",
     "res://ui/menus/screen_host.gd": "res://addons/gds_game/screen_host/screen_host.gd",
+    "res://gameplay/hit_zones/hit_record.gd": "res://addons/gds_game/hits/hit_record.gd",
 }
 #: The game files whose `res://` references a move rewrites (Godot's text formats and scripts).
 REFERENCE_SUFFIXES = frozenset({".gd", ".tscn", ".tres", ".cfg", ".godot", ".gdshader"})

@@ -4,7 +4,7 @@ extends Node3D
 ## What a shot leaves where it lands: a mark on what it hit, an effect and a sound, picked by the
 ## kind of surface. One `Impacts` in a level serves every weapon: a `Projectile` (or anything
 ## else) reports a hit with `impact()` and this makes the rest. It joins the group `impacts`, so
-## a projectile finds it without a path.
+## a projectile finds it without a path (`Impacts.find(self)`).
 ##
 ## A mark is a flat quad (`ImpactMark`) lifted off the surface a little and turned to its normal.
 ## It is a child of the body it hit, so it rides a crate that is pushed or a platform that moves
@@ -18,6 +18,9 @@ extends Node3D
 
 ## A hit made a mark, an effect or a sound.
 signal impact_made(surface: ImpactSurface, collider: Object, point: Vector3, normal: Vector3)
+
+## The group every `Impacts` joins while the game runs.
+const GROUP := &"impacts"
 
 @export_group("Marks")
 ## On: hits leave marks. Off: effects and sounds only.
@@ -73,7 +76,7 @@ func _init() -> void:
 
 func _enter_tree() -> void:
 	if not Engine.is_editor_hint():
-		add_to_group(&"impacts")
+		add_to_group(GROUP)
 
 
 func _ready() -> void:
@@ -99,6 +102,13 @@ func _physics_process(delta: float) -> void:
 			_retire(mark)
 		else:
 			mark.set_fade(_fade_at(mark.age))
+
+
+## The `Impacts` of the level `from` is in (the first in the group), or null when there is none.
+static func find(from: Node) -> Impacts:
+	if from == null or not from.is_inside_tree():
+		return null
+	return from.get_tree().get_first_node_in_group(GROUP) as Impacts
 
 
 ## A hit on `collider` at `point`, the surface facing along `normal`: makes the mark, the effect

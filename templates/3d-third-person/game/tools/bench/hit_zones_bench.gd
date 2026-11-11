@@ -68,7 +68,7 @@ func _spawn(count: int) -> Array[Character]:
 	for index in count:
 		var body := (load(DRESSED) as PackedScene).instantiate() as Character
 		body.position = Vector3((index % 5) * 2.0 - 4.0, 0.0, floorf(index / 5.0) * -3.0)
-		body.health_enabled = false
+		Health.of(body).enabled = false
 		add_child(body)
 		bodies.append(body)
 	for _tick in WARM_TICKS:

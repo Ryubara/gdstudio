@@ -42,7 +42,9 @@ class Spare:
 		if simulator.is_inside_tree():
 			if simulator.is_simulating_physics():
 				simulator.physical_bones_stop_simulation()
-			simulator.get_tree().call_group(&"impacts", &"clear_marks_on", simulator)
+			var impacts := Impacts.find(simulator)
+			if impacts != null:
+				impacts.clear_marks_on(simulator)
 			for other in ignored:
 				if is_instance_valid(other):
 					simulator.physical_bones_remove_collision_exception(other.get_rid())
