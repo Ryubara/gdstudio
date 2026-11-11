@@ -15,7 +15,7 @@ twelve steps are lower than its step height and the ramp is gentler than its slo
 | Tower platform and stairs, bridge, ramp | `Landings/` | A 3 m platform reached by twelve steps, two raised blocks and a ramp up to them. |
 | A room with a roof opening | `Room/` | A closed room with a doorway and a baked lamp: the lightmap in a dark place. |
 | Cover, jump blocks, columns | `Cover/`, `Steps/`, `Columns/` | Crates and low walls, blocks of 0.5 to 2 m, round pillars. |
-| Doors, pressure pad | `Doors/`, `Triggers/` | A `Door` that opens when the pad's `TriggerZone` is stepped on, and one that opens when a body comes near. |
+| Doors, pressure pad | `Doors/`, `Triggers/` | A `Door` that opens when the pad's `TriggerZone` is stepped on, and one that opens when a body comes near. Online the server senses the pad and every screen paints its plate from the server's word (the pad's `NetEntity` child, `trigger_zone_net.tscn`). |
 | Moving platform | `Platforms/` | A `MovingPlatform` that carries what stands on it. |
 | Pickups | `Pickups/` | `Pickup` coins and gems that spin, say who took them and may come back. |
 | Spawn points | `Spawns/` | `SpawnPoint` markers in groups (`player`, `wave`). The character starts at the first `player` one: on the dais, facing into the map. |

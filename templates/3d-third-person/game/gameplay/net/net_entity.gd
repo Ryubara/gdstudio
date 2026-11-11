@@ -2,7 +2,9 @@ class_name NetEntity
 extends Node
 ## Puts the map component it sits under (its parent: a `Door`, a `MovingPlatform`, a `Pickup`) in
 ## an online game. `net_entity.tscn` is in each component's scene, so every door, platform and
-## pickup of a map is networked; offline it does nothing.
+## pickup of a map is networked; offline it does nothing. A pressure pad's `TriggerZone` is put
+## online by `TriggerZoneNet` (`trigger_zone_net.tscn`, a `NetEntity` of kind `pad`) placed under
+## it in the map, since a camera zone's `TriggerZone` stays one screen's own.
 ##
 ## The node is in the group `net_part` with its `net_kind` metadata, so the map's parts make the
 ## world hash (`NetServer.world_hash_of`). A `NetWorld` gives it an `id` (its rank among the
@@ -28,7 +30,7 @@ enum Role {
 }
 
 ## The kind byte of each part on the wire, by its `net_kind` metadata.
-const KINDS := {&"door": 1, &"platform": 2, &"pickup": 3}
+const KINDS := {&"door": 1, &"platform": 2, &"pickup": 3, &"pad": 4}
 
 ## `func(at_tick: int) -> PackedByteArray`: the part's state as at a server tick.
 var write_state := Callable()
