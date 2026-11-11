@@ -91,9 +91,12 @@ func _ahead(at_tick: int) -> Transform3D:
 	var turn := newest_state.rotation * before.rotation.inverse()
 	if turn.w < 0.0:
 		turn = -turn
-	var angle := turn.get_angle()
-	if angle > 0.0001 and angle < PI:
-		turned = Quaternion(turn.get_axis().normalized(), angle * share) * turned
+	# The axis from the vector part itself: a turn of a few thousandths of a degree can leave it
+	# zero while `w` is under 1, and `Quaternion(axis, angle)` refuses an axis that is not a unit.
+	var axis := Vector3(turn.x, turn.y, turn.z)
+	if axis.length_squared() > 1e-10:
+		var angle := 2.0 * atan2(axis.length(), turn.w)
+		turned = Quaternion(axis.normalized(), angle * share) * turned
 	return _transform(at, turned.normalized())
 
 

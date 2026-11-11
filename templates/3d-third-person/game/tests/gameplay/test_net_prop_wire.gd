@@ -76,6 +76,26 @@ func test_the_track_blends_between_records_and_goes_on_at_their_speed_for_a_whil
 	assert_vector(track.newest().position).is_equal(Vector3(6, 0, 6))
 
 
+func test_a_turn_too_small_for_an_axis_is_held_without_an_error() -> void:
+	# Two records a few thousandths of a degree apart: the axis of the turn between them is zero
+	# while its `w` is under 1 (the bad-network gate's client printed "must be normalized").
+	var track := PropTrack.new()
+	var turned := Quaternion(Vector3.UP, 0.3)
+	var nudged := (turned * Quaternion(Vector3.RIGHT, 1e-6)).normalized()
+	track.push(100, PropState.make(Vector3.ZERO, turned))
+	track.push(102, PropState.make(Vector3(0, 0, 0.01), nudged))
+	var later := track.sample(110, Transform3D.IDENTITY)
+	assert_bool(later.is_finite()).is_true()
+	assert_float(Quaternion(later.basis).angle_to(turned)).is_less(0.001)
+	var exact := PropTrack.new()
+	exact.push(100, PropState.make(Vector3.ZERO, turned))
+	exact.push(102, PropState.make(Vector3.ZERO, turned))
+	(
+		assert_float(Quaternion(exact.sample(110, Transform3D.IDENTITY).basis).angle_to(turned))
+		. is_less(1e-5)
+	)
+
+
 func test_records_far_apart_in_time_give_no_speed() -> void:
 	var track := PropTrack.new()
 	track.push(10, PropState.make(Vector3.ZERO, Quaternion.IDENTITY, true))

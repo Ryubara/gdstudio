@@ -171,6 +171,11 @@ stepped by `--fixed-fps 60`; `test_net_props.gd`, `test_net_prop_wire.gd`; 2.5 s
   the crate the server's body pushes, so the pusher is held back by that much on every answer; and a client's
   `PropTrack` holds an asleep record, so a guess never carries a stopped crate on. **Seen:** gdstudio #1073,
   2026-11-11 (`test_net_props.gd`: worst 33 cm at 100 ms each way on the 5 kg crate, the pin is 0.5 m).
+- **Approach:** Take the turn between two records from its vector part (the axis `xyz` normalized, the angle
+  `2 atan2(|xyz|, w)`), and grep a new net suite's log for `ERROR` as well as its count. **Watch out for:**
+  `get_axis()` of a turn of a few thousandths of a degree is zero while `get_angle()` is not, so `Quaternion(axis,
+  angle)` printed `must be normalized` every step; the suites passed, and only the bad-network gate (any `ERROR` in
+  the client's log fails it) caught it. **Seen:** gdstudio #1073, 2026-11-11 (the gate's first CI run on #1099).
 - **Approach:** When a TICK grows a section, size its limit against the socket buffer's pin (`test_net_limits.gd`: ten
   seconds of the longest TICKs in `NetLimits.BUFFER_SIZE`) before choosing it. **Watch out for:** 32 streamed rows of
   15 bytes took the longest TICK from 715 to 1196 bytes and broke the pin; 8 rows keep it (868 bytes, with the
