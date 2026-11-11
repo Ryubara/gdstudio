@@ -82,7 +82,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in the shared temp folder changed into another agent's worktree and reported its pass for my branch. **Seen:**
   gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read the line that names the scanned folder
   before trusting a result); gdstudio #879, 2026-11-10 (the scratchpad itself is shared: another agent's `sync.sh` there
-  copied its branch into its game; fix: a subfolder named for the issue; also #903).
+  copied its branch into its game; fix: a subfolder named for the issue; also #903, #966).
 
 ## Background commands and processes {#background}
 
@@ -100,6 +100,11 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   pre-commit run; stopping a background task ends the shell, not the `timeout` and Godot under it, which kept writing to
   the same log beside the new run. **Seen:** Deadnight, 2026-11-01; Deadnight #1086, 2026-11-04; gdstudio, 2026-11-06
   (fix: the hooks refuse a kill by name ([Hooks](hooks.md)); a short `timeout` on every run).
+- **Approach:** Leave a shell script alone while a background run executes it: edit the source, and copy it over the
+  running copy only after the run ends (or run a copy made for that run). **Watch out for:** bash reads a script as
+  it goes, by byte offset, so a `cp` over `check.sh` during a 10 minute bot run made bash resume inside the new text:
+  the run's last step (the older client's hello) never ran and printed nothing, no failure either. **Seen:** gdstudio
+  #910, 2026-11-11 (the 2-bot run of the deployed series; the 4 and 8 bot runs checked the refusal).
 
 ## Before committing {#before-commit}
 

@@ -58,9 +58,10 @@ game/
   the uid and the worktree did not, so the kit's layout test (`uid`) failed on the new test file in both `test` and
   `template` CI jobs; copy the uid files back, not only the scripts (a script that syncs the game and the branch copies
   `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
-  2026-11-08; gdstudio #868, 2026-11-10 (the same miss again: `test_aim_release.gd.uid`); gdstudio #872, 2026-11-10 (a
-  third time: `test_ragdoll_natural.gd.uid`, written in the throwaway game, never copied back); gdstudio #925,
-  2026-11-10 (a template has no project to import: a throwaway script imported in the kit's `godot/`).
+  2026-11-08; gdstudio #868, 2026-11-10 (`test_aim_release.gd.uid`); gdstudio #872, 2026-11-10
+  (`test_ragdoll_natural.gd.uid`, never copied back); gdstudio #925, 2026-11-10 (a template has no project: a throwaway
+  script imported in the kit's `godot/`); gdstudio #910, 2026-11-11 (a test's, caught by `gds template
+  test`).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
   the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx
@@ -109,7 +110,7 @@ project's hooks hold.
   was refused four times in a row (`gdlint` at 100, then `markdownlint` MD013 at 120, one line at a time); a
   clean-up regex for empty parentheses, run over whole files, also cut `()` out of code. **Seen:** Deadnight,
   2026-11-05; gdstudio #770, 2026-11-07 (fix: both limits checked on every touched file; limit a script to the spans it
-  matched and read `git diff` of every file it touched before the commit).
+  matched and read `git diff` of every file it touched before the commit); gdstudio #1059.
 
 ## Where the rules came from {#where-the-rules-came-from}
 

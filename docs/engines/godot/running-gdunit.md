@@ -50,11 +50,23 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
 - **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
   `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`). **Watch out for:** the project turns a shadowed name into a
   parse error, so four suites did not load, `gds check scripts` named them and a GdUnit run would have stopped at the
-  first. **Seen:** gdstudio #881, 2026-11-10 (`var before := ...` in four menu suites; `was` instead); gdstudio #924,
-  2026-11-10 (once more, a camera distance named `before`); gdstudio #887, 2026-11-10 (a health read before a shot);
-  gdstudio #1013, 2026-11-10 (a helper's parameter `before := 0.9`, the distance to press jump at, written after
-  reading this entry: grep a new suite for `before` and `after` used as names before its first run); gdstudio #904,
-  2026-11-10 (`before` and `after` again in two server suites: `ticks_before`, `later`).
+  first. **Seen:** gdstudio #881 (four menu suites; `was`), #924 (a camera distance), #887 (a health read before a
+  shot), #1013 (a helper's parameter, written after reading this entry), #904 (`ticks_before`, `later`), #965
+  (`next_up`), #1047 (both, after reading this), all 2026-11-10: grep a new suite for `before` and `after` as names,
+  and for a local named like one of the script's own exports, before its first run; `gds template test` names them at
+  parse.
+
+- **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
+  `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
+  code under test did after it. **Watch out for:** GdUnit4 6.2 reports any `SCRIPT ERROR` raised during a test as a
+  failure of that test ("Godot Runtime Error !"), even when the code under test caught it and carried on as designed;
+  the assert takes the entry out of the error monitor. **Seen:** gdstudio #965, 2026-11-10 (the task watchdog's tests:
+  a task's `update()` calls a method on `null`).
+
+- **Approach:** Check that an assertion exists on GdUnit's assert class before using it; for "not approximately equal"
+  write `assert_bool(is_equal_approx(a, b)).is_false()`. **Watch out for:** `assert_float(x).is_not_equal_approx(...)`
+  does not exist: the case ends in a runtime error ("Nonexistent function") at that line, not a failed assertion, and
+  everything after it in the case is skipped. **Seen:** gdstudio #1046, 2026-11-11 (the throttle suite's catch-up case).
 
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form

@@ -60,6 +60,11 @@ const TIER_NAMES: Array[String] = ["Full", "Reduced", "Dormant"]
 ## dead) is stepped every this many ticks at most, whatever its tier; 1 steps it every tick.
 @export_range(1, 30) var rest_step_ticks := 3
 
+@export_group("Animation")
+## Animates the characters less often where nobody would see it (far, off-screen, Dormant); each
+## character it manages is handed to it. Empty: every character animates every frame.
+@export var animation_throttle: AiAnimationThrottle
+
 ## The work the characters share this tick.
 var budget := AiBudget.new()
 ## Physics ticks since the director started.
@@ -167,6 +172,8 @@ func register(character: AiCharacter) -> bool:
 	character.tier = Tier.DORMANT
 	_update_tier(entry)
 	_schedule(entry)
+	if animation_throttle != null:
+		animation_throttle.add(character)
 	return true
 
 
@@ -183,6 +190,8 @@ func unregister(character: AiCharacter) -> void:
 	character.director = null
 	character.budget = null
 	character.set_physics_process(true)
+	if animation_throttle != null and is_instance_valid(animation_throttle):
+		animation_throttle.remove(character)
 
 
 func _physics_process(delta: float) -> void:
@@ -244,6 +253,7 @@ func _step(entry: Entry, delta: float) -> void:
 	entry.last_step = tick
 	body_steps += 1
 	var character := entry.character
+	character.before_step(delta * missed)
 	var command := (
 		character.controller.sample() if character.controller != null else _still_command()
 	)

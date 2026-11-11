@@ -4,7 +4,15 @@
 ## twice a second, and reads every TICK. After `--seconds` it prints one line of JSON that starts
 ## with `SERVER_BOT`: for each bot its slot, the TICKs and players it saw, the last `ack` against
 ## the last command sent, the round trip, and the bytes each way a second; then it says goodbye
-## and quits (exit 1 when a bot was never welcomed).
+## and quits (exit 1 when a bot was never welcomed, or its connection closed before the end: a
+## kick). The line also has `connect_ms` (from the connect to the WELCOME, which includes the TLS
+## and WebSocket handshakes on `wss://`) and the round trip's median and 95th percentile over the
+## run (`rtt_ms_p50`, `rtt_ms_p95`; each rounded up to the bot's frames, 16.7 ms).
+##
+## With `--version N` each bot says hello with protocol version N instead of `NetWire.VERSION`
+## (`--version old`: `NetWire.MIN_VERSION - 1`, a client older than any this server takes): the
+## run then passes (exit 0) only when every bot was refused for its version, the check that a
+## server turns away a client of another commit (`server/check.sh` runs it after the bots).
 ##
 ## With `--moves` each bot runs the moves course on the template's map instead, steered by its own
 ## position in the TICKs: the weapon presses (the empty hands, the next weapon, a shot, a reload),
@@ -49,6 +57,8 @@ const STAGE_TICKS := 900
 const SLIDE_SPEED := 5.5
 const SPEED_TICKS := 10
 const SLIDE_TICKS := 40
+## The map the server runs (`net_server.tscn`'s `World`): its world hash goes in every hello.
+const WORLD := "res://world/world.tscn"
 
 var _links: Array[WebSocketLink] = []
 var _bots: Array[Dictionary] = []
@@ -56,14 +66,23 @@ var _tick := 0
 var _end_tick := 0
 var _closing_until := -1
 var _moves := false
+## The version a hello carries (`--version`), -1 for this build's.
+var _version := -1
+## The world hash of the map (`NetServer.world_hash_of`, from the map node as the server hashes).
+var _world_hash := 0
 
 
 func _initialize() -> void:
 	var args := NetArgs.new()
 	_moves = args.has("moves")
+	var version := args.get_string("version")
+	_version = args.get_int("version", NetWire.MIN_VERSION - 1 if version == "old" else -1)
 	var url := args.get_string("connect", "ws://127.0.0.1:%d" % WebSocketLink.DEFAULT_PORT)
 	var count := clampi(args.get_int("bots", 1), 1, NetLimits.MAX_PLAYERS)
 	_end_tick = args.get_int("seconds", 10) * NetLimits.TICK_RATE
+	var world := (load(WORLD) as PackedScene).instantiate()
+	_world_hash = NetServer.world_hash_of(world)
+	world.free()
 	for index in count:
 		var link := WebSocketLink.new()
 		link.connect_to_url(url)
@@ -81,6 +100,10 @@ func _initialize() -> void:
 					"ack": 0,
 					"sent": 0,
 					"rtt_ms": -1,
+					"rtts": [],
+					"open": false,
+					"connect_at": Time.get_ticks_msec(),
+					"connect_ms": -1,
 					"stage": Stage.WEAPONS,
 					"stage_tick": 0,
 					"pressed": {},
@@ -113,8 +136,7 @@ func _physics_process(_delta: float) -> bool:
 			link.close()
 		_closing_until = _tick + NetLimits.TICK_RATE
 	if _closing_until >= 0 and _tick >= _closing_until:
-		var welcomed := _bots.all(func(bot: Dictionary) -> bool: return bot["slot"] >= 0)
-		quit(0 if welcomed else 1)
+		quit(0 if _passed() else 1)
 	return false
 
 
@@ -127,6 +149,13 @@ func _report() -> void:
 		var line := {}
 		for key: String in ["slot", "refused", "ticks", "players", "ack", "sent", "rtt_ms"]:
 			line[key] = bot[key]
+		line["open"] = link.is_open()
+		bot["open"] = line["open"]
+		line["connect_ms"] = bot["connect_ms"]
+		var rtts: Array = (bot["rtts"] as Array).duplicate()
+		rtts.sort()
+		line["rtt_ms_p50"] = _rank(rtts, 0.5)
+		line["rtt_ms_p95"] = _rank(rtts, 0.95)
 		line["down_bytes_per_s"] = roundi(link.bytes_in / seconds)
 		line["up_bytes_per_s"] = roundi(link.bytes_out / seconds)
 		if _moves:
@@ -136,8 +165,27 @@ func _report() -> void:
 	print("SERVER_BOT ", JSON.stringify({"seconds": seconds, "bots": lines}))
 
 
+# The value at `share` (0 to 1) of sorted numbers (the nearest rank), -1 for none.
+static func _rank(sorted: Array, share: float) -> int:
+	if sorted.is_empty():
+		return -1
+	return sorted[clampi(ceili(share * sorted.size()) - 1, 0, sorted.size() - 1)]
+
+
+# Every bot welcomed and still connected at the end; with `--version`, every bot refused for it.
+func _passed() -> bool:
+	if _version >= 0:
+		return _bots.all(
+			func(bot: Dictionary) -> bool: return bot["refused"] == NetWire.Refusal.VERSION
+		)
+	return _bots.all(func(bot: Dictionary) -> bool: return bot["slot"] >= 0 and bot["open"])
+
+
 func _on_connected(index: int) -> void:
-	_links[index].send(NetWire.hello("Bot%d" % index, NetServer.world_hash_of(root)))
+	var hello := NetWire.hello("Bot%d" % index, _world_hash)
+	if _version >= 0:
+		hello[NetWire.VERSION_AT] = _version
+	_links[index].send(hello)
 
 
 func _on_packet(data: PackedByteArray, index: int) -> void:
@@ -146,6 +194,7 @@ func _on_packet(data: PackedByteArray, index: int) -> void:
 		NetWire.Type.WELCOME:
 			var welcome := SnapshotCodec.read_welcome(data)
 			bot["slot"] = welcome.slot if welcome != null else -1
+			bot["connect_ms"] = Time.get_ticks_msec() - bot["connect_at"]
 		NetWire.Type.REFUSED:
 			bot["refused"] = NetWire.read_refused(data)
 		NetWire.Type.TICK:
@@ -173,6 +222,7 @@ func _on_packet(data: PackedByteArray, index: int) -> void:
 			var pong := NetWire.read_pong(data)
 			if pong != null:
 				bot["rtt_ms"] = (Time.get_ticks_msec() - pong.client_ms) & 0xFFFFFFFF
+				(bot["rtts"] as Array).append(bot["rtt_ms"])
 
 
 # The command of this tick: `ServerBench.canned_command` (a circle), or with `--moves` the moves

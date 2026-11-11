@@ -289,6 +289,9 @@ var _shot_hold := 0.0
 var _shot_arm := 0.0
 var _pitch_before := 0.0
 var _pitch_now := 0.0
+var _throttled := false
+var _skeleton_mode := Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_IDLE
+var _throttled_skeleton: Skeleton3D
 
 
 func _ready() -> void:
@@ -340,6 +343,74 @@ func _physics_process(_delta: float) -> void:
 func _process(delta: float) -> void:
 	if Engine.is_editor_hint() or tree == null or not tree.active or _playback == null:
 		return
+	_drive(delta)
+
+
+## True while something else (the `AiAnimationThrottle`) decides when the tree moves on.
+func is_throttled() -> bool:
+	return _throttled
+
+
+## Hands the tree's clock to the caller (`on`) or gives it back. Throttled, the tree and the
+## skeleton's modifiers (with `skeleton_too`) move only when `advance()` is called; given back,
+## they run every frame as before. Nothing calls it for the player: off, the tree is exactly as it
+## always was. A death gives it back at once (the ragdoll needs the skeleton every frame).
+##
+## The tree keeps its callback mode and only its own processing stops: setting
+## `callback_mode_process` turns the tree off and on again, which starts its state machine over
+## from the first state, a jump of the whole pose.
+func set_throttled(on: bool, skeleton_too: bool = true) -> void:
+	if Engine.is_editor_hint() or tree == null or on == _throttled:
+		return
+	_throttled = on
+	set_process(not on)
+	_tree_runs_itself(not on)
+	if on:
+		# A tree that has not run yet starts its state machine on its first update, and that
+		# update's time is lost: start it now, so the first advance keeps all the time it is given.
+		if tree.active:
+			tree.advance(0.0)
+		_throttled_skeleton = model.skeleton() if skeleton_too and model != null else null
+		if _throttled_skeleton != null:
+			_skeleton_mode = _throttled_skeleton.modifier_callback_mode_process
+			_throttled_skeleton.modifier_callback_mode_process = (
+				Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
+			)
+		return
+	if _throttled_skeleton != null and is_instance_valid(_throttled_skeleton):
+		_throttled_skeleton.modifier_callback_mode_process = _skeleton_mode
+	_throttled_skeleton = null
+
+
+## Moves a throttled tree on by `delta` seconds at once (the time since its last advance): the
+## parameters are set from the character as a frame would set them, then the tree and the
+## skeleton's modifiers run. Nothing while the tree is off (dead).
+func advance(delta: float) -> void:
+	if not _throttled or tree == null or not tree.active or _playback == null or delta <= 0.0:
+		return
+	# Switching the tree on again (a new model) lets it run itself: stop that first.
+	_tree_runs_itself(false)
+	_drive(delta)
+	tree.advance(delta)
+	if _throttled_skeleton != null and is_instance_valid(_throttled_skeleton):
+		_throttled_skeleton.advance(delta)
+
+
+# The tree's own processing, in its callback mode, on or off (with its mode and state kept).
+func _tree_runs_itself(on: bool) -> void:
+	var mode := tree.callback_mode_process
+	var idle := on and tree.active and mode == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
+	var physics := (
+		on and tree.active and mode == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
+	)
+	if tree.is_processing_internal() != idle:
+		tree.set_process_internal(idle)
+	if tree.is_physics_processing_internal() != physics:
+		tree.set_physics_process_internal(physics)
+
+
+# What a frame sets on the tree from the character, `delta` seconds after the last time.
+func _drive(delta: float) -> void:
 	_follow_tuning()
 	var speed := character.ground_speed()
 	tree.set(_P_GROUND_SPEED, speed)
@@ -581,6 +652,7 @@ func _on_state_changed(state: Character.State) -> void:
 		_dead = true
 		stop_clip()
 		tree.active = false
+		set_throttled(false)
 		if character != null and character.died_by_clip:
 			# No ragdoll for this death: the clip plays on the character itself and holds its last pose.
 			_clip_death = animation_player.has_animation(CharacterClips.DEATH)

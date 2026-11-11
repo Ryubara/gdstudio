@@ -123,24 +123,24 @@ prints each one that does not load with Godot's own reason, and exits 1. The gam
 uv run --project <your worktree>/python gds template test 3d-third-person
 ```
 
-It makes a workspace of its own (a new folder from `tempfile.mkdtemp` under the system temp folder, outside the real
-workspace, holding the marker, a copy of `gdstudio.local.toml` and the GdUnit4 folder), makes the game from the
-working tree's template (uncommitted changes included, so there is nothing to copy over and no game to make again),
-checks its layout, imports it and parses every script, then runs the suites with the command CI uses and prints each
-suite's cases, failures and time (a failed case with the first line of its message). The folder is removed when the
-run ends, passed, failed or interrupted, and nothing else is: it refuses a folder that is not one of its own. The exit
-code is GdUnit4's (100 failed tests, 105 a script that does not parse; 1 for a layout or parse failure, a run that ran
-no suite, or a `leaked at exit` line, which CI refuses). Options: `--suite tests/core/test_x.gd` (repeat it; one
-`-a` per suite in the order given, default all of `res://tests`), `--keep` (keep the game and print its path),
-`--fixed-fps N` (default 60, the clock CI runs the suites at: Godot runs a frame per tick with no waiting,
-[test-speed.md](test-speed.md#time-driven-values)) and `--real-clock` (no flag, for a check on the wall clock),
-`--godot-args='...'` and `--gdunit-args='...'` for any other argument (joined with `=`, since a bare `--flag` looks
-like an option to the command), `--timeout`. `gds template game <name>` makes the same game, imports it and keeps it,
-printing its path, for captures and probes (`gds capture frames --project <path>/game` runs from your worktree:
-frames land in its scratch folder, or in `--out`); `gds template clean <path>` removes it,
-and only a folder `gds template` made. Its tests are
-`python/tests/test_template_test.py` (a fake Godot: unique folder, outside the real workspace, removed on every exit,
-kept with `--keep`, two calls at once).
+Its first line is the source, `kit <path> (<branch> at <commit>, <n> changed file(s))`: the checkout whose `python`
+folder `--project` names (the code's own location, never the folder you stand in). It makes a workspace of its own (a
+new folder from `tempfile.mkdtemp` under the system temp folder, outside the real workspace, holding the marker, a copy
+of `gdstudio.local.toml` and the GdUnit4 folder), makes the game from the working tree's template (uncommitted changes
+included, so there is nothing to copy over and no game to make again), checks its layout, imports it and parses every
+script, then runs the suites with the command CI uses and prints each suite's cases, failures and time (a failed case
+with the first line of its message). The folder is removed when the run ends, passed, failed or interrupted, and nothing
+else is: it refuses a folder that is not one of its own. The exit code is GdUnit4's (100 failed tests, 105 a script that
+does not parse; 1 for a layout or parse failure, a run that ran no suite, or a `leaked at exit` line, which CI refuses).
+Options: `--suite tests/core/test_x.gd` (repeat it; one `-a` per suite in the order given, default all of
+`res://tests`), `--keep` (keep the game and print its path), `--fixed-fps N` (default 60, the clock CI runs the suites
+at: Godot runs a frame per tick with no waiting, [test-speed.md](test-speed.md#time-driven-values)) and `--real-clock`
+(no flag, for a check on the wall clock), `--godot-args='...'` and `--gdunit-args='...'` for any other argument (joined
+with `=`, since a bare `--flag` looks like an option to the command), `--timeout`. `gds template game <name>` makes the
+same game, imports it and keeps it, printing its path, for captures and probes (`gds capture frames --project
+<path>/game` runs from your worktree: frames land in its scratch folder, or in `--out`); `gds template clean <path>`
+removes it, and only a folder `gds template` made. Its tests are `python/tests/test_template_test.py` (a fake Godot:
+unique folder, outside the real workspace, removed on every exit, kept with `--keep`, two calls at once).
 
 - **Approach:** Prove a new game or template change with a parse of every script (`gds check scripts`) and an editor
   open, and when a script fails, find the registration or file it needs, never an export exclusion. **Watch out
@@ -157,6 +157,14 @@ kept with `--keep`, two calls at once).
   (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
   **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
   gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template).
+- **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game`
+  (the `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree. Send a
+  run's log to a new name in your own scratch folder or from `mktemp`, never a fixed name in the session scratchpad.
+  **Watch out for:** a run showed another agent's worktree as the source: gds had built from the right checkout, but
+  two agents sent their runs to the same `full2.log` in the shared scratchpad, and the later run's header landed in the
+  file the first read back. **Seen:** gdstudio #1011 (PR #1019), 2026-11-10 (fix: gdstudio #1048, the `kit` line and
+  `python/tests/test_kit_source.py` with two worktrees); gdstudio #1047, 2026-11-10 (`--project` of main's
+  checkout built main; use `--project ./python`).
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
@@ -371,7 +379,7 @@ remote-inspector message ([Changing values like the remote inspector](editor-scr
   property that holds a float32 (use `is_equal_approx`). **Seen:** gdstudio #831, 2026-11-08; #846, 2026-11-09 (the
   ragdoll's 19 tests, two suites); #875, #879 and #881, 2026-11-10 (impacts, shake and menus split into suites per
   part; `duplicated-load`: a `preload` constant); #981, 2026-11-10 (two addon exports
-  unpinned until the full run: run the class's pin suite too).
+  unpinned until the full run: run the class's pin suite too); #965, 2026-11-10 (a class split too).
 
 - **Approach:** When a change adds a setting to an extending template's own `project.godot`, run
   `python/tests/test_new_game.py` before the push: it compares that file with the base's and lists each allowed
@@ -411,7 +419,8 @@ replaced whole.
   without making a new game), leave `project.godot` out and make the game again when the template's `project.godot`
   changes. **Watch out for:** the made game's `project.godot` is the merge of 3D Blank's and the template's (with the
   addons' autoloads); copying the template's file over it dropped `UIRouter` and `PhantomCameraManager`, and the next
-  run printed dozens of parse errors that looked like the change's. **Seen:** gdstudio #890, 2026-11-10.
+  run printed dozens of parse errors that looked like the change's. **Seen:** gdstudio #890, 2026-11-10; gdstudio #966,
+  2026-11-10 (a `cp -r` of the whole template folder: `UIRouter` not declared in 25 scripts, the game made again).
 - **Approach:** A base template's test that reads the game scene finds its node with `find_child` (or by a group), never
   by a path from `main.tscn`, because an extending template replaces `main.tscn` and moves the node. **Watch out for:**
   3D Blank's `test_audio_settings.gd` asked the game scene for `AudioSettings` by name and failed in 3D Third Person once

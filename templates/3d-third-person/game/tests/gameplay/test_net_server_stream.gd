@@ -143,8 +143,9 @@ func _spawn_of(slot: int) -> Transform3D:
 
 
 # Steps a body of its own world as the server's history says: each step of `steps` takes that many
-# entries, a `seq` steps that command, `REPEATED` the last again without its presses, `STOOD` a
-# command that asks for nothing, `IDLE` the view the body started with. Answers where it ends.
+# entries, a `seq` steps that command, `HELD` nothing, `REPEATED` the last again without its
+# presses, `STOOD` a command that asks for nothing, `IDLE` the view the body started with. Answers
+# where it ends.
 func _replay_offline(
 	history: PackedInt64Array, steps: PackedInt32Array, stream: Array[PlayerCommand]
 ) -> Vector3:
@@ -169,6 +170,8 @@ func _replay_offline(
 		for _index in count:
 			var entry := history[at]
 			at += 1
+			if entry == PeerSlot.HELD:
+				continue
 			if entry > 0:
 				last.copy_from(stream[entry - 1])
 			elif entry == PeerSlot.REPEATED:

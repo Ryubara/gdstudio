@@ -394,7 +394,9 @@ frame in brackets, ms):
   one path query per character per `repath_seconds`, `think_rate` thinks, at most 2 rays a think
   ([counts tight, time loose](performance-budgets.md#budgets-counts-tight-time-loose)). Since #963 the template's
   defaults are **12** at the Full tier on the web and the rest moved every **4th** tick (below: the real character's
-  body costs about twice the spike's capsule).
+  body costs about twice the spike's capsule). The task layers (#965) cost 2.7 µs a think in Chrome (15 µs at 4x)
+  with a typical stack of three tasks, 0.2 µs when empty: 17 µs a tick for 40 characters thinking at 10 Hz
+  ([the table](third-person/ai.md#task-cost)).
 
 **The template's real character (#963).** `tools/bench/ai_cost_bench.tscn` (`ai_cost_bench.py` for Chrome) times the
 `AiDirector`'s step (tiers, thinks and every body's `Character.step`: what the budget above holds) for
@@ -419,15 +421,115 @@ step a tick (mean, in brackets the median whole frame's work in ms: animation, f
 - With the spike's 20 at Full, 40 walkers missed both budgets by about 30 % (1.3 ms, 6.5 ms at 4x), so the template ships
   12 at Full and the rest every 4th tick: 0.99 ms and 4.75 ms. The machine was shared with other agents (the parts
   bench's walking step read 31.7 µs against 23 to 26 µs on an idle one), so these are on the high side.
-- At 4x the whole frame of 40 walkers is 19.5 ms, past the 16.7 ms tick: the animation tree and the footsteps, outside
-  the AI budget, now decide the weak machine; the animation throttle of [the recommendation](#recommendation) is what
-  comes next. At 120 in Chrome the frame is past the tick even unthrottled, so 120 stays a desktop and server count.
+- At 4x the whole frame of 40 walkers was 19.5 ms, past the 16.7 ms tick: the animation tree and the footsteps, outside
+  the AI budget, decided the weak machine. At 120 in Chrome the frame is past the tick even unthrottled, so 120 stays a
+  desktop and server count.
 
+**With the animation throttle (#1046).** The same bench, each row without (`-`) and with (`T`) the director's
+`AiAnimationThrottle` in one Chrome run, the trees moved a frame and the calibration loop beside it (a fixed GDScript
+loop timed before each row: about 8 to 10 ms at 1x and 31 to 44 ms at 4x on this shared machine; the issue's 19.5 ms run
+had no calibration). The bench's camera looks on from 50 m, so every character is past `far_distance` (every 6th
+frame). Median frame work in ms (the director's step a tick in brackets, ms; ticks a frame after the slash):
+
+| 40 walking | without | with the throttle |
+| --- | ---: | ---: |
+| Chrome 1x | 2.8 (1.03) / 0.62 | **1.4** (0.96) / 0.31 |
+| Chrome 4x, three runs | 53 to 63 (6.4 to 6.5) / 5.1 to 5.7 | **9.0 to 10.2** (6.2 to 6.4) / 0.8 to 1.0 |
+| Chrome 1x, 20 / 120 walking | 1.8 / 14.2 | 1.3 / 4.0 |
+| Desktop native, 40 walking | 3.6 to 4.1 | 2.8 to 2.9 |
+
+- The throttle halves the 1x frame and takes 40 walkers at 4x out of the catch-up spiral (5 to 6 ticks a frame, the
+  cliff above) to one tick a frame or fewer: about 9.5 ms against 55 to 60 ms. It does not reach the 8 ms target, and
+  the rest is the walking body: the director's step alone is 6.2 to 6.5 ms of it at 4x on this machine (4.75 ms in the
+  quieter #963 run).
+- Where the rest goes, in Chrome at 1x: with every tree frozen the frame is 1.5 ms, of which the director's step is
+  1.1 to 1.15 ms and the engine's own work (the Jolt step, transforms) about 0.35 ms; the 6.7 tree advances a frame
+  the throttle still makes are about 40 µs each. A walking body's `Character.step` is **42.5 µs** in Chrome (242 µs at
+  4x), and a bare `move_and_slide` of the same body only **10 µs** (50 µs at 4x): about three quarters of the body is
+  the GDScript around the slide (the slide's tick, gravity and the jump, the step climber's `test_move`, the state),
+  which is where the next cut is (measured with 40 `ai_character.tscn` stepped by hand, 300 ticks).
+
+**The lean tick (#1059).** `tools/bench/ai_step_profile.tscn` (`ai_step_profile.py` for Chrome) steps 40 walking
+`ai_character.tscn` by hand, in blocks that alternate between the real step and a copy of the full step cut into its
+modules, each module run over the whole crowd before the next (one module of one body is under the browser's clock
+step). Microseconds a walking body a tick, the full tick, mean of three runs (range in brackets):
+
+| Module | Chrome 1x | Chrome 4x | What an AI's lean tick does with it |
+| --- | ---: | ---: | --- |
+| the controller's `sample()` | 2.1 | 10.0 | built again only when a channel changed (1.2, 5.5) |
+| the step's prologue (copy the command, the view) | 3.6 | 17.5 | the copy kept while the AI's command repeats |
+| timers and the prone stance | 1.4 | 7.2 | the timers only |
+| the vault's trigger | 3.8 | 19.9 | its cooldown only |
+| the slide, the crouch, the aim | 3.2 | 17.2 | left out (two timers) |
+| steering (the facing on the model 0.6 of it) | 3.8 | 20.0 | the walk's branch only |
+| gravity and the jump | 0.6 | 3.5 | the grounded branch |
+| the step climber (one `test_move`) | 4.8 | 25.2 | only after the move met a wall, then the move again |
+| `move_and_slide` | 12.0 | 62.7 | the same |
+| pushing props | 1.0 | 5.6 | the same |
+| the state | 2.0 | 10.6 | the walk's branch only |
+| the weapon's presses, its tick | 2.2 | 11.8 | the presses left out |
+| **the real step** | **42.3** (40.0 to 44.0) | **261** (231 to 294) | |
+
+The lean tick (`CharacterLean`, taken when the controller's `lean_step` is on and nothing but the walk has work) ends
+every tick where the full tick does: `test_character_lean.gd` steps a lean and a full body through walking, a kerb,
+running, sprinting, a jump, crouch, aim and fire, prone, a slide and presses, and compares their snapshots each tick.
+
+The director's bench, 40 walking with the animation throttle, a build of `main` (before) against the lean tick
+(after), runs interleaved; three sessions, because the machine's load changed through the day (step a tick and median
+frame work, ms; ticks a frame after the slash):
+
+| 40 walking, three runs each | before | after |
+| --- | ---: | ---: |
+| Chrome 4x, lean and the command cache only | 6.2 to 6.8, work 9.5 to 10.4 / 0.81 to 0.92 | 5.35 to 5.5, work **8.7 to 8.9** / 0.75 to 0.77 |
+| Chrome 4x, with the climber after a wall | 5.8 to 6.1, work 8.5 to 9.1 / 0.73 to 0.80 | 4.4 to 4.7, work **7.2 to 8.1** / 0.62 to 0.69 |
+| Chrome 4x, all of it, a busy hour | 7.3 to 7.8, work 10.8 to 16.6 / 1.14 to 1.62 | 5.1 to 6.1, work 8.7 to 11.6 / 0.81 to 1.33 |
+| Chrome 1x, all of it, the same hour | 1.20 to 1.41, work 1.9 to 2.4 | 0.88 to 0.99, work 1.6 to 1.8 |
+
+- The director's step is 22 to 30 % shorter in every session, and the body's step is about **23 µs** in Chrome at Full
+  and Reduced together (29 to 35 before). The 4x frame is under 8 ms in two of three runs of a quiet session and
+  over it when the machine is busy: the rest of the frame (about 3 ms: the trees the throttle still moves, the
+  Jolt step, the thinks) is no longer the body's.
+- What is left in a walking body is the engine's (`move_and_slide` 12 µs of about 25 in Chrome) and the step's
+  prologue; the next cut is the frame's other 3 ms or fewer bodies stepped every tick, not the body's script.
+
+**The template's navigator (#967).** `tools/bench/nav_cost_bench.tscn` (`nav_cost_bench.py` for Chrome) times
+every `AiNavigator.navigate()` (the queries on their timer, the steering, the body-ray checks) for characters walking
+to seeded goals, one after another, on a baked 96 m map with 16 boxes (306 polygons), under the director's shipped
+defaults (12 at Full, the rest Reduced and stepped every 4th tick, 4 path queries a tick). Microseconds a character a
+tick (all the navigators' work a tick, over the count; in brackets the director's whole step, bodies included, ms):
+
+| | 50 | 100 | 200 |
+| --- | ---: | ---: | ---: |
+| Desktop, native | 1.2 (0.46) | 1.1 (0.85) | 1.1 (1.83) |
+| Chrome | 11.2 (1.84) | 8.4 (2.90) | 6.4 (5.22) |
+| Chrome 4x | 65 (11.3) | 46 (17.0) | 37 (31.5) |
+
+- The path budget holds: never more than 4 queries a tick (3.1 on average at 50, 4.0 from 100 on), and each
+  character asks 3.7 times a second at 50 against `repath_seconds`' limit of 4; at 100 and 200 the budget, not the
+  timer, sets the rate (2.4 and 1.2 a second), so a crowd past about 60 walkers repaths less often than 0.25 s.
+- In Chrome the navigation is about 10 times its native cost, against the spike's 1.5: a query on this mesh is about
+  45 µs there (one every 0.25 s per character is a quarter of the navigators' work at 50), a walk step 2 µs in a
+  tight loop but 10 to 13 µs read one navigator at a time. The browser's clock is coarse (100 µs in Chrome without
+  cross-origin isolation), so the per-navigator sum is the less sure figure; the director's step around it, read
+  once a tick, rose by about 0.6 ms at 50 walkers against the AI bench's walking crowd. Above the spike's 3.5 µs:
+  kit #1062 follows it.
+
+- **Approach:** Time a part that runs many times a tick in the browser in a tight loop of thousands of calls as well
+  as one call at a time, and look for engine calls (a shape query, a physics test) in what runs every step.
+  **Watch out for:** the first navigator asked the body's room to stand (a shape query) at every step and checked
+  every new path again although only its first point had moved: 17 µs a character a tick in Chrome at 50, 11 after
+  both went. **Seen:** gdstudio #967, 2026-11-11.
 - **Approach:** Put off work that a per-tick budget refuses fairly: start the loop over the characters one further
   along each tick, and test the refusal with more characters wanting the work every tick than the budget allows.
   **Watch out for:** the first `AiDirector` walked its list from the start each tick and moved a refused think to the
   next tick, so with one think a tick and four characters at 60 Hz the first thought on every tick and the other three
   never did. **Seen:** gdstudio #963, 2026-11-10 (`test_thinks_over_the_count_a_tick_wait_for_the_next_tick`).
+- **Approach:** Give a per-character query over everyone (sight's candidates, a telling to the allies) a shared index
+  (the group split by faction, rebuilt when its count changes), walk only the parts the asker cares about, and bench it
+  with the crowd itself as the candidates. **Watch out for:** the senses' first look asked every AI character its
+  distance on every think (262 µs a think at 200 where 4 players were all it cared about), and every ally passed every
+  telling on, so 40 grunts that saw the same players made thousands of tellings. **Seen:** gdstudio #966, 2026-11-10
+  (fix: `AiSensePool`, and a listener that knew already passes nothing on; [the cost](third-person/ai-senses.md#cost)).
 - **Approach:** Measure the cost of the real character before taking the spike's caps, and set the template's defaults
   from that table. **Watch out for:** the spike's 20 at the Full tier came from a 22 to 26 µs capsule; the template's
   character is about 50 µs in Chrome walking, and 40 walkers with 20 at Full missed the 1 ms and 5 ms budgets by about

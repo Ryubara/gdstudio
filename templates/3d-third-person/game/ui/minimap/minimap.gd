@@ -410,12 +410,13 @@ func _position_3d_of(node: Node, plane: Vector2) -> Vector3:
 	return Vector3(plane.x, 0.0, plane.y)
 
 
-# The way a node faces on the map plane: its own answer, its -Z (3D) or its rotation (2D).
+# The way a node faces on the map plane: its `MinimapHeading`, its -Z (3D) or its rotation (2D).
 func _forward_of(node: Node) -> Vector2:
 	if node == null:
 		return MinimapProjector.north()
-	if node.has_method(&"get_minimap_heading"):
-		return node.call(&"get_minimap_heading")
+	var heading_source := MinimapHeading.of(node)
+	if heading_source != null:
+		return heading_source.heading()
 	if node is Node3D:
 		var forward := -(node as Node3D).global_basis.z
 		var flat := Vector2(forward.x, forward.z)

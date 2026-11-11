@@ -93,6 +93,9 @@ const REACTION_FLOOR := 0.2
 @export var faction := &"neutral"
 ## How far it tells its allies what it knows.
 @export_range(0.0, 100.0, 0.5, "suffix:m") var share_radius := 12.0
+## Seconds between noticing a thing and telling the allies within `share_radius` about it (a
+## shout takes a moment); each ally passes a told thing on at most once.
+@export_range(0.0, 10.0, 0.05, "suffix:s") var share_delay := 0.5
 ## 0 (ignores orders) to 1 (always obeys).
 @export_range(0.0, 1.0, 0.01) var obeys_orders := 0.5
 
@@ -114,6 +117,24 @@ const REACTION_FLOOR := 0.2
 @export_range(0, 16) var max_rays_per_think := 2
 ## Seconds between path queries while it follows a moving goal.
 @export_range(0.05, 10.0, 0.05, "suffix:s") var repath_seconds := 0.25
+
+@export_group("Tasks")
+## What damage does during a task that must complete, for a task that leaves it to the profile:
+## nothing, an answer once it ends, fire back while it finishes, or abort past its threshold.
+@export var under_attack := AiTask.UnderAttack.FINISH_THEN_REACT
+## Seconds after which a task with no hard timeout of its own ends `TIMED_OUT`.
+@export_range(0.5, 600.0, 0.5, "suffix:s") var task_hard_timeout := 30.0
+## Failures within `failure_window` that stop orders and routines for `fallback_seconds`, so a
+## task that keeps failing is not tried again and again.
+@export_range(1, 50) var failure_budget := 3
+## The window the failure budget counts over.
+@export_range(0.5, 120.0, 0.5, "suffix:s") var failure_window := 10.0
+## Seconds orders and routines stay stopped after a failure storm or a script error in a task
+## (the DEFAULT layer runs).
+@export_range(0.0, 120.0, 0.5, "suffix:s") var fallback_seconds := 5.0
+## Seconds a response holds before another response may replace it (a higher layer still may),
+## so a value wobbling on a line changes the task once.
+@export_range(0.0, 10.0, 0.05, "suffix:s") var commit_seconds := 0.5
 
 
 ## The think rate (a second) at `tier` (`AiDirector.Tier`).

@@ -37,8 +37,9 @@ func test_it_is_the_template_character_with_its_parts() -> void:
 	assert_object(character.ai_controller()).is_not_null()
 	assert_bool(character.is_in_group(AiCharacter.GROUP)).is_true()
 	assert_bool(character.is_in_group(Player.GROUP)).is_false()
-	for slot in [character.senses, character.navigator, character.task_runner]:
-		assert_object(slot).is_null()
+	assert_object(character.senses).is_instanceof(AiSenses)
+	assert_object(character.task_runner).is_instanceof(AiTasks)
+	assert_object(character.navigator).is_instanceof(AiNavigator)
 
 
 func test_it_walks_where_the_movement_channel_points_and_faces_the_look_when_aiming() -> void:
@@ -126,7 +127,8 @@ func test_every_profile_number_has_a_range_and_a_default() -> void:
 	for property in profile.get_property_list():
 		if not (property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE):
 			continue
-		if property.type in [TYPE_FLOAT, TYPE_INT]:
+		# A choice (an enum, such as the task's `under_attack`) shows as a list, not a range.
+		if property.type in [TYPE_FLOAT, TYPE_INT] and property.hint != PROPERTY_HINT_ENUM:
 			assert_int(property.hint).override_failure_message(property.name).is_equal(
 				PROPERTY_HINT_RANGE
 			)

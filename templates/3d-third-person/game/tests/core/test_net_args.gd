@@ -58,11 +58,13 @@ func test_the_server_exports_are_pinned() -> void:
 		&"max_players": NetLimits.MAX_PLAYERS,
 		&"cap_frame_rate": false,
 		&"print_log": true,
+		&"world_root": null,
 		&"body_scene": load("res://gameplay/character/character.tscn"),
 		&"players_root": null,
 		&"spawn_group": &"player",
 		&"spawn_seed": 1,
 		&"command_ticks": 30,
+		&"hold_ticks": 4,
 		&"silent_seconds": 15.0,
 		&"hello_seconds": 10.0,
 	}
