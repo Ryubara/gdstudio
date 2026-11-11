@@ -111,7 +111,7 @@ const HOLD_TICKS := 4
 
 ## The world hash a client's HELLO must carry (`world_hash_of` the server's map when it starts).
 var world_hash := 0
-## The map's networked parts (doors, platforms, pickups), run by this server.
+## The map's networked parts (doors, platforms, pickups, props, targets), run by this server.
 var map_parts := NetWorld.new()
 ## Seconds for the connection rules: empty is the machine's clock.
 var clock := Callable()
@@ -545,14 +545,27 @@ func _send_ticks() -> void:
 	var players: Array[PlayerEntry] = []
 	for slot: int in _sorted_slots():
 		players.append(entry_of(slot, _by_slot[slot].body))
+	# The moving props, once for all (`stream_rows` marks a prop that fell asleep as said); every
+	# prop for a client whose last TICK was refused.
+	var parts := map_parts.stream_rows(server_tick)
+	var every_part: Array[EntityEntry] = []
 	for slot: int in _sorted_slots():
 		var peer := _by_slot[slot]
 		var events := peer.events_to_send()
-		var packet := SnapshotCodec.tick(server_tick, peer.ack, events, players, peer.limits.drops)
+		var rows := parts
+		if peer.stream_all > 0:
+			if every_part.is_empty():
+				every_part = map_parts.stream_rows(server_tick, true)
+			rows = every_part
+		var packet := SnapshotCodec.tick(
+			server_tick, peer.ack, events, players, peer.limits.drops, rows
+		)
 		if listener.send(peer.peer_id, packet):
 			peer.sent_events(events.size())
+			peer.stream_all = maxi(peer.stream_all - 1, 0)
 		else:
 			peer.stalled = true
+			peer.stream_all = map_parts.all_ticks()
 
 
 func _sorted_slots() -> Array[int]:

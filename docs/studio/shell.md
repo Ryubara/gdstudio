@@ -69,12 +69,14 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 
 ## Folders and paths {#paths}
 
-- **Approach:** Give `git worktree add` an absolute path, chain everything after a `cd` with `&&` (or use `git -C
-  <worktree>`), and read `git branch --show-current` before a commit. **Watch out for:** `git -C repos/x worktree add
-  worktrees/x/y` resolves the path against the repository and made the worktree inside it; `cd <worktree>; ... git
-  commit` ran in the shell's start folder after the `cd` failed, which is the kit's main checkout, and committed there.
-  **Seen:** Deadnight, 2026-11-01 (a worktree inside the repository); gdstudio, 2026-11-03 (a commit on the kit's
-  `main`, moved to a branch before any push).
+- **Approach:** Give `git worktree add` an absolute path, start a command line with `cd <worktree> || exit 1` (or use
+  `git -C <worktree>`), chain everything after it with `&&`, and read `git branch --show-current` before a commit.
+  **Watch out for:** `git -C repos/x worktree add worktrees/x/y` resolves the path against the repository and made the
+  worktree inside it; `cd <worktree>; ... git commit` ran in the shell's start folder after the `cd` failed, which is
+  the kit's main checkout, and committed there. **Seen:** Deadnight, 2026-11-01 (a worktree inside the repository);
+  gdstudio, 2026-11-03 (a commit on the kit's `main`, moved to a branch before any push); gdstudio #1073, 2026-11-11
+  (`cp ... && cd <worktree> && check; git add -A; git commit`: the `cp` failed, the `cd` was skipped and `git commit`
+  ran on the main checkout, which was clean).
 - **Approach:** Give a Windows program (Python, a hook, `gh --body-file`) a path with its drive letter,
   `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts in the session's own scratchpad, not under a
   shared temp name, and pass the worktree as an argument. **Watch out for:** `/c/Repositories` is read as a folder named

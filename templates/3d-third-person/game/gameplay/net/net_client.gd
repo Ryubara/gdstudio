@@ -66,8 +66,8 @@ var reconciler := Reconciler.new()
 var stall_guard := StallGuard.new()
 ## Steps the body through what the server did with it while this client's thread stalled.
 var silence_walk := SilenceWalk.new()
-## The map's networked parts (doors, platforms, pickups) as the server's records show them; made
-## at the WELCOME.
+## The map's networked parts (doors, platforms, pickups, props, targets) as the server's records
+## show them; made at the WELCOME. A moving prop's records ride each TICK (`read_stream`).
 var map_parts := NetWorld.new()
 ## Seconds for pings and the stall guard: empty is the machine's clock.
 var clock := Callable():
@@ -282,9 +282,12 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 				if remote_players != null:
 					remote_players.on_left(event.slot)
 			NetEvent.Kind.ENTITY:
-				map_parts.read_event(event)
+				# A target's fall waits for the hit it goes with (`ClientCombat`).
+				if remote_players == null or not map_parts.plays_with_puppets(event):
+					map_parts.read_event(event)
 			NetEvent.Kind.PICKUP:
 				map_parts.read_pickup(event, player if event.slot == slot else null)
+	map_parts.read_stream(tick.parts, tick.server_tick)
 	combat.on_tick(tick)
 	var own := _entry_of(tick.players, slot)
 	if own != null and player != null:

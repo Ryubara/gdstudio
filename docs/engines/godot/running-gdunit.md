@@ -77,6 +77,13 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
   of a filter here: nothing ran and the exit code was 0 in 2 s, and no failure reads as a pass. **Seen:** Deadnight,
   2026-11-04 (fix: run the suite and read the count).
 
+- **Approach:** After a full run, find each new suite by name in its list (`gds template test` prints one line a
+  suite), and write a new test file with LF line ends. **Watch out for:** two new suites written with CRLF ends ran and
+  passed when named with `-a`, but the folder scan (`-a res://tests`, what CI and `gds template test` run) skipped both
+  without a word: 193 suites passed and neither was among them. Git stores them with LF, so a fresh checkout scans
+  them; the working tree that `gds template test` copies does not. **Seen:** gdstudio #1073, 2026-11-11 (`file` named
+  the two; converted to LF).
+
 - **Approach:** When a run ends with no failure and no tests, read the top of the log for a `Parse Error` first, fix
   the one script, and check that the executed-suite count matches the folder; before moving constants into a resource,
   grep the tests for `^const .*<MovedClass>\.`. **Watch out for:** one test script that does not parse stops the scan
