@@ -279,6 +279,51 @@ numbers, the model in the hand (`view`, `muzzle`: paths under the `Model` slot),
 down, the shots, the reload) and the sounds (shot, empty click, the reload's steps at their shares, the draw). A new
 weapon is a new `.tres`; nothing else changes.
 
+**Hitscan, a toggle on any weapon** (gdstudio #1252). `WeaponDef.hitscan` (the Hitscan group, with `hitscan_range`,
+100 m, and `hitscan_mask`, `PhysicsLayers.SHOT_MASK`) turns a projectile weapon into an instant ray from the aim:
+nothing is made for the shot, the muzzle flash, the shot sound and the impact where the ray hits are all there is, and
+no tracer is drawn. It is read at each shot (`WeaponDef.shot_kind()`: `MELEE` stays a blow, `hitscan` or a `HITSCAN`
+kind is a ray, else a projectile), so it switches live; the range and the mask are greyed out while it is off. The
+ray goes through the same aim as a projectile (`Weapon.aim_point()`: the muzzle toward what the aim ray meets) and
+the same hit (`HitZones.shot` and `deliver`, so the part, its multiplier and a refused friend's shot are the same, or a
+`Health`). Online it costs only its `SHOT` and `HIT` (15 bytes each, in the same TICK), and the server meets it with
+the AI where the shooter drew it at once ([shots online](online-shots.md#template-shots)). `tools/capture/hit_tour.tscn`
+with `HIT_HITSCAN=1` films the pistol hitscan from the player's camera.
+
+What one pistol shot costs in all (`tools/bench/shot_cost.tscn`: a shot a tick at a wall 20 m out, so a tick holds one
+launch and one whole flight; a tick's time less an idle tick's, the median of 7 blocks of 300 ticks, two runs; Windows,
+Godot 4.7.2, headless, 2026-11-11, other agents on the machine; the headless run draws nothing, so a client's round
+costs its drawing on top):
+
+| | Projectile | Hitscan |
+| --- | ---: | ---: |
+| Server: the shot in all (the call, then 26 to 27 ticks of flight) | 432 to 711 µs | 20 to 35 µs |
+| Server: the call that fires | 84 to 114 µs | 20 to 31 µs |
+| Client: a puppet's shot in all, with its sound / without | 404 to 637 / 392 to 649 µs | 11 / 6 to 10 µs |
+| Rounds in the air at a shot a tick | 26 | 0 |
+| Bytes down each other player (`SHOT` + `HIT`) | 30 | 30 |
+| Bytes of state while it flies | 0 | 0 |
+
+On the wire the two are the same: the template never sent a projectile's state, so a shot was always its two events;
+what hitscan saves is the server's and every client's flight work (and, against the AI, the per-tick rewind meet of a
+projectile's first `ai_rewind_flight_seconds`, 2.1 µs a character near its path a tick, [the rewind](ai-online.md#rewind)).
+`tools/net/bandwidth.py --shoot` (the bots fire at each other) with and without `--hitscan` measured (seven bots
+and one predicting client, 30 s each, the same machine; a run's deaths change the players' rows, so the down rate moves
+a few per cent either way between runs):
+
+| `bandwidth.py --shoot` | Projectile | Hitscan |
+| --- | ---: | ---: |
+| 8 players: shots, hits (server) | 336, 208 | 336, 336 |
+| 8 players: down a client, B/s (mean / most) | 3510 / 3523 | 3554 / 3569 |
+| 8 players: server step p50 | 1.70 ms | 1.29 ms |
+| 4 players: shots, hits; down a client; step p50 | 144, 143; 2208 B/s; 1.15 ms | 144, 137; 2294 B/s; 1.00 ms |
+
+The bytes are the same within a run's noise (each shot is its two events either way). The step p50 followed the
+machine's load more than the weapon (a second hitscan run at 8 players read 2.52 ms, its down rate 3208 B/s), so the
+bench above, where the modes take turns, is the server's cost of a shot: a hitscan shot about a twentieth of a
+projectile's. A `--shoot` bot puts a shot block on every command, so its up rate (about 1.9 KB/s) is not a client's
+and the run does not judge it.
+
 - **`Weapon`** (one node of the character) fires the definition it holds: `pull(origin, direction)` fires, clicks on
   an empty magazine (`dry_fired`) or does nothing (cooling down, reloading, put away), and `fire()` is the same with
   the projectile back. `reload()` puts the reserve's rounds in at the end of `reload_time`, never at its start, and an
@@ -356,6 +401,14 @@ phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD
   ORed with `is_action_just_pressed` counted one tap of H twice, so the toggle went to the fists and straight back and
   the switch never ended (four switching cases failed). **Seen:** gdstudio #887, 2026-11-10 (`PlayerInput`'s weapon
   presses).
+- **Approach:** Clear a weapon's answer for the shot (`_last_projectile`) at the start of every shot, in the one
+  function every way of firing goes through (`_shoot`), not in one caller. **Watch out for:** `pull()` cleared it and
+  `fire()` did not, so `fire()` of a hitscan shot after a projectile handed back the old round as if it had just left.
+  **Seen:** gdstudio #1252, 2026-11-11 (`test_the_toggle_fires_a_ray_with_no_projectile_and_switches_back_live`).
+- **Approach:** In a test that shoots one character several times, stand it back where it was (`teleport`) and let
+  the flinch end before each shot. **Watch out for:** a hit pushes the body back; the fourth shot of a suite comparing
+  a projectile and a hitscan head shot met nothing, the body a step further on, and read as a hitscan fault.
+  **Seen:** gdstudio #1252, 2026-11-11 (`test_a_hitscan_shot_takes_the_part_and_damage_a_projectile_takes`).
 - **Approach:** Give a weapon in a test its own copy of the definition (`weapon.definition =
   weapon.definition.duplicate()`) before changing a number. **Watch out for:** a `.tres` is loaded once and shared by
   every weapon that holds it, so a suite that sets the fire rate on the shared pistol changes it for every later suite
