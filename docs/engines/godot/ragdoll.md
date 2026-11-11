@@ -230,7 +230,9 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   its ragdoll). The camera orbits and follows the hips. A ragdoll below the tuning's `fall_limit` says `fell` (the
   `Player` starts again at its spawn point); `teleport()` and the player's `respawn()` get a dead character up at
   once. Getting up stands the body under the hips, facing the
-  chest's way, restarts the animation and fades the ragdoll's hold out over `get_up_time`. The library has no get-up
+  chest's way, restarts the animation and fades the ragdoll's hold out over `get_up_time`; `revive_at(spot)` does the
+  same with the body standing at `spot` (online, where the server says), so the pose blends there from where the bones
+  lie. The library has no get-up
   clip; a game with one plays it with `play_clip()` from `revived`.
 - **The inspector.** On `Character`, the group Ragdoll: `ragdoll_body` (the component), `ragdoll` (a live bool: tick
   it in the inspector or the remote inspector to kill, untick to get up) and `ragdoll_by_command`; on `Player`,

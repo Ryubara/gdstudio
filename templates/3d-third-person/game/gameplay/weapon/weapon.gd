@@ -105,6 +105,24 @@ var reserve: Variant:
 ## The share of `spread` a shot gets now: the character that holds the weapon sets it each
 ## step (lying down is steadier, `ProneTuning.spread_share`); 1 alone.
 var spread_share := 1.0
+
+# Online play (gdstudio #906): the server's weapon is the one whose shots count; a client's are
+# cosmetic, and a server's make no sound, flash or mark.
+## On: the shots hit (damage, pushes, a `Health` or `HitZones` told). Off (a client online): the
+## projectiles it fires are cosmetic (`Projectile.authoritative` off) and a ray or a blow
+## touches nothing; the server's event says what was hit.
+var authoritative := true
+## On: the flash, the sounds and the impacts play. Off (a server): none of them.
+var effects := true
+## With 0 or more, the spread of a shot is drawn from a generator seeded by this and `shot_seq`
+## (a player's slot and its command's number), so every peer draws the same pellet for one
+## command whatever it fired before. -1: the weapon's own running order.
+var seed_base := -1
+## The number of the command being stepped (`Character.step` sets it).
+var shot_seq := 0
+## Where the last shot left from and the way it went (after the spread), world space.
+var last_origin := Vector3.ZERO
+var last_heading := Vector3.FORWARD
 var _cooldown := 0.0
 var _magazine := 0
 var _reserve := 0
@@ -239,6 +257,35 @@ func cancel_reload() -> void:
 	reload_cancelled.emit()
 
 
+## True while the weapon cools down after a shot (or a click): a pull now does nothing.
+func is_cooling_down() -> bool:
+	return _cooldown > 0.0
+
+
+## Plays a shot the server fired for another player (a puppet's, online): a cosmetic projectile
+## (no hit, no push) from the muzzle along `heading`, the flash and the shot sound. Counts no
+## ammunition and starts no cooldown: the server keeps those. `origin` is where the server's
+## shot left, used when the weapon has no muzzle. Returns the projectile (null for a ray or a
+## blow, or with no definition).
+func fire_cosmetic(origin: Vector3, heading: Vector3) -> Projectile:
+	_last_projectile = null
+	if definition == null or not heading.is_finite() or heading.length_squared() < 0.000001:
+		return null
+	var start := muzzle.global_position if muzzle != null and muzzle.is_inside_tree() else origin
+	last_origin = start
+	last_heading = heading.normalized()
+	if definition.kind == WeaponDef.Kind.PROJECTILE and definition.projectile_scene != null:
+		var was := authoritative
+		authoritative = false
+		_launch(start, last_heading)
+		authoritative = was
+	_play(_player(&"ShotSound"), start)
+	if definition.kind != WeaponDef.Kind.MELEE:
+		_flash()
+	fired.emit(_last_projectile)
+	return _last_projectile
+
+
 ## True while a reload runs.
 func is_reloading() -> bool:
 	return _reload_left > 0.0
@@ -345,6 +392,8 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 		if toward.dot(along) <= 0.0 or toward.length() < 0.2:
 			toward = along
 		heading = _spread(toward.normalized())
+	last_origin = start
+	last_heading = heading
 	if _uses_ammo():
 		_magazine -= 1
 	_cooldown = definition.shot_interval()
@@ -366,6 +415,8 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 func _spread(heading: Vector3) -> Vector3:
 	if definition.spread <= 0.0:
 		return heading
+	if seed_base >= 0:
+		_rng.seed = hash([seed_base, shot_seq])
 	var angle := deg_to_rad(definition.spread * spread_share) * sqrt(_rng.randf())
 	var around := _rng.randf() * TAU
 	var side := heading.cross(Vector3.UP)
@@ -391,7 +442,10 @@ func _launch(start: Vector3, heading: Vector3) -> void:
 	shot.bounces = definition.projectile_bounces
 	shot.bounce_keep = definition.projectile_bounce_keep
 	shot.damage = definition.damage
-	shot.impact_effects = definition.impacts and shot.scene_impact_effects
+	shot.impact_effects = (
+		definition.impacts and shot.scene_impact_effects and effects and authoritative
+	)
+	shot.authoritative = authoritative
 	shot.launch(start, heading, definition.projectile_speed, shooter)
 	_live.append(shot)
 	_last_projectile = shot
@@ -445,6 +499,8 @@ func _scan(start: Vector3, heading: Vector3, reach: float) -> void:
 		var zones := HitZones.of(found["collider"])
 		if zones == null:
 			break
+		if not authoritative:
+			break
 		record = zones.shot(
 			found["collider"],
 			found["position"],
@@ -464,6 +520,21 @@ func _scan(start: Vector3, heading: Vector3, reach: float) -> void:
 	var collider: Object = found["collider"]
 	var point: Vector3 = found["position"]
 	var normal: Vector3 = found["normal"]
+	if not authoritative:
+		(
+			hit_scanned
+			. emit(
+				{
+					"collider": collider,
+					"position": point,
+					"normal": normal,
+					"from": start,
+					"damage": 0.0,
+					"record": null,
+				}
+			)
+		)
+		return
 	if collider is RigidBody3D:
 		var body := collider as RigidBody3D
 		body.apply_impulse(heading * definition.impulse, point - body.global_position)
@@ -475,7 +546,9 @@ func _scan(start: Vector3, heading: Vector3, reach: float) -> void:
 				definition.damage, &"", &"", point, heading, definition.impulse, shooter as Node3D
 			)
 		)
-	var impacts := Impacts.find(self) if definition.impacts and collider != null else null
+	var impacts := (
+		Impacts.find(self) if definition.impacts and effects and collider != null else null
+	)
 	if impacts != null:
 		impacts.impact(collider, point, normal)
 	(
@@ -554,7 +627,7 @@ func _finish_reload() -> void:
 # Plays each reload sound whose share of the reload has passed.
 func _play_reload_steps() -> void:
 	var player := _player(&"ReloadSound")
-	if player == null or definition == null:
+	if player == null or definition == null or not effects:
 		return
 	var steps := definition.reload_sounds
 	var progress := reload_progress()
@@ -611,7 +684,7 @@ func _muzzle_point() -> Vector3:
 
 
 func _flash() -> void:
-	if not muzzle_flash_enabled or definition.muzzle_flash == null or muzzle == null:
+	if not effects or not muzzle_flash_enabled or definition.muzzle_flash == null or muzzle == null:
 		return
 	var emitter := EffectEmitter.find(self)
 	if emitter != null:
@@ -623,7 +696,7 @@ func _player(node_name: StringName) -> AudioStreamPlayer3D:
 
 
 func _play(player: AudioStreamPlayer3D, at: Vector3) -> void:
-	if player == null or player.stream == null or not player.is_inside_tree():
+	if not effects or player == null or player.stream == null or not player.is_inside_tree():
 		return
 	player.global_position = at
 	player.play()

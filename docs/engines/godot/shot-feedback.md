@@ -122,6 +122,11 @@ captures; the research with its sources is in the pull request of #875.
   mark on a body that gets up. A `CharacterBody3D` takes no mark either (its mesh is animated; a mark would
   stay in the air), but its surface still plays the effect and the sound. A game that wants wounds sets the body's
   surface (`flesh`) and gives it a blood effect: the quad cannot follow a skinned mesh.
+- **Online, nothing of an impact travels but the hit.** The server's shots make no mark, effect or sound
+  (`Weapon.effects` off); each screen makes them from the `HIT` event's point, normal and kind, finds the surface with a
+  10 cm ray along the normal (or the player or target the id names), and a cosmetic round on its way there stops there.
+  The muzzle flash, the shot sound, the flinch and the ragdoll are made on each screen the same way
+  ([shots online](third-person/online-shots.md#template-shots)).
 - **Known limits of a quad:** it is flat, so on a curved surface it touches at its middle and floats at its edge (a 12
   cm mark on a pillar of 1 m diameter lifts 3.6 mm at the rim: hardly seen); near the edge of a block it overhangs into
   the air (a `Decal` would clip). The first mark of a material builds its program (the first-use hitch: show one in a
