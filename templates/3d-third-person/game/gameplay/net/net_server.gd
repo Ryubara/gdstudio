@@ -35,8 +35,8 @@ const STATS_SECONDS := 10.0
 const MAX_CONNECTIONS := 2 * NetLimits.MAX_PLAYERS
 ## The close code for a peer hung up on for breaking the rules (RFC 6455: policy violation).
 const CLOSE_POLICY := 1008
-## The group of a map's networked parts, whose paths and kinds make the world hash (issue #907
-## adds the parts; the map has none yet).
+## The group of a map's networked parts, whose paths (from the map node, `world_root`) and kinds
+## make the world hash (issue #907 adds the parts; the map has none yet).
 const PART_GROUP := &"net_part"
 ## The milliseconds a step may take before it counts as over budget in the stats.
 const STEP_BUDGET_MS := 6.0
@@ -54,6 +54,11 @@ const STEP_BUDGET_MS := 6.0
 @export var cap_frame_rate := false
 ## Prints the log lines (`logged` is said either way).
 @export var print_log := true
+
+## The map node (the `World` instance) whose networked parts make the world hash, the same node a
+## client's `NetClient.world_root` names, so the paths match whatever holds the map; empty is this
+## node's parent.
+@export var world_root: Node
 
 @export_group("Players")
 ## The body each player gets: the body alone, with no model, animation or camera.
@@ -110,7 +115,7 @@ func _ready() -> void:
 		add_child(players_root)
 	if cap_frame_rate:
 		Engine.max_fps = NetLimits.TICK_RATE
-	world_hash = world_hash_of(get_parent() if get_parent() != null else self)
+	world_hash = world_hash_of(_map_root())
 	listener.clock = _now
 	listener.peer_connected.connect(_on_connected)
 	listener.peer_disconnected.connect(_on_disconnected)
@@ -158,15 +163,23 @@ func _physics_process(delta: float) -> void:
 	_log_stats()
 
 
-## The world hash of the networked parts under `root` (`NetWire.world_hash` of their paths and
-## kinds): a client computes the same from its own map.
+## The world hash of the networked parts under `root`, the map node (`NetWire.world_hash` of their
+## paths from `root` and their kinds): a client computes the same from its own map, whatever node
+## holds it. The map need not be in the tree (a bot hashes a map it never adds).
 static func world_hash_of(root: Node) -> int:
 	var parts := PackedStringArray()
-	if root.is_inside_tree():
-		for node in root.get_tree().get_nodes_in_group(PART_GROUP):
-			if root == node or root.is_ancestor_of(node):
-				parts.append("%s:%s" % [root.get_path_to(node), node.get_meta(&"net_kind", "")])
+	var nodes: Array[Node] = [root]
+	nodes.append_array(root.find_children("*", "", true, false))
+	for node in nodes:
+		if node.is_in_group(PART_GROUP):
+			parts.append("%s:%s" % [root.get_path_to(node), node.get_meta(&"net_kind", "")])
 	return NetWire.world_hash(parts)
+
+
+func _map_root() -> Node:
+	if world_root != null:
+		return world_root
+	return get_parent() if get_parent() != null else self
 
 
 ## The seated players, by slot.
