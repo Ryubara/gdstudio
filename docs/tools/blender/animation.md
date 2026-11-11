@@ -175,7 +175,8 @@ together with no leg astride, folded shut, snapped or held
 
 A clip with no clip to start from is solved, frame by frame, from a few targets, by a script that keys the result
 (`templates/3d-third-person/game/assets/animation/prone/build_prone_clips.py`: a prone idle, a low crawl and the two
-transitions to the Universal Animation Library's crouch, on the Quaternius universal rig). Godot imports the file with
+transitions to the Universal Animation Library's crouch, on the Quaternius universal rig; and since kit #1016
+`vault/build_vault.py`, the three vault clips). Godot imports the file with
 `importer="animation_library"` beside the libraries
 ([the libraries](../../engines/godot/third-person/clips.md#animation-libraries)).
 
