@@ -70,6 +70,11 @@ parent's id that a new program can be given (kit #229).
   request, the third fix of one test in a day. **Seen:** kit #227, #229, 2026-11-02 (fix: `python/tests/process_tree.py`,
   tested on a planted process table; on a third fix of one test, re-read the evidence before changing the design).
 
+- **Approach:** Give a browser sweep that can run past 15 minutes its own `gds quiet --timeout <seconds> --`, above
+  the sweep's measured length. **Watch out for:** `gds quiet` ends the whole tree at the same 900 s default as `gds
+  godot`, so a longer sweep stops with exit code 124 and its later probes never run. **Seen:** gdstudio #1153 (PR
+  #1167), 2026-11-11.
+
 ## How it works {#how-it-works}
 
 `gds godot` creates a second **Windows desktop** (`gds-quiet`, in the same window station) and starts Godot on it

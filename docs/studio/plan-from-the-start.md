@@ -209,9 +209,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Process {#process}
 
 - Plan: land old PRs before new ones, reporting from the oldest down
-  ([Starting work](starting-work.md#landing)).
+  ([Landing](landing.md#landing)).
 - Plan: rerun known flakes at once and push only what a merge needs
-  ([Starting work](starting-work.md#merging-main-into-a-pull-request)).
+  ([Landing](landing.md#merging-main-into-a-pull-request)).
 - Plan: a fix is done when it is live where the maintainer plays (deployed commit named, probe run on the live URL)
   ([row](corrections-log/corrections.md)).
 - Plan: local main checkouts fast-forwarded after every merge, by a hook
