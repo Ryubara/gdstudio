@@ -30,6 +30,10 @@ signal disconnected
 ## numbering moves on (`first_seq`; a stall, a slow clock).
 const SEQ_SLACK := 4
 
+## An address chosen for the next client that joins on ready (the main menu's "Play online"):
+## wins over `--connect` and `?url=`, and is used once.
+static var next_url := ""
+
 @export_group("Nodes")
 ## The local body the client predicts.
 @export var player: Player
@@ -100,7 +104,8 @@ func _ready() -> void:
 	if join_on_ready and not Engine.is_editor_hint():
 		var args := NetArgs.new()
 		player_name = args.get_string("name", player_name)
-		var url := WebSocketLink.server_url()
+		var url := next_url if next_url != "" else WebSocketLink.server_url()
+		next_url = ""
 		if url != "":
 			join(url)
 
