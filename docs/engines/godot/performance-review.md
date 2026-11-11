@@ -45,6 +45,10 @@ the probe output.
    - Work done **at a higher rate than the data changes** (60 Hz tick, 30 Hz sim)? Work done **once per consumer** that
      could be done once per process (every `ClientState`, every bot decoding the same bytes)?
    - Anything O(n) over the dead per tick per listener, and anything O(n^2): a pair loop needs a grid or a cap.
+   - A node's property read in a loop over the crowd (`body.global_position`)? Call the typed getter
+     (`body.get_global_position()`): it skips the property lookup, about 10 % of a friend-in-line check over 40 bodies
+     in Chrome (10.7 against 9.6 µs a call) and 19 % of that check in the AI's timed copy (kit #1204,
+     [the think](third-person/ai-behaviour.md#cost-think)).
    - A list or table built from the dead and **cached on a version number** (a sim revision)? Every writer of what it
      is built from bumps the number, test rigs that move a body by hand included, and a test compares the cached list
      with a fresh one on every tick of a seeded run (Deadnight #931).

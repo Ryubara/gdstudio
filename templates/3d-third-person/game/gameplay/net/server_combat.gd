@@ -17,9 +17,11 @@ extends RefCounted
 ##   `revive_seconds` the server gets it up where it died (or at its spawn point,
 ##   `revive_at_spawn`) and says where in a REVIVED event.
 ##
-## The server checks a shot against the world as it is now: no rewind to what the shooter saw.
-## A projectile flies for many ticks, so a rewind would not match what it meets; the shooter's
-## own shot and every puppet's are cosmetic and decide nothing.
+## The server checks a shot against the players as they are now: no rewind to what the shooter
+## saw. A projectile flies for many ticks, so a rewind would not match what it meets; the
+## shooter's own shot and every puppet's are cosmetic and decide nothing. The AI is the exception:
+## a shot meets each AI character where the shooter's screen drew it (`ShotRewind`, which
+## `NetServer` hands the body's weapon for the step of a command with a shot block).
 
 ## Why a shot was refused (the REJECTED event's code).
 enum Reason {
@@ -159,6 +161,11 @@ func _on_impacted(collider: Node, point: Vector3, normal: Vector3) -> void:
 
 func _on_scanned(hit: Dictionary) -> void:
 	_send_hit(hit.get("collider"), hit.get("position", Vector3.ZERO), hit.get("normal", Vector3.UP))
+
+
+## A HIT for what a shot that is not a player's met (an AI's: `AiBroadcast.hit_made`).
+func send_hit(collider: Object, point: Vector3, normal: Vector3) -> void:
+	_send_hit(collider, point, normal)
 
 
 func _send_hit(collider: Object, point: Vector3, normal: Vector3) -> void:

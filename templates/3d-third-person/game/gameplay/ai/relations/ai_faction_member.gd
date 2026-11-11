@@ -123,6 +123,12 @@ func forgive(entity: Object) -> void:
 		holds_grudges = not _grudges.is_empty()
 
 
+## Drops every personal grudge (a pooled character spawned again as a new one).
+func forgive_all() -> void:
+	_grudges.clear()
+	holds_grudges = false
+
+
 ## True when it holds a personal attitude toward `entity`.
 func has_grudge(entity: Object) -> bool:
 	return entity != null and _grudges.has(entity.get_instance_id())

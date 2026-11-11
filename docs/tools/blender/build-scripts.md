@@ -75,7 +75,11 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
 A clip build also checks that limbs do not pass through each other: `limb_overlap.py`
 (`templates/3d-third-person/game/assets/animation/`, from kit #1016 and #1020) measures, on every frame and on each
 mannequin's skinned mesh, how deep any body part is inside another, and a build calls its `measure()` on the baked
-actions before it exports (its header has the command line and the limit).
+actions before it exports (its header has the command line and the limit). The command line measures a clip file
+on the same frames as the build, at the rate it reads from the file's key times
+([how it samples](animation.md#solved-clips)); after a change to the script, run `test_limb_overlap.py` beside it
+with the pinned Blender (it keys a clip, measures it both ways at 30 and 24 frames a second and exits 1 on a
+difference).
 
 - **Approach:** Make a build script fail on its triangle budget and on its lowest vertex before it exports, read the
   count on the first build, and chamfer only what is big and seen: parts under about 0.2 m on an asset seen from afar

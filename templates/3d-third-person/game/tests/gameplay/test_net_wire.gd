@@ -55,9 +55,9 @@ func test_hostile_hellos_are_dropped_with_a_reason() -> void:
 	long_name.append_array("a".repeat(17).to_utf8_buffer())
 	var lying_length := good.duplicate()
 	lying_length[NetWire.HELLO_HEADER - 1] = 9
-	var broken_utf8 := PackedByteArray([NetWire.Type.HELLO, NetWire.VERSION, 0, 0, 0, 0, 2])
+	var broken_utf8 := PackedByteArray([NetWire.Type.HELLO, NetWire.VERSION, 0, 0, 0, 0, 0, 2])
 	broken_utf8.append_array([0xC3, 0x28])
-	var control := PackedByteArray([NetWire.Type.HELLO, NetWire.VERSION, 0, 0, 0, 0, 1, 0x07])
+	var control := PackedByteArray([NetWire.Type.HELLO, NetWire.VERSION, 0, 0, 0, 0, 0, 1, 0x07])
 	var cases := {
 		NetDrops.EMPTY: PackedByteArray(),
 		NetDrops.UNKNOWN_TYPE: PackedByteArray([NetWire.Type.PING, NetWire.VERSION]),

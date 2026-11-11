@@ -2,7 +2,8 @@
 
 The Compatibility renderer links each program at its first draw and waits for it, one after another: a browser that
 has never drawn the game waited about 21 s on its GPU (kit issue #1164). `ShaderPrelink` (`addons/gds_game/`) links a
-recorded list all at once while the menu scene starts; this writes that list and measures the result.
+recorded list all at once, started by the page before the engine boots; this writes that list, measures the
+result and checks that the list is current.
 
 Record (the page with `?noprelink`, so the game's own links are what is seen; SwiftShader writes the same programs as a
 GPU, give `--gpu` to use one):
@@ -13,14 +14,21 @@ GPU, give `--gpu` to use one):
 
 Measure a cold page (a fresh browser profile each run) with the list in the build, or without it (`--off`):
 
-    ... shader_programs.py build/web build/shader_programs --gpu [--off] [--runs 3] [--warm]
+    ... shader_programs.py build/web build/shader_programs --gpu [--off] [--runs 3] [--warm] [--throttle-kbps 20000]
+
+Check that the list is current (CI, on SwiftShader, which records the same programs as a GPU):
+
+    ... shader_programs.py build/web build/shader_programs --list assets/shaders/web/shader_programs.json --max-missed 8
 
 Each run waits for the first program and then until none is linked for `--quiet-s`, and reports the programs the
-game linked, their milliseconds, the seconds from the page's start to the end of the last link (`last_link_s`), the
-slowest frames and, with the list, how many of the game's programs it lacked (`missed`) and its own seconds
-(`prelink_ms`). `--warm` loads the page twice in one browser profile and measures the second (a returning player).
-`--write` keeps every program seen in any run (with `--merge`, also those already in the file). Exits 1 when a page
-links nothing or a run times out. Run it under `gds quiet`.
+game linked, their milliseconds, how many took over 100 ms (`slow_links`), the seconds from the page's start to the
+end of the last link (`last_link_s`), the slowest frames and, with the list, how many of the game's programs it lacked
+(`missed`) and the page's own numbers (`prelink`: who started it, `page` before the engine booted or `engine`, when,
+its milliseconds). `--warm` loads the page twice in one browser profile and measures the second (a returning player);
+`--throttle-kbps` slows the page's downloads as a real network does. `--write` keeps every program seen in any run
+(with `--merge`, also those already in the file). Exits 1 when a page links nothing, a run times out, a run lacks more
+than `--max-missed` programs or the page made the engine's context with attributes the engine did not ask for. Run it
+under `gds quiet`.
 """
 
 from __future__ import annotations
@@ -43,6 +51,8 @@ if TYPE_CHECKING:
 FORMAT = 1
 GPU_ARGS = ["--enable-gpu", "--ignore-gpu-blocklist"]
 SOFTWARE_ARGS = ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"]
+# A link longer than this is one a player sees (a frame of several).
+SLOW_LINK_MS = 100
 # A shared line run shorter than this is written out: a reference costs about as much as two short lines.
 LEAST_RUN = 2
 # How many earlier places of a line the encoder tries for the longest run from it.
@@ -187,7 +197,9 @@ def measure(page: Page, url: str, quiet_s: float, timeout_s: float) -> dict:
     return page.evaluate(
         "() => ({programs: window.__programs, links: window.__links, frames: window.__frames,"
         " godot: window.gdsEngine || '', prelink: window.gdsPrelink ? {total: window.gdsPrelink.total,"
-        " began: window.gdsPrelink.began, ms: window.gdsPrelink.ms, done: window.gdsPrelink.done, skipped: window.gdsPrelink.skipped} : null})"
+        " from: window.gdsPrelink.from, asked: window.gdsPrelink.asked, began: window.gdsPrelink.began,"
+        " ms: window.gdsPrelink.ms, done: window.gdsPrelink.done, skipped: window.gdsPrelink.skipped,"
+        " mismatch: window.gdsPrelink.mismatch} : null})"
     )
 
 
@@ -221,11 +233,40 @@ def summary(seen: dict, listed: set[str]) -> dict:
         "link_ms": round(sum(ms for _, ms in links)),
         "first_link_s": round(links[0][0] / 1000, 2) if links else -1,
         "last_link_s": round((links[-1][0] + links[-1][1]) / 1000, 2) if links else -1,
+        "slow_links": sum(1 for _, ms in links if ms > SLOW_LINK_MS),
         "slowest_frames_ms": sorted((round(ms) for _, ms in seen["frames"]), reverse=True)[:5],
         "missed": sum(1 for key in set(keys) if key not in listed) if listed else -1,
         "slowest_links": slowest_links(seen, keys, listed),
         "prelink": seen["prelink"],
     }
+
+
+def throttle(page: Page, kbps: int, latency_ms: int) -> None:
+    """Slows the page's downloads to `kbps` kilobits a second (Chrome's network emulation)."""
+    session = page.context.new_cdp_session(page)
+    session.send("Network.enable")
+    rate = kbps * 1000 / 8
+    session.send(
+        "Network.emulateNetworkConditions",
+        {"offline": False, "latency": latency_ms, "downloadThroughput": rate, "uploadThroughput": rate},
+    )
+
+
+def stale(run: dict, max_missed: int) -> bool:
+    """Whether a run says the list is out of date (more programs it lacks than `max_missed`) or the page made the
+    engine's context with attributes the engine did not ask for. Prints why."""
+    bad = False
+    if max_missed >= 0 and run["missed"] > max_missed:
+        print(
+            f"the list lacks {run['missed']} of the programs the game linked (at most {max_missed}): record it again"
+            " (`--write ... --merge`)"
+        )
+        bad = True
+    mismatch = (run.get("prelink") or {}).get("mismatch")
+    if mismatch:
+        print(f"the page made the engine's context with other attributes than the engine asked for: {mismatch}")
+        bad = True
+    return bad
 
 
 def main() -> int:
@@ -240,6 +281,11 @@ def main() -> int:
     parser.add_argument("--off", action="store_true", help="measure without the prelink (`?noprelink`)")
     parser.add_argument("--warm", action="store_true", help="measure a second load in the same browser profile")
     parser.add_argument("--runs", type=int, default=1, help="cold pages, each in a fresh browser")
+    parser.add_argument("--throttle-kbps", type=int, default=0, help="download speed of the page, 0: unthrottled")
+    parser.add_argument("--latency-ms", type=int, default=0, help="with --throttle-kbps: the round trip it adds")
+    parser.add_argument(
+        "--max-missed", type=int, default=-1, help="with --list: exit 1 when a run links more programs the list lacks"
+    )
     parser.add_argument("--quiet-s", type=float, default=10.0, help="seconds without a link that end a run")
     parser.add_argument("--timeout-s", type=float, default=240.0, help="seconds a run may take")
     args = parser.parse_args()
@@ -270,6 +316,8 @@ def main() -> int:
                     )
                     context.add_init_script(HOOK)
                     page = context.new_page()
+                    if args.throttle_kbps:
+                        throttle(page, args.throttle_kbps, args.latency_ms)
                     if args.warm:
                         measure(page, url, args.quiet_s, args.timeout_s)
                     seen = measure(page, url, args.quiet_s, args.timeout_s)
@@ -284,6 +332,7 @@ def main() -> int:
                 programs.extend(seen["programs"])
                 runs.append(summary(seen, listed))
                 print(json.dumps(runs[-1]))
+                failed = stale(runs[-1], args.max_missed) or failed
     finally:
         server.shutdown()
     result = {"query": query, "gpu": args.gpu, "warm": args.warm, "runs": runs}

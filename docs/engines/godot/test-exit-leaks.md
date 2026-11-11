@@ -185,12 +185,61 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
      with the same message on one run and passed on the next with the same code -->
 
 The template job's `--export-release Web` sometimes ends with `N resources still in use at exit` and passes on a rerun
-of the same commit (gdstudio #954 saw it on one run and not the next two; #888 the same). CI now exports once more when
-the only `ERROR` lines are at-exit leaks, prints the first run's leak lines (the export runs with `--verbose`, which
-names each script) as a warning, and fails when the second run leaks too or when any other error shows.
+of the same commit (gdstudio #954 saw it on one run and not the next two; #888 the same). The lines come from the
+editor process after the pack is written (the add-ons unload, then the leak report), so they say nothing about the
+build, which the steps after the export judge (the pack's contents, the browser boot). The export step fails on any
+other `ERROR:` line and on Godot's own failure, and prints the at-exit lines as a warning (gdstudio #1236).
+
+The retry that #998 added never ran. A leaking editor also prints `Pages in use exist at exit in PagedAllocator` (an
+`ERROR:` line the leak filter did not name) and, with `--verbose`, a list of orphan names, some of which hold the word
+`ERROR` (`Orphan StringName: REPORT_ASSERT_ERRORS`). The step read those as "another error", printed every `ERROR`
+line and exited 1 at once: runs 43022827198 (#1194) and 43044822252 (#1223) both failed in the export step with every
+test green and no line other than the leak, and neither reached the retry.
+
+- **Approach:** Classify a Godot log by `ERROR:` lines (with the colon) that do not contain `at exit`, and test the
+  classifier against the failed run's own log before trusting it (`gh run view <id> --log --job <job>`, cut to the
+  step). **Watch out for:** `grep ERROR` also matches verbose orphan names, and the leak brings a
+  `Pages in use exist at exit` line besides the two the filter knew; a job that "failed with every test green" was the
+  export step, not the tests step (`Exit code: 0`, `0 orphans` in its summary): read which step carries
+  `##[error]Process completed` before looking at the tests. **Seen:** gdstudio #1236, 2026-11-11 (runs 43022827198,
+  43044822252).
 
 - **Approach:** Tell a flake from a real leak by rerunning the job, then by exporting early in the job (before the
   tests) with `--verbose`: a leak that names the same script on every run and in the early export is real and is fixed
   in that script; one that comes and goes with the same code is the flake, which the retry absorbs. **Watch out for:**
   a retry hides a leak that happens one run in two, so read the warning's script names in the log when it shows.
-  **Seen:** gdstudio #998, 2026-11-10 (retry in the template job's export step).
+  **Seen:** gdstudio #998, 2026-11-10 (retry in the template job's export step); gdstudio #1194, 2026-11-11 (237
+  scripts from the add-ons and gdUnit4, none of them the change's; the retry did not run, see above).
+
+## An exported typed array and a cast to the script's own class {#typed-array-export-and-self-cast}
+
+<!-- new section: the sections above find which suite or script leaks; none names an engine pattern in a game
+     script that leaves other scripts (GdUnit4's, the autoloads') in use at exit -->
+
+Under Godot 4.7.2 a script that has **all three** of these leaves scripts in use at exit when the class its array holds
+was loaded as itself first: an `@export var x: Array[Other]` of a `class_name` class, a cast or type test against its
+own class in a function (`node as Self`, `node is Self`, `var s: Self = node`, a `-> Self` that returns a `Node`), and a
+GdUnit4 run in the same process. The scripts left are not the two named: they are GdUnit4's, the autoloads' (`gds_ui`,
+Phantom Camera, the audio settings, the camera shake) and whatever their statics hold, about 190 objects and 120
+scripts. Taking away any one of the three cures it (a single typed export, `return self`, an array that is not
+exported, `Array[Resource]`). A ten-file project shows it: GdUnit4, `def.gd` (`class_name Def extends Resource`),
+`emitter.gd` (`@export var arr: Array[Def] = []` and `static func find(n: Node) -> Emitter: return n as Emitter`), a
+one-assert suite, and a wrapper of `GdUnitCmdTool.gd` that loads `def.gd` then `emitter.gd` first; loading them the
+other way round, or without GdUnit4, is clean. Godot's tracker has the same family, closed unfixed
+(godotengine/godot#122601, #123883 and #122022); 4.8's shutdown clean-up does more.
+
+- **Approach:** Export such an array as `@export_custom(PROPERTY_HINT_TYPE_STRING, "24/17:Other") var x:
+  Array[Resource] = []` (the inspector still offers only `Other`) and cast each item where it is used. Find the script
+  with a wrapper of `GdUnitCmdTool.gd` that loads a list of scripts before `super()`, a one-assert suite, and a greedy
+  cut of the list while the leak stays. **Watch out for:** loading every game script first (the Deadnight cure above)
+  made every 3D Third Person suite leak, since name order loads `effect_def.gd` before `effect_emitter.gd`, as the
+  export does; an array that tests or scenes assign typed breaks as `Array[Resource]`, so change only the one the cut
+  names. **Seen:** gdstudio #1236, 2026-11-11 (`EffectEmitter.warm_up`; `Hotbar` and `AiRelations` have the shape
+  and did not leak in any order tried).
+- **Approach:** When a suite leaks alone and not in the whole run, cut it to the smallest set of its cases that still
+  leaks (each case in a file of its own with the suite's head, then halves, then pairs) before reading code.
+  **Watch out for:** `test_player_step.gd` leaks alone only when a case that uses `CommandCodec` runs before the case
+  that gives a player's weapon a duplicated `WeaponDef` (two cases out of 14; either alone, or the other way round, is
+  clean), and a probe without GdUnit4 doing the same is clean: it is the same family as above with no script named
+  yet, and the whole run (CI's condition) does not show it. **Seen:** gdstudio #1236, 2026-11-11 (the four other suites
+  #1138 named were already clean alone on `main` at 9ebaa690).

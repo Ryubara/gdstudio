@@ -28,10 +28,11 @@ build. Offline a part does what it always did.
   (a ping-pong with waits in closed form, `ride_at`) replace the per-frame sums; a change starts a new motion at a tick
   and keeps the one before for earlier ticks. Offline the part counts its own ticks.
 - **Both worlds put them at the command's tick.** The client numbers its commands by the server tick each is expected
-  to be stepped at (`NetClient.first_seq`: the WELCOME's tick and the round trip; renumbered forward after a stall).
-  Before it predicts command `seq` it puts every moving part at tick `seq`; the server, before it steps a body with
-  command `seq`, puts them at the same tick (`NetServer.command_tick`, held within 4 s behind and 1 s ahead of its
-  step), and at its own tick after the bodies. The two bodies meet the same panel and stand on the same slab.
+  to be stepped at (`NetClient.first_seq`: the WELCOME's tick and the round trip; renumbered forward after a stall
+  by the smallest recent round trip, `numbering_rtt_ms`). Before it predicts command `seq` it puts every moving part
+  at tick `seq`; the server, before it steps a body with command `seq`, puts them at the same tick
+  (`NetServer.command_tick`, held within 4 s behind and 1 s ahead of its step), and at its own tick after the bodies.
+  The two bodies meet the same panel and stand on the same slab.
 - **Online the parts are static bodies.** `net_set_role` turns the panel's and the slab's `AnimatableBody3D` into a
   static body, moved with `force_update_transform()`, which the physics queries of the same frame see; a rider is
   carried by `PlatformRider` (`Character._move`: what the slab moved between the tick of the body's last step and this

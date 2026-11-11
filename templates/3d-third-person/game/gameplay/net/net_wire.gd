@@ -1,12 +1,12 @@
 class_name NetWire
 extends RefCounted
-## The bytes of an online game of this template (protocol version 5): one message to a WebSocket
+## The bytes of an online game of this template (protocol version 6): one message to a WebSocket
 ## frame, a type byte first, then fixed fields, little-endian. Plain code with no node, socket or
 ## clock, so a server, a client, a test and a tool share one definition. The transport (a
 ## `WebSocketPeer`, a loopback) carries the arrays as they are.
 ##
-## HELLO    C->S  u8 type=1, u8 version, u32 world hash, u8 name length (<= NAME_BYTES), the
-##                name in UTF-8. 7 bytes + the name
+## HELLO    C->S  u8 type=1, u8 version, u32 world hash, u8 flags (`F_WEB`: a browser), u8 name
+##                length (<= NAME_BYTES), the name in UTF-8. 8 bytes + the name
 ## WELCOME  S->C  u8 type=2, u8 version, u8 slot, u8 tick rate, u32 server tick, u32 world hash,
 ##                u16 entity count, then per world part: u16 id, u8 kind, u8 state length, the
 ##                state; u8 player count, then per player: its 12-byte entry and u8 name length,
@@ -19,7 +19,9 @@ extends RefCounted
 ## TICK     S->C  u8 type=5, u32 server tick, u32 ack (the last command seq applied for this
 ##                client), u8 event count, the events, u8 player count, the 12-byte player
 ##                entries, u8 streamed part count, then per moving prop: u16 id, u8 state length,
-##                the state (`SnapshotCodec.tick`, events in `NetEvent`, a prop's in `PropState`)
+##                the state, then the AI block for this client (`AiSnapshot`: u8 mode, and for a
+##                full or a delta the rows of the AI characters) (`SnapshotCodec.tick`, events in
+##                `NetEvent`, a prop's in `PropState`)
 ## PING     C->S  u8 type=6, u32 client milliseconds, u16 the last round trip in ms (`NO_RTT`
 ##                before the first). 7 bytes
 ## PONG     S->C  u8 type=7, the same u32 and u16, u32 server tick. 11 bytes
@@ -40,16 +42,20 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## 2: the command's flags carry `prone` (bit 15); 3: and the weapon presses (bits 11 to 14:
 ## reload, next, previous, the empty hands); 4: a SHOT carries the weapon and a HIT the health
 ## it left (gdstudio #906); 5: a TICK ends with the streamed parts (moving props), a world part's
-## state may be 12 bytes (gdstudio #1073).
-const VERSION := 5
+## state may be 12 bytes (gdstudio #1073); 6: a TICK ends with the AI block, a HELLO carries the
+## client's flags, an AI event and a HIT on an AI (gdstudio #970).
+const VERSION := 6
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 5
+const MIN_VERSION := 6
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1
-## Type, version, world hash, name length.
-const HELLO_HEADER := 7
+## Type, version, world hash, flags, name length.
+const HELLO_HEADER := 8
+## A HELLO's flag: the client runs in a browser (the match's AI population is then the browser's
+## cap, `AiDirector.web_cap`, for everyone).
+const F_WEB := 1
 const MAX_HELLO := HELLO_HEADER + NetLimits.NAME_BYTES
 const REFUSED_SIZE := 3
 const COMMAND_SIZE := 15
@@ -57,8 +63,8 @@ const SHOT_BLOCK_SIZE := 12
 const COMMAND_SHOT_SIZE := COMMAND_SIZE + SHOT_BLOCK_SIZE
 ## Type, tick, ack, event count, player count.
 const TICK_HEADER := 11
-## After a TICK's players: the streamed part count.
-const TICK_TAIL := 1
+## After a TICK's players: the streamed part count and the AI block's mode.
+const TICK_TAIL := 2
 ## A streamed row: u16 id, u8 state length (then the state).
 const STREAM_ROW_HEADER := 3
 ## Type, version, slot, tick rate, tick, world hash.
@@ -79,6 +85,8 @@ class Hello:
 	extends RefCounted
 	var version := 0
 	var world_hash := 0
+	## `F_WEB` and any later flag.
+	var flags := 0
 	var player_name := ""
 
 
@@ -111,9 +119,9 @@ static func hello_version(data: PackedByteArray) -> int:
 
 ## A HELLO. A name longer than `NetLimits.NAME_BYTES` is cut at the last whole character that
 ## fits.
-static func hello(player_name: String, map_hash: int) -> PackedByteArray:
+static func hello(player_name: String, map_hash: int, flags := 0) -> PackedByteArray:
 	var name_bytes := clip_name(player_name)
-	var out := PackedByteArray([Type.HELLO, VERSION, 0, 0, 0, 0, name_bytes.size()])
+	var out := PackedByteArray([Type.HELLO, VERSION, 0, 0, 0, 0, flags & 0xFF, name_bytes.size()])
 	out.encode_u32(2, map_hash & 0xFFFFFFFF)
 	out.append_array(name_bytes)
 	return out
@@ -143,6 +151,7 @@ static func read_hello(data: PackedByteArray, drops: NetDrops = null) -> Hello:
 	var result := Hello.new()
 	result.version = data[VERSION_AT]
 	result.world_hash = data.decode_u32(2)
+	result.flags = data[HELLO_HEADER - 2]
 	result.player_name = name_bytes.get_string_from_utf8()
 	return result
 

@@ -219,6 +219,25 @@ func set_can_think(value: bool) -> void:
 	_note(&"paused", active)
 
 
+## Starts it over as a new character (a pooled body spawned again): every task ends `CANCELLED`
+## whatever its contract, nothing waits, the beliefs, the failure budget and the damage are
+## forgotten, and it may think.
+func reset() -> void:
+	for task in _all_tasks():
+		_cancel(task, AiTask.Reason.CANCELLED)
+	_end_side()
+	_deferred.clear()
+	beliefs.clear()
+	_failure_times.clear()
+	_fallback_until = -1.0
+	_damage.clear()
+	_pending_attacker = null
+	_last_failure = null
+	active = null
+	can_think = true
+	_dirty = true
+
+
 ## Called by a task for each failure (retried ones too): past the profile's `failure_budget` in
 ## `failure_window` seconds, or at once on a script error, ORDER and ROUTINE stop for
 ## `fallback_seconds` and DEFAULT runs, so a failing task cannot loop.

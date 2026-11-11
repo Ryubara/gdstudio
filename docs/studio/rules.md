@@ -75,6 +75,11 @@ on the [corrections log](maintainer-corrections.md). The old form (`**Rule:** ..
   learning hook were designed around quoting the maintainer, so every row copied a prompt into a public repository.
   **Seen:** gdstudio #780, 2026-11-07 (fix: the quotes were removed, and the checks fail a corrections-log row with a
   cell that starts with a quotation mark).
+- **Approach:** Before adding a source to a long entry's `Seen:`, or keeping both sides of a merge conflict in one,
+  run `python .github/scripts/mistakes.py check`; when it is over 900 characters, fold the sources (one date for
+  several numbers) or start a new entry. **Watch out for:** both sides of a conflict kept whole made a 973-character
+  entry, and one more source on a long entry 1026, so the merge commit and a docs commit were refused by pre-commit.
+  **Seen:** gdstudio #970, 2026-11-11 (`running-gdunit.md`, `online-client.md`; both folded or split, the check passed).
 
 ## A section {#section}
 
@@ -138,20 +143,40 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
   headings), and a heading cannot wrap. **Seen:** gdstudio #769, 2026-11-07 (fix: headings in crowds.md and
   web-export.md were reworded with their anchors kept, and two unlinked ones took short anchors, found by a width check
   before the report).
+- **Approach:** On a pull request's `Read first:` line, name only sections that are on `main`; a section the pull
+  request itself adds is named on `Lessons:`. **Watch out for:** `gds pr check-body` run in the worktree reads the
+  branch's docs and passes an anchor the branch adds, while the `body` check in CI refused the same line, since the
+  section does not exist on `main` yet. **Seen:** gdstudio #1016, 2026-11-10 (its reworked body named
+  `tools/blender/animation.md#contacts`, a section it adds; fix: the anchor was taken off `Read first:`), and again
+  on 2026-11-11 with `clips.md#vault-clips` (the body was rebuilt from a script that listed what was read, not from
+  the body sent: check each `Read first:` anchor against `git show origin/main:docs/<page>` before sending).
 
 ## Page size {#size}
 
-A page holds at most 50 KB. A topic that grows past it becomes a folder of subpages (as `gamedev/audio/` did): the
-one time a learning makes a new page. The check names the page and its size.
+A page holds at most 50 KB. When one nears it, the simplest move is one subject to a sibling page (as `landing.md`
+left `starting-work.md` and `ai-online.md` left `third-person/ai.md`), with a short section left behind for each moved
+`{#anchor}`; a topic that has outgrown its page altogether becomes a folder of subpages (as `gamedev/audio/` did).
+Those are the times a learning makes a new page. The check names the page and its size.
 
 - **Approach:** Split a page that is filling up at about 40 KB, not at the limit: make a folder of subpages by subject,
   named apart from the page (`third-person/` beside `third-person-template.md`), with its own `index.md`; keep the old
   page with a short section per moved `{#anchor}` linking to its new place. Then run `test_docs_site.py` and the strict
-  build. **Watch out for:** a page at 51.1 KB failed the next agent's change; a folder without
-  `index.md` fails `test_docs_site.py`, and `audio/` beside `audio.md` built both to `audio/index.html`; a check that
-  reads the page by its path (grep `.github`, `.claude`, `python`) learns the folder in the same pull request; a
-  subpage titled like the one section it holds repeats its anchor, and the check refuses it. **Seen:** gdstudio #983,
-  #1029 (template pages); #1067 (`audio-mixing/`); #1115 (`corrections-log/`); #1123 (`multiplayer-server/`).
+  build. **Watch out for:** a 51.1 KB page failed the next change; a folder without `index.md` fails
+  `test_docs_site.py`, and `audio/` beside `audio.md` built both to `audio/index.html`; a check that reads the page by
+  its path (grep `.github`, `.claude`, `python`) learns the folder in the same pull request; a subpage titled like the
+  one section it holds repeats its anchor, which the check refuses. **Seen:** gdstudio #983, #1029 (templates);
+  #1016 (`clips.md`); #1067 (`audio-mixing/`); #1115 (`corrections-log/`); #1123 (`multiplayer-server/`).
+- **Approach:** Before adding to a page, read its size (`wc -c`): over about 45 KB, move one subject to a sibling page
+  first, in the same pull request, rather than a whole folder split; say in its reason line which page it left.
+  **Watch out for:** nothing on a page says it is near the limit, so entries kept landing on `online-client.md`,
+  `third-person/ai.md` and `hooks.md` until each sat within a few hundred bytes of 50 KB and the next entry, or a
+  merge of two that each fitted, failed the check. **Seen:** gdstudio #1193 (PR #1199), #1198 (PR #1223), #1208
+  (PR #1219) and #1222 (PR #1227), 2026-11-11.
+- **Approach:** After merging main into a branch that adds to a page, run `python .github/scripts/mistakes.py check`
+  on the merge result; when the page is over 50 KB, move the branch's own section to a subpage of its subject and leave
+  a pointer under the old anchor. **Watch out for:** each side was under the limit, so neither pull request's checks
+  saw it; only the merge put `hooks.md` over 50 KB, and the branch could not land. **Seen:** gdstudio #1202, 2026-11-11
+  (the hold section moved to `hooks-hold.md`, a pointer stays at `hooks.md#hold`; the check passed).
 
 ## Where the entry is named {#named}
 

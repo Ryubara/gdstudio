@@ -40,6 +40,11 @@ signal rejoining(attempt: int)
 ## Ticks a command's number may trail the server tick it is expected to be stepped at before the
 ## numbering moves on (`first_seq`; a stall, a slow clock).
 const SEQ_SLACK := 4
+## Round trips the numbering reads the smallest of (`numbering_rtt_ms`): 8 PONGs, 4 s at
+## `NetLimits.PING_RATE`. One held behind a stall of the network reads 450 to 590 ms instead of
+## about 250, and numbering from it put the commands ahead for good (gdstudio #1116); the network's
+## own round trip is the fastest a packet came back lately.
+const RTT_WINDOW := 8
 
 ## An address chosen for the next client that joins on ready (the main menu's "Play online"):
 ## wins over `--connect` and `?url=`, and is used once.
@@ -50,6 +55,9 @@ static var next_url := ""
 @export var player: Player
 ## Where the other players are drawn; empty draws none.
 @export var remote_players: RemotePlayers
+## Where the server's AI characters are drawn (gdstudio #970); empty draws none. The map's own AI
+## is taken out when the client joins (`AiAuthority.hand_over`): it runs on the server only.
+@export var ai_replica: AiReplica
 ## The map node (the `World` instance) whose networked parts make the world hash
 ## (`NetServer.world_hash_of`, paths from this node), the same node the server's
 ## `NetServer.world_root` names; empty is this node's parent.
@@ -100,6 +108,8 @@ var combat := ClientCombat.new(self)
 var seq := 0
 ## The last round trip a PONG measured, milliseconds (-1 before the first).
 var rtt_ms := -1
+## The last `RTT_WINDOW` round trips, oldest first (milliseconds).
+var rtt_samples := PackedInt32Array()
 ## Times the numbering of the commands moved on to the server's tick (after a stall).
 var renumbered := 0
 ## New sockets opened after a late hello (`rejoins`).
@@ -182,6 +192,8 @@ func join(url: String) -> Error:
 
 ## Says hello over `with_link` once it opens (a test's `LoopbackLink` or `LinkConditioner`).
 func join_with(with_link: NetLink) -> void:
+	# The AI is the server's: this map's own stands down before it processes a frame.
+	AiAuthority.hand_over(_map_root())
 	link = with_link
 	_url = ""
 	_refused = false
@@ -231,8 +243,7 @@ func _predict(delta: float) -> void:
 	# The map's moving parts where the server will have them when it steps this command.
 	map_parts.tick = seq
 	map_parts.place(map_parts.tick)
-	if last_tick != null:
-		wanted.view_tick = last_tick.server_tick
+	wanted.view_tick = view_tick()
 	var packet := CommandCodec.encode(wanted, drops)
 	if packet.is_empty():
 		packet = CommandCodec.encode(_standing(seq))
@@ -243,6 +254,14 @@ func _predict(delta: float) -> void:
 	reconciler.record(seq, player.global_position)
 	if _steps % _ping_every == 0:
 		link.send(NetWire.ping(_now_ms(), rtt_ms))
+
+
+## The server tick this screen draws the AI and the other players at (the server meets a shot
+## with the AI there, `ShotRewind`): the AI's drawn time, else the newest TICK's tick, else 0.
+func view_tick() -> int:
+	if ai_replica != null and ai_replica.drawn_time() >= 0.0:
+		return roundi(ai_replica.drawn_time() * NetLimits.TICK_RATE)
+	return last_tick.server_tick if last_tick != null else 0
 
 
 ## The client's own thread stalled (`StallGuard`): the reconciler forgets its points and takes the
@@ -277,7 +296,8 @@ func _take_player() -> void:
 
 func _on_connected() -> void:
 	_hello_at = _now()
-	link.send(NetWire.hello(player_name, NetServer.world_hash_of(_map_root())))
+	var flags := NetWire.F_WEB if OS.has_feature("web") else 0
+	link.send(NetWire.hello(player_name, NetServer.world_hash_of(_map_root()), flags))
 
 
 func _map_root() -> Node:
@@ -296,7 +316,7 @@ func _on_packet(data: PackedByteArray) -> void:
 		NetWire.Type.PONG:
 			var pong := NetWire.read_pong(data, drops)
 			if pong != null and not _sent_before_stall(pong.client_ms):
-				rtt_ms = (_now_ms() - pong.client_ms) & 0xFFFFFFFF
+				_note_rtt((_now_ms() - pong.client_ms) & 0xFFFFFFFF)
 		_:
 			drops.count(NetDrops.UNKNOWN_TYPE)
 
@@ -318,6 +338,11 @@ func _on_welcome(read: SnapshotCodec.Welcome) -> void:
 	if remote_players != null:
 		remote_players.map_parts = map_parts
 		remote_players.on_welcome(read)
+	if ai_replica != null:
+		ai_replica.slot_body = combat.body_of
+		if ai_replica.viewer == null:
+			ai_replica.viewer = player
+		ai_replica.on_welcome(read.server_tick)
 	welcomed.emit(slot)
 
 
@@ -344,6 +369,8 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 			NetEvent.Kind.PICKUP:
 				map_parts.read_pickup(event, player if event.slot == slot else null)
 	map_parts.read_stream(tick.parts, tick.server_tick)
+	if ai_replica != null:
+		ai_replica.on_tick(tick)
 	combat.on_tick(tick)
 	var own := _entry_of(tick.players, slot)
 	if own != null and player != null:
@@ -360,6 +387,8 @@ func _on_closed() -> void:
 	combat.clear()
 	if remote_players != null:
 		remote_players.clear()
+	if ai_replica != null:
+		ai_replica.clear()
 	disconnected.emit()
 
 
@@ -424,14 +453,35 @@ static func first_seq(welcome_tick: int, round_trip: float) -> int:
 	return welcome_tick + ceili(maxf(round_trip, 0.0) * NetLimits.TICK_RATE)
 
 
+## The round trip the numbering reads: the smallest of the last `RTT_WINDOW` (-1 before the
+## first). A PONG held behind a stall of the network measures the stall too; the smallest is the
+## network's own.
+func numbering_rtt_ms() -> int:
+	if rtt_samples.is_empty():
+		return -1
+	var smallest := rtt_samples[0]
+	for sample in rtt_samples:
+		smallest = mini(smallest, sample)
+	return smallest
+
+
+func _note_rtt(sample: int) -> void:
+	rtt_ms = sample
+	rtt_samples.append(sample)
+	if rtt_samples.size() > RTT_WINDOW:
+		rtt_samples.remove_at(0)
+
+
 # Commands are numbered by the server tick each is expected to be stepped at (`first_seq`): one
-# sent now reaches the server a round trip after this TICK left it. A client whose numbers trail
-# that (its stall guard skipped steps, its clock runs slow) moves them on; a number may jump, never
-# go back.
+# sent now reaches the server a round trip after this TICK left it (the smallest lately,
+# `numbering_rtt_ms`). A client whose numbers trail that (its stall guard skipped steps, its clock
+# runs slow) moves them on; a number may jump, never go back, so a jump from a round trip that
+# waited out a stall would stay for good (gdstudio #1116).
 func _keep_numbering(tick: SnapshotCodec.Tick) -> void:
-	if rtt_ms < 0:
+	var round_trip := numbering_rtt_ms()
+	if round_trip < 0:
 		return
-	var expected := tick.server_tick + ceili(rtt_ms * NetLimits.TICK_RATE / 1000.0)
+	var expected := tick.server_tick + ceili(round_trip * NetLimits.TICK_RATE / 1000.0)
 	if seq + 1 < expected - SEQ_SLACK:
 		seq = expected - 1
 		renumbered += 1
