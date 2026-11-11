@@ -277,15 +277,16 @@ func _physics_process(delta: float) -> void:
 ## Moves the body one physics tick as `command` asks: the only thing that moves it. The
 ## character's own `_physics_process` calls it with its controller's command; a server or a test
 ## turns that off (`set_physics_process(false)`) and calls it itself, inside a physics frame.
-## `delta` is the physics step (the engine moves the body by its own step, so another number
-## would split the two; a debug build stops on one). A command with a number that is not finite
-## is stepped as one that asks for nothing, and a push longer than 1 as 1. The weapon's cooldown
-## is counted at the end of every step, alive or dead.
+## `delta` is the physics step, or a whole number of them for a body stepped less often (a far
+## AI character every 3rd tick): the timers count it all and the move goes as far (any other
+## number would split the body from the engine's own step; a debug build stops on one). A
+## command with a number that is not finite is stepped as one that asks for nothing, and a push
+## longer than 1 as 1. The weapon's cooldown is counted at the end of every step, alive or dead.
 func step(command: PlayerCommand, delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	assert(Engine.is_in_physics_frame(), "Character.step() runs inside a physics frame.")
-	assert(_is_physics_step(delta), "Character.step() takes the physics step as its delta.")
+	assert(_is_physics_step(delta), "Character.step() takes whole physics steps.")
 	if command.all_finite():
 		last_command.copy_from(command)
 		last_command.move = command.move.limit_length(1.0)
@@ -329,7 +330,10 @@ func _move(delta: float) -> void:
 	_vertical(delta)
 	_climb(delta)
 	var before := velocity
+	var ticks := roundf(delta / get_physics_process_delta_time())
+	velocity *= ticks
 	move_and_slide()
+	velocity /= ticks
 	_grounded = is_on_floor()
 	_pushing = CharacterPush.push_props(self, before, delta)
 	_after_move(wish, delta)
@@ -510,9 +514,10 @@ func _idle_command() -> PlayerCommand:
 	return last_command
 
 
-# True when `delta` is the step the engine moves this body by.
+# True when `delta` is a whole number of the steps the engine moves this body by.
 func _is_physics_step(delta: float) -> bool:
-	return is_equal_approx(delta, get_physics_process_delta_time())
+	var ticks := delta / get_physics_process_delta_time()
+	return ticks > 0.5 and is_equal_approx(ticks, roundf(ticks))
 
 
 func _aim_origin() -> Vector3:
