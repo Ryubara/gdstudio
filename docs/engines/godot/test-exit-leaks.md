@@ -126,6 +126,13 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
 <!-- new section: the page covers the folder scan and a suite that only names a class; the causes a test creates
      itself (cycles, nodes never freed, a preloaded scene) were only in one-problem files -->
 
+- **Approach:** When a capture scene (a `tools/capture/*_tour.tscn`) ends with `17 resources still in use at exit`,
+  run an existing tour on the same game as the control and bisect the new tour against a bare one that only waits and
+  quits (each run about a minute at `--fps 10`); have the tour learn what it labels from signals (`weapon_changed`),
+  read once, rather than from a resource it fetches every physics frame. **Watch out for:** the fire-zoom tour read the
+  held `WeaponDef` (its `display_name`) every physics frame for its label and left 17 scripts (the UI, Phantom Camera
+  and shake addons) and the variant pools alive at exit in five runs in a row, with no input at all; the same label fed
+  by `weapon_changed` exited clean twice. The engine-side cause was not found. **Seen:** gdstudio #1255, 2026-11-11.
 - **Approach:** Ask `ResourceLoader.exists(path)` before `load_threaded_request(path)` and treat a missing path as the
   failure it is. **Watch out for:** a request for a scene that is not there printed two engine errors and left one
   `RefCounted` behind at exit (`1 ObjectDB instance was leaked`), which the suite's summary does not carry and CI's

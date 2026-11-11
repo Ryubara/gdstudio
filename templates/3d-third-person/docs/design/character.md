@@ -177,20 +177,23 @@ the steepest slope and the floor snap are applied again whenever the resource ch
 
 A `PhysicsProp` has a `push_speed` of its own: the cubes of the map are 60 kg, grippy (friction 0.5) and pushed at 1.2
 m/s, so the character (15 percent faster than the cube, to stay against it) walks slowly into them and the push clip
-plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The
-pistol's definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full
-automatic, spread, damage (34 before the hit zone's multiplier), aim range, the push it gives a body (40 N·s), the
-magazine (12), the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when
-the magazine is empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0,
-so it flies straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random
-pitch, two empty clicks, the reload's three steps, the draw). Every weapon has a melee blow (V) whose clips and
-numbers are its category's (`gameplay/weapon/categories/`: the fists' jab, cross and hook 1.1 m for 15, the pistol's
-whip, backhand and jab 1.2 m for 25), and the fists (`fists.tres`) throw it on the fire button too, with no
-ammunition. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the weapon has no `muzzle`,
-as on a character with no model: beside its `shooter`, this far off the aim ray), `projectile_cap` (24 in flight) and
-`self_ticking` (on: the weapon counts its own cooldown and reload; the `Character` turns it off and counts them in its
-step); its `ShotSound`, `EmptySound`, `ReloadSound`, `DrawSound` and `MeleeSound` nodes hold the volume, bus and
-voices. The `Loadout` lists the slots (the pistol) and the empty hands (the fists).
+plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The pistol's
+definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full automatic,
+spread, damage (34 before the hit zone's multiplier), aim range, the push it gives a body (40 N·s), the magazine (12),
+the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when the magazine is
+empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0, so it flies
+straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random pitch, two
+empty clicks, the reload's three steps, the draw). Every weapon has a melee blow (V) whose clips and numbers are its
+category's (`gameplay/weapon/categories/`: the fists' jab, cross and hook 1.1 m for 15, the pistol's whip, backhand and
+jab 1.2 m for 25), and the fists (`fists.tres`) throw it on the fire button too, with no ammunition and without zooming
+the view (`fire_zooms` off). Each definition's Aim and zoom group says what aim and fire do with it: `can_aim`,
+`fire_needs_aim`, `fire_zooms`, `show_crosshair`, and with `override_zoom` its own aim and fire field of view, distance
+and `zoom_offset` in place of the camera's; all apply while the game runs. The `Weapon` node keeps the rest:
+`no_muzzle_offset` (where a shot starts when the weapon has no `muzzle`, as on a character with no model: beside its
+`shooter`, this far off the aim ray), `projectile_cap` (24 in flight) and `self_ticking` (on: the weapon counts its own
+cooldown and reload; the `Character` turns it off and counts them in its step); its `ShotSound`, `EmptySound`,
+`ReloadSound`, `DrawSound` and `MeleeSound` nodes hold the volume, bus and voices. The `Loadout` lists the slots (the
+pistol) and the empty hands (the fists).
 
 The sample map is built for these numbers (blocks 1 m apart in height, twelve steps of 0.25 m, a 14 degree ramp): a test
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
@@ -204,7 +207,8 @@ field of view and distance added at a full sprint, the zoom speed, and a shake w
 frequency and blend speed, off at 0, held on the `CameraShake` node under `PlayerCamera`), Slide (the field of view
 added while sliding, 5 degrees, and its speed, 4 a second; the sprint view stays through a slide), Aim (the distance, the
 field of view and the speeds in and out, and `aim_shifts_shoulder`, off) and Fire (the same for a shot fired without
-aiming, with `zoom_when_firing` to turn it off, and a Shot kick: `shot_kick_amplitude` in degrees, off at 0, and
+aiming, with `zoom_when_firing` to turn it off, which a weapon's `fire_zooms` can also do for itself, and a Shot
+kick: `shot_kick_amplitude` in degrees, off at 0, and
 `shot_kick_duration`). Any other shake in the game is one line, `CameraShake.shake(preset, at)`, with a `ShakePreset`
 from `core/camera_shake/presets/`; `CameraShake.strength` (0 to 1) is the player's setting for all of it. The zoom
 follows the buttons: it starts back out on the next frame after aim and fire are let go, and so does the character:

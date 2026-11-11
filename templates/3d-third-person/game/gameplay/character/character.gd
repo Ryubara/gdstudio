@@ -388,7 +388,10 @@ func shot_wanted(command: PlayerCommand) -> bool:
 		return true
 	if not weapon.can_fire():
 		return false
-	var automatic := weapon.definition != null and weapon.definition.automatic
+	var held := weapon.definition
+	if held != null and not held.fire_allowed(command.aim):
+		return false
+	var automatic := held != null and held.automatic
 	return _fire_buffer > 0.0 or command.fire_pressed or (automatic and command.fire)
 
 
@@ -646,8 +649,9 @@ func _update_crouch(delta: float) -> void:
 func _update_aim(delta: float) -> void:
 	var wants := false
 	if weapon != null and _action_lock <= 0.0 and _prone_lets_aim():
-		fire_held = last_command.fire and _prone_lets_fire()
-		aim_held = last_command.aim
+		var held := weapon.definition
+		aim_held = last_command.aim and (held == null or held.can_aim)
+		fire_held = last_command.fire and _prone_lets_fire() and _weapon_lets_fire(aim_held)
 		# A melee blow turns the body to the way it goes, as an aim does (gdstudio #1254).
 		wants = aim_held or fire_held or weapon.meleeing
 		if _slide.active and not slide_tuning.can_shoot:
@@ -708,6 +712,11 @@ func can_melee() -> bool:
 		and not vault_motion.is_active()
 		and weapon.melee_ready
 	)
+
+
+# The weapon in the hands lets the fire button shoot (`WeaponDef.fire_needs_aim`).
+func _weapon_lets_fire(aim_down: bool) -> bool:
+	return weapon == null or weapon.definition == null or weapon.definition.fire_allowed(aim_down)
 
 
 func _target_speed(strength: float) -> float:
@@ -871,7 +880,7 @@ func _use_weapon(delta: float) -> void:
 		pulled = false
 	if blow and can_melee():
 		weapon.melee(_blow_origin(), _aim_direction())
-	if not _prone_lets_fire():
+	if not _prone_lets_fire() or not _weapon_lets_fire(aim_held):
 		pulled = false
 	weapon.spread_share = prone_tuning.spread_share if _prone.is_prone() else 1.0
 	if pulled:

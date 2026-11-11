@@ -9,6 +9,7 @@ script = ExtResource("1_def")
 display_name = "Fists"
 icon = ExtResource("i1_icon")
 kind = 2
+fire_zooms = false
 recoil = 0.0
 impacts = false
 magazine_size = 0
