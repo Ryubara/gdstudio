@@ -7,6 +7,8 @@
 [ext_resource type="PackedScene" path="res://ui/hud/hud_health.tscn" id="5_health"]
 [ext_resource type="PackedScene" path="res://ui/hud/hud_ammo.tscn" id="6_ammo"]
 [ext_resource type="PackedScene" path="res://ui/minimap/minimap.tscn" id="7_minimap"]
+[ext_resource type="PackedScene" path="res://ui/hud/hud_weapon_slots.tscn" id="8_weapon_slots"]
+[ext_resource type="PackedScene" path="res://ui/hud/hud_hotbar.tscn" id="9_hotbar"]
 
 [node name="Hud" type="CanvasLayer" node_paths=PackedStringArray("root", "safe_area", "minimap_slot")]
 script = ExtResource("1_hud")
@@ -107,6 +109,9 @@ mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 2
 
+[node name="HudHotbar" parent="Root/SafeArea/BottomCenter" instance=ExtResource("9_hotbar")]
+layout_mode = 2
+
 [node name="BottomRight" type="VBoxContainer" parent="Root/SafeArea"]
 layout_mode = 1
 anchors_preset = 3
@@ -119,6 +124,9 @@ grow_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 2
+
+[node name="HudWeaponSlots" parent="Root/SafeArea/BottomRight" instance=ExtResource("8_weapon_slots")]
+layout_mode = 2
 
 [node name="HudAmmo" parent="Root/SafeArea/BottomRight" instance=ExtResource("6_ammo")]
 layout_mode = 2

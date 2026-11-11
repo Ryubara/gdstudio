@@ -205,6 +205,10 @@ func _take_player() -> void:
 	if player.weapon != null:
 		player.weapon.authoritative = false
 		player.weapon.fired.connect(combat.track)
+	# The bag is not on the wire yet: a hotbar use would change health the server owns.
+	var hotbar := Hotbar.of(player)
+	if hotbar != null:
+		hotbar.authoritative = false
 
 
 func _on_connected() -> void:

@@ -231,8 +231,9 @@ func test_the_arrows_and_the_dpad_reach_every_slot_and_both_buttons() -> void:
 	var all := MenuFixture.focusables(screen)
 	var cells: Array[Control] = []
 	cells.append_array(screen.weapon_cells())
+	cells.append_array(screen.hotbar_cells())
 	cells.append_array(screen.item_cells())
-	assert_int(cells.size()).is_equal(3 + 16)
+	assert_int(cells.size()).is_equal(3 + 4 + 16)
 	var reached := MenuFixture.reachable(start)
 	for control in all:
 		assert_bool(control in reached).override_failure_message(str(control.name)).is_true()
@@ -243,7 +244,9 @@ func test_the_arrows_and_the_dpad_reach_every_slot_and_both_buttons() -> void:
 		)
 	for cell in cells:
 		assert_bool(cell in reached).override_failure_message(str(cell.name)).is_true()
-	# The real presses walk the same road: down to the bag, right along it, down its rows.
+	# The real presses walk the same road: down to the hotbar, the bag, right along it, its rows.
+	await _tap_pad(JOY_BUTTON_DPAD_DOWN)
+	assert_object(_focus()).is_same(screen.hotbar_cells()[0])
 	await _tap_pad(JOY_BUTTON_DPAD_DOWN)
 	assert_object(_focus()).is_same(screen.item_cells()[0])
 	await _tap_key(KEY_RIGHT)
@@ -258,6 +261,7 @@ func test_the_arrows_and_the_dpad_reach_every_slot_and_both_buttons() -> void:
 
 func test_a_stack_is_picked_up_and_put_down_with_the_keys() -> void:
 	var screen := await _open()
+	await _tap_key(KEY_DOWN)
 	await _tap_key(KEY_DOWN)
 	assert_object(_focus()).is_same(screen.item_cells()[0])
 	await _tap_key(KEY_ENTER)
@@ -302,6 +306,56 @@ func test_a_finger_picks_a_stack_up_and_puts_it_down() -> void:
 	await _tap(screen.item_cells()[7])
 	assert_int(_bag().count_at(7)).is_equal(3)
 	assert_bool(_bag().is_empty(0)).is_true()
+
+
+func test_the_hotbar_row_shows_the_players_hotbar_with_the_bandage_on_3() -> void:
+	var screen := await _open()
+	var cells := screen.hotbar_cells()
+	assert_int(cells.size()).is_equal(Hotbar.of(_player).place_count)
+	assert_bool(cells[0].filled).is_true()
+	assert_str(cells[0].count_text()).is_equal("3")
+	assert_bool(cells[1].filled).is_false()
+	assert_str(cells[1].tooltip_text).is_empty()
+
+
+func test_a_bag_slot_dragged_onto_a_hotbar_place_is_assigned_there() -> void:
+	var coin := _bag().find_in_catalog(&"coin")
+	_bag().add(coin, 4)
+	var coin_slot := _bag().find(coin)
+	var screen := await _open()
+	var from := screen.item_cells()[coin_slot]
+	var onto := screen.hotbar_cells()[2]
+	assert_bool(onto._can_drop_data(Vector2.ZERO, from)).is_true()
+	# A weapon or an empty bag slot is not taken.
+	assert_bool(onto._can_drop_data(Vector2.ZERO, screen.weapon_cells()[0])).is_false()
+	assert_bool(onto._can_drop_data(Vector2.ZERO, screen.item_cells()[15])).is_false()
+	onto._drop_data(Vector2.ZERO, from)
+	assert_object(Hotbar.of(_player).item_at(2)).is_same(coin)
+	assert_str(screen.hotbar_cells()[2].count_text()).is_equal("4")
+	# The bag is untouched.
+	assert_int(_bag().count_at(coin_slot)).is_equal(4)
+
+
+func test_a_hotbar_key_on_a_bag_slot_assigns_it_and_a_press_takes_it_off() -> void:
+	var screen := await _open()
+	var bar := Hotbar.of(_player)
+	await _tap_key(KEY_DOWN)
+	await _tap_key(KEY_DOWN)
+	assert_object(_focus()).is_same(screen.item_cells()[0])
+	await _tap_key(KEY_5)
+	assert_object(bar.item_at(2)).is_same(_bag().item_at(0))
+	assert_object(bar.item_at(0)).is_null()
+	assert_bool(_host.is_open()).is_true()
+	# The game behind it used nothing.
+	assert_int(_bag().count_at(0)).is_equal(3)
+	await _click(screen.hotbar_cells()[2])
+	assert_object(bar.item_at(2)).is_null()
+	# Picked up, then pressed on a place, it goes there.
+	await _click(screen.item_cells()[0])
+	assert_int(screen.picked()).is_equal(0)
+	await _click(screen.hotbar_cells()[1])
+	assert_object(bar.item_at(1)).is_same(_bag().item_at(0))
+	assert_int(screen.picked()).is_equal(-1)
 
 
 func test_drop_leaves_a_pickup_in_front_of_the_player_and_a_coin_cannot_be_dropped() -> void:
