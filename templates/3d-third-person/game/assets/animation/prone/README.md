@@ -4,8 +4,10 @@ Four clips for a character that lies down and crawls, made by GDStudio from noth
 Animation Library has none. They are in `prone.glb`, which Godot imports as an `AnimationLibrary` the same way as
 `assets/animation/universal/`: add it to an `AnimationPlayer` as the library `prone` and the clips are
 `prone/Prone_Idle`, `prone/Crawl_Fwd`, `prone/Crouch_To_Prone` and `prone/Prone_To_Crouch` (the import drops `_Loop`
-from a looping clip's name and makes it loop). The player scene does not hold the library yet: the prone stance
-(kit #1012) adds it with the code that plays it.
+from a looping clip's name and makes it loop). The character scene
+(`gameplay/character/character_dressed.tscn`) holds it: the `AnimationPlayer` has `prone.glb` as its library `prone`,
+and the `Animation` node's `prone_libraries` names `prone_male.glb` for the male mannequin, swapped in when the game
+sets that model (kit #1012, #1090).
 
 **One file a mannequin** (kit #1090). The library is always named `prone` and holds the same four clip names, lengths
 and crawl speed; which file it is loaded from follows the model:
