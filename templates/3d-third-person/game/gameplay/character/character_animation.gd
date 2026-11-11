@@ -244,6 +244,9 @@ const _RELOAD_FADE_OUT := 0.2
 	set(value):
 		upper_body_bone = value
 		_rebuild()
+## Holds the upper body's turn on the aim poses' stance while aiming on the ground state
+## (`AimBrace`); off, the weapon points where the pelvis of the legs' clip is turned.
+@export var aim_brace := true
 ## How far the character looks up or down for the full aim up or aim down pose.
 @export_range(5.0, 80.0, 0.5, "suffix:deg") var aim_pitch_range := 45.0:
 	set(value):
@@ -292,6 +295,7 @@ var _pitch_now := 0.0
 var _throttled := false
 var _skeleton_mode := Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_IDLE
 var _throttled_skeleton: Skeleton3D
+var _brace := AimBrace.Driver.new()
 
 
 func _ready() -> void:
@@ -564,6 +568,7 @@ func _build() -> void:
 	_watch_hold()
 	tree.anim_player = tree.get_path_to(animation_player)
 	tree.tree_root = _build_root()
+	_brace.build(self)
 
 
 # Builds the tree again when a clip of the held definition changes (tuned in the inspector).
@@ -642,6 +647,7 @@ func _drive_pistol(delta: float) -> void:
 	var arm := maxf(character.aim_amount, _shot_arm)
 	tree.set(_P_ARMED, armed)
 	tree.set(_P_AIM, arm * aims)
+	_brace.drive(self, arm * aims, delta)
 	tree.set(_P_SHOOT_SCALE, shoot_speed)
 	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
 	tree.set(_P_AIM_POSE, clampf(up, -aim_pitch_range, aim_pitch_range))
@@ -658,6 +664,7 @@ func _on_state_changed(state: Character.State) -> void:
 	if state == Character.State.DEAD:
 		# The ragdoll takes the skeleton over from the pose the tree left on it.
 		_dead = true
+		_brace.weigh(0.0)
 		stop_clip()
 		tree.active = false
 		set_throttled(false)

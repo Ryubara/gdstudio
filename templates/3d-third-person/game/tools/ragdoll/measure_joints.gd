@@ -23,6 +23,7 @@ const MODELS := [
 const LIBRARIES: Dictionary[StringName, String] = {
 	&"ual1": "res://assets/animation/universal/ual1.glb",
 	&"ual2": "res://assets/animation/universal/ual2.glb",
+	&"gds": "res://assets/animation/own/locomotion.glb",
 }
 ## Samples per second of each clip.
 const RATE := 15.0
