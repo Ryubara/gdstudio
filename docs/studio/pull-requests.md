@@ -118,8 +118,12 @@ opened by the guard, only placed and compared with the references ([below](#atta
 guard run the same `groundwork.py check-docs` on `git diff --name-only origin/main...HEAD` of the checkout. With no
 branch to read (no commit, a detached head, the checkout on `main`, no `origin/main`) `gds pr check-body` prints
 `docs: cannot tell` rather than `docs: ok`, and the guard lets the command through
-([Writing checks](writing-checks.md#same-input)). The guard is a hand-merge path
-(`.claude/hooks/`): a maintainer merges changes to it.
+([Writing checks](writing-checks.md#same-input)). The `Read first:` rule reads what CI reads: without the API's list of
+closed issues, the body's own `Fixes #N` lines say which issues it closes (so the rule runs on the machine at all), and
+when the checkout knows `origin/main` each section is looked up in `origin/main`'s `docs/` (`check-body --docs-ref
+origin/main`, `git show origin/main:./<page>`), as the `body` job of `pr.yml` reads its checkout of the base branch. A
+section only the branch adds is refused there and here; it belongs on the `Lessons:` line, which still reads the branch
+(kit #1131). The guard is a hand-merge path (`.claude/hooks/`): a maintainer merges changes to it.
 
 - **Approach:** Give the pull request template an Issues affected section and a Failed first test from the first day,
   and update every affected issue after a merge. **Watch out for:** follow-up work and real regressions went untracked
@@ -128,6 +132,11 @@ branch to read (no commit, a detached head, the checkout on `main`, no `origin/m
 - **Approach:** Run `groundwork.py check-body` on a pull request body before opening it. **Watch out for:** a body wrote
   `None` without the expected form, and the body check in CI refused it after the pull request was open. **Seen:**
   Deadnight, 2026-11-01 (fix: the CI body check caught it; the hook here now checks a body before it is sent).
+- **Approach:** Make a local check read its input from where CI reads it: the base branch's docs for what existed
+  before the branch (`Read first:`), the branch for what it writes (`Lessons:`). **Watch out for:** `gds pr check-body`
+  passed a `Read first:` anchor only the branch had, because it judged the rule from no history (it never ran) and would
+  have read the worktree's `docs/`, while `pr-rules` reads the base checkout and refused it after the push. **Seen:**
+  gdstudio #1016 and #1123, 2026-11-11 (fix: #1131, `--docs-ref origin/main` and closes from `Fixes #N`).
 
 - **Approach:** When a required check fails on a pull request's first commit, add `Lessons: <page.md#anchor>` to the
   body in the same push that fixes it, naming the topic section the fix is recorded in. **Watch out for:** the local

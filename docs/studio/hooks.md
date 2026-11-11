@@ -35,6 +35,13 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 All reasons come back at once. A refusal is Claude Code's JSON answer with exit code 0; if the dispatcher itself
 fails, the call is allowed and the error printed, so a broken guard never locks a session out.
 
+The guards that read a shell line split it into simple commands (`&&`, `||`, `;`, `|`) and judge each by its program.
+Before naming the program they drop the leading `NAME=value` words (a quoted value or a `$(...)` with spaces
+included) and the words `&`, `.`, `call`, `exec`, `time` and `sudo`, so `GODOT="$(gds tool path godot)"` is an
+assignment, never a Godot start, and `FOO=1 git push` is judged as `git push` (`segments` in
+`.claude/hooks/guards.py`; gdstudio #1004). A plain `cd <dir>` is followed: the commands after it are judged in that
+folder.
+
 ## Pull request bodies before they are sent {#pr-body}
 
 Moved to [Pull requests: the body guard](pull-requests.md#pr-body): `gds pr check-body`, the guard before `gh pr
@@ -289,7 +296,8 @@ wrong updates the topic section it belongs to, by the agent that found it, in th
   pull request's changed files (`check-body --changed`; `gds pr check-body` and the guard pass the branch's files).
   `Lessons: none (reason)` is refused for it; elsewhere the line is optional. A pull request that closes an issue
   needs `Read first: <page.md#anchor>, ...` naming the sections its author read (the `Read:` lines of its brief); a
-  value with no section in it is refused, and in the kit (`read_first.docs: docs`) each section must exist. A game's
+  value with no section in it is refused, and in the kit (`read_first.docs: docs`) each section must exist in the
+  base branch's docs (on a machine, `origin/main`'s: [the body guard](pull-requests.md#pr-body)). A game's
   conventions have no `docs` key (the kit's docs are not in its checkout), so only the form is checked there. A game's
   conventions add `Kit docs: <kit pull request>` (or `none (reason)`) for a `Fix`, a `Rework` or a `bug` issue
   (`pull_requests.kit_docs`, same script): a game's rules live in the kit's sections. If GitHub cannot be asked, the
