@@ -21,6 +21,7 @@ the templates' `assets/audio/` folders, each with a `LICENSE.md`.
 | Impacts | `3d-third-person` `assets/audio/impacts/` | 6, 8 and 8 takes of 0.5 s | 3 files each for stone, wood and metal, 0.15 to 0.31 s |
 | Pistol mechanics | `3d-third-person` `assets/audio/pistol/` | 2 to 4 takes of 0.5 s each | 2 empty clicks, magazine out and in, the slide, the draw (0.06 to 0.30 s) |
 | Pistol shot | `3d-third-person` `assets/audio/pistol/` | none: Deadnight's House Pistol, synthesised | 5 shots of 0.10 s, MIT, kept (picked by ear in #857) |
+| Menu sounds | `3d-third-person` `assets/audio/ui/` | 5 + 3 hint, 5 press, 4 confirm, 4 move, 4 toggle and 4 swish takes, of 0.5 to 1 s (#1100) | 14 files: 3 hints of 0.05 s (a low wooden tock), 3 presses of 0.07 to 0.14 s, 2 confirms of 0.42 s (a click into a two-note marimba chime), 2 tab moves of 0.13 s, 2 switch snaps of 0.06 to 0.07 s, 2 swishes of 0.36 to 0.39 s |
 | Wind | `3d-blank` `assets/audio/wind/` | 2 takes of 30 s, `loop` (and 3 of a second prompt) | one seamless loop of 28 s: gusts every 7 s or so, with a soft whistle layered in them ([A wind that reads as wind](#wind)) |
 
 The wind is in the base because the base owns the `Ambient` bus (and has the sky it blows under); the coin and the
@@ -112,6 +113,13 @@ One sound a prompt, the room left out ("dry, close, no echo, no voice, no music"
   11 to 13 kHz), as #835's coin; what improved was the start (the peak 9 to 37 ms in, against 40 to 180 ms). The
   distance filter of a 3D player takes more off a bright sound, so the coin is levelled by its reading in the game.
   **Seen:** gdstudio #1083, 2026-11-11.
+
+- **Approach:** For a menu's quietest sound, ask for a low wooden tock (a single gentle tap on a small wooden block,
+  rounded and warm) and measure the spectrum of every take before picking. **Watch out for:** "a gentle muted tap of a
+  fingertip on a small plastic key" gave three of five takes with 89 to 99% of their energy over 4 kHz (a hint should be
+  mostly under it, `ui-sounds.md#2-weight-a-sound-matches-its-component`); the tock gave three of three at a centroid of
+  394 to 534 Hz, 76 to 103 ms, cut to 0.05 s. A sharp click (the press) levelled to -26 LUFS-M was peak limited:
+  level clicks to -30. **Seen:** gdstudio #1100, 2026-11-11 (31 takes, 177 credits billed of 708 planned).
 
 ## 3. The recipe {#the-recipe}
 
