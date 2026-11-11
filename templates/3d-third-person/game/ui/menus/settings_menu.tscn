@@ -227,6 +227,15 @@ hint = "Push the mouse forward to look down."
 [node name="Control" type="Button" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage/InvertY"]
 script = ExtResource("10_toggle")
 
+[node name="PauseInInventory" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage"]
+script = ExtResource("7_row")
+title = "Pause in the inventory"
+key = &"controls/pause_in_inventory"
+hint = "Off: the world goes on while the bag is open."
+
+[node name="Control" type="Button" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage/PauseInInventory"]
+script = ExtResource("10_toggle")
+
 [node name="Footer" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column"]
 theme_override_constants/separation = 16
 

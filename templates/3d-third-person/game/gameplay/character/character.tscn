@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://gameplay/weapon/weapon_loadout.gd" id="4_loadout"]
 [ext_resource type="Resource" path="res://gameplay/weapon/pistol.tres" id="5_pistol"]
 [ext_resource type="Resource" path="res://gameplay/weapon/fists.tres" id="6_fists"]
+[ext_resource type="Resource" path="res://gameplay/character/vault_settings.tres" id="7_vault"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 resource_local_to_scene = true
@@ -21,6 +22,7 @@ platform_floor_layers = 9
 script = ExtResource("1_character")
 weapon = NodePath("Weapon")
 loadout = NodePath("Loadout")
+vault_settings = ExtResource("7_vault")
 
 [node name="Body" type="CollisionShape3D" parent="."]
 unique_name_in_owner = true

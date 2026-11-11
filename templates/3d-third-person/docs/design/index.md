@@ -9,7 +9,8 @@ bounded floor and walls, sky, sun and baked light). What it gave you is in [The 
 pathing work; add the game's own pillars, loop and systems here as they are decided.
 The buses, the volume node and the first sounds (with their temporary licence) are on [Sound](sound.md); the map in the
 corner and the full-screen map are on [The minimap](minimap.md). The game
-starts at a main menu and pauses to a pause menu with settings: [Menus and settings](menus.md).
+starts at a main menu and pauses to a pause menu with settings: [Menus and settings](menus.md); the player's bag and
+weapons are on an [inventory](inventory.md) screen.
 The network link under an online game is on [Networking](networking.md).
 
 ## Pillars
