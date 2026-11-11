@@ -24,7 +24,7 @@ templates, the docs site). **Not here:** making a game (`gamedev/`, `engines/`, 
 | [Docs site](docs-site.md) | The topic folders and where a page goes, the Zensical build, its pin and its checks. |
 | [Learning in the topic pages](rules.md) | What is learned goes into the topic pages: the entry format, `gds learn`, anchors and the checks. |
 | [Building games with agents](building-games-with-agents.md) | The steps from the first prompt to a studio of agents, and how to reproduce it on another engine. |
-| [What the maintainer caught](maintainer-corrections.md) | A log of the corrections the agents did not propose first, each linking the topic section it updated. |
+| [What the maintainer caught](maintainer-corrections.md) | A log of the corrections the agents did not propose first, each linking the topic section it updated; its rows are on [the corrections log](corrections-log/index.md), one page per kind. |
 | [What to plan from the start](plan-from-the-start.md) | A day-one checklist for the next game, from every gap nobody planned for on Deadnight. |
 | [Reading an ask](asks.md) | Numbers, defaults and words about people in an ask; who owns a job already. |
 | [Railway](railway.md) | Deploying and testing a service with the CLI: which project a command acts on, service settings, services that deploy apart. |

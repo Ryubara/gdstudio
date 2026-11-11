@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://gameplay/physics_prop/physics_prop.gd" id="1_prop"]
+[ext_resource type="PackedScene" path="res://gameplay/net/net_entity.tscn" id="n_entity"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_crate"]
 resource_local_to_scene = true
@@ -62,3 +63,6 @@ mesh = SubResource("SphereMesh_ball")
 unique_name_in_owner = true
 shape = SubResource("SphereShape3D_ball")
 disabled = true
+
+[node name="NetEntity" parent="." instance=ExtResource("n_entity")]
+metadata/net_kind = &"prop"
