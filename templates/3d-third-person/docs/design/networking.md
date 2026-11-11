@@ -67,13 +67,16 @@ character, with their senses, brain, tasks and navigator) stands down before it 
 (`ai_replica.gd`) draws the server's characters from the few bytes each TICK carries for this client: each one a
 dressed character with no AI and no collision, walked evenly from one row to the next a tenth of a second behind, its
 animation from the row (walking, running, crouching, aiming), its death a ragdoll this screen makes itself from one
-event, its shot a muzzle flash this screen plays. Characters farther away are sent less often (`ai_tier_rates.tres`
+event, its shot a muzzle flash this screen plays. A crowd that arrives at once (the join, a crowd walking into range)
+is made and shown a few characters a frame, the nearest first, so joining does not freeze the screen. Characters
+farther away are sent less often (`ai_tier_rates.tres`
 on the server), and none past the interest radius. A browser among the players caps how many characters run for
 everyone.
 
 Inspector: `NetClient` `player`, `remote_players`, `ai_replica`, `world_root`, `join_on_ready`, `player_name`,
 `spawn_group`, `spawn_seed`, `rejoins`; `RemotePlayers` `puppet_scene`, `delay`; `AiReplica` `interp_delay`,
-`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes`.
+`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes`, `puppets_per_frame`,
+`puppet_budget_usec`, `puppets_shown_per_frame`, `viewer`.
 
 ## Playing online
 

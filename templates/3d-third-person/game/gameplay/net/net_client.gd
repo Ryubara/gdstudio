@@ -333,6 +333,8 @@ func _on_welcome(read: SnapshotCodec.Welcome) -> void:
 		remote_players.on_welcome(read)
 	if ai_replica != null:
 		ai_replica.slot_body = combat.body_of
+		if ai_replica.viewer == null:
+			ai_replica.viewer = player
 		ai_replica.on_welcome(read.server_tick)
 	welcomed.emit(slot)
 
