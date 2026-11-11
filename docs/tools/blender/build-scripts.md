@@ -29,7 +29,9 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   them. **Watch out for:** a quoted heredoc holding an apostrophe (a docstring's "the clip's") failed in the agent's
   Bash tool with `unexpected EOF while looking for matching`, twice, and Python's text mode on Windows rewrote a
   script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1150, 2026-11-11 (a page section
-  written through a heredoc).
+  written through a heredoc); gdstudio #1149, 2026-11-11 (a heredoc that wrote `styles.py` held "an artist's"; and a
+  patch that matched whole lines stopped matching once `gdformat` had rewritten the file with CRLF: read the file
+  with its line ends folded to LF before matching).
 - **Approach:** Keep the probes and one-off scripts you write in your own scratch folder
   (`<workspace>/scratch/<repo>/<branch>/probes/`) and run them from there. **Watch out for:** Python puts the
   script's folder first on its import path, so a probe written to the machine's shared temp folder imported
