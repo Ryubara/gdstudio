@@ -7,10 +7,14 @@
 # is read from the muzzle its drawn pose leaves.
 extends GdUnitTestSuite
 
-## Where Ada slides from, northwards (-Z), on open floor of the prototype level.
-const START := Vector3(4.0, 0.0, 22.0)
+## Where Ada slides from, westwards (-X) along z = 16.6, clear of the prototype level's parts
+## (`tools/capture/puppet_aim_tour.tscn` films the same lane).
+const START := Vector3(5.0, 0.0, 16.6)
+## Her heading along the lane, and the view's yaw that looks along it (`direction_from_angles`).
+const WEST := -PI / 2.0
+const ALONG_YAW := PI / 2.0
 ## Where Bo stands and watches, off to the side.
-const BO_AT := Vector3(-6.0, 0.0, 14.0)
+const BO_AT := Vector3(-3.5, 0.0, 13.3)
 ## Degrees the aim is held off the slide, to the character's left (and then its right).
 const AIM := 50.0
 ## How far the puppet may point off the aim, or off Ada's own screen, in degrees.
@@ -45,7 +49,7 @@ func test_a_sliding_player_s_aim_to_the_side_turns_the_puppet_s_upper_body() -> 
 	long_slide.drag = 0.0
 	_ada.player.slide_tuning = long_slide
 	_rig.server_body(_ada).slide_tuning = long_slide
-	_put(_ada, START, PI)
+	_put(_ada, START, WEST)
 	await _rig.wait(20)
 	await _slide()
 	var tick_before := _tick_bytes()
@@ -63,7 +67,7 @@ func test_a_sliding_player_s_aim_to_the_side_turns_the_puppet_s_upper_body() -> 
 		# The puppet slides along the slide, as the server's body does.
 		assert_bool(puppet.aiming).is_true()
 		assert_int(puppet.state).is_equal(Character.State.SLIDE)
-		assert_float(absf(rad_to_deg(angle_difference(puppet.facing, PI)))).is_less(3.0)
+		assert_float(absf(rad_to_deg(angle_difference(puppet.facing, WEST)))).is_less(3.0)
 		assert_float(rad_to_deg(puppet.aim_yaw)).is_equal_approx(side, 2.0)
 		# Its pistol points at its aim, to the side of the slide.
 		var layer := puppet.get_node("AimLayer") as AimLayer
@@ -95,12 +99,12 @@ func test_a_sliding_player_s_aim_to_the_side_turns_the_puppet_s_upper_body() -> 
 		assert_float(absf(heading - own)).is_less(TOLERANCE)
 
 
-# Sprints north and drops into a slide, as a player does.
+# Sprints west and drops into a slide, as a player does.
 func _slide() -> void:
-	var run := CommandDriver.walking(Vector3.FORWARD, Vector3.FORWARD)
+	var run := CommandDriver.walking(Vector3.LEFT, Vector3.LEFT)
 	run.sprint = true
 	await _drive(run, 30)
-	var slide := CommandDriver.walking(Vector3.FORWARD, Vector3.FORWARD)
+	var slide := CommandDriver.walking(Vector3.LEFT, Vector3.LEFT)
 	slide.sprint = true
 	slide.crouch = true
 	await _drive(slide, 4)
@@ -114,7 +118,7 @@ func _slide() -> void:
 # Aims `side` degrees off the slide, still sliding.
 func _aim(side: float) -> void:
 	var aimed := CommandDriver.walking(
-		Vector3.FORWARD, CommandCodec.direction_from_angles(deg_to_rad(side), 0.0)
+		Vector3.LEFT, CommandCodec.direction_from_angles(ALONG_YAW + deg_to_rad(side), 0.0)
 	)
 	aimed.sprint = true
 	aimed.crouch = true
