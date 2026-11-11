@@ -498,10 +498,17 @@ func test_no_part_moves_over_every_slot_under_the_phone_layout() -> void:
 	get_window().size = Vector2i(1688, 780)
 	_player.collect(&"coin", 7)
 	var screen := await _open()
-	(screen.get_node(^"Fit") as MenuFit).force = 2
+	var fit := screen.get_node(^"Fit") as MenuFit
+	fit.force = 2
 	await get_tree().process_frame
 	await get_tree().process_frame
+	await get_tree().process_frame
+	# The card fits the phone's screen (the bag scrolls) before and after the sweep.
+	var xform := fit.get_global_transform_with_canvas()
+	var screen_rect := Rect2(xform.origin, fit.size * xform.get_scale()).grow(1.0)
+	assert_bool(screen_rect.encloses(_rects(screen)[^"Fit/Margin/Center/Card"])).is_true()
 	await _sweep_slots(screen)
+	assert_bool(screen_rect.encloses(_rects(screen)[^"Fit/Margin/Center/Card"])).is_true()
 
 
 func test_the_details_area_holds_the_longest_text_the_template_ships() -> void:
