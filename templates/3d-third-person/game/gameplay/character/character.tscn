@@ -8,6 +8,7 @@
 [ext_resource type="Resource" path="res://gameplay/weapon/pistol.tres" id="5_pistol"]
 [ext_resource type="Resource" path="res://gameplay/weapon/fists.tres" id="6_fists"]
 [ext_resource type="Resource" path="res://gameplay/character/vault_settings.tres" id="7_vault"]
+[ext_resource type="Script" path="res://gameplay/ai/senses/ai_noise_maker.gd" id="8_noise"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 resource_local_to_scene = true
@@ -50,3 +51,6 @@ script = ExtResource("4_loadout")
 weapon = NodePath("../Weapon")
 slots = Array[Resource]([ExtResource("5_pistol")])
 unarmed = ExtResource("6_fists")
+
+[node name="NoiseMaker" type="Node" parent="."]
+script = ExtResource("8_noise")

@@ -71,6 +71,11 @@ static var _alive := 0
 var recycled := false
 ## `impact_effects` as the scene has it, kept for a pooled projectile that a weapon set off once.
 var scene_impact_effects := true
+## On: a touch hits (damage through `HitZones` or a `Health`, a push on a physics body). Off (a
+## client online, `Weapon.authoritative`): the projectile is cosmetic: it stops at the first thing
+## it touches, or where the server's hit was (`stop_at`), and changes nothing; the server's HIT
+## event makes the impact.
+var authoritative := true
 
 var _age := 0.0
 var _bounces_left := 0
@@ -78,6 +83,7 @@ var _flying := false
 var _base_paint: Material
 var _readied := false
 var _shooter: CollisionObject3D
+var _stop_point := Vector3.INF
 
 
 func _init() -> void:
@@ -114,6 +120,8 @@ func _physics_process(delta: float) -> void:
 		_end()
 		return
 	velocity.y -= gravity * delta
+	if _stop_point.is_finite() and _reaches_stop(delta):
+		return
 	var collision := move_and_collide(velocity * delta)
 	# A shot that passes between a character's parts flies on through the capsule, this tick.
 	for attempt in 3:
@@ -130,6 +138,7 @@ func launch(
 	_bounces_left = bounces
 	_age = 0.0
 	_flying = true
+	_stop_point = Vector3.INF
 	process_mode = Node.PROCESS_MODE_INHERIT
 	visible = true
 	_shooter = shooter
@@ -141,6 +150,17 @@ func launch(
 	global_position = origin
 	velocity = direction.normalized() * speed
 	reset_physics_interpolation()
+
+
+## Ends the flight where it reaches `point` (the server's hit, for a cosmetic projectile), or at
+## once when it has flown past it.
+func stop_at(point: Vector3) -> void:
+	if not _flying or not point.is_finite():
+		return
+	_stop_point = point
+	if (point - global_position).dot(velocity) <= 0.0:
+		global_position = point
+		_end()
 
 
 ## How long it has flown, in seconds.
@@ -184,6 +204,10 @@ func _touch(collision: KinematicCollision3D) -> bool:
 	var point := collision.get_position()
 	var normal := collision.get_normal()
 	var direction := velocity.normalized()
+	if not authoritative:
+		impacted.emit(collider, point, normal)
+		_end()
+		return false
 	var movable := false
 	var zones := HitZones.of(collider)
 	if zones != null:
@@ -215,6 +239,16 @@ func _touch(collision: KinematicCollision3D) -> bool:
 		return false
 	_end()
 	return false
+
+
+# True when this tick's move reaches the stop point: the projectile goes there and ends.
+func _reaches_stop(delta: float) -> bool:
+	var ahead := _stop_point - global_position
+	if ahead.dot(velocity) > 0.0 and ahead.length() > velocity.length() * delta:
+		return false
+	global_position = _stop_point
+	_end()
+	return true
 
 
 # Puts `size` and `tint` on the nodes through the shared resources of that size and colour.
