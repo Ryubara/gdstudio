@@ -39,7 +39,8 @@ KNOWN: dict[str, set[str]] = {
     "learning": {"format", "rule_parts", "max_rule_chars", "max_page_kb", "reason_line", "anchored_folders",
                  "legacy_lessons", "corrections_log"},
     "merge": {"methods", "squash_title", "squash_message", "auto_merge", "delete_branch_on_merge",
-              "linear_history", "required_checks", "ruleset_name", "up_to_date_required", "manual_paths", "hold"},
+              "linear_history", "required_checks", "ruleset_name", "up_to_date_required", "manual_paths", "hold",
+              "red_main"},
     "issues": {"blank_issues", "placeholders", "forms", "labels"},
     "labels": {"description_max", "families", "list"},
     "hygiene": {"report_issue", "sweep", "thresholds"},
@@ -104,6 +105,13 @@ def validate(data: dict[str, Any]) -> list[str]:
                 problems.append(f"merge.hold uses the label {hold['label']!r}, which labels.list lacks")
             if hold["check"] in data.get("merge", {}).get("required_checks", []):
                 problems.append("merge.hold's check stays out of merge.required_checks: a hold is not a failure")
+    red_main = data.get("merge", {}).get("red_main")
+    if red_main is not None:
+        if not (isinstance(red_main, dict) and red_main.get("check") and isinstance(red_main.get("app_id"), int)):
+            problems.append("merge.red_main needs check and a numeric app_id")
+        elif red_main["check"] in data.get("merge", {}).get("required_checks", []):
+            problems.append("merge.red_main's check stays out of merge.required_checks: a red main is not the pull "
+                            "request's failure")
     trailers = data.get("commits", {}).get("trailers")
     if trailers is not None and not (isinstance(trailers, dict) and isinstance(trailers.get("ai_co_author"), dict)
                                      and trailers["ai_co_author"].get("noreply")):
@@ -999,11 +1007,11 @@ def ruleset_wanted(conv: dict[str, Any]) -> dict[str, Any]:
     ]
     if merge.get("linear_history", True):
         rules.append({"type": "required_linear_history"})
-    hold = merge.get("hold")
-    if merge.get("required_checks") or hold:
+    pinned = [merge[key] for key in ("hold", "red_main") if merge.get(key)]
+    if merge.get("required_checks") or pinned:
         checks: list[dict[str, Any]] = [{"context": c} for c in merge.get("required_checks", [])]
-        if hold:  # from one app only: anyone with write access can post a commit status of any name
-            checks.append({"context": hold["check"], "integration_id": hold["app_id"]})
+        for gate in pinned:  # from one app only: anyone with write access can post a commit status of any name
+            checks.append({"context": gate["check"], "integration_id": gate["app_id"]})
         rules.append({"type": "required_status_checks", "parameters": {
             "strict_required_status_checks_policy": bool(merge.get("up_to_date_required", False)),
             "required_status_checks": checks}})
