@@ -79,6 +79,7 @@ func test_the_character_the_player_and_the_ragdoll_pin_their_exports() -> void:
 		&"relax_gravity": 12.0,
 		&"relax_time": 0.35,
 		&"get_up_time": 0.4,
+		&"draw_between_ticks": true,
 		&"max_active": 4,
 		&"settle_time": 8.0,
 		&"ragdoll_range": 0.0,
