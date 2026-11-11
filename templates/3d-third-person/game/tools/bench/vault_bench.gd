@@ -8,11 +8,11 @@ extends Node
 ## automatic trigger's probe costs a sprinting body that never finds one. It also times one
 ## `VaultProbe.measure()` alone.
 ##
-## Run it headless on the desktop:
-## `godot --headless --fixed-fps 60 --path game res://tools/bench/vault_bench.tscn`
-## and in a browser from a web export with this scene as `run/main_scene` (and `tools/*` taken out
-## of the preset's exclude filter) through `tools/bench/player_step_bench.py`, which waits for the
-## same page global. It prints one line of JSON that starts with `VAULT_BENCH`.
+## Run it headless on the desktop: `godot --headless --fixed-fps 60 --path game
+## res://tools/bench/vault_bench.tscn` and in a browser from the web export `gds template bench-web
+## 3d-third-person vault_bench` makes (kit docs/engines/godot/web-probes.md#bench-web) through
+## `tools/bench/player_step_bench.py`, which waits for the same page global. It prints one line of
+## JSON that starts with `VAULT_BENCH`.
 
 const COUNTS: Array[int] = [1, 8, 40]
 const MODES: Array[String] = ["off", "press", "auto", "open_off", "open_auto"]

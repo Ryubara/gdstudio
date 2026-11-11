@@ -1,9 +1,10 @@
 """What the relationship lookups cost in the web build: runs `tools/bench/ai_relations_bench.tscn` in headless Chrome.
 
-Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
-the preset's exclude filter), waits for `window.__ai_relations_bench`, and prints a round of 1600 lookups (200
-entities, 8 each) by faction index, between two members, between two entities and through `can_hurt`, in microseconds, and one lookup in
-nanoseconds. The optional second argument is a CPU throttle (4 is the weak-machine stand-in).
+Serves a web export of the bench (`gds template bench-web 3d-third-person ai_relations_bench` makes it: kit
+docs/engines/godot/web-probes.md#bench-web), waits for `window.__ai_relations_bench`, and prints a round of 1600 lookups
+(200 entities, 8 each) by faction index, between two members, between two entities and through `can_hurt`, in
+microseconds, and one lookup in nanoseconds. The optional second argument is a CPU throttle (4 is the weak-machine
+stand-in).
 
     uv run --project <kit>/python gds quiet -- \
         uv run --with playwright==1.64.1 python tools/bench/ai_relations_bench.py build/web 4

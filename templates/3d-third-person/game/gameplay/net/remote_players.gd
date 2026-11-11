@@ -32,7 +32,8 @@ var local_slot := -1
 ## drawn at the client's predicted tick, ahead of the moment a puppet is drawn at, so a puppet that
 ## stands on one is moved with it to where it is drawn.
 var map_parts: NetWorld
-## Physics steps on which a puppet's track had no snapshot as new as the moment drawn.
+## Puppet steps on which a puppet's track had no snapshot as new as the moment drawn: one count a
+## starved puppet a physics step, so two starved puppets on one step count 2.
 var starved := 0
 ## The microseconds the last physics step spent placing the puppets (their own animation and
 ## drawing are the characters' cost, not counted here).
