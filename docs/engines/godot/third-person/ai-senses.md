@@ -140,6 +140,11 @@ reach) and behind (heard, then noticed at arm's reach), with the footstep rings 
   reaction", and with the reaction delay taken out it still passed: the target's distance and angle shares slowed the
   noticing by more than the delay. **Seen:** gdstudio #966, 2026-11-10 (fix: the two parts asserted apart; the
   mutation fails it).
+- **Approach:** Break the rule in the made game's copy of the file, never the worktree's, with a script that stops
+  when the text it replaces is missing and logs each mutation it applied. **Watch out for:** a loop meant to restore
+  a scratch copy ran `git checkout` on the worktree's navigator and threw away uncommitted work; a mutation written
+  before gdformat wrapped its line matched nothing, so two "rule taken out" runs tested the unbroken code. **Seen:**
+  gdstudio #1062, 2026-11-11 (the navigator's mutations; the work was found again in the made game's copy).
 - **Approach:** Start each run of a "same start, same result" test in the same phase of a frame (an
   `await get_tree().process_frame` first) when the second run is built inside the first one's frame loop. **Watch out
   for:** the second run was built while the test was resumed from `physics_frame`, so the director ticked once before

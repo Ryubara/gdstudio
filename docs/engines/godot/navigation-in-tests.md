@@ -24,8 +24,12 @@ edge; clockwise seen from above). Free the region and the map when the test ends
   that is the fixture for "waits for the first iteration".
 - **Approach:** Wait for a test's own region by its RID, never by a point the mesh would answer. **Watch out for:**
   the navigator suites' first `settle()` waited for a point within half a metre of the mesh; every test after the
-  first saw the freed region of the one before, and its goals came back "no open ground near the goal".
-  **Seen:** gdstudio #967, 2026-11-11 (`tests/fixtures/nav_arena.gd`).
+  first saw the freed region of the one before, and its goals came back "no open ground near the goal". A map with
+  no polygons answers every `map_get_closest_point` with the origin, so a wait for "a closest point above -1" passes
+  at once on an empty map. **Seen:** gdstudio #967, 2026-11-11 (`tests/fixtures/nav_arena.gd`); gdstudio #1062,
+  2026-11-11 (`tools/bench/nav_cost_bench.gd` waited that way: every goal of #967's cost table failed with "no open
+  ground near the goal" and no character walked; it now waits for its region's RID and reports how long the crowd
+  walked).
 - **Approach:** Turn off both threads before waiting on a region: `region_set_use_async_iterations(region_rid, false)`
   after the region enters the tree and `map_set_use_async_iterations(map, false)`; the map then holds the region at
   the next physics tick on every machine. **Watch out for:** the map's switch alone is not enough: a region builds its
