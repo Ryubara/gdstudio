@@ -9,9 +9,13 @@ It skins both mannequins' hands on the CPU as Godot does and measures them again
 once. With no option it solves the fingers for the seat and the left hand's place below (the hold the template
 ships, about 5 minutes); `--search-seat` and `--search-left` search those again from there (4 to 6 minutes each),
 `--seat=` and `--left=` give other starts, and `--scan=` prints a table of seats to choose from. The left hand
-under the magazine (kit #1031: where it pushes the magazine in during the reload) is solved last, from its
-place on the gun rolled under the magazine's base; `--magazine=` gives another move from that place and `--magazine-only` solves
-only it, on the seat and right hand of the output file of an earlier run (a minute).
+under the magazine (kit #1031: where it pushes the magazine in during the reload) is solved next, from its
+place on the gun rolled under the magazine's base; `--magazine=` gives another move from that place and
+`--magazine-only` solves only it, on the seat and right hand of the output file of an earlier run (a minute).
+The left hand's way off the gun and back onto it (kit #1051) is solved last: its fingers opened where it holds,
+each as far as it lifts off without passing through anything on the way, and the straight line along which the
+opened hand leaves, the clear one nearest the way to the belt; `--way-only` solves only that, on the output
+file of an earlier run (five minutes).
 
 The seat is given as a move from `REFERENCE_SEAT` (metres along the pistol's own axes, then degrees about them),
 and the hand bone is turned back at the wrist by the same turn, so the barrel keeps the reference's line in the
@@ -27,7 +31,8 @@ import time
 import hold_field
 import hold_rig as R
 import numpy as np
-from hold_hand import FINGERS, LIMITS, Hand
+from hold_hand import FINGERS, LIMITS, Hand, local_rotations
+from scipy.spatial.transform import Rotation
 
 BASE_POSE = "ual1/Pistol_Aim_Neutral@0.16"
 # Both mannequins are measured at once and their skins differ by up to 3.3 mm in the same pose, so the
@@ -55,9 +60,15 @@ MAGAZINE = [0.0, 0.0, -0.07, 80.0, 0.0, 0.0]
 # How far the thumb of the hand under the magazine stays off every surface, metres: the test in Godot read
 # the male thumb's root 1.4 mm deeper than this solver there.
 CUP_THUMB_OFF = 0.0005
-# The left hand opened, as it lets go of the gun and comes back to it: each finger bone this share of the way
-# from its rest (straight) to its place on the gun; the thumb, the index and the little finger stay.
-OPEN_SHARE = 0.6
+# The left hand's way off the gun (kit #1051). Its fingers open where the hand holds, then the opened hand
+# leaves along a straight line; the game plays both backwards to bring it on again.
+OPEN_CLEAR = 0.005  # how far off every surface an opened finger is lifted, where it can be, metres
+WAY_TOL = 0.001  # how deep any skin may pass on the way, metres (the test allows 2 mm)
+WAY_LENGTH = 0.06  # how far the opened hand goes before the clip's arm takes it, metres
+WAY_STEPS = 16  # the poses measured between closed and open, and the places between on and off
+WAY_GRID = 10.0  # degrees between the directions tried
+# The dumped pose in which the reload clip has the left hand at the belt: the way out leans toward it.
+BELT_POSE = "ual1/Pistol_Reload@0.40"
 MAGAZINE_BASE = np.array([0.003, -0.052, 0.0])
 # The grid of the gun's distance: the whole gun (muzzle at -0.207) and a hand's thickness round it.
 GRID_LOW = [-0.24, -0.09, -0.075]
@@ -493,6 +504,9 @@ def main():
     if "--magazine-only" in sys.argv:
         magazine_only(scene, started)
         return
+    if "--way-only" in sys.argv:
+        way_only(scene, started)
+        return
     best = settle(scene, option("seat", SEAT))
     if "--search-seat" in sys.argv:
         scene.right.stride = 3
@@ -547,29 +561,188 @@ def main():
         "support_hand": in_gun.tolist(),
         "support": support,
     }
-    out["open"] = opened(scene.rig, support)
     out.update(solve_magazine(scene, angles["right"], in_gun, started))
+    out.update(solve_way(scene, in_gun, support, started))
     with open(sys.argv[2], "wb") as file:
         file.write(json.dumps(out, indent=1).encode())
 
 
-def opened(rig, support):
-    """The left hand's pose on the gun with its fingers opened: each finger bone `OPEN_SHARE` of the way from
-    its rest to `support` (bone name to quaternion); the thumb, the index and the little finger stay as they
-    are there (the index finger lies under the trigger guard and straightening it lifts it into the guard;
-    the little finger's tip went 5 mm into the right hand half-way open)."""
-    out = {}
-    for name, quaternion in support.items():
-        end = np.array(quaternion, float)
-        if not name.startswith(("thumb", "index", "pinky")):
-            start = np.array(R.mat_to_quat(rig.rest[rig.index[name]][:3, :3]), float)
-            if start @ end < 0.0:
-                end = -end
-            angle = np.arccos(np.clip(start @ end, -1.0, 1.0))
-            if angle > 1e-6:
-                end = (np.sin((1.0 - OPEN_SHARE) * angle) * start + np.sin(OPEN_SHARE * angle) * end) / np.sin(angle)
-        out[name] = end.tolist()
-    return out
+def blended(start, ends, shares):
+    """Rotations between `start` (3, 3) and each of `ends` (K, 3, 3) at `shares` (S,), the short way round as
+    Godot's `Quaternion.slerp` goes: (K * S, 3, 3), a row of `ends` after the other."""
+    first = Rotation.from_matrix(start).as_quat()
+    last = Rotation.from_matrix(ends).as_quat()
+    dot = last @ first
+    last = np.where(dot[:, None] < 0.0, -last, last)
+    angle = np.arccos(np.clip(np.abs(dot), 0.0, 1.0))[:, None, None]
+    share = np.asarray(shares)[None, :, None]
+    near = angle < 1e-6
+    sine = np.where(near, 1.0, np.sin(angle))
+    from_start = np.where(near, 1.0 - share, np.sin((1.0 - share) * angle) / sine)
+    from_end = np.where(near, share, np.sin(share * angle) / sine)
+    mixed = from_start * first[None, None, :] + from_end * last[:, None, :]
+    return Rotation.from_quat(mixed.reshape(-1, 4)).as_matrix()
+
+
+def open_grid(finger, held):
+    """The poses a finger may open to from `held`: the knuckle straighter, the other joints either way."""
+    limits = LIMITS.get(finger, LIMITS["finger"])
+    if finger == "thumb":
+        steps = [-16.0, -8.0, 0.0, 8.0, 16.0]
+        grid = [
+            held + np.array([a, b, c, 0.0, e, 0.0]) for a in steps for b in steps for c in steps for e in (-10.0, 0.0)
+        ]
+    else:
+        grid = itertools.product(
+            held[0] + np.array([-10.0, -5.0, 0.0, 5.0, 10.0]),
+            np.arange(held[1] % 5.0 - 15.0, held[1] + 0.1, 5.0),
+            np.append(np.arange(held[2] % 15.0, held[2] + 0.1, 15.0), [held[2] + 11.5, held[2] + 23.0]),
+            np.append(np.arange(held[3] % 20.0, held[3] + 0.1, 20.0), [held[3] + 20.0]),
+        )
+    return np.clip(np.array(list(grid), float), limits[:, 0], limits[:, 1])
+
+
+def open_finger(scene, hand, finger):
+    """Opens one finger of a hand that holds: the pose nearest the held one that lifts it `OPEN_CLEAR` off
+    every surface (or as far as it gets) with nothing deeper than `WAY_TOL` in every pose between, the bones
+    blended as the game blends them. Returns the angles, the deepest on the way and how far off it ends."""
+    held = hand.angles[finger].copy()
+    grid = open_grid(finger, held)
+    shares = np.linspace(0.0, 1.0, WAY_STEPS + 1)[1:]
+    which = hand.finger_verts[finger]
+    deepest = np.empty(len(grid))
+    clear = np.empty(len(grid))
+    # A few hundred poses at a time: every pose is measured at every share on every vertex.
+    for first in range(0, len(grid), 400):
+        rows = grid[first : first + 400]
+        turned = [
+            blended(a[0], b, shares)
+            for a, b in zip(local_rotations(finger, held), local_rotations(finger, rows), strict=True)
+        ]
+        off = scene.field(hand, hand.finger_points_turned(finger, turned), which)
+        off = off.reshape(len(rows), len(shares), -1)
+        deepest[first : first + 400] = off.min(axis=(1, 2))
+        clear[first : first + 400] = off[:, -1].min(axis=1)
+    # A degree of change costs 0.03 mm, so the nearest pose that is clear enough wins.
+    cost = 100.0 * relu(-deepest - WAY_TOL) + relu(OPEN_CLEAR - clear) + 3e-5 * np.abs(grid - held).sum(axis=1)
+    best = cost.argmin()
+    return grid[best], deepest[best], clear[best]
+
+
+def directions(step):
+    """Unit vectors `step` degrees apart over the whole sphere: (D, 3)."""
+    out = [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]]
+    for lift in np.radians(np.arange(-90.0 + step, 90.0, step)):
+        for turn in np.radians(np.arange(0.0, 360.0, step / max(np.cos(lift), 0.2))):
+            out.append([np.cos(lift) * np.cos(turn), np.sin(lift), np.cos(lift) * np.sin(turn)])
+    return np.array(out)
+
+
+def way_out(scene, toward):
+    """The straight line the opened left hand leaves the gun along, as a unit vector in the gun's space: of the
+    directions in which nothing passes deeper than `WAY_TOL` over `WAY_LENGTH` (nor in the directions next
+    to it, so a hand a little off the line is clear too), the one nearest `toward`."""
+    hand = scene.left
+    points = hand.points()
+    turn = scene.gun_global()[:3, :3]
+    tried = directions(WAY_GRID)
+    steps = np.linspace(0.0, WAY_LENGTH, WAY_STEPS + 1)
+    deepest = np.empty(len(tried))
+    for index, direction in enumerate(tried):
+        moved = points[None] + steps[:, None, None] * (turn @ direction)[None, None, :]
+        deepest[index] = scene.field(hand, moved).min()
+    clear = deepest > -WAY_TOL
+    near = tried @ tried.T > np.cos(np.radians(1.5 * WAY_GRID))
+    safe = np.array([clear[near[index]].all() for index in range(len(tried))])
+    if not safe.any():
+        raise SystemExit("way_out: the opened hand passes through something in every direction")
+    angle = np.degrees(np.arccos(np.clip(tried @ toward, -1.0, 1.0)))
+    best = np.where(safe, angle, np.inf).argmin()
+    return tried[best], angle[best], deepest[best], int(safe.sum())
+
+
+def way_depths(scene, held, opened, way):
+    """The deepest the left hand passes on its whole way off the gun, per mannequin, in metres: its fingers
+    blended from `held` to `opened` (angles) where it holds, then the opened hand moved along `way`."""
+    hand = scene.left
+    model = scene.rig.model[hand.ids]
+    shares = np.linspace(0.0, 1.0, 2 * WAY_STEPS + 1)
+    deepest = np.zeros(scene.rig.model.max() + 1)
+
+    def measure(points):
+        off = scene.field(hand, points)
+        for index in range(len(deepest)):
+            deepest[index] = min(deepest[index], off[model == index].min())
+
+    for share in shares:
+        for finger in FINGERS:
+            turned = [
+                blended(a[0], b, [share])
+                for a, b in zip(
+                    local_rotations(finger, held[finger]), local_rotations(finger, opened[finger]), strict=True
+                )
+            ]
+            for bone, rot in zip(hand.chains[finger], turned, strict=True):
+                hand.local[bone][:3, :3] = scene.rig.rest[bone][:3, :3] @ rot[0]
+        hand.glob = scene.rig.fk(hand.local)
+        for bone in hand.arm:
+            hand.glob[bone] = hand.move @ hand.glob[bone]
+        measure(hand.points())
+    points = hand.points()
+    turn = scene.gun_global()[:3, :3]
+    for share in shares:
+        measure(points + share * WAY_LENGTH * (turn @ way))
+    return -deepest
+
+
+def solve_way(scene, support, support_pose, started):
+    """The left hand's way off the gun and back onto it, against the gun and the right hand with its finger
+    off the trigger (as `solve_magazine` leaves it): the opened pose and the line the opened hand leaves along."""
+    hand = scene.left
+    held = hand.angles_of(support_pose)
+    for finger in FINGERS:
+        hand.angles[finger] = held[finger].copy()
+    put_left(scene, support)
+    opened = {}
+    for finger in FINGERS:
+        opened[finger], deepest, clear = open_finger(scene, hand, finger)
+        print(
+            "open",
+            finger,
+            np.round(held[finger], 1),
+            "to",
+            np.round(opened[finger], 1),
+            "passes %.1f mm, ends %.1f mm off" % (-deepest * 1000, clear * 1000),
+            flush=True,
+        )
+    for finger in FINGERS:
+        hand.set(finger, opened[finger])
+    report(scene, hand, "open")
+    # The way to the belt, from where the hand holds to where the clip has it there, in the gun.
+    rig = scene.rig
+    local = rig.poses[BELT_POSE].copy()
+    local[scene.right.hand][:3, :3] = local[scene.right.hand][:3, :3] @ scene.right.wrist
+    posed = rig.fk(local)
+    belt = np.linalg.inv(posed[scene.right.hand] @ scene.seat) @ posed[hand.hand]
+    toward = belt[:3, 3] - support[:3, 3]
+    toward /= np.linalg.norm(toward)
+    way, off_line, deepest, count = way_out(scene, toward)
+    print(
+        "way",
+        np.round(way, 4).tolist(),
+        "toward the belt",
+        np.round(toward, 3).tolist(),
+        "%.0f degrees off it, of %d clear directions; passes %.1f mm" % (off_line, count, -deepest * 1000),
+    )
+    quaternions = hand.quaternions()
+    passes = way_depths(scene, held, opened, way)
+    print(
+        "way passes",
+        ", ".join("%s %.1f mm" % (name, depth * 1000) for name, depth in zip(("female", "male"), passes, strict=False)),
+        "in %.0f s" % (time.time() - started),
+        flush=True,
+    )
+    return {"open": quaternions, "way": (WAY_LENGTH * way).tolist(), "way_passes": passes.tolist()}
 
 
 def solve_magazine(scene, right_angles, support, started):
@@ -603,8 +776,22 @@ def magazine_only(scene, started):
     with open(sys.argv[2], "rb") as file:
         out = json.load(file)
     scene.seat = seat_from(scene, np.array(out["seat_params"]))
-    out["open"] = opened(scene.rig, out["support"])
     out.update(solve_magazine(scene, out["angles"]["right"], np.array(out["support_hand"]), started))
+    with open(sys.argv[2], "wb") as file:
+        file.write(json.dumps(out, indent=1).encode())
+
+
+def way_only(scene, started):
+    """Solves only the left hand's way off the gun, on the hold of the solve in the output file, and adds it
+    to that file."""
+    with open(sys.argv[2], "rb") as file:
+        out = json.load(file)
+    scene.seat = seat_from(scene, np.array(out["seat_params"]))
+    for finger in FINGERS:
+        scene.right.angles[finger] = np.array(out["angles"]["right"][finger], float)
+    scene.right._apply_all()
+    scene.freeze_right()
+    out.update(solve_way(scene, np.array(out["support_hand"]), out["support"], started))
     with open(sys.argv[2], "wb") as file:
         file.write(json.dumps(out, indent=1).encode())
 
