@@ -10,6 +10,7 @@ them: what a lost packet costs on TCP). Then it judges each client's report and 
     python tools/net/bad_network_gate.py --godot <pinned godot> --project game --out <folder>
         [--runs freeze,stalls] [--delay-ms 100] [--stall-chance 0.01] [--stall-ms 300] [--seconds 30] [--bots 3]
         [--url wss://<deployment>]      a running server instead of a local one (no relay: add --delay-ms 0)
+        [--walk dais|spawn]             spawn: the walk round the spawn, across the dais's edge (gdstudio #1119)
         [--break hold|reconciler]       the teeth check: the server's hold or the client's #483 fix taken out
         [--expect-fail]                 exit 0 only when the gate failed (CI runs the teeth check with it)
 
@@ -39,7 +40,8 @@ JITTER_MS = 30.0
 # edge. The walk round the spawn (2 m from the west edge, 3 m, sprinting every other lap) reached 5.4 m out: a command
 # repeated in an up stall walked the server's body off the edge while the client's stayed up, and each quarter of the
 # correction put the client inside the dais, which pushed it back on top, so the two fought for seconds (141 m of
-# corrections in one local run; 75.5 m, and 1.65 m apart after standing, on the runner; gdstudio #1110, #1119).
+# corrections in one local run; 75.5 m, and 1.65 m apart after standing, on the runner; gdstudio #1110). The client now
+# takes such a correction whole (`BodyOverlap`, #1119); `--walk spawn` runs the old walk to show it.
 WALK_CENTRE = "0,0"
 WALK_RADIUS_M = 2.0
 WALK_LAP_S = 3.5
@@ -138,15 +140,16 @@ def run(args: argparse.Namespace, name: str, out: Path) -> tuple[Verdict, dict]:
             bots = start(godot_cmd(args.godot, project, "res://tools/net/server_bot.gd", *bot_args), out / "bots.log")
             time.sleep(3.0)
         client_args = ["--connect", client_url, "--seconds", str(args.seconds), "--freeze", freeze]
-        client_args += [
-            "--centre",
-            WALK_CENTRE,
-            "--radius",
-            str(WALK_RADIUS_M),
-            "--lap",
-            str(WALK_LAP_S),
-            "--no-sprint",
-        ]
+        if args.walk == "dais":
+            client_args += [
+                "--centre",
+                WALK_CENTRE,
+                "--radius",
+                str(WALK_RADIUS_M),
+                "--lap",
+                str(WALK_LAP_S),
+                "--no-sprint",
+            ]
         if args.broken == "reconciler":
             client_args += ["--break", "reconciler"]
         if relay is not None:
@@ -219,6 +222,12 @@ def main() -> int:
     parser.add_argument("--jitter-ms", type=float, default=JITTER_MS, help="up to this much more delay a chunk")
     parser.add_argument("--seconds", type=int, default=30, help="seconds the client walks")
     parser.add_argument("--bots", type=int, default=3, help="bots that give the client puppets")
+    parser.add_argument(
+        "--walk",
+        choices=["dais", "spawn"],
+        default="dais",
+        help="dais: circles on the dais's top (the gate); spawn: round the spawn, across its edge (#1119)",
+    )
     parser.add_argument("--break", dest="broken", choices=["hold", "reconciler"], default="", help="teeth check")
     parser.add_argument("--expect-fail", action="store_true", help="exit 0 only when the gate failed")
     args = parser.parse_args()

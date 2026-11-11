@@ -175,7 +175,12 @@ def judge_client(report: dict, network: Network, verdict: Verdict | None = None)
     verdict.check(
         f"corrected under {allowed:.2f} m",
         report["corrected_m"] < allowed,
-        {"corrected_m": report["corrected_m"], "corrections": report["corrections"], "up_stalls": network.stalls_up},
+        {
+            "corrected_m": report["corrected_m"],
+            "corrections": report["corrections"],
+            "stuck_snaps": report.get("stuck_snaps", 0),
+            "up_stalls": network.stalls_up,
+        },
     )
     if report.get("puppets", 0) > 0:
         starved = network.starved_allowed(report["steps"], report["puppets"], report["stalls"])
