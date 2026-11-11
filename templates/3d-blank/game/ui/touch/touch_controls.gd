@@ -20,6 +20,11 @@ extends CanvasLayer
 ## Each finger does one job, decided where it lands, and its own position is read (never the
 ## `relative` of a drag, which is wrong with two fingers down in a browser). The view turns a
 ## share of what was dragged every drawn frame, not once per finger sample.
+##
+## Other parts of the screen can be places a finger presses an action on (a HUD's weapon slots):
+## `add_zone_source(node)` with a node whose `touch_zones()` gives `{rect, action}` boxes in canvas
+## pixels. A finger that lands in one presses its action while it stays down, before any button,
+## and does nothing else.
 
 ## The look finger dragged: turn the camera by `degrees` (x to the right, y down).
 signal look_turned(degrees: Vector2)
@@ -126,6 +131,8 @@ var _look_fingers: Dictionary[int, Vector2] = {}
 var _button_fingers: Dictionary[int, int] = {}
 var _pending_look := Vector2.ZERO
 var _pressed: Dictionary[StringName, float] = {}
+var _zone_sources: Array[Object] = []
+var _zone_fingers: Dictionary[int, StringName] = {}
 
 
 func _ready() -> void:
@@ -196,6 +203,29 @@ func is_shown() -> bool:
 ## The stick's push, each axis from -1 to 1 (x right, y down), deadzone taken out.
 func stick_vector() -> Vector2:
 	return _stick_push
+
+
+## Adds `source`, a node whose `touch_zones()` gives places a finger presses (`{rect, action}`,
+## canvas pixels), asked at each touch.
+func add_zone_source(source: Object) -> void:
+	if source != null and not _zone_sources.has(source):
+		_zone_sources.append(source)
+
+
+## Stops asking `source` for places.
+func remove_zone_source(source: Object) -> void:
+	_zone_sources.erase(source)
+
+
+## The action of the first place of a zone source that holds `at` (canvas pixels), or empty.
+func zone_action_at(at: Vector2) -> StringName:
+	for source in _zone_sources:
+		if not is_instance_valid(source) or not source.has_method(&"touch_zones"):
+			continue
+		for zone: Dictionary in source.call(&"touch_zones"):
+			if (zone.get("rect", Rect2()) as Rect2).has_point(at):
+				return zone.get("action", &"")
+	return &""
 
 
 ## How many buttons there are: the `TouchButton` children of `buttons_root`.
@@ -296,6 +326,11 @@ func _set_shown(value: bool, force := false) -> void:
 
 
 func _finger_down(index: int, at: Vector2) -> void:
+	var zone_action := zone_action_at(at)
+	if zone_action != &"":
+		_zone_fingers[index] = zone_action
+		_press(zone_action, 1.0)
+		return
 	var button := _button_at(at)
 	if button >= 0:
 		_button_fingers[index] = button
@@ -334,6 +369,9 @@ func _finger_moved(index: int, at: Vector2) -> void:
 
 
 func _finger_up(index: int) -> void:
+	if _zone_fingers.has(index):
+		_press(_zone_fingers[index], 0.0)
+		_zone_fingers.erase(index)
 	if index == _stick_finger:
 		_stick_finger = -1
 		_apply_stick()
@@ -413,6 +451,7 @@ func _release_all() -> void:
 	_stick_push = Vector2.ZERO
 	_look_fingers.clear()
 	_button_fingers.clear()
+	_zone_fingers.clear()
 	_pending_look = Vector2.ZERO
 	for button in _buttons():
 		button.held = false

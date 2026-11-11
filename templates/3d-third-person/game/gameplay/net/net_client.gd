@@ -6,13 +6,15 @@ extends Node
 ## Each physics step, before the bodies: the link is polled (a WELCOME seats the client and puts
 ## the body where the server put it; a TICK gives the `Reconciler` the server's point for the last
 ## command it applied and gives the others' entries to `remote_players`; `joined` and `left` make
-## and free puppets); the `StallGuard` judges the step; the body moves by the correction under way;
-## the player's controller is sampled, the command numbered, quantized (`CommandCodec`, so the
-## body steps with exactly the numbers the server reads) and sent; the body steps once with it
-## (`Character.step`, the server's own step) and the point it reached is recorded for that number.
-## A ping goes out `NetLimits.PING_RATE` times a second. Nothing cosmetic is sent: the server
-## hears commands only. The server's shots, hits and deaths are played by `combat`
-## (`ClientCombat`); the player's own shots are cosmetic (`Weapon.authoritative` off).
+## and free puppets); the `StallGuard` judges the step (after a stall of this client's thread the
+## body first steps as the server stepped its own through the silence: `SilenceWalk`); the body
+## moves by the correction under way; the player's controller is sampled, the command numbered,
+## quantized (`CommandCodec`, so the body steps with exactly the numbers the server reads) and
+## sent; the body steps once with it (`Character.step`, the server's own step) and the point it
+## reached is recorded for that number. A ping goes out `NetLimits.PING_RATE` times a second.
+## Nothing cosmetic is sent: the server hears commands only. The server's shots, hits and deaths
+## are played by `combat` (`ClientCombat`); the player's own shots are cosmetic
+## (`Weapon.authoritative` off).
 ##
 ## The player's own `_physics_process` is turned off while this node runs it. Its fall out of the
 ## map and a teleport go through `Player.teleport()` and reset the reconciler, so a move the
@@ -67,6 +69,8 @@ var welcome: SnapshotCodec.Welcome
 var last_tick: SnapshotCodec.Tick
 var reconciler := Reconciler.new()
 var stall_guard := StallGuard.new()
+## Steps the body through what the server did with it while this client's thread stalled.
+var silence_walk := SilenceWalk.new()
 ## The map's networked parts (doors, platforms, pickups, props, targets) as the server's records
 ## show them; made at the WELCOME. A moving prop's records ride each TICK (`read_stream`).
 var map_parts := NetWorld.new()
@@ -173,6 +177,7 @@ func _predict(delta: float) -> void:
 			return
 		StallGuard.Verdict.RESYNC:
 			resync()
+			silence_walk.walk(player, silent_steps(stall_guard.last_gap), delta)
 	var correction := reconciler.take()
 	if correction != Vector3.ZERO:
 		player.global_position += correction
@@ -188,7 +193,9 @@ func _predict(delta: float) -> void:
 	if packet.is_empty():
 		packet = CommandCodec.encode(_standing(seq))
 	link.send(packet)
-	player.step(CommandCodec.decode(packet), delta)
+	var stepped := CommandCodec.decode(packet)
+	player.step(stepped, delta)
+	silence_walk.remember(stepped)
 	reconciler.record(seq, player.global_position)
 	if _steps % _ping_every == 0:
 		link.send(NetWire.ping(_now_ms(), rtt_ms))
@@ -202,6 +209,12 @@ func resync() -> void:
 	_pings_valid_from = _now_ms()
 
 
+## The server steps without a command of this client across a stall of `gap` seconds between two
+## of its ticks: every tick of the gap but the one that ends it (`SilenceWalk`).
+static func silent_steps(gap: float) -> int:
+	return maxi(roundi(gap * NetLimits.TICK_RATE) - 1, 0)
+
+
 func _take_player() -> void:
 	player.set_physics_process(false)
 	if player.fell.is_connected(player.respawn):
@@ -212,6 +225,10 @@ func _take_player() -> void:
 	if player.weapon != null:
 		player.weapon.authoritative = false
 		player.weapon.fired.connect(combat.track)
+	# The bag is not on the wire yet: a hotbar use would change health the server owns.
+	var hotbar := Hotbar.of(player)
+	if hotbar != null:
+		hotbar.authoritative = false
 
 
 func _on_connected() -> void:
@@ -247,6 +264,7 @@ func _on_welcome(read: SnapshotCodec.Welcome) -> void:
 	map_parts = NetWorld.new(_map_root(), NetEntity.Role.CLIENT)
 	map_parts.read_table(read.entities, read.server_tick)
 	seq = first_seq(read.server_tick, _now() - _hello_at)
+	silence_walk.reset()
 	if player != null:
 		player.set_meta(NetHits.SLOT_META, slot)
 		if player.weapon != null:
