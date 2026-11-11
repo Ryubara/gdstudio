@@ -15,10 +15,11 @@ extends Node
 ## the count, its Full cap the shipped one (12 in a browser, 60 on the desktop), and the
 ## animation throttle is on, as `world.tscn` has it.
 ##
-## One line of JSON, `AI_BEHAVIOUR_BENCH {...}`: for each count and mode the director's step a
-## tick (`step_mean_us`, `step_p95_us`, `us_each`), the median frame work in milliseconds, ticks a
-## frame, a calibration loop timed before the row (`calibration_ms`: a busy machine reads slower
-## there too), the events the brains routed a second and the guards by active task at the end.
+## Each row measures at least 300 frames and 600 ticks. One line of JSON, `AI_BEHAVIOUR_BENCH
+## {...}`: for each count and mode the director's step a tick (`step_mean_us`, `step_p95_us`,
+## `us_each`), the median frame work in milliseconds, frames, ticks and ticks a frame, a
+## calibration loop timed before the row (`calibration_ms`: a busy machine reads slower there
+## too), the events the brains routed a second and the guards by active task at the end.
 ## Desktop: `godot --headless --fixed-fps 60 --path game res://tools/bench/ai_behaviour_bench.tscn
 ## [-- --counts=50,100]`; browser: a web export with this scene as `run/main_scene` and `tools/*`
 ## out of the exclude filter, read by `tools/bench/ai_behaviour_bench.py`
@@ -30,6 +31,9 @@ const COUNTS: Array[int] = [50, 100]
 const MODES: Array[String] = ["off", "calm", "threat"]
 const WARM_FRAMES := 120
 const FRAMES := 300
+## Ticks a row measures at least: a browser draws about three frames a tick at 1x, so 300 frames
+## alone held only 90 ticks there, 15 thinks a guard (gdstudio #1104).
+const MIN_TICKS := 600
 const GUARD := "res://gameplay/ai/ai_guard.tscn"
 const RELATIONS := "res://gameplay/ai/relations/ai_relations.tres"
 const SPACING := 3.0
@@ -185,8 +189,10 @@ func _measure(count: int, mode: String) -> Dictionary:
 	_steps.clear()
 	_tick_start = -1
 	_frame_end.done.connect(_on_frame_end)
-	for _frame in FRAMES:
+	var frames := 0
+	while frames < FRAMES or _ticks < MIN_TICKS:
 		await get_tree().process_frame
+		frames += 1
 	_frame_end.done.disconnect(_on_frame_end)
 	get_tree().physics_frame.disconnect(_on_tick)
 	var seconds := _ticks / float(Engine.physics_ticks_per_second)
@@ -201,7 +207,9 @@ func _measure(count: int, mode: String) -> Dictionary:
 		"characters": count,
 		"mode": mode,
 		"calibration_ms": calibration,
-		"ticks_per_frame": float(_ticks) / FRAMES,
+		"frames": frames,
+		"ticks": _ticks,
+		"ticks_per_frame": float(_ticks) / frames,
 		"step_mean_us": mean,
 		"step_p95_us": steps[int(steps.size() * 0.95)] if not steps.is_empty() else -1.0,
 		"us_each": mean / count,

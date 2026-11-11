@@ -17,6 +17,8 @@ var _differences: Array[String] = []
 var _ticks := 0
 var _lean_ticks := 0
 var _lean_climbs := 0
+var _lean_aims := 0
+var _shots: Array[int] = [0, 0]
 
 
 func before_test() -> void:
@@ -27,6 +29,8 @@ func before_test() -> void:
 	_ticks = 0
 	_lean_ticks = 0
 	_lean_climbs = 0
+	_lean_aims = 0
+	_shots = [0, 0]
 
 
 # A body on a floor of its own world with a 0.2 m kerb across its way, facing -Z, stepped by hand.
@@ -105,6 +109,8 @@ func _run(command: PlayerCommand, count: int) -> void:
 			body.step(command, CommandDriver.tick_seconds())
 		if took:
 			_lean_ticks += 1
+			if command.aim or command.fire or lean.aim_amount > 0.0:
+				_lean_aims += 1
 			# The step climber lifted it on a lean tick (the kerb is 0.2 m).
 			if lean.global_position.y - height > 0.1:
 				_lean_climbs += 1
@@ -171,6 +177,70 @@ func test_the_lean_tick_ends_every_tick_where_the_full_tick_does() -> void:
 	assert_int(_lean_ticks).is_greater(300)
 	assert_int(_ticks - _lean_ticks).is_greater(200)
 	assert_int(_lean_climbs).is_greater_equal(1)
+
+
+# A fighting AI (gdstudio #1104) aims and fires far more ticks than its aim goes up or comes down:
+# those ticks are lean too, and end where the full tick does, shots and all, with the pistol and
+# with an automatic weapon held down.
+func test_aiming_and_firing_take_the_lean_tick_and_end_where_the_full_tick_does() -> void:
+	_bodies.append(_body_in_a_world(true, 0))
+	_bodies.append(_body_in_a_world(false, 1))
+	for index in _bodies.size():
+		_bodies[index].weapon.fired.connect(
+			func(_projectile: Projectile) -> void: _shots[index] += 1
+		)
+	await InputSim.ticks(get_tree(), 4)
+	await _run(PlayerCommand.new(), 10)
+	# Up with the aim standing, the view turning, then a walk and a run that the aim slows.
+	var fight := CommandDriver.walking(Vector3.ZERO, Vector3(4.0, 0.0, -6.0))
+	fight.aim = true
+	await _run(fight, 30)
+	fight.yaw += 0.8
+	await _run(fight, 20)
+	fight.move = Vector2(0.0, 1.0)
+	fight.walk = true
+	await _run(fight, 30)
+	fight.walk = false
+	fight.sprint = true
+	await _run(fight, 30)
+	fight.sprint = false
+	# Presses of the pistol's trigger, each held a few ticks, walking and standing.
+	for press in 6:
+		fight.fire = true
+		fight.fire_pressed = true
+		await _run(fight, 4)
+		fight.fire = false
+		await _run(fight, 8)
+		if press == 2:
+			fight.move = Vector2.ZERO
+	# The trigger held without the aim button: the body aims for it.
+	fight.aim = false
+	fight.fire = true
+	fight.fire_pressed = true
+	await _run(fight, 20)
+	fight.fire = false
+	await _run(fight, 30)
+	# An automatic weapon held down, then let go.
+	var automatic := (_bodies[0].weapon.definition as WeaponDef).duplicate() as WeaponDef
+	automatic.automatic = true
+	for body in _bodies:
+		body.weapon.definition = automatic
+	fight.aim = true
+	await _run(fight, 20)
+	fight.fire = true
+	fight.fire_pressed = true
+	await _run(fight, 40)
+	fight.fire = false
+	fight.aim = false
+	fight.move = Vector2(1.0, 0.0)
+	await _run(fight, 40)
+
+	assert_array(_differences).is_empty()
+	assert_array(_signals[0]).is_equal(_signals[1])
+	assert_int(_shots[0]).is_equal(_shots[1])
+	assert_int(_shots[0]).is_greater_equal(6)
+	# Most of the fight was lean: only the ticks the aim went up or came down were not.
+	assert_int(_lean_aims).is_greater(200)
 
 
 func test_only_an_ais_controller_asks_for_the_lean_tick() -> void:
