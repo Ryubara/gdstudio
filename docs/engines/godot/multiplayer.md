@@ -346,7 +346,7 @@ client -->
   and the aim pose was not in the frame; every test looked at the local body. **Seen:** Deadnight #518, 2026-11-02 (fix:
   remote bodies are the same scene as local ones (a puppet `Player`), the frame gains `aim` and `pitch`, captures come
   from the second client (Deadnight #548); code that works through a node type (`as Player`) turns "no such body" into
-  a silent skip, so say it loudly).
+  a silent skip, so say it loudly); gdstudio #905 (online-client.md#puppets).
 
 ## Events reach a client only through its command loop {#events-reach-a-client-only-through-its-command-loop}
 

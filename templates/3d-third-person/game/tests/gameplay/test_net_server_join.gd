@@ -139,6 +139,8 @@ func test_the_log_says_listening_and_stats_every_ten_seconds() -> void:
 		"step_ms_p95",
 		"steps_over_budget",
 		"peers_stalled",
+		"steps_held",
+		"steps_repeated",
 	]:
 		assert_bool(line.has(key)).override_failure_message("no %s" % key).is_true()
 	assert_int(line["players"]).is_equal(1)

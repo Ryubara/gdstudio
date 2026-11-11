@@ -63,6 +63,7 @@ func test_the_server_exports_are_pinned() -> void:
 		&"spawn_group": &"player",
 		&"spawn_seed": 1,
 		&"command_ticks": 30,
+		&"hold_ticks": 4,
 		&"silent_seconds": 15.0,
 		&"hello_seconds": 10.0,
 	}
