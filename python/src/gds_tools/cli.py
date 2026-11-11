@@ -80,7 +80,14 @@ def _cmd_capture_sheet(args: argparse.Namespace) -> int:
 
 def _cmd_capture_clip(args: argparse.Namespace) -> int:
     ffmpeg = workspace.tool_path("ffmpeg")
-    clip = capture.encode_clip(ffmpeg, Path(args.folder).resolve(), gif=args.gif, max_seconds=args.max_seconds)
+    clip = capture.encode_clip(
+        ffmpeg,
+        Path(args.folder).resolve(),
+        gif=args.gif,
+        max_seconds=args.max_seconds,
+        fps=args.fps,
+        slow=args.slow,
+    )
     print(f"written: {clip}")
     return 0
 
@@ -740,6 +747,18 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=capture.CLIP_MAX_SECONDS,
         help=f"cut the clip after this many seconds (default {capture.CLIP_MAX_SECONDS:g}); it still has to fit 9 MB",
+    )
+    clip.add_argument(
+        "--fps",
+        type=int,
+        default=None,
+        help=f"the rate the frames were recorded at (default: capture.json's, else {capture.DEFAULT_FPS})",
+    )
+    clip.add_argument(
+        "--slow",
+        type=float,
+        default=1.0,
+        help="play the frames N times slower, every frame kept (default 1); the cut counts the slowed clip",
     )
     clip.set_defaults(func=_cmd_capture_clip)
 
