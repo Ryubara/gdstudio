@@ -18,11 +18,12 @@ extends Node
 ## - `world`: 100 of one world part at a time against an empty arena (the median frame's growth,
 ##   in microseconds a part, by wall and by work) and how many of their nodes process each frame.
 ##
-## Run it headless on the desktop (one physics tick a frame):
-## `godot --headless --fixed-fps 60 --path game res://tools/bench/parts_cost_bench.tscn`
-## and in a browser from a web export with this scene as `run/main_scene` and `tools/*` taken out
-## of the preset's exclude filter (`tools/bench/parts_cost_bench.py`). On the web it puts the line
-## in `window.__parts_cost_bench`. `tests/gameplay/test_parts_budget.gd` holds the counts in CI.
+## Run it headless on the desktop (one physics tick a frame): `godot --headless --fixed-fps 60
+## --path game res://tools/bench/parts_cost_bench.tscn` and in a browser from the web export `gds
+## template bench-web 3d-third-person parts_cost_bench` makes (kit
+## docs/engines/godot/web-probes.md#bench-web) (`tools/bench/parts_cost_bench.py`). On the web it
+## puts the line in `window.__parts_cost_bench`. `tests/gameplay/test_parts_budget.gd` holds the
+## counts in CI.
 
 const CROWD: Array[int] = [1, 10, 25, 50]
 const PART_CROWD := 25
