@@ -171,7 +171,9 @@ state; the probe is lent the map's layers (an AI puppet's own mask is 0).
 
 Nothing is sent: the TICK, its 12-byte player entry and the AI row are unchanged, so the bandwidth is the same. On the
 course's 0.9 m wall at a run (`test_net_puppet_vault.gd`, loopback), the puppet's plan had the server's top to 0.1 mm,
-its start within 7 cm and its time within 16 ms (0.466 s against 0.482 s). A probe that finds no crossing of the
+its start within 7 cm and its time within 16 ms (0.466 s against 0.482 s). With the vault clips (kit #1037) the
+puppet's model is held on the clip's root of its own plan, as on the stepping body, so its planted wrist is on the
+top within 40 mm on the other screen as well (the same suite). A probe that finds no crossing of the
 server's kind (the map differs on this screen, something stands in the way here) plays no clip, as before. The clip
 tour is `tools/capture/puppet_vault_tour.tscn` (Ada's own screen beside Bo's).
 
