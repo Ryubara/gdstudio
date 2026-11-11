@@ -94,6 +94,25 @@ func test_the_director_reads_its_counts_for_the_platform() -> void:
 	assert_int(director.slots.total).is_equal(5)
 
 
+func test_a_slot_holder_goes_before_a_nearer_guard_for_the_full_tier() -> void:
+	var director := _arena.director
+	director.desktop_full_cap = 1
+	var near := _arena.add_character(Vector3(0, 0, 3))
+	var far := _arena.add_character(Vector3(0, 0, 9))
+	var target := _arena.add_target("Player", Vector3.ZERO)
+	var settled := func() -> bool: return near.tier == AiDirector.Tier.FULL
+	assert_int(await _until(settled, 40)).is_not_negative()
+	assert_int(far.tier).is_equal(AiDirector.Tier.REDUCED)
+	assert_bool(director.claim_attack_slot(far, target)).is_true()
+	var swapped := func() -> bool: return far.tier == AiDirector.Tier.FULL
+	(
+		assert_int(await _until(swapped, 40))
+		. override_failure_message("holder not Full")
+		. is_not_negative()
+	)
+	assert_int(near.tier).is_equal(AiDirector.Tier.REDUCED)
+
+
 func test_twenty_guards_fire_at_most_n_at_once_and_a_freed_slot_is_taken() -> void:
 	_arena.build()
 	assert_bool(await _arena.settle()).override_failure_message("the map never answered").is_true()

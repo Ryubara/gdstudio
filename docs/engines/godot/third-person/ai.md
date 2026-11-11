@@ -80,8 +80,9 @@ finds it through the group; a character with no director steps itself and never 
 - **Tiers.** Every 8th tick on each character's own slot, by its distance to the nearest body of `player_group`:
   Full under `full_range`, Reduced under `reduced_range`, Dormant past it, and a character keeps a nearer tier until it
   is `tier_margin` past that tier's range. At most `web_full_cap` (in a browser) or `desktop_full_cap` are Full; a
-  nearer character takes the slot of the farthest Full one. No player at all is infinitely far: every character is
-  Dormant.
+  nearer character takes the place of the farthest Full one, and one that holds an attack slot takes the place of one
+  that does not, nearer or not ([Attack slots](ai-behaviour.md#attack-slots)). No player at all is infinitely far:
+  every character is Dormant.
 - **Steps.** A Full body is stepped every tick, a Reduced one every `reduced_step_ticks` and a Dormant one every
   `dormant_step_ticks`, on its own slot, with the missed time handed on: `Character.step(command, delta)` takes a whole
   number of physics steps and scales the velocity for the move, so a far character walks as far in the same time

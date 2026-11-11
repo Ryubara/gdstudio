@@ -5,7 +5,7 @@ the preset's exclude filter), waits for `window.__ai_behaviour_bench`, and print
 two targets with their brains off, on with the targets friendly (calm), on against them with the attack slots (threat)
 and with no slots (uncapped), the director's step a tick, the median frame work, ticks a frame, the
 calibration loop, the events routed a second and the guards by active task. The optional second argument is a CPU
-throttle (4 is the weak-machine stand-in), the third the page's query (`counts=50&modes=threat,uncapped`).
+throttle (4 is the weak-machine stand-in), the third the page's query (`counts=50&modes=threat,uncapped&slots=4&fight_cap=8`).
 
     uv run --project <kit>/python gds quiet -- \
         uv run --with playwright==1.64.1 python tools/bench/ai_behaviour_bench.py build/web 4
@@ -70,7 +70,8 @@ def main() -> int:
                 f" (p95 {row['step_p95_us']:>7.1f}, {row['us_each']:>5.1f} each), work {row['work_ms']:>6.2f} ms,"
                 f" {row['ticks_per_frame']:.2f} ticks/frame, calibration {row['calibration_ms']:.1f} ms,"
                 f" {row['routed_per_second']:>5.1f} routed/s, full {row['full']},"
-                f" engaged {row.get('engaged', 0):.1f} of {row.get('fight_cap', 0)}; {tasks}"
+                f" engaged {row.get('engaged', 0):.1f} of {row.get('fight_cap', 0)}"
+                f" ({row.get('holders_full', 0)} at full); {tasks}"
             )
     for line in failed:
         print("FAIL", line)

@@ -18,7 +18,8 @@ extends Node
 ## The `threat` rows run with the director's attack slots (kit #1203: in a browser 6 a target and
 ## 12 in all; the rest hold), the `uncapped` rows are the same fight with the slots and the fight
 ## cap set to the count (every guard that sees a target fires, as before #1203). `engaged` is the
-## mean of slots held a tick.
+## mean of slots held a tick, `holders_full` the slot holders at the Full tier at the end.
+## `slots=4` and `fight_cap=8` set the `threat` rows' counts (a target, all) on any platform.
 ##
 ## Each row measures at least 300 frames and 600 ticks. One line of JSON, `AI_BEHAVIOUR_BENCH
 ## {...}`: for each count and mode the director's step a tick (`step_mean_us`, `step_p95_us`,
@@ -64,6 +65,8 @@ var _tick := 0
 var _counts: Array[int] = COUNTS.duplicate()
 var _modes: Array[String] = MODES.duplicate()
 var _engaged := 0
+var _slots := -1
+var _fight_cap := -1
 
 
 ## Processed after every other node: says when a frame's processing is over.
@@ -121,6 +124,10 @@ func _read_options() -> void:
 			_counts.clear()
 			for part in parts[1].split(",", false):
 				_counts.append(int(part))
+		elif parts.size() == 2 and parts[0] == "slots":
+			_slots = int(parts[1])
+		elif parts.size() == 2 and parts[0] == "fight_cap":
+			_fight_cap = int(parts[1])
 		elif parts.size() == 2 and parts[0] == "modes":
 			_modes.clear()
 			for part in parts[1].split(",", false):
@@ -158,6 +165,12 @@ func _new_crowd(count: int, mode: String) -> void:
 	_director = AiDirector.new()
 	_director.web_cap = count
 	_director.desktop_cap = count
+	if mode == "threat" and _slots >= 0:
+		_director.web_attack_slots = _slots
+		_director.desktop_attack_slots = _slots
+	if mode == "threat" and _fight_cap >= 0:
+		_director.web_fight_cap = _fight_cap
+		_director.desktop_fight_cap = _fight_cap
 	if mode == "uncapped":
 		_director.web_attack_slots = count
 		_director.desktop_attack_slots = count
@@ -240,7 +253,17 @@ func _measure(count: int, mode: String) -> Dictionary:
 		"full": _director.count_at(AiDirector.Tier.FULL),
 		"engaged": float(_engaged) / maxi(_ticks, 1),
 		"fight_cap": _director.fight_cap(),
+		"holders_full": _holders_at_full(),
 	}
+
+
+# Slot holders at the Full tier now.
+func _holders_at_full() -> int:
+	var found := 0
+	for character in _characters:
+		if character.tier == AiDirector.Tier.FULL and _director.slots.holds(character):
+			found += 1
+	return found
 
 
 func _routed() -> int:

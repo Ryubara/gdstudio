@@ -6,7 +6,7 @@ extends Node
 ## - resets the shared `budget` (rays, path queries and thinks a tick, from the inspector);
 ## - puts each character in a **tier** by its distance to the nearest player's body, checked every
 ##   8th tick on the character's own slot, with a margin before it drops a tier and a cap on how
-##   many are at the Full tier at once;
+##   many are at the Full tier at once (a holder of an attack slot before one without);
 ## - runs each character's **think** at its profile's rate for its tier, on a phase of its own
 ##   chosen where the fewest thinks already fall, so the thinks spread over the ticks;
 ## - **steps** each character's body: every tick at the Full tier, every `reduced_step_ticks`
@@ -134,11 +134,11 @@ static func tier_for(current: int, distance: float, profile: AiProfile) -> int:
 
 func _init() -> void:
 	_think_load.resize(RING)
+	_apply_slot_counts()
 
 
 func _ready() -> void:
 	add_to_group(GROUP)
-	_apply_slot_counts()
 	_refresh_viewers()
 	for node in get_tree().get_nodes_in_group(AiCharacter.GROUP):
 		register(node as AiCharacter)
@@ -356,9 +356,9 @@ func _update_tier(entry: Entry) -> void:
 	entry.distance = _nearest_viewer(character.global_position)
 	var wanted := tier_for(character.tier, entry.distance, character.profile)
 	if wanted == Tier.FULL and character.tier != Tier.FULL and _full_count >= full_cap():
-		var farthest := _farthest_full()
-		if farthest != null and farthest.distance > entry.distance:
-			_set_tier(farthest, Tier.REDUCED)
+		var weakest := _weakest_full()
+		if weakest != null and _outranks(entry, weakest):
+			_set_tier(weakest, Tier.REDUCED)
 		else:
 			wanted = Tier.REDUCED
 	if wanted != character.tier:
@@ -377,12 +377,24 @@ func _set_tier(entry: Entry, wanted: int) -> void:
 	_schedule(entry)
 
 
-func _farthest_full() -> Entry:
+# The Full character that gives way first: one without an attack slot before one with (a guard
+# that fights thinks and steps at the Full rate, one that waits for its turn does not need to),
+# then the farthest.
+func _weakest_full() -> Entry:
 	var found: Entry = null
 	for entry in _entries:
-		if entry.character.tier == Tier.FULL and (found == null or entry.distance > found.distance):
+		if entry.character.tier == Tier.FULL and (found == null or _outranks(found, entry)):
 			found = entry
 	return found
+
+
+# True when `entry` goes before `other` for the Full tier: it holds an attack slot and the other
+# does not, or both or neither do and it is nearer.
+func _outranks(entry: Entry, other: Entry) -> bool:
+	var holds := slots.holds(entry.character)
+	if holds != slots.holds(other.character):
+		return holds
+	return entry.distance < other.distance
 
 
 func _nearest_viewer(spot: Vector3) -> float:

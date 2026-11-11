@@ -239,6 +239,9 @@ at once and at most `web_fight_cap` (12) engage at all in a browser, `desktop_at
 
 - **Who fires.** `AiAttack` asks for a slot on its subject at each think before it aims (`AiStockTask.take_slot()`);
   `AiTakeCover` asks at each peek. The first to ask when one is free takes it; asking again keeps it.
+- **The Full tier goes to the fight.** At the Full cap a holder takes the place of a Full guard without a slot, nearer
+  or not, so the guards that fight think at 10 Hz and step every tick and the ones that wait think at the Reduced
+  rate. Without it, 11 of the 12 Full places went to guards that waited, and the 12 holders aimed on a 2 Hz think.
 - **Who waits.** A guard without a slot holds: it stands, its gun down (no aim, no trigger), looking at the subject,
   and asks again each think; its overlay reads `engage held`. Its body is at rest, so the director steps it every
   `rest_step_ticks`, and its task answers the threat (`answers_threat`), so the reminder does not route it elsewhere.
