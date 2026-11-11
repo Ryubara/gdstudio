@@ -137,7 +137,7 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   that holds the connection and a lambda that holds the object is a cycle nothing frees: every test passes and CI
   fails on `resources still in use at exit`, which the summary line does not carry (576 tests green, 6 instances and 3
   resources leaked). **Seen:** Deadnight #207, #225, #432, 2026-11-01..02; Deadnight #1074, 2026-11-05 (fix: ids
-  captured, disconnect in `after_test`; the leak count reproduces exactly alone with `--verbose`).
+  captured, disconnect in `after_test`); gdstudio #964, 2026-11-10 (a lambda on the emitter's own signal).
 
 - **Approach:** Free what a test makes or removes: `remove_child(node)` then `node.free()`,
   `auto_free(SomeNode.new())` (even for a node made only to read `get_property_list()`), or leave the node in the

@@ -33,7 +33,7 @@ const BAND_NAMES: Array[String] = ["Hostile", "Unfriendly", "Neutral", "Friendly
 ## The ends of the attitude scale.
 const LIMIT := 100.0
 
-static var _builds := 0
+static var _builds: int
 
 ## The sides, each with its row of base attitudes toward the others.
 @export var factions: Array[AiFaction] = []:
