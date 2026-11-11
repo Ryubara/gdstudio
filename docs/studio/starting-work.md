@@ -273,7 +273,8 @@ It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), a
 1. every section the issue names as `page.md#anchor`;
 2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
    issue's words, any other path the closest section that mentions it (`.claude/hooks/guards.py` finds the hooks
-   pages);
+   pages), when that section's words score at least a third of the best section's (a pull request's changed files
+   need no such closeness);
 3. the rest by the issue's words: its title, its area labels with their descriptions (`A-agents`, "Agents and their
    instructions"), then its body, which counts least.
 
@@ -308,6 +309,12 @@ they exist.
   the brief proposed. **Watch out for:** `gds brief` ranks by the issue's words, and a visual issue rarely names how
   captures are attached, so its agent met the image rules only as refusals and a failed `pr-rules`. **Seen:** gdstudio
   #880 and #886, 2026-11-10.
+- **Approach:** Let a path the issue names pick a section only when that section's words are also close to the
+  issue's (`MENTION_FLOOR` in `lessons.py`: a third of the best section's score). **Watch out for:** an issue's `Area`
+  line repeats its label's folders (`game/core/`) and many sections cite a file as an example, so the one section that
+  mentions such a path was named however far its subject; #909 (online play) was briefed with the voice-lines section.
+  **Seen:** gdstudio #1133, 2026-11-11 (fix: the floor, tuned on 120 kit issues; the far mentions scored 0.17 to 0.31
+  of the best, the fitting ones 0.35 and up).
 
 ## The report {#the-report}
 
