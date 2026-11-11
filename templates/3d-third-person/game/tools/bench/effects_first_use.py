@@ -8,7 +8,10 @@ light, the impacts, at 4 and 30 shots a second) must link none: a program linked
 ms before kit #946. The last two runs walk into the room with a reflection probe of its own and fire there: 2 and 3 to 4
 programs (frames of 120 to 157 and 64 to 87 ms) before the emitter's probe tour (kit #981). It prints each run's length
 (`run_ms`; the `warm_up` row's is the level's start), its programs, their milliseconds, the slowest of its first frames
-(`first_frames_max_ms`, the hitch) and its mean frame, and writes them to the second argument.
+(`first_frames_max_ms`, the hitch) and its mean frame, and writes them to the second argument, with `programs`: every
+program linked, by run, named by its fragment shader's variant defines and its material's uniforms (a program without
+`USE_RADIANCE_MAP` that the warm-up built with it was drawn by a view with another environment, the minimap: kit
+#1297). The first run after `idle` is the hitscan pistol's first shot.
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/bench/effects_first_use.py build/web build/first_use.json

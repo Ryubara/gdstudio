@@ -1,7 +1,8 @@
 ## Measures what the effect emitter costs while the pistol fires. The pistol shoots every physics
-## tick it is allowed to, in nine runs (nothing fired; shots with no flash and no impacts; the
-## flash without its light; the flash; flash and impacts; the same two at 30 shots a second; then
-## walking into the room with a probe of its own, and flash and impacts there), and
+## tick it is allowed to, in ten runs (nothing fired; the hitscan pistol with flash, light and
+## impacts, first so it shows what any first shot builds, gdstudio #1297; shots with no flash and no
+## impacts; the flash without its light; the flash; flash and impacts; the same two at 30 shots a
+## second; then walking into the room with a probe of its own, and flash and impacts there), and
 ## for each the frame time, the draw calls, the nodes and the slowest frame are printed on lines
 ## starting `BENCH`. `first_frames_max_ms`, the slowest of the 90 frames before a run is measured,
 ## is the first-use hitch of the first run with a flash (and of the first with its light):
