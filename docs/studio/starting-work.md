@@ -331,6 +331,19 @@ they exist.
   mentions such a path was named however far its subject; #909 (online play) was briefed with the voice-lines section.
   **Seen:** gdstudio #1133, 2026-11-11 (fix: the floor, tuned on 120 kit issues; the far mentions scored 0.17 to 0.31
   of the best, the fitting ones 0.35 and up).
+- **Approach:** Write a prompt's pull request instructions in the body template's own words: the issue line is
+  `Fixes #N`, put near the top of the brief where an agent reads it, not deep in a list. **Watch out for:** the body
+  check accepts only `Fixes #N`, and prompts that said `Closes #N` sent each agent to find out from a refusal; one
+  successor still wrote `Closes` after the brief was fixed, because the line was buried. **Seen:** gdstudio #1188,
+  #1183, #1184, #1189, #1190, #1192, #1193 and #970, 2026-11-11 (coordinator's mistake; the batch brief now says it).
+- **Approach:** Tell an agent with captures to run `gds pr check-body <body> --attach ./<file>` from the captures
+  folder, with the same `--attach` arguments as its `gh pr create` ([Attaching](capture.md#attaching)). **Watch out
+  for:** before #1200 the hand check had no `--attach`, refused every local capture and sent agents to the
+  `gh pr create` guard to learn the result. **Seen:** gdstudio #1188 (PR #1200), #1221, 2026-11-11.
+- **Approach:** Point a prompt at another task's work by its worktree or branch (`worktrees/<repo>/<branch>/`), which
+  exists from `gds issue start`, unless `gh pr list --search <N>` shows a pull request. **Watch out for:** a prompt
+  said to find #1037's branch with `gh pr list`, but #1037 had no pull request yet, so the agent searched for one that
+  did not exist. **Seen:** gdstudio #1221, 2026-11-11 (coordinator's mistake).
 
 ## The report {#the-report}
 

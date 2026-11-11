@@ -158,6 +158,14 @@ it.
   `check-body` does not see the history, so it passed; the `body` check then failed on the fix commit ("build-ok failed
   on an earlier commit of it") and the pull request sat red until the line was added. **Seen:** gdstudio #821, 2026-11-08
   (the `template` job failed once; the body got its `Lessons:` line after the fix push).
+- **Approach:** Before sending a body, check that its `Fixes #N` is your own issue, the one `gds issue start` began
+  the branch for (the number at the end of the branch's name). **Watch out for:** a body that named a sibling issue
+  closed that one at the merge and left its own open; nothing checks the number, and the coordinator had to reopen
+  one and close the other by hand. **Seen:** gdstudio #1119 (PR #1176, which said `Fixes #1116`), 2026-11-11.
+- **Approach:** After fixing a body that failed the `pr` workflow, wait for the run the edit starts and judge that
+  one; do not rerun the failed run. **Watch out for:** `pr` runs on `pull_request_target`, and a rerun reads the
+  body from the event that started it, so the old body fails again however it was fixed. **Seen:** gdstudio #1016,
+  2026-11-11 (coordinator's finding).
 
 ## Which paths the image guard covers {#attach-paths}
 
