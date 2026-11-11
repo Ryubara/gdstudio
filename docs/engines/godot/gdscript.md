@@ -72,6 +72,11 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   (`argument 1 (previously freed) is not a subclass`) every frame: 120 errors in one suite of the full template run,
   while every prone suite passed. **Seen:** gdstudio #1026, 2026-11-11 (`ProneAnimation.stow_view`; the suite
   `test_player_step.gd` frees the model).
+- **Approach:** Set a typed-array export from code with a typed array (`var list: Array[Node3D] = [node]`, then
+  `spawner.set(&"markers", list)`), or assign the property by name, which converts. **Watch out for:**
+  `Object.set("markers", [node])` with a plain `Array` leaves an `Array[Node3D]` export as it was, with no error, so a
+  spawner in a test spawned at its own place instead of the markers. **Seen:** kit #969, 2026-11-11
+  (`test_ai_spawner.gd`).
 
 ## Script errors at run time {#runtime-errors}
 

@@ -120,7 +120,7 @@ static func spawns_here(tree: SceneTree, server_too := false, args := NetArgs.ne
 
 func _ready() -> void:
 	_pool = AiPool.new(scene)
-	_runs = spawns_here(get_tree(), on_server)
+	_runs = spawns_here(get_tree(), on_server) and AiAuthority.runs_here(self)
 	set_physics_process(_runs)
 	if not _runs or scene == null:
 		return
@@ -137,6 +137,12 @@ func _notification(what: int) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# A client joined a server since (`AiAuthority.hand_over`): the AI is the server's now.
+	if not AiAuthority.runs_here(self):
+		_runs = false
+		set_physics_process(false)
+		_pool.clear()
+		return
 	_clock += delta
 	_ticks += 1
 	if _prewarming:

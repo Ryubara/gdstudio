@@ -5,11 +5,11 @@
 
 The base every enemy, friendly and civilian is made from, the resource that says what kind it is, and the one node that
 budgets them all (kit #963; the design is the research for #882, the costs [Crowds: AI
-characters](../crowds.md#ai-characters)). Relationships (#964) are on
-[their own page](ai-relations.md#relations), tasks (#965)
-[below](#tasks), the navigator (#967) [below](#navigator), senses, awareness and memory (#966) on [AI
-senses](ai-senses.md), reactions (#968) on [AI behaviour](ai-behaviour.md); #969 to #971 follow, each into a slot
-this base leaves for it.
+characters](../crowds.md#ai-characters)). Relationships (#964) are on [their own page](ai-relations.md#relations), tasks
+(#965) [below](#tasks), the navigator (#967) [below](#navigator), senses, awareness and memory (#966) on [AI
+senses](ai-senses.md), reactions (#968) on [AI behaviour](ai-behaviour.md), the level's enemies, friendlies and their
+spawner (#969) on [their own page](ai-characters.md#parts); #970 and #971 follow, each into a slot this base leaves for
+it.
 
 ## What is in it {#base}
 
