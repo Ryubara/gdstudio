@@ -95,6 +95,15 @@ beside `gds sync --check`. It reads files only. What it cannot judge, whether ev
 `python/tests/test_layout.py`: a new rule is a kit pull
 request, not a game's exception.
 
+`game` is the folder argument, read from where you stand: in a game's checkout it is that game's `game/`. A template
+has no checkout of its own, so check it with `gds check layout templates/<name>/game` from the kit worktree's root, or
+through `gds template test <name>`, which runs the layout check in the game it makes.
+
+- **Approach:** Check a template's layout with `gds template test <name>` (or `gds check layout templates/<name>/game`
+  from the kit worktree), not with the bare `gds check layout game` of a game's docs. **Watch out for:** run from the
+  kit worktree's root, `gds check layout game` found no project there, and nothing on this page or the godot-engineer
+  page said where a template's check runs. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11.
+
 ## Editing a file by script {#scripted-edits}
 
 <!-- new section: the page lists the layout rules; the line-length limits of the commit hooks, which a scripted edit
@@ -111,7 +120,7 @@ project's hooks hold.
   was refused four times in a row (`gdlint` at 100, then `markdownlint` MD013 at 120, one line at a time); a
   clean-up regex for empty parentheses, run over whole files, also cut `()` out of code. **Seen:** Deadnight,
   2026-11-05; gdstudio #770, 2026-11-07 (fix: both limits checked on every touched file; limit a script to the spans it
-  matched and read `git diff` of every file it touched before the commit); gdstudio #1059.
+  matched and read `git diff` of every file it touched before the commit); gdstudio #1059, #1120.
 
 ## Where the rules came from {#where-the-rules-came-from}
 

@@ -17,6 +17,7 @@ from gds_tools import (
     capture,
     disk,
     evals,
+    hold_switch,
     integrations,
     issues,
     layout,
@@ -560,8 +561,18 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
         lines = read(args.title).splitlines()
         title = lines[0] if lines else ""
     body, kit = read(args.body), workspace.kit_checkout()
+    attach = [spec.split("#", 1)[0] for spec in args.attach or []]  # gh's `path#label` drops its label
+    missing = pr.missing_attachments(attach, Path.cwd())
+    body = pr.as_uploaded(body, [spec for spec in attach if spec not in missing], Path.cwd())
     changed, why = pr.branch_changes(repo)
     result = pr.check_body(repo, body, title, kit=kit, changed=None if why else changed)
+    if missing:
+        where = Path.cwd().as_posix()
+        result = pr.BodyCheck(
+            False,
+            [f"`--attach {spec}`: no such file (looked in {where}), so `gh` cannot upload it" for spec in missing]
+            + result.reasons,
+        )
     docs = pr.check_docs(repo, body, kit=kit)
     if result.ok:
         print("description: ok")
@@ -707,6 +718,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
             bad += 1
     for check in workspace.check_services(root):  # warnings: signing in is the person's step, not the bootstrap's
         print(f"  {'ok  ' if check.ok else 'WARN'}    {check.name}: {check.detail}")
+    print(f"  info    hold switch: {hold_switch.read(root).describe()}")  # the maintainer's (hooks.md#hold)
     print("\n".join(sweep.disk_lines(root)))  # a warning only: low space is not a missing prerequisite
     return 1 if bad else 0
 
@@ -1028,6 +1040,13 @@ def build_parser() -> argparse.ArgumentParser:
     chk.add_argument("body", help="the description: a file, or - for stdin")
     chk.add_argument("--title", help="the title (a file, first line): also checks the title-based rules")
     chk.add_argument("--repo", help="a folder in the checkout the pull request is for (default: the current folder)")
+    chk.add_argument(
+        "--attach",
+        action="append",
+        metavar="FILE",
+        help="a file `gh pr create|edit --attach` will upload: a `](FILE)` reference counts as uploaded; relative "
+        "paths are read from the current folder, as gh reads them (repeat for each file)",
+    )
     chk.set_defaults(func=_cmd_pr_check_body)
     hol = prs.add_parser("hold", help="hold a pull request: S-hold on, and wait until the `hold` check is red")
     hol.add_argument("ref", help="the pull request: owner/repo#N, or #N in its checkout")

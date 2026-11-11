@@ -142,6 +142,24 @@ func _ready() -> void:
 		navigator.link_reached.connect(_on_link_reached)
 
 
+## Starts over as a new character (a pooled body spawned again): the play state, the target, the
+## retries and the reminder are forgotten, and the next think starts it again where it stands then
+## (its home, the default task, the `spawned` event).
+func restart() -> void:
+	_started = false
+	play.reset()
+	target = null
+	focus = null
+	focus_point = Vector3.ZERO
+	last_event = &""
+	last_answer = ""
+	_retry = []
+	_retry_left = 0.0
+	_since_reminder = 0.0
+	_said.clear()
+	_said_any = -INF
+
+
 ## The task runner it places tasks in, or null.
 func runner() -> AiTaskRunner:
 	var tasks := _character.task_runner as AiTasks if _character != null else null
@@ -174,7 +192,7 @@ func think(seconds: float) -> void:
 		_retry = []
 		if _retry_left > 0.0 and (again[1] == null or is_instance_valid(again[1])):
 			_retrying = true
-			route(again[0], again[1], again[2], again[3], again[4])
+			route(again[0], again[1], again[2], again[3], again[4], again[5])
 			_retrying = false
 	_since_reminder += seconds
 	if _since_reminder >= threat_recheck_seconds:
@@ -183,9 +201,9 @@ func think(seconds: float) -> void:
 
 ## Routes `event` about `subject` at `place` through the table and returns the task placed, or
 ## null. `band` is the character's band toward the subject (-1: looked up; a subject-less event
-## is Neutral).
+## is Neutral); `noise` the kind of a heard noise (a row may answer only a shot).
 func route(
-	event: StringName, subject: Node3D, place: Vector3, awareness := 1.0, band := -1
+	event: StringName, subject: Node3D, place: Vector3, awareness := 1.0, band := -1, noise := &""
 ) -> AiTask:
 	if behaviour == null or not _runs() or _character.is_dead():
 		return null
@@ -200,7 +218,7 @@ func route(
 		last_answer = "blocked"
 		return null
 	var row := behaviour.pick(
-		event, band, situation, play.current, awareness, _character.profile, _rng.randf
+		event, band, situation, play.current, awareness, _character.profile, _rng.randf, noise
 	)
 	if row == null:
 		last_answer = "nothing"
@@ -219,7 +237,7 @@ func route(
 			focus_point = task.goal
 			placed = at.assign(task, ISSUER)
 			if placed == null:
-				_keep_for_retry([event, subject, place, awareness, band])
+				_keep_for_retry([event, subject, place, awareness, band, noise])
 	last_answer = row.task.display_label() if row.task != null else "situation"
 	reacted.emit(event, row, placed)
 	_show()
@@ -411,10 +429,10 @@ func _on_lost(_entity_id: int, belief: AiBelief) -> void:
 	route(AiBehaviourSet.FORGOT, belief.entity(), belief.last_position, 0.0, belief.band)
 
 
-func _on_heard(_kind: StringName, position: Vector3, source: Node3D) -> void:
+func _on_heard(kind: StringName, position: Vector3, source: Node3D) -> void:
 	# A noise with no known source is "something": Hostile, as the senses treat it.
 	var band := AiRelations.Band.HOSTILE if source == null else _band_of(source)
-	route(AiBehaviourSet.HEARD, source, position, 0.5, band)
+	route(AiBehaviourSet.HEARD, source, position, 0.5, band, kind)
 
 
 func _on_took_hit(_amount: float, source: Node3D) -> void:
