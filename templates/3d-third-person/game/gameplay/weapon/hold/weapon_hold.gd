@@ -61,6 +61,10 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 @export var support_arm: Array[StringName] = [&"upperarm_l", &"lowerarm_l", &"hand_l"]
 ## Where the left elbow points, in the model's space (out to the left and down).
 @export var support_elbow := Vector3(0.6, 0.6, 0.2)
+## How far the left elbow keeps the clip's own place (`HoldArm.keep_elbow`): all the way while
+## the body lies with a prone aim clip, whose elbows are planted on the floor; from `animation`,
+## or the caller's for a character posed by hand.
+@export_range(0.0, 1.0, 0.01) var support_keep_elbow := 0.0
 ## The left hand opened where it holds: the first step of its way off the weapon, and the last
 ## of its way on.
 @export var open_pose: HandPose
@@ -127,6 +131,7 @@ func refresh() -> void:
 		aim_weight = weights.y if animation.tree.active else 0.0
 		var reload := animation.reload_progress() if animation.tree.active else Vector2.ZERO
 		reload_weight = reload.x
+		support_keep_elbow = animation.prone_hold_share()
 		reload_share = reload.y
 	if _grip == null or not is_instance_valid(_grip):
 		return
@@ -153,6 +158,7 @@ func refresh() -> void:
 		# In the bone's space: the weapon's seat times the place in the weapon.
 		_arm.offset = (_marker.get_parent() as Node3D).transform * place
 		_arm.elbow = support_elbow
+		_arm.keep_elbow = support_keep_elbow
 		_fingers.second_weight = _left.magazine_fingers
 		_fingers.open_weight = _left.opened
 
