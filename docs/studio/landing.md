@@ -17,7 +17,7 @@ Open pull requests come before new work: each one left open goes stale against `
   open with 33 jobs queued.
 - **Land what you would recommend.** A pull request the coordinator would recommend is refreshed and landed, and its
   trade-off reported afterwards, so the maintainer can reverse it. It is not parked behind "merge? recommended". Only
-  `S-hold` ([Hooks: the hold](hooks.md#hold)), a maintainer decision of `AGENTS.md`, or having no recommendation waits
+  `S-hold` ([Hooks: the hold](hooks-hold.md#hold)), a maintainer decision of `AGENTS.md`, or having no recommendation waits
   for the maintainer.
 - **Refresh a parked pull request.** One whose last run is older than recent merges to `main` gets `main` merged in and
   its checks rerun before it lands, even when GitHub says CLEAN: CLEAN only says the text merges and the last checks
@@ -80,7 +80,7 @@ Open pull requests come before new work: each one left open goes stale against `
   once, so the step is a merge, not a setting: a pull request the maintainer meant to see first merged past its hold, a
   nightly fix merged before its dispatch finished a job that failed on a limit it had called harmless, and a pull
   request with stale numbers landed before the three fixes asked for. **Seen:** Deadnight #1115, 2026-11-04 (fix: the
-  hold is a label and a required check, [Hooks](hooks.md#hold)); Deadnight #1324, 2026-11-06; Deadnight #1084,
+  hold is a label and a required check, [Hooks](hooks-hold.md#hold)); Deadnight #1324, 2026-11-06; Deadnight #1084,
   2026-11-04.
 
 - **Approach:** Before any merge call (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`), have
@@ -97,6 +97,13 @@ Open pull requests come before new work: each one left open goes stale against `
   **Watch out for:** waiting for green to merge by hand gives `main` the length of a CI run to move again, so the
   merge guard refused the head as behind and a second refresh cost a second run; auto-merge lands the head the
   moment its required checks pass. **Seen:** gdstudio #1117 (PR #1152), 2026-11-11.
+- **Approach:** Before turning auto-merge on, and again whenever a check of yours goes red, run
+  `gh issue list --search "CI failing on the default branch" --state open`. While one is open, keep auto-merge off
+  (`gh pr merge <n> --disable-auto`) and land by hand once its fix is on `main`, after `gds merge-main`. Follow the
+  task's own landing words when they are stricter (for example "once green"). **Watch out for:** auto-merge went on
+  as the pull request opened, then the runner's DNS failed for the template job's browser install, on `main` too, and
+  #1224 opened while the pull request still had auto-merge on. A rerun going green would have landed it on a red
+  `main`. **Seen:** gdstudio #1208 (PR #1219), 2026-11-11 (fix: auto-merge turned off until #1224 is closed).
 - **Approach:** Push in one command and call `gh pr merge` (or the merge API) in a later one, once the push is done.
   **Watch out for:** the merge guard runs before the whole command and asks GitHub for the head it has, so in
   `git push && gh pr merge ...` it judged the head before the push and refused it as behind `main`. **Seen:** gdstudio
