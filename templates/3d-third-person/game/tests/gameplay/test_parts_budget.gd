@@ -20,8 +20,10 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## empty, inactive `PhysicalBoneSimulator3D` every `Skeleton3D` makes as an internal child when it
 ## enters the tree (the engine's compatibility one, which `find_children` lists), not the walker
 ## the test adds. A character whose skeleton made the pool's sets (the first of a game) kept its
-## `RagdollDrawing` after handing them over, one node more alone than in the full run (#1210).
-const NODES_ALIVE := 55
+## `RagdollDrawing` after handing them over, one node more alone than in the full run (#1210). The
+## reload's new magazine (#1052) adds 2: a `BoneAttachment3D` on the left hand and its mesh, hidden
+## but through a reload (the old magazine's body is made at the first reload, not at the spawn).
+const NODES_ALIVE := 57
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120

@@ -122,6 +122,9 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 ## The left hand's fingers closed on the new magazine, from the belt until the grip's foot comes
 ## down over them. Solved with the poses, never typed.
 @export var carry_pose: HandPose
+## The left hand's fingers opened at the belt before they close on the new magazine: the clip's
+## fist there would close through it. Solved, never typed.
+@export var carry_open_pose: HandPose
 ## The shares of the way in (0 the magazine's top at the well, 1 seated) over which the fingers go
 ## from `carry_pose` to `magazine_pose`: the latest that keep them out of the grip. Solved.
 @export var carry_release := Vector2(0.4, 0.6)
@@ -217,9 +220,12 @@ func refresh() -> void:
 	_grip.open_weight = _left.room
 	_weigh(_arm, held_weight * _left.arm)
 	# The fingers hold the new magazine at the belt too, where the clip's arm has the hand.
-	var fingers := maxf(_left.arm, _left.carry)
+	var fingers := maxf(_left.arm, _left.fingers)
 	_weigh(_fingers, held_weight * fingers)
-	_fingers.third_weight = _left.carry / fingers if fingers > 0.0 else 0.0
+	_fingers.third_weight = _left.carry
+	_fingers.third_open_weight = _left.carry_open
+	_fingers.second_weight = _left.magazine_fingers
+	_fingers.open_weight = _left.opened
 	if _arm.active:
 		# The hand's place in the weapon: where it holds, moved out along its way; from the reach
 		# of a reload on, blended with its place under the magazine, down the approach line.
@@ -237,8 +243,6 @@ func refresh() -> void:
 		# An arm too short for the place (the aim coming up, the weapon still out to the side)
 		# backs the hand off along its way, opened; under the magazine it has no such line.
 		_arm.retreat = weapon.basis * support_way if _left.at_magazine <= 0.0 else Vector3.ZERO
-		_fingers.second_weight = _left.magazine_fingers
-		_fingers.open_weight = _left.opened
 
 
 ## How far the left hand is on the weapon's support marker or its way (x) and at its magazine (y)
@@ -444,6 +448,7 @@ func _build() -> void:
 		_fingers.second = magazine_pose
 		_fingers.open = open_pose
 		_fingers.third = carry_pose
+		_fingers.third_open = carry_open_pose
 		_arm.opener = _fingers
 		_magazine = seat.get_child(0).get_node_or_null(magazine_marker) as Node3D
 		_skeleton.add_child(_fingers)

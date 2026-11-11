@@ -223,6 +223,14 @@ func test_the_two_hands_hold_the_pistol_together() -> void:
 func test_the_left_hand_follows_the_reload() -> void:
 	for model in MODELS:
 		var stage := HoldStage.make(_holder, model)
+		# While the pistol's own magazine is out (kit #1052) the hand is measured against the pistol
+		# without it; the new magazine it carries is `test_reload_magazine.gd`'s.
+		var gun_magazine := stage.pistol.get_node("Pistol/Magazine") as Node3D
+		gun_magazine.visible = false
+		var bare := HandContact.new(stage.skeleton)
+		bare.set_weapon(stage.pistol)
+		gun_magazine.visible = true
+		stage.skeleton.skeleton_updated.connect(bare.snapshot)
 		for share in _left_reload_shares():
 			_pose_reload(stage, share, 0.0)
 			await stage.settle()
@@ -235,7 +243,8 @@ func test_the_left_hand_follows_the_reload() -> void:
 			elif share >= RELOAD_MAGAZINE_FROM and share <= RELOAD_MAGAZINE_UNTIL:
 				contacts = HoldStage.MAGAZINE_CONTACTS
 				marker = ^"MagazineHand"
-			var parts := stage.contact.measure("l", true)
+			var contact := stage.contact if gun_magazine.visible else bare
+			var parts := contact.measure("l", true)
 			if marker.is_empty():
 				for part: String in parts:
 					var depth: float = -parts[part].distance

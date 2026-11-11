@@ -26,6 +26,10 @@ extends SkeletonModifier3D
 ## something it carries (the left hand on the new magazine through a reload, kit #1052).
 @export var third: HandPose
 @export_range(0.0, 1.0, 0.01) var third_weight := 0.0
+## `third` opened, blended over it by `third_open_weight`: the hand opened to take the thing it
+## then closes on (the left hand's fingers before they close on the new magazine).
+@export var third_open: HandPose
+@export_range(0.0, 1.0, 0.01) var third_open_weight := 0.0
 ## An upper arm lifted away from the body before the pose is put on, and by how many degrees: the
 ## weapon's arm held out from the thigh while the weapon is carried (`swing_out()`).
 @export var swing_bone: StringName = &""
@@ -68,7 +72,14 @@ func _process_modification_with_delta(_delta: float) -> void:
 		if open != null and open_weight > 0.0 and open.rotations.has(bone_name):
 			turned = turned.slerp(open.rotations[bone_name], open_weight)
 		if third != null and third_weight > 0.0 and third.rotations.has(bone_name):
-			turned = turned.slerp(third.rotations[bone_name], third_weight)
+			var carried := third.rotations[bone_name]
+			if (
+				third_open != null
+				and third_open_weight > 0.0
+				and third_open.rotations.has(bone_name)
+			):
+				carried = carried.slerp(third_open.rotations[bone_name], third_open_weight)
+			turned = turned.slerp(carried, third_weight)
 		skeleton.set_bone_pose_rotation(bone, turned)
 
 

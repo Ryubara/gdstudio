@@ -36,10 +36,28 @@ const POSES: Array[Dictionary] = [
 	{"tag": "carry_jump", "clip": &"ual1/Jump_Start", "times": [0.0], "carry": true},
 ]
 
-## The shares of the reload that are studied, every one filmed: on the gun, leaving it, at the
-## belt, coming back, the magazine going in and seated, and back on the gun.
+## The shares of the reload that are studied, every one filmed: on the gun, leaving it, the old
+## magazine dropped, the new one taken at the belt and carried, coming back, going in and seated,
+## and back on the gun (kit #1052).
 const RELOAD_SHARES: Array = [
-	0.0, 0.04, 0.08, 0.17, 0.25, 0.33, 0.42, 0.5, 0.54, 0.63, 0.71, 0.79, 0.88, 1.0
+	0.0,
+	0.04,
+	0.08,
+	0.17,
+	0.21,
+	0.25,
+	0.29,
+	0.33,
+	0.38,
+	0.42,
+	0.46,
+	0.5,
+	0.54,
+	0.63,
+	0.71,
+	0.79,
+	0.88,
+	1.0
 ]
 
 ## How far on the trigger the index finger is in the `trigger` poses (kit #1079): the aimed pistol
@@ -174,6 +192,30 @@ func _light() -> void:
 	add_child(sun)
 
 
+# While the new magazine is in the left hand away from the gun (kit #1052), four close views of the
+# hand and the magazine: from the body's left, from ahead, from above and from the player's camera.
+func _shoot_carry(camera: Camera3D, path: String, eye: Vector3) -> void:
+	var held: Node3D = _stage.hold.call(&"held_magazine") if _stage.hold != null else null
+	if held == null or not held.visible:
+		return
+	var mesh := held.get_child(0) as MeshInstance3D
+	var middle := mesh.global_transform * mesh.mesh.get_aabb().get_center()
+	var body := _stage.global_basis
+	var views := {
+		"carry_side": [middle + body * Vector3(0.4, 0.0, 0.05), Vector3.UP],
+		"carry_front": [middle + body * Vector3(0.05, 0.0, 0.4), Vector3.UP],
+		"carry_top": [middle + body * Vector3(0.02, 0.4, 0.05), body.z],
+		"carry_player": [eye, Vector3.UP],
+	}
+	for view: String in views:
+		camera.near = 0.15 if view != "carry_player" else 0.02
+		camera.fov = 30.0 if view != "carry_player" else 12.0
+		camera.look_at_from_position(views[view][0], middle, views[view][1])
+		for _i in 3:
+			await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png("%s_%s.png" % [path, view])
+
+
 # Five views of the pose: the gun's left, its right, from above (the muzzle up the picture), a
 # close-up from the player's aim camera (1.1 m behind the 1.55 m target, 0.5 m to the right) and
 # that camera's own 50 degree view; with both hands on the gun also from ahead of the muzzle and
@@ -210,6 +252,7 @@ func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) ->
 		for _i in 3:
 			await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png("%s_%s.png" % [path, view])
+	await _shoot_carry(camera, path, eye)
 	camera.near = 0.02
 	camera.fov = 50.0
 	camera.look_at_from_position(eye, eye + _stage.global_basis.z * 4.0)

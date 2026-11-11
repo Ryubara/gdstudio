@@ -1,4 +1,4 @@
-## Writes the solved pistol hold into the project (kit #1001): the eight `HandPose` files of
+## Writes the solved pistol hold into the project (kit #1001): the nine `HandPose` files of
 ## `gameplay/weapon/hold/`, `assets/weapons/pistol/pistol_held.tscn` (the pistol's seat on
 ## `hand_r`, the `SupportHand` and `MagazineHand` markers) and, in
 ## `gameplay/weapon/hold/weapon_hold.tscn`, the left hand's way off the pistol (`support_way`),
@@ -19,6 +19,7 @@ const POSES: Dictionary[String, String] = {
 	"magazine": "res://gameplay/weapon/hold/pistol_magazine_pose.tres",
 	"open": "res://gameplay/weapon/hold/pistol_open_pose.tres",
 	"carry": "res://gameplay/weapon/hold/pistol_carry_pose.tres",
+	"carry_open": "res://gameplay/weapon/hold/pistol_carry_open_pose.tres",
 }
 const HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"

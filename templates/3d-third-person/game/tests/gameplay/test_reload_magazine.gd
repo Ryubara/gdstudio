@@ -11,7 +11,7 @@ const MODELS: Array[String] = ["female", "male"]
 const STEP := 0.01
 ## The parts of the left hand that hold the new magazine while it is carried: none may be more
 ## than `HandContact.MAX_FLOAT` off it, none more than `HandContact.MAX_DEPTH` in it.
-const CARRY_CONTACTS: Array[String] = ["middle_tip", "ring_tip", "pinky_tip", "palm"]
+const CARRY_CONTACTS: Array[String] = ["index_tip", "middle_tip", "ring_tip", "thumb_tip"]
 ## How far off its line up the grip the new magazine may be, in metres, and turned, in degrees:
 ## the hand's arm reaches its place within half a millimetre.
 const ON_LINE := 0.0015
@@ -47,7 +47,7 @@ func test_the_new_magazine_rides_the_left_hand_up_the_grips_line() -> void:
 		var held := hold.held_magazine()
 		held.visible = true
 		var on_magazine := HandContact.new(stage.skeleton)
-		on_magazine.set_weapon(held.get_child(0) as Node3D)
+		on_magazine.set_weapon(held)
 		held.visible = false
 		gun_magazine.visible = false
 		var on_gun := HandContact.new(stage.skeleton)
@@ -71,7 +71,7 @@ func test_the_new_magazine_rides_the_left_hand_up_the_grips_line() -> void:
 				var place := stage.pistol.global_transform.affine_inverse() * mesh.global_transform
 				var parts := on_magazine.measure("l")
 				var contacts: Array[String] = []
-				if plan.carry >= 1.0:
+				if plan.carry * (1.0 - plan.carry_open) >= 1.0:
 					contacts = CARRY_CONTACTS
 					carried += 1
 				var fails := HandContact.failures(tag + " on the magazine:", parts, contacts)

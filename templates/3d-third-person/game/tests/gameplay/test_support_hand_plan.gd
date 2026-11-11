@@ -105,8 +105,10 @@ func test_nothing_jumps_between_two_shares_of_a_reload() -> void:
 			"closed on the magazine": plan.magazine_fingers * (1.0 - plan.opened) * plan.arm,
 			# The place: the marker switches while the clip's arm has the hand.
 			"at the magazine": plan.at_magazine * plan.arm,
-			# The fingers on the new magazine (kit #1052).
-			"carrying": plan.carry,
+			# The fingers on the new magazine (kit #1052): the hold takes them from the clip
+			# (`fingers`), opened, and closes them on it.
+			"holding the magazine": plan.carry * (1.0 - plan.carry_open) * plan.fingers,
+			"opened for the magazine": plan.carry * plan.carry_open * plan.fingers,
 		}
 		for key: String in last:
 			var change := absf(now[key] - last[key])
@@ -141,9 +143,9 @@ func test_the_magazines_follow_the_reload() -> void:
 		assert_bool(plan.magazine_in_hand).override_failure_message(tag).is_equal(
 			share >= plan.take and share < plan.insert.y
 		)
-		if share >= plan.take + 0.5 * SupportHandPlan.TAKE_CLOSE and share <= plan.insert.x:
+		if share >= plan.take + SupportHandPlan.TAKE_CLOSE and share <= plan.insert.x:
 			(
-				assert_float(plan.carry)
+				assert_float(plan.carry * (1.0 - plan.carry_open))
 				. override_failure_message(
 					"%s: the fingers let the magazine go before the way in" % tag
 				)
@@ -151,9 +153,9 @@ func test_the_magazines_follow_the_reload() -> void:
 			)
 		if not plan.magazine_in_hand:
 			(
-				assert_float(plan.carry)
+				assert_float(plan.carry * (1.0 - plan.carry_open))
 				. override_failure_message("%s: the fingers hold no magazine" % tag)
-				. is_less(0.5)
+				. is_equal(0.0)
 			)
 		plan.update(0.0, 0.0, share)
 		(
@@ -164,6 +166,7 @@ func test_the_magazines_follow_the_reload() -> void:
 			. is_true()
 		)
 		assert_float(plan.carry).is_equal(0.0)
+		assert_float(plan.fingers).is_equal(0.0)
 
 
 # The one way: the hand is off its place only with the fingers opened, and the hold's arm gives
