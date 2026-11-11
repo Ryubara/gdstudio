@@ -127,7 +127,10 @@ def pose_from_clip(rig, clip_rig, action, frame):
             continue
         target.rotation_mode = "QUATERNION"
         target.rotation_quaternion = pose_rotation(source)
-        target.location = source.location * scale
+        # Only the pelvis's and the root's place come from a clip: the library keys every bone's place, and the
+        # others are the library body's own proportions.
+        if source.name in ("pelvis", "root"):
+            target.location = source.location * scale
     drive_twist(rig)
     bpy.context.view_layer.update()
 

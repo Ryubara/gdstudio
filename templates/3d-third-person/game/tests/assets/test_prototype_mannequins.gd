@@ -188,6 +188,27 @@ func test_every_clip_of_both_libraries_finds_every_bone_on_every_body() -> void:
 		body.free_nodes()
 
 
+# The library files key a position on every bone; all but the pelvis's are the library body's own
+# rest, and on a body of other proportions they would pull its joints to the library's places.
+# The import drops them (`animation/remove_immutable_tracks`): this fails if one comes through.
+func test_the_libraries_move_no_bone_but_the_pelvis_and_the_root() -> void:
+	for library_name: StringName in LIBRARIES:
+		var library: AnimationLibrary = load(LIBRARIES[library_name])
+		for clip in library.get_animation_list():
+			var animation := library.get_animation(clip)
+			for track in animation.get_track_count():
+				if animation.track_get_type(track) != Animation.TYPE_POSITION_3D:
+					continue
+				var bone := String(animation.track_get_path(track).get_subname(0))
+				(
+					assert_bool(bone in ["pelvis", "root"])
+					. override_failure_message(
+						"%s/%s keys the place of %s" % [library_name, clip, bone]
+					)
+					. is_true()
+				)
+
+
 func test_the_clips_keep_the_feet_and_the_limbs_as_on_the_reference_mannequins() -> void:
 	var feet := {}
 	var overlap := {}

@@ -56,6 +56,16 @@ is keyed -->
   female keep 0.9166 (scale 1); the chibi's is in the table below. **A clip keys positions only on `pelvis`, `root`
   and the `ik_` targets,** always in the reference body's metres.
 
+- **The library's files key a position on every bone; only the pelvis's may reach a body.** Both library files hold
+  a translation channel for each of the 65 bones in each of their 43 clips. All but the pelvis's are constant and
+  equal the library body's own rest (measured on the files: the only moving position is `pelvis`, in 34 and 42 clips),
+  so they carry the library's proportions, and played on another body they pull its joints to the library's places
+  and stretch it. Godot's import drops them while `animation/remove_immutable_tracks` is on (the template's
+  setting for both libraries), and `tests/assets/test_prototype_mannequins.gd` fails if a position track on any bone
+  but `pelvis` or `root` reaches the game. A tool that reads the files itself (a Blender script, another engine, a
+  retarget step) must drop every position channel except `pelvis` and `root` before it plays a clip on a body of
+  other proportions, and scale the pelvis's by the body's `motion_scale`.
+
 ## Twist bones {#twist}
 
 <!-- new section: twist bones are new to GDStudio's rigs and are driven, not keyed -->
@@ -140,6 +150,8 @@ the chibi's leg is the same leg at 0.545 ([why the leg keeps its ratio](prototyp
 
 - Key rotations on the 65 library bones only; positions only on `pelvis`, `root` and the `ik_` targets, in the
   reference body's metres (hips at 0.9166 m); never a scale key.
+- Export no position channel for any other bone, not even a constant one: a constant position is the body the clip
+  was made on, and it stretches every other body ([the rest pose](#rest-pose)).
 - Make the clip on the `male` body (or the library's mannequin: the legs and trunk are the same) and check it on the
   `female` and the `chibi` with the template's `tools/mannequin/measure_bodies.gd`: every track finds its bone, the
   feet stay on the floor, the limbs stay out of each other.
