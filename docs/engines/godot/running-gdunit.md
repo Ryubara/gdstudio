@@ -56,7 +56,8 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
   parse error, so four suites did not load, `gds check scripts` named them and a GdUnit run would have stopped at the
   first. **Seen:** gdstudio #881 (`was`), #924, #887, #1013 (after reading this entry), #904 (`ticks_before`,
   `later`), #965 (`next_up`), #1047 (after reading this), all 2026-11-10; #906, #907, #909 (after reading this),
-  2026-11-11: grep a new suite for `before` and `after` as names, and for a local named like
+  2026-11-11; #1127, 2026-11-11 (`before` for a total before a stall; `gds template test` named it at parse):
+  grep a new suite for `before` and `after` as names, and for a local named like
   one of the script's own exports, before its first run; `gds template test` names them at parse.
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in

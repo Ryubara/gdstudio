@@ -191,3 +191,10 @@ answer depends on how long a frame took, which is the machine, the window and th
   green by chance; ten awaited `physics_frame` signals were nine or ten ticks of a pickup's spin. **Seen:**
   Deadnight #1296, 2026-11-05 (fix: Deadnight #1302, 0 of 12 runs failed); gdstudio #774, 2026-11-07 (the
   `pickup-feature` eval's own spin test).
+- **Approach:** To test what is drawn between physics ticks under `--fixed-fps 60`, lower
+  `Engine.physics_ticks_per_second` for the test (25 gives 2.4 frames a tick, as 144 frames over 60 ticks), set it
+  after `scene_runner()`, put it back in `after_test`, and print how many frames fell between ticks. **Watch out
+  for:** at 60 frames and 60 ticks every frame is a tick, so `get_physics_interpolation_fraction()` says nothing; and
+  GdUnit4's scene runner sets the project's tick rate when it is made, so a rate set before it was gone: the first
+  run drew one frame a tick and 0 of 60 between ticks. **Seen:** gdstudio #1126, 2026-11-11
+  (`test_ragdoll_drawing.gd`).
