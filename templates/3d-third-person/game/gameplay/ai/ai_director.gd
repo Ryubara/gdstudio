@@ -105,6 +105,18 @@ static func find(tree: SceneTree) -> AiDirector:
 	return tree.get_first_node_in_group(GROUP) as AiDirector if tree != null else null
 
 
+## The director of the map `node` is drawn in (its viewport), or null: one process may hold
+## several maps (a game server's and its clients' in a test or a capture), each with its own.
+static func find_for(node: Node) -> AiDirector:
+	if node == null or not node.is_inside_tree():
+		return null
+	var viewport := node.get_viewport()
+	for found in node.get_tree().get_nodes_in_group(GROUP):
+		if found is AiDirector and found.get_viewport() == viewport:
+			return found
+	return null
+
+
 ## The tier for a character at `distance` from the nearest player that is at `current` now:
 ## nearer than `full_range` is Full, nearer than `reduced_range` is Reduced, farther Dormant, and
 ## a character keeps a nearer tier until it is `tier_margin` past that tier's range.
@@ -132,8 +144,17 @@ func _ready() -> void:
 		return
 	add_to_group(GROUP)
 	_refresh_viewers()
+	# Only the characters of its own map (a process may hold several).
 	for node in get_tree().get_nodes_in_group(AiCharacter.GROUP):
-		register(node as AiCharacter)
+		if node.get_viewport() == get_viewport():
+			register(node as AiCharacter)
+
+
+func _exit_tree() -> void:
+	# Its characters let go of it, so none keeps a director that is gone.
+	for entry in _entries.duplicate():
+		if is_instance_valid(entry.character):
+			unregister(entry.character)
 
 
 ## The most characters it manages here (`web_cap` in a browser, else `desktop_cap`, and at most

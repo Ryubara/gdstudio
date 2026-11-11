@@ -82,7 +82,7 @@ func _ready() -> void:
 	situation.changed.connect(_on_situation_changed)
 	died.connect(situation.die)
 	revived.connect(situation.revive)
-	var found := AiDirector.find(get_tree())
+	var found := AiDirector.find_for(self)
 	if found != null:
 		found.register(self)
 	_show_debug()
