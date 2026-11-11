@@ -140,7 +140,7 @@ func test_the_melee_press_takes_bit_0_of_byte_13_and_the_size_stays() -> void:
 	assert_bool(later.melee_pressed).is_true()
 	later.clear_edges()
 	assert_bool(later.melee_pressed).is_false()
-	assert_int(NetWire.VERSION).is_greater_equal(7)
+	assert_int(NetWire.VERSION).is_greater_equal(8)
 
 
 func test_the_weapon_presses_take_bits_11_to_14_beside_prone_on_bit_15() -> void:

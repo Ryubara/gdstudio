@@ -391,7 +391,7 @@ category's blow.
   land a blow on the same tick.
 - **The AI.** `AiAttack` melees from `blow_reach()` and presses the melee button (`AiController.melee`) as a player
   does, so its blow is the same data, with any weapon when its `melee` is on.
-- **Online.** The press rides the command's byte 13 (`CommandCodec.G_MELEE_PRESSED`, `NetWire.VERSION` 7) with the
+- **Online.** The press rides the command's byte 13 (`CommandCodec.G_MELEE_PRESSED`, `NetWire.VERSION` 8) with the
   shot block, so the server judges its origin and meets the AI where the attacker's screen drew it, moved on by the
   ticks from the press to the tick the blow lands (`ShotRewind.nearer(..., age)`). The others hear a 4-byte `MELEE`
   event (slot, seq) and their puppet plays its own clip (`Weapon.melee(..., true)`); what it met is a `HIT`. Nothing
