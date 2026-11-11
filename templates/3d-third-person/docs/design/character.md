@@ -139,7 +139,7 @@ defaults come from shipped games, with the sources in the kit's `docs/engines/go
 | Input | toggle, hold, or a hold of crouch (`crouch_hold_time`, 0.5 s) with a press of crouch to get up; a jump press (on) and a sprint press (on) get up |
 
 The slide has one too, `gameplay/player/slide_tuning.tres` (`Player` > Slide > `slide_tuning`); the defaults come from
-shipped games, with the sources in the kit's `docs/engines/godot/third-person/character.md#slide`:
+shipped games, with the sources in the kit's `docs/engines/godot/third-person/slide.md#slide`:
 
 | Group | Settings (default) |
 | --- | --- |
