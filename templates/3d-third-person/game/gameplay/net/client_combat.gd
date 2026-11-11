@@ -15,6 +15,8 @@ extends RefCounted
 ## - DIED: the body takes the event's velocity and dies into its own ragdoll from the pose it is
 ##   in. REVIVED: it gets up where the server says (`Character.revive_at`), the pose blending there.
 ## - REJECTED: counted and said (`shot_rejected`); the shooter's own cosmetic shot changed nothing.
+## - ENTITY of a part drawn with the puppets (`NetEntity.with_puppets`: a target that falls or
+##   stands): read when its TICK is drawn, after the hit it goes with.
 ##
 ## Events about the local player (its health, its death, its getting up, a refusal) play at once:
 ## its body is drawn in the present. Every other one waits until the puppets are drawn at the
@@ -71,6 +73,11 @@ func on_tick(tick: SnapshotCodec.Tick) -> void:
 					_due.append(at)
 			NetEvent.Kind.REJECTED:
 				play(event)
+			NetEvent.Kind.ENTITY:
+				# A part drawn with the puppets (a target): its change lands with the hit before it.
+				if client.remote_players != null and client.map_parts.plays_with_puppets(event):
+					_pending.append(event)
+					_due.append(at)
 
 
 ## Plays every waiting event whose TICK is not later than `drawn` (server seconds; a negative time
@@ -123,6 +130,8 @@ func _play(event: NetEvent) -> void:
 		NetEvent.Kind.REJECTED:
 			rejected += 1
 			shot_rejected.emit(event.seq, event.code)
+		NetEvent.Kind.ENTITY:
+			client.map_parts.read_event(event)
 
 
 ## The body of `slot` on this screen: the local player or its puppet, or null.
