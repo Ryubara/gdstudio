@@ -300,6 +300,14 @@ def test_a_section_the_branch_does_not_change_does_not_count(workspace):
     assert guards.sections_named(workspace, "Mistakes: see studio/x.md#imports") == ["studio/x.md#imports"]
 
 
+def test_a_corrections_log_page_the_branch_changes_does_not_count(workspace):
+    """gdstudio #1120: the log moved into docs/studio/corrections-log/ (#1115); a section on one of its pages is a log
+    row, not where a rule lives, so naming it does not satisfy the Mistakes check, just as the old page did not."""
+    page = "studio/corrections-log/2026-11.md"
+    _page_on_branch(workspace, page, "# Page\n\n## Imports {#imports}\n\nnew row\n")
+    assert guards.sections_named(workspace, f"Mistakes: see {page}#imports") == []
+
+
 def test_mistakes_none_and_empty_sections_pass(workspace):
     for report in (
         "Done.\n\n## Mistakes\n\nnone\n",

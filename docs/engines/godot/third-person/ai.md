@@ -268,117 +268,13 @@ Inside the AI budget of [Crowds: AI characters](../crowds.md#ai-characters) (1 m
   freed before the step returns does not show; a mutation run (removing the idle return) found the counter is the
   check that fails. **Seen:** gdstudio #965, 2026-11-10.
 
-## Online: the AI runs on the server {#replication}
+## Online {#online}
 
-<!-- new section: the AI's base, brain and senses are on this page; nothing said where the AI runs in an online game,
-     what reaches a client and what that costs on the wire -->
+<!-- new section: the online part (where the AI runs, its wire, its costs and the lag compensation for shots on it)
+     moved to its own page when the lag compensation took this page past the size limit (kit #1198) -->
 
-The AI runs only in the process that steps the world (the `NetServer`, or a game played offline) and reaches every
-client as a few bytes a character at the end of each TICK (kit #970). The client draws each character as a puppet and
-plays everything cosmetic itself; nothing cosmetic is sent.
-
-| Part | Where (in `templates/3d-third-person/game/`) | What it does |
-| --- | --- | --- |
-| `AiAuthority` | `gameplay/ai/ai_authority.gd` | Decides where the AI runs, by map: `NetClient.join_with` calls `hand_over(map)`, which frees the map's `AiDirector` and every `AiCharacter` (their senses, brain, tasks and navigator with them) before any of them processes a frame and marks the map; an AI character or director that enters a marked map later takes itself out in its `_ready` (`runs_here`). A test counts a client's AI processing: zero. |
-| `AiBroadcast` | `gameplay/net/ai_broadcast.gd`, one on each `NetServer` (`ai`) | Gives each AI character of the map a wire id (the meta `net_ai`), builds its row once a TICK (`AiRow`, its 14 bytes made once for every client), makes each client's block, and turns what happens once (alerted, fired, died, got up) into an AI event for each client that holds that character. Its weapons fire real shots with no effects; what they meet is a HIT (`ServerCombat.send_hit`). Only the characters the director manages are sent. |
-| `AiSnapshot` | `gameplay/net/ai_snapshot.gd` | The codec: `encode(characters, view, rates, tick)` on the server and `apply(block)` on the client. A full snapshot, or a delta against the sequence the client holds: new or changed rows, moves (a character that only walked, 7 bytes), the ids that left. The layout and its pinned limits are in the script's header and [the packets](../multiplayer.md#template-packets). |
-| `AiPeerView` | `gameplay/net/ai_peer_view.gd`, one in each `PeerSlot` (`ai_view`) | What one client holds: the last sequence, each character's bytes as sent and when. A TICK the socket refused resets it (the next block is full). |
-| `AiTierRates` | `gameplay/net/ai_tier_rates.gd`, `ai_tier_rates.tres` (the server's `ai_rates`) | How often a client hears of a character by its distance from that client's body: within `full_radius` (20 m) every TICK (`full_hz` 30), within `reduced_radius` (40 m) at `reduced_hz` (7.5), within `interest_radius` (80 m) at `dormant_hz` (1), past it never (the client drops it); a full snapshot every `keyframe_seconds` (10 s) mends a client that dropped a delta. |
-| `AiReplica` | `gameplay/net/ai_replica.gd`, a node beside `RemotePlayers` in `online_main.tscn` (the `NetClient`'s `ai_replica`) | Draws each character the client holds as a puppet: the dressed character of its look (`variant_scenes[row.variant]`, `character_dressed.tscn` by default) with no AI part, no collision and no step of its own, placed by its `AiGlide` and animated from the row (state, speed, aim, the pitch toward its target). Puppets are made a few a physics step (`puppets_per_frame` 4, `puppet_budget_usec` 4000), nearest the client's player (`viewer`) first, and shown for the first time `puppets_shown_per_frame` (2) a step; a character still waiting has its glide, so it appears where it is now (#1208, [the numbers](#replication-cost)). A death starts the puppet's own ragdoll from one event with its velocity; a shot is a cosmetic shot from its muzzle; a HIT on it flinches it. |
-| `AiGlide` | `gameplay/net/ai_glide.gd` | A playout buffer of rows (`interp_delay`, 0.1 s), each released row walked to over the ticks since the one before (even steps: 0.050 m a tick at 3 m/s from 30 Hz rows, and from 7.5 Hz ones), set down at once for the first row, a jump past `glide_max_jump` (4 m) or a gap past 2 s, and guessed ahead at its speed for at most `extrapolate_seconds` (0.1 s), never through `extrapolate_mask`. |
-| Population | `AiDirector.match_cap`, set by `NetServer` from the HELLO's `F_WEB` flag | A browser in the match caps the population for everyone at `web_cap` (40): the newest characters past it are parked (frozen, not stepped, not sent) until the browser leaves. |
-
-The server's inspector (`net_server.tscn`, group AI): `ai_rates`, `ai_section_origin` (positions travel as
-centimetres from it, 327.67 m each way), `ai_variants` (a character's look on the wire is the index of its profile
-here: `grunt.tres`, `ally.tres`, `civilian.tres`), `ai_sees_players` (the players' bodies join the group `player`
-with the faction `player`, so the AI sees, fights and measures its tiers from them). The client's (`AiReplica`,
-group Drawing): `interp_delay`, `extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`,
-`variant_scenes`; group Making puppets: `puppets_per_frame`, `puppet_budget_usec`, `puppets_shown_per_frame`,
-`viewer`.
-
-What is not done yet: a client's shot is checked against the AI where the server has it now, not where the client
-drew it (no lag compensation, as for players: [shots online](online-shots.md#template-shots)); the follow-up is
-kit #1198.
-
-### What it costs {#replication-cost}
-
-<!-- new section: the numbers of the AI's wire, measured over the real socket, which the defaults above are read
-     against -->
-
-Windows, Godot 4.7.2, 2026-11-11, one workstation: the game server (`tools/net/gate_server.gd --ai N`, a crowd of N
-walkers on circles over the 44 m square round the spawn dais, every one moving every tick: an upper bound), three bots
-and one predicting client, each through `tools/net/relay.py` at 150 ms each way (a 300 ms round trip), the predicting
-client's thread frozen 5 s at 12 s, 20 s counted once all were seated (`tools/net/bandwidth.py --players 4 --ai
-0,40,120 --delay-ms 150 --freeze 12:5000`). Bytes are the relay's, WebSocket framing included.
-
-| AI | Down a client, B/s: mean / most | Four players in all | Server: AI rows a TICK / blocks a TICK, step p95 | Client: apply a TICK p50 / p95, place a step p50 |
-| ---: | ---: | ---: | ---: | ---: |
-| 0 | 2082 / 2084 | 8.3 KB/s | 4 µs / 28 µs, 1.1 ms | 4 / 5 µs, 3 µs |
-| 40 | 7718 / 8767 | 30.9 KB/s | 319 µs / 355 µs, 2.1 ms | 169 / 472 µs, 275 µs |
-| 120 | 16597 / 18541 | 66.4 KB/s | 1275 µs / 1010 µs, 3.8 ms | 481 / 1344 µs, 1026 µs |
-
-The most-loaded client's AI share at 120 is about 550 B a TICK (18541 B/s less the 2084 of the players, over 30),
-against Deadnight's 561 B a tick at 120 with an interest radius, and four players take 66.4 KB/s in all against its
-67. Each client applied every block after the 5 s freeze (none refused) and settled within 8 mm of the server. The
-first full snapshot made every puppet at once: 61 ms for 40 and 185 ms for 120 in one frame on the desktop, the join's
-hitch, until #1208 made them a few a step (below). The codec alone (`test_net_ai_snapshot.gd`, 120 walkers over
-100 x 100 m): a full snapshot 1684 B, a delta 249
-B a TICK on average; 40: 564 and 98.
-
-In Chrome (`tools/web_smoke/net_play_smoke.py --gpu --ai 40`, the bad-network gate's browser half with the AI): every
-gate passed at 42 frames a second (35 with no AI), 40 puppets, applying a TICK 100 µs at the median and 300 at the
-95th percentile, placing them 200 µs a frame (the page's clock counts in 100 µs), the first full snapshot 60 ms. With
-`--ai 120 --delay-ms 150` (a 317 ms round trip) the browser capped the match at `web_cap` (40 drawn, 80 parked on the
-server) and every client check passed at 60 frames a second; the server's clock check failed once (28 steps lost in
-the 10 s window while the page loaded, with 120 characters stepping). Drawn with SwiftShader (no `--gpu`) the page
-fell to 7 frames a second with 40 puppets, under the gate's floor of 20, so the browser runs are judged on the GPU;
-the puppets' own drawing cost is #1138's.
-
-The join, before and after #1208 (puppets made at most `puppets_per_frame` 4 a step within `puppet_budget_usec` 4 ms,
-nearest the player first, and shown for the first time `puppets_shown_per_frame` 2 a step), 2026-11-11, the same
-workstation. Desktop: `tools/net/bandwidth.py --players 4 --ai 40,120 --delay-ms 150 --seconds 10`, the predicting
-client's worst AI work in one physics step (before: applying the first block, which made every puppet; after: the
-worst step's making and placing, `step_us_worst`, and the worst block, `apply_us_worst`). Chrome on the GPU:
-`net_play_smoke.py --gpu --ai N`, the same report and the page's longest frame in the 3 s after the seat
-(`hitches.join_worst_ms`, every cost of the frame, drawing included).
-
-| Where | AI | Before: worst AI step / longest join frame | After: worst step, worst block / longest join frame |
-| --- | ---: | ---: | ---: |
-| Desktop (headless client) | 40 | 54.5 ms / not drawn | 5.4 ms, 0.4 ms |
-| Desktop (headless client) | 120 | 166 ms / not drawn | 5.7 ms, 1.1 ms |
-| Chrome, GPU | 40 | 49.5 to 52.1 ms / 91 to 97 ms | 5.5 ms, 0.4 ms / 38 to 39 ms |
-| Chrome, GPU, `--delay-ms 150` | 120 (40 drawn: `web_cap`) | 47.5 ms / 86 ms | 5.2 ms, 0.4 ms / 33 ms |
-
-One puppet costs 1.0 to 2.6 ms to make in Chrome (1.5 on the desktop); 40 arrive over about ten steps and 120 over
-thirty, half a second. The 38 ms frame left in Chrome then linked 2 programs (3 ms): the minimap's variants of the
-body's material, gone once the bodies left its layer (#1194; the numbers below).
-
-- **Approach:** Spread a crowd's arrival on a client over frames at both ends: making each puppet
-  (`AiReplica._make_waiting`) and its first draw (`puppets_shown_per_frame`), and judge it by the page's longest frame
-  in the join's window (`net_play_smoke.py`'s `join_worst_ms`, `join_slow`), not by the script's own timer. **Watch
-  out for:** with only the making spread, the script's worst step fell from 50 to 5 ms and Chrome still drew a 75 to
-  103 ms frame at the join: every puppet became visible in the same frame (their first rows are released at one
-  tick), and the first draw of 40 skinned characters cost about as much as making them; shown 4 a step the frames were
-  34 ms for 0.3 s, 2 a step 17 ms. **Seen:** gdstudio #1208, 2026-11-11 (fix: the show budget; `ai_join_tour.tscn`
-  shows the arrival).
-
-- **Approach:** Find a map's `AiDirector` by the viewport the character is drawn in (`AiDirector.find_for`), and have
-  a director register only the characters of its own viewport and let go of them when it leaves the tree. **Watch out
-  for:** one process may hold a server's map and its clients' maps (`OnlineRig`, a capture); `get_first_node_in_group`
-  handed a client's director the server's 40 characters as it started, the client then freed its director on joining,
-  and the server sent none of them (each held a freed director). **Seen:** gdstudio #970, 2026-11-11 (fix:
-  `find_for`, the viewport check in `_ready`, `_exit_tree` letting go).
-- **Approach:** Measure a crowd's bytes with every character walking near every player (`tools/net/bandwidth.py --ai`,
-  an upper bound) before choosing a row's layout, and give a delta a compact form for what a crowd mostly does: walk.
-  **Watch out for:** with 14-byte rows, 120 walkers within 20 m of a client cost 34.8 KB/s down a client, twice
-  Deadnight's 561 B a tick; a move (id, centimetres moved, yaw, speed: 7 bytes) halved the codec's bytes for the same
-  crowd. **Seen:** gdstudio #970, 2026-11-11.
-
-The first draw of a puppet links no GL program after the seat (#1218; `net_play_smoke.py` now fails on one): 0 in
-twelve GPU runs with 40 or 120 AI. The page's longest frame in the join's window (`join_worst_ms`) was 42 to 69 ms
-with every puppet made at once; on main with #1208 (`--gpu --ai 40`, three runs) it is 23, 24 and 34 ms, and 31 ms
-with 120 (`--delay-ms 150`, 40 drawn). The 2 programs #1208 saw were the minimap's
-([puppet cost](puppet-cost.md#puppet-cost)).
+Online the AI runs on the server only and reaches the clients as a few bytes a character each TICK; a player's shot
+on one is met where the shooter's screen drew it: [the AI online](ai-online.md).
 
 ## Proof {#proof}
 
@@ -400,4 +296,4 @@ interest radius, the tier rates, hostile bytes), `test_net_ai_glide.gd` (even st
 ahead capped and stopped at a wall) and `test_net_ai_online.gd` (a client runs no AI, a walker drawn where the server
 has it, a late joiner's one snapshot, a death's ragdoll on another screen from one event, a player's shot as a HIT on
 the puppet, a browser's cap); the capture is `tools/capture/ai_online_tour.tscn` (the server's world beside Bo's
-screen) and the cost `tools/net/bandwidth.py --ai` ([the numbers](#replication-cost)).
+screen) and the cost `tools/net/bandwidth.py --ai` ([the numbers](ai-online.md#replication-cost)).

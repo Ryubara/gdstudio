@@ -256,7 +256,7 @@ jobs:
       - name: The template's bad-network gate (native, and its teeth)
         # 3D Third Person's predicting client against its own server through a relay of 100 ms each way: freezes of
         # the client's thread, then 1 % of the chunks stalled 300 ms; thresholds in game/tools/net/bad_network.py
-        # (kit docs/engines/godot/third-person/online-client.md#bad-network-gate). Then the same freeze run with the
+        # (kit docs/engines/godot/third-person/online-gate.md#bad-network-gate). Then the same freeze run with the
         # reconciler's fix and with the server's hold taken out, each of which must fail. The browser half
         # (tools/web_smoke/net_play_smoke.py) runs on a workstation: the runner drew its page at 14 frames a second.
         run: |
