@@ -98,7 +98,8 @@ snapshots around the moment), `facing` and the model's turn, `view_pitch`, `crou
 `aim_amount`, the sprint flag, the crouch and prone amounts (with `crouch_changed`, `aim_changed`, `prone_changed`),
 and refits the capsule. `CharacterAnimation` needed nothing new.
 
-Its animation throttle and render layer: [what a puppet costs](puppet-cost.md#puppet-cost).
+Its animation throttle and render layer: [what a puppet costs](puppet-cost.md#puppet-cost). How a puppet shows a
+vault it never stepped: [a puppet's vault](traversal.md#online).
 
 - **Approach:** Give a body placed by hand the engine's floor contact with a short move through its point (3 cm above
   it, moved down; up while the entry says it is in the air), then put it back on the point. **Watch out for:**
@@ -250,7 +251,10 @@ relay 100 ms each way):
 
 A cold GPU page still waits about 21 s for its programs before anything plays: the compile itself, which a
 loading screen, a warm-up before the join (#1142) or Chrome's parallel compile would have to hide; the rejoin only
-keeps that wait from ending in "The server did not answer".
+keeps that wait from ending in "The server did not answer". Since then the web program list links every program
+before the engine draws ([Linking every program at once](../first-use-hitches.md#prelink), started by the page itself
+since #1214: [the page starts it](../first-use-hitches.md#prelink-page)), and the same cold join seats 6.5 to 7.3 s
+after the page opened; the rows above are the history of the hang-up, not today's join.
 
 **Jolt in wasm against Jolt on Linux.** `StepTraceProbe` (`ui/probe/`, `?steptrace` or `-- --steptrace` with
 `--play`) steps a server's body (`character.tscn`) 1800 times through the template's map with commands of the step's
