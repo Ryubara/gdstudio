@@ -36,8 +36,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
   and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429
   and #442, 2026-11-01 to 11-05 (fix: the habit above); gdstudio #830, #875, #903, #1011 and tether #31, 2026-11-02
-  to 11-10; gdstudio #1130, #1123 and #1138, 2026-11-11 (a tool's own `write_text`;
-  16 pages).
+  to 11-10; gdstudio #1130, #1123, #1127 and #1138, 2026-11-11 (a tool's `write_text`; 16 pages).
 
 ## Scripted edits {#scripted-edits}
 
@@ -79,13 +78,13 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   (`cp ... && cd <worktree> && check; git add -A; git commit`: the `cp` failed, the `cd` was skipped and `git commit`
   ran on the main checkout, which was clean).
 - **Approach:** Give a Windows program (Python, a hook, `gh --body-file`) a path with its drive letter,
-  `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts in the session's own scratchpad, not under a
-  shared temp name, and pass the worktree as an argument. **Watch out for:** `/c/Repositories` is read as a folder named
-  `c` on the current drive (`FileNotFoundError`, "the body file does not exist yet"), and a `gdt.sh` kept under one name
-  in the shared temp folder changed into another agent's worktree and reported its pass for my branch. **Seen:**
-  gdstudio, 2026-11-02; Deadnight, 2026-11-05; Deadnight, 2026-11-01 (fix: read the line that names the scanned folder
-  before trusting a result); gdstudio #879, 2026-11-10 (the scratchpad itself is shared: another agent's `sync.sh` there
-  copied its branch into its game; fix: a subfolder named for the issue; also #903, #966).
+  `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts and PR text in `scratch/<repo>/<branch>/`
+  (the session scratchpad and the temp folder are shared), and pass the worktree as an argument. **Watch out for:**
+  `/c/Repositories` is read as a folder named `c` on the current drive ("the body file does not exist yet"); a
+  `gdt.sh` under a shared name changed into another agent's worktree and reported its pass for my branch. **Seen:**
+  gdstudio, 2026-11-02; Deadnight, 2026-11-01 and 2026-11-05 (fix: read the line that names the scanned folder before
+  trusting a result); gdstudio #879, #903, #966, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
+  branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
 
 ## Background commands and processes {#background}
 

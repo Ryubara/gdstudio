@@ -32,6 +32,7 @@ static func of(
 		"gap_m": snappedf(gap(client), 0.0001),
 		"stalls": client.stall_guard.resyncs,
 		"skipped_ticks": client.stall_guard.skipped,
+		"walked_steps": client.silence_walk.steps,
 		"puppets": puppets,
 		"starved_steps": starved,
 		"starved_share": snappedf(float(starved) / maxi(steps * puppets, 1), 0.0001),
