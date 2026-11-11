@@ -44,7 +44,9 @@ const BOUNDS := 4096.0
 		_resize()
 
 @export_group("Warm-up")
-## Frames at the start that draw one unseen streak, so the first shot builds no program.
+## Frames at the start that draw one unseen streak, so the first shot builds no program (counted
+## once the level's `EffectEmitter` has finished its own warm-up, which draws it under every
+## reflection probe).
 @export_range(0, 30, 1) var warm_up_frames := 3
 
 ## True in the web build and on phones: the pool is `web_max_tracers` there.
@@ -59,6 +61,8 @@ var _buffer := PackedFloat32Array()
 var _shown := 0
 # A streak was drawn or ended since the buffer was last written.
 var _dirty := false
+# The warm-up's streak waits for the level's effect warm-up to end.
+var _waiting := false
 
 
 ## One streak: where it runs, how far, how long it has shown and how it looks.
@@ -138,6 +142,12 @@ func _ready() -> void:
 	if _warm_left > 0:
 		_draw_warm()
 		set_process(true)
+		# Drawn through the level's effect warm-up too: its probe tour draws every viewport under
+		# each reflection probe, and the web build links a program for each way it is drawn.
+		var emitter := EffectEmitter.find(self)
+		if emitter != null and emitter.is_warming():
+			_waiting = true
+			emitter.warmed.connect(func() -> void: _waiting = false, CONNECT_ONE_SHOT)
 
 
 func _process(delta: float) -> void:
@@ -209,6 +219,8 @@ func end_newest_at(point: Vector3) -> bool:
 ## callback calls this; a test calls it to run a streak to its end at once.
 func advance(delta: float) -> void:
 	if _warm_left > 0:
+		if _waiting:
+			return
 		_warm_left -= 1
 		if _warm_left == 0 and _lines.is_empty():
 			_write()
