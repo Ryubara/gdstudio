@@ -158,8 +158,8 @@ stepped by `--fixed-fps 60`; `test_net_props.gd`, `test_net_prop_wire.gd`; 2.5 s
 
 | Cost | Number |
 | --- | --- |
-| Props and targets in the prototype map | 12 props, 4 targets (33 parts in all) |
-| WELCOME with the table, no player | 324 bytes (124 before the props and targets) |
+| Props and targets in the prototype map | 12 props, 4 targets (34 parts in all, with the pressure pad) |
+| WELCOME with the table, no player | 324 bytes before the pressure pad (124 before the props and targets) |
 | A moving prop in a TICK / 8 of them | 14 / 112 bytes |
 | A client's step, every prop moving: reading the rows / putting the 12 props at the tick | 19.5 / 43.8 µs (none at rest) |
 | The server's rows of a TICK (8 props) | 50 µs |
