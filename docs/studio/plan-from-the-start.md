@@ -9,9 +9,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 ## Design, feel and the reference {#design-feel-and-the-reference}
 
 - Plan: the reference game's core loop, variety beats (bosses, special rounds, enemy types) and numbers (movement,
-  tiers, economy), collected and cited before tuning ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
+  tiers, economy), collected and cited before tuning ([row](corrections-log/corrections.md)).
 - Plan: the genre's controller conventions (hip fire turns the body, sprint any way unless aiming, hold to interact)
-  listed before the controller is built ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  listed before the controller is built ([row](corrections-log/found-by-playing.md)).
 - Plan: for every state (turning, reloading, swapping) and action (fire), whether the action leaves, waits or cancels;
   the shot waits for the body's turn
   ([controller states](../gamedev/controller.md#states)).
@@ -24,26 +24,26 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: for a game camera, which node owns each framing value and who may write it (distance on the rig, the shoulder on
   the Camera node's own H and V Offset, nothing else writing them, the addon's host copy included), and one test that
   sweeps the camera's yaw with every zoom held to prove the lens never nears the head
-  ([row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks)).
+  ([row](corrections-log/caught-by-checks.md)).
 - Plan: a feel pass per verb (shake, kick, flash, hit feedback), each effect measured on screen from the player's
   camera.
 - Plan: a setting that scales a quantity keeps the pace: a test that each round lasts about as long at 1x, 2x, 3x
   ([Settings that scale the game](../gamedev/design.md#settings)).
 - Plan: the HUD element by element, read in half a second, captured at 720p, 1080p, 1440p and in the browser.
 - Plan: one written order and spacing for anything shown together on several screens (a player's icon, level
-  and name), set once and shared by every screen ([row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks)).
+  and name), set once and shared by every screen ([row](corrections-log/caught-by-checks.md)).
 - Plan: for an identity feature, every place a name is drawn, found by searching the code and listed in the issue, the
-  HUD's own player boxes first ([row](maintainer-corrections.md#done-wrong-first-caught-by-our-own-checks)).
+  HUD's own player boxes first ([row](corrections-log/caught-by-checks.md)).
 - Plan: the genre's feature list as players know it, checked against the issues before the first playtest: a
   character choice and its voice, the full set of perks (own names, close in meaning), weapon slot keys and
   silhouettes, a grenade's fuse beep and weight, a reload you notice, the player count; in Deadnight each arrived
   as a request after play (#678, #679, #687, #682, #680, #683, #690)
-  ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  ([row](corrections-log/found-by-playing.md)).
 
 ## Input {#input}
 
 - Plan: every device class the game ships on (keyboard and mouse, gamepad on any device id, touch), each played on
-  every platform ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  every platform ([row](corrections-log/found-by-playing.md)).
 - Plan: pointer lock and Esc on the web: pause on lock loss, nothing fires while unlocked
   ([web export](../engines/godot/web-export.md#pointer-lock-and-esc-design-it-in-from-the-first-playable-night)).
 - Plan: pause on a pad's Start as the first press, in the build players use; a button shared with a `ui_*` action
@@ -59,13 +59,13 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   expects everywhere (reload at 0) are proved through each device's real input path.
 - Plan: a touch action is listed by what it does, derived from one table, not by an allow-list: every button looks while
   dragged unless its row owns the drag, so a new one cannot opt out unseen
-  ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  ([row](corrections-log/found-by-playing.md)).
 - Plan: every input edge counted once per physics tick by the game, not by `is_action_just_pressed`.
 
 ## Platforms {#platforms}
 
 - Plan: one opening screen everywhere, the main menu, the Discord Activity included; a platform shortcut is the
-  maintainer's call ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  maintainer's call ([row](corrections-log/found-by-playing.md)).
 - Plan: a platform differs from the website only in sign-in and chrome: list every branch on the platform (an instance
   id, the Discord host) in the first build and keep none that changes what a press does; players reach each other by
   a code, a link or a list, never by a platform identity
@@ -92,9 +92,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   is called done ([web export](../engines/godot/web-export.md#a-phones-keyboard-in-the-web-build),
   [keyboard](../engines/godot/web-export.md#a-phones-keyboard-in-the-web-build)).
 - Plan: a visible pre-game lobby (members, host, a start the host controls) and mid-match join, every player state
-  designed and tested with real clients ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  designed and tested with real clients ([row](corrections-log/found-by-playing.md)).
 - Plan: rooms, invite links and codes on player-facing screens, never an address or `localhost`
-  ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  ([row](corrections-log/found-by-playing.md)).
 - Plan: a performance budget per platform (desktop, browser, server), never one cap for all
   ([performance budgets](../engines/godot/performance-budgets.md#the-rule)).
 
@@ -117,7 +117,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: events the server causes alone reach every client
   ([multiplayer](../engines/godot/multiplayer.md#events-reach-a-client-only-through-its-command-loop)).
 - Plan: appearance and bodies replicated from one owner, the same scene local and remote
-  ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  ([row](corrections-log/found-by-playing.md)).
 - Plan: every player feature is specified and tested from another player's view: a two-client test over the real
   socket for what the other screen shows, and captures from the second client's screen
   ([multiplayer](../engines/godot/multiplayer.md#appearance),
@@ -125,7 +125,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: where a player is (menu, waiting room, night, away, reopened lobby) and what ends each state, written as one
   table of states and ways out before the lobby is built; a player moves between lobbies by creating or joining
   (never a refusal for being in another), and a lobby with no person is gone at once, with the game server saying
-  when a seat is empty ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed),
+  when a seat is empty ([row](corrections-log/found-by-playing.md),
   [multiplayer](../engines/godot/multiplayer.md#player-states), [netcode](../gamedev/netcode.md#leaving)).
 
 ## Saving {#saving}
@@ -142,7 +142,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([deadnight #472](https://github.com/Ryubara/deadnight/issues/472),
   [deadnight #486](https://github.com/Ryubara/deadnight/issues/486)).
 - Plan: whether bots fill player slots, researched before the systems they use
-  ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
+  ([row](corrections-log/corrections.md)).
 
 ## Content: weapons, art and animation {#content-weapons-art-and-animation}
 
@@ -159,7 +159,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: an animation for every interaction, and clip speeds measured before blend points
   ([Gait follows speed](../engines/godot/crowds.md#gait-follows-speed)).
 - Plan: kit props and materials on the map as soon as the layout holds
-  ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
+  ([row](corrections-log/corrections.md)).
 - Plan: a map design review before a map ships and after its layout changes, run as a level designer from the
   player's camera: loops and kiting space, chokepoints, spawns, pacing of the doors, landmarks, lighting, and every
   out-of-bounds and door-skip candidate proven by movement, not by eye; Deadnight's two maps were first reviewed after
@@ -186,7 +186,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   game does past each. Deadnight had measured the web build and a bare crowd, never its own worst night, and a
   maintainer
   found the lag first ([performance budgets](../engines/godot/performance-budgets.md#the-rule),
-  [row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  [row](corrections-log/found-by-playing.md)).
 
 ## Test infrastructure {#test-infrastructure}
 
@@ -213,7 +213,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
 - Plan: rerun known flakes at once and push only what a merge needs
   ([Starting work](starting-work.md#merging-main-into-a-pull-request)).
 - Plan: a fix is done when it is live where the maintainer plays (deployed commit named, probe run on the live URL)
-  ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
+  ([row](corrections-log/corrections.md)).
 - Plan: local main checkouts fast-forwarded after every merge, by a hook
   ([Hooks](hooks.md#mains)).
 - Plan: a stopgap comment names its issue ("until #N"), and closing #N greps for it and resolves it
@@ -236,7 +236,7 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   (oldest ready issues first, a pull request counts as in progress), and a task agent's prompt names its started issue
   ([Starting work](starting-work.md#the-rule)).
 - Plan: a coordinator's owner map is checked against `gh pr list` every time it is re-armed, and `gds issue list` is
-  read for issues in progress with no owner ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  read for issues in progress with no owner ([row](corrections-log/found-by-playing.md)).
 - Plan: every fix pull request names the kit doc it updates, the agent that finds a mistake writes its lesson (with
   `areas:`) and opens the kit pull request in the same task, and agents read the checks of their issue's areas before
   they start ([Hooks](hooks.md#docs)).
@@ -245,24 +245,24 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   of lessons is pushed at every agent of an area ([Starting an agent](starting-work.md#starting-an-agent)).
 - Plan: hit feedback is part of the first weapon: what a hit does to the body (blood or an impact), marks it leaves,
   hit markers and sounds, each in the warm-up and measured on the web build
-  ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed), [Shot feedback](../engines/godot/shot-feedback.md#blood)).
+  ([row](corrections-log/found-by-playing.md), [Shot feedback](../engines/godot/shot-feedback.md#blood)).
 - Plan: the coordinator lands what it would recommend; the only merges that wait are `S-hold` and the maintainer
   decisions
-  in `AGENTS.md` ([row](maintainer-corrections.md#found-by-playing-concepts-and-details-we-missed)).
+  in `AGENTS.md` ([row](corrections-log/found-by-playing.md)).
 - Plan: every end step a tool leaves for the maintainer is asked whether it is a real per-game choice or the same every
   time; the second kind becomes a default the agent runs (a new game's GitHub repository, Pages, ruleset, hold sweep and
-  an MIT licence, gdstudio #779) ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
+  an MIT licence, gdstudio #779) ([row](corrections-log/corrections.md)).
 - Plan: the docs record what the maintainer decided or pointed out in our words, with the issue or pull request and the
   date, never the prompt; a check fails a corrections row that starts with a quotation mark (gdstudio #780)
-  ([row](maintainer-corrections.md#corrections-and-the-checks-they-become)).
+  ([row](corrections-log/corrections.md)).
 - Plan: a pause of a repository, like every standing rule the maintainer gives, lives from the first day in a file
   the tools read (`paused` in `workspace.toml`), so `gds issue start`, `gds issue list` and the `Stop` hook stop
-  offering its issues ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
+  offering its issues ([row](corrections-log/corrections.md),
   [Starting work: pausing a game](starting-work.md#paused)).
 - Plan: a docs site's navigation is designed for the page count it will reach (a tab per topic, sections that fold
   and nest, `navigation.prune`, an order per folder), and a site change is judged by captures of its built sidebar at
   desktop and phone width, not by its build warnings (gdstudio #790)
-  ([row](maintainer-corrections.md#corrections-and-the-checks-they-become),
+  ([row](corrections-log/corrections.md),
   [Docs site: the navigation](docs-site.md#nav)).
 
 ## Start of a new game {#start-of-a-new-game}
