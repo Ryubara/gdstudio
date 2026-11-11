@@ -1,7 +1,8 @@
 """GDStudio's Claude Code hook dispatcher: the one entry point for every hook event (docs/studio/hooks.md).
 
 `.claude/settings.json` sends every event here (a game repository through its `launch.py`). Each event runs the guards
-registered for it in `guards.py`; every reason they give is returned at once, so an agent fixes all of them in one go.
+registered for it in the `guards` package (one module per job, docs/studio/hooks.md#modules); every reason they give
+is returned at once, so an agent fixes all of them in one go.
 
 Answers follow Claude Code's JSON protocol with exit code 0: `permissionDecision: deny` before a tool runs, `decision:
 block` at Stop and SubagentStop, `additionalContext` at SessionStart, UserPromptSubmit, SubagentStart and PostToolUse.
@@ -24,7 +25,7 @@ from typing import Any
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import guards  # noqa: E402  (after the path insert, so the module beside this file is found)
+import guards  # noqa: E402  (after the path insert, so the package beside this file is found)
 
 DEFAULTS = HERE / "hooks.toml"
 # The events that only add context, and the guard that writes it.
