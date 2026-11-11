@@ -406,8 +406,12 @@ frame in brackets, ms):
   with a typical stack of three tasks, 0.2 µs when empty: 17 µs a tick for 40 characters thinking at 10 Hz
   ([the table](third-person/ai.md#task-cost)). The brain (#968) adds nothing measurable when calm; a fight
   does: 40 guards against two targets are 2.1 ms a tick in Chrome (0.84 with brains off) and 10.5 ms at 4x, over the
-  budget, mostly the bodies that aim and fire and no longer rest ([the table](third-person/ai-behaviour.md#cost),
-  kit #1104).
+  budget, mostly the bodies that aim and fire and no longer rest ([the table](third-person/ai-behaviour.md#cost)).
+  Since #1104 those bodies take the lean tick (14 to 25 % off the step) and a web fight is counted apart: **12**
+  fighting guards fit the 1 ms budget, **6** the 5 ms at 4x, more fighting at once are over it in a browser
+  ([the table](third-person/ai-behaviour.md#cost-follow-up)). The AI section's population of 10 (#969: 3 grunts,
+  2 shooters, 2 allies, 3 civilians, in `main.tscn` round the player) is 0.52 ms a tick in Chrome and 2.6 ms at 4x,
+  about 50 µs a character, half of each budget ([the table](third-person/ai-characters.md#cost)).
 
 **The template's real character (#963).** `tools/bench/ai_cost_bench.tscn` (`ai_cost_bench.py` for Chrome) times the
 `AiDirector`'s step (tiers, thinks and every body's `Character.step`: what the budget above holds) for
@@ -568,7 +572,8 @@ and 2 at 4x on a machine other agents were using; "before" is #967's navigator w
   with the crowd itself as the candidates. **Watch out for:** the senses' first look asked every AI character its
   distance on every think (262 µs a think at 200 where 4 players were all it cared about), and every ally passed every
   telling on, so 40 grunts that saw the same players made thousands of tellings. **Seen:** gdstudio #966, 2026-11-10
-  (fix: `AiSensePool`, and a listener that knew already passes nothing on; [the cost](third-person/ai-senses.md#cost)).
+  (fix: `AiSensePool`, and a listener that knew already passes nothing on; [the cost](third-person/ai-senses.md#cost));
+  gdstudio #1204, 2026-11-11 (the noise board by faction: [the think](third-person/ai-behaviour.md#cost-think)).
 - **Approach:** Measure the cost of the real character before taking the spike's caps, and set the template's defaults
   from that table. **Watch out for:** the spike's 20 at the Full tier came from a 22 to 26 µs capsule; the template's
   character is about 50 µs in Chrome walking, and 40 walkers with 20 at Full missed the 1 ms and 5 ms budgets by about

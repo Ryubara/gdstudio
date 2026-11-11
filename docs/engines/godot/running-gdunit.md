@@ -33,6 +33,10 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
 <!-- new section: the page covers fresh checkouts, logs and what to run before a push; nothing covered the command
      line's flags or how a parse error ends a whole run -->
 
+GdUnit4's scene runner sets the project's physics tick rate when it is made: a test that changes
+`Engine.physics_ticks_per_second` sets it after `scene_runner()` and puts it back in `after_test`
+([Test speed](test-speed.md#time-driven-values)).
+
 - **Approach:** Run GdUnit4 headless as `godot --headless --path game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a
   res://tests -c --ignoreHeadlessMode`, without `-d`, under a short `timeout`, with the output sent to a file whose
   tail you read. **Watch out for:** GdUnit4 refuses a headless run without `--ignoreHeadlessMode` (exit 103); with the
@@ -50,15 +54,17 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
   2026-11-10; gdstudio #1087, 2026-11-11 (a camera swap suite run by hand without the flag: 6 of 15 cases about 0.8
   degrees off, all green at `--fixed-fps 60` and in `gds template test`; the command at the top of this page now has
   the flag).
+- **Approach:** Run the kit's own Godot project (`godot/`, the shared addons' suites) without `--fixed-fps`, as the
+  kit's CI does; the flag is for a game's and a template's suites. **Watch out for:** several of the kit project's
+  suites wait on the real clock, and `--fixed-fps 60` ran their frames without waiting, so they failed on a run whose
+  code was fine. **Seen:** gdstudio #1183 (PR #1214), 2026-11-11.
 
 - **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
-  `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`). **Watch out for:** the project turns a shadowed name into a
-  parse error, so four suites did not load, `gds check scripts` named them and a GdUnit run would have stopped at the
-  first. **Seen:** gdstudio #881 (`was`), #924, #887, #1013 (after reading this entry), #904 (`ticks_before`,
-  `later`), #965 (`next_up`), #1047 (after reading this), all 2026-11-10; #906, #907, #909 (after reading this),
-  2026-11-11; #1127, 2026-11-11 (`before` for a total before a stall; `gds template test` named it at parse):
-  grep a new suite for `before` and `after` as names, and for a local named like
-  one of the script's own exports, before its first run; `gds template test` names them at parse.
+  `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`); grep a new suite for them, and for a local named like one of
+  the script's exports, before its first run. **Watch out for:** the project turns a shadowed name into a parse error,
+  so four suites did not load; `gds check scripts` and `gds template test` name them at parse. **Seen:** gdstudio #881
+  (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965 (`next_up`), #1047, all 2026-11-10; #906, #907,
+  #909, #1127 (`before`), #970 (a loop's `var before`), 2026-11-11; #1013, #1047, #909 and #970 after reading this.
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
   `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
@@ -137,6 +143,13 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
   `Statistics:` line in the kept folder's `gdunit.log`. **Watch out for:** the per-suite `ok` lines print cases,
   failures and seconds only, and the log is kept only when the run fails, so a green run says nothing of the orphans
   it left. **Seen:** gdstudio #924 (PR #954), 2026-11-10 (read again in `template_test.py` for gdstudio #1003).
+- **Approach:** To find what a suite leaves alive at exit, keep a game (`gds template test <t> --keep --suite <s>`)
+  and run GdUnit's command line on its `game/` yourself with `--verbose`, one suite and one log at a time:
+  `Leaked instance:` names the objects, `Resource still in use: res://...` the scripts. Then cut the suite's cases and
+  the game's scripts ([the typed array pattern](test-exit-leaks.md#typed-array-export-and-self-cast)). **Watch out
+  for:** `gds template test` says only that leak lines exist; a list of scripts alone (GdUnit4's, the autoloads') with
+  a few bare `RefCounted` and `RegEx` is that engine pattern, not a node a test forgot. **Seen:** gdstudio #1236,
+  2026-11-11.
 
 ## Before the push {#before-the-push}
 
@@ -162,6 +175,12 @@ game](new-game.md#proof), gdstudio #830 and #917).
   -n "<name>(" -- '*.gd'`) and run the full suite once, not only `--suite` on the files you changed. **Watch out
   for:** GDScript finds a wrong call only when the calling script loads, so the changed suites passed and the callers
   in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10.
+- **Approach:** Read the run's exit code, not only its summary: free or clear in `after_test` every node a suite keeps
+  out of the tree (a pool's parked characters, a node removed with `remove_child`). **Watch out for:** GdUnit counts a
+  node outside the tree as an orphan and exits 101 with every case green; CI pipes the run with `pipefail`, so the job
+  fails. 1710 cases passed and the exit was 101 from the spawner's parked pools in the net suites, which load the map
+  ([the spawner](third-person/ai-characters.md#spawner): it now makes its pool on the approach). **Seen:** kit #969,
+  2026-11-11.
 
 ## Change nothing a run reads {#inputs-of-a-run}
 

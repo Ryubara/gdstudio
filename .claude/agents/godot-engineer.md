@@ -50,7 +50,8 @@ meets:
 4. **Build it well.** Small scripts with typed GDScript, one responsibility each; scenes composed from reusable parts;
    no magic numbers where a shared token or setting belongs. Keep the test mode possible: fixed timestep, seeded
    randomness, no reliance on real time or a human.
-5. **Prove it.** Run `gds check layout game` (`project-conventions.md#rules`), gdformat and gdlint, and the GdUnit4
+5. **Prove it.** Run `gds check layout game` (`project-conventions.md#rules`; a template is checked through
+   `gds template test <name>`, which runs it in the game it makes), gdformat and gdlint, and the GdUnit4
    suites with the command on `running-gdunit.md#command-line`. Run the pinned Godot: headless import and run
    (`$(uv run --project <workspace>/repos/gdstudio/python gds tool path godot) --headless ...`) must print no `ERROR`.
    For anything visible, capture it with Movie Maker into

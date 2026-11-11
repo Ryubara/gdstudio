@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://ui/player_rig/player_rig.tscn" id="2_rig"]
 [ext_resource type="Script" path="res://gameplay/net/remote_players.gd" id="3_remote"]
 [ext_resource type="Script" path="res://gameplay/net/net_client.gd" id="4_client"]
+[ext_resource type="Script" path="res://gameplay/net/ai_replica.gd" id="9_ai_replica"]
 
 [node name="OnlineArena" type="Node"]
 
@@ -14,9 +15,13 @@
 [node name="RemotePlayers" type="Node3D" parent="."]
 script = ExtResource("3_remote")
 
-[node name="NetClient" type="Node" parent="." node_paths=PackedStringArray("player", "remote_players", "world_root")]
+[node name="AiReplica" type="Node3D" parent="."]
+script = ExtResource("9_ai_replica")
+
+[node name="NetClient" type="Node" parent="." node_paths=PackedStringArray("player", "remote_players", "ai_replica", "world_root")]
 script = ExtResource("4_client")
 player = NodePath("../PlayerRig/Player")
 remote_players = NodePath("../RemotePlayers")
+ai_replica = NodePath("../AiReplica")
 world_root = NodePath("../World")
 join_on_ready = false

@@ -381,6 +381,17 @@ hundredth of the clip while it moves and on every update of the live player relo
 `tools/capture/pistol_hold_study.tscn` prints the numbers and films the close-ups. The hold is a pose
 worked out on each machine from the aim the game already has; nothing of it goes over a network.
 
+### Vault clips {#vault-clips}
+
+`assets/animation/vault/vault.glb` holds three clips of the template's own, made for the vault (the Universal
+Animation Library has none): `Vault_Low` (a one-handed speed vault over about 0.5 to 1.0 m; the right hand stays free
+for the pistol), `Vault_High` (both hands, about 1.0 to 1.3 m; no weapon in the hands) and `Vault_Land` (the step
+back into the sprint). They are in place like the library's clips, and `vault_clips.json` beside them gives each
+clip's reference obstacle, the speed the body is moved at and the times the hand and the feet touch, for the code
+that moves the body over an obstacle of another size. No scene uses them yet: add the file to an `AnimationPlayer` as
+a library (`vault`) and play `vault/Vault_Low`. `tools/capture/vault_study.tscn` plays them over their reference boxes,
+`tests/assets/test_vault_clips.gd` checks them, and the folder's README says how they are rebuilt.
+
 ### Prone and crawl clips {#prone-clips}
 
 `assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,

@@ -84,7 +84,7 @@ the real program, so stop it with `taskkill /T /F /PID` (the tree) in a `finally
 the server running, and the next run cannot open its log ([Processes a probe starts](headless-probes.md#processes)).
 
 3D Third Person runs the same proof as a gate with thresholds, native and in the browser, in CI
-([the bad-network gate](third-person/online-client.md#bad-network-gate)).
+([the bad-network gate](third-person/online-gate.md#bad-network-gate)).
 
 ## Godot's raw WebSocket, without the high-level multiplayer {#godots-raw-websocket-without-the-high-level-multiplayer}
 
@@ -131,13 +131,16 @@ the server running, and the next run cannot open its log ([Processes a probe sta
 | `LoopbackLink` | `pair()`: two ends in one process; a packet sent in tick t is read in tick t+1; `close()` is a goodbye, `drop()` a network that went. |
 | `LinkConditioner` | Wraps any link: `delay`, `jitter`, `stall_chance` and `stall_seconds`, `stall_for(seconds)`, a seeded RNG and a `clock` Callable; never reorders, a stall holds everything behind it. |
 
-**One socket buffer size: `NetLimits.BUFFER_SIZE` (256 KB).** `WebSocketLink.inbound_buffer` and
+**One socket buffer size: `NetLimits.BUFFER_SIZE` (1 MB since #970, 256 KB before).** `WebSocketLink.inbound_buffer` and
 `WsListener.outbound_buffer` both start from it and neither file has a constant of its own; `test_net_limits.gd` pins
 the value and that both read it. It was 1 MB in the transport and 256 KB in the packets' limits until #934 measured it
 in the browser (`net_link_smoke.py --inbound <bytes>`, a 5 s frozen tab at 35 KB/s, so 175 KB wait): 256 KB lost
 nothing in six runs (0 `Buffer payload full` errors, every packet in order), 1 MB the same in two, and the 64 KB
 control lost packets in 7 of 9 pages (4 to 86 errors; two pages lost none, so the smoke tries the control up to three
-times). A size above that buys nothing in a freeze that short and costs 1 MB a peer each way on a full server.
+times). A size above that bought nothing in a freeze that short until the AI rode the TICK (#970): ten seconds of the
+longest TICK without AI and five of a full AI snapshot of the desktop population (120 characters) every TICK need
+666 KB, so the size is 1 MB (16 MB of outbound buffers on a full server); a TICK the socket still refuses makes the
+next AI block full, so a longer freeze costs a resend, never a wrong picture.
 
 Measured on Windows, Godot 4.7.2: a thousand packets each way over `127.0.0.1` in order; a conditioner of 100 ms each
 way gave round trips of 217 to 250 ms on the physics-frame clock; two GdUnit runs of the suites at once on one machine
@@ -192,16 +195,18 @@ state costs against synchronizers is [below](#template-network-costs). Measured 
 
 | Message | Bytes | Estimate |
 | --- | ---: | ---: |
-| HELLO with an 8-character name | 15 (7 + name; the world hash travels in it) | 3 + name |
+| HELLO with an 8-character name | 16 (8 + name; the world hash and the client's flags travel in it) | 3 + name |
 | WELCOME, 1 player, no world parts | 30 | about 40 |
 | WELCOME, longest (8 players with 16-byte names, 128 parts of 12 bytes) | 2295 | |
 | REFUSED | 3 | 3 |
 | COMMAND / with a shot block | 15 / 27 | 15 / 27 |
-| TICK, 8 players, no events, no moving prop | 108 | 107 |
+| TICK, 8 players, no events, no moving prop, no AI | 109 (the AI block's mode is 1 byte) | 107 |
 | TICK, longest (32 events of 20 bytes, 8 players, 8 moving props) | 868 | |
 | A moving prop in a TICK (streamed row, `PropState`) | 14 | |
+| An AI character in a TICK: a row, a move (`AiSnapshot`) | 14, 7 | 13 (Deadnight) |
+| AI block: full of 40 / 120 characters; a delta of 120 walking, every one near | 564 / 1684; 262 a TICK on average | 561 a tick at 120 |
 | PING / PONG | 7 / 11 | 7 / 11 |
-| Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected | 7, 2, 15, 15, 9, 8, 11, 4, 6 | shot about 17, hit about 12 |
+| Events: joined (4-letter name), left, shot, hit, died, revived, entity (3 bytes), pickup, rejected, AI | 7, 2, 15, 15, 9, 8, 11, 4, 6, 14 | shot about 17, hit about 12 |
 
 What the command's fields mean, fixed by gdstudio #901: `move` is the push in the view's axes (`x` right, `y`
 forward, no longer than 1), `yaw` the view's heading (0 looks along -Z, so the body's `facing` is `yaw + PI`), `pitch`
@@ -214,7 +219,11 @@ the empty hands; gdstudio #887) and bit 15 is prone (#1012); no flag bit is free
 carries the weapon and the low 16 bits of its `seq`, a hit the health it left
 ([shots online](third-person/online-shots.md#template-shots)). `NetWire.VERSION` 5 (#1073): a TICK ends with a count
 and the rows of the moving props, and a world part's state may be 12 bytes
-([pushed props online](third-person/net-world.md#props)).
+([pushed props online](third-person/net-world.md#props)). `NetWire.VERSION` 6 (#970): a TICK ends with the AI block
+for its client (`AiSnapshot`: none, full or a delta of rows, moves and the ids that left), a HELLO carries a flags
+byte (`F_WEB`: the client is a browser), an `AI` event (id, what happened, a point, a direction) and a HIT names an AI
+as `NetHits.AI_BASE + id` ([the AI online](third-person/ai-online.md#replication)). The socket buffers are 1 MB since: five
+seconds of a full AI snapshot of 120 characters every TICK is 252 KB.
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
 100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.
@@ -356,6 +365,11 @@ Moved to [A feature that crosses services](multiplayer-server/rooms.md#across-se
   (0 bytes, no error; cause not found), and the first matrix of the spike held cells from a script that failed with
   `SCRIPT ERROR` while the process went on running. **Seen:** gdstudio #883, 2026-11-10 (fix: log files, and the
   harness prints any `ERROR` or `WARNING` line of either log).
+- **Approach:** When a harness counts bytes over a window and also reads a client's own report line, wait for the
+  client's run to end (`wait` with a timeout) before stopping it, and fail a row whose report is missing. **Watch out
+  for:** `tools/net/bandwidth.py` stopped the predicting client at the end of its window, before its `PREDICT_BOT` line,
+  so the client's AI costs read `None` in every row of the first run. **Seen:** gdstudio #970, 2026-11-11 (fix: the
+  client is waited for, up to 30 s).
 
 ## Web export {#web-export}
 

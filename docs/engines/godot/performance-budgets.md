@@ -131,6 +131,11 @@ timed section went with the frame at a slope of 1.0 and with the calibration at 
 calibration swung 2.1 times between runners that ran the same code (a false red, and a section twice as slow that
 passed). Hold such a section as a *share of the frame* the same rows took.
 
+- **Approach:** Test a loop held by a count and a time budget on the count it promises per frame, and wait for the
+  slowest pace the time budget allows (one item a frame), never for the pace the count alone gives. **Watch out for:**
+  `AiReplica` makes up to 4 puppets a frame and stops after 4 ms; the test waited 12 frames for 40 puppets, and a CI
+  runner where one dressed character takes 4 ms made one a frame, so main went red on unchanged code. **Seen:**
+  gdstudio #1230, 2026-11-11 (fix: the wait is one frame per puppet; `most_made` still checks the count).
 - **Approach:** Divide a section of a few microseconds by the frame the same rows took, not by the calibration loop:
   fit the log of the timing on the log of each candidate divisor over the last runs (slope near 1 cancels the host), put
   the limit between the highest share seen and twice the lowest, and test the checker on made-up reports of every kind

@@ -385,8 +385,7 @@ func facing() -> Vector3:
 	if chest == null or pelvis == null or model == null or model.skeleton() == null:
 		return Vector3.BACK
 	var skeleton := model.skeleton()
-	# The chest's forward now: the model's forward (+Z) turned the way the chest body turned from
-	# its rest place.
+	# The chest's forward: the model's forward (+Z) turned as the chest body turned from its rest.
 	var rest := skeleton.global_basis * rest_body(&"spine_03").basis
 	var forward := chest.global_basis * rest.inverse() * (skeleton.global_basis * Vector3.BACK)
 	var flat := Vector3(forward.x, 0.0, forward.z)
@@ -500,6 +499,7 @@ func _release() -> bool:
 	spare.fit = _set_key()
 	spare.detach(_ignored)
 	pool.park(spare)
+	_drawing = RagdollDrawing.drop(_drawing)
 	_simulator = null
 	_bones = {}
 	_posed = {}
