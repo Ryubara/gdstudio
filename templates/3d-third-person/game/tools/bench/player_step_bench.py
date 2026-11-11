@@ -1,9 +1,9 @@
 """What a character's physics tick costs in the web build: runs `tools/bench/player_step_bench.tscn` in headless Chrome.
 
-Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
-the preset's exclude filter), waits for `window.__player_step_bench`, and prints microseconds a body a tick for 1, 8
-and 40 bodies, by the input (the controller samples, the body steps) and by commands alone. The optional second
-argument is a CPU throttle (4 is the weak-machine stand-in).
+Serves a web export of the bench (`gds template bench-web 3d-third-person player_step_bench` makes it: kit
+docs/engines/godot/web-probes.md#bench-web), waits for `window.__player_step_bench`, and prints microseconds a body a
+tick for 1, 8 and 40 bodies, by the input (the controller samples, the body steps) and by commands alone. The optional
+second argument is a CPU throttle (4 is the weak-machine stand-in).
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/bench/player_step_bench.py build/web 4

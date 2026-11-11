@@ -5,16 +5,19 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import subprocess
 import sys
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
 from gds_tools import (
+    bench_web,
     brief,
     capture,
     disk,
     evals,
+    integrations,
     issues,
     layout,
     lessons,
@@ -77,7 +80,8 @@ def _cmd_capture_sheet(args: argparse.Namespace) -> int:
 
 def _cmd_capture_clip(args: argparse.Namespace) -> int:
     ffmpeg = workspace.tool_path("ffmpeg")
-    print(f"written: {capture.encode_clip(ffmpeg, Path(args.folder).resolve(), gif=args.gif)}")
+    clip = capture.encode_clip(ffmpeg, Path(args.folder).resolve(), gif=args.gif, max_seconds=args.max_seconds)
+    print(f"written: {clip}")
     return 0
 
 
@@ -288,6 +292,19 @@ def _cmd_template_game(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_template_bench_web(args: argparse.Namespace) -> int:
+    kit, root = _template_context()
+    return bench_web.run_bench_web(
+        kit,
+        root,
+        args.name,
+        args.scene,
+        run=args.run,
+        probe_args=template_test.split_args(args.probe_args),
+        keep=args.keep,
+    ).code
+
+
 def _cmd_template_clean(args: argparse.Namespace) -> int:
     folder = template_test.throwaway_of(Path(args.path))
     if not template_test.remove_throwaway(folder):
@@ -380,9 +397,30 @@ def _prepare_worktree(
                 ]
         except worktrees.WorktreeError as error:
             raise issues.IssueError(f"{repo}#{issue.number} was not started: {error}") from error
+        lines += _install_addons(root, made.path)
         return issues.Prepared(branch=made.branch, path=made.path.as_posix(), lines=lines, undo=undo)
 
     return prepare
+
+
+def _install_addons(root: Path, tree: Path) -> list[str]:
+    """The pinned Godot addons (GdUnit4, the MCP addon) installed into the Godot project of a worktree `gds issue start`
+    made or reused, untracked as `gds workspace init` installs them (docs/studio/workspace.md#integrations); the lines
+    say what was done. A failure here only says so: the worktree is made, and `gds workspace init` installs them too."""
+    projects = integrations.checkout_projects(tree)
+    if not projects:
+        return []
+    done: list[str] = []
+    try:
+        kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+        missing = integrations.install_pinned_addons(
+            load_tools(kit / "tools.toml").values(), root / "tools", projects, done.append
+        )
+    except (ManifestError, OSError, subprocess.CalledProcessError) as error:
+        return [f"addons: not installed ({error}); run `gds workspace init`"]
+    if missing:
+        done.append(f"addons: {', '.join(missing)} not fetched; run `gds workspace init` to fetch and install them")
+    return done
 
 
 def _cmd_issue_start(args: argparse.Namespace) -> int:
@@ -693,6 +731,12 @@ def build_parser() -> argparse.ArgumentParser:
     clip = cap.add_parser("clip", help="encode a folder's frames to an MP4 (or GIF) small enough for GitHub")
     clip.add_argument("folder")
     clip.add_argument("--gif", action="store_true", help="make a GIF instead of an MP4")
+    clip.add_argument(
+        "--max-seconds",
+        type=float,
+        default=capture.CLIP_MAX_SECONDS,
+        help=f"cut the clip after this many seconds (default {capture.CLIP_MAX_SECONDS:g}); it still has to fit 9 MB",
+    )
     clip.set_defaults(func=_cmd_capture_clip)
 
     syn = sub.add_parser(
@@ -779,6 +823,24 @@ def build_parser() -> argparse.ArgumentParser:
     tpl_game = tpl.add_parser("game", help="the same game, imported and kept for captures and probes; prints its path")
     tpl_game.add_argument("name", help="a template of the kit's templates/")
     tpl_game.set_defaults(func=_cmd_template_game)
+    tpl_bench = tpl.add_parser(
+        "bench-web",
+        help="export a bench scene of the template to the web in a throwaway game (the bench as the main scene, "
+        "tools/* in the Web pack) and print the build's folder; --run reads it with the bench's probe under gds quiet "
+        "(docs/engines/godot/web-probes.md#bench-web)",
+    )
+    tpl_bench.add_argument("name", help="a template of the kit's templates/")
+    tpl_bench.add_argument(
+        "scene", help="the bench: its name (`nav_cost_bench`), `tools/bench/<name>.tscn` or its res:// path"
+    )
+    tpl_bench.add_argument(
+        "--run", action="store_true", help="run the bench's probe (<name>.py beside it) on the build, then remove it"
+    )
+    tpl_bench.add_argument(
+        "--probe-args", help="more arguments for the probe after the build folder, in one string (`--probe-args=4`)"
+    )
+    tpl_bench.add_argument("--keep", action="store_true", help="with --run: keep the game and its build")
+    tpl_bench.set_defaults(func=_cmd_template_bench_web)
     tpl_clean = tpl.add_parser("clean", help="remove a workspace made by `template test --keep` or `template game`")
     tpl_clean.add_argument("path", help="the game's path or its workspace folder")
     tpl_clean.set_defaults(func=_cmd_template_clean)

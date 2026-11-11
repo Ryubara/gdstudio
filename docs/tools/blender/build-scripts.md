@@ -64,6 +64,11 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
 
 ## Checks in the build {#checks}
 
+A clip build also checks that limbs do not pass through each other: `limb_overlap.py`
+(`templates/3d-third-person/game/assets/animation/`, from kit #1016 and #1020) measures, on every frame and on each
+mannequin's skinned mesh, how deep any body part is inside another, and a build calls its `measure()` on the baked
+actions before it exports (its header has the command line and the limit).
+
 - **Approach:** Make a build script fail on its triangle budget and on its lowest vertex before it exports, read the
   count on the first build, and chamfer only what is big and seen: parts under about 0.2 m on an asset seen from afar
   are plain boxes. Lift a part pitched about its centre by half its length times the sine of the pitch plus half its
@@ -89,3 +94,7 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
   sits between them (`world[:, joints, :3, 3]` is joint by frame, not frame by joint), so the first audit read a
   906 mm seam on every closed loop, the pelvis's height. **Seen:** gdstudio #1150, 2026-11-11 (fix:
   `world[:, joints][:, :, :3, 3]` in `audit_clips.py`).
+- **Approach:** Compare two poses in a check by matrix distance (the largest difference of the two matrices' entries,
+  or of their axes) with a limit in millimetres, not by the angle from `acos` of a dot product. **Watch out for:**
+  `mathutils` is single precision, so an arc cosine of a dot product near 1 reads 0.04 to 0.09 degrees between two
+  poses that are the same, and a pose-gap check failed on noise. **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.
