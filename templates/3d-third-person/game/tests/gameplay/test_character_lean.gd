@@ -171,3 +171,35 @@ func test_only_an_ais_controller_asks_for_the_lean_tick() -> void:
 	var ai: AiCharacter = auto_free(load(AI).instantiate())
 	assert_bool(ai.controller.lean_step).is_true()
 	assert_bool(auto_free(AiController.new()).lean_step).is_true()
+
+
+func test_the_ai_controller_gives_the_command_its_channels_say_on_every_call() -> void:
+	var controller: AiController = auto_free(AiController.new())
+	controller.walk_direction = Vector3.FORWARD
+	var first := controller.sample().clone()
+	# Unchanged channels: the same command again.
+	var again := controller.sample()
+	assert_vector(again.move).is_equal(first.move)
+	assert_float(again.yaw).is_equal(first.yaw)
+	# Each channel that changes is in the next command.
+	controller.walk_strength = 0.5
+	assert_float(controller.sample().move.length()).is_equal_approx(0.5, 0.0001)
+	controller.walk_direction = Vector3.RIGHT
+	var right := controller.sample()
+	assert_vector(right.world_move()).is_equal_approx(Vector3.RIGHT * 0.5, Vector3.ONE * 0.0001)
+	controller.look_direction = Vector3.LEFT
+	assert_float(controller.sample().yaw).is_equal_approx(PI / 2.0, 0.0001)
+	controller.aim = true
+	assert_bool(controller.sample().aim).is_true()
+	# A fire that starts is a press in exactly one command, then held.
+	controller.fire = true
+	var presses := 0
+	for _call in 4:
+		var command := controller.sample()
+		assert_bool(command.fire).is_true()
+		presses += 1 if command.fire_pressed else 0
+	assert_int(presses).is_equal(1)
+	controller.release()
+	var still := controller.sample()
+	assert_bool(still.fire or still.aim or still.fire_pressed).is_false()
+	assert_vector(still.move).is_equal(Vector2.ZERO)

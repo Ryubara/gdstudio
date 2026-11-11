@@ -86,7 +86,7 @@ static func move(body: Character, delta: float) -> void:
 	body._wants_crouch = false
 	var wish := body._wish_direction()
 	_steer(body, wish, delta)
-	body._vertical(delta)
+	_vertical(body)
 	body._climb(delta)
 	var before := body.velocity
 	var ticks := roundf(delta / body.get_physics_process_delta_time())
@@ -131,6 +131,19 @@ static func _steer(body: Character, wish: Vector3, delta: float) -> void:
 			body.facing, atan2(wish.x, wish.z), clampf(tuning.turn_speed * delta, 0.0, 1.0)
 		)
 		body._present_facing()
+
+
+# `Character._vertical()` on the ground with no jump asked for or held: no gravity, no take-off.
+static func _vertical(body: Character) -> void:
+	if body.velocity.y < 0.0:
+		body.velocity.y = 0.0
+	if body._jump_held and body.velocity.y > 0.0:
+		var tuning := body.tuning
+		body.velocity.y = minf(body.velocity.y, tuning.jump_speed() * tuning.short_jump_scale)
+		body._jump_held = false
+	if body.velocity.y <= 0.0:
+		body._jump_held = false
+	body.floor_snap_length = body.tuning.snap_length if body.velocity.y <= 0.0 else 0.0
 
 
 # `Character._after_move()` and `_pick_state()` for a body that did not just land, with nothing
