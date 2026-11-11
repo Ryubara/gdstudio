@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 from git_seed import slim
+from hook_support import patch
 
 pytest.importorskip("yaml")
 
@@ -256,7 +257,7 @@ def test_one_body_read_serves_both_checks(workspace, monkeypatch):
     """`--attach` and the description rules read the body once and both can refuse it in the same answer."""
     reads = []
     real = guards.body_of
-    monkeypatch.setattr(guards, "body_of", lambda *args: reads.append(1) or real(*args))
+    patch(monkeypatch, "body_of", lambda *args: reads.append(1) or real(*args))
     body = BODIES / "none-without-reason.txt"
     reason = denied(shell(f"gh pr edit 7 --body-file {body} --attach {workspace['root']}/after.png", workspace["kit"]))
     assert REASON_NONE in reason and "has no reference" in reason

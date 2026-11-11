@@ -5,9 +5,11 @@ extends Node
 ## second: `state` (`connecting`, `seated`, `refused version`, `closed`...) and `report`, a JSON
 ## line of `NetPlayReport` (round trip, corrections, the gap between the body and the server's
 ## point) with `players` (the puppets and this one), the overlay's `message`, the frame time's
-## median and 95th percentile over the last `WINDOW_FRAMES` frames, and the CPU time of a frame's
-## processing and physics. On the desktop `-- --onlineprobe` prints the same line once a second,
-## starting `ONLINE_PROBE`, so the browser and a native client are measured alike. It does nothing
+## median and 95th percentile over the last `WINDOW_FRAMES` frames, the CPU time of a frame's
+## processing and physics, `seated_ms` (milliseconds from the engine's start to the WELCOME, -1
+## before it) and `rejoined` (new sockets after a late hello, `NetClient.rejoins`). On the
+## desktop `-- --onlineprobe` prints the same line once a second, starting `ONLINE_PROBE`, so the
+## browser and a native client are measured alike. It does nothing
 ## without the flag, so a player pays for nothing; `OnlineMain` adds it at run time, so no scene
 ## ships it.
 
@@ -29,6 +31,7 @@ var _since := 0.0
 var _frame_us := PackedInt32Array()
 var _puppet_us := PackedInt32Array()
 var _last_frame := 0
+var _seated_ms := -1
 
 
 ## True on a web page opened with `?onlineprobe`, or a desktop game started with `--onlineprobe`.
@@ -65,7 +68,7 @@ func _ready() -> void:
 		_object.report = "{}"
 	_set_state("connecting")
 	client.keep_frame_times = true
-	client.welcomed.connect(func(_slot: int) -> void: _set_state("seated"))
+	client.welcomed.connect(_on_welcomed)
 	client.refused.connect(_on_refused)
 	client.disconnected.connect(_on_disconnected)
 
@@ -98,6 +101,8 @@ func report() -> Dictionary:
 	line["fps"] = Engine.get_frames_per_second()
 	line["frame_us_p50"] = NetPlayReport.percentile(_frame_us, 0.5)
 	line["frame_us_p95"] = NetPlayReport.percentile(_frame_us, 0.95)
+	line["seated_ms"] = _seated_ms
+	line["rejoined"] = client.rejoined
 	line["process_ms"] = snappedf(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 0.01)
 	line["physics_ms"] = snappedf(
 		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0, 0.01
@@ -120,6 +125,11 @@ func _set_state(value: String) -> void:
 	state = value
 	if _object != null:
 		_object.state = value
+
+
+func _on_welcomed(_slot: int) -> void:
+	_seated_ms = Time.get_ticks_msec()
+	_set_state("seated")
 
 
 func _on_refused(reason: int) -> void:

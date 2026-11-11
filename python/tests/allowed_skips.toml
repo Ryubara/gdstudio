@@ -80,3 +80,8 @@ reason = "the eval tests run the pinned Godot with GdUnit4, which only the Windo
 test = "test_evals.py::test_the_arena_probe_runs_on_the_bare_template_and_reports_a_missing_arena"
 platforms = ["linux", "darwin"]
 reason = "the eval tests run the pinned Godot with GdUnit4, which only the Windows runner of the test job fetches (the download is the cost; the run is the same on every platform)"
+
+[[skip]]
+test = "test_uids.py::test_godot_imports_the_written_files_without_rewriting_them"
+platforms = ["linux", "darwin"]
+reason = "it runs the pinned Godot, which only the Windows runner of the test job fetches (the import is the same on every platform)"

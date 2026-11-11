@@ -5,7 +5,7 @@ there. `check_body` runs the same function, from the checkout of the repository 
 repository has its own `.github/conventions.yml` (a game's differs from the kit's), so the checker is run with that
 folder as its working directory and that file as its conventions, and the repository's own copy of `groundwork.py` is
 preferred over the kit's. Used by `gds pr check-body` and, loaded by file, by the Git/GitHub guard in
-`.claude/hooks/guards.py`, so this module uses the standard library only.
+`.claude/hooks/guards/bodies.py`, so this module uses the standard library only.
 """
 
 from __future__ import annotations
@@ -139,7 +139,7 @@ def _run_checker(repo: Path, checker: Path, arguments: list[str]) -> BodyCheck:
 
 
 #: Where `gh --attach` puts an upload (`github.com/user-attachments/...`); a stand-in for the check, never sent. The
-#: guard in `.claude/hooks/guards.py` keeps its own copy of this and of `as_uploaded` (a test keeps them equal).
+#: guard in `.claude/hooks/guards/bodies.py` keeps its own copy of this and of `as_uploaded` (a test keeps them equal).
 UPLOAD_STAND_IN = "https://github.com/user-attachments/assets/00000000-0000-0000-0000-000000000000"
 _MARKDOWN_TARGET = re.compile(r"\]\(\s*([^)\s]+)\s*\)")
 _DRIVE_PATH = re.compile(r"^[A-Za-z]:/")
