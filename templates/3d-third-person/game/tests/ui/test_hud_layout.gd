@@ -121,7 +121,7 @@ func test_every_part_is_on_screen_and_clear_of_the_others_at_phone_and_desktop_s
 		await get_tree().process_frame
 		var view := _hud.get_viewport().get_visible_rect()
 		var parts := _visible_parts()
-		assert_int(parts.size()).is_equal(3)
+		assert_int(parts.size()).is_equal(5)
 		for first in parts.size():
 			assert_bool(view.encloses(_canvas_rect(parts[first]))).is_true()
 			for second in range(first + 1, parts.size()):
@@ -133,6 +133,57 @@ func test_every_part_is_on_screen_and_clear_of_the_others_at_phone_and_desktop_s
 		assert_vector(_canvas_rect(crosshair).get_center()).is_equal_approx(
 			view.size / 2.0, Vector2.ONE * 0.6
 		)
+
+
+# Every place of the weapon slots and the hotbar is at least a fingertip (44 CSS pixels) on a phone
+# with the touch layer up, the slots go under the stick's resting ring and the hotbar under the
+# health card (the bottom middle is too narrow between the thumbs on a 16:9 phone), and the places
+# stand in one row each, in order.
+func test_the_places_are_a_fingertip_on_a_phone_and_leave_the_thumbs_corner() -> void:
+	var touch: TouchControls = _scene.get_node("PlayerRig/TouchControls")
+	var slots: HudWeaponSlots = _region(&"BottomRight").get_node("HudWeaponSlots")
+	var hotbar: HudHotbar = _region(&"BottomCenter").get_node("HudHotbar")
+	touch.show_mode = TouchControls.ShowMode.ALWAYS
+	touch._set_shown(true)
+	assert_object(slots.get_parent()).is_same(_region(&"BottomLeft"))
+	assert_object(hotbar.get_parent()).is_same(_region(&"TopLeft"))
+	for window in [Vector2i(844, 390), Vector2i(667, 375)]:
+		get_tree().root.size = window
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var css_per_canvas := _hud.css_height() / _hud.get_viewport().get_visible_rect().size.y
+		var cells: Array[HudSlot] = slots.cells()
+		cells.append_array(hotbar.cells())
+		assert_int(cells.size()).is_equal(6)
+		for cell in cells:
+			var css := _canvas_rect(cell).size * css_per_canvas
+			assert_float(minf(css.x, css.y)).is_greater_equal(44.0)
+		for row: HudSlotRow in [slots, hotbar]:
+			var places := row.cells()
+			for index in range(1, places.size()):
+				var left_rect := _canvas_rect(places[index - 1])
+				var right_rect := _canvas_rect(places[index])
+				assert_float(right_rect.position.x).is_greater_equal(left_rect.end.x)
+				assert_float(right_rect.position.y).is_equal_approx(left_rect.position.y, 0.5)
+	touch.show_mode = TouchControls.ShowMode.NEVER
+	touch._set_shown(false)
+	assert_object(slots.get_parent()).is_same(_region(&"BottomRight"))
+	assert_object(hotbar.get_parent()).is_same(_region(&"BottomCenter"))
+
+
+# Under the ammo card, so the card coming and going (the fists have none) never moves the slots.
+func test_the_weapon_slots_stand_under_the_ammo_card_on_a_desktop() -> void:
+	_feed_the_parts()
+	var slots: HudWeaponSlots = _region(&"BottomRight").get_node("HudWeaponSlots")
+	var ammo: HudStat = _region(&"BottomRight").get_node("HudAmmo")
+	for window in [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1440)]:
+		get_tree().root.size = window
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var slot_rect := _canvas_rect(slots.cells()[1])
+		var ammo_rect := _canvas_rect(ammo)
+		assert_float(slot_rect.position.y).is_greater_equal(ammo_rect.end.y)
+		assert_float(slot_rect.end.x).is_equal_approx(ammo_rect.end.x, 1.0)
 
 
 func test_the_touch_controls_move_the_bottom_parts_to_the_top_and_back() -> void:
@@ -150,6 +201,10 @@ func test_the_touch_controls_move_the_bottom_parts_to_the_top_and_back() -> void
 	assert_bool(_hud.touch_layout).is_true()
 	assert_object(health.get_parent()).is_same(_region(&"TopLeft"))
 	assert_object(ammo.get_parent()).is_same(_region(&"TopRight"))
+	# Moved, a part still follows its data: the health it shows follows a hit.
+	var subject: HudSubject = health.player
+	subject.set_health(40.0)
+	assert_str(health.value_label.text).is_equal("40 / 100")
 	event.pressed = false
 	touch._input(event)
 	touch.show_mode = TouchControls.ShowMode.NEVER
@@ -177,7 +232,7 @@ func test_no_part_is_under_a_touch_button_or_the_resting_stick_on_a_phone() -> v
 			)
 		var ring := touch.stick_radius
 		blocked.append(Rect2(touch.stick_home() - Vector2.ONE * ring, Vector2.ONE * ring * 2.0))
-		assert_int(_visible_parts().size()).is_equal(3)
+		assert_int(_visible_parts().size()).is_equal(5)
 		for part in _visible_parts():
 			for rect in blocked:
 				assert_bool(_canvas_rect(part).intersects(rect)).is_false()

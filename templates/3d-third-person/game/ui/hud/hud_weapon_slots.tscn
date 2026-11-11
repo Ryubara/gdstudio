@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/hud/hud_weapon_slots.gd" id="1_slots"]
+
+[node name="HudWeaponSlots" type="PanelContainer" node_paths=PackedStringArray("row")]
+size_flags_horizontal = 8
+mouse_filter = 2
+theme_type_variation = &"HudBare"
+script = ExtResource("1_slots")
+touch_region = "BottomLeft"
+row = NodePath("Row")
+
+[node name="Row" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 8
+mouse_filter = 2
+theme_override_constants/separation = 8
