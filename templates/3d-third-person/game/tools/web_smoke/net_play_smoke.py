@@ -8,8 +8,9 @@ does not touch WebSockets), serves the exported game (`build/web`) and opens it 
 circles, and writes what it measured to `window.gdnet`. The page's main thread is frozen (a busy loop, the freeze a
 player gets) for 0.5, 2 and 5 s at 8, 16 and 24 s; at 30 s the body stands, and two seconds later the report is
 judged with the native gate's thresholds (`tools/net/bad_network.py`): no body lost, a snap for the join and for each
-freeze, worst error under 8 m (one answer past 6 m), settled under 5 cm, corrections and starved puppets within what the network allows, no
-`Buffer payload full` or other console error, nobody kicked and no ERROR in the server's log.
+freeze, worst error under 6 m a stall (hitches closer than a round trip add up), settled under 5 cm, corrections and
+starved puppets within what the network allows, no `Buffer payload full` or other console error, nobody kicked and no
+ERROR in the server's log.
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/web_smoke/net_play_smoke.py build/web build/net_play \\
@@ -178,7 +179,6 @@ def main() -> int:
         stalls_up=relay.stalls_up if relay else 0,
         stalls_down=relay.stalls_down if relay else 0,
         real=bool(args.url) and relay is None,
-        page=True,
     )
     fps = result["client"].get("fps", 0)
     verdict.check(
