@@ -46,6 +46,7 @@ def looked(monkeypatch):
         return str(target) == "7"
 
     monkeypatch.setattr(guards, "held", fake)
+    monkeypatch.setattr(guards, "behind", lambda target, repo, cwd: ({"behind_by": 0}, ""))  # the other guard's job
     return asked
 
 
