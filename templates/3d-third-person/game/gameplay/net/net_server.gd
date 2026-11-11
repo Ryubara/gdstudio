@@ -100,6 +100,7 @@ var _by_slot: Dictionary[int, PeerSlot] = {}
 var _stats_at := 0.0
 var _stats_bytes := 0
 var _stats_steps := PackedFloat32Array()
+var _process := ProcessStats.new()
 
 
 func _ready() -> void:
@@ -129,6 +130,9 @@ func _ready() -> void:
 			"players_max": max_players,
 			"tick_hz": Engine.physics_ticks_per_second,
 			"version": NetWire.VERSION,
+			# The host, since step times differ from one host to the next (kit railway.md#skew).
+			"cpu": OS.get_processor_name(),
+			"cores": OS.get_processor_count(),
 		}
 	)
 
@@ -470,21 +474,21 @@ func _log_stats() -> void:
 	for ms in sorted:
 		over += 1 if ms > STEP_BUDGET_MS else 0
 	var seconds := STATS_SECONDS + now - _stats_at
-	_log(
-		"stats",
-		{
-			"players": _by_slot.size(),
-			"tick": server_tick,
-			"out_bytes_per_s": roundi((listener.bytes_out - _stats_bytes) / seconds),
-			"step_ms_p50": snappedf(percentile(sorted, 0.5), 0.001),
-			"step_ms_p95": snappedf(percentile(sorted, 0.95), 0.001),
-			"steps_over_budget": over,
-			"peers_stalled": stalled,
-			"steps_held": held,
-			"steps_repeated": repeated,
-			"kicked": kicked,
-		}
-	)
+	var fields := {
+		"players": _by_slot.size(),
+		"tick": server_tick,
+		"out_bytes_per_s": roundi((listener.bytes_out - _stats_bytes) / seconds),
+		"step_ms_p50": snappedf(percentile(sorted, 0.5), 0.001),
+		"step_ms_p95": snappedf(percentile(sorted, 0.95), 0.001),
+		"steps_over_budget": over,
+		"peers_stalled": stalled,
+		"steps_held": held,
+		"steps_repeated": repeated,
+		"kicked": kicked,
+	}
+	# The process's resident memory and processor share (Linux only: the image, Railway).
+	fields.merge(_process.sample())
+	_log("stats", fields)
 	_stats_at = now + STATS_SECONDS
 	_stats_bytes = listener.bytes_out
 	_stats_steps.clear()

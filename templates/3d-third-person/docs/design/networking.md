@@ -61,6 +61,27 @@ The offline game (`main.tscn`) has no client yet: the online entry of the menu a
 `NetClient` `player`, `remote_players`, `world_root`, `join_on_ready`, `player_name`, `spawn_group`, `spawn_seed`;
 `RemotePlayers` `puppet_scene`, `delay`.
 
+## The server image
+
+`server/` (beside `game/`) runs the server in a container and deploys it:
+
+- `server/stage.sh <folder>` makes the build context: the `Dockerfile`, `railway.toml` and `game/` without the tests,
+  the tools and the import cache. `docker build -t game-server <folder>`, then
+  `docker run --rm -e PORT=8910 -p 8910:8910 game-server`.
+- The image is debian-slim with the Godot version the kit pins, imports the project at build time, and runs
+  `godot --headless --path /app -- --server` as the user `game` under `tini`, on `$PORT`. It speaks plain `ws://`:
+  the platform in front of it (Railway) ends TLS, so players connect with `wss://`.
+- `server/deploy.sh <service>` uploads it to a Railway service and waits until it is live. Run it from a folder linked
+  to the Railway project (`railway link`), never from the game's checkout. Deploy the web build and the server from one
+  commit: a client of another protocol version is refused at its hello.
+- `server/check.sh <url> [bots] [seconds]` plays bots against a server (`ws://127.0.0.1:8910` for the image,
+  `wss://<service>.up.railway.app` for a deployment) and fails when one is not welcomed or loses its connection, then
+  checks that a client of an older version is refused.
+
+On Linux the server's `stats` line also carries its memory (`rss_mb`, `anon_mb`) and its share of a core
+(`cpu_pct`). What it costs, measured, is in the kit's `docs/engines/godot/third-person/game-server.md` (The server
+image).
+
 ## Trying it
 
 - `game/tools/net/echo_server.gd` is a bare server that answers every packet; `game/tools/net/relay.py` adds a delay
