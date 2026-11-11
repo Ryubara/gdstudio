@@ -34,6 +34,14 @@ slide, the ragdoll and touch controls. Part of [the 3D Third Person template](..
   `_Loop` suffix and leaves the clip unlooped, which the importer's scene step would have fixed; a clip count
   asserted in a test (`ALL.size()`) moves with every clip added. **Seen:** gdstudio #1154, 2026-11-11
   (`tools/capture/own_clips_review.gd`).
+- **Approach:** When a `CharacterClips` constant moves to another library, grep for every table that lists libraries
+  by name (`grep -rn LIBRARIES`, `universal/ual1`: `tests/fixtures/hold_stage.gd`, `pistol_clearance.gd`,
+  `tools/ragdoll/measure_joints.gd`) and add the library, then run the weapon and hold suites (`test_weapon*.gd`,
+  `test_pistol_hold.gd`, `test_pistol_clearance.gd`, `test_aim_brace.gd`) before the full run. **Watch out for:** a
+  fixture that builds its own `AnimationPlayer` knows only the libraries its table names, so the moved clip is
+  missing there and nowhere else; and every upper-body layer rides the pelvis of the clip under it, so a new idle
+  turned the aim 13 degrees and moved the muzzle 0.22 m ([the aim](shooting.md#crouch-aim-shoot)). **Seen:** gdstudio #1154,
+  2026-11-11 (16 cases red in the full run after only the two touched suites were run).
 - The Pro and Source tiers of the packs are not free; the template holds the Standard files only (43 clips each, 86 in
   all). Their licence is CC0 on the official pages (itch.io and quaternius.com) and in each zip's `License.txt`.
   A download needs the itch.io page's free "name your own price" path (a CSRF token, then `download_url`, then
