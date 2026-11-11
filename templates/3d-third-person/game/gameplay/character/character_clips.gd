@@ -1,9 +1,10 @@
 class_name CharacterClips
 extends RefCounted
 ## The names of every clip the character can play: the Universal Animation Library 1 and 2
-## (Quaternius, CC0), both added to the player's `AnimationPlayer` as the libraries `ual1` and
-## `ual2`, so a clip is `ual1/Idle`. The library's looping clips lose their `_Loop` suffix on
-## import (`Idle_Loop` is `Idle`) and loop.
+## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
+## `ual2`, so a clip is `ual1/Idle`, and the template's own prone and crawl clips (gdstudio
+## #1009, `assets/animation/prone/`), the library `prone`. The looping clips lose their `_Loop`
+## suffix on import (`Idle_Loop` is `Idle`) and loop.
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
 ## `player_animation.play_clip(CharacterClips.SWORD_ATTACK)`. The constants below are the clips
@@ -12,6 +13,7 @@ extends RefCounted
 
 const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
+const LIBRARY_PRONE := &"prone"
 
 # Locomotion and the clips the player's states use.
 const IDLE := &"ual1/Idle"
@@ -52,8 +54,13 @@ const SLIDE_START := &"ual2/Slide_Start"
 const SLIDE_EXIT := &"ual2/Slide_Exit"
 const CARRY_WALK := &"ual2/Walk_Carry"
 const THROW := &"ual2/OverhandThrow"
+# Lying down and crawling: the template's own clips.
+const PRONE_IDLE := &"prone/Prone_Idle"
+const CRAWL := &"prone/Crawl_Fwd"
+const TO_PRONE := &"prone/Crouch_To_Prone"
+const TO_CROUCH := &"prone/Prone_To_Crouch"
 
-## Every clip of both libraries, with its library.
+## Every clip of the three libraries, with its library.
 const ALL: Array[StringName] = [
 	&"ual1/A_TPose",
 	&"ual1/Crouch_Fwd",
@@ -141,4 +148,8 @@ const ALL: Array[StringName] = [
 	&"ual2/Zombie_Idle",
 	&"ual2/Zombie_Scratch",
 	&"ual2/Zombie_Walk_Fwd",
+	&"prone/Crawl_Fwd",
+	&"prone/Crouch_To_Prone",
+	&"prone/Prone_Idle",
+	&"prone/Prone_To_Crouch",
 ]
