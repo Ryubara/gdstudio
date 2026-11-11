@@ -66,7 +66,8 @@ def main() -> int:
                 f" director step {row['step_mean_us']:>8.1f} us; queries a tick {row['queries_mean_a_tick']:.2f}"
                 f" (most {row['queries_most_a_tick']} of {row['paths_per_tick']}); each"
                 f" {row['queries_each_a_second']:.2f}/s (limit {row['repath_limit_a_second']:g});"
-                f" tiers {row['full']}/{row['reduced']}/{row['dormant']}"
+                f" tiers {row['full']}/{row['reduced']}/{row['dormant']};"
+                f" walking {row['walking_share']:.2f}, arrived {row['arrivals']}, failed {row['failures']}"
             )
     for line in failed:
         print("FAIL", line)

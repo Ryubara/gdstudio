@@ -5,11 +5,17 @@ extends Node
 ## arriving, to the next (seeded), under the level's `AiDirector` with its shipped defaults.
 ##
 ## For each count it reads, over `FRAMES` frames, the navigators' own work a physics tick
-## (`AiNavigator.spent_usec`: the queries on their timer, the steering, the body-ray checks),
-## the director's whole step beside it (the bodies too), the path queries a tick (the most and the
-## mean, against the budget) and the queries each navigator made against `repath_seconds`. The
-## navigators' work is a sum of one clock read a navigator a tick: the browser's clock is coarse
-## (100 µs in Chrome without cross-origin isolation), so the web figure is the less sure one.
+## (the queries on their timer, the steering, the body-ray checks), the director's step beside it
+## (the bodies, without the navigators), the path queries a tick (the most and the mean, against
+## the budget) and the queries each navigator made against `repath_seconds`.
+##
+## The navigators' work is one clock read a tick around a loop that steps only navigators (kit
+## #1062): with `AiNavigator.holding` on, the director's steps only note each navigator's seconds,
+## and at the start of the next tick, before the director, `AiNavigator.step_held()` steps them
+## all. A navigator sees its body where its last step left it, as it would in the director's
+## step. The browser's clock is coarse (100 µs in Chrome without cross-origin isolation), so a
+## sum of one read a navigator, as #967 read it, is no measure there; a read around the loop of
+## hundreds of microseconds is.
 ##
 ## One line of JSON, `NAV_COST_BENCH {...}`. Desktop:
 ## `godot --headless --fixed-fps 60 --path game res://tools/bench/nav_cost_bench.tscn`; browser:
@@ -39,10 +45,16 @@ var _steps: Array[float] = []
 var _queries: Array[int] = []
 var _last_queries := 0
 var _boxes: Array[Rect2i] = []
+var _stepping := false
+var _region: NavigationRegion3D
+var _arrivals := 0
+var _failures := 0
+var _held_spent := 0.0
 
 
 func _ready() -> void:
 	_rng.seed = 967
+	process_physics_priority = -1000
 	var camera := Camera3D.new()
 	camera.position = Vector3(0.0, 70.0, 70.0)
 	camera.rotation.x = deg_to_rad(-45.0)
@@ -77,12 +89,19 @@ func _new_crowd(count: int) -> void:
 	_director.web_cap = COUNTS.max()
 	_director.desktop_cap = COUNTS.max()
 	_arena.add_child(_director)
+	# Wait for this map's own region by its RID: an empty map answers every closest point with
+	# the origin, and the last count's region stays in the map until its next iteration.
 	var map := _arena.get_world_3d().navigation_map
+	var settled := false
 	for _frame in 300:
 		if NavigationServer3D.map_get_iteration_id(map) > 0:
-			if NavigationServer3D.map_get_closest_point(map, Vector3(1, 0, 1)).y > -1.0:
+			var nearest := NavigationServer3D.map_get_closest_point_owner(map, Vector3(1, 0, 1))
+			if nearest == _region.get_rid() and NavigationServer3D.map_get_regions(map).size() == 1:
+				settled = true
 				break
 		await get_tree().physics_frame
+	if not settled:
+		push_error("nav_cost_bench: the map never took its mesh")
 	_navigators.clear()
 	var scene := load(CHARACTER) as PackedScene
 	for index in count:
@@ -91,7 +110,7 @@ func _new_crowd(count: int) -> void:
 		_arena.add_child(character)
 		var navigator := character.navigator as AiNavigator
 		navigator.arrived.connect(_on_arrived.bind(navigator))
-		navigator.failed.connect(func(_reason: int) -> void: _on_arrived(navigator))
+		navigator.failed.connect(_on_failed.bind(navigator))
 		_navigators.append(navigator)
 	await get_tree().physics_frame
 	for navigator in _navigators:
@@ -106,14 +125,19 @@ func _measure(count: int) -> Dictionary:
 	_queries.clear()
 	_last_queries = _total_queries()
 	var queries_before := _last_queries
-	AiNavigator.measuring = true
-	AiNavigator.spent_usec = 0
+	AiNavigator.holding = true
+	_stepping = true
 	get_tree().physics_frame.connect(_on_physics_frame)
 	var ticks_before := _director.tick
+	_arrivals = 0
+	_failures = 0
+	var walked_before := _walked_seconds()
 	for _frame in FRAMES:
 		await get_tree().process_frame
 	get_tree().physics_frame.disconnect(_on_physics_frame)
-	AiNavigator.measuring = false
+	_stepping = false
+	AiNavigator.holding = false
+	AiNavigator.step_held()
 	var ticks := _director.tick - ticks_before
 	var seconds := float(ticks) / Engine.physics_ticks_per_second
 	var spent := _mean(_spent)
@@ -125,6 +149,11 @@ func _measure(count: int) -> Dictionary:
 	var repath := (_navigators[0].character.profile as AiProfile).repath_seconds
 	return {
 		"characters": count,
+		"arrivals": _arrivals,
+		"failures": _failures,
+		# The share of the time the crowd walked with a goal (a commanded speed): 1 when every
+		# navigator walks every tick.
+		"walking_share": (_walked_seconds() - walked_before) / maxf(seconds * count, 0.001),
 		"polygons": polygons,
 		"nav_mean_us": spent,
 		"nav_us_each": spent / count,
@@ -140,10 +169,19 @@ func _measure(count: int) -> Dictionary:
 	}
 
 
+# Before the director (`process_physics_priority`): steps the navigators its last tick held.
+func _physics_process(_delta: float) -> void:
+	if not _stepping:
+		return
+	var start := Time.get_ticks_usec()
+	AiNavigator.step_held()
+	_held_spent = float(Time.get_ticks_usec() - start)
+
+
 func _on_physics_frame() -> void:
 	# The navigators' work and the director's step of the tick before this one.
-	_spent.append(float(AiNavigator.spent_usec))
-	AiNavigator.spent_usec = 0
+	_spent.append(_held_spent)
+	_held_spent = 0.0
 	_steps.append(float(_director.last_step_usec))
 	var total := _total_queries()
 	_queries.append(total - _last_queries)
@@ -151,7 +189,20 @@ func _on_physics_frame() -> void:
 
 
 func _on_arrived(navigator: AiNavigator) -> void:
+	_arrivals += 1
 	navigator.go_to.call_deferred(_open_point(), 0.6)
+
+
+func _on_failed(_reason: int, navigator: AiNavigator) -> void:
+	_failures += 1
+	navigator.go_to.call_deferred(_open_point(), 0.6)
+
+
+func _walked_seconds() -> float:
+	var total := 0.0
+	for navigator in _navigators:
+		total += navigator.watch.walking_seconds
+	return total
 
 
 func _total_queries() -> int:
@@ -188,6 +239,9 @@ func _open_point() -> Vector3:
 # baked mesh has a few large polygons, which is what a query's cost depends on).
 func _build_map() -> void:
 	_boxes.clear()
+	# Synchronous iterations from the start: the map takes the baked mesh at the next physics step
+	# (kit docs/engines/godot/navigation-in-tests.md, a thread-synced map drops meshes).
+	NavigationServer3D.map_set_use_async_iterations(_arena.get_world_3d().navigation_map, false)
 	for row in 4:
 		for column in 4:
 			var at := Vector2i(
@@ -195,6 +249,7 @@ func _build_map() -> void:
 			)
 			_boxes.append(Rect2i(at, Vector2i(BOX_CELLS, BOX_CELLS)))
 	var region := NavigationRegion3D.new()
+	_region = region
 	var mesh := NavigationMesh.new()
 	mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 	# The map's cells (0.25 m, 0.1 m high). A radius of 0.5 m warns that it is ceiled to the cells
