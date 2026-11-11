@@ -1,11 +1,12 @@
 ## Films the rifle's floating pickup and the rifle in the hands from the game camera, with the HUD:
 ## the rifle spinning over its glow, the character walking into it (the pickup sound, the rifle
-## brought out), the low ready, the aim, a long automatic burst at a target, the reload, a burst
-## from the hip, a switch to the pistol and back. It presses the input actions the way a player
+## brought out), the low ready, a walk, the aim, a long automatic burst at a target, the aim up
+## and down, the reload, a burst from the hip, a crouch and a crouched aim, a switch to the pistol
+## and back. It presses the input actions the way a player
 ## would, for the pull request's captures.
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
-## `gds capture frames --project game --scene res://tools/capture/rifle_tour.tscn --seconds 17
+## `gds capture frames --project game --scene res://tools/capture/rifle_tour.tscn --seconds 22
 ## --fps 20`
 ## `RIFLE_VIEW=side|top|front` (or `-- side` after Godot's own arguments, through `gds godot --
 ## --write-movie`) films close-ups of the hands instead (a camera beside the right hand, above
@@ -30,14 +31,18 @@ const STAGES: Array[Dictionary] = [
 	{"name": "walk in", "hold": [&"move_forward"], "seconds": 0.95},
 	{"name": "draw", "hold": [], "seconds": 1.2},
 	{"name": "low ready", "hold": [], "seconds": 1.0},
+	{"name": "walk", "hold": [&"move_forward"], "seconds": 1.2},
 	{"name": "aim", "hold": [&"aim"], "seconds": 0.8},
 	{"name": "burst", "hold": [&"aim", &"fire"], "seconds": 2.0},
 	{"name": "aim up", "hold": [&"aim"], "seconds": 1.2, "pitch": 30.0},
 	{"name": "aim down", "hold": [&"aim"], "seconds": 1.2, "pitch": -20.0},
 	{"name": "reload", "hold": [], "seconds": 2.8, "taps": {&"reload": [0.1]}},
 	{"name": "hip fire", "hold": [&"fire"], "seconds": 1.0},
-	{"name": "to the pistol", "hold": [], "seconds": 1.3, "taps": {&"previous_weapon": [0.1]}},
-	{"name": "back to the rifle", "hold": [], "seconds": 1.5, "taps": {&"next_weapon": [0.1]}},
+	{"name": "crouch", "hold": [], "seconds": 1.2, "taps": {&"crouch": [0.05]}},
+	{"name": "crouch, aim", "hold": [&"aim"], "seconds": 1.0},
+	{"name": "stand", "hold": [], "seconds": 0.9, "taps": {&"crouch": [0.05]}},
+	{"name": "to the pistol", "hold": [], "seconds": 1.5, "taps": {&"previous_weapon": [0.3]}},
+	{"name": "back to the rifle", "hold": [], "seconds": 1.7, "taps": {&"next_weapon": [0.3]}},
 ]
 ## The close-up views: where the camera is from the right hand, in the character's space (+Z its
 ## front, +X its left), and what it looks at from the hand.

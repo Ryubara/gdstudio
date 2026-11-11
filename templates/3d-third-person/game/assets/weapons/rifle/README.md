@@ -40,10 +40,11 @@ degrees (the hold study below).
 ## Holding it
 
 The game holds it with C and E below (kit #889): `gameplay/weapon/rifle_held.tscn`, a `TwoHandHold` under the
-character's `Model` slot, and `gameplay/pickup/rifle_pickup.tscn` gives it. The fingers still keep the clip's fist
-(measured in the game's pose: the right hand 22 mm into the grip, the left 15 mm into the hand guard), so the next step
-is solved fingers on `Grip`, `Trigger` and `Support`, as #1001 does for the pistol (#1036, measured with
-`tests/fixtures/hand_contact.gd`). The study below is how the hold was chosen.
+character's `Model` slot, and `gameplay/pickup/rifle_pickup.tscn` gives it. Both hands are closed on it: the right
+on the grip with the index finger along the receiver (on the trigger while the rifle is up), the left cupped under the
+hand guard, from places and finger poses that `tools/hold/solve_rifle_hold.py` solves on both mannequins' skins and
+`tests/gameplay/test_rifle_hold.gd` measures (the kit docs, `engines/godot/third-person/shooting.md#rifle-hands`). The
+study below is how the stance was chosen; its hands' targets and the engine's IK nodes are no longer what the game uses.
 
 ### The proposal
 
@@ -82,8 +83,7 @@ turns and the chest turn added 0.3 ms a frame on the desktop (2.1 to 2.4 ms of p
 with), about 8 microseconds a character; it is a cosmetic pose, computed on each machine from the aim pitch the game
 already has, and never sent over the network.
 
-What it does not do yet: the fingers keep the clip's fist (the left hand's fingers go into the 8 cm hand guard; a
-fingers pose for the support grip, or a solve like Deadnight's grips, is the next step), and the head stays beside the
-stock rather than on it. Rifle clips made in Blender on the universal rig (an idle, an aim with up and down, a shot, a
+What it does not do: the head stays beside the stock rather than on it. Rifle clips made in Blender on the universal
+rig (an idle, an aim with up and down, a shot, a
 reload) would give a better body motion than a chest turn, at the cost of animating them; the IK hold above is the
 start that the weapon work can ship with, and a clip can replace any part of it later.

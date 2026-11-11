@@ -4,27 +4,47 @@ extends Node3D
 ## How a character holds a long gun with both hands when the animation library has no clip for it
 ## (the Universal Animation Library has pistol clips only): the gun sits with its butt in the right
 ## shoulder's pocket, low and across the body at rest and at the shoulder along the view when the
-## character aims or shoots, the chest turns the left shoulder forward so the left arm reaches, and
-## a two-bone IK puts each hand on its marker on the gun. The legs and the head stay on the
-## locomotion clips. `two_hand_hold.tscn` is the part with no gun; the rifle's
-## `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and the hands' targets under
+## character aims or shoots, the chest turns the left shoulder forward so the left arm reaches, each
+## arm reaches its hand's place on the gun, and the fingers close on it: the right hand on the
+## pistol grip with the index finger along the receiver (on the trigger while the gun is up), the
+## left hand cupped under the hand guard. Both hands stay on the gun in every state; only a reload
+## takes the left hand away, to the magazine and the belt and back. The legs and the head stay on
+## the locomotion clips. `two_hand_hold.tscn` is the part with no gun; the rifle's
+## `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and the hands' places under
 ## `Pivot`.
 ##
 ## The parts a person tunes are scene nodes: `Pivot` (the shoulder's pocket, which this node moves
-## and turns), the gun under it, the hands' targets on the gun (`RightHandTarget`,
-## `LeftHandTarget`: move one to move the hand) and the elbows' pole markers (`RightPole`,
-## `LeftPole`, in the model's space). The engine's modifiers that bend the arms are made at run
-## time on the model's skeleton (they belong to whatever model the `CharacterModel` slot holds):
-## the stance (`TwoHandStance`: places the pocket, turns the chest), then per arm a `TwoBoneIK3D`
-## and a `CopyTransformModifier3D` that turns the hand to its target.
+## and turns), the gun under it, the hands' places on the gun (`RightHandTarget`,
+## `LeftHandTarget` and `MagazineHand`, where each hand's bone sits: written with the finger poses
+## by `tools/hold/solve_rifle_hold.py`, so the skin meets the gun) and the elbows' pole markers
+## (`RightPole`, `LeftPole`, in the model's space). The modifiers that bend the arms and close the
+## fingers are made at run time on the model's skeleton (they belong to whatever model the
+## `CharacterModel` slot holds): the stance (`TwoHandStance`: places the pocket, turns the chest,
+## hands each arm its place of this update), a `HoldArm` per arm and a `HandPoseModifier` per hand.
+##
+## A switch is one sequence with the loadout's own times. Going away, the gun goes down to its
+## `stow` place with both hands on it and is hidden there, in the tick the next weapon appears in
+## the right hand, and the arms go from the gun's places to the next weapon's pose while that one
+## comes up. Coming out, the arms go to the stow place while the last weapon goes down, the gun
+## appears in the hands there and comes up. So no frame shows the gun without the hands on it.
 ##
 ## It is a child of the character's `Model` slot, shown by the `WeaponLoadout` while its weapon is
 ## in the hands (the definition's `view`). The pose is cosmetic: it is worked out on each machine
-## from what the character already has (`aim_amount`, `view_pitch`, the weapon's shots and
-## reload) and never sent.
+## from what the character already has (`aim_amount`, `view_pitch`, the weapon's shots and reload,
+## the loadout's switch) and never sent. With no `character` (a figure posed by hand: a test, a
+## capture) the `posed_` values are the caller's.
 
 const STANCE_SCRIPT := preload("res://gameplay/weapon/two_hand_stance.gd")
 const _MODIFIER_PREFIX := "TwoHandHold_"
+## The share of a magazine's way out of the gun that is straight down the magazine well.
+const _WELL_SHARE := 0.4
+## The left hand's way from the hand guard to the magazine, as shares of it: its four fingers
+## open by the first, it is off the hand guard by the second, beside the magazine by the third
+## and on it by the fourth; the fingers close on the magazine after that.
+const _WAY_OPEN := 0.1
+const _WAY_DOWN := 0.3
+const _WAY_BESIDE := 0.7
+const _WAY_ON := 0.88
 
 @export_group("Nodes")
 ## The character holding it. Empty: the `Model` slot's parent.
@@ -34,22 +54,36 @@ const _MODIFIER_PREFIX := "TwoHandHold_"
 ## Where the butt sits when aiming, from the chest bone (`chest_bone`) in the model's space (+Z
 ## forward, +X the model's left). The chest's place comes from the clip, so a crouch or a lean
 ## carries the gun with it.
-@export var aim_pocket := Vector3(-0.124, 0.12, 0.109)
+@export var aim_pocket := Vector3(-0.124, 0.12, 0.04)
 ## Where it sits at rest (the low ready).
-@export var low_pocket := Vector3(-0.114, 0.06, 0.109)
+@export var low_pocket := Vector3(-0.114, 0.06, 0.04)
 ## How far the muzzle points down at rest.
 @export_range(0.0, 80.0, 0.5, "suffix:deg") var low_pitch := 35.0
 ## How far the muzzle points across the body at rest (toward the left).
 @export_range(-60.0, 60.0, 0.5, "suffix:deg") var low_yaw := 20.0
-## How far the chest turns about the model's up axis, split over the spine bones; negative brings
-## the left shoulder forward so the left hand reaches the fore-end.
+## How far the chest stands turned from the model's front, about its up axis, split over the
+## spine bones; negative brings the left shoulder forward so the left hand reaches the fore-end.
+## The clip's own turn of the chest is taken off, so the shoulders keep this in a walk or a run.
 @export_range(-60.0, 60.0, 0.5, "suffix:deg") var chest_turn := -30.0
+## The most of its length the left arm stretches to. When the hand guard is farther than that
+## from the left shoulder (a clip leans or drops the shoulder), the gun comes back along its
+## barrel until the hand reaches, by `pull_limit` at most.
+@export_range(0.5, 1.0, 0.005) var arm_stretch := 0.97
+@export_range(0.0, 0.3, 0.005, "suffix:m") var pull_limit := 0.12
 ## The most the gun follows the view up or down.
 @export_range(0.0, 89.0, 0.5, "suffix:deg") var pitch_limit := 60.0
 ## Seconds from the low ready to the shoulder (and back).
 @export_range(0.01, 2.0, 0.01, "suffix:s") var raise_time := 0.15
 ## Seconds the gun stays at the shoulder after a shot fired from the low ready.
 @export_range(0.0, 3.0, 0.05, "suffix:s") var shot_hold_time := 0.6
+
+@export_group("Switch")
+## Where the butt is when the gun is all the way down in a switch (the place it is hidden and
+## shown at), from the chest bone like `low_pocket`: both hands still reach it there.
+@export var stow_pocket := Vector3(-0.114, 0.0, 0.04)
+## How far the muzzle points down there, and across the body.
+@export_range(0.0, 89.0, 0.5, "suffix:deg") var stow_pitch := 55.0
+@export_range(-60.0, 60.0, 0.5, "suffix:deg") var stow_yaw := 30.0
 
 @export_group("Recoil")
 ## How far a shot pushes the gun back along the barrel.
@@ -59,10 +93,41 @@ const _MODIFIER_PREFIX := "TwoHandHold_"
 ## Seconds for the gun to come back from a kick.
 @export_range(0.01, 1.0, 0.01, "suffix:s") var kick_recover_time := 0.08
 
+@export_group("Hands")
+## The right hand's fingers on the grip, the index finger straight along the receiver.
+@export var grip_pose: HandPose
+## The index finger on the trigger, blended over `grip_pose` as the gun comes up to the shoulder.
+@export var trigger_pose: HandPose
+## The left hand's fingers cupped under the hand guard.
+@export var support_pose: HandPose
+## The left hand's four fingers opened, as it lets go of the gun and comes back to it (the thumb
+## keeps the pose under it).
+@export var open_pose: HandPose
+## The left hand's fingers round the magazine.
+@export var magazine_pose: HandPose
+
 @export_group("Reload")
-## Where the left hand takes the magazine down to during a reload, from its place on the gun, in
-## the model's space (down and back, to the belt).
-@export var reload_reach := Vector3(0.05, -0.28, -0.12)
+## Where the left hand takes the magazine to during a reload: the belt at the left hip, from the
+## chest bone in the model's space like the pockets (a place the left arm reaches in every clip).
+@export var reload_belt := Vector3(0.17, -0.3, 0.1)
+## How far the magazine comes straight down out of the gun before it goes to the belt, along the
+## gun's own up axis.
+@export_range(0.0, 0.3, 0.005, "suffix:m") var magazine_well := 0.1
+## How far the left hand comes off the hand guard before it goes to the magazine (and where it
+## comes back to before it goes onto it), in the gun's space: down, and out to the left, the
+## thumb's side, since the thumb stays as it lies up the hand guard's left side.
+@export var reload_clearance := Vector3(0.0, -0.07, 0.035)
+## Where the left hand is beside the magazine before it closes on it, from its place on it, in
+## the gun's space: out to the left, so the open fingers pass in front of the magazine.
+@export var magazine_approach := Vector3(0.0, 0.0, 0.07)
+## The shares of the reload between which the left hand goes from the hand guard to the magazine.
+@export var reload_leave := Vector2(0.0, 0.18)
+## The shares between which it takes the magazine out and down to the belt.
+@export var reload_out := Vector2(0.2, 0.42)
+## The shares between which it brings the new magazine up and in.
+@export var reload_in := Vector2(0.48, 0.62)
+## The shares between which it goes back to the hand guard.
+@export var reload_return := Vector2(0.66, 0.86)
 ## The magazine node under the gun that leaves with the left hand. Empty: none moves.
 @export var magazine: NodePath
 ## The far level's magazine, moved and hidden with it. Empty: none.
@@ -78,14 +143,29 @@ const _MODIFIER_PREFIX := "TwoHandHold_"
 ## The left arm.
 @export var left_arm: Array[StringName] = [&"upperarm_l", &"lowerarm_l", &"hand_l"]
 
+## For a figure posed by hand (no `character`): how far the gun is up at the shoulder, the view's
+## pitch in degrees, how far a reload is (below 0: none) and how far a switch has it down.
+var posed_aim := 0.0
+var posed_pitch := 0.0
+var posed_reload := -1.0
+var posed_lowered := 0.0
+
 var _skeleton: Skeleton3D
 var _modifiers: Array[SkeletonModifier3D] = []
+var _stance: SkeletonModifier3D
+var _arms: Array[HoldArm] = []
+var _fingers: Array[HandPoseModifier] = []
 var _raised := 0.0
 var _shot_left := 0.0
 var _kick := 0.0
+var _reach := 1.0
+var _down := 0.0
+var _leaving := false
+var _chest := Vector3.ZERO
 var _left_rest := Transform3D.IDENTITY
 var _magazine_rest := Transform3D.IDENTITY
 var _weapon: Weapon
+var _loadout: WeaponLoadout
 # The scene's parts, found once by name.
 var _found := {}
 
@@ -98,19 +178,21 @@ func _ready() -> void:
 	if mag != null:
 		_magazine_rest = mag.transform
 	if Engine.is_editor_hint():
+		set_process(false)
 		return
 	if character == null and get_parent() != null:
 		character = get_parent().get_parent() as Character
 	var slot := get_parent() as CharacterModel
 	if slot != null:
 		slot.rig_changed.connect(_on_rig_changed.unbind(1))
-	visibility_changed.connect(_update_active)
 	if character != null:
-		character.died.connect(_update_active)
-		character.revived.connect(_update_active)
 		_weapon = character.weapon
+		_loadout = character.loadout
 		if _weapon != null:
 			_weapon.fired.connect(_on_fired.unbind(1))
+		if _loadout != null:
+			_loadout.weapon_changed.connect(_on_weapon_changed)
+			_loadout.switch_finished.connect(_on_switch_finished.unbind(1))
 	_on_rig_changed.call_deferred()
 
 
@@ -118,114 +200,277 @@ func _exit_tree() -> void:
 	_drop_modifiers()
 
 
+func _process(delta: float) -> void:
+	_step(delta)
+	refresh()
+
+
 ## How far the gun is up at the shoulder: 0 at the low ready, 1 aimed.
 func raised_amount() -> float:
 	return _raised
 
 
-## The skeleton modifiers this hold made (the stance, then each arm's IK and hand turn).
+## How far the arms are on the gun's places: 1 while the gun is in the hands, and the way there
+## or away while a switch brings it out or has just put it away.
+func reach_amount() -> float:
+	return _reach
+
+
+## The skeleton modifiers this hold made: the stance, each arm's reach, each hand's fingers.
 func modifiers() -> Array[SkeletonModifier3D]:
 	return _modifiers.duplicate()
 
 
-## Puts the pocket and the gun where they are this frame. The stance modifier calls it while the
-## skeleton updates, when the chest bone has the clip's pose of this frame.
-func place(skeleton: Skeleton3D, delta: float) -> void:
+## How far each hand's bone stopped from its place on the gun on the last update, in metres (an
+## arm too short for the stance): x the right hand, y the left.
+func shortfall() -> Vector2:
+	if _arms.size() < 2:
+		return Vector2.ZERO
+	return Vector2(_arms[0].shortfall, _arms[1].shortfall)
+
+
+## Puts the weights on the modifiers now (the frame's own `_process` does it too).
+func refresh() -> void:
+	_reach = _reach_now()
+	_down = _down_now()
+	var alive := character == null or not character.is_dead()
+	var shown := alive and is_visible_in_tree()
+	var pivot := _node(&"Pivot")
+	if pivot != null:
+		pivot.visible = alive
+	for modifier in _modifiers:
+		if not is_instance_valid(modifier):
+			continue
+		var share := (1.0 if shown else 0.0) if modifier is HandPoseModifier else _reach
+		if not alive:
+			share = 0.0
+		if not is_equal_approx(modifier.influence, share):
+			modifier.influence = share
+		if modifier.active != (share > 0.0):
+			modifier.active = share > 0.0
+	if _fingers.size() < 2:
+		return
+	# The finger is on the trigger while the gun is up, and off it through a reload.
+	var reload := _reload_progress()
+	_fingers[0].second_weight = _raised if reload < 0.0 else 0.0
+	var to_magazine := _to_magazine(reload)
+	# The thumb goes to its place behind the magazine on the way across (the open pose leaves
+	# it be); the four fingers stay open until the hand is on the magazine, then close.
+	_fingers[1].second_weight = smoothstep(_WAY_DOWN, _WAY_BESIDE, to_magazine)
+	_fingers[1].open_weight = (
+		smoothstep(0.0, _WAY_OPEN, to_magazine) * (1.0 - smoothstep(_WAY_ON, 1.0, to_magazine))
+	)
+
+
+## Puts the pocket and the gun where they are this frame, and gives each arm its hand's place.
+## The stance modifier calls it while the skeleton updates, when the chest bone has the clip's
+## pose of this frame.
+func place(skeleton: Skeleton3D) -> void:
 	var pivot := _node(&"Pivot")
 	if pivot == null:
 		return
-	_step(delta)
 	var bone := skeleton.find_bone(chest_bone)
 	var chest := Vector3.ZERO
+	var to_here := global_transform.affine_inverse() * skeleton.global_transform
 	if bone >= 0:
-		var to_here := global_transform.affine_inverse() * skeleton.global_transform
 		chest = to_here * skeleton.get_bone_global_pose(bone).origin
-	var pitch := 0.0
+	_chest = chest
+	var pitch := posed_pitch
 	if character != null:
-		pitch = clampf(rad_to_deg(character.view_pitch), -pitch_limit, pitch_limit)
-	var low := Basis(Vector3.RIGHT, deg_to_rad(low_pitch)) * Basis(Vector3.UP, deg_to_rad(low_yaw))
-	var aim := Basis(Vector3.RIGHT, deg_to_rad(-pitch - kick_degrees * _kick))
-	var turn := low.get_rotation_quaternion().slerp(aim.get_rotation_quaternion(), _raised)
-	var pocket := chest + low_pocket.lerp(aim_pocket, _raised)
+		pitch = rad_to_deg(character.view_pitch)
+	pitch = clampf(pitch, -pitch_limit, pitch_limit)
+	var low := _turned(low_pitch, low_yaw)
+	var aim := _turned(-pitch - kick_degrees * _kick, 0.0)
+	var turn := low.slerp(aim, _raised)
+	var pocket := low_pocket.lerp(aim_pocket, _raised)
+	if _down > 0.0:
+		var eased := smoothstep(0.0, 1.0, _down)
+		turn = turn.slerp(_turned(stow_pitch, stow_yaw), eased)
+		pocket = pocket.lerp(stow_pocket, eased)
 	var basis_now := Basis(turn)
-	pivot.transform = Transform3D(basis_now, pocket - basis_now.z * kick_distance * _kick)
+	pivot.transform = Transform3D(basis_now, chest + pocket - basis_now.z * kick_distance * _kick)
+	pivot.position -= basis_now.z * _pull(skeleton, pivot, to_here)
 	_place_reload()
+	var to_skeleton := to_here.affine_inverse()
+	var sides: Array[String] = ["Right", "Left"]
+	for index in mini(_arms.size(), 2):
+		var target := _node(StringName(sides[index] + "HandTarget"))
+		var pole := _node(StringName(sides[index] + "Pole"))
+		if target == null:
+			continue
+		_arms[index].offset = to_skeleton * _in_here(target)
+		if pole != null:
+			_arms[index].elbow = to_skeleton * _in_here(pole).origin
 
 
-## The weight of the hold: 1 while the weapon is up, falling to 0 as a switch puts it away.
+# How far the gun must come back along its barrel for the left arm to reach its place under the
+# hand guard: the place is on the gun, the shoulder where the clip and the chest turn have it.
+func _pull(skeleton: Skeleton3D, pivot: Node3D, to_here: Transform3D) -> float:
+	var left := _node(&"LeftHandTarget")
+	if left == null or left_arm.size() < 3:
+		return 0.0
+	var bones: Array[int] = []
+	for bone_name in left_arm:
+		bones.append(skeleton.find_bone(bone_name))
+	if bones.has(-1):
+		return 0.0
+	var length := skeleton.get_bone_pose_position(bones[1]).length()
+	length += skeleton.get_bone_pose_position(bones[2]).length()
+	length *= to_here.basis.get_scale().x * arm_stretch
+	var shoulder := to_here * skeleton.get_bone_global_pose(bones[0]).origin
+	var gun := left.get_parent() as Node3D
+	var held_at := pivot.transform * (gun.transform * _left_rest.origin)
+	var off := held_at - shoulder
+	if off.length() <= length:
+		return 0.0
+	# The place moves back along the barrel: the nearest point of that line the arm reaches.
+	var back := -pivot.transform.basis.z
+	var along := off.dot(back)
+	var beside := off.length_squared() - along * along
+	var reach := sqrt(maxf(length * length - beside, 0.0))
+	return clampf(-along - reach, 0.0, pull_limit)
+
+
+## The weight of the chest turn: with the arms.
 func weight() -> float:
-	if character == null or character.loadout == null:
+	return _reach
+
+
+# How far the arms are on the gun's places now. In the hands: all the way. While the weapon
+# before it goes down to make room for it, and while the one after it comes up: as far as the
+# loadout's switch has the weapon down, so the arms are on the gun in the tick it appears and
+# leave it only once it is hidden.
+func _reach_now() -> float:
+	if character == null or _loadout == null:
 		return 1.0
-	return 1.0 - character.loadout.lowered_amount()
+	var mine := _definition()
+	if _loadout.held_definition() == mine:
+		return 1.0
+	if not _loadout.is_switching():
+		return 0.0
+	var target := _loadout.target_slot()
+	var coming := target >= 0 and target < _loadout.slots.size() and _loadout.slots[target] == mine
+	return _loadout.lowered_amount() if coming or _leaving else 0.0
+
+
+# How far the gun is down at its stow place: by the switch while it is in the hands, all the way
+# while it is not.
+func _down_now() -> float:
+	if character == null or _loadout == null:
+		return posed_lowered
+	if _loadout.held_definition() == _definition():
+		return _loadout.lowered_amount()
+	return 1.0
+
+
+# The weapon definition this hold is the view of, or null.
+func _definition() -> WeaponDef:
+	if _loadout == null or _loadout.model == null:
+		return null
+	for definition in _loadout.slots:
+		if definition != null and _loadout.model.get_node_or_null(definition.view) == self:
+			return definition
+	return null
+
+
+func _on_weapon_changed(definition: WeaponDef) -> void:
+	# Hidden for the next weapon: the arms leave the gun's places as that one comes up.
+	_leaving = _reach >= 1.0 and definition != _definition() and _loadout.is_switching()
+
+
+func _on_switch_finished() -> void:
+	_leaving = false
 
 
 func _step(delta: float) -> void:
-	var wants := 0.0
 	if character != null:
-		wants = character.aim_amount
-	_shot_left = maxf(_shot_left - delta, 0.0)
-	if _shot_left > 0.0:
-		wants = 1.0
-	_raised = move_toward(_raised, wants, delta / maxf(raise_time, 0.001))
+		var wants := character.aim_amount
+		_shot_left = maxf(_shot_left - delta, 0.0)
+		if _shot_left > 0.0:
+			wants = 1.0
+		_raised = move_toward(_raised, wants, delta / maxf(raise_time, 0.001))
+	else:
+		_raised = posed_aim
 	_kick = move_toward(_kick, 0.0, delta / maxf(kick_recover_time, 0.001))
-	var share := weight()
-	for modifier in _modifiers:
-		if modifier is TwoBoneIK3D or modifier is CopyTransformModifier3D:
-			modifier.influence = share
 
 
-# The left hand leaves the gun with the magazine and comes back with a full one, by the weapon's
-# reload progress: to the magazine, down to the belt, back up, seated, back on the fore-end.
+# A turn of the gun from straight ahead: the muzzle `pitch` degrees down and `yaw` across.
+func _turned(pitch: float, yaw: float) -> Quaternion:
+	var turned := Basis(Vector3.RIGHT, deg_to_rad(pitch)) * Basis(Vector3.UP, deg_to_rad(yaw))
+	return turned.get_rotation_quaternion()
+
+
+# A node's transform in this node's space, from the transforms up its parents (no global
+# transform is asked for while the skeleton updates).
+func _in_here(node: Node3D) -> Transform3D:
+	var xf := node.transform
+	var above := node.get_parent() as Node3D
+	while above != null and above != self:
+		xf = above.transform * xf
+		above = above.get_parent() as Node3D
+	return xf
+
+
+# How far the reload is (0 to 1), or below 0 with none.
+func _reload_progress() -> float:
+	if character == null:
+		return posed_reload
+	if _weapon != null and _weapon.is_reloading() and visible:
+		return _weapon.reload_progress()
+	return -1.0
+
+
+# How far the left hand is from the hand guard (0) to the magazine (1) at `progress` of a reload.
+func _to_magazine(progress: float) -> float:
+	if progress < 0.0:
+		return 0.0
+	var there := smoothstep(reload_leave.x, reload_leave.y, progress)
+	return there * (1.0 - smoothstep(reload_return.x, reload_return.y, progress))
+
+
+# The left hand leaves the gun for the magazine and comes back with a full one, by the weapon's
+# reload progress: down off the hand guard with its fingers open, across to beside the magazine,
+# onto it and closed on it, straight down out of the well and to the belt (where the magazine is
+# changed, out of sight), back up under the well, straight in, and back the way it came.
 func _place_reload() -> void:
 	var left := _node(&"LeftHandTarget")
 	if left == null:
 		return
-	var progress := -1.0
-	if _weapon != null and _weapon.is_reloading() and visible:
-		progress = _weapon.reload_progress()
+	var progress := _reload_progress()
 	var mag := get_node_or_null(magazine) as Node3D
 	var mag_far := get_node_or_null(magazine_far) as Node3D
-	if progress < 0.0:
+	var on_magazine := _node(&"MagazineHand")
+	if progress < 0.0 or on_magazine == null:
 		left.transform = _left_rest
 		_set_magazine(mag, mag_far, _magazine_rest, true)
 		return
-	# Where the hand is on the way: 0 on the fore-end, 1 on the magazine, 2 at the belt.
-	var at := 0.0
-	if progress < 0.15:
-		at = progress / 0.15
-	elif progress < 0.45:
-		at = 1.0 + (progress - 0.15) / 0.3
-	elif progress < 0.6:
-		at = 2.0
-	elif progress < 0.8:
-		at = 2.0 - (progress - 0.6) / 0.2
-	else:
-		at = 1.0 - (progress - 0.8) / 0.2
-	var rifle_to_here := _rifle_space()
-	var on_mag := _magazine_rest
-	if mag != null:
-		on_mag = (mag.get_parent() as Node3D).transform * _magazine_rest
-	var hand_on_mag := Transform3D(_left_rest.basis, on_mag.origin)
-	var hand := _left_rest.interpolate_with(hand_on_mag, clampf(at, 0.0, 1.0))
-	var drop := clampf(at - 1.0, 0.0, 1.0)
-	# The reach is in the model's space; the hand target is on the gun.
-	var reach_on_gun := rifle_to_here.basis.inverse() * reload_reach
-	hand.origin += reach_on_gun * drop
+	var to_magazine := _to_magazine(progress)
+	var away := smoothstep(reload_out.x, reload_out.y, progress)
+	away *= 1.0 - smoothstep(reload_in.x, reload_in.y, progress)
+	# Down off the hand guard, across to beside the magazine, then onto it.
+	var below := _left_rest.translated(reload_clearance)
+	var beside := on_magazine.transform.translated(magazine_approach)
+	var hand := _left_rest.interpolate_with(
+		below, smoothstep(_WAY_OPEN * 0.5, _WAY_DOWN, to_magazine)
+	)
+	hand = hand.interpolate_with(beside, smoothstep(_WAY_DOWN, _WAY_BESIDE, to_magazine))
+	hand = hand.interpolate_with(
+		on_magazine.transform, smoothstep(_WAY_BESIDE, _WAY_ON, to_magazine)
+	)
+	# Out of the well along the gun's own up axis, then to the belt, which is a place on the
+	# body (the hand's place is on the gun).
+	var gun := left.get_parent() as Node3D
+	var gun_here := _in_here(gun) if gun != null else Transform3D.IDENTITY
+	var out := Vector3.DOWN * magazine_well * minf(away / _WELL_SHARE, 1.0)
+	var to_belt := smoothstep(0.0, 1.0, (away - _WELL_SHARE) / (1.0 - _WELL_SHARE))
+	var belt := gun_here.affine_inverse() * (_chest + reload_belt)
+	out += (belt - (hand.origin + out)) * to_belt
+	hand.origin += out
 	left.transform = hand
 	var mag_xf := _magazine_rest
 	if mag != null:
-		var parent_basis := (mag.get_parent() as Node3D).transform.basis
-		mag_xf.origin += parent_basis.inverse() * (reach_on_gun * drop)
-	_set_magazine(mag, mag_far, mag_xf, drop < 0.9)
-
-
-# The gun's frame in this node's space (the hands' targets are children of the gun).
-func _rifle_space() -> Transform3D:
-	var gun := _node(&"LeftHandTarget")
-	if gun == null or gun.get_parent() == null:
-		return Transform3D.IDENTITY
-	var parent := gun.get_parent() as Node3D
-	return global_transform.affine_inverse() * parent.global_transform
+		mag_xf.origin += (mag.get_parent() as Node3D).transform.basis.inverse() * out
+	_set_magazine(mag, mag_far, mag_xf, away < 0.9)
 
 
 func _set_magazine(near: Node3D, far: Node3D, xf: Transform3D, shown: bool) -> void:
@@ -248,39 +493,35 @@ func _on_rig_changed() -> void:
 	_skeleton = slot.skeleton() if slot != null else null
 	if _skeleton == null:
 		return
-	var stance := STANCE_SCRIPT.new() as SkeletonModifier3D
-	stance.name = _MODIFIER_PREFIX + "Stance"
-	stance.set(&"hold", self)
-	_add_modifier(stance)
-	_add_arm(right_arm, _node(&"RightHandTarget"), _node(&"RightPole"), "Right")
-	_add_arm(left_arm, _node(&"LeftHandTarget"), _node(&"LeftPole"), "Left")
-	_update_active()
+	_stance = STANCE_SCRIPT.new() as SkeletonModifier3D
+	_stance.set(&"hold", self)
+	_add_modifier(_stance, "Stance")
+	_add_arm(right_arm, "RightArm")
+	_add_arm(left_arm, "LeftArm")
+	_add_fingers(grip_pose, trigger_pose, null, "RightFingers")
+	_add_fingers(support_pose, magazine_pose, open_pose, "LeftFingers")
+	refresh()
 
 
-func _add_arm(bones: Array[StringName], target: Node3D, pole: Node3D, side: String) -> void:
-	if bones.size() < 3 or target == null:
-		return
-	var ik := TwoBoneIK3D.new()
-	ik.name = _MODIFIER_PREFIX + side + "ArmIK"
-	_add_modifier(ik)
-	ik.setting_count = 1
-	ik.set_root_bone_name(0, bones[0])
-	ik.set_middle_bone_name(0, bones[1])
-	ik.set_end_bone_name(0, bones[2])
-	ik.set_target_node(0, ik.get_path_to(target))
-	if pole != null:
-		ik.set_pole_node(0, ik.get_path_to(pole))
-	var turn := CopyTransformModifier3D.new()
-	turn.name = _MODIFIER_PREFIX + side + "HandTurn"
-	_add_modifier(turn)
-	turn.setting_count = 1
-	turn.set_apply_bone_name(0, bones[2])
-	turn.set_reference_type(0, BoneConstraint3D.REFERENCE_TYPE_NODE)
-	turn.set_reference_node(0, turn.get_path_to(target))
-	turn.set_copy_flags(0, CopyTransformModifier3D.TRANSFORM_FLAG_ROTATION)
+func _add_arm(bones: Array[StringName], tag: String) -> void:
+	var arm := HoldArm.new()
+	arm.arm = bones
+	arm.bone = &""
+	_arms.append(arm)
+	_add_modifier(arm, tag)
 
 
-func _add_modifier(modifier: SkeletonModifier3D) -> void:
+func _add_fingers(pose: HandPose, second: HandPose, open: HandPose, tag: String) -> void:
+	var fingers := HandPoseModifier.new()
+	fingers.pose = pose
+	fingers.second = second
+	fingers.open = open
+	_fingers.append(fingers)
+	_add_modifier(fingers, tag)
+
+
+func _add_modifier(modifier: SkeletonModifier3D, tag: String) -> void:
+	modifier.name = _MODIFIER_PREFIX + tag
 	_skeleton.add_child(modifier)
 	_modifiers.append(modifier)
 
@@ -292,18 +533,9 @@ func _drop_modifiers() -> void:
 			if modifier.get_parent() != null:
 				modifier.get_parent().remove_child(modifier)
 	_modifiers.clear()
-
-
-# The modifiers run only while the gun is shown and the character is alive (a ragdoll owns the
-# bones then).
-func _update_active() -> void:
-	var on := is_visible_in_tree() and (character == null or not character.is_dead())
-	for modifier in _modifiers:
-		if is_instance_valid(modifier):
-			modifier.active = on
-	var pivot := _node(&"Pivot")
-	if pivot != null:
-		pivot.visible = character == null or not character.is_dead()
+	_arms.clear()
+	_fingers.clear()
+	_stance = null
 
 
 func _node(node_name: StringName) -> Node3D:
