@@ -59,11 +59,11 @@ Measured by the build on the female mannequin, the template's default (`build_pr
   the body while it plays to turn (the shipped games studied do the same or turn without a clip).
 
 On the male mannequin the same clips play (the rig is the same), but his upper arms are 5 cm longer and his limbs
-thicker, so a planted elbow rolls up to 3 cm and he lies in the floor: the build measures his forearms 3.7 cm
-(lying still) to 4.4 cm (crawling) and his fists 2.3 to 3.0 cm under it, and his thighs and shins about 3 cm (with
-flat palms the forearms were 4.6 cm and the hands 3.1 to 3.5 cm under). One clip file cannot rest both bodies on
-the floor; a set solved on his own body would. `tests/gameplay/test_prone_clips.gd` holds both models to the bone
-numbers, the forearms' roll and the fists.
+thicker, so a planted elbow rolls up to 3 cm and he lies in the floor: the build measures his forearms 3.7 cm (lying
+still) to 4.4 cm (crawling) and his fists 2.3 to 3.0 cm under it, and his thighs and shins about 3 cm (with flat palms
+the forearms were 4.3 to 4.6 cm and the hands 3.1 to 3.5 cm under). One clip file cannot rest both bodies on the
+floor; a set solved on his own body would (kit #1090). `tests/gameplay/test_prone_clips.gd` holds both models to the
+bone numbers, the forearms' roll and the fists.
 
 ## Weapon
 
