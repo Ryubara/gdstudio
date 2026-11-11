@@ -40,6 +40,11 @@ const CLOSE_POLICY := 1008
 const PART_GROUP := &"net_part"
 ## The milliseconds a step may take before it counts as over budget in the stats.
 const STEP_BUDGET_MS := 6.0
+## How far a command's number may be from the step that applies it and still be the tick the map's
+## moving parts are at for it: a client back from a stall of `NetLimits.STALL_SECONDS`, or a second
+## ahead (`command_tick`).
+const COMMAND_TICKS_BEHIND := NetLimits.TICK_RATE * NetLimits.STALL_SECONDS
+const COMMAND_TICKS_AHEAD := NetLimits.TICK_RATE
 
 @export_group("Server")
 ## The port to listen on; -1 reads `--port`, then `$PORT`, then `WebSocketLink.DEFAULT_PORT`. 0
@@ -83,6 +88,14 @@ const STEP_BUDGET_MS := 6.0
 @export_range(1.0, 120.0, 0.5, "suffix:s") var silent_seconds := 15.0
 ## Seconds a connection has to say hello.
 @export_range(1.0, 60.0, 0.5, "suffix:s") var hello_seconds := 10.0
+## Steps between a change of a map part the server decides (a door opened, a platform sent) and
+## its start, so a client hears of it before its predicted commands reach it: about the round trip
+## and the hold of the slowest client it plays well with, in steps (12: 200 ms at 60 a second).
+@export_range(0, 255, 1, "suffix:steps") var entity_lead_ticks := 12:
+	set(value):
+		entity_lead_ticks = value
+		if map_parts != null:
+			map_parts.lead_ticks = value
 
 @export_group("Shots")
 ## Metres a command's shot may start from the body's eye before it is refused (`ServerCombat`).
@@ -94,6 +107,8 @@ const STEP_BUDGET_MS := 6.0
 
 ## The world hash a client's HELLO must carry (`world_hash_of` the server's map when it starts).
 var world_hash := 0
+## The map's networked parts (doors, platforms, pickups), run by this server.
+var map_parts := NetWorld.new()
 ## Seconds for the connection rules: empty is the machine's clock.
 var clock := Callable()
 var listener := WsListener.new()
@@ -126,6 +141,7 @@ func _ready() -> void:
 	if cap_frame_rate:
 		Engine.max_fps = NetLimits.TICK_RATE
 	world_hash = world_hash_of(_map_root())
+	_take_world(_map_root())
 	_wire_combat()
 	listener.clock = _now
 	listener.peer_connected.connect(_on_connected)
@@ -163,6 +179,7 @@ func _physics_process(delta: float) -> void:
 	var began := Time.get_ticks_usec()
 	listener.poll()
 	_drop_the_silent()
+	map_parts.tick = server_tick + 1
 	_step_bodies(delta)
 	server_tick += 1
 	if server_tick % SEND_EVERY == 0:
@@ -344,7 +361,7 @@ func _on_hello(peer: PeerSlot, data: PackedByteArray) -> void:
 		var entry := entry_of(seated, _by_slot[seated].body)
 		entry.player_name = _by_slot[seated].player_name
 		players.append(entry)
-	var entities: Array[EntityEntry] = []
+	var entities := map_parts.table(server_tick)
 	listener.send(
 		peer.peer_id, SnapshotCodec.welcome(slot, server_tick, world_hash, entities, players)
 	)
@@ -448,14 +465,55 @@ func _tell_others(peer: PeerSlot, event: NetEvent) -> void:
 # --- The step ---
 
 
+# Each command is stepped with the map's moving parts where they are at the command's tick
+# (`command_tick`), as the client predicted it; then the parts are put at this step's tick.
 func _step_bodies(delta: float) -> void:
 	for slot: int in _sorted_slots():
 		var peer := _by_slot[slot]
 		for command in peer.take(PeerSlot.MAX_PER_STEP, command_ticks, hold_ticks):
+			map_parts.place(command_tick(command.seq, map_parts.tick))
 			combat.judge(slot, peer.body, command)
 			peer.body.step(command, delta)
 			combat.stepped(slot, peer.body)
+	map_parts.place(map_parts.tick)
 	combat.step(delta)
+
+
+## The tick the map's moving parts are at for the command numbered `seq`, stepped at server tick
+## `at_tick`: a client numbers its commands by the server tick it expects each to be stepped at
+## (`NetClient`), so its predicted body meets the parts where the server's does; a number far from
+## the step (a stall, a hostile client) is held to `COMMAND_TICKS_BEHIND` and `_AHEAD`.
+static func command_tick(seq: int, at_tick: int) -> int:
+	return clampi(seq, at_tick - COMMAND_TICKS_BEHIND, at_tick + COMMAND_TICKS_AHEAD)
+
+
+func _take_world(root: Node) -> void:
+	map_parts = NetWorld.new(root, NetEntity.Role.SERVER, entity_lead_ticks)
+	map_parts.tick = server_tick
+	for entity in map_parts.entities:
+		entity.changed.connect(_on_entity_changed)
+		entity.taken.connect(_on_entity_taken)
+
+
+func _on_entity_changed(entity: NetEntity) -> void:
+	var at := map_parts.tick
+	var state: PackedByteArray = entity.write_state.call(at)
+	_tell_all(NetEvent.entity(entity.id, at, state))
+
+
+# A pickup the server's copy of which a body took: who took it, to everyone; taken by a body that
+# is no player's (an AI), its new state.
+func _on_entity_taken(entity: NetEntity, by: Node3D) -> void:
+	for slot: int in _by_slot:
+		if _by_slot[slot].body == by:
+			_tell_all(NetEvent.pickup(entity.id, slot))
+			return
+	_on_entity_changed(entity)
+
+
+func _tell_all(event: NetEvent) -> void:
+	for peer: PeerSlot in _by_slot.values():
+		peer.add_event(event)
 
 
 # The combat's events go to the players by slot; its rules are the inspector's.
