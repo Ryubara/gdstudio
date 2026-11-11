@@ -325,6 +325,48 @@ func receive(share: Share) -> void:
 	_queue_share(belief, share.key)
 
 
+## The first body of the target groups the character may not hurt (`AiFactions.can_hurt` false:
+## a friend whose faction does not hurt friends) standing within `radius` of the line from its eyes
+## to `point`, or null: the brain does not fire through it. A geometric test over the shared pools,
+## no ray.
+func friend_in_line_of_fire(point: Vector3, radius := 0.6) -> Node3D:
+	if _character == null:
+		return null
+	_refresh_relations()
+	if _factions == null or _member == null:
+		return null
+	var from := eye_position()
+	var line := point - from
+	var length_squared := line.length_squared()
+	if length_squared < 0.0001:
+		return null
+	var table := _factions.relations
+	var mine := (
+		_member.refresh(table) if _member.table_version != table.version else _member.faction_index
+	)
+	var reach := radius * radius
+	for group in target_groups:
+		var pool := AiSensePool.of(get_tree(), group, table)
+		for part in pool.factions.size():
+			if table.band_at(mine, pool.factions[part]) < AiRelations.Band.FRIENDLY:
+				continue
+			for node: Variant in pool.nodes[part]:
+				if not is_instance_valid(node) or node == _character:
+					continue
+				var body := node as Node3D
+				var chest := body.global_position + Vector3.UP * 1.0
+				var along := (chest - from).dot(line) / length_squared
+				if along <= 0.0 or along >= 1.0:
+					continue
+				var nearest := from + line * along
+				var off := Vector2(nearest.x - chest.x, nearest.z - chest.z).length_squared()
+				if off > reach or absf(nearest.y - chest.y) > 1.0:
+					continue
+				if not AiFactions.can_hurt(_character, body):
+					return body
+	return null
+
+
 func _refresh_relations() -> void:
 	if _member == null or not is_instance_valid(_member):
 		_member = AiFactionMember.of(_character)

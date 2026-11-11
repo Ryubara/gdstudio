@@ -136,6 +136,22 @@ const REACTION_FLOOR := 0.2
 ## so a value wobbling on a line changes the task once.
 @export_range(0.0, 10.0, 0.05, "suffix:s") var commit_seconds := 0.5
 
+@export_group("Play states")
+## How far above the Safe line (`flee_below_health` scaled by `courage`) the Careful line sits:
+## a share of health less pressure under it plays Careful (cover, peeks), under the Safe line Safe
+## (hides, does not roam).
+@export_range(0.0, 1.0, 0.01) var careful_margin := 0.3
+## Pressure each hostile seen now adds (taken off the health share), so a hurt character that is
+## outnumbered turns careful sooner.
+@export_range(0.0, 1.0, 0.01) var pressure_per_threat := 0.1
+## The most pressure counted, however many hostiles are seen.
+@export_range(0.0, 1.0, 0.01) var max_pressure := 0.3
+## How far past a line the share must come back before the play state turns bolder again.
+@export_range(0.0, 0.5, 0.01) var play_hysteresis := 0.08
+## Seconds a play state holds before it may turn bolder (turning more careful is at once), so a
+## character on the edge changes state once.
+@export_range(0.0, 30.0, 0.1, "suffix:s") var play_dwell := 2.0
+
 
 ## The think rate (a second) at `tier` (`AiDirector.Tier`).
 func think_rate_at(tier: int) -> float:
@@ -145,3 +161,14 @@ func think_rate_at(tier: int) -> float:
 		AiDirector.Tier.REDUCED:
 			return reduced_think_rate
 	return dormant_think_rate
+
+
+## The share of health under which it plays Safe: `flee_below_health` scaled by `courage` (a brave
+## one holds on lower, a coward goes Safe higher).
+func safe_line() -> float:
+	return flee_below_health * (1.5 - courage)
+
+
+## The share of health under which it plays Careful: the Safe line plus `careful_margin`.
+func careful_line() -> float:
+	return safe_line() + careful_margin

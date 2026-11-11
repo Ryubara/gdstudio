@@ -1,0 +1,457 @@
+[gd_resource type="Resource" script_class="AiBehaviourSet" format=3]
+
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_look_around.gd" id="1_hd1d6"]
+[ext_resource type="Script" path="res://gameplay/ai/behaviour/ai_reaction_row.gd" id="2_tm7u4"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_wander.gd" id="3_mwg5t"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_cower.gd" id="4_hrrjp"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/ai_task.gd" id="5_na5od"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_flee.gd" id="6_dqrn7"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_say.gd" id="7_o6ral"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/ai_task_parallel.gd" id="8_apqgw"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_look_at.gd" id="9_jch2g"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_wait.gd" id="10_wr0na"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_go_to.gd" id="11_hvp53"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/ai_task_sequence.gd" id="12_v0at1"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_traverse_link.gd" id="13_as81t"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_guard.gd" id="14_dnu2t"]
+[ext_resource type="Script" path="res://gameplay/ai/tasks/stock/ai_use_object.gd" id="15_p45bj"]
+[ext_resource type="Script" path="res://gameplay/ai/behaviour/ai_behaviour_set.gd" id="16_xemb3"]
+[ext_resource type="Script" path="res://gameplay/ai/behaviour/ai_situation_rule.gd" id="17_wxc44"]
+[ext_resource type="Script" path="res://gameplay/ai/behaviour/ai_reaction_waiver.gd" id="18_4lmxb"]
+
+[sub_resource type="Resource" id="Resource_ul1v1"]
+script = ExtResource("1_hd1d6")
+seconds = 0.0
+id = &"look_around"
+layer = 4
+channels = 4
+hard_timeout = 0.0
+
+[sub_resource type="Resource" id="Resource_6ur1j"]
+script = ExtResource("3_mwg5t")
+roams = true
+id = &"wander"
+hard_timeout = 0.0
+
+[sub_resource type="Resource" id="Resource_ilflk"]
+script = ExtResource("2_tm7u4")
+event = &"spawned"
+task = SubResource("Resource_6ur1j")
+note = "Strolls about its home from the start."
+
+[sub_resource type="Resource" id="Resource_xrf1u"]
+script = ExtResource("4_hrrjp")
+answers_threat = true
+id = &"cower"
+layer = 1
+channels = 5
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_6s4r3"]
+script = ExtResource("2_tm7u4")
+bands = 3
+play_states = 4
+task = SubResource("Resource_xrf1u")
+enter = 5
+note = "Safe (hurt): too frightened to run, it cowers."
+
+[sub_resource type="Resource" id="Resource_q6sm1"]
+script = ExtResource("4_hrrjp")
+answers_threat = true
+id = &"cower"
+layer = 1
+channels = 5
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_gmqtq"]
+script = ExtResource("6_dqrn7")
+answers_threat = true
+id = &"flee"
+layer = 1
+hard_timeout = 30.0
+ends_on_condition = true
+on_fail = 2
+fallback = SubResource("Resource_q6sm1")
+
+[sub_resource type="Resource" id="Resource_2qxyp"]
+script = ExtResource("7_o6ral")
+line = &"help"
+id = &"say"
+layer = 1
+channels = 8
+
+[sub_resource type="Resource" id="Resource_4q50x"]
+script = ExtResource("8_apqgw")
+children = Array[ExtResource("5_na5od")]([SubResource("Resource_gmqtq"), SubResource("Resource_2qxyp")])
+id = &"flee"
+layer = 1
+
+[sub_resource type="Resource" id="Resource_f810w"]
+script = ExtResource("2_tm7u4")
+bands = 3
+play_states = 3
+min_courage = 0.05
+task = SubResource("Resource_4q50x")
+enter = 5
+note = "Courage enough to run: it flees, calling for help."
+
+[sub_resource type="Resource" id="Resource_w4kso"]
+script = ExtResource("4_hrrjp")
+answers_threat = true
+id = &"cower"
+layer = 1
+channels = 5
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_5td6u"]
+script = ExtResource("2_tm7u4")
+bands = 3
+task = SubResource("Resource_w4kso")
+enter = 5
+note = "No courage at all: it cowers."
+
+[sub_resource type="Resource" id="Resource_oaifd"]
+script = ExtResource("4_hrrjp")
+answers_threat = true
+id = &"cower"
+layer = 1
+channels = 5
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_a5w2d"]
+script = ExtResource("2_tm7u4")
+event = &"hit"
+play_states = 4
+task = SubResource("Resource_oaifd")
+enter = 5
+note = "Safe (hurt): too frightened to run, it cowers."
+
+[sub_resource type="Resource" id="Resource_qgjhd"]
+script = ExtResource("4_hrrjp")
+answers_threat = true
+id = &"cower"
+layer = 1
+channels = 5
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_oo453"]
+script = ExtResource("6_dqrn7")
+answers_threat = true
+id = &"flee"
+layer = 1
+hard_timeout = 30.0
+ends_on_condition = true
+on_fail = 2
+fallback = SubResource("Resource_qgjhd")
+
+[sub_resource type="Resource" id="Resource_180mn"]
+script = ExtResource("7_o6ral")
+line = &"help"
+id = &"say"
+layer = 1
+channels = 8
+
+[sub_resource type="Resource" id="Resource_714kk"]
+script = ExtResource("8_apqgw")
+children = Array[ExtResource("5_na5od")]([SubResource("Resource_oo453"), SubResource("Resource_180mn")])
+id = &"flee"
+layer = 1
+
+[sub_resource type="Resource" id="Resource_q13k5"]
+script = ExtResource("2_tm7u4")
+event = &"hit"
+play_states = 3
+min_courage = 0.05
+task = SubResource("Resource_714kk")
+enter = 5
+note = "Courage enough to run: it flees, calling for help."
+
+[sub_resource type="Resource" id="Resource_x0ged"]
+script = ExtResource("4_hrrjp")
+answers_threat = true
+id = &"cower"
+layer = 1
+channels = 5
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_fd7nb"]
+script = ExtResource("2_tm7u4")
+event = &"hit"
+task = SubResource("Resource_x0ged")
+enter = 5
+note = "No courage at all: it cowers."
+
+[sub_resource type="Resource" id="Resource_lx6mv"]
+script = ExtResource("9_jch2g")
+seconds = 2.5
+id = &"look_at"
+layer = 1
+channels = 4
+
+[sub_resource type="Resource" id="Resource_hesgt"]
+script = ExtResource("2_tm7u4")
+event = &"suspicious"
+bands = 3
+task = SubResource("Resource_lx6mv")
+note = "A glimpse: look at it."
+
+[sub_resource type="Resource" id="Resource_q6h7y"]
+script = ExtResource("9_jch2g")
+seconds = 2.5
+id = &"look_at"
+layer = 1
+channels = 4
+
+[sub_resource type="Resource" id="Resource_lcun7"]
+script = ExtResource("2_tm7u4")
+event = &"heard"
+bands = 7
+task = SubResource("Resource_q6h7y")
+note = "A noise: look toward it."
+
+[sub_resource type="Resource" id="Resource_n54hr"]
+script = ExtResource("10_wr0na")
+id = &"wait"
+channels = 0
+
+[sub_resource type="Resource" id="Resource_bcncd"]
+script = ExtResource("11_hvp53")
+id = &"go_to"
+
+[sub_resource type="Resource" id="Resource_2873f"]
+script = ExtResource("12_v0at1")
+children = Array[ExtResource("5_na5od")]([SubResource("Resource_n54hr"), SubResource("Resource_bcncd")])
+id = &"go_home"
+layer = 1
+
+[sub_resource type="Resource" id="Resource_ge8we"]
+script = ExtResource("2_tm7u4")
+event = &"forgot"
+task = SubResource("Resource_2873f")
+place = 1
+note = "The fright is over: a moment, then back home."
+
+[sub_resource type="Resource" id="Resource_lsisc"]
+script = ExtResource("4_hrrjp")
+answers_threat = true
+id = &"cower"
+layer = 1
+channels = 5
+hard_timeout = 0.0
+ends_on_condition = true
+
+[sub_resource type="Resource" id="Resource_25j4s"]
+script = ExtResource("2_tm7u4")
+event = &"hurt"
+task = SubResource("Resource_lsisc")
+enter = 5
+note = "Turned Safe: cower."
+
+[sub_resource type="Resource" id="Resource_e4ddx"]
+script = ExtResource("13_as81t")
+id = &"traverse_link"
+layer = 0
+interruptible = 1
+
+[sub_resource type="Resource" id="Resource_4tnp2"]
+script = ExtResource("2_tm7u4")
+event = &"link"
+task = SubResource("Resource_e4ddx")
+note = "The navigator stopped at a link it leaves to a task (auto_traverse_links off): cross it."
+
+[sub_resource type="Resource" id="Resource_6ofxv"]
+script = ExtResource("11_hvp53")
+id = &"go_to"
+layer = 2
+authority = 30
+
+[sub_resource type="Resource" id="Resource_jvte5"]
+script = ExtResource("2_tm7u4")
+event = &"order_go"
+task = SubResource("Resource_6ofxv")
+note = "A script sends it somewhere."
+
+[sub_resource type="Resource" id="Resource_46j1h"]
+script = ExtResource("14_dnu2t")
+id = &"guard"
+layer = 2
+channels = 5
+hard_timeout = 0.0
+ends_on_condition = true
+authority = 30
+
+[sub_resource type="Resource" id="Resource_jilj3"]
+script = ExtResource("2_tm7u4")
+event = &"order_hold"
+task = SubResource("Resource_46j1h")
+note = "A script has it hold a place until revoked."
+
+[sub_resource type="Resource" id="Resource_casqf"]
+script = ExtResource("15_p45bj")
+id = &"use"
+layer = 2
+channels = 3
+authority = 30
+
+[sub_resource type="Resource" id="Resource_82nmm"]
+script = ExtResource("2_tm7u4")
+event = &"order_use"
+task = SubResource("Resource_casqf")
+note = "A script has it use a door or a switch."
+
+[sub_resource type="Resource" id="Resource_nbwgu"]
+script = ExtResource("17_wxc44")
+situation = 4
+blocks = Array[StringName]([&"heard", &"suspicious"])
+
+[sub_resource type="Resource" id="Resource_p2wl5"]
+script = ExtResource("18_4lmxb")
+bands = 28
+situations = 31
+reason = "The senses notice only what they care about (care_up_to Unfriendly): a Neutral, Friendly or Allied thing is never noticed."
+
+[sub_resource type="Resource" id="Resource_e5u1d"]
+script = ExtResource("18_4lmxb")
+event = &"suspicious"
+bands = 28
+situations = 31
+reason = "The senses notice only what they care about (care_up_to Unfriendly): a Neutral, Friendly or Allied thing is never noticed."
+
+[sub_resource type="Resource" id="Resource_nrh1x"]
+script = ExtResource("18_4lmxb")
+event = &"heard"
+bands = 24
+situations = 31
+reason = "A friend's noise is not heard: the senses filter it by band."
+
+[sub_resource type="Resource" id="Resource_i3wnb"]
+script = ExtResource("18_4lmxb")
+event = &"lost_sight"
+bands = 31
+situations = 31
+reason = "Civilians never fight, so no fight loses sight of anything."
+
+[sub_resource type="Resource" id="Resource_tnr77"]
+script = ExtResource("18_4lmxb")
+event = &"lost_trail"
+bands = 31
+situations = 31
+reason = "Civilians never chase."
+
+[sub_resource type="Resource" id="Resource_26qbp"]
+script = ExtResource("18_4lmxb")
+event = &"no_ammo"
+bands = 31
+situations = 31
+reason = "Civilians never fight, so no gun of theirs runs dry."
+
+[sub_resource type="Resource" id="Resource_1vy3a"]
+script = ExtResource("18_4lmxb")
+event = &"spawned"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_nhw76"]
+script = ExtResource("18_4lmxb")
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_dy10q"]
+script = ExtResource("18_4lmxb")
+event = &"suspicious"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_27578"]
+script = ExtResource("18_4lmxb")
+event = &"heard"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_71q8c"]
+script = ExtResource("18_4lmxb")
+event = &"hit"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_8r276"]
+script = ExtResource("18_4lmxb")
+event = &"lost_sight"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_3a7ms"]
+script = ExtResource("18_4lmxb")
+event = &"lost_trail"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_1jkxc"]
+script = ExtResource("18_4lmxb")
+event = &"forgot"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_gs40v"]
+script = ExtResource("18_4lmxb")
+event = &"hurt"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_iowjn"]
+script = ExtResource("18_4lmxb")
+event = &"no_ammo"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_hvemu"]
+script = ExtResource("18_4lmxb")
+event = &"link"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_wpuhv"]
+script = ExtResource("18_4lmxb")
+event = &"order_go"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_e7fpw"]
+script = ExtResource("18_4lmxb")
+event = &"order_hold"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[sub_resource type="Resource" id="Resource_5p1mr"]
+script = ExtResource("18_4lmxb")
+event = &"order_use"
+bands = 31
+situations = 8
+reason = "The civilian set never enters Engaged (it flees or cowers)."
+
+[resource]
+script = ExtResource("16_xemb3")
+display_name = "Civilian"
+rows = Array[ExtResource("2_tm7u4")]([SubResource("Resource_ilflk"), SubResource("Resource_6s4r3"), SubResource("Resource_f810w"), SubResource("Resource_5td6u"), SubResource("Resource_a5w2d"), SubResource("Resource_q13k5"), SubResource("Resource_fd7nb"), SubResource("Resource_hesgt"), SubResource("Resource_lcun7"), SubResource("Resource_ge8we"), SubResource("Resource_25j4s"), SubResource("Resource_4tnp2"), SubResource("Resource_jvte5"), SubResource("Resource_jilj3"), SubResource("Resource_82nmm")])
+waivers = Array[ExtResource("18_4lmxb")]([SubResource("Resource_p2wl5"), SubResource("Resource_e5u1d"), SubResource("Resource_nrh1x"), SubResource("Resource_i3wnb"), SubResource("Resource_tnr77"), SubResource("Resource_26qbp"), SubResource("Resource_1vy3a"), SubResource("Resource_nhw76"), SubResource("Resource_dy10q"), SubResource("Resource_27578"), SubResource("Resource_71q8c"), SubResource("Resource_8r276"), SubResource("Resource_3a7ms"), SubResource("Resource_1jkxc"), SubResource("Resource_gs40v"), SubResource("Resource_iowjn"), SubResource("Resource_hvemu"), SubResource("Resource_wpuhv"), SubResource("Resource_e7fpw"), SubResource("Resource_5p1mr")])
+situation_rules = Array[ExtResource("17_wxc44")]([SubResource("Resource_nbwgu")])
+default_task = SubResource("Resource_ul1v1")
