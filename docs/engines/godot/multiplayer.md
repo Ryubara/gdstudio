@@ -514,6 +514,10 @@ backend deployed -->
 - The page address is the web build's command line: read it with `JavaScriptBridge.eval("window.location.search")` and
   parse it like arguments (`?url=wss://host&bot-seed=3`). Behind an `https` page the socket must be `wss://`.
 - The release `.wasm` is about 39 MB uncompressed; serve it compressed.
+- The character's step under Jolt gives the same floats in the web build (wasm), on Windows and on Linux: 1800 steps
+  of a scripted walk through 3D Third Person's map matched to nine decimals at every point (gdstudio #909,
+  [Playing online](third-person/online-client.md#play-online)), so a browser client may predict with the server's own
+  step; what it corrects is its page's hitches.
 
 ## Headless server image {#headless-server-image}
 
