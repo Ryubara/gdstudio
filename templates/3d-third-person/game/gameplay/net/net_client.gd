@@ -55,6 +55,9 @@ static var next_url := ""
 @export var player: Player
 ## Where the other players are drawn; empty draws none.
 @export var remote_players: RemotePlayers
+## Where the server's AI characters are drawn (gdstudio #970); empty draws none. The map's own AI
+## is taken out when the client joins (`AiAuthority.hand_over`): it runs on the server only.
+@export var ai_replica: AiReplica
 ## The map node (the `World` instance) whose networked parts make the world hash
 ## (`NetServer.world_hash_of`, paths from this node), the same node the server's
 ## `NetServer.world_root` names; empty is this node's parent.
@@ -189,6 +192,8 @@ func join(url: String) -> Error:
 
 ## Says hello over `with_link` once it opens (a test's `LoopbackLink` or `LinkConditioner`).
 func join_with(with_link: NetLink) -> void:
+	# The AI is the server's: this map's own stands down before it processes a frame.
+	AiAuthority.hand_over(_map_root())
 	link = with_link
 	_url = ""
 	_refused = false
@@ -284,7 +289,8 @@ func _take_player() -> void:
 
 func _on_connected() -> void:
 	_hello_at = _now()
-	link.send(NetWire.hello(player_name, NetServer.world_hash_of(_map_root())))
+	var flags := NetWire.F_WEB if OS.has_feature("web") else 0
+	link.send(NetWire.hello(player_name, NetServer.world_hash_of(_map_root()), flags))
 
 
 func _map_root() -> Node:
@@ -325,6 +331,9 @@ func _on_welcome(read: SnapshotCodec.Welcome) -> void:
 	if remote_players != null:
 		remote_players.map_parts = map_parts
 		remote_players.on_welcome(read)
+	if ai_replica != null:
+		ai_replica.slot_body = combat.body_of
+		ai_replica.on_welcome(read.server_tick)
 	welcomed.emit(slot)
 
 
@@ -351,6 +360,8 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 			NetEvent.Kind.PICKUP:
 				map_parts.read_pickup(event, player if event.slot == slot else null)
 	map_parts.read_stream(tick.parts, tick.server_tick)
+	if ai_replica != null:
+		ai_replica.on_tick(tick)
 	combat.on_tick(tick)
 	var own := _entry_of(tick.players, slot)
 	if own != null and player != null:
@@ -367,6 +378,8 @@ func _on_closed() -> void:
 	combat.clear()
 	if remote_players != null:
 		remote_players.clear()
+	if ai_replica != null:
+		ai_replica.clear()
 	disconnected.emit()
 
 

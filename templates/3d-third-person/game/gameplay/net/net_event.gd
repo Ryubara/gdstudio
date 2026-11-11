@@ -16,6 +16,9 @@ extends RefCounted
 ##           the state (<= MAX_ENTITY_STATE)                                    8 + state bytes
 ## PICKUP    u16 id, u8 slot                                                    4
 ## REJECTED  u32 seq (the client's command), u8 code (why)                      6
+## AI        u16 id (the AI character's), u8 code (`AiCode`), s16 point x/y/z
+##           (cm: where a shot left; cm/s: a death's velocity), u16 yaw, s16
+##           pitch (a shot's way)                                               14
 ##
 ## Cosmetics (a ragdoll, an impact, a sound) are never events of their own: each peer makes them
 ## from these.
@@ -30,6 +33,16 @@ enum Kind {
 	ENTITY = 7,
 	PICKUP = 8,
 	REJECTED = 9,
+	AI = 10,
+}
+
+## What happened to an AI character (an AI event's code): each client plays its own cosmetics
+## from it (a bark, a ragdoll, a muzzle flash), and the rows carry the state.
+enum AiCode {
+	ALERTED = 1,  ## Its situation rose to Alert or Engaged.
+	DIED = 2,  ## It died; the point is its velocity.
+	FIRED = 3,  ## Its weapon fired; the point is where the shot left, the direction its way.
+	REVIVED = 4,  ## It got up where its row says.
 }
 
 ## The id of a hit that struck no networked part.
@@ -119,6 +132,16 @@ static func entity(entity_id: int, start_tick: int, new_state: PackedByteArray) 
 static func pickup(entity_id: int, player_slot: int) -> NetEvent:
 	var event := _of(Kind.PICKUP, player_slot)
 	event.id = entity_id
+	return event
+
+
+## Something that happened to AI character `ai_id` (`AiCode`).
+static func ai(ai_id: int, what: AiCode, at := Vector3.ZERO, way := Vector3.FORWARD) -> NetEvent:
+	var event := _of(Kind.AI, 0)
+	event.id = ai_id
+	event.code = what
+	event.point = at
+	event.direction = way
 	return event
 
 

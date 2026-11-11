@@ -161,6 +161,11 @@ func _on_scanned(hit: Dictionary) -> void:
 	_send_hit(hit.get("collider"), hit.get("position", Vector3.ZERO), hit.get("normal", Vector3.UP))
 
 
+## A HIT for what a shot that is not a player's met (an AI's: `AiBroadcast.hit_made`).
+func send_hit(collider: Object, point: Vector3, normal: Vector3) -> void:
+	_send_hit(collider, point, normal)
+
+
 func _send_hit(collider: Object, point: Vector3, normal: Vector3) -> void:
 	hits += 1
 	var event := NetEvent.hit(

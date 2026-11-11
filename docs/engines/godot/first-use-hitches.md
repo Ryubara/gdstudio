@@ -293,7 +293,8 @@ The list itself linked in 2.0 to 2.4 s on the GPU. The online game's cold join (
 server's hang-up before. SwiftShader skips the list (last link 8.6 to 8.7 s with it, 8.6 to 8.9 without; the online
 join 5.5 to 5.6 s with it, 4.1 to 5.6 without). What is left of the cold page is two programs the engine links at
 boot, before any script runs (the copy shader and the default material, about 1 s each), and the level's own load;
-a straight route shows the clear colour while it waits for the list (about 2 s).
+a straight route shows the clear colour while it waits for the list (about 2 s). Both went when the page started the
+list itself ([The page starts it](#prelink-page)).
 
 - **Approach:** Shorten a cold browser's shader wait by linking a recorded list of the engine's programs at once in
   the engine's own WebGL context (`ShaderPrelink`), and check a cache hit by timing the game's links after it, not the
@@ -301,6 +302,69 @@ a straight route shows the clear colour while it waits for the list (about 2 s).
   the game's links still took 20 s, because a context with other extensions on shares no linked program with the
   engine's; a page of two contexts with all extensions on both showed it in one run. **Seen:** gdstudio #1164,
   2026-11-11 (21 to 8.5 s to the last link on a cold GPU profile).
+
+### The page starts it {#prelink-page}
+
+<!-- new section: the list was started by the menu scene once the engine ran; nothing said how a page starts it before
+     the engine boots, nor what that costs or saves -->
+
+The menu scene starts the list only once the engine runs (about 2.6 s after a local page opened), after the engine
+linked its two boot programs alone (0.7 s each) and with the clear colour on screen while the list links. A page can
+start it itself: with the `gds_game` editor plugin on (the templates turn it on), a web export copies the list
+(`ShaderPrelink.list_path()`, the project setting `gds_game/shader_prelink/list`) beside `index.html` and writes the page
+script into its head (`ShaderPrelinkExport`, `ShaderPrelink.with_page_start`). The page fetches the list at once and,
+once the document is parsed, makes the canvas's WebGL context itself:
+
+- **With the attributes Godot asks for**, so the engine's own `getContext` gets that context back (a second request's
+  attributes are ignored): `alpha` from `display/window/per_pixel_transparency/allowed`, depth, no stencil, no
+  antialias, premultiplied alpha and a kept drawing buffer (Emscripten's offscreen back buffer asks for it). The page
+  wraps the canvas's `getContext` and reports any attribute the engine asks for differently (`gdsPrelink.mismatch`),
+  which fails `shader_programs.py`.
+- **With every extension on that Emscripten turns on**: all the context offers but `lose_context` and `debug`, so the
+  list is translated as the engine's shaders will be.
+- **Only where it pays**: a throwaway context asks first whether the browser offers `KHR_parallel_shader_compile`;
+  without it (SwiftShader) the canvas is left alone.
+
+`ShaderPrelink.start` then follows the page's links (`gdsPrelink.from` is `page`) instead of reading the file from the
+pack. A game made before turns the plugin on under `[editor_plugins]`; without it the menu scene starts the list as
+before. Measured with `tools/web_smoke/shader_programs.py` (a fresh profile each run, `?play`, three runs each, the
+list of 157 programs; throttled: Chrome's network emulation at 50 Mbit/s and 20 ms, on the uncompressed files):
+
+| Page | Links, ms | Links over 100 ms | Engine's first link, s | Last link, s | Slowest frames, ms |
+| --- | ---: | ---: | ---: | ---: | --- |
+| GPU, cold, menu scene starts it | 1 695 to 1 778 | 2 (0.7 s each, at boot) | 0.4 to 0.5 | 6.7 to 7.4 | 2 426 to 2 507 |
+| GPU, cold, page starts it | 195 to 242 | 0 | 2.5 to 3.1 | 5.5 to 6.4 | 1 971 to 1 991 |
+| GPU, cold, throttled, menu scene | 1 749 to 1 783 | 2 | 8.3 to 8.5 | 15.0 to 15.5 | 2 455 to 2 552 |
+| GPU, cold, throttled, page | 222 to 237 | 0 | 9.7 to 9.9 | 13.0 to 13.4 | 1 848 to 1 941 |
+| GPU, warm profile, menu scene / page | 141 to 180 / 131 to 136 | 0 / 0 | 0.1 to 0.4 / 0.4 | 3.3 to 3.6 / 2.7 to 3.3 | 599 to 630 / 827 to 859 |
+| SwiftShader, menu scene / page (skipped) | 183 to 201 / 190 to 205 | 0 / 0 | 0.3 / 0.3 | 7.9 to 8.1 / 7.7 to 8.2 | 1 447 to 1 486 / 1 446 to 1 545 |
+
+The list links in 2.1 s from about 0.1 s, the engine's boot programs and the level's are then found built, and the
+straight route no longer waits on the clear colour (the Godot splash shows until the engine draws the level at about
+4.2 s, against a blank page until 5.1 s). Two costs: the engine's first GL call waits for the GPU process to take the
+list, so on a local page it boots about 2 s later (and still draws the level sooner); and on the throttled page the
+downloads ended about 1.5 s later while the GPU process linked (the pack at 3.7 s instead of 2.3 s, the wasm at 9.5 s
+instead of 8.0 s), so the engine's splash shows longer. Sending the list in batches of 16 kept the download's pace
+(first link 9.0 s, last 12.4 s throttled), but on a local page the engine then booted mid-list and its links took
+8.9 s: the list goes at once.
+
+- **Approach:** Compile each program's shaders just before its link, in the list's order (the recorder writes the
+  engine's boot programs first), so the GPU process's workers finish the first programs first. **Watch out for:** the
+  first page start compiled all 300 shaders before any link: the list took 7.3 s instead of 2.1 and the engine's two
+  boot links waited 0.8 s each behind it (4 links over 100 ms, the last at 9.4 s). **Seen:** gdstudio #1183,
+  2026-11-11.
+
+### Keeping the list current {#prelink-check}
+
+<!-- new section: nothing checked the committed list against the build, so a new material left programs out silently -->
+
+A program the list lacks is linked at its first draw, up to a second's wait on a cold GPU browser, and nothing else
+says the list is out of date. The template job of the kit's CI (and a game's own `ci`) plays the exported page on
+SwiftShader, which records the same programs as a GPU, and fails when it links more than 10 programs the list lacks:
+`shader_programs.py build/web out --list assets/shaders/web/shader_programs.json --max-missed 10` (it also fails on an
+attribute `mismatch`, and the step first checks that the export served the list and wrote the page's start). A current
+list lacks 0 to 4 (the warm-up's timing); with 20 of its 157 programs taken out the check counted 23 and exited 1. When
+it fails, record the list again with `--write <list> --merge` and commit it.
 
 ## Testing it {#testing-it}
 
