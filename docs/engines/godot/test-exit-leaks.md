@@ -193,4 +193,5 @@ names each script) as a warning, and fails when the second run leaks too or when
   tests) with `--verbose`: a leak that names the same script on every run and in the early export is real and is fixed
   in that script; one that comes and goes with the same code is the flake, which the retry absorbs. **Watch out for:**
   a retry hides a leak that happens one run in two, so read the warning's script names in the log when it shows.
-  **Seen:** gdstudio #998, 2026-11-10 (retry in the template job's export step).
+  **Seen:** gdstudio #998, 2026-11-10 (retry in the template job's export step); gdstudio #1194, 2026-11-11 (the
+  retry leaked too: 237 scripts from the addons and gdUnit4, none of them the change's).

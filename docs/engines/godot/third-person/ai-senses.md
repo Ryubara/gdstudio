@@ -41,7 +41,11 @@ player. The base, the profile and the director are on [AI characters](ai.md).
   perceived (`entity_lost`). A memory is searched for at `last_position` and never fired on.
 - **Hearing.** The noises made since the last think, each heard within its radius times the profile's
   `hearing_range` over the board's `reference_hearing`; the source's band filters it (an ally's footsteps are not
-  heard; a noise with no source is "something", Hostile). Past the board's `occlusion` share of the radius a clear line
+  heard; a noise with no source is "something", Hostile). The board files each noise under its maker's faction
+  (`AiNoise.by_faction`, `unowned` for none), so a listen reads one band a faction and walks only the noises of the
+  factions it cares about, in the order they were made; one that holds a grudge reads every noise (kit #1204). A
+  maker whose faction changes is filed by the faction it had when it made the noise, at most `keep_seconds` (1 s)
+  before. Past the board's `occlusion` share of the radius a clear line
   is needed (one ray from the same count), else the wall muffles it. A heard thing's awareness becomes at least
   `suspicious_at` plus `heard_gain` times how near it was, so two close shots alert.
 - **Touch.** A hit (`Character.took_hit`) with a source the character cares about is believed at once, with awareness 1,

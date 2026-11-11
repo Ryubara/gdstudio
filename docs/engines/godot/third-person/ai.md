@@ -99,7 +99,8 @@ proof are on [The AI navigator](ai-navigator.md).
      ran every frame and put the 4x frame past the tick (gdstudio #1046); nothing said how a character's animation is
      cut down by its tier and the view -->
 
-`AiAnimationThrottle` (gdstudio #1046) is the first payoff of [the crowd spike](../crowds.md#recommendation). The
+`AiAnimationThrottle` (gdstudio #1046) is the first payoff of [the crowd spike](../crowds.md#recommendation). Its
+rules live in `CharacterAnimationThrottle` since #1138 (the online puppets use it too); the subclass adds the tier. The
 director hands it every character it registers and takes it back on `unregister`; it gives each one a period in frames,
 worked out again every `recheck_frames` on a frame of its own and at once on a tier change, a hit, a death or a revive:
 
