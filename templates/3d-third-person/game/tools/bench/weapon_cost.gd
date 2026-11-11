@@ -94,7 +94,7 @@ func _run() -> void:
 	result["blow_us"] = spent / float(SHOTS)
 	var loadout := WeaponLoadout.new()
 	loadout.weapon = weapon
-	loadout.slots = [pistol] as Array[WeaponDef]
+	loadout.slots = [pistol] as Array[Resource]
 	loadout.unarmed = load(FISTS) as WeaponDef
 	add_child(loadout)
 	started = Time.get_ticks_usec()
