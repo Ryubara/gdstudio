@@ -7,7 +7,8 @@ The base every enemy, friendly and civilian is made from, the resource that says
 budgets them all (kit #963; the design is the research for #882, the costs [Crowds: AI
 characters](../crowds.md#ai-characters)). Relationships (#964) are [below](#relations), tasks (#965)
 [below](#tasks), the navigator (#967) [below](#navigator), senses, awareness and memory (#966) on [AI
-senses](ai-senses.md); reactions come in #968 to #971, each into a slot this base leaves for it.
+senses](ai-senses.md), reactions (#968) on [AI behaviour](ai-behaviour.md); #969 to #971 follow, each into a slot
+this base leaves for it.
 
 ## What is in it {#base}
 
@@ -22,6 +23,7 @@ senses](ai-senses.md); reactions come in #968 to #971, each into a slot this bas
 | `AiSituation` | `gameplay/ai/ai_situation.gd` | Unaware, Suspicious, Alert, Engaged, Fleeing, Dead: rising is at once, calming down or turning sideways waits `situation_dwell`, awareness crosses its lines with `awareness_hysteresis`, death is at once and only `revive()` leaves it. |
 | Relationships | `gameplay/ai/relations/`: `AiRelations`, `AiFaction`, `AiRelationEvent`, `ai_relations.tres`, `AiFactions` (a node of `world/world.tscn`), `AiFactionMember` (a child of `ai_character.tscn` and `player.tscn`) | Who is hostile to whom and how it changes (kit #964): [Factions and relationships](#relations). |
 | Senses | `gameplay/ai/senses/`: `AiSenses` (the `Senses` child of `ai_character.tscn`, its `senses` slot) with its `AiSensesView`, `AiBeliefs` and `AiBelief`, `AiSensePool`, the level's `AiNoise` board (a node of `world/world.tscn`) with `AiNoiseRecord`, and the `AiNoiseMaker` of `character.tscn` | What a character can know (kit #966): sight, hearing, touch and tellings turned into beliefs the brain reads instead of the world, on the think tick and the shared ray budget: [AI senses](ai-senses.md). |
+| Behaviour | `gameplay/ai/behaviour/` (`AiBrain`, the `Brain` child of `ai_character.tscn`, its `brain` slot; `AiBehaviourSet` and `sets/*.tres`), `tasks/stock/`, `ai_guard.tscn`, `ai_ally.tscn`, `ai_civilian.tscn` | What a character does (kit #968): events routed through a table into stock tasks, play states: [AI behaviour](ai-behaviour.md). |
 | Debug overlay | the `DebugLabel` (`Label3D`) of `ai_character.tscn` | The profile's name, the situation and the tier above the head, with `debug` on (off by default; written only on a change or a think while on). |
 
 The director lives in `world.tscn`, not `main.tscn`: the main scene holds only instances and wires
@@ -34,7 +36,8 @@ finds it through the group; a character with no director steps itself and never 
 - **`AiCharacter`** (group AI): `profile` (the grunt in `ai_character.tscn`), `debug`, `debug_label`; group Slots:
   `navigator` (the `Navigator` node, an `AiNavigator`, [below](#navigator)), `senses` (the `Senses` node of
   `ai_character.tscn`, [AI senses](ai-senses.md#inspector)), `task_runner` (the `AiTasks` node of
-  `ai_character.tscn`, [Tasks](#tasks)). Everything `Character` has (tuning, weapon, ragdoll) is there too.
+  `ai_character.tscn`, [Tasks](#tasks)), `brain` (the `Brain` node, [AI behaviour](ai-behaviour.md#inspector)).
+  Everything `Character` has (tuning, weapon, ragdoll) is there too.
 - **`AiProfile`**: `display_name`; Movement `walk_speed` 1.6 m/s, `run_speed` 4.5 m/s, `turn_rate` 360 °/s,
   `acceleration` 12 m/s²; Senses `sight_range` 24 m, `lose_sight_range` 32 m, `half_angle` 55°, `near_radius` 2 m,
   `hearing_range` 30 m, `time_to_notice` 0.6 s, `reaction_time` 0.35 s (never under 0.2), `memory_seconds` 6,
@@ -315,6 +318,8 @@ For #968's stock tasks and a game's own: extend `AiTask`, export what an author 
 - Assign from a reaction router, a mission or a squad with `runner.assign(task, issuer)`; listen to `task_finished`
   and read `task.issuer`. A task kept in a file or in a scene is a template: the runner runs a copy (`fresh_copy()`),
   with `target`, `goal` and `issuer` carried over.
+- Four traps a task meets in a real body (routing from `update()`, a press in the first think, the commit time, the
+  walk's push line): [AI behaviour: writing a task](ai-behaviour.md#writing-a-task).
 
 ### What it costs {#task-cost}
 

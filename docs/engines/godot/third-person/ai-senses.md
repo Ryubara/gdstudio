@@ -149,3 +149,8 @@ reach) and behind (heard, then noticed at arm's reach), with the footstep rings 
   for a count of the body's nodes (`NODES_ALIVE` in `test_parts_budget.gd`) and raise it with a line that says what the
   node costs. **Watch out for:** the `NoiseMaker` passed every AI suite and failed only the full run's parts budget
   (55 nodes against 54). **Seen:** gdstudio #966, 2026-11-10.
+- **Approach:** Keep a record that names a node (a noise's maker) safe to read after the node is freed: check it with
+  `is_instance_valid` (`AiNoiseRecord.maker_gone()`) before any listener touches it, and test it with the maker freed
+  while its noise is still on the board. **Watch out for:** a shot's noise outlived its shooter, and every listener's
+  `_noise_band` raised "previously freed" until the record expired; no suite freed a body mid-noise until #968's
+  scenarios did. **Seen:** gdstudio #968, 2026-11-11 (`test_a_noise_whose_maker_was_freed_is_skipped`).
