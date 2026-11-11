@@ -11,11 +11,12 @@ extends Node
 ## `can_hurt_us`: a round of `AiFactions.can_hurt(a, b)` (which also finds the node in the tree).
 ## Each is the mean of `ROUNDS` rounds; `ns` columns are one lookup.
 ##
-## Run it headless on the desktop:
-## `godot --headless --path game res://tools/bench/ai_relations_bench.tscn`
-## and in a browser from a web export with this scene as `run/main_scene` and `tools/*` taken out
-## of the preset's exclude filter (`tools/bench/ai_relations_bench.py`). It prints one line of JSON
-## that starts with `AI_RELATIONS_BENCH` and, on the web, puts it in `window.__ai_relations_bench`.
+## Run it headless on the desktop: `godot --headless --path game
+## res://tools/bench/ai_relations_bench.tscn` and in a browser from the web export `gds template
+## bench-web 3d-third-person ai_relations_bench` makes (kit
+## docs/engines/godot/web-probes.md#bench-web) (`tools/bench/ai_relations_bench.py`). It prints one
+## line of JSON that starts with `AI_RELATIONS_BENCH` and, on the web, puts it in
+## `window.__ai_relations_bench`.
 
 const ENTITIES := 200
 const LOOKS := 8

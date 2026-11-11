@@ -8,12 +8,12 @@
 ## programs built for a new draw. At the end `micro` prints the
 ## script cost of one play and of one step of the pool. `FIRST` is the first `fire()` call.
 ##
-## On a computer (the numbers depend on the renderer, so run both):
-## `gds godot -- --path game --scene res://tools/bench/effects_cost.tscn --rendering-method
-## gl_compatibility` (and without the flag for Forward+). In the browser, export the project with
-## the scene as the main scene (`run/main_scene`), serve it and read `window.gdbench` (an array of
-## the runs) once `window.gdbench_done` is true.
-## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
+## On a computer (the numbers depend on the renderer, so run both): `gds godot -- --path game
+## --scene res://tools/bench/effects_cost.tscn --rendering-method gl_compatibility` (and without the
+## flag for Forward+). In the browser, export it with `gds template bench-web 3d-third-person
+## effects_cost` (kit docs/engines/godot/web-probes.md#bench-web), serve it and read
+## `window.gdbench` (an array of the runs) once `window.gdbench_done` is true. It lives in tools/,
+## which the export leaves out, and nothing in the game refers to it.
 extends Node
 
 ## Frames waited before a run is measured, and frames measured.
