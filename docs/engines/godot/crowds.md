@@ -454,6 +454,12 @@ frame). Median frame work in ms (the director's step a tick in brackets, ms; tic
   **Watch out for:** the first `AiDirector` walked its list from the start each tick and moved a refused think to the
   next tick, so with one think a tick and four characters at 60 Hz the first thought on every tick and the other three
   never did. **Seen:** gdstudio #963, 2026-11-10 (`test_thinks_over_the_count_a_tick_wait_for_the_next_tick`).
+- **Approach:** Give a per-character query over everyone (sight's candidates, a telling to the allies) a shared index
+  (the group split by faction, rebuilt when its count changes), walk only the parts the asker cares about, and bench it
+  with the crowd itself as the candidates. **Watch out for:** the senses' first look asked every AI character its
+  distance on every think (262 µs a think at 200 where 4 players were all it cared about), and every ally passed every
+  telling on, so 40 grunts that saw the same players made thousands of tellings. **Seen:** gdstudio #966, 2026-11-10
+  (fix: `AiSensePool`, and a listener that knew already passes nothing on; [the cost](third-person/ai-senses.md#cost)).
 - **Approach:** Measure the cost of the real character before taking the spike's caps, and set the template's defaults
   from that table. **Watch out for:** the spike's 20 at the Full tier came from a 22 to 26 µs capsule; the template's
   character is about 50 µs in Chrome walking, and 40 walkers with 20 at Full missed the 1 ms and 5 ms budgets by about

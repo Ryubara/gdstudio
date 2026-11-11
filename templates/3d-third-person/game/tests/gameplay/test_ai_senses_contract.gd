@@ -1,5 +1,5 @@
 # The senses' contract: every export of `AiSenses`, `AiSensesView`, `AiNoise` and `AiNoiseMaker`
-# with its default (the kit's `docs/engines/godot/third-person/ai.md#senses-inspector` lists the
+# with its default (the kit's `docs/engines/godot/third-person/ai-senses.md#inspector` lists the
 # same), the board in the world and the noise maker on the body a server loads, and the brain's
 # firewall (Deadnight's): no script of `gameplay/ai/` outside the perception and plumbing layer
 # names the world nodes or queries the space; the brain reads beliefs.
