@@ -63,6 +63,10 @@ static var next_url := ""
 @export_group("Join")
 ## Joins `--connect` or `?url=` when the scene starts (off: call `join` or `join_with`).
 @export var join_on_ready := true
+## On: a join on ready waits for the level's warm-up and its frames to settle first (`JoinWait`),
+## as a game joins behind its loading screen; a seat taken during the warm-up meets its slow
+## frames as stalls (kit #1106, #1142). Off: it joins at once.
+@export var join_after_warm_up := true
 ## The name the HELLO carries; `--name` wins.
 @export var player_name := "Player"
 ## The spawn group and seed of the server (`NetServer.spawn_group`, `spawn_seed`): the client
@@ -77,6 +81,8 @@ static var next_url := ""
 
 ## The link to the server (null before `join`).
 var link: NetLink
+## The wait before a join on ready (null when it joined at once or was never asked to).
+var join_wait: JoinWait
 ## The slot the server gave, or -1 before the WELCOME.
 var slot := -1
 var welcome: SnapshotCodec.Welcome
@@ -141,13 +147,32 @@ func _ready() -> void:
 		var url := next_url if next_url != "" else WebSocketLink.server_url()
 		next_url = ""
 		if url != "":
-			join(url)
+			join_when_ready(url)
 
 
 func _exit_tree() -> void:
 	if link != null:
 		link.close()
 		link.poll()
+
+
+## Joins `url` once the level is ready (`join_wait`), or at once with `join_after_warm_up` off.
+func join_when_ready(url: String) -> void:
+	if not join_after_warm_up:
+		join(url)
+		return
+	join_wait = JoinWait.new()
+	# A frame counts as settled under the stall guard's stall, not the server's hold (the probe's):
+	# a device that draws every frame in 70 ms would otherwise wait out the whole `limit` on Loading,
+	# and only a frame past the stall resyncs the client.
+	join_wait.settle.longest = StallGuard.STALL_SECONDS
+	join_wait.finished.connect(func() -> void: join(url), CONNECT_ONE_SHOT)
+	join_wait.run(self)
+
+
+## True while a join waits for the level to be ready.
+func is_waiting_to_join() -> bool:
+	return join_wait != null and join_wait.is_waiting()
 
 
 ## Connects to `url` over a WebSocket and says hello once it opens.
