@@ -24,6 +24,14 @@ const MEASURED_FRAMES := 300
 ## impacts are on.
 const RUNS: Array[Dictionary] = [
 	{"name": "idle", "rate": 0.0, "flash": false, "light": false, "impacts": false},
+	{
+		"name": "hitscan_flash_and_impacts_4",
+		"rate": 4.0,
+		"flash": true,
+		"light": true,
+		"impacts": true,
+		"hitscan": true
+	},
 	{"name": "shots_only_4", "rate": 4.0, "flash": false, "light": false, "impacts": false},
 	{"name": "flash_no_light_4", "rate": 4.0, "flash": true, "light": false, "impacts": false},
 	{"name": "flash_4", "rate": 4.0, "flash": true, "light": true, "impacts": false},
@@ -138,6 +146,7 @@ func _next_run() -> void:
 	weapon.definition.muzzle_flash.light_energy = _flash_energy if bool(spec["light"]) else 0.0
 	weapon.definition.impacts = bool(spec["impacts"])
 	weapon.definition.projectile_lifetime = 1.0
+	weapon.definition.hitscan = bool(spec.get("hitscan", false))
 	_emitter.stop_all()
 	_last = Time.get_ticks_usec()
 
