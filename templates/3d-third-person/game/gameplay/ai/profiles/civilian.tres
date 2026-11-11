@@ -8,6 +8,6 @@ display_name = "Civilian"
 courage = 0.1
 aggression = 0.0
 curiosity = 0.6
-faction = &"civilians"
+faction = &"civilian"
 engage_range = 0.0
 flee_below_health = 1.0
