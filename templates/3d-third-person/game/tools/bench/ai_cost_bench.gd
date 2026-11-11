@@ -5,8 +5,9 @@ extends Node
 ## `ai_character.tscn` standing and walking around a stand-in for the player.
 ##
 ## The characters stand on a grid 3 m apart around the player, all nearer than the Full range, so
-## the director's Full cap decides the tiers (20 at Full in a browser, 60 on the desktop; the rest
-## Reduced, stepped every 3rd tick). Walking, each turns its way a little every half second.
+## the director's Full cap decides the tiers (12 at Full in a browser, 60 on the desktop; the rest
+## Reduced, stepped every 4th tick). The camera looks on from 50 m, so with the throttle every
+## character is past its `far_distance`. Walking, each turns its way a little every half second.
 ##
 ## One line of JSON, `AI_COST_BENCH {...}`: for each count and mode the director's step per tick
 ## (`step_mean_us`, `step_p95_us`, `us_each`), the median frame work in milliseconds (from the

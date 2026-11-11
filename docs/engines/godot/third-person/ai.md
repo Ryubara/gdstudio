@@ -16,6 +16,7 @@ tasks and reactions come in #965 to #971, each into a slot this base leaves for 
 | `AiController` | `gameplay/ai/ai_controller.gd` | The `CharacterController` the parts write: the movement channel (`walk_direction`, `walk_strength`) and the action channel (`look_direction`, `aim`, `fire`), turned into one `PlayerCommand` a tick with `set_from_world`. A fire that starts is a press in exactly one command; `is_still()` says it asks for nothing. |
 | `AiProfile` | `gameplay/ai/ai_profile.gd`, `profiles/grunt.tres`, `ally.tres`, `civilian.tres` | Every number a kind of character reads, in six groups (Movement, Senses, Combat, Nerve, Social, Budget), each an `@export` with a range, a unit and a tooltip, read where it is used so an edit applies live. |
 | `AiDirector` | `gameplay/ai/ai_director.gd`, a node of `world/world.tscn` (group `ai_director`) | Steps every registered character's body, runs its think at its rate on its own phase, puts it in a tier by distance, and holds the shared `AiBudget`. It gives a character its `tier` and its `budget` and nothing else. |
+| `AiAnimationThrottle` | `gameplay/ai/ai_animation_throttle.gd`, the `AnimationThrottle` child of the `AiDirector` in `world/world.tscn` (the director's `animation_throttle`) | Moves each managed character's `AnimationTree` on less often where nobody would see it (far, out of view, Dormant), with the footsteps only near the camera: [The animation throttle](#animation-throttle). |
 | `AiBudget` | `gameplay/ai/ai_budget.gd` | Rays, path queries and thinks all characters together may spend in one physics tick; `take_ray()`, `take_path()`, `take_think()` refuse the one over the count. |
 | `AiSituation` | `gameplay/ai/ai_situation.gd` | Unaware, Suspicious, Alert, Engaged, Fleeing, Dead: rising is at once, calming down or turning sideways waits `situation_dwell`, awareness crosses its lines with `awareness_hysteresis`, death is at once and only `revive()` leaves it. |
 | Relationships | `gameplay/ai/relations/`: `AiRelations`, `AiFaction`, `AiRelationEvent`, `ai_relations.tres`, `AiFactions` (a node of `world/world.tscn`), `AiFactionMember` (a child of `ai_character.tscn` and `player.tscn`) | Who is hostile to whom and how it changes (kit #964): [Factions and relationships](#relations). |
@@ -45,7 +46,11 @@ finds it through the group; a character with no director steps itself and never 
   faction names are rows of the relationships table ([Factions and relationships](#relations)).
 - **`AiDirector`**: Population `web_cap` 40, `desktop_cap` 120, `web_full_cap` 12, `desktop_full_cap` 60,
   `player_group`; Budget a tick `rays_per_tick` 8, `paths_per_tick` 4, `thinks_per_tick` 12; Steps
-  `reduced_step_ticks` 4, `dormant_step_ticks` 6, `rest_step_ticks` 3.
+  `reduced_step_ticks` 4, `dormant_step_ticks` 6, `rest_step_ticks` 3; Animation `animation_throttle` (the
+  `AnimationThrottle` node in `world.tscn`; empty: every character animates every frame).
+- **`AiAnimationThrottle`**: `enabled`; Distances `near_distance` 15 m, `far_distance` 25 m, `footstep_range` 15 m
+  (all from the camera); Periods `reduced_period` 3, `far_period` 6 (frames), `freeze_unseen`, `max_catch_up` 0.25 s,
+  `hit_hold` 1 s; Work `recheck_frames` 4, `throttle_skeleton`, `camera` (empty: the viewport's).
 
 ## How the director schedules {#schedule}
 
@@ -66,6 +71,37 @@ finds it through the group; a character with no director steps itself and never 
   its controller asking for nothing) or dead is stepped at most every `rest_step_ticks`. A far body moves in steps of
   four or six ticks, which shows only to a camera near it.
 
+## The animation throttle {#animation-throttle}
+
+<!-- new section: with the director in, the AI step held its budget but every character's animation tree and footsteps
+     ran every frame and put the 4x frame past the tick (gdstudio #1046); nothing said how a character's animation is
+     cut down by its tier and the view -->
+
+`AiAnimationThrottle` (gdstudio #1046) is the first payoff of [the crowd spike](../crowds.md#recommendation). The
+director hands it every character it registers and takes it back on `unregister`; it gives each one a period in frames,
+worked out again every `recheck_frames` on a frame of its own and at once on a tier change, a hit, a death or a revive:
+
+| The character is | Its tree |
+| --- | --- |
+| new (its first 8 frames), nearer the camera than `near_distance`, dead or in its ragdoll, or hit in the last `hit_hold` | runs itself every frame, untouched, as the player's does |
+| Dormant, or out of the camera's view (feet, chest and head all outside the frustum) | holds its pose; seen again it moves on by the time it missed, `max_catch_up` at most |
+| Full, in view | every frame |
+| Reduced, in view | every `reduced_period` frames |
+| either, farther than `far_distance` from the camera | every `far_period` frames at least |
+
+A throttled tree is advanced by the time since its last advance, so the clips keep their speed, and with it the
+skeleton's modifiers (`throttle_skeleton`: the hand on the weapon); the `WeaponHold` puts its weights on at each advance
+instead of every frame, and the ragdoll keeps no per-tick pose for its bones' own velocities (a death in that time
+leaves with the character's velocity, as `pose_velocity` off does). Footsteps play only for a character animated every
+frame within `footstep_range` of the camera, which is the listener. The tree keeps its callback mode: only its own
+update stops ([AnimationTree: throttling a running tree](../animation-tree.md#throttling-a-running-tree)). Cosmetic and
+per machine: nothing in it changes what a body does or what a network sends, and the player, a `character_dressed.tscn`
+alone and a director without a throttle animate exactly as before.
+
+Near the camera nothing changes: `tools/capture/ai_tour.tscn` filmed with the throttle on and off matches frame for
+frame to the run-to-run noise of two runs with it off (160 and 194 of 203 frames identical, no pixel off by more than 8
+of 255 in either). What it saves is in [What it costs](#cost).
+
 ## What it costs {#cost}
 
 <!-- new section: the cost of the real character, which sets the director's web defaults, is read here first -->
@@ -75,10 +111,16 @@ throttle) with the shipped defaults, 12 at the Full tier and the rest stepped ev
 A walking body at Full is about 50 µs in Chrome and 35 µs native, the director's own work about 3 µs a character. The
 table and why the Full cap is 12 and not the research's 20: [Crowds: AI characters](../crowds.md#ai-characters).
 
+With the animation throttle (#1046) the whole frame of 40 walkers in Chrome is 1.4 ms against 2.8 ms, and at 4x 9 to
+10 ms with one tick a frame or fewer against 53 to 63 ms with five or six; what is left over 8 ms at 4x is the director's
+step, the walking body ([the table and where it goes](../crowds.md#ai-characters)).
+
 - **Approach:** Raise `web_full_cap` or lower `reduced_step_ticks` only with the bench run again in Chrome at 1x and 4x
-  (`tools/bench/ai_cost_bench.py`), and read the frame's work beside the director's step. **Watch out for:** at 4x the
-  whole frame of 40 walkers is 19.5 ms, past the 16.7 ms tick, from the animation and the footsteps, which the AI budget
-  does not count. **Seen:** gdstudio #963, 2026-11-10.
+  (`tools/bench/ai_cost_bench.py`), and read the frame's work, its ticks a frame and the calibration loop beside the
+  director's step. **Watch out for:** at 4x the whole frame of 40 walkers was 19.5 ms, past the 16.7 ms tick, from the
+  animation and the footsteps, which the AI budget does not count (the throttle answers that), and a busy machine
+  reads 20 to 40 % slower: compare runs by the calibration loop. **Seen:** gdstudio #963, 2026-11-10; gdstudio #1046,
+  2026-11-11.
 
 ## Factions and relationships {#relations}
 
@@ -210,6 +252,9 @@ from blue through grey to red.
 `tests/gameplay/test_ai_director.gd` (thinks at the rate and on ticks of their own, the ray budget shared and reset, the
 think budget, a profile edit while running, tiers with the margin and the cap, the population cap, the rest cadence,
 far characters walking as far), `test_ai_situation.gd` (rising, dwell, hysteresis, death) and `test_ai_character.gd`
-(the parts, the channels, a hit that kills into the ragdoll, the overlay, the profiles). The capture is
+(the parts, the channels, a hit that kills into the ragdoll, the overlay, the profiles), `test_ai_animation_throttle.gd`
+(a Dormant tree does not advance and a Full one near the camera does every frame, Reduced and far periods with the
+missed time, an unseen character held and caught up, footsteps only near, a death, `enabled` off and `unregister`
+giving the tree back, the player untouched). The capture is
 `tools/capture/ai_tour.tscn` (the three profiles side by side with the overlay, a grunt killed into its ragdoll) and the
 cost is `tools/bench/ai_cost_bench.tscn` with `ai_cost_bench.py` for Chrome ([the numbers](../crowds.md#ai-characters)).
