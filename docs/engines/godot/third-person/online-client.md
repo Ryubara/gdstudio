@@ -134,7 +134,7 @@ server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs 
 | Check | Threshold | What it guards |
 | --- | --- | --- |
 | Lost | no answer past 6 m (the page: one) | a loop that does not settle |
-| Snaps | one at the join and one per stall of the client's thread the stall guard saw | an error past 2.5 m outside a resync |
+| Snaps | one at the join, one per stall of the client's thread the stall guard saw, and with stalls of the commands' way one per such stall for an answer under 4 m (`size_snaps_m`, #1110) | an error past 2.5 m outside a resync |
 | Freezes seen | the stall guard counted at least the planned freezes | a run that froze nothing |
 | Worst error | under 6 m with freezes (the page: 8 m, #1070), under 4 m with stalls only (a stall of the commands' way outlasts the hold) | a stall shows as a burst, never a wrong place |
 | Settled | under 5 cm two seconds after the body stands | the end state is the server's |
@@ -189,3 +189,10 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
   (`gds_ui`, `gds_game`, Phantom Camera), so the image built, the deployment read `SUCCESS`, and the server failed to
   parse its scripts; the edge answered the client's upgrade with a 502. **Seen:** gdstudio #908, 2026-11-11 (the
   deployment from the made game listened on `$PORT` at once).
+- **Approach:** Count a snap by its cause: the reconciler keeps each snap taken for its size (`size_snaps`), and with
+  up stalls the judge allows one under 4 m per up stall; the settled gap and corrections judge the loop. Seed each way
+  of the relay on its own, and print a failed run's worst seconds with the stalls near them (`WORST`). **Watch out
+  for:** two up stalls close together make the server repeat a command twice and run 2.5 to 3.3 m ahead, which the
+  reconciler snaps: main's run on 31cc1793 read 3 snaps against 1 with no client stall. One shared generator split the
+  runner's 35 stalls 20 to 29 up. That run's 1.65 m settled gap and 75.5 m corrected (green: 9 mm, 30 m at most) are
+  still unexplained. **Seen:** gdstudio #1110, 2026-11-11 (from #1109).
