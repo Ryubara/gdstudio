@@ -39,6 +39,7 @@ func test_the_profile_defaults_are_pinned() -> void:
 		&"situation_dwell": 1.0,
 		&"faction": &"neutral",
 		&"share_radius": 12.0,
+		&"share_delay": 0.5,
 		&"obeys_orders": 0.5,
 		&"think_rate": 10.0,
 		&"reduced_think_rate": 2.0,

@@ -43,7 +43,8 @@ const GROUP := &"ai_characters"
 @export var debug_label: Label3D
 
 @export_group("Slots")
-## What it perceives with (sight, hearing, memory). Empty: it notices nothing.
+## What it perceives with (sight, hearing, touch, memory): an `AiSenses`, run first in each think.
+## Empty: it notices nothing.
 @export var senses: Node
 ## How it gets somewhere (the path and the steering), writing the controller's movement channel.
 @export var navigator: Node
@@ -95,6 +96,8 @@ func think(seconds: float) -> void:
 	think_count += 1
 	situation.configure(profile)
 	situation.advance(seconds)
+	if senses is AiSenses:
+		(senses as AiSenses).sense(seconds)
 	thought.emit(seconds)
 	if debug:
 		_show_debug()

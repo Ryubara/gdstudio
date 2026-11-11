@@ -5,6 +5,8 @@
 [ext_resource type="Script" path="res://gameplay/ai/ai_controller.gd" id="3_controller"]
 [ext_resource type="Resource" path="res://gameplay/ai/profiles/grunt.tres" id="4_grunt"]
 [ext_resource type="Script" path="res://gameplay/ai/relations/ai_faction_member.gd" id="5_member"]
+[ext_resource type="Script" path="res://gameplay/ai/senses/ai_senses.gd" id="6_senses"]
+[ext_resource type="Script" path="res://gameplay/ai/senses/ai_senses_view.gd" id="7_senses_view"]
 
 [sub_resource type="TorusMesh" id="TorusMesh_band"]
 inner_radius = 0.42
@@ -17,10 +19,11 @@ resource_local_to_scene = true
 shading_mode = 0
 albedo_color = Color(0.85, 0.85, 0.8, 1)
 
-[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label") instance=ExtResource("1_dressed")]
+[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label", "senses") instance=ExtResource("1_dressed")]
 script = ExtResource("2_ai")
 profile = ExtResource("4_grunt")
 debug_label = NodePath("DebugLabel")
+senses = NodePath("Senses")
 controller = NodePath("AiController")
 
 [node name="AiController" type="Node" parent="."]
@@ -48,3 +51,13 @@ visible = false
 cast_shadow = 0
 mesh = SubResource("TorusMesh_band")
 material_override = SubResource("StandardMaterial3D_band")
+
+[node name="Senses" type="Node" parent="." node_paths=PackedStringArray("eye", "view")]
+script = ExtResource("6_senses")
+eye = NodePath("../CameraTarget")
+view = NodePath("SensesView")
+
+[node name="SensesView" type="MeshInstance3D" parent="Senses"]
+visible = false
+cast_shadow = 0
+script = ExtResource("7_senses_view")
