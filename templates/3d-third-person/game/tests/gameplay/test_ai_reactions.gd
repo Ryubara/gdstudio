@@ -167,16 +167,24 @@ func test_low_health_goes_safe_and_does_not_roam() -> void:
 
 func test_a_target_1_4_m_away_is_hit_by_a_melee_swing() -> void:
 	await _ready_arena()
-	var guard := _arena.add_kind(BehaviourArena.GUARD, Vector3(0, 0, 0), 0.0)
-	guard.loadout.toggle_unarmed()
-	await _ticks(30)
-	assert_int(guard.weapon.definition.kind).is_equal(WeaponDef.Kind.MELEE)
-	var victim := _arena.add_dummy(Vector3(0, 0, 1.4), &"player", PI)
-	var full := victim.health
-	var hit := await _until(func() -> bool: return victim.health < full, 240)
-	assert_int(hit).override_failure_message("no blow landed").is_not_negative()
-	var attack := BehaviourArena.runner_of(guard).active as AiAttack
-	assert_int(attack.swings).is_greater_equal(1)
+	# Deadnight's reach fault (a loaded weapon that would not strike a target 1.4 m away): the
+	# swing lands at 1.4 m, and at 2.5 m, past the fists' reach, it walks in first and lands.
+	for distance: float in [1.4, 2.5]:
+		var x := -8.0 if distance < 1.5 else 8.0
+		var guard := _arena.add_kind(BehaviourArena.GUARD, Vector3(x, 0, 0), 0.0)
+		guard.loadout.toggle_unarmed()
+		await _ticks(30)
+		assert_int(guard.weapon.definition.kind).is_equal(WeaponDef.Kind.MELEE)
+		var victim := _arena.add_dummy(Vector3(x, 0, distance), &"player", PI)
+		var full := victim.health
+		var hit := await _until(func() -> bool: return victim.health < full, 360)
+		(
+			assert_int(hit)
+			. override_failure_message("no blow landed at %.2f m" % distance)
+			. is_not_negative()
+		)
+		var attack := BehaviourArena.runner_of(guard).active as AiAttack
+		assert_int(attack.swings).is_greater_equal(1)
 
 
 func test_no_shot_is_fired_at_a_remembered_entity() -> void:

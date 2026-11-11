@@ -18,6 +18,8 @@ extends AiStockTask
 
 ## Seconds `draw_fists` waits for the fists before it gives up (`NO_AMMO`).
 const FISTS_SECONDS := 2.0
+## Metres from the swing's distance where the fists come up.
+const RAISE_FISTS := 0.6
 
 ## Fight hand to hand whatever the weapon (on by itself when the weapon is a melee one).
 @export var melee := false
@@ -148,7 +150,8 @@ func _melee(delta: float, belief: AiBelief) -> Status:
 	var swing_at := minf(reach + reach_slack, profile.attack_range if profile else reach)
 	var away := flat_distance(belief.last_position)
 	controller.fire = false
-	controller.aim = true
+	# Fists up only for the last steps: an aim slows the walk in.
+	controller.aim = away <= swing_at + RAISE_FISTS
 	look_toward(belief.last_position)
 	if away > swing_at:
 		_windup = 0.0
