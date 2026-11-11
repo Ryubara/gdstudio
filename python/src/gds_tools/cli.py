@@ -692,7 +692,11 @@ def build_parser() -> argparse.ArgumentParser:
     sheet.set_defaults(func=_cmd_capture_sheet)
     clip = cap.add_parser("clip", help="encode a folder's frames to an MP4 (or GIF) small enough for GitHub")
     clip.add_argument("folder")
-    clip.add_argument("--gif", action="store_true", help="make a GIF instead of an MP4")
+    clip.add_argument(
+        "--gif",
+        action="store_true",
+        help="make a GIF (short, silent, one subject) instead of an MP4, within its budget",
+    )
     clip.set_defaults(func=_cmd_capture_clip)
 
     syn = sub.add_parser(
