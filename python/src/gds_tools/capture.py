@@ -16,6 +16,7 @@ import re
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
+from fractions import Fraction
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -47,6 +48,7 @@ MP4_CRF = 26
 # only when its bytes a second stay under the viewer's connection.
 GIF_WIDTHS = (800, 640, 480)  # tried in order until the file fits gif_budget()
 GIF_FPS_CHOICES = (20, 10, 5, 4, 2, 1)  # each a whole number of hundredths a frame
+GIF_MAX_FPS = GIF_FPS_CHOICES[0]
 GIF_BYTES_PER_SECOND = 512 * 1024  # 4.2 Mbit/s: no stall on the first play while downloading at 10 Mbps
 GIF_MIN_BUDGET_SECONDS = 2.0  # a shorter loop may stall once, for under a second, on its first play
 GIF_MAX_SECONDS = 10.0  # longer is an MP4; also caps the budget at 5 MB
@@ -283,25 +285,38 @@ def gif_budget(seconds: float) -> int:
     return int(GIF_BYTES_PER_SECOND * min(max(seconds, GIF_MIN_BUDGET_SECONDS), GIF_MAX_SECONDS))
 
 
-def gif_fps(fps: int) -> int:
-    """The GIF frame rate for frames recorded at `fps`: one whose delay is a whole number of hundredths of a second
-    (12 fps came out as delays of 8, 8 and 9, a judder), dividing `fps` when it can so the frames kept are even."""
+def gif_fps(fps: int | Fraction) -> int | Fraction:
+    """The GIF frame rate for frames played at `fps`: one whose delay is a whole number of hundredths of a second
+    (12 fps came out as delays of 8, 8 and 9, a judder), dividing `fps` when it can so the frames kept are even.
+
+    A slowed rate (10 fps slowed 3 times is 10/3) whose delay is already whole (30 hundredths) keeps every frame.
+    """
+    fps = Fraction(fps)
+    if fps <= GIF_MAX_FPS and (100 / fps).denominator == 1:
+        return int(fps) if fps.denominator == 1 else fps
     for choice in GIF_FPS_CHOICES:
         if choice <= fps and fps % choice == 0 and choice >= 10:
             return choice
     return next((choice for choice in GIF_FPS_CHOICES if choice <= fps), 1)
 
 
+def rate_text(rate: int | Fraction) -> str:
+    """A frame rate as ffmpeg reads it: `10`, or `10/3` for one that is not whole."""
+    rate = Fraction(rate)
+    return str(rate.numerator) if rate.denominator == 1 else f"{rate.numerator}/{rate.denominator}"
+
+
 def _ffmpeg_cmd(
-    ffmpeg: Path, pattern: Path, fps: int, width: int, seconds: float, gif: bool, target: Path
+    ffmpeg: Path, pattern: Path, start: int, rate: Fraction, width: int, seconds: float, gif: bool, target: Path
 ) -> list[str]:
     scale = f"scale='min({width},iw)':-2:flags=lanczos"
-    cmd = [str(ffmpeg), "-y", "-hide_banner", "-loglevel", "error", "-framerate", str(fps), "-i", str(pattern)]
-    cmd += ["-t", f"{seconds:.3f}"]
+    cmd = [str(ffmpeg), "-y", "-hide_banner", "-loglevel", "error", "-framerate", rate_text(rate)]
+    # ffmpeg looks for a first frame numbered 0 to 4 only; frames numbered from 1 by Blender in a folder whose name
+    # ends in a digit (legs20001.png read as frame 20001), or a folder starting at 16.png, were found by nobody (#1190)
+    cmd += ["-start_number", str(start), "-i", str(pattern), "-t", f"{seconds:.3f}"]
     if gif:
-        out_fps = gif_fps(fps)
         palette = "split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4"
-        graph = f"fps={out_fps},{scale},{palette}"
+        graph = f"fps={rate_text(gif_fps(rate))},{scale},{palette}"
         return [*cmd, "-filter_complex", graph, "-loop", "0", str(target)]
     cmd += ["-vf", f"{scale},format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", str(MP4_CRF)]
     return [*cmd, "-movflags", "+faststart", str(target)]
@@ -314,16 +329,25 @@ def encode_clip(
     run: Runner = run_program,
     log: Callable[[str], None] = print,
     max_seconds: float = CLIP_MAX_SECONDS,
+    fps: int | None = None,
+    slow: float = 1.0,
 ) -> Path:
     """Encode the frames of `folder` into `<folder>/<name>.mp4` (or .gif), at most `max_seconds` long.
 
-    Frames past `max_seconds` are left out, and a line says how many and how many seconds (#1132).
+    The frames play at `fps` (default: the rate `capture.json` recorded, else `DEFAULT_FPS`), `slow` times slower:
+    `slow=2` plays 10 fps frames at 5 fps, every frame kept, so a fast pose change or a jitter can be seen (#1190).
+    `max_seconds` and the GIF's length count the slowed clip. Frames past `max_seconds` are left out, and a line says
+    how many and how many seconds (#1132).
 
     The clip is encoded at the widest size in `CLIP_WIDTHS` and, while the file exceeds `CLIP_MAX_BYTES`, again at
     the next narrower one; CaptureError when even the narrowest is too big.
     """
     if max_seconds <= 0:
         raise CaptureError(f"--max-seconds must be more than 0, not {max_seconds:g}")
+    if fps is not None and fps < 1:
+        raise CaptureError(f"--fps must be at least 1, not {fps}")
+    if slow <= 0:
+        raise CaptureError(f"--slow must be more than 0, not {slow:g}")
     frames = frame_files(folder)
     if not frames:
         raise no_frames_error(folder)
@@ -331,11 +355,12 @@ def encode_clip(
     assert match is not None
     digits = len(match["number"])
     pattern = folder / f"{match['prefix']}%0{digits}d.png"
-    fps = read_fps(folder)
-    total = len(frames) / fps
+    start = int(match["number"])
+    rate = Fraction(fps or read_fps(folder)) / Fraction(str(slow)).limit_denominator(1000)
+    total = float(len(frames) / rate)
     seconds = min(total, max_seconds)
     if total > max_seconds:
-        left_out = len(frames) - math.ceil(max_seconds * fps)
+        left_out = len(frames) - math.ceil(max_seconds * rate)
         log(
             f"clip cut at {max_seconds:g} s: {left_out} frames ({total - max_seconds:g} s) of {len(frames)} left out;"
             " --max-seconds for a longer clip"
@@ -350,7 +375,7 @@ def encode_clip(
     size = 0
     for width in widths:
         target.unlink(missing_ok=True)
-        result = run(_ffmpeg_cmd(ffmpeg, pattern, fps, width, seconds, gif, target), None)
+        result = run(_ffmpeg_cmd(ffmpeg, pattern, start, rate, width, seconds, gif, target), None)
         if result.returncode != 0 or not target.exists():
             raise CaptureError(f"ffmpeg failed with code {result.returncode}:\n{result.output.strip()[-600:]}")
         size = target.stat().st_size

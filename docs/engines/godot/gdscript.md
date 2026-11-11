@@ -22,11 +22,11 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
 - **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not
   `scale`; `earlier`, not `before`, in a GdUnit suite), no global function (`hash`, `snapped`) and no function of its
   own class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
-  `[debug]` of `project.godot`, as the templates do (addons are excluded). **Watch out for:** the editor warned on
+  `[debug]` of `project.godot`, as the templates do. **Watch out for:** the editor warned on
   opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
   `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 and #877 (a
   test's `for name in`, exit 105); #902, 2026-11-10 (`hash`, `snapped`, `world_hash` beside a function of that name);
-  #903 (a parameter `url` and a method `url()`); #901 (`before`); #966 (`mesh` in a mesh's script).
+  #903 (a parameter `url` and a method `url()`); #901 (`before`); #966 (`mesh` in a mesh's script); #970 (`rows`).
 
 - **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
   `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an
