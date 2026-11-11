@@ -349,13 +349,6 @@ func friend_in_line_of_fire(point: Vector3, radius := 0.6) -> Node3D:
 		_member.refresh(table) if _member.table_version != table.version else _member.faction_index
 	)
 	var reach := radius * radius
-	# A chest in the way stands within `radius` (flat) of the segment, so inside its flat box grown
-	# by `radius`: four comparisons skip a friend anywhere else (behind, beyond, far to the side).
-	var margin := radius + 0.01
-	var low_x := minf(from.x, point.x) - margin
-	var high_x := maxf(from.x, point.x) + margin
-	var low_z := minf(from.z, point.z) - margin
-	var high_z := maxf(from.z, point.z) + margin
 	for group in target_groups:
 		var pool := AiSensePool.of(get_tree(), group, table)
 		for part in pool.factions.size():
@@ -365,10 +358,8 @@ func friend_in_line_of_fire(point: Vector3, radius := 0.6) -> Node3D:
 				if not is_instance_valid(node) or node == _character:
 					continue
 				var body := node as Node3D
-				var at := body.global_position
-				if at.x < low_x or at.x > high_x or at.z < low_z or at.z > high_z:
-					continue
-				var chest := at + Vector3.UP * 1.0
+				# The getter, not the property: a tenth of the check in a browser (kit #1204).
+				var chest := body.get_global_position() + Vector3.UP * 1.0
 				var along := (chest - from).dot(line) / length_squared
 				if along <= 0.0 or along >= 1.0:
 					continue
@@ -432,7 +423,7 @@ func _look(profile: AiProfile, seconds: float) -> void:
 				if not is_instance_valid(node) or node == _character:
 					continue
 				var body := node as Node3D
-				var at := body.global_position
+				var at := body.get_global_position()
 				var far := me.distance_squared_to(at)
 				if far > sight_reach and far > near_reach:
 					if far > keep_reach or not _was_seen(body):

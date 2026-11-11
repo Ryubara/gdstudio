@@ -152,11 +152,10 @@ func serials_since(serials: Array, first: int, into: Array[int]) -> bool:
 func _index(noise: AiNoiseRecord) -> void:
 	var serials: Array = unowned
 	if noise.member != null:
-		serials = by_faction.get(noise.faction, null)
-		if serials == null:
+		if not by_faction.has(noise.faction):
 			var fresh: Array[int] = []
-			serials = fresh
-			by_faction[noise.faction] = serials
+			by_faction[noise.faction] = fresh
+		serials = by_faction[noise.faction]
 	serials.append(noise.serial)
 	if serials.size() >= _size * 2:
 		serials.assign(serials.slice(serials.size() - _size))

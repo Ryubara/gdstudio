@@ -105,8 +105,7 @@ func _trigger(
 		return Shot.HELD
 	if weapon.is_reloading():
 		return Shot.RELOADING
-	var magazine: Variant = weapon.magazine_size
-	if magazine != null and magazine > 0 and int(weapon.ammo) <= 0:
+	if weapon.magazine_size != null and weapon.magazine_size > 0 and int(weapon.ammo) <= 0:
 		controller.reload = weapon.can_reload()
 		return Shot.RELOADING if controller.reload else Shot.DRY
 	_gap -= delta
