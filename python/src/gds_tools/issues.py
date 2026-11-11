@@ -7,8 +7,8 @@ among them; the maintainer alone sets that label. "Oldest" is the lowest issue n
 
 A blocked issue says why: `block` writes the label and a `Blocked (<who>, <date>): waits on #N ...` line in the body,
 `unblock` lifts both, and `list` shows the reason and which blocks outlived their cause (`parse_block`). The
-coordinator's Stop hook (`.claude/hooks/guards.py`, `stop_idle`) loads this module by path to find the issues that may
-start and have no agent, so it stays standard library only.
+coordinator's Stop hook (`.claude/hooks/guards/idle.py`, `stop_idle`) loads this module by path to find the issues that
+may start and have no agent, so it stays standard library only.
 
 A repository can be paused (`paused = "<reason, date>"` on its `[repos.<name>]` entry of the kit's workspace.toml,
 set by the maintainer): its window holds only `P-critical` issues, so `start`, `list` and the Stop hook offer nothing
@@ -16,7 +16,7 @@ else from it (`paused_repositories`). Its pull requests are left alone too: `ref
 `gds pr hold` and `gds pr check-body` on them. Scheduled CI and nightlies are not read from here and keep running.
 
 `start` checks the window, labels and assigns the issue, and writes the start to a ledger in
-`<workspace>/cache/issues-started.json`; the hook (`.claude/hooks/guards.py`) refuses to start a task agent whose
+`<workspace>/cache/issues-started.json`; the hook (`.claude/hooks/guards/issues.py`) refuses to start a task agent whose
 prompt does not name an issue in that ledger. Every `gh` call goes through a runner that tests replace with recorded
 JSON, so nothing here needs the network to be tested. Nothing here posts a comment: `gds` runs under the
 maintainer's account, and `run_gh` refuses every route that would post under it (`posts_a_comment`).
@@ -96,7 +96,8 @@ def ledger_key(repo: str, number: int) -> str:
     return f"{repo}#{number}".lower()
 
 
-# What `gh` posts with, as in `check_comments` of `.claude/hooks/guards.py`, which cannot see a call made from Python.
+# What `gh` posts with, as in `check_comments` of `.claude/hooks/guards/comments.py`, which cannot see a call made from
+# Python.
 _POSTING = {("issue", "comment"), ("pr", "comment"), ("discussion", "comment"), ("pr", "review")}
 _CLOSING = {("issue", "close"), ("pr", "close"), ("issue", "reopen"), ("pr", "reopen")}
 _API_WRITES = ("-f", "-F", "--field", "--raw-field", "--input")

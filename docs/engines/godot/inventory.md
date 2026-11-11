@@ -60,9 +60,15 @@ In the inspector: `Inventory` Slots (`slot_count` 16, `start_items`), Pickups (`
 - **Items:** press a slot to pick its stack up (the `HeldFrame`), press another to put it there, the same one or Esc
   (B) to put it down; a mouse or a finger can drag one slot onto another (`InventoryCell._drop_data`). Drop drops the
   picked stack, or else the last slot the pointer or the focus showed; it is off for an item that may not be dropped.
-- **Focus by hand.** Every cell's four neighbours are set in `_link_focus()`: Down from a weapon goes to the bag's
-  column under it, Down from the last row to Drop, Left of the first column to Close, a side with nothing beyond keeps
-  the focus. The weapons row is shorter than the grid, so the engine's guess by geometry jumped past rows.
+- **Hotbar row.** Under the weapons, at the top of the bag's scroll (so on a phone held sideways, where the scroll keeps
+  about one row, the card still fits the screen and the bag scrolls under it), one cell a place of the player's `Hotbar`
+  ([below](#hotbar)): a bag cell dragged onto a place, a picked-up stack pressed onto one, or a hotbar key (3 to 6)
+  pressed on a shown bag cell puts that item there (`assign_to_hotbar`); pressing a filled place takes it off. An empty
+  place shows its key.
+- **Focus by hand.** Every cell's four neighbours are set in `_link_focus()`: Down from a weapon goes to the hotbar
+  place under it, Down from the hotbar to the bag's column under it, Down from the last row to Drop, Left of the first
+  column to Close, a side with nothing beyond keeps the focus. The weapons row is shorter than the grid, so the engine's
+  guess by geometry jumped past rows.
 - **The game running behind it.** `pauses_game()` reads the setting; the `ScreenHost` asks the top screen for it on
   every change of the stack (`top_pauses_game()`), so the pause menu pushed over a running inventory still stops the
   game. While the screen is up the player's `input_enabled` is off (`stop_player_input`), so a click on a slot fires
@@ -79,17 +85,54 @@ coin's or a bandage's description); `ModelPreview` Nodes (`model_slot`, set from
 Bag button's is the inventory). The look of a slot is `inventory_cell.tscn`, of the screen `inventory_screen.tscn`, of
 the preview's light and background `model_preview.tscn`.
 
-Tests: `tests/ui/test_inventory_screen.gd` (16 cases: keys, pad, mouse and the Bag button through the real input path;
-pointer motion over every slot at desktop and phone sizes moves no part by a pixel; every shipped text fits the details),
-`tests/gameplay/test_weapon_request.gd` (5), and the host's `test_screen_host_alone.gd` for `pauses_game()`. Captures:
-`tools/capture/inventory_tour.tscn` (`--shots=<folder>` for a phone-sized window) and
-`tools/capture/inventory_hover_tour.tscn` (a drawn pointer over each kind of slot; `--phone` for the phone layout).
+Tests: `tests/ui/test_inventory_screen.gd` (keys, pad, mouse and the Bag button through the real input path; pointer
+motion over every slot at desktop and phone sizes moves no part by a pixel; every shipped text fits the details),
+`tests/ui/test_inventory_hotbar.gd` (3: the hotbar row's drag, key and press), `tests/gameplay/test_weapon_request.gd`
+(5), and the host's `test_screen_host_alone.gd` for `pauses_game()`. Captures: `tools/capture/inventory_tour.tscn`
+(`--shots=<folder>` for a phone-sized window) and `tools/capture/inventory_hover_tour.tscn` (a drawn pointer over each
+kind of slot; `--phone` for the phone layout).
 
 Cost: nothing while closed (the screen is made when it opens). Open, the preview draws the model's meshes once more
 into a viewport the size of its control at the window's pixels, and the map is not drawn there: 380 x 613 px on a
 1920 x 1080 window, 240 x 177 on 844 x 390, 507 x 817 on 2560 x 1440, each 0.04 to 0.07 ms of CPU and of GPU a frame
 (RTX 5080, Compatibility, 4x MSAA, the mean of 120 frames: `inventory_tour.tscn -- --measure`). The game is paused
 behind it by default.
+
+## The hotbar {#hotbar}
+
+<!-- new section: the bag and its screen had sections; nothing said how a quick-access row names items, uses them and
+what using an item means (gdstudio #1148) -->
+
+A row of quick-access places beside the bag (gdstudio #1148): `Hotbar` (`addons/gds_game/inventory/hotbar.gd`, synced)
+is a node with `place_count` places, each naming a kind of item (an `ItemDef`), not a bag slot, so moving stacks never
+changes it. Its count is the bag's (`count_at` is `Inventory.count_of`); a place whose item ran out keeps it, dim with
+its 0, until it is assigned again or cleared. An item sits in one place: assigning it elsewhere clears the old one.
+
+| Part | Where | What it is |
+| --- | --- | --- |
+| `Hotbar` | `addons/gds_game/inventory/hotbar.gd` (synced) | The places: `assign`, `clear`, `item_at`, `count_at`, `can_use`, `use`; signals `changed` (also on the bag's `changed`), `used`, `use_refused`; `Hotbar.of(node)` finds it by type. |
+| `ItemEffect` | `addons/gds_game/inventory/item_effect.gd` (synced) | What using an item does, as data on its `ItemDef` (`use_effect`): `can_apply(user)`, `apply(user)`. |
+| `HealEffect` | `addons/gds_game/inventory/heal_effect.gd` (synced) | Gives `amount` health to the user's `Health` (found by type); refused at full health with `only_when_hurt`, and for a dead user. |
+| Template | the `Hotbar` node of `gameplay/player/player.tscn`; `gameplay/inventory/bandage.tres` | Four places, the bandage in the first; the bandage heals 25. |
+| Keys | `gameplay/player/quick_keys.gd` (`QuickKeys`), read by `PlayerInput` | `weapon_1`, `weapon_2` (1, 2) request that weapon place's slot; `hotbar_1` to `hotbar_4` (3 to 6) use a place. A missing action is passed over. |
+
+- **Using a place** asks the effect (`can_apply`), applies it, then takes one out of the bag when the item is
+  `consumed_on_use` (from the last stack, so the first stays full); anything else is `use_refused` and nothing changes.
+- **The keys are presses, never a held state:** `QuickKeys` counts an action going down between two commands, or a
+  press seen as an event while the action is up again (a press and release in one frame), as the weapon presses do. With
+  the player's `input_enabled` off (a screen is up) they are read and dropped; the inventory screen takes the hotbar
+  keys itself to assign.
+- **Online:** the bag is not on the wire yet, so neither is the hotbar. `NetClient` turns `authoritative` off on its
+  player's hotbar, and a use is refused there: the health it would change is the server's. The weapon places switch by
+  ordinary weapon presses (`request_weapon`), so a server sees nothing new and the lit slot follows the predicted
+  loadout the server's word keeps.
+
+In the inspector: `Hotbar` Places (`place_count` 4, `start_items`), Nodes (`inventory`, empty: the first `Inventory`
+beside it; `user`, empty: the parent), Network (`authoritative` on); `ItemDef` Use (`use_effect`, `consumed_on_use` on);
+`HealEffect` (`amount` 25, `only_when_hurt` on). The HUD's rows are on
+[The camera, the map and the screen](third-person/camera-and-ui.md#hud). Tests: `godot/tests/gds_game/test_hotbar_alone.gd`
+(10 cases, alone), the template's `tests/ui/test_hud_slots.gd` (12: keys, touch, switching, the lit slot, an online
+client) and `tests/ui/test_inventory_hotbar.gd` (assigning).
 
 ## A live model in a menu {#live-model}
 
