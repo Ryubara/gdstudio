@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://assets/weapons/pistol/pistol_held.tscn" id="4_pistol"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual1.glb" id="5_ual1"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual2.glb" id="6_ual2"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone.glb" id="6_prone"]
 [ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
 [ext_resource type="PackedScene" path="res://gameplay/character/footsteps.tscn" id="8_footsteps"]
 [ext_resource type="Script" path="res://gameplay/character/character_ragdoll.gd" id="9_ragdoll"]
@@ -75,7 +76,8 @@ external_skeleton = NodePath("../Mannequin/Armature/Skeleton3D")
 root_node = NodePath("../Model/Mannequin")
 libraries = {
 &"ual1": ExtResource("5_ual1"),
-&"ual2": ExtResource("6_ual2")
+&"ual2": ExtResource("6_ual2"),
+&"prone": ExtResource("6_prone")
 }
 
 [node name="AnimationTree" type="AnimationTree" parent="." index="5"]

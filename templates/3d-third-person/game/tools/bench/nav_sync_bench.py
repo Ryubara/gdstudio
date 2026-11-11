@@ -1,10 +1,10 @@
 """What a navigation region costs the web build's frame: runs `tools/bench/nav_sync_bench.tscn` in headless Chrome.
 
-Serves a web export of the bench (export the project with that scene as `run/main_scene` and `tools/*` taken out of
-the preset's exclude filter), waits for `window.__nav_sync_bench`, and prints, for each mesh, the physics ticks until
-the map answers on a region added and the after-physics time of the frames that add and remove it. The web build has
-no threads, so STEP and THREADED are the same build there. The optional second argument is a CPU throttle (4 is the
-weak-machine stand-in).
+Serves a web export of the bench (`gds template bench-web 3d-third-person nav_sync_bench` makes it: kit
+docs/engines/godot/web-probes.md#bench-web), waits for `window.__nav_sync_bench`, and prints, for each mesh, the physics
+ticks until the map answers on a region added and the after-physics time of the frames that add and remove it. The web
+build has no threads, so STEP and THREADED are the same build there. The optional second argument is a CPU throttle (4
+is the weak-machine stand-in).
 
     uv run --project <kit>/python gds quiet --         uv run --with playwright==1.64.1 python tools/bench/nav_sync_bench.py build/web 4
 
