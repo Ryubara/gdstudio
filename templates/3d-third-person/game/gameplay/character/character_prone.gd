@@ -29,7 +29,7 @@ func step(body: Character, wants: bool, grounded: bool, delta: float) -> bool:
 	_air = 0.0 if grounded else _air + delta
 	var should := wants and (grounded or (down and _air < tuning.air_time))
 	# Under a gap only a lying body fits, it stays down.
-	if down and not should and not has_room(body, body._crouch_height()):
+	if down and not should and not has_room(body, CharacterCapsule.crouch_height(body)):
 		should = true
 	var changed := should != down
 	down = should

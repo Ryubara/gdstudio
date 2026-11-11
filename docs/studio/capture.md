@@ -19,7 +19,9 @@ in a real window (not `--headless`: Movie Maker needs a renderer). The window op
 it never takes the keyboard or cursor from the person at the machine ([why](../engines/godot/no-focus.md)). The scene
 runs on a
 fixed timestep, so a seeded scene gives the same frames every time. To record with your own command line (several
-scenes, extra arguments) use `gds godot -- --path <game> --write-movie ...`, never the Godot program itself.
+scenes, extra arguments) use `gds godot -- --path <game> --write-movie ...`, never the Godot program itself. Both add
+`++ --quit-after=N` to a Movie Maker run's command line, so the game can silence its last frames before Godot stops it
+and the log ends with nothing `still in use` ([why](../engines/godot/audio.md#capturing-sound)).
 
 | Option | Meaning |
 | --- | --- |

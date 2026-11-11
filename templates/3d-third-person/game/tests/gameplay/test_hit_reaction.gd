@@ -41,7 +41,7 @@ func _speed_after(kill: Callable, bone: StringName, along: Vector3) -> float:
 func test_a_lethal_headshot_throws_the_head_along_the_shot() -> void:
 	var line := HitRange.line_to(_target, _zones.zone(&"head"))
 	var along: Vector3 = line[1]
-	_target.health = 1.0
+	Health.of(_target).value = 1.0
 	await HitRange.shoot(get_tree(), _arena, line[0], along)
 	assert_bool(_target.is_dead()).is_true()
 	assert_bool(_ragdoll.is_limp()).is_true()
@@ -63,7 +63,7 @@ func test_a_lethal_headshot_throws_the_head_along_the_shot() -> void:
 func test_a_lethal_body_shot_throws_the_chest_along_the_shot() -> void:
 	var line := HitRange.line_to(_target, _zones.zone(&"chest"))
 	var along: Vector3 = line[1]
-	_target.health = 1.0
+	Health.of(_target).value = 1.0
 	await HitRange.shoot(get_tree(), _arena, line[0], along)
 	await get_tree().physics_frame
 	assert_float(_ragdoll.body(&"spine_03").linear_velocity.dot(along)).is_greater(0.5)
@@ -122,7 +122,7 @@ func test_a_death_during_a_flinch_takes_the_whole_body() -> void:
 	var line := HitRange.line_to(_target, _zones.zone(&"chest"))
 	await HitRange.shoot(get_tree(), _arena, line[0], line[1])
 	assert_bool(_reaction.is_flinching()).is_true()
-	_target.health = 1.0
+	Health.of(_target).value = 1.0
 	await HitRange.shoot(get_tree(), _arena, line[0], line[1])
 	assert_bool(_ragdoll.is_limp()).is_true()
 	assert_bool(_reaction.is_flinching()).is_false()

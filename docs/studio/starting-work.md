@@ -523,8 +523,8 @@ force push, which is the maintainer's decision: open the same change from a new 
   **Watch out for:** a hand-written title (`ui: Merge main into x`) is refused because `Merge` is not on the verb list,
   so the merge stayed open; `--continue` commits through pre-commit and a licence line of 155 characters met the 120
   limit there; a merge left staged for hours (248 files, `MERGE_HEAD` set) first met `gdlint` at commit time, when
-  `main`'s growth had put a file at 1,016 lines. **Seen:** Deadnight #539, 2026-11-02; Deadnight #656 and #410,
-  2026-11-02.
+  `main`'s growth had put a file at 1,016 lines. **Seen:** Deadnight #539, 2026-11-02;
+  Deadnight #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (another branch merged with `--no-edit`).
 - **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
   after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
   HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply

@@ -3,7 +3,7 @@
 <!-- new section: split out of the third-person template page when it reached the size limit (#983) -->
 
 The 3D Third Person character: the animation libraries, the mannequins, replacing the model, the controller, the
-ragdoll and touch controls. Part of [the 3D Third Person template](../third-person-template.md).
+slide, the ragdoll and touch controls. Part of [the 3D Third Person template](../third-person-template.md).
 
 ## The animation libraries {#animation-libraries}
 
@@ -210,6 +210,29 @@ Scene dock and checks the result.
   characters and props by default (its mask, and `counts` behind it) and a `Pickup` only characters (its mask, and
   `characters_only`); a camera zone still says `player` in `required_group` so that a pushed crate does not take the
   view. Every body is on a named layer ([Physics layers](../physics-layers.md#template-layers)).
+- **The body's modules.** `Character` (`gameplay/character/character.gd`) keeps the public API (the signals, the
+  exports, `step`, `die`, `revive`, `take_hit`, `teleport`, the reads), the step's order in `_move` and the moves every
+  stance shares (steer, jump and gravity, crouch, aim, the state); each other part is a file of its own beside it,
+  which the body calls once from that order:
+
+  | Part | Module | Its step state |
+  | --- | --- | --- |
+  | Lying down and the crawl ([its page](moves.md#prone)) | `CharacterProne` (`character_prone.gd`), an instance `_prone` | `CharacterState.prone` |
+  | Sliding ([its page](moves.md#slide)) | `CharacterSlide` (`character_slide.gd`), an instance `_slide` | `CharacterState.slide` |
+  | Vaulting and mantling ([its page](traversal.md#how)) | `CharacterVault` (`character_vault.gd`), the instance `vault_motion` | `CharacterState.vault` |
+  | Pushing a prop | `CharacterPush.push_props(body, before, delta)` (`character_push.gd`), static | the body's `_push_cap`, `_push_hold` |
+  | Dying and getting up | `CharacterDeath` (`character_death.gd`), static: `die`, `revive`, the dead tick | none (death is an event) |
+  | The capsule and the eye point | `CharacterCapsule` (`character_capsule.gd`), static: `height`, `fit`, the room to stand | none |
+  | Taking and putting back a snapshot | `CharacterState.take(body)`, `put_back(body)` (`character_state.gd`) | it is the step state |
+  | Health, using things, steps | the `Health` child ([Health](../third-person-hits.md#health)), `Interactor` ([Interact](interact.md#interactable)), `StepClimber` | none |
+
+  A new move goes in a module of its own the same way: a `RefCounted` with a `drive`/`step` function the body calls
+  once in `_move` (a static one when it keeps nothing between ticks), its numbers in a tuning resource of its own, and
+  any step state it keeps in an array of `CharacterState` written in `take()` and read in `put_back()`. A new
+  variable on the body itself goes in `CharacterState.FIELDS` or on `test_character_state.gd`'s `NOT_STATE` list; a
+  static module adds none. Keep `character.gd` well under gdlint's 1000 lines
+  ([project conventions](../project-conventions.md#rules)): #1041 moved the push, the death, the capsule and the
+  snapshot out when it reached 1000.
 
 ## A second kind of controller {#second-controller}
 
@@ -225,15 +248,15 @@ A character is driven by whatever gives it a `PlayerCommand` each physics tick. 
 | A test | `tests/fixtures/command_driver.gd`: `CommandDriver.take(player)` and `run(tree, players, command, ticks)`, which steps the presses once; `tests/fixtures/route_controller.gd` is a scripted controller that walks a list of points. |
 
 `Character` (`gameplay/character/character.gd`) is the body and joins no group; `Player` extends it with what only the
-human has: the group `player`, which the HUD, the minimap and a camera zone's trigger look for (so an AI's character
-is never taken for the player), the start at a `SpawnPoint` of that group and again on `fell`, and `input_enabled` and
+human has: the group `player`, which the HUD, the minimap and a camera zone's trigger look for (so an AI's character is
+never taken for the player), the start at a `SpawnPoint` of that group and again on `fell`, and `input_enabled` and
 `ragdoll_key`. The scenes inherit one another at the same node paths: `character.tscn` (capsule, `CameraTarget`,
-`Interactor`, a `Weapon` with no muzzle) <- `character_dressed.tscn` (the `Model` slot, `AnimationPlayer`,
-`AnimationTree`, `Animation`, `Footsteps`, `Ragdoll`, the weapon's muzzle) <- `player.tscn` (`PlayerInput`).
-`character.tscn` and `character_dressed.tscn` step one stream of commands to the same positions, velocities and
-states on every tick, and their shots fly the same way from starts within `no_muzzle_offset`
-(`test_character_split.gd`). The character's code reads no `Input`, camera or viewport: `test_player_step.gd` reads
-every script of `gameplay/character/` and `gameplay/weapon/`.
+`Interactor`, a `Weapon` with no muzzle, its `Health`: [Hit zones](../third-person-hits.md#health)) <-
+`character_dressed.tscn` (the `Model` slot, `AnimationPlayer`, `AnimationTree`, `Animation`, `Footsteps`, `Ragdoll`, the
+weapon's muzzle) <- `player.tscn` (`PlayerInput`). `character.tscn` and `character_dressed.tscn` step one stream of
+commands to the same positions, velocities and states on every tick, and their shots fly the same way from starts within
+`no_muzzle_offset` (`test_character_split.gd`). The character's code reads no `Input`, camera or viewport:
+`test_player_step.gd` reads every script of `gameplay/character/` and `gameplay/weapon/`.
 
 Over a network the command is what crosses the wire: one per tick with a sequence number, applied once and in order by
 the server ([the pattern that worked](../multiplayer.md#own-protocol)).
@@ -273,85 +296,71 @@ itself, and the sampler adds 3 to 9 µs a tick for each human.
 The desktop rows are the mean of two or three headless runs, the browser rows one run each of the web export in
 headless Chrome (`tools/bench/player_step_bench.py`, under `gds quiet`), on a machine other agents were using.
 
+## What the parts cost {#parts-cost}
+
+<!-- new section: the step bench timed the body alone; nothing said what a dressed character's other parts or the world
+     parts cost a frame, which an AI crowd and the web build multiply -->
+
+`tools/bench/parts_cost_bench.tscn` (gdstudio #926) prints what the parts cost a frame: a crowd of
+`character_dressed.tscn` with a walking stand-in controller (an AI's body), each character part timed apart with its own
+processing off and called by hand, a first death, and 100 of each world part against an empty arena. The web numbers
+come from its export in headless Chrome (`tools/bench/parts_cost_bench.py`, under `gds quiet`). A frame's "work" is from
+its first physics tick to its last node processed (the scripts, the animation and the physics step, not the drawing).
+`tests/gameplay/test_parts_budget.gd` holds the counts tight in CI and ten walking characters' frame loosely, as a
+multiple of a calibration loop.
+
+| Median frame work, ms | 1 | 10 | 25 | 50 walking |
+| --- | ---: | ---: | ---: | ---: |
+| Desktop, before #926 | 0.22 | 0.99 to 1.01 | 2.24 to 2.39 | 5.16 to 5.59 |
+| Desktop, after | 0.21 | 0.74 to 0.84 | 1.47 to 1.54 | 3.23 to 3.28 |
+| Chrome, before | 0.3 | 1.1 to 1.2 | 2.6 to 3.2 | 6.5 to 9.4 |
+| Chrome, after | 0.3 | 0.8 to 1.0 | 1.9 | 3.8 to 4.1 |
+
+| µs a character a frame (25 walking) | Step | Animation script | Tree | Footsteps | Ragdoll |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Desktop, before | 29 to 30 | 5.7 | 22.6 to 23.0 | 14 to 16 | 14.5 |
+| Desktop, after | 23 to 26 | 2.6 to 3.1 | 21.4 to 23.2 | 14 to 15 | 3.4 to 3.9 |
+| Chrome, before | 35 | 6.7 to 7.0 | 20 to 22 | 22 | 18 to 19 |
+| Chrome, after | 30 | 4.5 to 4.8 | 21 | 23 | 4.6 to 5.2 |
+
+What changed: the ragdoll's bones are made on the first death ([Ragdoll: cost](../ragdoll.md#cost)), so a living
+character is 29 nodes and one physics body instead of 62 and 17 (53 and 2 with the hit zones of #876, the weapons
+of #887, the pistol hold of #1001 and the `Health` of #925; the body's own step is cheaper with 16 fewer bodies in the
+space); the pose the death needs is sampled into arrays made once; the animation tree's parameter paths are constants
+and the blend spaces follow the tuning's `changed` (the four speeds say it) instead of comparing an array every frame. A
+first death costs 0.45 ms on the desktop and 1 ms in Chrome (bones from a pool, #1022). A standing `Target` is no longer
+processed (1 µs each before, 0 after); a `Door` keeps the characters in its range from its sensor's signals instead of a
+query a tick (1.9 to 2.1 µs each, 1.4 to 1.6 after); a `Pickup` finds its `Visual` once (2.2 to 2.4 µs, 1.8 to 2.0
+after); a lone `Weapon` costs 0.2 to 0.3 µs (a character's is ticked by its step). The level holds 11 pickups, 4 targets
+and 2 doors, under 40 µs together.
+
+What is left: the step and the tree. The footsteps' 14 µs was almost all starting a sound: a walking character starts
+about two steps a second, and `AudioStreamPlayer3D.play()` of an Ogg Vorbis step cost about 250 µs on the desktop (the
+decoder is set up for every play; with the step list emptied the part costs 1.6 µs). Since gdstudio #1023 the steps
+play decoded to PCM once (`DecodedSounds` of `gds_game`, [Audio: starting sounds](../audio.md#starting-sounds)), and a
+WAV starts in about 1 µs:
+
+| Footsteps, µs a character a frame (25 walking) | Before #1023 | After |
+| --- | ---: | ---: |
+| Desktop | 12.9 to 13.7 | 2.25 to 2.30 |
+| Chrome | 22.1 to 22.3 | 7.0 to 7.9 |
+
+The four steps decode once for every character (shared), when the first `Footsteps` is ready: about 2 ms on the
+desktop and 7 to 16 ms in Chrome, inside the first character's spawn (65 to 68 ms before, 72 to 84 after, in Chrome).
+The samples are the decoder's own (16-bit), so the steps sound as before: Movie Maker mixes before and after differ by
+-65 dB (25 walkers) and -70 to -83 dB (the action tour's walking), 16-bit rounding; only the tour's shooting stretch
+differs, from run to run. What Chrome still pays is the WAV's own start.
+
+The desktop rows are three interleaved runs of each build (before, after, before, ...), the browser rows two, headless,
+on a machine other agents were using; a range is the lowest and the highest run.
+
 ## Prone and the crawl {#prone}
 
-<!-- new section: the controller section covers standing and crouched moves; nothing said how the template lies a
-     body down, crawls, fits under a gap and gets up, or where its defaults come from (gdstudio #1012) -->
+Moved to [Prone and sliding](moves.md#prone) (gdstudio #1029: this page reached the size limit).
 
-The character lies down and crawls below crouch. It is its own module beside the body's other moves:
-`CharacterProne` (`gameplay/character/character_prone.gd`) holds the stance (down or not, how far down, the time off
-the ground) and what lying changes; `ProneTuning` (`prone_tuning.gd`, the player's `prone_tuning.tres`, the
-`Character`'s `prone_tuning` in its Prone group) holds every number. The body asks the module once a step from the
-command's held `prone` bit, so a server, a bot or a test lies a body down by sending that bit
-(`CommandCodec.F_PRONE`, bit 15; `NetWire.VERSION` 2), and the stance is saved and put back with the rest of the step
-state (`CharacterState.prone`). The human's `PlayerInput` turns the `prone` action (Z, the pad's d-pad down, the
-Prone touch button) into that bit by the tuning's `input_mode`: a toggle (the default), a hold, or a long hold of
-crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint press gets up (`jump_gets_up`,
-`sprint_gets_up`).
+## Sliding {#slide}
 
-- **Down and up.** Going down takes `enter_time` and getting up `exit_time`; the capsule shrinks from the top to
-  `height` and `radius` and the camera's target to `camera_height`, eased by the module's `share()`. A lying body is
-  crouched underneath, so getting up ends at the crouch height and stands over the crouch time when crouch is let go
-  and there is room (or stays crouched under a low ceiling). Getting up needs a crouched capsule's room above
-  (`CharacterProne.has_room`, the stand probe's shape at the crouch height): under a gap only a lying body fits, it
-  stays down. Off a ledge it stays down `air_time`, then gets up; it lies down again on landing while the bit is held.
-- **The crawl.** `crawl_speed` ahead, `sideways_share` and `backward_share` of it to the side and behind (by the angle
-  between the push and the facing), `aim_move_share` of it while aiming, its own `acceleration`, `deceleration` and
-  `turn_speed` (a body on the ground turns slowly), and no crawl while going down or up unless
-  `move_while_changing`.
-- **Aim.** `aim_allowed` and `fire_allowed`; the weapon's spread times `spread_share` (`Weapon.spread_share`, set by
-  the body each step); the look held to `look_up_limit` and `look_down_limit` (the view, the aim pose and the aim ray,
-  so an AI is held too), and `PlayerCamera.pitch_limits()` draws the orbit in to the same limits as the body lies down.
-- **The picture.** `Character.State.PRONE` (after `DEAD`, so the snapshot's state byte keeps its old numbers),
-  `prone_changed(down)`, the read-only `prone` and `prone_amount`. `CharacterAnimation` has a `prone` state: the prone
-  idle at `prone_idle_pace`, the crawl clip blended in by ground speed and played at `ground speed / crawl_clip_speed`,
-  and `to_prone_clip` and `to_crouch_clip` played over the body for the enter and exit times. Until the template's own
-  clips land (gdstudio #1009), the placeholder is the library's swim stroke held on its first pose for the idle and
-  played for the crawl, lifted and moved ahead by `prone_pose_offset` (the stroke floats under a water line) and
-  tipped by `prone_pose_lean`; with real clips the offset and the lean are zero.
-
-The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
-studios; the template's run is 4.0 m/s and its walk 1.7):
-
-| Setting | Default | Why |
-| --- | --- | --- |
-| `crawl_speed` | 1.0 m/s | PUBG crawls at 1.2 m/s against a 1.7 m/s walk ([PUBG wiki](https://pubg.wiki.gg/wiki/Movement_Speed)); Battlefield V at 0.85 m/s against 3.4 ([Symthic](https://sym.gg/legacy/pages/bfv/bfv_generalinfo.html)); between the two, under the template's 1.5 m/s crouch walk. |
-| `backward_share`, `sideways_share` | 0.7, 0.8 | Arma 3: sideways about 80 % and backwards about 70 % of forward in every stance, from a 2013 post in [Bohemia's movement thread](https://forums.bohemia.net/topic/144224-movement-speed-tweaking/). |
-| `aim_move_share` | 0.5 | Battlefield V halves the prone speed while aiming (0.425 of 0.85 m/s). |
-| `enter_time`, `exit_time` | 0.5 s, 0.7 s | Battlefield V: 500 ms to go prone, 700 ms from prone to a sprint. The #1009 clips are 0.9 s and 1.0 s at their own pace and are played to these times. |
-| `turn_speed`, `aim_turn_speed` | 3, 6 rad/s | A quarter of the standing turn (12) and a third of the standing aim turn (18): Arma's players ask for a slow, single-speed turn on the ground, not a snap. |
-| `acceleration`, `deceleration` | 10, 12 m/s² | Up to the crawl in 0.1 s: a lying body has no burst. |
-| `height`, `radius` | 0.6 m, 0.28 m | A soldier on elbows is about 0.4 to 0.5 m high; the capsule stands upright, so it is a little taller and covers the raised head. A 0.8 m gap fits it and not the 1.1 m crouch. |
-| `camera_height`, `look_up_limit`, `look_down_limit` | 0.55 m, 12, 40 degrees | Arma's players note the short look up lying down. With the 1.7 m camera, 12 degrees up keeps the lens about 0.3 m over the floor; 20 put it 7 cm over (below). |
-| `spread_share` | 0.5 | Lying is the steadiest stance in PUBG and Battlefield. |
-| `input_mode`, `crouch_hold_time` | toggle, 0.5 s | PUBG (Z) and Ghost Recon Breakpoint (its own prone button) toggle; Metal Gear Solid V and the pads hold the stance button ([Konami](https://eu-support.konami.com/hc/en-gb/articles/9667348797975-Metal-Gear-Solid-V-Sneaking)). |
-| `jump_gets_up`, `sprint_gets_up` | on, on | A jump press in PUBG and a sprint in Battlefield get up instead. |
-
-What it costs (`tools/bench/player_step_bench.tscn`, `prone` mode: lying and crawling 80 % of the time, getting up
-every 5 s; microseconds a body a physics tick, 40 bodies, two headless desktop runs on a shared machine): main's
-`commands` 32.7 and 28.0, this branch's `commands` 31.4 and 32.5, `prone` 32.4 and 31.2. Lying costs what standing
-does; the only new query is the room check, made only while a body that was let go of is still down. On the web the
-same ratio is expected (the bench's browser rows track the desktop's within a few microseconds at 40 bodies); nothing
-of the stance is sent but the command's bit, and the cosmetic placeholder pose is set on the model in `_process`.
-
-- **Approach:** Derive a prone camera's look-up limit from the follow distance and the target height (`target +
-  offset - distance * sin(limit)` stays over the floor by more than the spring arm's margin) and test the lens height
-  in the real map with the stick held up. **Watch out for:** a limit taken from aim comfort alone (20 degrees) put the
-  lens 7 cm over the floor, 2 cm from the near plane; the spring arm meets the floor at a grazing angle, so its margin
-  is along the arm, not up. **Seen:** gdstudio #1012, 2026-11-10 (`test_prone_camera.gd`; 12 degrees keeps 0.3 m).
-- **Approach:** Lay a placeholder on the ground with a pose offset on the model inside its slot, applied by how far
-  down the body is and nothing at all while it is zero, and look at the capture before picking the clip. **Watch out
-  for:** the crouch clips tipped forward still knelt, and the library's swim stroke is horizontal but floats under a
-  water line (0.42 m low) with a treading idle; the stroke held on its first pose (`prone_idle_pace` 0) is the idle.
-  **Seen:** gdstudio #1012, 2026-11-10 (captures of three tries).
-- **Approach:** Keep a body's stance changes out of its state names when the capsule is what matters: getting up from
-  prone passes the crouch height on the way (test the height the tick the stance reaches zero), and the state goes
-  from `PRONE` to `IDLE` as a released crouch does. **Watch out for:** a test that expected a `CROUCH` state between
-  them failed, though the capsule went through crouch. **Seen:** gdstudio #1012, 2026-11-10.
-- **Approach:** When a body gains a stance, expose its reads as read-only properties (`var prone: bool: get:`) rather
-  than methods, and split a suite at 18 tests. **Watch out for:** gdlint's twenty public methods counts every
-  `func`, so three small getters took `Character` from 18 to 21 and failed the hook. **Seen:** gdstudio #1012,
-  2026-11-10.
+Moved to [Prone and sliding](moves.md#slide) (gdstudio #1029).
 
 ## Ragdoll {#ragdoll}
 

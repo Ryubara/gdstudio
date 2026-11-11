@@ -4,21 +4,22 @@
 extends GdUnitTestSuite
 
 const SCENE := "res://core/settings/settings_service.tscn"
-const TEMP_PATH := "user://settings_bindings_test.cfg"
 const AMONG: Array[StringName] = [&"jump", &"sprint", &"fire"]
 
 var _service: SettingsService
+## This run's own file, so a run beside it never reads or deletes it (TempUserFile).
+var _path := TempUserFile.path("settings_bindings_test")
 
 
 func before_test() -> void:
+	TempUserFile.remove(_path)
 	InputMap.load_from_project_settings()
 	_service = _make()
 
 
 func after_test() -> void:
 	InputMap.load_from_project_settings()
-	if FileAccess.file_exists(TEMP_PATH):
-		DirAccess.remove_absolute(TEMP_PATH)
+	TempUserFile.remove(_path)
 
 
 func _make(path := "") -> SettingsService:
@@ -82,13 +83,13 @@ func test_a_rebinding_is_announced() -> void:
 
 
 func test_rebinding_is_saved_and_applied_at_the_next_start() -> void:
-	var first := _make(TEMP_PATH)
+	var first := _make(_path)
 	first.rebind(&"jump", _key(KEY_F), AMONG)
 	first.rebind(&"fire", _key(KEY_G), AMONG)
 	assert_int(first.save()).is_equal(OK)
 	InputMap.load_from_project_settings()
 	assert_int(_first_key(&"jump")).is_equal(KEY_SPACE)
-	_make(TEMP_PATH)
+	_make(_path)
 	assert_int(_first_key(&"jump")).is_equal(KEY_F)
 	assert_int(_first_key(&"fire")).is_equal(KEY_G)
 	# What the player did not touch stays as the project declared it.
@@ -119,8 +120,8 @@ func test_a_damaged_binding_in_the_file_is_skipped_and_the_good_ones_apply() -> 
 	file.set_value("bindings", "fire.keys", [{"type": "key", "code": KEY_H, "physical": true}])
 	file.set_value("bindings", "no_such_action.keys", [{"type": "key", "code": KEY_J}])
 	file.set_value("bindings", "interact.elsewhere", [{"type": "key", "code": KEY_K}])
-	file.save(TEMP_PATH)
-	_make(TEMP_PATH)
+	file.save(_path)
+	_make(_path)
 	assert_int(_first_key(&"jump")).is_equal(KEY_SPACE)
 	assert_int(_first_key(&"sprint")).is_equal(KEY_SHIFT)
 	assert_int(_first_key(&"fire")).is_equal(KEY_H)
@@ -131,8 +132,8 @@ func test_a_damaged_binding_in_the_file_is_skipped_and_the_good_ones_apply() -> 
 func test_an_unbound_control_in_the_file_is_kept_unbound() -> void:
 	var file := ConfigFile.new()
 	file.set_value("bindings", "walk.keys", [])
-	file.save(TEMP_PATH)
-	_make(TEMP_PATH)
+	file.save(_path)
+	_make(_path)
 	assert_int(InputBindings.events_of(&"walk", InputBindings.Device.KEYBOARD).size()).is_zero()
 
 

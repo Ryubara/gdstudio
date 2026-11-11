@@ -17,3 +17,15 @@
 | `pistol_shot_3.ogg` | `shot_house_pistol_3.ogg` | 0.11 |
 | `pistol_shot_4.ogg` | `shot_house_pistol_4.ogg` | 0.10 |
 | `pistol_shot_5.ogg` | `shot_house_pistol_5.ogg` | 0.11 |
+
+The empty click, the reload's three steps and the draw (gdstudio #887) come from the same Deadnight script, unchanged,
+under the same licence:
+
+| File | Deadnight file | Seconds |
+| --- | --- | ---: |
+| `pistol_empty_1.ogg` | `dry_house_pistol_1.ogg` | 0.02 |
+| `pistol_empty_2.ogg` | `dry_house_pistol_2.ogg` | 0.02 |
+| `pistol_reload_mag_out.ogg` | `reload_house_mag_out_1.ogg` | 0.14 |
+| `pistol_reload_mag_in.ogg` | `reload_house_mag_in_1.ogg` | 0.10 |
+| `pistol_reload_slide.ogg` | `reload_house_slide_1.ogg` | 0.03 |
+| `pistol_draw.ogg` | `equip_house_pistol_1.ogg` | 0.09 |

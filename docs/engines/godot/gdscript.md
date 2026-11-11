@@ -28,6 +28,13 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   world_hash`: three scripts did not parse); #903 (a
   parameter `url` and a method `url()`); #901 (`before`).
 
+- **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
+  `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an
+  `Array[Projectile]` passes the parser and fails at run time ("Trying to assign an array of type Array to a variable
+  of type Array[Projectile]"), only on the path that runs it: the weapon's pool hit it once its live list was full.
+  **Seen:** gdstudio #887, 2026-11-10 (`Weapon._take_projectile`, found by `test_weapon_ray.gd`; in the same task a
+  tool's `root` and `sign` met the shadowing rule above).
+
 - **Approach:** Before naming a global class, grep `class_name <Name>` in the branch and on `origin/main`, and prefer
   a name specific to the subject; when errors show up in many unrelated scripts at once after an import or a merge,
   look for a duplicate global class first. **Watch out for:** Godot keeps one global class per name and silently picks
@@ -132,4 +139,4 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   is not valid GDScript ("Unindent doesn't match", and GdUnit hung); it rewrote a multi-line lambda inside a call into
   a form Godot refuses, and put a comment between `"key":` and its wrapped `{...}` value. **Seen:** Deadnight,
   2026-11-01 (fix: short asserts, a named helper in place of the lambda); Deadnight, 2026-11-03 (a merge that kept two
-  batches' entries).
+  batches' entries); gdstudio #1001, 2026-11-10 (a lambda in a `connect` call: named methods).

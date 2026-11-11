@@ -73,13 +73,14 @@ func test_the_pause_button() -> void:
 	var pins := {
 		&"host": null,
 		&"touch": null,
+		&"screen": null,
 		&"always_shown": false,
 		&"variant": UIButton.Variant.PRIMARY,
 		&"preview_state": UIButton.Preview.NONE,
 	}
 	# The button is a UIButton, whose own two exports are the addon's.
 	assert_array(ExportPins.wrong_values(button, pins)).is_empty()
-	for pinned: StringName in [&"host", &"touch", &"always_shown"]:
+	for pinned: StringName in [&"host", &"touch", &"screen", &"always_shown"]:
 		assert_array(ExportPins.names(button)).contains([pinned])
 
 

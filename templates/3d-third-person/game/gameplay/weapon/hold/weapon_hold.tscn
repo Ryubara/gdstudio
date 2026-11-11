@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/hold/weapon_hold.gd" id="1_hold"]
+[ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_grip_pose.tres" id="2_grip"]
+[ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_trigger_pose.tres" id="3_trigger"]
+[ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_support_pose.tres" id="4_support"]
+
+[node name="WeaponHold" type="Node"]
+script = ExtResource("1_hold")
+grip_pose = ExtResource("2_grip")
+trigger_pose = ExtResource("3_trigger")
+support_pose = ExtResource("4_support")

@@ -38,6 +38,8 @@ const VOLUME_AMBIENT := &"audio/ambient"
 const VOLUME_UI := &"audio/ui"
 const MOUSE_SENSITIVITY := &"controls/mouse_sensitivity"
 const INVERT_Y := &"controls/invert_y"
+## Whether the game stops while the inventory is open (read by the inventory screen).
+const PAUSE_IN_INVENTORY := &"controls/pause_in_inventory"
 
 ## Allowed range of each numeric value.
 const RANGES := {
@@ -123,6 +125,7 @@ func _init() -> void:
 		VOLUME_UI: 100,
 		MOUSE_SENSITIVITY: 1.0,
 		INVERT_Y: false,
+		PAUSE_IN_INVENTORY: true,
 	}
 	_values = _defaults.duplicate()
 	# A settings screen is opened from the pause menu: the delayed write has to run while the tree is

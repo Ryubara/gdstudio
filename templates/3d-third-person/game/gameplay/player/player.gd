@@ -28,6 +28,9 @@ const RAGDOLL_ACTION := &"ragdoll"
 		var input := controller as PlayerInput
 		if input != null:
 			input.bind_ragdoll_key()
+## The player's bag (an `Inventory` node of `player.tscn`), which the inventory screen draws.
+## Empty: the player carries no items, and the screen shows the weapons alone.
+@export var inventory: Inventory
 
 var _spawn_rng := RandomNumberGenerator.new()
 

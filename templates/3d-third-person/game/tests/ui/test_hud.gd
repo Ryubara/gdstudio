@@ -63,11 +63,14 @@ func test_every_hud_control_ignores_the_mouse() -> void:
 
 
 func test_a_part_with_no_data_is_hidden_and_takes_no_room() -> void:
-	# The real player has health (#876) but no ammo, and has collected nothing.
+	# The real player has health (#876) and the pistol's ammo, and has collected nothing.
 	for widget in _hud.widgets():
 		if widget is HudStat and (widget as HudStat).value_property == &"health":
 			assert_bool(widget.has_data()).is_true()
 			assert_bool(widget.visible).is_true()
+		elif widget is HudStat and (widget as HudStat).value_property == &"ammo":
+			assert_bool(widget.visible).is_true()
+			assert_str((widget as HudStat).value_label.text).is_equal("12 | 36")
 		elif widget is HudStat or widget is ItemCounter:
 			assert_bool(widget.has_data()).is_false()
 			assert_bool(widget.visible).is_false()
@@ -235,12 +238,14 @@ func test_every_export_of_the_hud_and_a_stat_has_its_default_pinned() -> void:
 		&"source": HudStat.Source.PLAYER,
 		&"value_property": &"health",
 		&"max_property": &"max_health",
+		&"extra_property": &"",
 		&"refresh_signals": null,
 		&"title": "Health",
 		&"show_title": true,
 		&"show_bar": true,
 		&"value_format": "{value}",
 		&"max_format": "{value} / {max}",
+		&"extra_format": "",
 		&"low_share": 0.25,
 		&"low_color": Color(1.0, 0.4, 0.35, 1.0),
 		&"title_label": null,
