@@ -2,9 +2,10 @@
 
 Run it with the pinned Blender, headless (`gds tool path blender`):
 
-    blender -b --factory-startup -P test_limb_overlap.py [-- --model <mannequin.glb>] [--script <limb_overlap.py>]
+    blender -b --factory-startup -P test_limb_overlap.py [-- --model <body.glb> ...] [--script <limb_overlap.py>]
 
-For each frame rate in `RATES` it keys a clip on the mannequin in which the left thigh swings through the right one
+It runs on the template's bodies by default (`MODELS`: the prototype `form` pair, kit #1286), or on each `--model`.
+For each body and each frame rate in `RATES` it keys a clip on the body in which the left thigh swings through the right one
 and back within four frames, measures it the way a build does (`measure()` on the action, every frame of a scene at
 the clip's rate), exports it, and measures the file with the command line in a new Blender. Both must name the same
 deepest frame and read the same depth on every frame. The swing peaks on frame 7, which a 30 frames a second clip
@@ -28,6 +29,9 @@ sys.path.insert(0, str(HERE))
 import limb_overlap  # noqa: E402
 
 RATES = (30, 24)
+## The template's bodies (`CharacterBodies` in Godot): the prototype male's thighs meet by 1.9 mm at rest, which the
+## swing's depth includes on every frame alike.
+MODELS = [HERE.parent / "characters" / "prototype" / f"form_{body}.glb" for body in ("female", "male")]
 LAST = 14  # the clip's last frame
 PEAK = 7  # the frame the thigh is deepest on
 SWING = 0.5  # radians at the peak (the script's own self-test reads over 20 mm there)
@@ -94,29 +98,30 @@ def both_ways(rate, model, script, folder):
 def main():
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default=str(HERE.parent / "characters" / "mannequin" / "mannequin_female.glb"))
+    parser.add_argument("--model", action="append", default=[])
     parser.add_argument("--script", default=str(HERE / "limb_overlap.py"))
     args = parser.parse_args(argv)
     faults = []
     with tempfile.TemporaryDirectory() as folder:
-        for rate in RATES:
-            inside, outside, read = both_ways(rate, args.model, args.script, Path(folder))
+        for model, rate in ((m, r) for m in args.model or [str(m) for m in MODELS] for r in RATES):
+            inside, outside, read = both_ways(rate, model, args.script, Path(folder))
+            rate_name = f"{Path(model).stem} {rate}"
             print(
-                f"BOTHWAYS {rate} fps: in the build {inside['deepest_mm']} mm at frame {inside['frame']} of "
+                f"BOTHWAYS {Path(model).stem} {rate} fps: in the build {inside['deepest_mm']} mm at frame {inside['frame']} of "
                 f"{len(inside['frames'])} frames; command line {outside['deepest_mm']} mm at frame "
                 f"{outside['frame']} of {len(outside['frames'])} frames; the file's rate reads {read}"
             )
             assert inside["frame"] == PEAK and inside["deepest_mm"] > 20.0, f"the clip does not cross: {inside}"
             if read != rate:
-                faults.append(f"{rate} fps: clip_rate reads {read} from the file")
+                faults.append(f"{rate_name} fps: clip_rate reads {read} from the file")
             if len(outside["frames"]) != len(inside["frames"]):
-                faults.append(f"{rate} fps: {len(outside['frames'])} frames measured, the clip has {LAST + 1}")
+                faults.append(f"{rate_name} fps: {len(outside['frames'])} frames measured, the clip has {LAST + 1}")
             elif max(abs(a - b) for a, b in zip(inside["frames"], outside["frames"], strict=True)) > CLOSE_MM:
-                faults.append(f"{rate} fps: per frame {outside['frames']}, in the build {inside['frames']}")
+                faults.append(f"{rate_name} fps: per frame {outside['frames']}, in the build {inside['frames']}")
             if outside["frame"] != inside["frame"]:
-                faults.append(f"{rate} fps: deepest at frame {outside['frame']}, in the build {inside['frame']}")
+                faults.append(f"{rate_name} fps: deepest at frame {outside['frame']}, in the build {inside['frame']}")
             if abs(outside["deepest_mm"] - inside["deepest_mm"]) > CLOSE_MM:
-                faults.append(f"{rate} fps: deepest {outside['deepest_mm']} mm, in the build {inside['deepest_mm']}")
+                faults.append(f"{rate_name} fps: deepest {outside['deepest_mm']} mm, in the build {inside['deepest_mm']}")
     for fault in faults:
         print(f"FAULT {fault}")
     if faults:

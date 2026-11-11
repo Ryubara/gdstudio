@@ -17,7 +17,8 @@ const JOINTS := {
 	&"foot_l": FOOT_PLANTED,
 	&"foot_r": FOOT_PLANTED,
 }
-const FEMALE := "res://assets/characters/mannequin/mannequin_female.glb"
+## The body the player wears (kit #1187).
+const FEMALE := CharacterBodies.FEMALE
 
 var _arena: PlayArena
 var _player: Player
