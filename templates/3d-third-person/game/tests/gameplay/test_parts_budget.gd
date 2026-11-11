@@ -13,8 +13,9 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## and their body; the weapon system (#887) adds 4: the `Loadout` and the weapon's empty click,
 ## reload and draw sounds (idle players, no processing until one plays); the pistol's hold (#1001)
 ## adds 6: `WeaponHold`, its three skeleton modifiers (5.6 microseconds a character a frame
-## carried), the `SupportHand` marker and the model's `Support` socket; its `Health` node (#925) 1.
-const NODES_ALIVE := 53
+## carried), the `SupportHand` marker and the model's `Support` socket; its `Health` node (#925) 1;
+## the reload's `MagazineHand` marker (#1031) 1, a `Marker3D` that is never processed.
+const NODES_ALIVE := 54
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120

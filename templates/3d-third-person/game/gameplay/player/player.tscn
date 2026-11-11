@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://gameplay/inventory/coin.tres" id="9_coin"]
 [ext_resource type="Resource" path="res://gameplay/inventory/bandage.tres" id="10_bandage"]
 [ext_resource type="Script" path="res://addons/gds_game/inventory/item_def.gd" id="11_def"]
+[ext_resource type="Script" path="res://gameplay/ai/relations/ai_faction_member.gd" id="ai_faction_member"]
 
 [sub_resource type="Resource" id="ItemStack_bandages"]
 script = ExtResource("8_stack")
@@ -34,3 +35,7 @@ script = ExtResource("7_inventory")
 start_items = Array[ExtResource("8_stack")]([SubResource("ItemStack_bandages")])
 catalog = Array[ExtResource("11_def")]([ExtResource("9_coin"), ExtResource("10_bandage")])
 drop_origin = NodePath("../Model")
+
+[node name="AiFactionMember" type="Node" parent="."]
+script = ExtResource("ai_faction_member")
+faction = &"player"
