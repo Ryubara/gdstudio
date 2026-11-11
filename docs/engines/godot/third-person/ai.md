@@ -200,12 +200,21 @@ With the animation throttle (#1046) the whole frame of 40 walkers in Chrome is 1
 10 ms with one tick a frame or fewer against 53 to 63 ms with five or six; what is left over 8 ms at 4x is the director's
 step, the walking body ([the table and where it goes](../crowds.md#ai-characters)).
 
+Since #1059 an AI's body takes the lean tick (`CharacterLean`, chosen by `AiController.lean_step`) whenever it only
+walks or stands: the same result as the full tick with the modules that have nothing to do left out, the step climber
+run only after the move met a wall, and the controller's command built again only when a channel changes. The
+director's step for 40 walkers is 22 to 30 % shorter (0.9 ms at 1x, 4.4 to 5.5 ms at 4x on a quiet machine) and the
+4x frame 7.2 to 8.9 ms ([the module profile and the runs](../crowds.md#ai-characters)). A part that gives an AI's body
+something to do on a walking tick (a held bit, a timer) goes in `CharacterLean.can_take()`
+([the body's modules](character.md#controller)).
+
 - **Approach:** Raise `web_full_cap` or lower `reduced_step_ticks` only with the bench run again in Chrome at 1x and 4x
   (`tools/bench/ai_cost_bench.py`), and read the frame's work, its ticks a frame and the calibration loop beside the
   director's step. **Watch out for:** at 4x the whole frame of 40 walkers was 19.5 ms, past the 16.7 ms tick, from the
   animation and the footsteps, which the AI budget does not count (the throttle answers that), and a busy machine
   reads 20 to 40 % slower: compare runs by the calibration loop. **Seen:** gdstudio #963, 2026-11-10; gdstudio #1046,
-  2026-11-11.
+  2026-11-11; gdstudio #1059, 2026-11-11 (the same build read 7.2 to 8.1 ms and 8.7 to 11.6 ms at 4x hours apart:
+  interleave a build of `main` in every session).
 
 ## Tasks {#tasks}
 
