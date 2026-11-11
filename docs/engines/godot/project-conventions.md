@@ -60,8 +60,8 @@ game/
   `*.uid` both ways), and run `gds check layout templates/<name>/game` before the push. **Seen:** gdstudio #845,
   2026-11-08; gdstudio #868, 2026-11-10 (`test_aim_release.gd.uid`); gdstudio #872, 2026-11-10
   (`test_ragdoll_natural.gd.uid`, never copied back); gdstudio #925, 2026-11-10 (a template has no project: a throwaway
-  script imported in the kit's `godot/`); #910, 2026-11-11 (a test's, caught by `gds template test`);
-  #1074, 2026-11-11.
+  script imported in the kit's `godot/`); #910, #1074 and #1091, 2026-11-11 (caught by `gds
+  template test`).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache` (or delete
   the folder it leaves), and run `gds check layout templates/<name>/game` before the push. **Watch out for:** `uvx
