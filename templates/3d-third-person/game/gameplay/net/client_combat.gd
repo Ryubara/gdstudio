@@ -7,6 +7,8 @@ extends RefCounted
 ## - SHOT: the shooter's puppet fires a cosmetic shot from its own muzzle along the server's
 ##   heading (`Weapon.fire_cosmetic`: the flash, the sound, a projectile that hits nothing), with
 ##   the weapon the event names in its hands.
+## - MELEE (gdstudio #1254): the thrower's puppet plays its blow (`Weapon.melee` played
+##   cosmetic: the swing and the clip, which each screen picks); what the blow met comes as a HIT.
 ## - HIT: the impact of the surface at the server's point (`Impacts`: the mark, the effect, the
 ##   sound), a cosmetic projectile on its way there ends there, the health the server left is put
 ##   on the player or target hit (`Health.set_wire_value`: a target at zero falls), and a player hit
@@ -25,8 +27,10 @@ extends RefCounted
 ## server time of its TICK (`RemotePlayers.drawn_time`), so a puppet's shot leaves where the puppet
 ## is drawn and its hit lands as the cosmetic projectile gets there.
 
-## A puppet fired (`projectile` is null for a ray or a blow).
+## A puppet fired (`projectile` is null for a ray).
 signal shot_played(slot: int, projectile: Projectile)
+## A puppet threw a melee blow (gdstudio #1254).
+signal melee_played(slot: int)
 ## A HIT was played on `collider` (null when this screen found nothing at the point).
 signal hit_played(event: NetEvent, collider: Object)
 ## A player died or got up on this screen.
@@ -45,6 +49,7 @@ const ZONE_REACH := 0.6
 var client: NetClient
 ## Events played since the start, by kind.
 var shots := 0
+var melees := 0
 var hits := 0
 var deaths := 0
 var revives := 0
@@ -67,12 +72,10 @@ func on_tick(tick: SnapshotCodec.Tick) -> void:
 	var at := float(tick.server_tick) / NetLimits.TICK_RATE
 	for event in tick.events:
 		match event.kind:
-			NetEvent.Kind.SHOT, NetEvent.Kind.HIT, NetEvent.Kind.DIED, NetEvent.Kind.REVIVED:
-				if _is_local(event) or client.remote_players == null:
-					play(event)
-				else:
-					_pending.append(event)
-					_due.append(at)
+			NetEvent.Kind.SHOT, NetEvent.Kind.MELEE, NetEvent.Kind.HIT:
+				_play_or_wait(event, at)
+			NetEvent.Kind.DIED, NetEvent.Kind.REVIVED:
+				_play_or_wait(event, at)
 			NetEvent.Kind.REJECTED:
 				play(event)
 			NetEvent.Kind.AI:
@@ -89,6 +92,15 @@ func on_tick(tick: SnapshotCodec.Tick) -> void:
 				if client.remote_players != null and client.map_parts.plays_with_puppets(event):
 					_pending.append(event)
 					_due.append(at)
+
+
+# The local player's event plays now; another waits for the puppets to be drawn at `at`.
+func _play_or_wait(event: NetEvent, at: float) -> void:
+	if _is_local(event) or client.remote_players == null:
+		play(event)
+	else:
+		_pending.append(event)
+		_due.append(at)
 
 
 ## Plays every waiting event whose TICK is not later than `drawn` (server seconds; a negative time
@@ -132,6 +144,8 @@ func _play(event: NetEvent) -> void:
 	match event.kind:
 		NetEvent.Kind.SHOT:
 			_play_shot(event)
+		NetEvent.Kind.MELEE:
+			_play_melee(event)
 		NetEvent.Kind.HIT:
 			_play_hit(event)
 		NetEvent.Kind.DIED:
@@ -189,6 +203,16 @@ func _play_shot(event: NetEvent) -> void:
 	track(projectile)
 	shots += 1
 	shot_played.emit(event.slot, projectile)
+
+
+func _play_melee(event: NetEvent) -> void:
+	var puppet := body_of(event.slot)
+	if puppet == null or puppet == client.player or puppet.weapon == null or puppet.is_dead():
+		return
+	var chest := puppet.global_position + Vector3.UP * puppet.body_height() * 0.7
+	puppet.weapon.melee(chest, Vector3.ZERO, true)
+	melees += 1
+	melee_played.emit(event.slot)
 
 
 func _play_hit(event: NetEvent) -> void:

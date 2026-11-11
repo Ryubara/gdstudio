@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponCategory" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/weapon_category.gd" id="1_category"]
+[ext_resource type="AudioStream" path="res://assets/audio/fists/fist_swing_1.ogg" id="s1"]
+[ext_resource type="AudioStream" path="res://assets/audio/fists/fist_swing_2.ogg" id="s2"]
+[ext_resource type="AudioStream" path="res://assets/audio/fists/fist_swing_3.ogg" id="s3"]
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_swing"]
+streams_count = 3
+stream_0/stream = ExtResource("s1")
+stream_0/weight = 1.0
+stream_1/stream = ExtResource("s2")
+stream_1/weight = 1.0
+stream_2/stream = ExtResource("s3")
+stream_2/weight = 1.0
+random_pitch = 0.92
+
+[resource]
+script = ExtResource("1_category")
+display_name = "Pistol"
+melee_clips = Array[StringName]([&"ual1/Punch_Cross"])
+melee_clip_speed = 1.6
+melee_reach = 1.2
+melee_damage = 25.0
+melee_impulse = 35.0
+melee_cooldown = 0.65
+melee_hit_start = 0.15
+melee_hit_end = 0.28
+melee_sound = SubResource("AudioStreamRandomizer_swing")
+melee_volume_db = -25.0

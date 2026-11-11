@@ -267,6 +267,9 @@ const _RELOAD_FADE_OUT := 0.2
 		action_blend_time = value
 		_rebuild()
 
+## The melee blow's one-shot (gdstudio #1254): `melee.clip` is the clip played last.
+var melee := MeleeLayer.new()
+
 var _machine: AnimationNodeStateMachine
 var _ground: AnimationNodeBlendSpace1D
 var _crouch: AnimationNodeBlendSpace1D
@@ -318,6 +321,7 @@ func _ready() -> void:
 		character.weapon.definition_changed.connect(_on_definition_changed)
 		character.weapon.reload_started.connect(_on_reload_started)
 		character.weapon.reload_cancelled.connect(stop_reload)
+		character.weapon.melee_started.connect(melee.play.bind(self))
 
 
 func _notification(what: int) -> void:
@@ -456,11 +460,11 @@ func play_clip(clip: StringName, duration: float = 0.0) -> void:
 
 
 ## How much of the upper body the pistol holds (0 none, 1 all of it): the holding pose, then the
-## aim over it.
+## aim over it, which a melee blow takes away (the left hand off the weapon, gdstudio #1254).
 func pistol_weights() -> Vector2:
 	if tree == null:
 		return Vector2.ZERO
-	return Vector2(tree.get(_P_ARMED), tree.get(_P_AIM))
+	return Vector2(tree.get(_P_ARMED), float(tree.get(_P_AIM)) * (1.0 - melee.share(tree)))
 
 
 ## Where the aim pose is on its pitch axis, in degrees (negative looks down).
@@ -794,7 +798,7 @@ func _build_root() -> AnimationNodeBlendTree:
 	action.fadeout_time = action_blend_time
 	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
-	root.connect_node(_ACTION, 0, _RELOAD)
+	root.connect_node(_ACTION, 0, MeleeLayer.NODE)
 	root.connect_node(_ACTION, 1, _ACTION_SCALE)
 	root.connect_node(&"output", 0, _ACTION)
 	return root
@@ -862,6 +866,7 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	root.connect_node(_RELOAD_SCALE, 0, _RELOAD_CLIP)
 	root.connect_node(_RELOAD, 0, _SHOOT)
 	root.connect_node(_RELOAD, 1, _RELOAD_SCALE)
+	melee.add_to(root, _RELOAD, upper, _clip(_or_idle(MeleeLayer.first_clip(hold))))
 
 
 # The clip node of the hold's `property` (`aim_clip`), or of the idle clip when the hold leaves it

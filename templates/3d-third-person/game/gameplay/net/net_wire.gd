@@ -1,6 +1,6 @@
 class_name NetWire
 extends RefCounted
-## The bytes of an online game of this template (protocol version 6): one message to a WebSocket
+## The bytes of an online game of this template (protocol version 7): one message to a WebSocket
 ## frame, a type byte first, then fixed fields, little-endian. Plain code with no node, socket or
 ## clock, so a server, a client, a test and a tool share one definition. The transport (a
 ## `WebSocketPeer`, a loopback) carries the arrays as they are.
@@ -13,8 +13,9 @@ extends RefCounted
 ##                the name (`SnapshotCodec.welcome`)
 ## REFUSED  S->C  u8 type=3, u8 reason (`Refusal`), u8 the server's version; the server closes
 ##                the connection after it. 3 bytes
-## COMMAND  C->S  u8 type=4, u32 seq, s8 move x, s8 move y, u16 yaw, s16 pitch, u16 flags (15
-##                bytes); with the `F_SHOT` flag a shot block follows: s16 origin x/y/z (cm),
+## COMMAND  C->S  u8 type=4, u32 seq, s8 move x, s8 move y, u16 yaw, s16 pitch, u16 flags, u8
+##                more flags (bit 0 the melee press), u8 spare (15 bytes); with the `F_SHOT`
+##                flag a shot block follows: s16 origin x/y/z (cm),
 ##                u16 shot yaw, s16 shot pitch, u16 view tick (27 bytes in all; `CommandCodec`)
 ## TICK     S->C  u8 type=5, u32 server tick, u32 ack (the last command seq applied for this
 ##                client), u8 event count, the events, u8 player count, the 12-byte player
@@ -43,11 +44,12 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## reload, next, previous, the empty hands); 4: a SHOT carries the weapon and a HIT the health
 ## it left (gdstudio #906); 5: a TICK ends with the streamed parts (moving props), a world part's
 ## state may be 12 bytes (gdstudio #1073); 6: a TICK ends with the AI block, a HELLO carries the
-## client's flags, an AI event and a HIT on an AI (gdstudio #970).
-const VERSION := 6
+## client's flags, an AI event and a HIT on an AI (gdstudio #970); 7: a COMMAND's byte 13 carries
+## the melee press, a MELEE event and an AI event's `MELEE` code (gdstudio #1254).
+const VERSION := 7
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 6
+const MIN_VERSION := 7
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1

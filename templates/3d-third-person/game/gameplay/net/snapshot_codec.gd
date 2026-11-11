@@ -465,6 +465,9 @@ static func write_event(out: StreamPeerBuffer, event: NetEvent) -> StringName:
 			out.put_u8(event.code)
 			_put_point(out, event.point)
 			_put_direction(out, event.direction)
+		NetEvent.Kind.MELEE:
+			out.put_u8(event.slot)
+			out.put_u16(event.seq & 0xFFFF)
 		_:
 			return NetDrops.BAD_VALUE
 	return &""
@@ -526,6 +529,9 @@ static func read_event(reader: WireReader, drops: NetDrops = null) -> NetEvent:
 			event.direction = _get_direction(reader)
 			if reader.ok and event.id > NetLimits.MAX_AI_ID:
 				return _drop(drops, NetDrops.BAD_VALUE)
+		NetEvent.Kind.MELEE:
+			event.slot = reader.u8()
+			event.seq = reader.u16()
 		_:
 			return _drop(drops, NetDrops.BAD_VALUE)
 	if not reader.ok:
