@@ -25,6 +25,10 @@ signal refused(reason: int)
 ## Said when the link closed (the server went, or a goodbye).
 signal disconnected
 
+## Ticks a command's number may trail the server tick it is expected to be stepped at before the
+## numbering moves on (`first_seq`; a stall, a slow clock).
+const SEQ_SLACK := 4
+
 @export_group("Nodes")
 ## The local body the client predicts.
 @export var player: Player
@@ -65,6 +69,8 @@ var clock := Callable():
 var seq := 0
 ## The last round trip a PONG measured, milliseconds (-1 before the first).
 var rtt_ms := -1
+## Times the numbering of the commands moved on to the server's tick (after a stall).
+var renumbered := 0
 ## TICKs read, and packets the decoders refused.
 var ticks_read := 0
 var drops := NetDrops.new()
@@ -212,6 +218,7 @@ func _on_welcome(read: SnapshotCodec.Welcome) -> void:
 	if player != null:
 		_put_at_spawn(_entry_of(read.players, slot))
 	if remote_players != null:
+		remote_players.map_parts = map_parts
 		remote_players.on_welcome(read)
 	welcomed.emit(slot)
 
@@ -223,6 +230,7 @@ func _on_tick(tick: SnapshotCodec.Tick) -> void:
 		return
 	last_tick = tick
 	ticks_read += 1
+	_keep_numbering(tick)
 	for event in tick.events:
 		match event.kind:
 			NetEvent.Kind.JOINED:
@@ -279,6 +287,19 @@ func _on_teleported() -> void:
 ## moving parts are at for it on both sides (`NetServer.command_tick`). The number before it.
 static func first_seq(welcome_tick: int, round_trip: float) -> int:
 	return welcome_tick + ceili(maxf(round_trip, 0.0) * NetLimits.TICK_RATE)
+
+
+# Commands are numbered by the server tick each is expected to be stepped at (`first_seq`): one
+# sent now reaches the server a round trip after this TICK left it. A client whose numbers trail
+# that (its stall guard skipped steps, its clock runs slow) moves them on; a number may jump, never
+# go back.
+func _keep_numbering(tick: SnapshotCodec.Tick) -> void:
+	if rtt_ms < 0:
+		return
+	var expected := tick.server_tick + ceili(rtt_ms * NetLimits.TICK_RATE / 1000.0)
+	if seq + 1 < expected - SEQ_SLACK:
+		seq = expected - 1
+		renumbered += 1
 
 
 func _now() -> float:

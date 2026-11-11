@@ -57,6 +57,11 @@ static func parts_under(root: Node) -> Array[NetEntity]:
 	return found
 
 
+## The parts that move by the tick (doors, platforms).
+func movers() -> Array[NetEntity]:
+	return _movers
+
+
 ## The part of `id`, or null.
 func by_id(id: int) -> NetEntity:
 	return entities[id] if id >= 0 and id < entities.size() else null

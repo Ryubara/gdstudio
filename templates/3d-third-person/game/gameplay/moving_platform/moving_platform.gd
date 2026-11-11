@@ -165,6 +165,22 @@ func position_at(tick: int) -> Vector3:
 	return parent.global_transform * local if parent != null else local
 
 
+## Whether a body whose feet are at `point` (world) stands on the slab as it is at `tick`: over its
+## top, within `margin` metres of its edges, and its feet within `margin` of the top.
+func carries(point: Vector3, tick: int, margin := 0.3) -> bool:
+	var parent := get_parent() as Node3D
+	var place := transform_at(tick)
+	if parent != null:
+		place = parent.global_transform * place
+	var local := place.affine_inverse() * point
+	var half := size / 2.0
+	return (
+		absf(local.x) <= half.x + margin
+		and absf(local.z) <= half.z + margin
+		and absf(local.y - half.y) <= margin
+	)
+
+
 ## Fraction of the way to the far end, 0 to 1.
 func progress() -> float:
 	var length := travel.length()

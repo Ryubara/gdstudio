@@ -53,6 +53,67 @@ func test_both_worlds_hold_the_slab_at_the_same_place_for_a_tick() -> void:
 	)
 
 
+func test_player_two_sees_the_rider_standing_still_on_the_slab_it_draws() -> void:
+	# Player two draws the slab at its own predicted tick and the rider's puppet 100 ms behind the
+	# newest snapshot; the puppet is moved with the slab it stands on (`RemotePlayers`), so a rider
+	# standing still on the slab stays at one place on it.
+	_rig = auto_free(OnlineRig.new(false))
+	add_child(_rig)
+	assert_bool(_rig.start()).is_true()
+	_client = await _rig.join("Ada")
+	var bo := await _rig.join("Bo")
+	await _rig.wait(20)
+	_client.player.teleport(BRIDGE_END, 0.0)
+	_rig.server_body(_client).teleport(BRIDGE_END, 0.0)
+	_rig.controllers[0].plan = _board
+	assert_bool(await _rig.until(func() -> bool: return _boarded_at >= 0, 900)).is_true()
+	await _rig.wait(60)
+	var adas_slab := _shuttle(_rig.views[0])
+	var bos_slab := _shuttle(_rig.views[1])
+	var puppet := bo.remote_players.puppet_at(_client.slot)
+	var on_ada := _client.player.global_position - adas_slab.global_position
+	var worst := 0.0
+	var moved := 0.0
+	var last_z := bos_slab.global_position.z
+	for _i in CYCLE_TICKS:
+		await get_tree().physics_frame
+		var on_bo := puppet.global_position - bos_slab.global_position
+		worst = maxf(worst, (on_bo - on_ada).length())
+		moved += absf(bos_slab.global_position.z - last_z)
+		last_z = bos_slab.global_position.z
+	prints(
+		(
+			"rider on player two's slab: worst %.4f m off its place over %.1f m of ride"
+			% [worst, moved]
+		)
+	)
+	assert_float(moved).is_greater(7.9)
+	assert_float(worst).is_less(0.05)
+
+
+func test_commands_are_numbered_by_the_server_tick_again_after_a_stall() -> void:
+	# A client that stops stepping for a while (a frozen tab: its stall guard skips the catch-up
+	# ticks) numbers its next commands behind the server's tick; the first TICK moves the numbers
+	# on, so the slab's tick for a command is again about when the server steps it.
+	_rig = auto_free(OnlineRig.new(false))
+	add_child(_rig)
+	assert_bool(_rig.start()).is_true()
+	_client = await _rig.join("Ada")
+	await _rig.wait(60)
+	var ahead := _client.seq - _rig.server.server_tick
+	_client.set_physics_process(false)
+	await _rig.wait(90)
+	var behind := _client.seq + 1 - _rig.server.server_tick
+	_client.set_physics_process(true)
+	await _rig.wait(60)
+	var settled := _client.seq - _rig.server.server_tick
+	prints("renumbered:", _client.renumbered, "ahead", ahead, "then", behind, "after", settled)
+	assert_int(behind).is_less(ahead - 60)
+	assert_int(_client.renumbered).is_greater_equal(1)
+	assert_int(absi(settled - ahead)).is_less_equal(NetClient.SEQ_SLACK)
+	assert_int(_rig.server.kicked).is_equal(0)
+
+
 func _ride(delay: float, jitter: float) -> void:
 	_rig = auto_free(OnlineRig.new(false))
 	_rig.delay = delay
