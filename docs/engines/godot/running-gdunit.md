@@ -56,6 +56,11 @@ window on a runner can judge in [Windowed GdUnit on a Linux runner](windowed-gdu
   reading this entry: grep a new suite for `before` and `after` used as names before its first run); gdstudio #904,
   2026-11-10 (`before` and `after` again in two server suites: `ticks_before`, `later`).
 
+- **Approach:** Check that an assertion exists on GdUnit's assert class before using it; for "not approximately equal"
+  write `assert_bool(is_equal_approx(a, b)).is_false()`. **Watch out for:** `assert_float(x).is_not_equal_approx(...)`
+  does not exist: the case ends in a runtime error ("Nonexistent function") at that line, not a failed assertion, and
+  everything after it in the case is skipped. **Seen:** gdstudio #1046, 2026-11-11 (the throttle suite's catch-up case).
+
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form
   of a filter here: nothing ran and the exit code was 0 in 2 s, and no failure reads as a pass. **Seen:** Deadnight,
