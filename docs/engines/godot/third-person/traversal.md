@@ -175,12 +175,14 @@ its start within 7 cm and its time within 16 ms (0.466 s against 0.482 s). With 
 puppet's model is held on the clip's root of its own plan, as on the stepping body, so its planted hand rests on the
 top on the other screen as well. The suite checks it for another player's puppet and for an AI the server runs over the
 wall (kit #1228), on every drawn frame from the plant to the release, against the stepping body's own limits, which it
-reads from `test_vault_contacts.gd` (`WRIST_UP`, `WRIST_ALONG`, `WRIST_DRIFT`: 20, 30 and 25 mm on the female
-mannequin). Both puppets read at most 15 mm off the height, 5 mm along, 12 mm across and 15 mm of drift, over 8 planted
-frames; with `PuppetVault` taken out, both cases fail (no plan, so no clip). A probe that finds no crossing of the
-server's kind (the map differs on this screen, something stands in the way here) plays no clip, as before. The clip
-tour is `tools/capture/puppet_vault_tour.tscn` (Ada's own screen beside Bo's); `puppet_vault_hand.tscn` is Bo's screen
-alone, close on the 0.9 m wall, with Ada and then an AI vaulting it (`gds capture frames ... --fps 60`).
+reads from `test_vault_contacts.gd` (`WRIST_UP`, `WRIST_ALONG`, `WRIST_DRIFT`) for the mannequin the puppet is drawn
+with: 20, 30 and 25 mm on the female (Ada's puppet), 60, 75 and 80 mm on the male (an AI grunt, kit #1243's looks).
+Ada's puppet read at most 15 mm off the height, 5 mm along, 12 mm across and 15 mm of drift over 8 planted frames; the
+grunt's 58, 40, 27 and 34 mm, as the stepping male body's longer arms sit. With `PuppetVault` taken out, both cases
+fail (no plan, so no clip). A probe that finds no crossing of the server's kind (the map differs on this screen,
+something stands in the way here) plays no clip, as before. The clip tour is `tools/capture/puppet_vault_tour.tscn`
+(Ada's own screen beside Bo's); `puppet_vault_hand.tscn` is Bo's screen alone, close on the 0.9 m wall, with Ada and
+then an AI vaulting it (`gds capture frames ... --fps 60`).
 
 - **Approach:** Work out a puppet's one-off move (a vault's start) from a snapshot place, or set the drawn place down
   on the floor, never from the place drawn the frame before as it is. **Watch out for:** that frame is drawn between
@@ -192,6 +194,10 @@ alone, close on the 0.9 m wall, with Ada and then an AI vaulting it (`gds captur
   its edges. **Watch out for:** the course's walls stand 2.5 m apart: an AI started 2.6 m before the 0.9 m wall vaulted
   the 0.5 m one in front of it, and the hand checks then read the wrist 2.38 m short of an edge it never reached.
   **Seen:** gdstudio #1228, 2026-11-11 (`test_net_puppet_vault.gd`, `_check_planted` asserts the top).
+- **Approach:** Take a contact check's limits from the model the puppet is actually drawn with (its rig's scene), never
+  fix one model in the check. **Watch out for:** a change to the looks a puppet is drawn with moves the check's ground:
+  after kit #1243 drew the first AI look on the male mannequin, the AI case failed the female's 20 mm limit at 58 mm,
+  inside the male body's own 60 mm. **Seen:** gdstudio #1264, 2026-11-11 (`_check_planted` reads `MANNEQUINS`).
 
 ## Cost and the web {#cost}
 

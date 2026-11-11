@@ -26,8 +26,12 @@ const MAX_TIME_GAP := 0.08
 ## The stepping body's suite: the planted wrist's limits are read from it, so a puppet is held to
 ## exactly what the body that steps is held to (`WRIST_UP`, `WRIST_ALONG`, `WRIST_DRIFT`).
 const CONTACTS := "res://tests/gameplay/test_vault_contacts.gd"
-## The mannequin both puppets are drawn with (the limits are that model's).
-const FEMALE := "res://assets/characters/mannequin/mannequin_female.glb"
+## The two mannequins a puppet may be drawn with, by the name of their limits: Ada's puppet wears
+## the female, the server's first AI look (a grunt) the male (`AiReplica.variant_scenes`).
+const MANNEQUINS := {
+	"res://assets/characters/mannequin/mannequin_female.glb": "female",
+	"res://assets/characters/mannequin/mannequin_male.glb": "male",
+}
 
 var _rig: OnlineRig
 var _ada: NetClient
@@ -257,7 +261,14 @@ func _record(puppet: Character, into: Array[Dictionary]) -> void:
 func _check_planted(
 	puppet: Character, plan: VaultPlan, samples: Array[Dictionary], who: String
 ) -> void:
-	assert_str(puppet.model.rig().scene_file_path).is_equal(FEMALE)
+	# The limits are those of the mannequin the puppet is drawn with.
+	var drawn_with := puppet.model.rig().scene_file_path
+	(
+		assert_bool(MANNEQUINS.has(drawn_with))
+		. override_failure_message("%s is drawn with %s" % [who, drawn_with])
+		. is_true()
+	)
+	var model: String = MANNEQUINS.get(drawn_with, "female")
 	# The course's 0.9 m wall, not the 0.5 m one west of it.
 	(
 		assert_float(plan.top)
@@ -265,9 +276,9 @@ func _check_planted(
 		. is_equal_approx(WALL.y * 2.0, 0.01)
 	)
 	var limits := (load(CONTACTS) as GDScript).get_script_constant_map()
-	var up: float = limits["WRIST_UP"]["female"]
-	var along: float = limits["WRIST_ALONG"]["female"]
-	var drift: float = limits["WRIST_DRIFT"]["female"]
+	var up: float = limits["WRIST_UP"][model]
+	var along: float = limits["WRIST_ALONG"][model]
+	var drift: float = limits["WRIST_DRIFT"][model]
 	var west := WALL.x - WALL_DEPTH / 2.0
 	var line := plan.points[0].z
 	var timing := puppet.vault_settings.clip_for(plan.high)
@@ -323,8 +334,11 @@ func _check_planted(
 			)
 	print(
 		(
-			"puppet vault: %s planted on %d frames, worst up %.4f, along %.4f, across %.4f, moved %.4f m"
-			% [who, planted, worst.x, worst.y, worst.z, worst.w]
+			(
+				"puppet vault: %s (%s) planted on %d frames, worst up %.4f, along %.4f, across %.4f,"
+				+ " moved %.4f m"
+			)
+			% [who, model, planted, worst.x, worst.y, worst.z, worst.w]
 		)
 	)
 	assert_int(planted).override_failure_message("%s: no planted frame" % who).is_greater(3)
