@@ -87,6 +87,9 @@ var _steps := 0
 var _ping_every := NetLimits.TICK_RATE / NetLimits.PING_RATE
 # When the HELLO left (this node's clock, seconds): the WELCOME measures a first round trip.
 var _hello_at := 0.0
+# The last stall's end (this node's clock, milliseconds as a ping carries them): a PONG for an
+# older ping is not a round trip (-1: no stall yet).
+var _pings_valid_from := -1
 
 
 func _ready() -> void:
@@ -157,8 +160,7 @@ func _predict(delta: float) -> void:
 		StallGuard.Verdict.SKIP:
 			return
 		StallGuard.Verdict.RESYNC:
-			reconciler.reset()
-			reconciler.snap_next = true
+			resync()
 	var correction := reconciler.take()
 	if correction != Vector3.ZERO:
 		player.global_position += correction
@@ -177,7 +179,15 @@ func _predict(delta: float) -> void:
 	player.step(CommandCodec.decode(packet), delta)
 	reconciler.record(seq, player.global_position)
 	if _steps % _ping_every == 0:
-		link.send(NetWire.ping(int(_now() * 1000.0), rtt_ms))
+		link.send(NetWire.ping(_now_ms(), rtt_ms))
+
+
+## The client's own thread stalled (`StallGuard`): the reconciler forgets its points and takes the
+## next answer whole (`Reconciler.resync`), and a PONG for a ping sent before now measures the
+## stall, not the network, so it is not a round trip.
+func resync() -> void:
+	reconciler.resync()
+	_pings_valid_from = _now_ms()
 
 
 func _take_player() -> void:
@@ -211,8 +221,8 @@ func _on_packet(data: PackedByteArray) -> void:
 			_on_tick(SnapshotCodec.read_tick(data, drops))
 		NetWire.Type.PONG:
 			var pong := NetWire.read_pong(data, drops)
-			if pong != null:
-				rtt_ms = (int(_now() * 1000.0) - pong.client_ms) & 0xFFFFFFFF
+			if pong != null and not _sent_before_stall(pong.client_ms):
+				rtt_ms = (_now_ms() - pong.client_ms) & 0xFFFFFFFF
 		_:
 			drops.count(NetDrops.UNKNOWN_TYPE)
 
@@ -318,6 +328,20 @@ func _keep_numbering(tick: SnapshotCodec.Tick) -> void:
 	if seq + 1 < expected - SEQ_SLACK:
 		seq = expected - 1
 		renumbered += 1
+
+
+# Whether the ping of `client_ms` left before the last stall: its PONG waited out the stall in a
+# buffer, so its round trip is the stall's length (5 s after a 5 s freeze), and the numbering
+# (`_keep_numbering`) would put the commands that far ahead of the server (gdstudio #1070).
+func _sent_before_stall(client_ms: int) -> bool:
+	if _pings_valid_from < 0:
+		return false
+	return ((client_ms - _pings_valid_from) & 0xFFFFFFFF) >= 0x80000000
+
+
+# The clock in milliseconds as a ping carries them (32 bits).
+func _now_ms() -> int:
+	return int(_now() * 1000.0) & 0xFFFFFFFF
 
 
 func _now() -> float:
