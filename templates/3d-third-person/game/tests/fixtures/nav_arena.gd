@@ -36,7 +36,10 @@ func add_link(from: Vector3, to: Vector3) -> NavigationLink3D:
 	return link
 
 
-## Makes the region from the grid less its holes, on the world's map.
+## Makes the region from the grid less its holes, on the world's map. The region and the map take
+## their iterations on the physics step, not on a thread (kit
+## docs/engines/godot/navigation-in-tests.md#a-small-mesh-of-your-own): the map holds it at the next
+## tick on every machine.
 func build() -> void:
 	var mesh := NavigationMesh.new()
 	_vertices.clear()
@@ -63,6 +66,8 @@ func build() -> void:
 	region.name = "Navigation"
 	region.navigation_mesh = mesh
 	add_child(region)
+	NavigationServer3D.region_set_use_async_iterations(region.get_rid(), false)
+	NavigationServer3D.map_set_use_async_iterations(get_world_3d().navigation_map, false)
 
 
 ## Waits (at most `cap` physics frames) until the map answers at `probe` from this arena's
