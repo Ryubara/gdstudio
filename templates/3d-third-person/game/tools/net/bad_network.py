@@ -40,15 +40,19 @@ CORRECTED_M_PER_MINUTE = 4.0
 CORRECTED_M_PER_MINUTE_REAL = 10.0
 CORRECTED_M_AN_UP_STALL = 1.0
 # A stall of the client's own thread that the run did not plan (a software-drawn page's hitch past 0.25 s): the
-# commands around it come late, as around a freeze. The browser read 0.7 to 2.6 m with 7 to 9 hitches; without the
+# commands around it come late, as around a freeze. The browser read 0.7 to 5.2 m with 7 to 9 hitches; without the
 # hold 31 m.
-CORRECTED_M_A_HITCH = 0.5
+CORRECTED_M_A_HITCH = 0.75
 # The puppets are drawn 100 ms behind: at a steady 100 ms each way they never starve (under 1 % of the steps,
 # issue #908). A stall of the snapshots' way (down) starves them for what it holds past that delay and no longer:
 # the stall's length less the delay, a snapshot's interval more (the burst shows the moves at once, never a wrong
 # place), plus `STARVED_SLACK_STEPS` for the join.
 STARVED_SHARE = 0.01
 STARVED_SLACK_STEPS = 12
+# A stall of the client's own thread ends in a frame of catch-up steps (at most the engine's 8 a frame) that move the
+# puppets' clock on while a page receives nothing until the next frame: up to that many starved steps a puppet. The
+# page read 0.7 to 1.3 % of its puppet-steps starved with 11 stalls of its thread.
+STARVED_A_CLIENT_STALL = 8
 # A body more than 6 m off is lost: never.
 LOST = 0
 TICK_RATE = 60
@@ -68,9 +72,9 @@ class Network:
     real: bool = False
     page: bool = False
 
-    def starved_allowed(self, steps: int, puppets: int) -> int:
+    def starved_allowed(self, steps: int, puppets: int, client_stalls: int = 0) -> int:
         """Puppet-steps that may starve (`RemotePlayers.starved` counts each puppet of a step)."""
-        steady = int(steps * puppets * STARVED_SHARE)
+        steady = int(steps * puppets * STARVED_SHARE) + STARVED_A_CLIENT_STALL * client_stalls * puppets
         if not self.stalls_down:
             return steady
         each = max(0.0, self.stall_s - PUPPET_DELAY_S) * TICK_RATE + TICK_RATE / SNAPSHOT_RATE + 1
@@ -136,7 +140,7 @@ def judge_client(report: dict, network: Network, verdict: Verdict | None = None)
         {"corrected_m": report["corrected_m"], "corrections": report["corrections"], "up_stalls": network.stalls_up},
     )
     if report.get("puppets", 0) > 0:
-        starved = network.starved_allowed(report["steps"], report["puppets"])
+        starved = network.starved_allowed(report["steps"], report["puppets"], report["stalls"])
         verdict.check(
             f"puppets starved in at most {starved} puppet-steps",
             report["starved_steps"] <= starved,

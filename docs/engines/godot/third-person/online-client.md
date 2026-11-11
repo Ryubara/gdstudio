@@ -130,21 +130,21 @@ server's `hold_ticks` 0) with `--expect-fail` is the teeth check, which CI runs 
 | Freezes seen | the stall guard counted at least the planned freezes | a run that froze nothing |
 | Worst error | under 6 m with freezes (the page: 8 m, #1070), under 2.5 m with stalls only | a stall shows as a burst, never a wrong place |
 | Settled | under 5 cm two seconds after the body stands | the end state is the server's |
-| Corrected | 4 m a minute (10 over a real network), 1 m more per stall of the commands' way, 0.5 m per unplanned stall of the client | the server's hold |
-| Starved puppets | 1 % of puppet-steps, or per stall of the snapshots' way its length less the 100 ms delay, a snapshot more | the interpolation clock |
+| Corrected | 4 m a minute (10 over a real network), 1 m more per stall of the commands' way, 0.75 m per unplanned stall of the client | the server's hold |
+| Starved puppets | 1 % of puppet-steps and 8 a puppet per stall of the client's thread (its catch-up frame), or per stall of the snapshots' way its length less the 100 ms delay, a snapshot more | the interpolation clock |
 | Logs | nobody kicked, no `ERROR` in the server's or client's log; the page: no console error, no `Buffer payload full`, at least 20 frames a second | the transport |
 
 Windows, Godot 4.7.2, 2026-11-11 (Railway: the template's image, 48-core EPYC host):
 
 | Run | Round trip | Corrections (metres) | Snaps / stalls | Worst error | Settled | Starved puppet-steps |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Native, relay, freezes | 234 ms | 53 (0.69 m) | 3 / 3 | 2.83 m | 2.8 mm | 0 |
-| Native, relay, 1 % stalls (25 up, 11 down) | 235 ms | 194 (14.3 m) | 0 / 0 | 1.50 m | 3.7 mm | 432 of 5760 |
-| Browser, relay, freezes (34 fps) | 248 ms | 76 (3.29 m) | 4 / 11 | 5.89 m | 2.6 mm | 30 of 4059 |
+| Native, relay, freezes (three runs) | 220 to 234 ms | 53 to 75 (0.69 to 0.93 m) | 3 / 3 | 2.72 to 2.93 m | 2.8 to 4.1 mm | 0 |
+| Native, relay, 1 % stalls (22 to 26 up, 10 to 16 down) | 234 to 248 ms | 188 to 221 (11.2 to 16.4 m) | 0 / 0 | 1.42 to 1.52 m | 2.1 to 6.1 mm | 387 to 531 of 5760 |
+| Browser, relay, freezes (34 to 40 fps, four runs) | 232 to 248 ms | 42 to 85 (0.67 to 5.17 m) | 4 to 8 / 10 to 12 | 4.18 to 6.00 m | 1.8 to 5 mm | 27 to 54 of about 4050 |
 | Native, Railway, freezes | 69 to 83 ms | 53 to 172 (0.68 to 3.07 m) | 3 / 3 | 2.67 to 2.81 m | 1.3 to 4 mm | 0 |
 | Browser, Railway, freezes (33 fps) | 75 ms | 46 (1.25 m) | 8 / 11 | 4.21 m | 5.1 mm | 30 of 4062 |
-| Teeth: native, server hold 0 | 234 ms | 726 (16.2 m) | | | | |
-| Teeth: native, reconciler unshifted | 234 ms | 610 lost, 739 snaps, 241 km worst, 12 m off at the end | | | | |
+| Teeth: native, server hold 0 | 234 ms | 726 to 736 (16.2 to 18.1 m) | | | | |
+| Teeth: native, reconciler unshifted (local and Railway) | 234 ms | 610 to 614 lost, 731 to 739 snaps, 20 to 241 km worst, 12 m off at the end | | | | |
 | Teeth: browser, server hold 0 | 238 ms | 386 (31.3 m), one lost, 6.8 m worst | | | | |
 
 The client costs 190 to 290 µs a step at the median (`NetClient`, the body's step included). The relay carried 41 KB up
