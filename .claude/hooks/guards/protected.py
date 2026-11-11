@@ -1,5 +1,5 @@
-"""Nothing secret printed into the transcript, no protected or generated file edited by hand, and the maintainer's
-hold switch (docs/studio/hooks.md#hold) never turned on or off by a session."""
+"""Nothing secret printed into the transcript, no protected or generated file edited by hand, and no session writing a
+session transcript, where the maintainer's approval of a hold lift is read (docs/studio/hooks-hold.md#hold)."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .shell import program
-from .workspace import matches, workspace_of
+from .shell import program, segments
+from .workspace import matches
 
 _DUMPS = {"env", "printenv"}
 _PRINTERS = {
@@ -55,64 +55,57 @@ def check_edit(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
     return []
 
 
-# --- the maintainer's hold switch (docs/studio/hooks.md#hold; merges.py lets the coordinator lift while it is on) ---
+# --- the session transcripts (docs/studio/hooks-hold.md#hold; merges.py reads the maintainer's approval there) ---
 
-_SWITCH_FILE = "gdstudio.local.toml"
-_SWITCH_KEY = "coordinator" + "_may_lift"  # split, so this file never holds the assignment it refuses
-# The key followed by an assignment (TOML, Python, JSON, a shell `=`): naming the key passes, setting it does not.
-_SETS_KEY = re.compile(re.escape(_SWITCH_KEY) + r"""["']?\s*[=:]""")
+# A transcript: a `.jsonl` file under a `.claude/projects/` folder (Edit and Write of one are refused by `[protect]`).
+_TRANSCRIPT = re.compile(r"\.claude[/\\]+projects[/\\].*\.jsonl", re.IGNORECASE)
+# An entry spelled as the maintainer's own: an origin of kind human. Built in pieces, so this file never holds it.
+_HUMAN_ORIGIN = re.compile(r"""["']?kind["']?\s*[:=]\s*\\?["']""" + "hu" + r"""man\\?["']""", re.IGNORECASE)
 _READERS = {"cat", "type", "head", "tail", "less", "more", "grep", "rg", "findstr", "wc", "stat", "file", "ls", "dir"}
-_READERS |= {"get-content", "gc", "select-string", "sls", "test-path", "get-item", "gi", "get-childitem", "gci", "git"}
-_COPIERS = {"cp", "copy", "copy-item", "cpi"}
+_READERS |= {"get-content", "gc", "select-string", "sls", "test-path", "get-item", "gi", "get-childitem", "gci", "jq"}
+_WRITERS = {"tee", "set-content", "sc", "add-content", "ac", "out-file", "truncate", "dd", "rm", "del", "remove-item"}
+_COPIERS = {"cp", "copy", "copy-item", "cpi", "mv", "move", "move-item", "mi", "ren", "rename-item"}
 _REDIRECT = re.compile(r"(?:^|[^-=])\d?>>?(.*)$")
-_TURN = (
-    "the hold switch is the maintainer's: only they turn it on or off, by hand in an editor, never a session "
-    "(docs/studio/hooks.md#hold)"
+_FORGE = (
+    "a session transcript is the record of what the maintainer typed, where a hold lift's approval is read: no "
+    "session writes one or spells an entry as the maintainer's (docs/studio/hooks-hold.md#hold)"
 )
 
 
-def _names_file(word: str) -> bool:
-    return _SWITCH_FILE in word.replace("\\", "/")
+def _names_transcript(word: str) -> bool:
+    return bool(_TRANSCRIPT.search(word))
 
 
-def _is_workspace(word: str, cwd: Path) -> bool:
-    """Whether a copy's destination is the workspace folder, where a file of that name becomes the switch."""
-    workspace = workspace_of(cwd)
-    if workspace is None or "$" in word:
-        return False
-    try:
-        return (cwd / word).resolve() == workspace.resolve()
-    except (OSError, ValueError):
-        return False
-
-
-def check_switch_shell(words: list[str], cwd: Path) -> list[str]:
-    """A shell command that would write the switch's file: one that names it and is not a read, a redirect into it,
-    or a copy onto it or into the workspace folder. A read and a copy away from it (a throwaway workspace) pass."""
-    if not any(_names_file(w) for w in words):
+def check_transcript_shell(words: list[str]) -> list[str]:
+    """A shell command that would write a transcript: a redirect into one, a writing program or `sed -i` naming one,
+    or a copy or move onto one. Reading one (any program that is not a writer) passes."""
+    if not any(_names_transcript(w) for w in words):
         return []
     for i, word in enumerate(words):
         found = _REDIRECT.search(word) if ">" in word else None
-        if found and _names_file(found.group(1) or (words[i + 1] if i + 1 < len(words) else "")):
-            return [_TURN]
+        if found and _names_transcript(found.group(1) or (words[i + 1] if i + 1 < len(words) else "")):
+            return [_FORGE]
     name = program(words)
     if name in _COPIERS:
         destination = [w for w in words[1:] if not w.startswith("-")][-1:]
-        if destination and (_names_file(destination[0]) or _is_workspace(destination[0], cwd)):
-            return [_TURN]
+        return [_FORGE] if destination and _names_transcript(destination[0]) else []
+    if name in _WRITERS or (name == "sed" and any(w.startswith("-i") or w == "--in-place" for w in words[1:])):
+        return [_FORGE]
+    return []
+
+
+def check_transcript_text(command: str) -> list[str]:
+    """A shell line that spells an entry as the maintainer's and is not only reads (a `grep` for it passes)."""
+    if not _HUMAN_ORIGIN.search(command):
         return []
-    return [] if name in _READERS else [_TURN]
+    parts = segments(command)
+    return [] if parts and all(words and program(words) in _READERS for words in parts) else [_FORGE]
 
 
-def check_switch_text(text: str) -> list[str]:
-    """Text a session sends (a shell line, a file's new content) that sets the switch's key."""
-    return [_TURN] if _SETS_KEY.search(text) else []
-
-
-def check_switch_edit(payload: dict[str, Any]) -> list[str]:
-    """An Edit, Write, MultiEdit or NotebookEdit whose new text sets the switch's key, in any file: a script written
-    to flip it is refused here, since the shell line that runs it no longer names the key."""
+def check_transcript_edit(payload: dict[str, Any]) -> list[str]:
+    """An Edit, Write, MultiEdit or NotebookEdit whose new text spells an entry as the maintainer's, in any file: a
+    script written to forge one is refused here, since the shell line that runs it no longer shows it."""
     inp = payload.get("tool_input") or {}
     texts = [inp.get(key) or "" for key in ("content", "new_string", "new_source")]
     texts += [(edit or {}).get("new_string") or "" for edit in inp.get("edits") or []]
-    return check_switch_text("\n".join(texts))
+    return [_FORGE] if _HUMAN_ORIGIN.search("\n".join(texts)) else []

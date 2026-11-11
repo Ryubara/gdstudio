@@ -18,7 +18,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Disk | under `[disk] hard_gb` free (10 GB): a task agent's start, `git worktree add` (and `gds issue start`) ([below](#disk)) | `gds disk guard`; report what is left to the coordinator and the maintainer |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
-| Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations; a session writing the hold switch ([below](#hold)) | stop and report; only the maintainer takes a hold off, or the coordinator while the maintainer's switch is on |
+| Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations; a session writing a session transcript or spelling an entry as the maintainer's ([below](#hold)) | stop and report; only the maintainer takes a hold off, or the coordinator once the maintainer approves that lift in its session |
 | Behind main | a merge command (as in Hold) on a pull request whose head lacks the tip of its base, by GitHub's compare (`behind_by` > 0); an API failure only warns ([Landing](landing.md#landing)) | `gds merge-main --path <worktree>`, push, merge once the checks pass |
 | Comments | any `gh` command that posts a comment or a review under the maintainer's account: the `comment` commands, `gh pr review`, `--comment` or `-c` on a close or reopen, `gh api` writes to a comments or reviews path, GraphQL mutations ([below](#comments)) | the same command without the text; the text goes in the scratch folder and the report |
 | Tools | Godot or Blender from Steam or PATH | `gds tool path godot\|blender` |
@@ -90,7 +90,8 @@ branch deletion and an empty push pass. `--no-verify` is refused by the Git guar
 
 <!-- moved: hooks.md went over 50 KB with #1202; the anchor stays for the links in code and AGENTS.md -->
 
-How `S-hold` stops a merge, who may take it off, and the maintainer's switch that lets the coordinator lift it: [The hold](hooks-hold.md#hold).
+How `S-hold` stops a merge, who may take it off, and how the maintainer's approval in the coordinator's session lets
+it lift one: [The hold](hooks-hold.md#hold).
 
 ## Comments {#comments}
 
@@ -463,18 +464,18 @@ Standard library only: the hooks start under `uv run --no-project`.
 | `issues.py` | issue order and the labels of progress ([below](#issues)) |
 | `bodies.py` | pull request bodies before `gh pr create\|edit` runs and after it ran ([the image guard](pull-requests.md#attach-paths)) |
 | `commits.py` | commits and pushes |
-| `merges.py` | `gh pr merge`, manual paths, the hold and its switch ([above](#hold)) |
+| `merges.py` | `gh pr merge`, manual paths, the hold and the coordinator's approved lift ([above](#hold)) |
 | `behind_base.py` | a merge only of a head that holds its base's tip |
 | `comments.py` | no comment or review under the maintainer's account ([above](#comments)) |
 | `launches.py` | pinned tools, windowed Godot, Godot audio, browser probes, kills by name |
-| `protected.py` | secrets printed, protected and generated files edited, the hold switch |
+| `protected.py` | secrets printed, protected and generated files edited, session transcripts written |
 | `proof.py`, `session.py`, `mains.py`, `disk.py`, `sweep.py`, `learning.py`, `docs.py`, `stall.py`, `idle.py` | the sections of the same names below |
 
 A module imports what it uses from another (`from .shell import segments`), and `guards.<name>` still finds any name
 of the package (a module `__getattr__`), as it did when the guards were one file. The entry points import a module
 when a call needs it: a Read loads `disk.py` and `workspace.py` only, a shell command the `git` or `gh` guards only
 when it runs `git` or `gh`. The kit modules the hooks load
-by file (`gds_tools/pr.py`, `lessons.py`, `issues.py`, `hold_switch.py`) go through `load_kit_module(name)`, so
+by file (`gds_tools/pr.py`, `lessons.py`, `issues.py`, `hold_approval.py`) go through `load_kit_module(name)`, so
 they must use the
 standard library only; `python/tests/hooks/test_hook_modules.py` loads them under `python -I -S`.
 
