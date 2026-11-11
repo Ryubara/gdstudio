@@ -172,16 +172,26 @@ state; the probe is lent the map's layers (an AI puppet's own mask is 0).
 Nothing is sent: the TICK, its 12-byte player entry and the AI row are unchanged, so the bandwidth is the same. On the
 course's 0.9 m wall at a run (`test_net_puppet_vault.gd`, loopback), the puppet's plan had the server's top to 0.1 mm,
 its start within 7 cm and its time within 16 ms (0.466 s against 0.482 s). With the vault clips (kit #1037) the
-puppet's model is held on the clip's root of its own plan, as on the stepping body, so its planted wrist is on the
-top within 40 mm on the other screen as well (the same suite). A probe that finds no crossing of the
+puppet's model is held on the clip's root of its own plan, as on the stepping body, so its planted hand rests on the
+top on the other screen as well. The suite checks it for another player's puppet and for an AI the server runs over the
+wall (kit #1228), on every drawn frame from the plant to the release, against the stepping body's own limits, which it
+reads from `test_vault_contacts.gd` (`WRIST_UP`, `WRIST_ALONG`, `WRIST_DRIFT`: 20, 30 and 25 mm on the female
+mannequin). Both puppets read at most 15 mm off the height, 5 mm along, 12 mm across and 15 mm of drift, over 8 planted
+frames; with `PuppetVault` taken out, both cases fail (no plan, so no clip). A probe that finds no crossing of the
 server's kind (the map differs on this screen, something stands in the way here) plays no clip, as before. The clip
-tour is `tools/capture/puppet_vault_tour.tscn` (Ada's own screen beside Bo's).
+tour is `tools/capture/puppet_vault_tour.tscn` (Ada's own screen beside Bo's); `puppet_vault_hand.tscn` is Bo's screen
+alone, close on the 0.9 m wall, with Ada and then an AI vaulting it (`gds capture frames ... --fps 60`).
 
 - **Approach:** Work out a puppet's one-off move (a vault's start) from a snapshot place, or set the drawn place down
   on the floor, never from the place drawn the frame before as it is. **Watch out for:** that frame is drawn between
   the last snapshot on the ground and the first one of the move, already part of the way up its path: the puppet's
   vault planned from 0.22 m above the floor and started 0.23 m from the server's. **Seen:** gdstudio #1222,
   2026-11-11 (`PuppetVault._on_floor`; `test_net_puppet_vault.gd`).
+- **Approach:** In a test or a capture that runs a body over one wall of the course, start it 1.3 m before that wall's
+  face (clear of the wall before it) and assert the plan's top is that wall's height before checking anything against
+  its edges. **Watch out for:** the course's walls stand 2.5 m apart: an AI started 2.6 m before the 0.9 m wall vaulted
+  the 0.5 m one in front of it, and the hand checks then read the wrist 2.38 m short of an edge it never reached.
+  **Seen:** gdstudio #1228, 2026-11-11 (`test_net_puppet_vault.gd`, `_check_planted` asserts the top).
 
 ## Cost and the web {#cost}
 
