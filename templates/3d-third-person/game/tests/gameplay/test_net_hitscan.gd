@@ -80,8 +80,10 @@ func _one_shot(hitscan: bool) -> Dictionary:
 	}
 	for index in range(first_tick, bo.ticks.size()):
 		var tick := bo.ticks[index]
-		var expected := NetWire.TICK_HEADER + tick.players.size() * SnapshotCodec.PLAYER_SIZE
-		expected += NetWire.TICK_TAIL
+		var expected := NetWire.TICK_HEADER + NetWire.TICK_TAIL
+		# Each entry's own size: Ada aims, and an aiming entry ends with its aim yaw byte (#1300).
+		for player in tick.players:
+			expected += SnapshotCodec.player_size(player)
 		for row in tick.parts:
 			expected += NetWire.STREAM_ROW_HEADER + row.state.size()
 		for event in tick.events:

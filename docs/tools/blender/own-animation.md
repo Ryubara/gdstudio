@@ -212,6 +212,10 @@ transition ends on a gait's exact pose and speed, and is long enough to be seen 
   less; in a walk the body is lowest just after the foot lands and highest as the legs pass
   ([notes on Williams](https://s184753.blogspot.com/2019/01/more-research-animators-survival-kit.html); a
   secondary summary).
+- A crouched walk has no figures here: the crouch gait studies found
+  ([one](https://pmc.ncbi.nlm.nih.gov/articles/PMC3233366/)) are about crouch as a gait fault, not a crouch someone
+  chooses, and no page we found gave a healthy crouched walk's cadence and step length, or the time of a drop from
+  standing to a crouch. The crouch clips' numbers are working ones until a crouch issue measures them (gdstudio #1160).
 
 **What we take.** The walk ranges in [the feel](#feel) are these figures at the game's speed. The library's Walk
 takes 90 steps a minute at 0.96 m/s where people take 118 at 1.32. Follow-through goes after the frame the game
@@ -348,6 +352,11 @@ one clip symmetric about its own middle.
   and the hands placed evenly on both sides, which read as squatting on a toilet beside the library's staggered,
   relaxed crouch; the clip toolkit's style files and solved poses drift toward symmetry unless each side is asked
   for on its own. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11, from the maintainer's review.
+- **Approach:** Check a one-shot on the every-frame front sheet, not only on the key frames, for limbs that line up on
+  the way out and back, and pose each hand from its own per-side table, never from one tuple with a flipped sign.
+  **Watch out for:** the melee clips had the guard and the striking fist level at frames 4 and 12 to 14, between keys,
+  so the key-frame sheet looked uneven while the move passed through a mirror pose; a flipped tuple mirrors the sides by
+  construction. **Seen:** gdstudio #1254, 2026-11-11.
 
 ## The set we will own {#set}
 
@@ -487,6 +496,11 @@ The pull request carries `S-hold`; the maintainer answers with a letter per clip
 variants live in `own/review/<type>.glb` under their letters (`Walk_A`) and are not imported by the game; the
 chosen one is built again under its plain name into the shipped file by the same pull request once chosen, and the
 other style files stay in the repository, so a game picks another vision by rebuilding.
+
+- **Approach:** When a clip declares its own limits, read its numbers on the review sheet against those, and say so in
+  the sheet's notes. **Watch out for:** the sheets print the checks' default limits even where a clip declares its own,
+  so a 0.42 or a 17.99 (keys kept, key bytes a second, on a 22-frame stride) looks like a failure that passes. **Seen:**
+  gdstudio #1160 (PR #1285), 2026-11-11.
 
 ## How a chosen clip replaces the library's {#replacing}
 
