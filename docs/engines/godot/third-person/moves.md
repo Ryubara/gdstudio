@@ -46,10 +46,19 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   1.0 s clips played in 0.5 and 0.7 s), from and to the crouch idle's first pose. The clips rest the body on the
   forearms and fists, so lying puts the weapon away (`ProneAnimation.stow_share`: its model hidden and the grip off)
   until the body aims. A model whose body needs clips of its own gets them from `prone_libraries` (its scene file to a
-  library with the same clip names), swapped in when the model is set or replaced, in the game only;
-  `character_dressed.tscn` names `prone_male.glb` for `mannequin_male.glb`, so the AI's enemies lie in his clips. The
-  share, the pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`),
-  cosmetic and never sent.
+  library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the
+  pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`), cosmetic and
+  never sent.
+- **One clip file a body.** A clip that rests limbs on the floor fits one body's bone lengths and skin, so each of
+  the template's bodies has the four clips solved on itself (kit #1293), and so has each Quaternius mannequin (kit
+  #1090): `character_dressed.tscn` holds `prone_form_female.glb` as the library `prone` (the player, the friendlies
+  and the online puppets wear `form_female.glb`) and its `prone_libraries` names `prone_form_male.glb` for
+  `form_male.glb` (the enemies), `prone.glb` for `mannequin_female.glb` and `prone_male.glb` for
+  `mannequin_male.glb`. In the Quaternius female's file the `form` bodies lay 33 to 55 mm in the floor at the
+  forearms with their planted elbows rolling 19 and 32 mm a stride (kit #1286); in their own files no forearm, hand,
+  thigh, shin or foot is more than 5 mm under it, the planted elbows stay within a millimetre and no limb crosses
+  another (`tests/gameplay/test_prone_clips.gd`, each body in its own file; `tools/capture/prone_clips_tour.tscn`
+  films any of the four, `MODEL`, read by `tools/capture/study_body.gd`).
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
 studios; the template's run is 4.0 m/s and its walk 1.7):

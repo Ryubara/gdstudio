@@ -1,24 +1,31 @@
 # The prone and crawl clips (kit #1009) import as a library beside the Universal Animation
-# Library, one file a mannequin (kit #1090): `assets/animation/prone/prone.glb` is solved on the
-# female and `prone_male.glb` on the male, whose upper arms are 5 cm longer and whose limbs are
-# thicker, with the same clip names, lengths and crawl speed. Each mannequin plays its own file
-# as the library `prone`: the loops close, the two transitions start and end on the poses they
-# join, the crawl's elbows and feet stay on their place on the floor at the speed the clip was
-# made for, the body stays low, and no hand, forearm, thigh or shin of the skinned mesh sinks
-# into the floor.
+# Library, one file a body (kit #1090, #1293): each of the template's bodies (the prototype `form`
+# pair, `CharacterBodies`) and each Quaternius mannequin has the four clips solved on its own
+# skeleton and skin, with the same clip names, lengths and crawl speed, and plays its own file as
+# the library `prone`: the loops close, the two transitions start and end on the poses they join,
+# the crawl's elbows and feet stay on their place on the floor at the speed the clip was made
+# for, the body stays low, the skin of the forearms, knees and feet rests on the floor and no
+# hand, forearm, thigh, shin or foot sinks into it.
 extends GdUnitTestSuite
 
 const UAL1 := "res://assets/animation/universal/ual1.glb"
-const MODELS: Array[String] = [
-	"res://assets/characters/mannequin/mannequin_female.glb",
-	"res://assets/characters/mannequin/mannequin_male.glb",
-]
+## The bodies the clips are checked on, by the name the limits below use: the template's two
+## first, then the Quaternius pair.
+const MODELS: Dictionary[String, String] = {
+	"form_female": CharacterBodies.FEMALE,
+	"form_male": CharacterBodies.MALE,
+	"female": CharacterBodies.QUATERNIUS_FEMALE,
+	"male": CharacterBodies.QUATERNIUS_MALE,
+}
 ## The file each of `MODELS` plays as the library `prone`.
-const PRONE: Array[String] = [
-	"res://assets/animation/prone/prone.glb",
-	"res://assets/animation/prone/prone_male.glb",
-]
-## The parts of the body the floor is measured against, on the skinned mesh.
+const PRONE: Dictionary[String, String] = {
+	"form_female": "res://assets/animation/prone/prone_form_female.glb",
+	"form_male": "res://assets/animation/prone/prone_form_male.glb",
+	"female": "res://assets/animation/prone/prone.glb",
+	"male": "res://assets/animation/prone/prone_male.glb",
+}
+## The parts of the body the floor is measured against on every frame of every clip, on the
+## skinned mesh. The feet are parts of their own, so a shin is not counted with its foot and toes.
 const FLOOR_PARTS: Array[StringName] = [
 	&"hand_l",
 	&"hand_r",
@@ -30,10 +37,13 @@ const FLOOR_PARTS: Array[StringName] = [
 	&"calf_r",
 ]
 const FEET: Array[StringName] = [&"foot_l", &"foot_r"]
-## Metres a part's skin may be under the floor (skin pressed on it) on any frame of any clip, for
-## each of `MODELS`. The male's is the bar of kit #1090; the female's back shin presses 5.0 mm
-## into the floor on one frame of going down, as her file was made (kit #1020).
-const FLOOR_LIMITS: Array[float] = [0.006, 0.005]
+## Metres a part's skin may be under the floor (skin pressed on it) on any frame of any clip, by
+## body: the bar of kit #1293 for the `form` bodies (their feet too) and of kit #1090 for the
+## Quaternius male; the Quaternius female's back shin presses 5.0 mm into the floor on one frame
+## of going down, as her file was made (kit #1020), and the Quaternius feet are not held (their
+## toes dip in the transitions).
+const FLOOR_LIMITS := {"form_female": 0.006, "form_male": 0.006, "female": 0.006, "male": 0.005}
+const FEET_HELD: Array[String] = ["form_female", "form_male"]
 ## The numbers of the clips' README, which the code that crawls reads.
 const CRAWL_SPEED := 0.618
 const CRAWL_SECONDS := 28.0 / 30.0
@@ -45,21 +55,43 @@ const LENGTHS := {
 	&"Crouch_To_Prone": 0.9,
 	&"Prone_To_Crouch": 1.0,
 }
-
+## How far a planted joint may stray (m), how low a bone may go (m, under the floor is negative)
+## and how far a just planted wrist may lie from the centre line (m), by body, each in its own
+## file (kit #1293 for the `form` bodies; in the Quaternius female's file their elbows rolled 19
+## and 32 mm and their fingertips were 30 and 42 mm under the floor).
+const LIMITS_STRAY := {"form_female": 0.004, "form_male": 0.004, "female": 0.004, "male": 0.004}
+const LIMITS_BONE_FLOOR := {
+	"form_female": -0.01, "form_male": -0.01, "female": -0.01, "male": -0.01
+}
+const LIMITS_WRIST := {"form_female": 0.11, "form_male": 0.11, "female": 0.10, "male": 0.10}
+## The skin against the floor while lying and crawling (kit #1286, measured on each body's own
+## skinned mesh by `BodyMeasure`): the deepest any part may go under it (m; the belly presses a
+## few millimetres into it, the Quaternius female's shoulder 1.4 cm in the crawl), and the parts
+## that carry the body, which come down to within `SKIN_ON` of it: the forearms, the knees (the
+## calves' skin) and the feet lying still, the forearms and the feet crawling (the crawl pushes
+## on the foot, never the knee).
+const SKIN_UNDER := {"form_female": 0.006, "form_male": 0.006, "female": 0.015, "male": 0.006}
+const SKIN_ON := 0.01
+const CARRIERS := {
+	&"prone/Prone_Idle": ["lowerarm_l", "lowerarm_r", "calf_l", "calf_r", "foot_l", "foot_r"],
+	&"prone/Crawl_Fwd": ["lowerarm_l", "lowerarm_r", "foot_l", "foot_r"],
+}
 var _model: Node3D
 var _skeleton: Skeleton3D
 var _player: AnimationPlayer
+var _twist: MannequinTwist
 
 
-func _stage(index: int) -> void:
-	_model = auto_free((load(MODELS[index]) as PackedScene).instantiate())
+func _stage(body: String) -> void:
+	_model = auto_free((load(MODELS[body]) as PackedScene).instantiate())
 	add_child(_model)
 	_skeleton = _model.find_children("*", "Skeleton3D", true, false)[0]
 	_player = auto_free(AnimationPlayer.new())
 	add_child(_player)
 	_player.root_node = _player.get_path_to(_model)
 	_player.add_animation_library(&"ual1", load(UAL1))
-	_player.add_animation_library(&"prone", load(PRONE[index]))
+	_player.add_animation_library(&"prone", load(PRONE[body]))
+	_twist = _skeleton.get_node_or_null("MannequinTwist") as MannequinTwist
 
 
 # Every bone's place in the model's space with a clip held at a time.
@@ -67,6 +99,9 @@ func _pose(clip: StringName, at: float) -> Dictionary:
 	_player.play(clip)
 	_player.seek(at, true)
 	_player.pause()
+	# a prototype body's twist bones, as the game turns them near the camera (no clip keys them)
+	if _twist != null:
+		_twist.apply(_skeleton)
 	var out := {}
 	for bone in _skeleton.get_bone_count():
 		out[_skeleton.get_bone_name(bone)] = _skeleton.get_bone_global_pose(bone)
@@ -87,7 +122,8 @@ func _gap(a: Dictionary, b: Dictionary) -> Vector2:
 
 
 func test_each_library_holds_the_four_clips_and_the_loops_loop() -> void:
-	for file in PRONE:
+	for body: String in PRONE:
+		var file := PRONE[body]
 		var library: AnimationLibrary = load(file)
 		var names: Array[String] = []
 		for clip in library.get_animation_list():
@@ -108,10 +144,10 @@ func test_each_library_holds_the_four_clips_and_the_loops_loop() -> void:
 			)
 
 
-func test_every_track_drives_a_bone_of_both_mannequins() -> void:
-	for index in MODELS.size():
-		_stage(index)
-		var library: AnimationLibrary = load(PRONE[index])
+func test_every_track_drives_a_bone_of_every_body() -> void:
+	for body: String in MODELS:
+		_stage(body)
+		var library: AnimationLibrary = load(PRONE[body])
 		for clip in library.get_animation_list():
 			var animation := library.get_animation(clip)
 			assert_int(animation.get_track_count()).is_greater(50)
@@ -128,19 +164,19 @@ func test_every_track_drives_a_bone_of_both_mannequins() -> void:
 
 
 func test_the_loops_end_on_their_first_pose() -> void:
-	for index in MODELS.size():
-		_stage(index)
+	for body: String in MODELS:
+		_stage(body)
 		for clip: StringName in [&"prone/Prone_Idle", &"prone/Crawl_Fwd"]:
 			var length := _player.get_animation(clip).length
 			var gap := _gap(_pose(clip, 0.0), _pose(clip, length))
-			assert_float(gap.x).override_failure_message("%s seam %s" % [clip, gap]).is_less(0.001)
-			assert_float(gap.y).override_failure_message("%s seam %s" % [clip, gap]).is_less(0.1)
+			var said := "%s seam on %s: %s" % [clip, body, gap]
+			assert_float(gap.x).override_failure_message(said).is_less(0.001)
+			assert_float(gap.y).override_failure_message(said).is_less(0.1)
 
 
 func test_the_transitions_join_the_crouch_and_the_prone_idle() -> void:
-	for index in MODELS.size():
-		_stage(index)
-		var model_path := MODELS[index]
+	for body: String in MODELS:
+		_stage(body)
 		var crouch := _pose(&"ual1/Crouch_Idle", 0.0)
 		var prone := _pose(&"prone/Prone_Idle", 0.0)
 		var joins := [
@@ -151,18 +187,18 @@ func test_the_transitions_join_the_crouch_and_the_prone_idle() -> void:
 		]
 		for join: Array in joins:
 			var gap := _gap(join[0], join[1])
-			var message := "%s on %s: %s" % [join[2], model_path.get_file(), gap]
+			var message := "%s on %s: %s" % [join[2], body, gap]
 			assert_float(gap.x).override_failure_message(message).is_less(0.002)
 			assert_float(gap.y).override_failure_message(message).is_less(0.2)
 
 
-# A planted joint stays on its place on the floor while the body moves at the crawl's speed, to
-# a few millimetres on each mannequin in its own file (the female's file rolled the male's
-# elbows 3 cm).
+# A planted joint stays on its place on the floor while the body moves at the crawl's speed.
+# The clip was solved on the female mannequin, where it holds to a millimetre; the Quaternius
+# male's upper arms are 5 cm longer, so his elbows roll a little. The prototype bodies (kit
+# #1286): LIMITS_STRAY.
 func test_planted_elbows_and_feet_do_not_slide_at_the_crawl_speed() -> void:
-	var limits := [0.004, 0.004]
-	for index in MODELS.size():
-		_stage(index)
+	for body: String in MODELS:
+		_stage(body)
 		for joint: Array in [
 			["lowerarm_r", 0.0, ELBOW_PLANTED],
 			["lowerarm_l", 0.5, ELBOW_PLANTED],
@@ -185,37 +221,44 @@ func test_planted_elbows_and_feet_do_not_slide_at_the_crawl_speed() -> void:
 			var stray := 0.0
 			for place in places:
 				stray = maxf(stray, place.distance_to(middle))
+			print("PRONE stray %s %s %.4f" % [body, joint[0], stray])
 			(
 				assert_float(stray)
-				. override_failure_message(
-					"%s strays %.4f m on %s" % [joint[0], stray, MODELS[index].get_file()]
-				)
-				. is_less(limits[index])
+				. override_failure_message("%s strays %.4f m on %s" % [joint[0], stray, body])
+				. is_less(LIMITS_STRAY[body])
 			)
 
 
-# No bone goes under the floor and none rises over the prone height, on either mannequin.
+# No bone goes under the floor on the female mannequin, which the clips were solved on; the
+# male's longer arms put his thumb tips 2 cm lower. The prototype bodies: LIMITS_BONE_FLOOR.
 func test_the_body_stays_low_while_prone() -> void:
-	var floors := [-0.01, -0.01]
-	for index in MODELS.size():
-		var model_path := MODELS[index]
-		_stage(index)
+	for body: String in MODELS:
+		_stage(body)
 		for clip: StringName in [&"prone/Prone_Idle", &"prone/Crawl_Fwd"]:
-			var length := _player.get_animation(clip).length
+			var animation := _player.get_animation(clip)
+			var length := animation.length
+			# The bones the clip turns: a prototype body has more (its sockets and IK targets,
+			# which no clip of this file moves, stand where the rest pose has them).
+			var keyed := {}
+			for track in animation.get_track_count():
+				keyed[String(animation.track_get_path(track).get_concatenated_subnames())] = true
 			var highest := 0.0
 			var lowest := 1.0
 			var lowest_bone := ""
 			for step in 16:
 				var pose := _pose(clip, length * step / 16.0)
 				for bone: String in pose:
-					if bone == "root":
+					if bone == "root" or not keyed.has(bone):
 						continue
 					var height := (pose[bone] as Transform3D).origin.y
 					highest = maxf(highest, height)
 					if height < lowest:
 						lowest = height
 						lowest_bone = bone
-			var where := "%s on %s" % [clip, model_path.get_file()]
+			var where := "%s on %s" % [clip, body]
+			print(
+				"PRONE bones %s: highest %.3f, %s at %.3f" % [where, highest, lowest_bone, lowest]
+			)
 			(
 				assert_float(highest)
 				. override_failure_message("%s: highest bone %.3f" % [where, highest])
@@ -224,19 +267,119 @@ func test_the_body_stays_low_while_prone() -> void:
 			(
 				assert_float(lowest)
 				. override_failure_message("%s: %s at %.3f" % [where, lowest_bone, lowest])
-				. is_greater(floors[index])
+				. is_greater(LIMITS_BONE_FLOOR[body])
 			)
+
+
+# The skin of each body, not its bones: lying still and crawling, no part goes deeper under the
+# floor than SKIN_UNDER, and the forearms, the knees (the calves' skin) and the feet come down to
+# the floor. The clips were solved on the Quaternius female's skin; the other bodies are thicker
+# or longer in places, which only their own mesh shows.
+func test_the_skin_rests_on_the_floor() -> void:
+	for body: String in MODELS:
+		var measure := BodyMeasure.stage(self, MODELS[body], {&"ual1": UAL1, &"prone": PRONE[body]})
+		var twist := measure.skeleton.get_node_or_null("MannequinTwist") as MannequinTwist
+		for clip: StringName in [&"prone/Prone_Idle", &"prone/Crawl_Fwd"]:
+			var length := measure.player.get_animation(clip).length
+			var lowest := {}
+			for step in 16:
+				measure.pose(clip, length * step / 16.0)
+				if twist != null:
+					twist.apply(measure.skeleton)
+				var parts := measure.lowest_by_part()
+				for part: String in parts:
+					lowest[part] = minf(lowest.get(part, INF), parts[part])
+			var deepest := INF
+			var deepest_part := ""
+			var row := PackedStringArray()
+			for part: String in lowest:
+				row.append("%s %.1f" % [part, lowest[part] * 1000.0])
+				if lowest[part] < deepest:
+					deepest = lowest[part]
+					deepest_part = part
+			var where := "%s on %s" % [clip, body]
+			print("PRONE skin %s (mm): %s" % [where, ", ".join(row)])
+			(
+				assert_float(deepest)
+				. override_failure_message(
+					"%s: %s %.1f mm under the floor" % [where, deepest_part, -deepest * 1000.0]
+				)
+				. is_greater(-SKIN_UNDER[body])
+			)
+			for part: String in CARRIERS[clip]:
+				(
+					assert_float(lowest[part])
+					. override_failure_message(
+						"%s: %s %.1f mm over the floor" % [where, part, lowest[part] * 1000.0]
+					)
+					. is_less(SKIN_ON)
+				)
+		measure.free_nodes()
+
+
+# No limb passes through another on any frame of the four clips, on the body that plays each
+# file (the report beside each file, `limb_overlap.py --brief` in Blender on the skinned mesh).
+func test_no_limb_passes_through_another() -> void:
+	for body: String in MODELS:
+		var bodies: Array[String] = [MODELS[body].get_file().get_basename()]
+		var found := BodiesOverlap.problems(PRONE[body], bodies, {})
+		assert_array(found).override_failure_message("; ".join(found)).is_empty()
+
+
+# The floor under the skin, on every frame of the four clips: no hand (with its fingers), forearm,
+# thigh or shin of a body's own mesh, and no foot of a `form` body, is more than `FLOOR_LIMITS`
+# under the floor in the body's own file.
+func test_no_hand_forearm_thigh_shin_or_foot_sinks_into_the_floor() -> void:
+	for body: String in MODELS:
+		_stage(body)
+		var held: Array[StringName] = FLOOR_PARTS.duplicate()
+		if body in FEET_HELD:
+			held.append_array(FEET)
+		var parts := SkinnedParts.new(_skeleton, FLOOR_PARTS + FEET)
+		for part in FLOOR_PARTS:
+			assert_int(parts.size(part)).override_failure_message(part).is_greater(20)
+		for clip: StringName in LENGTHS:
+			var frames := roundi(LENGTHS[clip] * 30.0)
+			var lowest: Dictionary[StringName, float] = {}
+			var lowest_frame: Dictionary[StringName, int] = {}
+			for frame in frames + 1:
+				_pose(StringName("prone/" + clip), minf(frame / 30.0, LENGTHS[clip]))
+				var now := parts.lowest()
+				for part in held:
+					if now[part] < lowest.get(part, INF):
+						lowest[part] = now[part]
+						lowest_frame[part] = frame
+			for part in held:
+				(
+					assert_float(lowest[part])
+					. override_failure_message(
+						(
+							"%s on %s: %s is %.1f mm under the floor at frame %d"
+							% [clip, body, part, -lowest[part] * 1000.0, lowest_frame[part]]
+						)
+					)
+					. is_greater(-FLOOR_LIMITS[body])
+				)
+			print("FLOOR %s %s %s" % [body, clip, _millimetres(lowest, lowest_frame)])
+
+
+# Each part's lowest height in millimetres and its frame, for the log.
+func _millimetres(
+	heights: Dictionary[StringName, float], frames: Dictionary[StringName, int]
+) -> String:
+	var out: Array[String] = []
+	for part: StringName in heights:
+		out.append("%s %.1f (%d)" % [part, heights[part] * 1000.0, frames[part]])
+	return ", ".join(out)
 
 
 # The arms crawl the way people do (the README's research): a planted forearm points inward, its
 # wrist near the body's centre line in front of the head, and each hand in turn plants ahead of
-# the other. The idle lies the same way. Measured on both mannequins; the male's shoulders are
-# wider, so his wrists lie a little further out.
+# the other. The idle lies the same way. Measured on every body; the Quaternius male's shoulders
+# are wider, so his wrists lie a little further out (LIMITS_WRIST).
 func test_the_forearms_point_inward_and_the_hands_reach_past_each_other() -> void:
-	var wrist_limits := [0.10, 0.10]
-	for index in MODELS.size():
-		_stage(index)
-		var model := MODELS[index].get_file()
+	for model: String in MODELS:
+		_stage(model)
 		for side: Array in [["r", "l", 0.0, -1.0], ["l", "r", 0.5, 1.0]]:
 			var just_planted := _pose(&"prone/Crawl_Fwd", side[2] * CRAWL_SECONDS)
 			var elbow: Vector3 = (just_planted["lowerarm_" + side[0]] as Transform3D).origin
@@ -244,6 +387,12 @@ func test_the_forearms_point_inward_and_the_hands_reach_past_each_other() -> voi
 			var other: Vector3 = (just_planted["hand_" + side[1]] as Transform3D).origin
 			var inward := _inward(elbow, wrist, side[3])
 			var where := "%s arm on %s" % [side[0], model]
+			print(
+				(
+					"PRONE arm %s: %.1f degrees inward, wrist %.3f, %.3f ahead"
+					% [where, inward, wrist.x, wrist.z - other.z]
+				)
+			)
 			(
 				assert_float(inward)
 				. override_failure_message("%s: forearm %.1f degrees inward" % [where, inward])
@@ -252,7 +401,7 @@ func test_the_forearms_point_inward_and_the_hands_reach_past_each_other() -> voi
 			(
 				assert_float(absf(wrist.x))
 				. override_failure_message("%s: wrist %.3f m from the centre" % [where, wrist.x])
-				. is_less(wrist_limits[index])
+				. is_less(LIMITS_WRIST[model])
 			)
 			# the model faces +Z: the hand that has just planted lies ahead of the other
 			(
@@ -280,13 +429,12 @@ func test_the_forearms_point_inward_and_the_hands_reach_past_each_other() -> voi
 # toward the other arm, and the hand is a fist: every finger's last joint is about as near the
 # wrist as its knuckle and the thumb lies on the index finger. Lying flat on the palms tires the
 # wrists;
-# this is how a crawl is kept up (the README). Both mannequins, lying still and in the crawl,
+# this is how a crawl is kept up (the README). Every body, lying still and in the crawl,
 # planted and carried (an open finger's last joint is 1.6 times as far from the wrist as its
 # knuckle, a closed one's 0.9, a carried fist's a little more).
 func test_the_forearms_rest_on_their_outer_edge_and_the_hands_are_fists() -> void:
-	for body in MODELS.size():
-		_stage(body)
-		var model := MODELS[body].get_file()
+	for model: String in MODELS:
+		_stage(model)
 		var moments := [
 			["idle", &"prone/Prone_Idle", 0.0, ["l", "r"]],
 			["crawl, right planted", &"prone/Crawl_Fwd", 0.25 * CRAWL_SECONDS, ["r"]],
@@ -335,54 +483,6 @@ func test_the_forearms_rest_on_their_outer_edge_and_the_hands_are_fists() -> voi
 					. override_failure_message("%s: the thumb is off the fingers" % where)
 					. is_less(0.5 * palm_length)
 				)
-
-
-# The floor, on the skin: on every frame of the four clips no hand (with its fingers), forearm,
-# thigh or shin of either mannequin's own mesh is more than `FLOOR_LIMITS` under the floor, each
-# in its own file (kit #1090: the male lay 2 to 4 cm in the floor in the female's file, which
-# bone heights did not show). The build measures the same in Blender (`floor_mm` in its report);
-# Godot's import drops keys within half a degree, so a planted hand reads up to 3 mm lower here.
-func test_no_hand_forearm_thigh_or_shin_sinks_into_the_floor() -> void:
-	for index in MODELS.size():
-		_stage(index)
-		# the feet are parts of their own, so a shin is not counted with its foot and toes
-		var parts := SkinnedParts.new(_skeleton, FLOOR_PARTS + FEET)
-		for part in FLOOR_PARTS:
-			assert_int(parts.size(part)).override_failure_message(part).is_greater(20)
-		var model := MODELS[index].get_file()
-		for clip: StringName in LENGTHS:
-			var frames := roundi(LENGTHS[clip] * 30.0)
-			var lowest: Dictionary[StringName, float] = {}
-			var lowest_frame: Dictionary[StringName, int] = {}
-			for frame in frames + 1:
-				_pose(StringName("prone/" + clip), minf(frame / 30.0, LENGTHS[clip]))
-				var now := parts.lowest()
-				for part in FLOOR_PARTS:
-					if now[part] < lowest.get(part, INF):
-						lowest[part] = now[part]
-						lowest_frame[part] = frame
-			for part in FLOOR_PARTS:
-				(
-					assert_float(lowest[part])
-					. override_failure_message(
-						(
-							"%s on %s: %s is %.1f mm under the floor at frame %d"
-							% [clip, model, part, -lowest[part] * 1000.0, lowest_frame[part]]
-						)
-					)
-					. is_greater(-FLOOR_LIMITS[index])
-				)
-			print("FLOOR %s %s %s" % [model, clip, _millimetres(lowest, lowest_frame)])
-
-
-# Each part's lowest height in millimetres and its frame, for the log.
-func _millimetres(
-	heights: Dictionary[StringName, float], frames: Dictionary[StringName, int]
-) -> String:
-	var out: Array[String] = []
-	for part: StringName in heights:
-		out.append("%s %.1f (%d)" % [part, heights[part] * 1000.0, frames[part]])
-	return ", ".join(out)
 
 
 # Degrees a forearm points toward the body's centre line, seen from above (the model faces +Z and

@@ -9,6 +9,8 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone.glb" id="6_prone"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault.glb" id="6_vault"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_male.glb" id="6_prone_male"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_form_female.glb" id="6_prone_form_female"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_form_male.glb" id="6_prone_form_male"]
 [ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
 [ext_resource type="PackedScene" path="res://gameplay/character/footsteps.tscn" id="8_footsteps"]
 [ext_resource type="Script" path="res://gameplay/character/character_ragdoll.gd" id="9_ragdoll"]
@@ -80,7 +82,7 @@ root_node = NodePath("../Model/Mannequin")
 libraries = {
 &"ual1": ExtResource("5_ual1"),
 &"ual2": ExtResource("6_ual2"),
-&"prone": ExtResource("6_prone"),
+&"prone": ExtResource("6_prone_form_female"),
 &"vault": ExtResource("6_vault")
 }
 
@@ -93,7 +95,9 @@ model = NodePath("../Model")
 animation_player = NodePath("../AnimationPlayer")
 tree = NodePath("../AnimationTree")
 prone_libraries = Dictionary[String, AnimationLibrary]({
-"res://assets/characters/mannequin/mannequin_male.glb": ExtResource("6_prone_male")
+"res://assets/characters/mannequin/mannequin_female.glb": ExtResource("6_prone"),
+"res://assets/characters/mannequin/mannequin_male.glb": ExtResource("6_prone_male"),
+"res://assets/characters/prototype/form_male.glb": ExtResource("6_prone_form_male")
 })
 
 [node name="Weapon" parent="." node_paths=PackedStringArray("muzzle")]

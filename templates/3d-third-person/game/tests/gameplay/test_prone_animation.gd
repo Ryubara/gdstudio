@@ -18,8 +18,13 @@ const JOINTS := {
 	&"foot_r": FOOT_PLANTED,
 }
 const FEMALE := CharacterBodies.FEMALE
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
-const MALE_CLIPS := "res://assets/animation/prone/prone_male.glb"
+## The prone file of each body the template ships (`character_dressed.tscn`).
+const OWN_CLIPS: Dictionary[String, String] = {
+	CharacterBodies.FEMALE: "res://assets/animation/prone/prone_form_female.glb",
+	CharacterBodies.MALE: "res://assets/animation/prone/prone_form_male.glb",
+	CharacterBodies.QUATERNIUS_FEMALE: "res://assets/animation/prone/prone.glb",
+	CharacterBodies.QUATERNIUS_MALE: "res://assets/animation/prone/prone_male.glb",
+}
 
 var _arena: PlayArena
 var _player: Player
@@ -115,12 +120,9 @@ func test_the_crawl_plays_at_the_pace_of_the_ground_and_backwards_backing_up() -
 # The planted joints keep their place on the floor at the slowest crawl the tuning allows, the
 # default and the fastest: the tree is stepped by hand by the same time as the body, and the
 # joint's best planted stretch (most of its planted share of the cycle) drifts under a centimetre.
-# On the body the clips were solved on, the Quaternius female: the prototype bodies' upper arms are
-# longer (0.26 m against 0.22), so their elbows slide 1.5 to 2.6 cm at the same pace while the feet
-# hold (kit #1187; solving the clips on them is gdstudio #1286).
+# On the template's own body in the clips solved on it (kit #1293; in the Quaternius female's
+# file its elbows slid 1.5 to 2.6 cm at the same pace, the upper arms being 4 cm longer).
 func test_planted_elbows_and_feet_do_not_slide_at_any_crawl_speed() -> void:
-	(_player.get_node("Model") as CharacterModel).variant = load(CharacterBodies.QUATERNIUS_FEMALE)
-	await InputSim.ticks(get_tree(), 2)
 	await _lie_down()
 	var skeleton := (_player.get_node("Model") as CharacterModel).skeleton()
 	_animation.set_throttled(true)
@@ -205,19 +207,23 @@ func test_a_model_can_play_prone_clips_of_its_own() -> void:
 	assert_object(player.get_animation_library(CharacterClips.LIBRARY_PRONE)).is_same(shared)
 
 
-# The character scene names the male mannequin's own file, so a body set to him (the AI's enemies,
-# a game's own pick) lies on the floor in his clips and goes back to hers with her model.
-func test_the_male_mannequin_gets_his_own_prone_clips() -> void:
+# The character scene names a file for each body it ships: its own library `prone` is the
+# template body's (`form_female`), and a body set to another (the AI's enemies in `form_male`, a
+# Quaternius mannequin a game swaps in) lies on the floor in the clips solved on it, then goes
+# back with the model.
+func test_each_shipped_body_gets_its_own_prone_clips() -> void:
 	var player: AnimationPlayer = _player.get_node("AnimationPlayer")
 	var model := _player.get_node("Model") as CharacterModel
 	var shared := player.get_animation_library(CharacterClips.LIBRARY_PRONE)
-	assert_str(shared.resource_path).is_equal("res://assets/animation/prone/prone.glb")
-	model.variant = load(MALE)
-	await InputSim.ticks(get_tree(), 2)
-	assert_str(model.rig().scene_file_path).is_equal(MALE)
-	var his := player.get_animation_library(CharacterClips.LIBRARY_PRONE)
-	assert_str(his.resource_path).is_equal(MALE_CLIPS)
-	assert_bool(player.has_animation(CharacterClips.CRAWL)).is_true()
+	assert_str(model.rig().scene_file_path).is_equal(FEMALE)
+	assert_str(shared.resource_path).is_equal(OWN_CLIPS[FEMALE])
+	for body: String in OWN_CLIPS:
+		model.variant = load(body)
+		await InputSim.ticks(get_tree(), 2)
+		assert_str(model.rig().scene_file_path).is_equal(body)
+		var own := player.get_animation_library(CharacterClips.LIBRARY_PRONE)
+		assert_str(own.resource_path).is_equal(OWN_CLIPS[body])
+		assert_bool(player.has_animation(CharacterClips.CRAWL)).is_true()
 	model.variant = load(FEMALE)
 	await InputSim.ticks(get_tree(), 2)
 	assert_object(player.get_animation_library(CharacterClips.LIBRARY_PRONE)).is_same(shared)
