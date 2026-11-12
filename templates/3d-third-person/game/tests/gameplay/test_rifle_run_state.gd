@@ -299,10 +299,11 @@ func _add(key: String, value: float) -> void:
 	_sums[key] = _sums.get(key, 0.0) + value
 
 
-# With the rifle out and at the low ready, the weapon layer holds nothing: the rifle has no clip
-# of its own, its hold places it.
+# With the rifle out and at the low ready, the weapon layer holds the rifle's own idle (its grip
+# clip, kit #1267) in full and nothing else: no aim, no shot.
 func _assert_rifle_layers(state: Dictionary, tag: String) -> void:
-	assert_float(state.armed).override_failure_message(tag + ": armed").is_equal(0.0)
+	var grip := 1.0 if (load(RIFLE) as WeaponDef).grip_clip != &"" else 0.0
+	assert_float(state.armed).override_failure_message(tag + ": armed").is_equal_approx(grip, 0.001)
 	assert_float(state.aim).override_failure_message(tag + ": aim").is_equal(0.0)
 	assert_float(state.raised).override_failure_message(tag + ": raised").is_equal(0.0)
 	assert_float(state.reach).override_failure_message(tag + ": reach").is_equal(1.0)
