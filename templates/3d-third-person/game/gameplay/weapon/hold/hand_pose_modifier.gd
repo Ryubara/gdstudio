@@ -19,6 +19,18 @@ extends SkeletonModifier3D
 		_dirty = true
 ## How far the bones `second` names are on it (0 `pose`, 1 `second`).
 @export_range(0.0, 1.0, 0.01) var second_weight := 0.0
+## The poses the bones of `second` pass through on their way from `pose`, in order, spread evenly
+## over `second_weight` (kit #1036): a trigger finger that would go through the trigger guard on
+## the straight way between the two goes round it. Each pose names the bones `second` names.
+## Empty: the straight way.
+@export var second_way: Array[HandPose] = []:
+	set(value):
+		for old in second_way:
+			_watch(old, null)
+		second_way = value
+		for new in second_way:
+			_watch(null, new)
+		_dirty = true
 ## A pose blended over both on the bones it names, by `open_weight`: the hand opened, as it lets
 ## go of the weapon or comes back to it.
 @export var open: HandPose:
@@ -52,6 +64,8 @@ var _indexes := PackedInt32Array()
 var _rotations: Array[Quaternion] = []
 var _seconds: Array[Quaternion] = []
 var _has_second := PackedByteArray()
+# Each bone's rotation in each pose of `second_way`, `second_way.size()` a bone.
+var _ways: Array[Quaternion] = []
 var _opens: Array[Quaternion] = []
 var _opening := PackedByteArray()
 var _turned := PackedInt32Array()
@@ -89,10 +103,23 @@ func _process_modification_with_delta(_delta: float) -> void:
 	for index in _indexes.size():
 		var turned := _rotations[index]
 		if blend and _has_second[index] == 1:
-			turned = turned.slerp(_seconds[index], second_weight)
+			turned = _on_the_way(index, turned)
 		if opened and _opening[index] < 3:
 			turned = turned.slerp(_opens[index], shares[_opening[index]])
 		skeleton.set_bone_pose_rotation(_indexes[index], turned)
+
+
+# Where the bone at `index` is on its way from `turned` (its rotation in `pose`) through
+# `second_way` to `second`, `second_weight` of the way along.
+func _on_the_way(index: int, turned: Quaternion) -> Quaternion:
+	var stops := second_way.size()
+	if stops == 0:
+		return turned.slerp(_seconds[index], second_weight)
+	var legs := stops + 1
+	var leg := mini(floori(second_weight * legs), legs - 1)
+	var from := turned if leg == 0 else _ways[index * stops + leg - 1]
+	var to := _seconds[index] if leg == legs - 1 else _ways[index * stops + leg]
+	return from.slerp(to, second_weight * legs - leg)
 
 
 func _lay_out(skeleton: Skeleton3D) -> void:
@@ -101,6 +128,7 @@ func _lay_out(skeleton: Skeleton3D) -> void:
 	_rotations.clear()
 	_seconds.clear()
 	_has_second.clear()
+	_ways.clear()
 	_opens.clear()
 	_opening.clear()
 	_turned.clear()
@@ -118,6 +146,12 @@ func _lay_out(skeleton: Skeleton3D) -> void:
 		var in_second := second != null and second.rotations.has(bone_name)
 		_has_second.append(1 if in_second else 0)
 		_seconds.append(second.rotations[bone_name] if in_second else own)
+		# A way that leaves a bone out keeps it where the pose before it has it.
+		var before := own
+		for stop in second_way:
+			if in_second and stop != null and stop.rotations.has(bone_name):
+				before = stop.rotations[bone_name]
+			_ways.append(before)
 		var in_open := open != null and open.rotations.has(bone_name)
 		_opens.append(open.rotations[bone_name] if in_open else own)
 		var opening := 3
