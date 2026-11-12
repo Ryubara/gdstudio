@@ -362,6 +362,7 @@ the template's `HitReaction` flinch); four things threw a flinching arm, each fi
   remake them when the flinch ends, after the bones' own joints. **Watch out for:** six copies of a joint whose
   parent the clip moves (a kinematic body, as heavy as the world to the solver) turned a light arm at 47 rad/s within
   two ticks and sent it off at 500 m/s (Jolt's linear limit), then to NaN; with one joint, every soak seed ran clean.
+  A limp body lying wedged against two blocks with its braces still goes the same way (gdstudio #1372).
   **Seen:** gdstudio #1326, 2026-11-12 (`test_a_flinch_lifts_the_extra_joints_and_gives_them_back`).
 
 A flinching body farther than 0.6 m from the clip or faster than 15 m/s ends the flinch at once (`FLINCH_STRAY`,
