@@ -135,6 +135,9 @@ const _SKIN_REGION := AABB(Vector3(-0.32, -0.2, 0.0), Vector3(0.47, 0.5, 0.3))
 @export var grip_pose: HandPose
 ## The index finger on the trigger, blended over `grip_pose` as the gun comes up to the shoulder.
 @export var trigger_pose: HandPose
+## The poses the index finger passes through between `grip_pose` and `trigger_pose`, round the
+## trigger guard (kit #1036). None: the straight way.
+@export var trigger_way: HandPoseWay
 ## The left hand's fingers cupped under the hand guard.
 @export var support_pose: HandPose
 ## The left hand's four fingers opened, as it lets go of the gun and comes back to it (the thumb
@@ -881,6 +884,8 @@ func _on_rig_changed() -> void:
 	_add_arm(right_arm, "RightArm")
 	_add_arm(left_arm, "LeftArm")
 	_add_fingers(grip_pose, trigger_pose, null, "RightFingers")
+	if trigger_way != null:
+		_fingers[-1].second_way = trigger_way.poses
 	_add_fingers(support_pose, magazine_pose, open_pose, "LeftFingers")
 	refresh()
 
@@ -907,6 +912,7 @@ func _fit_body(slot: CharacterModel) -> void:
 		_own.support_pose = support_pose
 		_own.magazine_pose = magazine_pose
 		_own.open_pose = open_pose
+		_own.trigger_way = trigger_way
 	var chosen := HoldFit.chosen(fits, slot)
 	if chosen == null:
 		chosen = _own
@@ -923,6 +929,7 @@ func _fit_body(slot: CharacterModel) -> void:
 	support_pose = chosen.support_pose
 	magazine_pose = chosen.magazine_pose
 	open_pose = chosen.open_pose
+	trigger_way = chosen.trigger_way
 
 
 func _add_arm(bones: Array[StringName], tag: String) -> void:
