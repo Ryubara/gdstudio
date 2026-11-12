@@ -111,6 +111,25 @@ def hop_built(rig, solver, arc: bool):
     return built
 
 
+def carried_built(rig, solver, level: bool, risen: float):
+    """A stand the controller carries through the air for the whole clip (no foot is ever down), the root `risen`
+    metres over the floor and the body 0.05 m lower than it stands: its centre of mass at one height against the
+    root when `level`, rising and falling 0.3 m in the clip's own space when not."""
+    clip = stand_clip(rig)
+    clip.name, clip.loop, clip.kind = "Carried_Test", False, "action"
+    built = dense(build.build_clip(rig, solver, clip))
+    built.clip.plan = ContactPlan(30, [], loop=False)
+    built.record["contacts"] = {s: [] for s, _ in SIDES}
+    built.clip.declared["carried"] = [risen] * 31
+    pelvis = rig.index["pelvis"]
+    up = rig.rest_rot[rig.parent["pelvis"]].T @ maths.Y
+    built.translation[:, pelvis] -= up * 0.05
+    if not level:
+        for k, height in enumerate(np.concatenate([np.linspace(0, 0.3, 15), np.linspace(0.3, 0, 16)])):
+            built.translation[k, pelvis] += up * height
+    return built
+
+
 def tiptoe_built(rig, solver, settled: bool):
     """A stand whose right foot stands on its ball, the heel 40 degrees up: set down by its own skin when `settled`,
     and turned about the toes' hinge with nothing more when not, as a body whose toes lie flat on the floor would
@@ -236,6 +255,19 @@ def run(rig, solver, bodies) -> int:
     aside.clip.plan = ContactPlan(30, [fall for fall in stand.clip.plan.footfalls if fall.side == "r"])
     case("the centre of mass is outside the feet", "weight", stand, aside)
     case("a jump is not on a free fall's arc", "weight", hop_built(rig, solver, True), hop_built(rig, solver, False))
+    # weight and floor: a clip the controller carries through the air (a jump on the game's arc).
+    case(
+        "a carried body rises by itself in the air",
+        "weight",
+        carried_built(rig, solver, True, 0.2),
+        carried_built(rig, solver, False, 0.4),
+    )
+    case(
+        "a carried body's feet are under the floor it has not left",
+        "floor",
+        carried_built(rig, solver, True, 0.2),
+        carried_built(rig, solver, True, 0.0),
+    )
     # weight: a body that drops faster than gravity with its feet on the floor.
     case("a drop is faster than a fall", "weight", drop_built(rig, solver, 12), drop_built(rig, solver, 7))
     # floor: a head above the declared ceiling.

@@ -18,7 +18,7 @@ The spec (every key but `pelvis` and `leg` may be left out):
 | `ribs` | degrees the chest lifts with a breath (the upper spine opens backward, on top of `chest`) |
 | `head` | `(pitch, yaw, lean)`: the head's turn; the neck goes `neck` of the way (default a half) from the chest |
 | `clavicle` | per side `(lift, forward)` degrees from the chest |
-| `arm` | per side, a hanging arm: `swing` forward, `out` from the body, `twist` inward about the upper arm, `bend` of the elbow, `pronate` (the thumb turned inward about the forearm), `wrist` flexed toward the palm, `clear` (metres the wrist, the knuckles and the curled fingers' tips keep from the thigh's line, on every body: `out` grows until they do), `rest` (`{"on": a side, "gap": metres, "hand": metres}`: the arm is lowered from forward until its forearm's line is `gap` from that side's thigh's and shin's and its hand's line `hand` from them, on every body: a forearm laid on a knee; the degrees added are left in `rest_by`) and `carry`, the share of the chest's tilt the arm takes (0 hangs straight down whatever the chest does, 1 is fixed to the chest); or a placed hand: `wrist_at` (a point), `pole` (the way the elbow points) and `palm` (the way the palm faces) |
+| `arm` | per side, a hanging arm: `swing` forward (past 90 the arm is over level: give `raise` 1, the share by which the elbow's way turns with the swing instead of staying forward, which flips at level), `out` from the body, `twist` inward about the upper arm, `bend` of the elbow, `pronate` (the thumb turned inward about the forearm), `wrist` flexed toward the palm, `clear` (metres the wrist, the knuckles and the curled fingers' tips keep from the thigh's line, on every body: `out` grows until they do), `rest` (`{"on": a side, "gap": metres, "hand": metres}`: the arm is lowered from forward until its forearm's line is `gap` from that side's thigh's and shin's and its hand's line `hand` from them, on every body: a forearm laid on a knee; the degrees added are left in `rest_by`) and `carry`, the share of the chest's tilt the arm takes (0 hangs straight down whatever the chest does, 1 is fixed to the chest); or a placed hand: `wrist_at` (a point), `pole` (the way the elbow points) and `palm` (the way the palm faces) |
 | `leg` | per side: `ankle` (the ankle joint), `foot` `(pitch, yaw, lean)` (pitch puts the toes down), `toe` (degrees the toes bend up), `knee` (the way the knee points; default the way the foot does) |
 | `fingers` | per side, degrees each finger curls over its three joints together: `{"index": 60, ..., "thumb": 20}`, each joint taking the share in `FINGER_SHARE`; `thumb_out` lifts the thumb from under the palm (where the rest pose has it, 47 degrees down) toward the palm's own plane |
 """
@@ -156,7 +156,15 @@ class Solver:
                 swing, out = math.radians(arm.get("swing", 0.0) + swing_by), math.radians(out_deg)
                 way = [sign * math.sin(out), -math.cos(out) * math.cos(swing), math.cos(out) * math.sin(swing)]
                 aim_u = base @ unit(np.array(way))
-                bend_dir = axis_angle(aim_u, sign * arm.get("twist", 0.0)) @ square_to(base @ Z, aim_u, base @ Y)
+                fore = square_to(base @ Z, aim_u, base @ Y)
+                raised = arm.get("raise", 0.0)
+                if raised > 0.0:
+                    # An arm swung up past level: "forward, made square to the arm" turns round as the arm passes
+                    # level, so the elbow's way is turned with the swing instead (forward for a hanging arm, up for
+                    # a level one, back for one overhead), as a shoulder turns it.
+                    over = square_to(base @ np.array([0.0, math.sin(swing), math.cos(swing)]), aim_u, base @ Y)
+                    fore = unit((1.0 - raised) * fore + raised * over)
+                bend_dir = axis_angle(aim_u, sign * arm.get("twist", 0.0)) @ fore
                 bend = math.radians(arm.get("bend", 0.0))
                 aim_f = math.cos(bend) * aim_u + math.sin(bend) * bend_dir
                 # The thumb's way with no pronation: square to the forearm in the arm's own plane. Written out,

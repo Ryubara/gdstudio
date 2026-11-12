@@ -39,7 +39,9 @@ class Clip:
     - `chains`: the overlap pass's bones, `{bone: (lag, overshoot)}`;
     - `kind`: `stand`, `gait`, `transition` or `action`, which picks the checks that apply;
     - `declared`: the numbers the checks hold the clip to (`lags`, `ranges`, `joins`, `plants`, `distance`,
-      `turn`, `speed_limit`, `ceiling`), each read by the check of that name, and what `clips.json` says beside
+      `turn`, `speed_limit`, `ceiling`, and `carried`: the root's height over the floor on every frame of a clip
+      the controller carries through the air, a jump), each read by the check of that name, and what
+      `clips.json` says beside
       the plan: `heel_up` (the sides whose heel the description raises itself, so no frame of theirs is flat)
       and `join_names` (`{"first": "Idle", "last": "Crouch_Idle"}`, the shipped clips whose first poses the
       ends are);
@@ -195,6 +197,9 @@ def _record(rig: Rig, clip: Clip, kept: dict) -> dict:
     distance = float(sum(np.hypot(np.diff(forward), np.diff(left))))
     curve = reduce.keep_place(np.column_stack([forward, left, np.radians(turn)]), 1e-4)
     return {
+        # What a description says of itself for the game (`declared["record"]`: the fall speeds a landing is for,
+        # the frame of the clip it joins); a key of the same name below wins.
+        **clip.declared.get("record", {}),
         "_rig": rig,
         "loop": clip.loop,
         "frames": clip.frames,

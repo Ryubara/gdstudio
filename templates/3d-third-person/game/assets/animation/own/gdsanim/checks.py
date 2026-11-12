@@ -115,6 +115,17 @@ def _travel(built, count: int) -> tuple:
     return places, yaws
 
 
+def _carried(built) -> np.ndarray | None:
+    """The root's height over the floor on every frame of a clip the controller carries through the air
+    (`declared["carried"]`, a jump on the game's own arc), or None for a clip whose root stays on the floor."""
+    heights = built.clip.declared.get("carried")
+    if heights is None:
+        return None
+    heights = np.asarray(heights, dtype=float)
+    assert len(heights) == built.rotation.shape[0], f"{built.clip.name}: `carried` needs a height for every frame"
+    return heights
+
+
 def _in_world(points: np.ndarray, places: np.ndarray, yaws: np.ndarray) -> np.ndarray:
     """Points [frame, n, 3] of a clip in place, put back on the floor the root travels over."""
     out = np.empty_like(points)
@@ -168,13 +179,17 @@ def check_seam(built, played: dict) -> tuple:
 def check_floor(built, played: dict) -> tuple:
     """A planted sole's lowest vertex is within `SOLE_BAND` of the floor, and no vertex goes more than `UNDER`
     under it on any frame, on every body; with `declared["ceiling"]` (m; a crouched capsule's height) no vertex
-    is above that either."""
+    is above that either. A clip the controller carries through the air (`declared["carried"]`) is measured from
+    the floor the root has left: toes that point down under the root as a jump begins are over it."""
     numbers, failures = {}, []
+    carried = _carried(built)
     for name, body in played.items():
         rig = body.rig
         lowest, highest, off = math.inf, -math.inf, 0.0
         for start in range(0, body.world.shape[0], 16):
             heights = rig.skin(body.world[start : start + 16])[:, :, 1]
+            if carried is not None:
+                heights = heights + carried[start : start + 16, None]
             lowest, highest = min(lowest, float(heights.min())), max(highest, float(heights.max()))
         for s, _ in SIDES:
             floor = rig.sole[s]["floor"]
@@ -391,9 +406,10 @@ def _kick(body: Played, bone: str, f: int) -> float:
 
 
 def check_weight(built, played: dict) -> tuple:
-    """Standing, the centre of mass is over the feet; in the air it is on a free fall's arc; where the root
-    changes speed the body leans by the acceleration; a body that goes down with a foot on the floor drops no
-    faster than gravity."""
+    """Standing, the centre of mass is over the feet; in the air it is on a free fall's arc (in the clip's own
+    space, or, for a clip the controller carries, `declared["carried"]`, on the arc the controller flies: it keeps
+    one speed against the root); where the root changes speed the body leans by the acceleration; a body that
+    goes down with a foot on the floor drops no faster than gravity."""
     body = next(iter(played.values()))
     rig, world = body.rig, body.world
     count = world.shape[0]
@@ -414,6 +430,7 @@ def check_weight(built, played: dict) -> tuple:
             if margin < SUPPORT:
                 failures.append(f"weight: the centre of mass is {-margin * 1000:.1f} mm outside the feet")
     air = [f for f in range(count) if not down[f]]
+    carried = _carried(built) is not None
     runs, start = [], None
     for f in range(count + 1):
         flying = f < count and not down[f]
@@ -427,7 +444,9 @@ def check_weight(built, played: dict) -> tuple:
         if last - first < 3:
             continue
         t = np.arange(first, last + 1) / FPS
-        height = com[first : last + 1, 1] + 0.5 * weight.G * t * t
+        # A clip the controller carries is played on the game's own arc, which is a free fall's: the centre of
+        # mass is on one too when it moves at one speed in the clip's own space, the root's.
+        height = com[first : last + 1, 1] + (0.0 if carried else 0.5 * weight.G * t * t)
         line = np.polyfit(t, height, 1)
         off = max(off, float(np.abs(height - np.polyval(line, t)).max()))
     if air:
