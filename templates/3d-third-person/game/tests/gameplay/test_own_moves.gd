@@ -129,9 +129,9 @@ func test_a_start_and_a_stop_meet_their_gait_moving_as_it_moves() -> void:
 				var frame: float = record.joins["last_frame" if start else "first_frame"]
 				var mine_a := _places(clip, record.frames - 1.0 if start else 0.0)
 				var mine_b := _places(clip, record.frames if start else 1.0)
-				var before := fposmod(frame - 1.0, cycle.frames) if start else frame
-				var gait_a := _places(gait, before)
-				var gait_b := _places(gait, before + 1.0)
+				var earlier := fposmod(frame - 1.0, cycle.frames) if start else frame
+				var gait_a := _places(gait, earlier)
+				var gait_b := _places(gait, earlier + 1.0)
 				var worst := 0.0
 				var worst_bone := ""
 				for bone: String in mine_a:
