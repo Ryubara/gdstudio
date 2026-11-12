@@ -135,12 +135,14 @@ func test_the_prone_aim_follows_the_look_and_the_barrel_with_it() -> void:
 		# Past the look the down clip is made for, the pose stays on that clip.
 		var wanted := clampf(look, -angles.x, angles.y)
 		assert_float(posed).is_equal_approx(wanted, 0.5)
+		# The aim layer turns the spine for the rest, within the prone `aim_limits` (kit #1253).
+		var aimed := rad_to_deg(_player.prone_tuning.aim_limits.clamp_pitch(deg_to_rad(look)))
 		var barrel := -_muzzle().global_basis.z.normalized()
 		var up := rad_to_deg(asin(barrel.y))
 		(
 			assert_float(up)
 			. override_failure_message("looking %.0f: the barrel points %.1f up" % [look, up])
-			. is_equal_approx(wanted, 2.5)
+			. is_equal_approx(aimed, 2.5)
 		)
 		# Along the way the body faces.
 		var ahead := Vector3(sin(_player.facing), 0.0, cos(_player.facing))
