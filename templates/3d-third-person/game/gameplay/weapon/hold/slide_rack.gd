@@ -120,11 +120,15 @@ func fingers_closed(share: float) -> float:
 ## has just left the support grip, opened over the slide, closed on it, and nothing where the hold
 ## has the hand on its support grip.
 func set_fingers(fingers: HandPoseModifier, let_go: HandPose, share: float) -> void:
+	# The poses are given only when they change: each one given lays the modifier's poses out
+	# again, which on every frame of a rack was most of its cost (kit #1337).
 	if fingers.pose != let_go:
 		fingers.pose = let_go
-	fingers.second = open_pose
+	if fingers.second != open_pose:
+		fingers.second = open_pose
 	fingers.second_weight = fingers_opened(share)
-	fingers.open = grip_pose
+	if fingers.open != grip_pose:
+		fingers.open = grip_pose
 	fingers.open_weight = fingers_closed(share)
 	fingers.influence = 1.0 - support_weight(share)
 	fingers.active = let_go != null and fingers.influence > 0.0
