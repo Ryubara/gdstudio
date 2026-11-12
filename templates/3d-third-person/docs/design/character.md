@@ -34,7 +34,7 @@ can be replaced alone.
 `PlayerInput` (a child of `Player`) reads actions, never devices: `move_left`, `move_right`, `move_forward`,
 `move_back`, `jump`, `sprint`,
 `walk` (a slow walk), `interact`, `crouch`, `prone`, `aim`, `fire`, `reload`, `next_weapon`,
-`previous_weapon`, `toggle_unarmed` and, for the camera, `look_left`, `look_right`, `look_up`,
+`previous_weapon`, `toggle_unarmed`, `melee` and, for the camera, `look_left`, `look_right`, `look_up`,
 `look_down` and `shoulder_swap`. Each has a key and, where it makes sense, a pad binding for any device; the touch
 layer presses the same actions. Rebind them in Project Settings > Input Map.
 
@@ -55,6 +55,7 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 | Next weapon | mouse wheel down | d-pad right | the Swap button |
 | Previous weapon | mouse wheel up | d-pad left | none |
 | Empty hands and back | H | d-pad up | none |
+| Melee (with any weapon; the empty hands' fire is the same blow) | V | left stick click | the Melee button |
 | Swap shoulder | Q | right stick click | none |
 | Die and get up (a testing aid) | Y (`Player`'s `ragdoll_key`; None turns it off) | none | none |
 
@@ -182,21 +183,23 @@ the steepest slope and the floor snap are applied again whenever the resource ch
 
 A `PhysicsProp` has a `push_speed` of its own: the cubes of the map are 60 kg, grippy (friction 0.5) and pushed at 1.2
 m/s, so the character (15 percent faster than the cube, to stay against it) walks slowly into them and the push clip
-plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The
-pistol's definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full
-automatic, spread, damage (34 before the hit zone's multiplier), aim range, the push it gives a body (40 N·s), the
-magazine (12), the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when
-the magazine is empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0,
-so it flies straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random
-pitch, two empty clicks, the reload's three steps, the draw). The fists (`fists.tres`) throw a jab and a cross 1.1 m,
-2.5 a second, with no ammunition, and a punch does not zoom the view (`fire_zooms` off). Each definition's Aim and zoom
-group says what aim and fire do with it: `can_aim`, `fire_needs_aim`, `fire_zooms`, `show_crosshair`, and with
-`override_zoom` its own aim and fire field of view, distance and `zoom_offset` in place of the camera's; all apply
-while the game runs. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the
-weapon has no `muzzle`, as on a character with no model: beside its `shooter`, this far off the aim ray),
-`projectile_cap` (24 in flight) and `self_ticking` (on: the weapon counts its own cooldown and reload; the `Character`
-turns it off and counts them in its step); its `ShotSound`, `EmptySound`, `ReloadSound` and `DrawSound` nodes hold the
-volume, bus and voices. The `Loadout` lists the slots (the pistol) and the empty hands (the fists).
+plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The pistol's
+definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full automatic,
+spread, damage (34 before the hit zone's multiplier), aim range, the push it gives a body (40 N·s), the magazine (12),
+the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when the magazine is
+empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0, so it flies
+straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random pitch, two
+empty clicks, the reload's three steps, the draw). Every weapon has a melee blow (V) whose clips and numbers are its
+category's (`gameplay/weapon/categories/`: the fists' jab, cross and hook 1.1 m for 15, the pistol's whip, backhand and
+jab 1.2 m for 25), and the fists (`fists.tres`) throw it on the fire button too, with no ammunition and without zooming
+the view (`fire_zooms` off). Each definition's Aim and zoom group says what aim and fire do with it: `can_aim`,
+`fire_needs_aim`, `fire_zooms`, `show_crosshair`, and with `override_zoom` its own aim and fire field of view, distance
+and `zoom_offset` in place of the camera's; all apply while the game runs. The `Weapon` node keeps the rest:
+`no_muzzle_offset` (where a shot starts when the weapon has no `muzzle`, as on a character with no model: beside its
+`shooter`, this far off the aim ray), `projectile_cap` (24 in flight) and `self_ticking` (on: the weapon counts its own
+cooldown and reload; the `Character` turns it off and counts them in its step); its `ShotSound`, `EmptySound`,
+`ReloadSound`, `DrawSound` and `MeleeSound` nodes hold the volume, bus and voices. The `Loadout` lists the slots (the
+pistol) and the empty hands (the fists).
 
 The sample map is built for these numbers (blocks 1 m apart in height, twelve steps of 0.25 m, a 14 degree ramp): a test
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
@@ -351,8 +354,8 @@ the node or on the `WeaponDef`, builds the tree again):
 | `carry` | `Hand Only` | How the weapon is carried off aim and fire. `Hand Only`: the arms and the spine follow the locomotion and only the grip bones take the grip pose. `Held Pose`: the grip clip holds the whole upper body, both arms out in front (a weapon at the ready, a rifle). |
 | `WeaponDef.grip_clip` | `Pistol_Idle` | The pose the gripping hand takes (and the whole upper body in `Held Pose`). Empty (the fists): none. |
 | `WeaponDef.grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
-| `WeaponDef.aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clips`, `reload_clip` | the `Pistol_*` clips | The aim pose by pitch, the recoil (the fists: `Punch_Jab` and `Punch_Cross` in turn) and the reload, stretched to the reload's time. A weapon that names no shot clip plays none (the rifle: its hold kicks the gun). |
-| `WeaponDef.shoot_additive` | on (the pistol), off (the fists) | On: the shot's clip is added to the aim as its difference from its own first frame, so the kick rides any pitch; off: it replaces the upper body while it plays (a punch). |
+| `WeaponDef.aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clips`, `reload_clip` | the `Pistol_*` clips | The aim pose by pitch, the recoil and the reload (a melee blow's clips are the weapon category's `melee_clips`), stretched to the reload's time. A weapon that names no shot clip plays none on a shot. |
+| `WeaponDef.shoot_additive` | on (the pistol), off (the fists) | On: the shot's clip is added to the aim as its difference from its own first frame, so the kick rides any pitch; off: it replaces the upper body while it plays. |
 | `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
 | `aim_brace` | on | Holds the upper body's turn on the stance the aim poses were made on while the character aims standing, walking or running (`AimBrace`, a skeleton modifier): the pistol points along the view whatever the legs' clip does to the pelvis. Off, the aim pose turns with that pelvis. |
 | `aim_stance` | on | Holds the legs still under a standing aim (`AimStance`): the ground state's idle point blends to the idle clip held on its steadiest frame (the pelvis nearest the middle of its sway) as the arm comes up, so the idle's weight shift no longer sways the pistol (33 mm to each side without it; the muzzle stays within 0.1 mm through 10 s of a held aim, the feet within 2.3 mm while it blends, on the player's and the enemies' bodies). Walking, the blend space has left the idle point, so the gaits are unchanged. Off, the idle plays under the aim. |
