@@ -61,11 +61,11 @@ its hand plant and its clear of the far edge up with the path's key points.
 Measured in the game (`tests/gameplay/test_vault_contacts.gd`, the drawn pose on every frame, walls of 0.5, 0.8, 0.9,
 1.05, 1.2 and 1.27 m):
 
-| | Female (the clips' own body) | Male |
+| | Female (`form_female`, in `vault.glb`) | Male (`form_male`, in `vault_male.glb`) |
 | --- | --- | --- |
-| Planted wrist over the top (the clip rests it at 36 mm) | within 20 mm | within 60 mm (its arms are 50 mm longer) |
-| Planted wrist along and across the top | within 30 mm | within 75 mm (its hands land 60 mm wider) |
-| Planted wrist moves while planted | under 25 mm | under 80 mm |
+| Planted wrist over the top (the clip rests hers at 22 mm, his at 28 mm) | within 20 mm | within 20 mm (60 mm in one shared file, before kit #1294) |
+| Planted wrist along and across the top | within 30 mm | within 30 mm (75 mm before) |
+| Planted wrist moves while planted | under 25 mm | under 25 mm (80 mm before) |
 | A foot or knee joint inside the wall | up to 68 mm for a frame drawn near 0.307 s of `Vault_Low` (the left knee past the front edge, the clip's own: gdstudio #1221; the test allows 75 mm); none in `Vault_High` | the same |
 | Lowest leg joint against the floor | above -20 mm at every height | the same |
 

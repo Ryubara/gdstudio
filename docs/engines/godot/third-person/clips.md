@@ -139,28 +139,53 @@ contact times. Forward 0 is the obstacle's front face.
   0.5 to 1.0 m and the high one about 1.0 to 1.3 m; above that is a climb (`ClimbUp_1m` and a mantle).
 - **Warping one clip to another obstacle** (for #1013 to confirm in play): the pose over the obstacle is a rigid body
   on a hand, so another height is the body lifted by the difference while a hand is on the top (none at the last
-  ground contact, all of it from the hand plant to the hand's release, none at the landing), and the wrist stays 36 mm
-  over the top at any height. Another depth is more travel between the hand's release and the landing; another speed
-  is the clip's rate. `tools/capture/vault_study.tscn` does the height warp (`LOW_HEIGHT`, `HIGH_HEIGHT`) and plays the
-  clips over their boxes from four views; headless, it prints the contact numbers.
-- **The male mannequin's arms are longer** (0.54 m shoulder to wrist against the female's 0.49 m), and the clips were
-  keyed on the female, the template's default. On the male the planted wrist moves 35 mm in `Vault_Low` and 71 mm in
-  `Vault_High` while it should be still, and sits up to 49 mm low. The vault code puts the hand on the edge by IK if
-  that shows; the clip cannot be right for both.
-- **On the template's bodies** (the prototype `form` pair, `CharacterBodies`, since kit #1187; measured in kit #1286
-  by `tests/assets/test_vault_clips.gd`, which poses all four bodies): the planted wrist slides 18 and 72 mm on
-  `form_female` (low and high vault) and 35 and 82 mm on `form_male`, and rides 29 to 67 mm off its height over the
-  top (on `form_male` up to 31 mm into the box); `Vault_High` puts the thighs 34.0 mm (`form_female`) and 23.6 mm
-  (`form_male`) into each other where the legs come over together. The feet, the joins to the sprint and to
-  `Vault_Land`, the free arm, the push and the legs' spread pass on every body. The suite holds those numbers as the
-  bodies' limits (`PER_BODY`, `KNOWN_OVERLAP_MM`) until kit #1294 solves them.
-- **No limb passes through another**, on either mannequin: the build measures every frame of every clip on both
-  skinned meshes (`assets/animation/limb_overlap.py`, the approach under
-  [Keyframes](../../../tools/blender/animation.md#keyframes)) and fails over 5 mm; the clips read 0.5 mm at most
-  (0.0 mm since the rework of 2026-11-11). `vault_clips.json` carries the numbers and the hash of the
-  file they were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off. The template's bodies
-  are measured beside them in `vault/bodies_overlap.json` (`limb_overlap.py --brief`,
-  [Limbs inside limbs](../../../tools/blender/body-crossings.md#library-clips)), read by the same suite.
+  ground contact, all of it from the hand plant to the hand's release, none at the landing), and the wrist stays its
+  own height over the top (`wrist_above_top`, 22 to 36 mm by body) at any height. Another depth is more travel between
+  the hand's release and the landing; another speed is the clip's rate. `tools/capture/vault_study.tscn` does the
+  height warp (`LOW_HEIGHT`, `HIGH_HEIGHT`) and plays the clips over their boxes from four views; headless, it prints
+  the contact numbers.
+- **A file a body** (kit #1294). A planted hand is on its place only on the arms the clip was solved for, and the
+  legs go over clear of each other only on the thighs they were keyed around, so `build_vault.py --body <name>`
+  solves the same keys on each body and writes a file for it: `vault.glb` and `vault_clips.json` on `form_female`
+  (the template's default body, `CharacterBodies.FEMALE`), `vault_male.glb` on `form_male`, and
+  `vault_quaternius.glb` on the Quaternius female, the bytes the one file had before, which the Quaternius male plays
+  too. The character's `vault` library follows its model (`CharacterAnimation.vault_libraries` in
+  `character_dressed.tscn`, the model's scene file to its library, as `prone_libraries`). Every file has the clips at
+  the same lengths, speeds, contact times, root places and hand places (the build fails a body whose numbers differ
+  from the default's, and a Godot test holds it), so the `VaultClip` resources are one set; only the wrist's height
+  over the top is the body's own (22 mm on `form_female`, 28 mm on `form_male`, 36 mm on the Quaternius female: the
+  thickness of the palm).
+
+  | Body, in its own file | Planted wrist moves, low / high | Off its height | Deepest limb in limb | Before, in the one file |
+  | --- | --- | --- | --- | --- |
+  | `form_female` | 0.0 / 0.0 mm | 0.0 / 0.0 mm | 4.5 mm (thighs, `Vault_High` frame 14) | 18.7 / 72.3 mm, 15.5 / 31.2 mm, 34.0 mm |
+  | `form_male` | 0.0 / 0.0 mm | 0.0 / 0.0 mm | 4.6 mm (thighs, `Vault_High` frame 16) | 35.2 / 82.2 mm, 59.0 / 48.2 mm, 23.6 mm |
+  | Quaternius female | 0 / 0 mm | 0 / 0 mm | 0.0 mm | the same file |
+  | Quaternius male (her file) | 34 / 79 mm | 49 / 41 mm | 3.1 mm (feet) | the same file |
+
+  What a body's arms and thighs move is a short list of numbers in the build's `BODIES` table, each explained where
+  the clip reads it: the wrist's height over the top and the heights of the centre of mass at the joins (measured);
+  how far the wrist lifts on the frame it pushes off and how far the fingers tip (a longer arm is still bent when the
+  body has passed: 141 degrees on `form_female` with the first keys, 176 now); the collarbone's lift on the male; and
+  in `Vault_High` the lower leg's foot further out from the hips past the front edge (75 and 100 mm), the knees a
+  little further out, and the lower foot further back and down on the frame at the edge.
+- **No limb passes through another**: each build measures every frame of every clip on the skinned mesh of the body
+  its file is for (`assets/animation/limb_overlap.py`, the approach under
+  [Keyframes](../../../tools/blender/animation.md#keyframes)), with the body's twist bones turned as the game turns
+  them, and fails over 5 mm (the table above). Each file's sidecar carries the numbers and the hash of the file they
+  were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off. `vault/bodies_overlap.json`
+  (`limb_overlap.py --brief`, [Limbs inside limbs](../../../tools/blender/body-crossings.md#library-clips)) holds the
+  two bodies that share `vault_quaternius.glb`, read by the same suite.
+- **The legs clear the box between the keys too.** A game draws the clip 60 times a second and more, with the 24
+  keys a second joined by straight lines, so the build reads the pose 240 times a second, joined the same way, with
+  the root moved at the clip's speed: no leg joint of the file's body more than 5 mm inside the box (0.0 in both
+  vaults), no skin more than 12 mm (0.0 in `Vault_Low`, 4.4 mm of a forearm in `Vault_High`). In `Vault_Low` the left
+  knee swings out to the right with the rolled body on frame 7, before the front face, and is 0.065 m over the top
+  where it crosses the edge (0.285 s); the lead foot is lifted with the toes up on frame 5 and its ball is 0.07 m over
+  the top at the edge. A planted palm presses up to 16.3 mm into the top between two keys and the sole of the sprint's
+  foot strike 20.8 mm into the floor, under the contact, which the build allows (20 and 25 mm).
+  `tests/assets/test_vault_clips.gd` reads the leg joints at the same rate in Godot, and the `_edge` sheet draws the
+  poses between the keys at the front edge.
 - **How the vault plays them** (kit #1037): the `VaultClip` resources `gameplay/character/vault_low.tres` and
   `vault_high.tres` carry the numbers of `vault_clips.json` (a test holds them equal), and the vault is
   [timed by the clip](traversal.md#clip-timing): it starts at the frame that fits the distance, the root moves level
@@ -183,6 +208,14 @@ contact times. Forward 0 is the obstacle's front face.
   three frames), so Godot played the wrist 107 mm off the box on that frame while the build's checks in Blender read 0.
   **Seen:** gdstudio #1010, 2026-11-10 (fix: the optimizer off, the arm kept bent through the plant, and
   `tests/assets/test_vault_clips.gd`).
+- **Approach:** Check a clip against the obstacle between its keys as well, 240 times a second with the keys joined
+  as the player joins them, and key a limb that swings past an edge over the edge's height a frame before it gets
+  there. **Watch out for:** `Vault_Low`'s left knee was before the front face and under the top on frame 7 and past
+  it and over the top on frame 8, both keys clear; on the frames a game draws between them it was 60 mm inside the
+  wall (the skin 76 mm), and the lead foot's toes 40 mm between frames 5 and 6. The knee's pole pointed forward
+  while the ankle passed behind the hip, so the knee hung down and whipped forward in one frame. **Seen:** gdstudio
+  #1221, 2026-11-11 (found by #1037's test in the game; fix: `check_between` in `build_vault.py`, the knee keyed out
+  beside the rolled body on frame 7, the lead foot lifted on frame 5).
 - **Approach:** Animate a vault from the planted arm. Decide where the body's centre of mass is on every frame (a
   free fall's arc in the air; on the hand, a rise that ends faster than gravity alone would leave it) and key the
   pelvis from that. Let the arm show it: the elbow bent with the shoulder low over the hand, the arm straight and
@@ -197,6 +230,14 @@ contact times. Forward 0 is the obstacle's front face.
   given: the feet went 47 mm into the box until the roll was put back. The `Vaultable`'s own path drops the body
   three times faster than a fall, whatever the clip does. **Seen:** gdstudio #1016, 2026-11-11 (`Vault_High` tops
   out 0.14 s after the hand leaves; the path is kit #1037's).
+- **Approach:** Solve a clip with a planted hand once for each body that plays it, from one set of keys, into a
+  file a body, and hold every file to the default body's numbers in the build. Give a body its own number only where
+  its arms or thighs force one, and name each in one table. **Watch out for:** one file keyed on the Quaternius
+  female slid the planted wrists of the bodies the template wears 18 to 82 mm over the top and put their thighs 24 to
+  34 mm into each other; solved on `form_female`, the same file put the Quaternius female's free hand 41.5 mm into
+  her thigh, so no one body's file serves the others. The thighs crossed at the crotch, where the lower leg lay
+  across under the upper one: moving the knees apart did little (the knees were 1.9 hip widths apart with 8 mm still
+  crossing), moving the lower leg's foot out from the hips cleared it. **Seen:** gdstudio #1294, 2026-11-11.
 - **Approach:** Pick a mannequin's skinned mesh by its parent (the armature) or its armature modifier. **Watch out
   for:** `mannequin_female.glb` holds a stray 42-vertex `Icosphere` beside `Mannequin_F`, and it comes first, so a
   build that took the first mesh measured nothing and failed on an empty list. **Seen:** gdstudio #1010, 2026-11-10.
