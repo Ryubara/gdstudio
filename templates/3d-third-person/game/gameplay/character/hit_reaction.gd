@@ -164,12 +164,7 @@ func _flinch(record: HitRecord) -> void:
 	if is_flinching():
 		# A new hit starts the flinch again, on its own part.
 		simulator.physical_bones_stop_simulation()
-	for key in bones:
-		var body := ragdoll.body(key)
-		body.global_transform = ragdoll.animated_body(key)
-		body.reset_physics_interpolation()
-		body.linear_velocity = Vector3.ZERO
-		body.angular_velocity = Vector3.ZERO
+	_place_bodies(bones)
 	simulator.influence = flinch_strength
 	simulator.active = true
 	simulator.physical_bones_start_simulation(bones)
@@ -181,6 +176,34 @@ func _flinch(record: HitRecord) -> void:
 	_flinch_left = flinch_time
 	set_physics_process(true)
 	flinched.emit(bones)
+
+
+# Puts every body of the ragdoll at the clip's pose in the physics server, at once, before a
+# flinch starts. The bodies the flinch leaves out turn kinematic and follow the clip from where
+# the server has them, and while the simulator rests nothing moves them there (a node's transform
+# does not reach the server then): they wait where the last death or flinch left them, metres
+# away once the character has walked on. Their first kinematic move was that whole way in one
+# tick, 60 m/s into the bones joined to them, and now and then more than the solver holds: bones
+# at NaN (gdstudio #1326). A kinematic body is made static for the move, so the move is a jump.
+func _place_bodies(flinching: Array[StringName]) -> void:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
+		var key: StringName = entry.bone
+		var body := ragdoll.body(key)
+		if body == null:
+			continue
+		var place := ragdoll.animated_body(key)
+		var rid := body.get_rid()
+		var mode := PhysicsServer3D.body_get_mode(rid)
+		if mode != PhysicsServer3D.BODY_MODE_STATIC:
+			PhysicsServer3D.body_set_mode(rid, PhysicsServer3D.BODY_MODE_STATIC)
+		body.global_transform = place
+		PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, place)
+		if mode != PhysicsServer3D.BODY_MODE_STATIC:
+			PhysicsServer3D.body_set_mode(rid, mode)
+		body.reset_physics_interpolation()
+		if flinching.has(key):
+			body.linear_velocity = Vector3.ZERO
+			body.angular_velocity = Vector3.ZERO
 
 
 func _tick_flinch(delta: float) -> void:

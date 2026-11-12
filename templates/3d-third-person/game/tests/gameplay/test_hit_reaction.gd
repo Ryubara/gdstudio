@@ -130,6 +130,36 @@ func test_a_death_during_a_flinch_takes_the_whole_body() -> void:
 	assert_bool(_ragdoll.body(&"thigh_l").is_simulating_physics()).is_true()
 
 
+# The farthest a flinch body gets from the clip's pose over the first `ticks` ticks of a chest
+# shot, in metres (INF for a body that is not finite).
+func _flinch_spread(ticks: int) -> float:
+	var line := HitRange.line_to(_target, _zones.zone(&"chest"))
+	await HitRange.shoot(get_tree(), _arena, line[0], line[1])
+	assert_bool(_reaction.is_flinching()).is_true()
+	var most := 0.0
+	for tick in ticks:
+		for key in _reaction.flinch_bones():
+			var body := _ragdoll.body(key)
+			if not body.global_transform.is_finite():
+				return INF
+			most = maxf(most, body.global_position.distance_to(_ragdoll.animated_body(key).origin))
+		await get_tree().physics_frame
+	return most
+
+
+# gdstudio #1326: the bodies a flinch leaves out follow the clip from where the physics server
+# has them, which was where the last death left them, a metre away: their first move threw the
+# flinching bones 1.1 m in a tick (and, in the AI soak, now and then to NaN).
+func test_a_flinch_after_getting_up_starts_from_the_clip_pose() -> void:
+	_target.die()
+	await InputSim.ticks(get_tree(), 60)
+	_target.revive()
+	await InputSim.ticks(get_tree(), 120)
+	HitRange.freeze(_target)
+	await InputSim.ticks(get_tree(), 2)
+	assert_float(await _flinch_spread(6)).is_less(0.1)
+
+
 func test_a_shot_on_a_lying_body_pushes_the_bone_and_leaves_a_mark_that_goes_with_it() -> void:
 	var impacts := ImpactShots.impacts_of(_arena)
 	_target.die()
