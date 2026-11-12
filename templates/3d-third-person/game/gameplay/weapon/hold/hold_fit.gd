@@ -31,9 +31,10 @@ extends Resource
 ## `WeaponHold.carry_pose`, `carry_open_pose`), for this body.
 @export var carry_pose: HandPose
 @export var carry_open_pose: HandPose
-## `WeaponHold.magazine_approach` and `carry_release` for this body.
+## `WeaponHold.magazine_approach`, `carry_release` and `carry_arrive` for this body.
 @export var magazine_approach := Vector3(0.0, -0.1, 0.0)
 @export var carry_release := Vector2(0.4, 0.6)
+@export var carry_arrive := Vector2(0.6, 1.0)
 ## The poses the trigger finger passes through between `grip_pose` and `trigger_pose` on this
 ## body (`TwoHandHold.trigger_way`, written by `tools/hold/solve_trigger_way.gd`). None: the
 ## straight way.

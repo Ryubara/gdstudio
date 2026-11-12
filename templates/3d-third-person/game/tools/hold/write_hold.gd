@@ -4,7 +4,8 @@
 ## seat on `hand_r`, the `SupportHand` and `MagazineHand` markers) and, in
 ## `gameplay/weapon/hold/weapon_hold.tscn`, the left hand's way off the pistol (`support_way`),
 ## the new magazine's way in (`magazine_approach`) and the shares of it over which the fingers let
-## go of the magazine (`carry_release`, kit #1052). The rifle's (kit #889,
+## go of the magazine and close under it (`carry_release`, `carry_arrive`, kit #1052). The
+## rifle's (kit #889,
 ## `solve_rifle_hold.py`, asked for with `rifle`): five poses and `gameplay/weapon/rifle_held.tscn`
 ## (where each hand's bone sits on the rifle: `RightHandTarget`, `LeftHandTarget`,
 ## `MagazineHand`). No number of a hold is typed by hand: change the model or the solver, run both
@@ -137,6 +138,8 @@ func _initialize() -> void:
 		_write_line("magazine_approach", "Vector3", solved.magazine_approach)
 	if solved.has("carry_release"):
 		_write_line("carry_release", "Vector2", solved.carry_release)
+	if solved.has("carry_arrive"):
+		_write_line("carry_arrive", "Vector2", solved.carry_arrive)
 	quit()
 
 
@@ -190,6 +193,8 @@ func _write_fit(solved: Dictionary, which: String, body: String) -> void:
 		)
 	if solved.has("carry_release"):
 		fit.carry_release = Vector2(solved.carry_release[0], solved.carry_release[1])
+	if solved.has("carry_arrive"):
+		fit.carry_arrive = Vector2(solved.carry_arrive[0], solved.carry_arrive[1])
 	for key: String in WEAPONS[which].poses:
 		if solved.has(key):
 			var pose := HandPose.new()

@@ -220,16 +220,22 @@ sent; the rounds still go in at the end of `reload_time`.
   --body=<name> --carry-only`, on that body's solved hold; the female's are the scene's own files, the male's are in
   `pistol_fit_male.tres` with the rest of its `HoldFit`). At the belt the hold takes the fingers from the clip and opens
   them (`pistol_carry_open_pose.tres`), then closes them on it (`pistol_carry_pose.tres`): the index, middle and ring
-  fingers' tips and the thumb on the magazine (within 1.1 mm in and 0.1 mm off in the solver), the base in the fist, its
+  fingers' tips and the thumb on the magazine (within 1.2 mm in in the solver; the male body's middle fingertip 1.6 mm
+  off), the base in the fist, its
   top out of the thumb side, as a magazine is held to be guided in; each finger is solved with the palm's vertices it
   moves measured too (a thumb measured alone pressed the palm by its root 3.5 mm into the magazine). The little finger
-  does not reach it from the hand's place under the base (9.9 mm off on the female body, 4.2 mm on the male). As the
-  grip's foot comes down over the fingers they open again and go to the pose under the magazine over `carry_release` of
-  the way in, the latest span searched that passes no deeper than the solver's 1.2 mm or the least found: 0.2 to 0.3 on
-  the female body (1.2 mm), 0.2 to 0.8 on the male (1.6 mm). The opened pose is the pose between, so it is held clear on
-  both legs: from the carry to it and from it on to the pose under the magazine. A finger that no opened pose gets clear
-  (the female's index finger, hooked round the magazine's front corner) is closed again with its two end joints as the
-  pose under the magazine has them, so only the knuckle moves and the curled finger swings off as one piece.
+  does not reach it from the hand's place under the base (13.5 mm off on the female body, 15.7 mm on the male). As the
+  grip's foot comes down over the fingers they open off the magazine over `carry_release` of the way in, come up past
+  the right hand's fingers opened, and go on to the pose under the magazine over `carry_arrive`. The two are searched
+  apart (before the arrival starts only the release moves the fingers, after it only the arrival): the latest release
+  and the longest arrival after it that pass no deeper than the solver's 1.2 mm or the least found. On the seat of kit
+  #1213 that is 0.1 to 0.8 and 0.8 to 1.0 on the female body (1.1 mm), 0.3 to 0.6 and 0.6 to 1.0 on the male (1.2 mm).
+  The opened pose is the pose between, so it is held clear on both legs (from the carry to it and from it on to the
+  pose under the magazine) and of the gun and the right hand along the way in, where the fingers have it. A finger that
+  no opened pose gets clear is closed again with its two end joints as the pose under the magazine has them, so only
+  the knuckle moves and the curled finger swings off as one piece (both bodies' middle finger on that seat); a thumb
+  that none gets clear is closed again from the pose under the magazine, so it stays on that pose's side of the
+  magazine (both bodies').
 - **Back off the seated magazine the hand goes straight down** (`WeaponHold.return_down`, the gun's -Y, 4 cm of it), not
   back down the way in, which leans 18 degrees with the grip: the two-hand grip's hold was measured with that retreat,
   and down the grip's line the female body's curled index finger passed 2.2 mm deep posed and 2.5 mm on the live player.
@@ -268,6 +274,14 @@ player's camera (`*_carry_*.png`).
   the pose under the magazine, whatever share the change was put at, and 2.2 mm once both legs were measured (the finger
   was hooked round the corner: every way off it crossed it). **Seen:** gdstudio #1052 on #1171's hold, 2026-11-12 (fix:
   `open_finger(then=)`, and the hooked finger closed from the knuckle only: 1.2 mm).
+- **Approach:** Measure a pose a hand passes something in against what it passes, at the places it has the pose, and
+  give each change of pose its own span of the way. **Watch out for:** after the seat moved (kit #1213) the opened
+  carry, solved against the magazine alone, stood 5.9 mm in the right hand on the way in; the pose under the magazine,
+  had from early on the way, scraped the female body's index fingertip 2.7 mm through the right middle finger over the
+  last 3 cm, and had late, took the thumb 5.5 mm through the frame (its carry was on the magazine's other side, 8.0 mm
+  on the male body); one span for both changes had no clear share, and three tests failed by under a millimetre.
+  **Seen:** gdstudio #1052 merged with #1262, 2026-11-12 (fix: `open_finger(along=)`, `carry_arrive` beside
+  `carry_release`, the thumb closed again from the pose under the magazine: 1.1 and 1.2 mm).
 - **Approach:** After the hold a carried part depends on has moved (a seat, the hand's place under the magazine, a
   per-body split), solve the part's poses again on each body and run the hold's own suite as well as the part's, with
   every line the hand moves along looked at again. **Watch out for:** the carry solved on the old seat read 3.3 to 4.8

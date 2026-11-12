@@ -177,6 +177,31 @@ func test_the_magazines_follow_the_reload() -> void:
 		assert_float(plan.fingers).is_equal(0.0)
 
 
+# On the way in the fingers open off the magazine over `carry_release` of it and only then go on
+# to the pose under the magazine, over `carry_arrive`: between the two they are the opened pose
+# alone, the one solved clear of the right hand's fingers they come up past.
+func test_the_fingers_stay_opened_between_the_release_and_the_arrival() -> void:
+	var plan := SupportHandPlan.new()
+	plan.carry_release = Vector2(0.1, 0.4)
+	plan.carry_arrive = Vector2(0.7, 1.0)
+	var opened_alone := 0
+	for step in roundi(1.0 / STEP) + 1:
+		var share := lerpf(plan.insert.x, plan.insert.y, step * STEP)
+		plan.update(0.0, 1.0, share)
+		var inserted := smoothstep(plan.insert.x, plan.insert.y, share)
+		var tag := "way in %.3f" % inserted
+		if inserted <= plan.carry_release.x:
+			assert_float(plan.carry_open).override_failure_message(tag).is_equal(0.0)
+		if inserted < plan.carry_arrive.x:
+			assert_float(plan.carry).override_failure_message(tag).is_equal(1.0)
+		if inserted >= plan.carry_release.y and inserted <= plan.carry_arrive.x:
+			assert_float(plan.carry_open).override_failure_message(tag).is_equal(1.0)
+			opened_alone += 1
+		if inserted > plan.carry_arrive.x and share < plan.insert.y:
+			assert_float(plan.carry).override_failure_message(tag).is_less(1.0)
+	assert_int(opened_alone).is_greater(3)
+
+
 # The one way: the hand is off its place only with the fingers opened, and the hold's arm gives
 # it to the clip only at the way's far end (the magazine's places are the hold's own).
 func _assert_on_the_way(plan: SupportHandPlan, tag: String) -> void:

@@ -144,9 +144,13 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 ## The left hand's fingers opened at the belt before they close on the new magazine: the clip's
 ## fist there would close through it. Solved, never typed.
 @export var carry_open_pose: HandPose
-## The shares of the way in (0 the magazine's top at the well, 1 seated) over which the fingers go
-## from `carry_pose` to `magazine_pose`: the latest that keep them out of the grip. Solved.
+## The shares of the way in (0 the magazine's top at the well, 1 seated) over which the fingers
+## open off the magazine (`carry_pose` to `carry_open_pose`): the latest that keep them out of
+## the grip. Solved.
 @export var carry_release := Vector2(0.4, 0.6)
+## The shares of the way in over which the opened fingers go on to `magazine_pose`: late enough
+## for them to come up past the right hand's fingers opened. Solved.
+@export var carry_arrive := Vector2(0.6, 1.0)
 ## The share of the reload clip at which the left hand, down at the belt, takes the new magazine.
 @export_range(0.0, 1.0, 0.01) var reload_take := 0.25
 ## The share of the reload clip at which the old magazine leaves the grip, when the hold has no
@@ -311,6 +315,7 @@ func _plan_left() -> void:
 		_left.drop = _sound_share(0, reload_drop)
 	_left.take = reload_take
 	_left.carry_release = carry_release
+	_left.carry_arrive = carry_arrive
 	_left.update(aim_weight, reload_weight if _magazine != null else 0.0, reload_share)
 
 
@@ -580,6 +585,7 @@ func _fit_body() -> void:
 		_own.carry_open_pose = carry_open_pose
 		_own.magazine_approach = magazine_approach
 		_own.carry_release = carry_release
+		_own.carry_arrive = carry_arrive
 	var chosen := fit()
 	weapon.transform = chosen.seat
 	if support != null:
@@ -599,3 +605,4 @@ func _fit_body() -> void:
 	carry_open_pose = chosen.carry_open_pose
 	magazine_approach = chosen.magazine_approach
 	carry_release = chosen.carry_release
+	carry_arrive = chosen.carry_arrive

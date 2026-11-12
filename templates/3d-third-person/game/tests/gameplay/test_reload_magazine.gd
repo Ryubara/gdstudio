@@ -16,9 +16,10 @@ const CARRY_CONTACTS: Array[String] = ["index_tip", "middle_tip", "ring_tip", "t
 ## the hand's arm reaches its place within half a millimetre.
 const ON_LINE := 0.0015
 const TURNED := 1.0
-## How far the old magazine falls before it lies still, at least, in metres (the pistol is held
-## at the chest, about 1.2 m above the floor).
-const FALLS := 0.8
+## How far the old magazine falls before it lies still, at least, in metres: the pistol is
+## carried at the hip while it reloads, its magazine about 0.8 m above the floor (0.78 m on the
+## seat of kit #1213), so this only tells a fall to the floor from a magazine left in the air.
+const FALLS := 0.6
 
 var _holder: Node3D
 

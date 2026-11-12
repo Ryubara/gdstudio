@@ -36,8 +36,8 @@ extends RefCounted
 ## own again (`magazine_in_gun`, `magazine_in_hand`). At the belt the hold takes the fingers from
 ## the clip (`fingers`): they open (`carry` with `carry_open`) over `TAKE_CLOSE` before `take`,
 ## close on the magazine over `TAKE_CLOSE` after it and hold it until the grip's foot comes down
-## over them, over `carry_release` of the way in, when they open off it and go to the pose under
-## the magazine.
+## over them: they open off it over `carry_release` of the way in, stay opened past the other
+## hand's fingers, and go to the pose under the magazine over `carry_arrive`.
 
 enum Phase { HELD, LET_GO, AWAY, REACH, INSERT, SEATED, RETURN }
 
@@ -70,9 +70,11 @@ var back := Vector2(0.71, 0.88)
 ## the left hand takes the new one at the belt (`WeaponHold`'s `reload_drop` and `reload_take`).
 var drop := 0.2
 var take := 0.25
-## The shares of the way in (0 the magazine's top at the well, 1 seated) over which the fingers go
-## from holding the magazine to the pose under it (`WeaponHold.carry_release`, solved).
+## The shares of the way in (0 the magazine's top at the well, 1 seated) over which the fingers
+## open off the magazine they hold (`WeaponHold.carry_release`, solved), and those over which
+## they go on from there to the pose under it (`carry_arrive`, never before they are open).
 var carry_release := Vector2(0.4, 0.6)
+var carry_arrive := Vector2(0.6, 1.0)
 
 ## The reload's phase now (`HELD` when no reload plays).
 var phase := Phase.HELD
@@ -179,15 +181,14 @@ func _magazines(weight: float, share: float) -> void:
 	if share < take - TAKE_CLOSE:
 		return
 	fingers = weight * smoothstep(take - TAKE_CLOSE, take, share)
-	# The fingers let go of the magazine as they took it: they open off it over the first half of
-	# `carry_release`, then go to the pose under the magazine over the second.
+	# The fingers let go of the magazine as they took it: they open off it over `carry_release`,
+	# then go to the pose under the magazine over `carry_arrive`.
 	var inserted := smoothstep(insert.x, insert.y, share)
-	var middle := 0.5 * (carry_release.x + carry_release.y)
 	carry_open = maxf(
 		1.0 - smoothstep(take, take + TAKE_CLOSE, share),
-		smoothstep(carry_release.x, middle, inserted) if share >= insert.x else 0.0
+		smoothstep(carry_release.x, carry_release.y, inserted) if share >= insert.x else 0.0
 	)
-	carry = weight * (1.0 - smoothstep(middle, carry_release.y, inserted))
+	carry = weight * (1.0 - smoothstep(carry_arrive.x, carry_arrive.y, inserted))
 
 
 ## The reload's phase at a share of the reload clip.

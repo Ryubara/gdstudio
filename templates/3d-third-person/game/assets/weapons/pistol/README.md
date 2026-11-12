@@ -57,9 +57,10 @@ No number is typed into a file of the hold. `tools/hold/dump_hold_rig.gd` writes
 `tools/hold/solve_pistol_hold.py` solves the seat, the fingers, the left hand's place over the right hand, the right
 thumb on it, the trigger finger's way to the trigger and the left hand's way off the pistol (the opened pose and the
 clear line it leaves along) and the left fingers on the new magazine with the shares of its way in over which they let
-go of it, a body at a time, each hand measured against the other, and `tools/hold/write_hold.gd` writes
+go of it and close under it, a body at a time, each hand measured against the other, and `tools/hold/write_hold.gd` writes
 `pistol_held.tscn`, the ten `HandPose` files of `gameplay/weapon/hold/` and, in `weapon_hold.tscn`, the way
-(`support_way`), the magazine's way in (`magazine_approach`) and those shares (`carry_release`); another body's go
+(`support_way`), the magazine's way in (`magazine_approach`) and those shares (`carry_release`, `carry_arrive`);
+another body's go
 into its `HoldFit` file. A finger whose solved pose does not read as a hand is set by hand, as angles in
 `tools/hold/pistol_authored.json` (the female body's left middle, ring and little fingers, her right little finger
 and thumb, and both bodies' thumb on its way to the left thumb's root): look at it and measure it with
