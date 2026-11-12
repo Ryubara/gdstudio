@@ -58,6 +58,19 @@ def test_a_failed_required_check_fails():
     assert ps.failing_checks(runs, REQUIRED) == ["build-ok"]  # godot is not required: build-ok carries it
 
 
+def test_a_check_that_passed_after_the_description_was_edited_is_not_failing():
+    # gdstudio #1265: `commits` failed twice on the head (the Model line lacked a model), the description was edited
+    # and it passed; `filter=latest` gave all three runs, one a check suite, and the label stayed on.
+    failed_first = run("commits", "failure") | {"id": 1, "started_at": "2026-11-11T21:37:40Z"}
+    failed_again = run("commits", "failure") | {"id": 2, "started_at": "2026-11-11T21:38:06Z"}
+    passed = run("commits", "success") | {"id": 3, "started_at": "2026-11-11T22:07:26Z"}
+    assert ps.failing_checks([passed, failed_first, failed_again], REQUIRED) == []
+    assert ps.failing_checks([failed_first, passed, failed_again], REQUIRED) == []
+    # The newest run failing is a failure, whatever passed before it.
+    passed_first = run("commits", "success") | {"id": 1, "started_at": "2026-11-11T21:37:40Z"}
+    assert ps.failing_checks([failed_again, passed_first], REQUIRED) == ["commits"]
+
+
 def test_a_failed_check_that_is_not_required_does_not_count():
     assert ps.failing_checks([run("web", "failure"), run("build-ok", "success")], REQUIRED) == []
 
