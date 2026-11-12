@@ -1,0 +1,37 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/soak/ai_soak.gd" id="1_soak"]
+[ext_resource type="PackedScene" path="res://main.tscn" id="2_main"]
+[ext_resource type="Script" path="res://tools/soak/ai_soak_faults.gd" id="3_faults"]
+[ext_resource type="Script" path="res://tools/soak/ai_soak_watch.gd" id="4_watch"]
+[ext_resource type="Script" path="res://tools/soak/section_pilot.gd" id="5_pilot"]
+[ext_resource type="PackedScene" path="res://gameplay/ai/characters/civilian.tscn" id="6_civilian"]
+
+[node name="AiSoak" type="Node"]
+script = ExtResource("1_soak")
+pathing_kinds = Array[PackedScene]([ExtResource("6_civilian")])
+
+[node name="Main" parent="." instance=ExtResource("2_main")]
+
+[node name="Faults" type="Node" parent="."]
+script = ExtResource("3_faults")
+
+[node name="Pilot" type="Node" parent="."]
+script = ExtResource("5_pilot")
+
+[node name="Watch" type="Node" parent="."]
+script = ExtResource("4_watch")
+
+[node name="Overlay" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="Panel" type="PanelContainer" parent="Overlay"]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 372.0
+offset_bottom = 232.0
+
+[node name="Text" type="Label" parent="Overlay/Panel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "AI soak"

@@ -1,7 +1,7 @@
 # Sound
 
 The buses, their volumes and the sounds 3D Third Person ships: a wind, a coin, footsteps, a pistol (shot, empty click,
-reload and draw), the fists' swing and bullet impacts. No menu sound ships yet.
+reload and draw), the fists' swing, bullet impacts and the menus' sounds.
 
 ## Buses
 
@@ -31,6 +31,16 @@ once, a newer one takes the oldest's place). Change the `sound`, `sound_volume_d
 hit's sound shows the change in the next hit. `Impacts.sounds_enabled` turns them all off, and so does the emitter's
 `sounds_enabled`. An effect of your own can carry a sound too (a pickup's glint, a door's puff): see `EffectDef` in `addons/gds_game/effects/`.
 
+The menus' sounds are the `MenuSounds` autoload (`ui/menus/menu_sound_service.tscn`): twelve `AudioStreamPlayer`
+nodes on `UI`, one a sound (`Hint`, `Tick`, `Press`, `Back`, `Refuse`, `Confirm`, `Tab`, `Select`, `ToggleOn`,
+`ToggleOff`, `Open`, `Close`). Every menu control sends what happened (hover, focus, press, a slider step, a toggle,
+a screen opening) and the service's table picks the player: a primary button confirms, Back and Esc are a lower press, a
+settings tab and an option move, a switch says on and off with two pitches, a slider ticks higher as its value rises, a
+screen opened with no press (Esc for the pause menu) swishes. Hover and focus on one control are one quiet hint, a
+finger makes none, and a screen's swish gives way to the press that opened it. **To change a sound, change the
+`stream`, `volume_db` or `pitch_scale` of its player**; a control of your own takes a role with a `ui_sound_role`
+metadata (`tab`, `back`) or a `ui_sound_role()` method, and the table is `TABLE` in `menu_sound_service.gd`.
+
 ## The sounds
 
 | Sound | Files | Bus | Notes |
@@ -41,6 +51,7 @@ hit's sound shows the change in the next hit. `Impacts.sounds_enabled` turns the
 | Fists | `assets/audio/fists/fist_swing_1..3.ogg` | `SFX` | three 0.15 to 0.17 s whooshes of a punch, the fists' `shot_sound` |
 | Bullet impacts | `assets/audio/impacts/impact_default_1..3.ogg`, `impact_wood_1..3.ogg`, `impact_metal_1..3.ogg` | `SFX` | 0.15 to 0.31 s: a dry crack and grit on stone, a hard wooden crack and knock, a bright metal ping, played at -10 to -14 dB |
 | Pistol shot | `assets/audio/pistol/pistol_shot_1..5.ogg` | `SFX` | five 0.10 s reports from Deadnight's House Pistol, synthesised (MIT), played with a small random pitch and volume spread |
+| Menu sounds | `assets/audio/ui/ui_hint_1..3.ogg`, `ui_press_1..3.ogg`, `ui_confirm_1..2.ogg`, `ui_move_1..2.ogg`, `ui_toggle_1..2.ogg`, `ui_swish_1..2.ogg` | `UI` | a low wooden tock (0.05 s), a button click (0.07 to 0.14 s), a click into a two-note marimba chime (0.42 s), a wooden tab sliding in (0.13 s), a switch snap (0.06 to 0.07 s), a soft swish (0.36 to 0.39 s) |
 | Pistol mechanics | `assets/audio/pistol/pistol_empty_1..2.ogg`, `pistol_reload_mag_out.ogg`, `pistol_reload_mag_in.ogg`, `pistol_reload_slide.ogg`, `pistol_draw.ogg` | `SFX` | a dry-fire click, the magazine out and in, the slide racked, a draw from a holster (0.06 to 0.30 s) |
 
 Everything but the pistol shots was generated with ElevenLabs Sound Effects (`eleven_text_to_sound_v3`) by the kit's
@@ -58,10 +69,15 @@ at the mix: step -41, crouch step -47, landing -35, coin -39, shot -29, empty cl
 not one to one with what is heard (it also darkens the sound as it falls), so measure again before you move one (the
 kit's Godot audio page, "The templates' buses and AudioSettings", says how).
 
+The menus' sounds sit under the game's (kit #1100, the real keys in a game made from the template): hint -45, slider
+tick -46, tab and option -40 to -41, switch -41 to -42, swish -42 to -43, press -37, back -39, confirm -33 LUFS-M, all
+under the shot at -28; their players' volumes are pinned in `tests/ui/test_menu_sounds.gd`.
+
 ## Licence of the sounds
 
 The pistol shots are GDStudio's own work (MIT, synthesised by Deadnight's code, nothing sampled): no attribution and
 nothing to replace. Every other sound was generated with ElevenLabs Sound Effects on the studio's paid plan (kit #1083),
 which allows commercial use under ElevenLabs' Sound Effects terms: the sounds may be used in a game, combined with other
 material, but not sold or shared on their own as sound files or put in a sound library. No attribution is required. Each
-folder's `LICENSE.md` lists its files, prompts, lengths, model and plan.
+folder's `LICENSE.md` lists its files, prompts, lengths, model and plan. The weapon pickup's two
+sounds (kit #889) are of that set.
