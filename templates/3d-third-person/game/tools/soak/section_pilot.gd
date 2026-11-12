@@ -5,6 +5,9 @@ extends PlayerBot
 ## the camera onto its chest, aims and fires, pressing the same actions a person would
 ## (`PlayerBot`'s way). For the section's soak and its captures; counted in physics steps.
 
+## The share of a body's height its chest is at (1.2 m of the standing 1.8 m).
+const CHEST_SHARE := 0.67
+
 ## The loop it walks, in the world.
 @export var waypoints := PackedVector3Array()
 ## How far it looks for a hostile, metres.
@@ -37,10 +40,15 @@ func _physics_process(_delta: float) -> void:
 	if steps % look_steps == 0:
 		target = _hostile_in_sight()
 	_since_shot += 1
-	if target != null and is_instance_valid(target) and not target.is_dead():
+	if (
+		target != null
+		and is_instance_valid(target)
+		and target.is_inside_tree()
+		and not target.is_dead()
+	):
 		_hold(&"move_forward", false)
 		_hold(&"aim", true)
-		var left := face(target.global_position + Vector3.UP * CHEST_HEIGHT)
+		var left := face(chest_of(target))
 		if absf(left) < fire_cone and _since_shot >= shot_steps:
 			_since_shot = 0
 			_press(&"fire")
@@ -53,6 +61,21 @@ func _physics_process(_delta: float) -> void:
 		_path_at += 1
 		if _path_at >= _path.size():
 			waypoint = (waypoint + 1) % waypoints.size()
+
+
+## The chest of `other` as it stands now: lower while it crouches or lies behind cover (a point
+## at the standing chest over a crouched body behind a low wall is a shot that never lands).
+static func chest_of(other: Character) -> Vector3:
+	return other.global_position + Vector3.UP * other.body_height() * CHEST_SHARE
+
+
+## Walks `points` from the first instead of the loop it had (the soak's rescue walks it to the
+## last enemy of a round, then back to its loop).
+func retarget(points: PackedVector3Array) -> void:
+	waypoints = points
+	waypoint = 0
+	_path = PackedVector3Array()
+	_path_at = 0
 
 
 # One step toward `point`, the camera kept level (it looks at a point 10 m along the way at chest
@@ -95,7 +118,7 @@ func _hostile_in_sight() -> AiCharacter:
 		var them := AiFactionMember.of(other)
 		if them == null or factions.band_of_members(me, them) != AiRelations.Band.HOSTILE:
 			continue
-		var chest := other.global_position + Vector3.UP * CHEST_HEIGHT
+		var chest := chest_of(other)
 		var far := eye.distance_squared_to(chest)
 		if far > nearest:
 			continue

@@ -1,12 +1,14 @@
 ## Films the character aiming the pistol from the player's own camera, as the game shows it:
-## standing through the idle's weight shift, walking forward, then standing again (kit #1154).
+## standing through the idle's whole loop, walking forward, then standing again (kit #1154).
 ## The crosshair is where the view points, so a pistol that points off it is seen at once.
 ## `AIM_BRACE=0` turns `CharacterAnimation.aim_brace` off (the aim pose then turns with the
-## pelvis of the legs' clip) and `AIM_IDLE=ual1/Idle` plays another idle clip, for the pull
+## pelvis of the legs' clip), `AIM_STANCE=0` turns `aim_stance` off (the idle's weight shift
+## then sways the aim, kit #1206), `AIM_IDLE=ual1/Idle` plays another idle clip and
+## `AIM_BODY=male` puts the enemies' body on the player (`CharacterBodies.MALE`), for the pull
 ## request's before and after.
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
-## `gds capture frames --project game --scene res://tools/capture/aim_brace_tour.tscn --seconds 9
+## `gds capture frames --project game --scene res://tools/capture/aim_brace_tour.tscn --seconds 14
 ## --fps 12`
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
@@ -18,7 +20,7 @@ const PITCH := 0.0
 
 ## Each stage: `name` (printed when it starts), `hold` the actions held and `seconds` how long.
 const STAGES: Array[Dictionary] = [
-	{"name": "aim standing", "hold": [&"aim"], "seconds": 5.0},
+	{"name": "aim standing", "hold": [&"aim"], "seconds": 10.0},
 	{"name": "aim walking", "hold": [&"aim", &"move_forward"], "seconds": 2.5},
 	{"name": "aim standing again", "hold": [&"aim"], "seconds": 1.5},
 ]
@@ -35,9 +37,14 @@ func _ready() -> void:
 	var animation: CharacterAnimation = _player.get_node("Animation")
 	if OS.get_environment("AIM_BRACE") == "0":
 		animation.aim_brace = false
+	if OS.get_environment("AIM_STANCE") == "0":
+		animation.aim_stance = false
+	if OS.get_environment("AIM_BODY") == "male":
+		_player.model.variant = load(CharacterBodies.MALE) as PackedScene
 	if OS.get_environment("AIM_IDLE") != "":
 		animation.idle_clip = StringName(OS.get_environment("AIM_IDLE"))
-	print("aim_brace ", animation.aim_brace, " idle ", animation.idle_clip)
+	print("aim_brace ", animation.aim_brace, " aim_stance ", animation.aim_stance)
+	print("idle ", animation.idle_clip, " body ", _player.model.rig().scene_file_path)
 	var floor_block := (load("res://world/blocks/proto_block.tscn") as PackedScene).instantiate()
 	floor_block.size = Vector3(30.0, 1.0, 60.0)
 	floor_block.position = FLOOR_AT - Vector3(0.0, 0.5, 0.0)

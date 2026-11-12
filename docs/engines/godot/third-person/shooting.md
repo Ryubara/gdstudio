@@ -17,15 +17,15 @@ Aim button) turns the body to the camera's heading and raises the pistol; fire (
 button) aims too and shoots once the arm is half up. The numbers are in the Crouch and Aim groups of the tuning and in
 the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
 
-The weapon and the aim pose read no camera (gdstudio #901). `Character.aim_ray()` is the ray a character aims along, from
-the command of its last step: the command's shot block when it has one (the human's crosshair, written by
-`PlayerInput`), else from the character's eye (its camera target) along the command's `yaw` and `pitch`, which is how
-an AI or a test shoots. The body calls `Weapon.fire(origin, direction)`; `fire()` with no ray shoots straight out of
-the muzzle. A `Weapon` with no `muzzle` and a `shooter` (a body with no model, as a server has) fires from
-`no_muzzle_offset` beside the ray's point at the shooter (the default is the middle of where the pistol's
-muzzle is while aiming on the template's idle: 34 mm off in the test, since the muzzle follows the idle's weight
-shift). The cooldown is counted in `Weapon.tick(delta)`: a weapon alone ticks itself (`self_ticking`),
-a `Character` turns that off and ticks its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown and
+The weapon and the aim pose read no camera (gdstudio #901). `Character.aim_ray()` is the ray a character aims along,
+from the command of its last step: the command's shot block when it has one (the human's crosshair, written by
+`PlayerInput`), else from the character's eye (its camera target) along the command's `yaw` and `pitch`, which is how an
+AI or a test shoots. The body calls `Weapon.fire(origin, direction)`; `fire()` with no ray shoots straight out of the
+muzzle. A `Weapon` with no `muzzle` and a `shooter` (a body with no model, as a server has) fires from
+`no_muzzle_offset` beside the ray's point at the shooter (the default is where the pistol's muzzle is while aiming
+standing on the template's idle, which `AimStance` holds still: under 0.3 mm off on the player's body in
+`test_weapon_ray.gd`). The cooldown is counted in `Weapon.tick(delta)`: a weapon alone ticks itself (`self_ticking`), a
+`Character` turns that off and ticks its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown and
 the spread's place for `restore()`.
 
 - **Approach:** Stand a crouched `CharacterBody3D` up only after a shape query above it comes back empty, with a probe a
@@ -43,6 +43,14 @@ the spread's place for `restore()`.
   degrees off the view, and over the library's own walk 13 to 17. The brace holds the turn only: the muzzle still
   moves with the pelvis (34 mm each way with our idle's weight shift). **Seen:** gdstudio #1154, 2026-11-11
   (`tests/gameplay/test_aim_brace.gd`).
+- **Approach:** Stand a standing aim on a still pose: the ground blend space's idle point is a blend tree of the idle
+  playing and the same clip held on one frame (`AnimationNodeAnimation`, `use_custom_timeline` on, `timeline_length` 0,
+  `stretch_time_scale` off, no loop, `start_offset` the frame), blended by the aim weight (`AimStance`). Find the frame
+  in the clip (its pelvis nearest its mean place) each time the tree is built, and measure the muzzle through the idle's
+  whole loop (`test_aim_stance.gd`). **Watch out for:** a test that read point 0 as a clip (`.animation`) broke; a fixed
+  time suits one idle only; the settle to the middle takes the aim's rise (40 mm of pelvis in 0.15 s) and moves the feet
+  2.2 mm. **Seen:** gdstudio #1206, 2026-11-11 (34.6 mm each way without it, 0.0 with it); #1256 (the `form`
+  bodies: 33.2 mm without, 0.0 with on both).
 - **Approach:** When a clip is replaced, measure every layer that plays over it, in every state it plays in, and
   take a test's reference point from a bone of the pose. **Watch out for:** the aim's only measure was taken
   standing on the library idle, so the walk's fault went unseen and the swap of the idle was the first to fail it;
@@ -474,6 +482,15 @@ and off the gun one way (its fingers open where it holds, then the opened hand l
 phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD`, `LET_GO`, `AWAY`, `REACH`,
 `INSERT`, `SEATED` or `RETURN`. It is cosmetic: the rounds go in at the end of `reload_time` whatever the hands do.
 
+The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (`assets/animation/pistol/`, kit #1081): it
+starts and ends on the pose the reload ends on, and its `SlideRack` resource
+(`gameplay/weapon/hold/pistol_slide_rack.tres`, with the male body's `pistol_slide_rack_male.tres` in its `fits`:
+`SlideRack.fit()` gives the one solved on the model's body) gives the left hand's place on the slide, its fingers
+closed on the slide and opened over it, the slide's travel and the shares at which it is gripped, pulled and let
+go. The reload does not play it yet (kit #1052); the test
+`test_pistol_rack.gd` and the capture `tools/capture/rack_closeups.tscn` play it on a stage
+([the clip and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
+
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
   the action going down between two commands, or an event seen while the action is up again, never both: keep the
   action's state from the last command and a latch set in `_unhandled_input`. **Watch out for:** a latch from the event
@@ -493,6 +510,11 @@ phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD
   every weapon that holds it, so a suite that sets the fire rate on the shared pistol changes it for every later suite
   of the run; the numbers moved off the node with the definitions, and fourteen suites that set `weapon.fire_rate`
   and the rest now go through a copy. **Seen:** gdstudio #887, 2026-11-10.
+
+- **Approach:** When you add an export to `WeaponDef`, pin its default for the pistol in `test_weapon.gd`'s list in
+  the same commit. **Watch out for:** `ExportPins.differences` fails on any export it has no pin for, so the new
+  `view_scene` passed every suite run during the work and failed only in the full run. **Seen:** gdstudio #889,
+  2026-11-10.
 
 ## Bullet impacts {#impacts}
 

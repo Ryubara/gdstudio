@@ -55,7 +55,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   vanished from a regex, and a `sed` replacement split a line over three; a parser that accepts the wrong text says
   nothing. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-03; Deadnight, 2026-11-04 (fix: the tests and `ruff` run
   straight after the edit, not at the end); gdstudio #770, 2026-11-07 (two heredoc scripts never ran: Write tool);
-  gdstudio #1005, #1120, #1183, #1188, 2026-11-10 and 11 (the Edit tool).
+  gdstudio #889, #1005, #1120, #1183, #1188, 2026-11-10 and 11.
 - **Approach:** A script that changes several places of one file works from the end upward, or finds its place again
   after each edit, and cuts "to the next top-level `func` or `class`", never to the end of the file; then it imports the
   project and runs `godot --headless --check-only -s <script>` on every edited script that no suite loads. **Watch out
@@ -96,7 +96,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** From a session that sits in the kit's main checkout, commit in a worktree with `git -C <worktree>
   commit ...`, not `cd <worktree> && git commit`. **Watch out for:** the Git guard judges the command from the
   session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would have run in the
-  worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11.
+  worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11; gdstudio #1178, 2026-11-11 (a line that set a variable
+  before its `cd <worktree> &&` was refused; the same commit with the `cd` first passed, and `git -C` passes always).
 
 ## Background commands and processes {#background}
 
@@ -163,7 +164,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   was refused by the permission settings; fix: `git archive HEAD` unpacked in the scratch folder with the new tests
   copied in).
 - **Approach:** Take an old copy of a Git LFS file (a sound, a model, a lightmap) with `git checkout <rev> -- <file>`
-  in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size before using it.
-  **Watch out for:** `git show <rev>:<file>` prints the LFS pointer, about 130 bytes of text, so a "before" sound
-  decoded as nothing and a model imported as a broken file. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound
-  clip); Deadnight #1282, 2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding)).
+  in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size before using it; when
+  a game must play the old file, clear the file's `.godot/imported/<name>-*` cache before `--import`. **Watch out
+  for:** `git show <rev>:<file>` prints the LFS pointer, about 130 bytes of text, so a "before" sound decoded as
+  nothing and a model imported as a broken file, and Godot kept that verdict (`valid=false`) after the real file was
+  back until the cache was cleared. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound clip); Deadnight #1282,
+  2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding)).

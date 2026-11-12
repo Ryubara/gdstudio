@@ -153,7 +153,7 @@ func test_a_weapon_with_no_muzzle_fires_from_beside_its_shooter() -> void:
 		)
 	)
 	assert_float(held_start.distance_to(bare.global_position)).is_less(offset.length())
-	assert_float(held_start.distance_to(bare.global_position)).is_less(0.05)
+	assert_float(held_start.distance_to(bare.global_position)).is_less(0.005)
 	assert_float(rad_to_deg(held_way.angle_to(bare.velocity.normalized()))).is_less(0.2)
 
 

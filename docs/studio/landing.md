@@ -168,23 +168,26 @@ force push, which is the maintainer's decision: open the same change from a new 
   land the oldest, and land a flake's fix first. **Watch out for:** with many agents CI is the bottleneck: with 21 open,
   20 jobs running and 33 queued, every push restarted a 15-minute run and about ten workflows. **Seen:** Deadnight #447,
   2026-11-02 (fix: the rule above).
-- **Approach:** After a conflicted merge, read the diff of every test file against `main` before rerunning the suites.
-  **Watch out for:** a merge of `main` doubled a step in a test, so the branch failed for a reason the change never had.
-  **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge).
+- **Approach:** After a merge of `main`, conflicted or not, read the diff of every test file against `main` and run
+  `gds check scripts` (or the template's test) before pushing. **Watch out for:** a merge of `main` doubled a step in a
+  test, so the branch failed for a reason the change never had; `main` retyping a shared property (the loadout's
+  `slots` to `Array[Resource]`) leaves the branch's new lines on the old type, which merge cleanly and fail to parse.
+  **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge); gdstudio #1258, 2026-11-11 (an
+  inventory test from #1040 still typed `Array[WeaponDef]`; fix: retyped after the template check failed;
+  then a new export met the pins test `main` had added since).
 - **Approach:** When a branch moves a shared asset path (a body, a model), grep the merged tree for the old path after
   `gds merge-main`, in tests and in scenes, and run the full template suite, not only the suites the branch touched.
   **Watch out for:** a scene and a suite that landed on `main` after the branch started still use the old path, so
   the merge is clean but they fail. **Seen:** gdstudio #1298 on #1187, 2026-11-11 (the online enemy look and
   `test_net_ai_section.gd` from #1243 still used the Quaternius male).
 
-- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, with the whole message from a file and
-  nothing after the trailer, through `gds merge-main`; run `uvx pre-commit run --files <resolved files>` before
-  `--continue`, run `--continue` unpiped, and check that `git log -1` shows the merge before rebuilding or pushing.
-  **Watch out for:** a hand-written title (`ui: Merge main into x`) is refused because `Merge` is not on the verb list,
-  so the merge stayed open; `--continue` commits through pre-commit and a licence line of 155 characters met the 120
-  limit there; a merge left staged for hours (248 files, `MERGE_HEAD` set) first met `gdlint` at commit time, when
-  `main`'s growth had put a file at 1,016 lines. **Seen:** Deadnight #539, 2026-11-02;
-  Deadnight #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (another branch merged with `--no-edit`).
+- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, through `gds merge-main` (the message
+  from a file, nothing after the trailer); run `uvx pre-commit run --files <resolved files>` before `--continue`, run it
+  unpiped, and check that `git log -1` shows the merge before rebuilding or pushing. **Watch out for:** a hand-written
+  title (`ui: Merge main into x`) is refused (`Merge` is not a verb on the list); `--continue` commits through
+  pre-commit, where a 155-character licence line met the 120 limit, a merge staged for hours met `gdlint` at 1,016
+  lines, and two `Seen:` lists joined in a conflict passed the 900-character rule limit. **Seen:** Deadnight #539,
+  #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (merged with `--no-edit`); gdstudio #1256, 2026-11-11.
 - **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
   after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
   HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply
