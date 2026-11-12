@@ -449,12 +449,14 @@ says how).
 
 ### Prone and crawl clips {#prone-clips}
 
-`assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
-`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above.
-The dressed character's `AnimationPlayer` holds the library as `prone`, and `prone_aim.glb` beside it as `prone_aim`
-(solved on `form_female`; `prone_aim_male.glb` is `form_male`'s):
-three clips that aim the pistol lying down (`Prone_Aim_Neutral`, `Prone_Aim_Up` at 20 degrees, `Prone_Aim_Down` at 25),
-flat behind the pistol with both arms stretched ahead and both hands on it. The crawl covers 0.618 m/s at its own rate
+`assets/animation/prone/` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
+`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above,
+one file a body (`prone_form_female.glb` for the template's body, `prone_form_male.glb` for the enemies', `prone.glb`
+and `prone_male.glb` for the Quaternius mannequins): a clip that rests limbs on the floor fits one body's skin.
+The dressed character's `AnimationPlayer` holds `prone_form_female.glb` as the library `prone`, and `prone_aim.glb`
+beside it as `prone_aim` (solved on `form_female`; `prone_aim_male.glb` is `form_male`'s): three clips that aim the
+pistol lying down (`Prone_Aim_Neutral`, `Prone_Aim_Up` at 20 degrees, `Prone_Aim_Down` at 25), flat behind the pistol
+with both arms stretched ahead and both hands on it. The crawl covers 0.618 m/s at its own rate
 with its elbows and feet planted, the body lies 1.07 m ahead of
 and 1.03 m behind the origin and 0.5 m high, and the clips hold no weapon (both hands are on the floor). The arms move
 the way people crawl: the forearms point inward and rest on their outer edges, rolled 45 degrees, the hands are
