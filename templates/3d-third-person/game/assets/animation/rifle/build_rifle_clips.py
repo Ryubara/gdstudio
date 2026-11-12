@@ -62,6 +62,13 @@ REACH_LIMIT = 0.5  # millimetres an arm may stop short of its place on the rifle
 EYE_LIMIT = 80.0  # millimetres the right eye may be off the sight line in an aim clip
 HEAD_LIMIT = 5.0  # millimetres the head's skin may be inside the rifle
 AIM_PITCH = 45.0  # degrees of view the up and down clips are made for (`CharacterAnimation.aim_pitch_range`)
+# The bodies the template's characters wear (`gameplay/character/character_bodies.gd`): the clips are keyed on the
+# first, the player's, and measured on every one with the hold solved on it.
+MODELS = "assets/characters/prototype"
+# The pose the clips stand on: the game's standing idle (`CharacterClips.IDLE`), on its steadiest frame.
+BASE_FILE = "assets/animation/own/locomotion.glb"
+BASE_CLIP = "gds/Idle"
+BODIES = ("form_female", "form_male")
 
 # The clips' lengths, as their last frame (a loop's last frame is its first again).
 IDLE_FRAMES = 90
@@ -75,9 +82,10 @@ X, Y, Z = np.eye(3)
 
 # ---- the body's numbers -------------------------------------------------------------------------------------------
 
-# The right eye and the right cheekbone in the head bone's rest space of the character (metres from the head
-# bone: left, up, forward). The mannequin has no face; these are a head's proportions on its 25 cm head.
-EYE = np.array([-0.032, 0.125, 0.095])
+# The right eye, from the rig's `socket_camera` (the middle of the head's height, on its front) in the
+# character's rest space: metres left, up, forward. The bodies have a visor and no face; this is half the
+# distance between a person's pupils to the right, and an eye's depth behind the brow.
+EYE_FROM_SOCKET = np.array([-0.032, 0.0, -0.018])
 # Where the eye belongs on the rifle, in the rifle's own space (the muzzle is -X, up +Y, its left +Z): on the line
 # over the carry handle's sight and the front sight post, this far behind the rear sight.
 SIGHT_EYE = np.array([0.085, 0.232, 0.0])
@@ -88,9 +96,13 @@ RECEIVER_TOP = 0.18  # the receiver's tail and the charging handle, ahead of the
 STOCK_SIDE = 0.031
 STOCK_FRONT = -0.04
 HEAD_CLEAR = 0.004  # the search keeps the female head this far off the stock
-# The head's and the neck's skin on both mannequins, as points from each bone in the character's rest space
-# (filled in from the models).
+# The head's and the neck's skin of each body, as points from each bone in the character's rest space
+# (filled in from the models): `{body: {bone: points}}`.
 SKIN_POINTS = {}
+# Which of a body's `head` part (the head's and the neck's skin, `../limb_overlap.py`) is the head's own: the
+# skin from 3 cm over the head bone up. The rest is the neck down to its base at the shoulders, where the butt
+# sits: it is measured with the chest.
+HEAD_SKIN = {}
 # How far the search may lean the trunk past where a clip starts it (forward, to the right), and turn the neck and
 # the head from the view's own pitch (down, to the left, a roll to the right), in degrees: what a body gives.
 AIM_LIMITS = {
@@ -242,23 +254,50 @@ def angle_between(a, b):
 # ---- the files of the hold ------------------------------------------------------------------------------------------
 
 
-def read_transform(path, node):
-    """A node's `transform` in a scene file as a 4 x 4 (the file writes the basis by rows, then the origin)."""
-    text = Path(path).read_text(encoding="utf-8")
-    block = text.split(f'[node name="{node}"', 1)[1].split("[node", 1)[0]
-    numbers = [float(v) for v in re.search(r"transform = Transform3D\(([^)]*)\)", block).group(1).split(",")]
+def transform_in(text, name):
+    """The `<name> = Transform3D(...)` of a block of a scene or resource file as a 4 x 4 (the file writes the
+    basis by rows, then the origin)."""
+    numbers = [float(v) for v in re.search(name + r" = Transform3D\(([^)]*)\)", text).group(1).split(",")]
     out = np.eye(4)
     out[:3, :3] = np.array(numbers[:9]).reshape(3, 3)
     out[:3, 3] = numbers[9:]
     return out
 
 
-def read_quaternions(path):
-    """The `rotations` of a `HandPose` file: bone name to its rotation in its parent (3 x 3)."""
+def read_transform(path, node):
+    """A node's `transform` in a scene file."""
     text = Path(path).read_text(encoding="utf-8")
+    return transform_in(text.split(f'[node name="{node}"', 1)[1].split("[node", 1)[0], "transform")
+
+
+def quaternions_in(text):
+    """The `rotations` of a `HandPose` in a block of text: bone name to its rotation in its parent (3 x 3)."""
     body = re.search(r"rotations = Dictionary\[StringName, Quaternion\]\(\{(.*?)\}\)", text, re.S)
     found = re.findall(r'&"(\w+)": Quaternion\(([^)]*)\)', body.group(1) if body else "")
     return {name: quat_to_mat([float(v) for v in numbers.split(",")]) for name, numbers in found}
+
+
+def read_quaternions(path):
+    return quaternions_in(Path(path).read_text(encoding="utf-8"))
+
+
+def read_fit(path):
+    """A `HoldFit` file (`gameplay/weapon/hold/hold_fit.gd`): the body's file name, the hands' places and the
+    five finger poses, which the file holds as sub-resources."""
+    text = Path(path).read_text(encoding="utf-8")
+    head, main = text.split("[resource]", 1)
+    found = re.finditer(r'\[sub_resource [^\]]*id="(\w+)"\](.*?)(?=\n\[|\Z)', head, re.S)
+    blocks = {m.group(1): m.group(2) for m in found}
+    fingers = {}
+    for name in ("grip", "trigger", "support", "open", "magazine"):
+        fingers[name] = quaternions_in(blocks[re.search(name + r'_pose = SubResource\("(\w+)"\)', main).group(1)])
+    return {
+        "body": re.search(r'body = "([^"]*)"', main).group(1),
+        "right": np.linalg.inv(transform_in(main, "seat")),
+        "left": transform_in(main, "support_hand"),
+        "on_magazine": transform_in(main, "magazine_hand"),
+        "fingers": fingers,
+    }
 
 
 def _value(text):
@@ -287,9 +326,10 @@ def read_numbers(script, scene, node):
 
 
 class Rig:
-    """A mannequin's rest skeleton in Godot's axes: each bone's rest in its parent, parents first."""
+    """A body's rest skeleton in Godot's axes: each bone's rest in its parent, parents first."""
 
-    def __init__(self, arm):
+    def __init__(self, arm, name=""):
+        self.name = name
         assert np.allclose(np.array(arm.matrix_world), np.eye(4), atol=1e-6), "the armature is not at the origin"
         bones = sorted(arm.data.bones, key=lambda b: len(b.parent_recursive))
         self.names = [b.name for b in bones]
@@ -297,6 +337,8 @@ class Rig:
         rest = {b.name: np.linalg.inv(C) @ np.array(b.matrix_local) for b in bones}
         self.rest_world = rest
         self.rest = {n: (np.linalg.inv(rest[self.parent[n]]) @ rest[n]) if self.parent[n] else rest[n] for n in self.names}
+        # The right eye from the head bone, in the character's rest space.
+        self.eye = rest["socket_camera"][:3, 3] - rest["Head"][:3, 3] + EYE_FROM_SOCKET
 
     def chain(self, pose, upto):
         """The place of one bone in the character's space, worked out up its parents."""
@@ -329,6 +371,49 @@ class Rig:
 
 def copy_pose(pose):
     return {"local": dict(pose["local"]), "pelvis": pose["pelvis"].copy()}
+
+
+def keyed(rig, name):
+    """Whether a clip keys this bone: not the root (the clips are in place), a `_leaf`, a twist bone, a socket or
+    an `ik_` target (`docs/tools/blender/mannequin-rig.md`)."""
+    if rig.parent[name] is None or "_leaf" in name or "twist" in name:
+        return False
+    return not name.startswith(("socket_", "ik_"))
+
+
+def roll_about_y(turn):
+    """The part of a rotation (3 x 3) that is a roll about the bone's own length, its Y axis: the swing-twist
+    split of `MannequinTwist.twist_about_y`."""
+    q = Matrix(turn.tolist()).to_quaternion()
+    roll = Quaternion((q.w, 0.0, q.y, 0.0))
+    if roll.magnitude < 1e-6:
+        return np.eye(3)
+    return np.array(roll.normalized().to_matrix())
+
+
+def twist(rig, pose):
+    """Turns the prototype rig's twist bones for the pose, as the engine's `MannequinTwist` does after every
+    modifier: the upper arm's and the thigh's roll is taken back out at the shoulder and the hip, and the
+    wrist end of the forearm takes the hand's roll. No clip keys them; the skin is measured and drawn with
+    them."""
+    for side in ("l", "r"):
+        for limb in ("upperarm", "thigh"):
+            bone, source = f"{limb}_twist_01_{side}", f"{limb}_{side}"
+            if bone in rig.rest:
+                roll = roll_about_y(rig.rest[source][:3, :3].T @ pose["local"][source])
+                pose["local"][bone] = rig.rest[bone][:3, :3] @ roll.T
+        bone, source = f"lowerarm_twist_01_{side}", f"hand_{side}"
+        if bone in rig.rest:
+            roll = roll_about_y(pose["local"][source] @ rig.rest[source][:3, :3].T)
+            pose["local"][bone] = roll @ rig.rest[bone][:3, :3]
+
+
+def whole(rig, pose):
+    """The pose with every bone of the rig in it: a bone the pose does not name stands at its rest."""
+    out = copy_pose(pose)
+    for n in rig.names:
+        out["local"].setdefault(n, rig.rest[n][:3, :3])
+    return out
 
 
 def reach(rig, pose, side, goal, elbow):
@@ -377,7 +462,9 @@ class Hold:
     tells the hold: `raised` (0 the low ready, 1 at the shoulder), `pitch` (degrees of view, up positive), `kick`
     (1 on the frame of a shot) and `reload` (the share of a reload, below 0 for none)."""
 
-    def __init__(self):
+    def __init__(self, body_file=""):
+        """`body_file`: the model's file name. A body that one of the hold's `fits` was solved on gets that
+        fit's places and poses (`TwoHandHold._fit_body`); any other the scene's own."""
         weapon = GAME / "gameplay/weapon"
         script = (weapon / "two_hand_hold.gd").read_text(encoding="utf-8")
         held = weapon / "rifle_held.tscn"
@@ -395,6 +482,12 @@ class Hold:
             name: read_quaternions(poses / f"rifle_{name}_pose.tres")
             for name in ("grip", "trigger", "support", "open", "magazine")
         }
+        self.fit = "the scene's own"
+        for path in re.findall(r'path="res://([^"]*fit[^"]*\.tres)"', held.read_text(encoding="utf-8")):
+            fit = read_fit(GAME / path)
+            if fit["body"] == body_file:
+                self.right, self.left, self.on_magazine = fit["right"], fit["left"], fit["on_magazine"]
+                self.fingers, self.fit = fit["fingers"], path
         self.spine = ["spine_01", "spine_02", "spine_03"]
 
     def turned(self, pitch, yaw):
@@ -493,14 +586,19 @@ class Hold:
                 rotation = slerp(rotation, self.fingers["trigger"][bone], on_trigger)
             pose["local"][bone] = rotation
         to_magazine = self.to_magazine(reload)
-        second = smoothstep(n["_WAY_DOWN"], n["_WAY_BESIDE"], to_magazine)
+        # The thumb goes to its place behind the magazine while the hand comes down off the hand guard.
+        second = smoothstep(n["_WAY_THUMB"][0], n["_WAY_THUMB"][1], to_magazine)
         opened = smoothstep(0.0, n["_WAY_OPEN"], to_magazine) * (1.0 - smoothstep(n["_WAY_ON"], 1.0, to_magazine))
+        together = to_magazine > n["_WAY_DOWN"]  # on the magazine the four fingers close as one
         for bone, rotation in self.fingers["support"].items():
             if second > 0.0 and bone in self.fingers["magazine"]:
                 rotation = slerp(rotation, self.fingers["magazine"][bone], second)
             if opened > 0.0 and bone in self.fingers["open"]:
-                # The knuckles open over the first half, the rest of each finger over the second.
-                share = min(opened / 0.5, 1.0) if "_01_" in bone else max((opened - 0.5) / 0.5, 0.0)
+                # Off the hand guard the knuckles open over the first half, the rest of each finger over the
+                # second (`HandPoseModifier.open_first`).
+                share = opened
+                if not together:
+                    share = min(opened / 0.5, 1.0) if "_01_" in bone else max((opened - 0.5) / 0.5, 0.0)
                 rotation = slerp(rotation, self.fingers["open"][bone], share)
             pose["local"][bone] = rotation
 
@@ -543,7 +641,7 @@ def shape(rig, base, hold, state, body):
 def eye_of(rig, pose):
     head = rig.chain(pose, "Head")
     rest = rig.rest_world["Head"]
-    return head[:3, 3] + head[:3, :3] @ rest[:3, :3].T @ EYE
+    return head[:3, 3] + head[:3, :3] @ rest[:3, :3].T @ rig.eye
 
 
 def face_of(rig, pose):
@@ -552,10 +650,27 @@ def face_of(rig, pose):
     return head @ Z, head @ Y
 
 
-def solve_aim(rig, base, hold, state, body):
+def stock_depth(rig, pose, gun, clear):
+    """How deep the head's and the neck's skin of a body is in the stock, in metres, with `clear` added: the
+    stock is a box of its comb and butt in the rifle's space, open upward and to the left, where a cheek comes
+    off it."""
+    skin = []
+    for bone, points in SKIN_POINTS[rig.name].items():
+        at = rig.chain(pose, bone)
+        skin.append(at[:3, 3] + points @ (at[:3, :3] @ rig.rest_world[bone][:3, :3].T).T)
+    skin = np.concatenate(skin)
+    skin = (np.linalg.inv(gun) @ np.c_[skin, np.ones(len(skin))].T).T[:, :3]
+    top = np.where(skin[:, 0] < 0.09, RECEIVER_TOP, STOCK_TOP)
+    inside = np.minimum(top - skin[:, 1], STOCK_SIDE - skin[:, 2])
+    inside = np.where((skin[:, 0] > STOCK_FRONT) & (skin[:, 2] > -STOCK_SIDE), inside, 0.0)
+    return max(float(inside.max()) + clear, 0.0)
+
+
+def solve_aim(rig, base, hold, state, body, others=()):
     """Finds the lean, the neck and the head that put the right eye on the sight line with the face along it:
     a damped least-squares search over eight angles, each held near nothing by its cost (a neck gives more than
-    a spine)."""
+    a spine). `others` are the other bodies that play the clip, as (rig, hold): the same angles on each, under
+    its own hold, keep its head off the stock too."""
     names = ["lean", "side", "np", "ny", "nr", "hp", "hy", "hr"]
     soft = np.array([10.0, 5.0, 14.0, 15.0, 8.0, 14.0, 15.0, 8.0])  # degrees each is cheap up to
     # What a body gives and no more (`AIM_LIMITS`): past it an angle costs steeply.
@@ -576,26 +691,20 @@ def solve_aim(rig, base, hold, state, body):
         off = eye - SIGHT_EYE
         line = SIGHT_AHEAD / np.linalg.norm(SIGHT_AHEAD)
         face, up = face_of(rig, pose)
-        # The head's skin against the stock: a box of the stock's comb and butt in the rifle's space, open
-        # upward and to the left, where a cheek comes off it.
-        skin = []
-        for bone, points in SKIN_POINTS.items():
-            at = rig.chain(pose, bone)
-            skin.append(at[:3, 3] + points @ (at[:3, :3] @ rig.rest_world[bone][:3, :3].T).T)
-        skin = np.concatenate(skin)
-        skin = (np.linalg.inv(gun) @ np.c_[skin, np.ones(len(skin))].T).T[:, :3]
-        top = np.where(skin[:, 0] < 0.09, RECEIVER_TOP, STOCK_TOP)
-        inside = np.minimum(top - skin[:, 1], STOCK_SIDE - skin[:, 2])
-        inside = np.where((skin[:, 0] > STOCK_FRONT) & (skin[:, 2] > -STOCK_SIDE), inside, 0.0)
-        deepest = max(float(inside.max()) + body.get("clear", HEAD_CLEAR), 0.0)
+        clear = body.get("clear", HEAD_CLEAR)
+        deepest = [stock_depth(rig, pose, gun, clear)]
+        for other, others_hold in others:
+            # The clip on the other body: the same turns in each bone's parent, then that body's hold.
+            posed = whole(other, {"local": dict(pose["local"]), "pelvis": pose["pelvis"]})
+            deepest.append(stock_depth(other, posed, others_hold.apply(other, posed, state)["gun"], clear))
         ahead = gun[:3, :3] @ line
         gun_up = gun[:3, :3] @ Y
         return np.concatenate(
             [
                 # A millimetre to the side of the line or under it costs as much as 4 degrees of a soft angle;
                 # over it a third of that (a cheek on the comb holds the eye up); along it a tenth.
-                [off[2] * 400.0, off[1] * (130.0 if off[1] > 0.0 else 400.0), off[0] * 40.0],
-                [deepest * 1500.0],
+                [off[2] * 400.0, off[1] * (300.0 if off[1] > 0.0 else 400.0), off[0] * 40.0],
+                np.array(deepest) * 1500.0,
                 np.cross(face, ahead) * 12.0,  # the face along the line
                 [max(angle_between(up, gun_up) - 12.0, 0.0) * 0.2],  # the head may roll onto the stock
                 (v - centre) / soft,
@@ -654,7 +763,7 @@ def with_breath(body, amount):
     return out
 
 
-def make_clips(rig, base, hold, only):
+def make_clips(rig, base, hold, only, others=()):
     """Every clip as its frames: `{name: {"frames": [pose], "held": [what the hold worked out], "states": [...],
     "loop": bool, "solved": {...}}}`."""
     clips = {}
@@ -673,7 +782,7 @@ def make_clips(rig, base, hold, only):
         if pitch < 0.0:
             # Looking down the trunk folds over the rifle: more of both keeps the right forearm off the ribs.
             start.update(lean=AIM_DOWN_LEAN, hunch=AIM_DOWN_HUNCH, clear=AIM_DOWN_CLEAR, clavicle_r=AIM_DOWN_CLAVICLE_R)
-        aim_bodies[name], solved[name] = solve_aim(rig, base, hold, {"raised": 1.0, "pitch": pitch}, start)
+        aim_bodies[name], solved[name] = solve_aim(rig, base, hold, {"raised": 1.0, "pitch": pitch}, start, others)
 
     def add(name, frames, body_at, state_at, loop):
         if only and name not in only:
@@ -761,15 +870,25 @@ def import_glb(path):
 
 
 def library_pose(path, clip):
-    """A library clip's first frame as each bone's rotation in its parent and the pelvis's place there; the
-    library is removed again."""
+    """A library clip's steadiest frame as each bone's rotation in its parent and the pelvis's place there, with
+    the frame's time in seconds; the library is removed again. The steadiest frame is the one whose pelvis is
+    nearest its mean place over the clip: the pose the game holds the legs on under a standing aim
+    (`AimStance.steady_time`, which reads the clip the same way)."""
     arm, objects = import_glb(path)
     action = bpy.data.actions.get(clip) or bpy.data.actions[clip + "_Loop"]
     arm.animation_data.action = action
     arm.animation_data.action_slot = action.slots[0]
     for track in arm.animation_data.nla_tracks:
         track.mute = True
-    bpy.context.scene.frame_set(round(action.frame_range[0]))
+    scene = bpy.context.scene
+    first, last = round(action.frame_range[0]), round(action.frame_range[1])
+    places = []
+    for f in range(first, last):  # the last frame of a loop is its first again
+        scene.frame_set(f)
+        places.append(np.array(arm.pose.bones["pelvis"].matrix.translation))
+    places = np.array(places)
+    steady = first + int(np.linalg.norm(places - places.mean(axis=0), axis=1).argmin())
+    scene.frame_set(steady)
     bpy.context.view_layer.update()
     local, pelvis = {}, None
     for pb in arm.pose.bones:
@@ -783,11 +902,13 @@ def library_pose(path, clip):
         bpy.data.objects.remove(obj)
     for action in list(bpy.data.actions):
         bpy.data.actions.remove(action)
-    return {"local": local, "pelvis": pelvis}
+    return {"local": local, "pelvis": pelvis}, (steady - first) / FPS
 
 
 def set_pose(arm, rig, pose):
-    """Puts a pose on an armature (no keys)."""
+    """Puts a pose on an armature (no keys), the twist bones turned for it."""
+    pose = whole(rig, pose)
+    twist(rig, pose)
     for pb in arm.pose.bones:
         n = pb.name
         pb.rotation_mode = "QUATERNION"
@@ -798,7 +919,8 @@ def set_pose(arm, rig, pose):
 
 
 def key_clip(arm, rig, name, frames):
-    """Key a clip on the armature: every bone's rotation on every frame, and the pelvis's place."""
+    """Key a clip on the armature: the rotation of every bone a clip may key (`keyed`) on every frame, and the
+    pelvis's place."""
     action = bpy.data.actions.new(name)
     arm.animation_data_create()
     arm.animation_data.action = action
@@ -806,6 +928,8 @@ def key_clip(arm, rig, name, frames):
     for f, pose in enumerate(frames):
         for pb in arm.pose.bones:
             n = pb.name
+            if not keyed(rig, n):
+                continue
             q = Matrix((rig.rest[n][:3, :3].T @ pose["local"][n]).tolist()).to_quaternion()
             if n in last and q.dot(last[n]) < 0:
                 q.negate()
@@ -903,7 +1027,7 @@ def part_points(body, part):
     return (np.linalg.inv(C)[:3, :3] @ coords.T).T
 
 
-def hold_alone(base, bodies, rigs, hold):
+def hold_alone(base, bodies, rigs, holds):
     """What the hold does to a body with no rifle clip under it, as the game showed it before these clips: how
     deep a limb is in another with the hold run on the library's `Idle` pose, by body, at the low ready and at
     the shoulder with the view level, up and down. The hold brings the grip close to the chest (kit #1177), so
@@ -914,21 +1038,31 @@ def hold_alone(base, bodies, rigs, hold):
     for body in bodies:
         for tag, state in states.items():
             posed = copy_pose(base)
-            hold.apply(rigs[body.name], posed, state)
+            holds[body.name].apply(rigs[body.name], posed, state)
             set_pose(body.arm, rigs[body.name], posed)
             depths = [depth for depth, _place in body.overlaps().values()]
             out[(body.name, tag)] = round(max(depths, default=0.0) * 1000.0, 1)
+        # Through a reload the left hand goes the hold's own way past the right hand and the forearm.
+        deepest = 0.0
+        for f in range(1, RELOAD_FRAMES):
+            posed = copy_pose(base)
+            holds[body.name].apply(rigs[body.name], posed, {"raised": 0.0, "reload": f / RELOAD_FRAMES})
+            set_pose(body.arm, rigs[body.name], posed)
+            deepest = max([deepest] + [depth for depth, _place in body.overlaps().values()])
+        out[(body.name, "reload")] = round(deepest * 1000.0, 1)
     return out
 
 
 def state_tag(state):
+    if state.get("reload", -1.0) >= 0.0:
+        return "reload"
     if state.get("raised", 0.0) < 0.5:
         return "low"
     pitch = state.get("pitch", 0.0)
     return "level" if abs(pitch) < 1.0 else ("up" if pitch > 0.0 else "down")
 
 
-def measure(clips, bodies, rigs, hold, gun, report, floor):
+def measure(clips, bodies, rigs, holds, gun, report, floor):
     """Every frame of every clip on every body, posed as the game draws it (the clip, then the hold on that
     body): limbs in limbs, the head and the chest in the rifle, the arms' reach, the eye on the sight line."""
     failures = []
@@ -936,18 +1070,22 @@ def measure(clips, bodies, rigs, hold, gun, report, floor):
         entry = report["clips"].setdefault(name, {})
         for body in bodies:
             rig = rigs[body.name]
-            worst = {"overlap_mm": 0.0, "head_in_rifle_mm": 0.0, "chest_in_rifle_mm": 0.0, "short_mm": 0.0}
+            worst = {"overlap_mm": 0.0, "head_in_rifle_mm": 0.0, "neck_in_rifle_mm": 0.0, "chest_in_rifle_mm": 0.0}
+            worst["short_mm"] = 0.0
             where, eye_worst = {}, 0.0
             for f, (pose, state) in enumerate(zip(clip["frames"], clip["states"])):
                 posed = copy_pose(pose)
-                held = hold.apply(rig, posed, state)
+                held = holds[body.name].apply(rig, posed, state)
                 set_pose(body.arm, rig, posed)
                 for (a, b), (depth, _place) in body.overlaps().items():
                     if depth * 1000.0 > worst["overlap_mm"]:
                         worst["overlap_mm"] = round(depth * 1000.0, 1)
                         where["overlap"] = f"{a} in {b} at frame {f}"
-                for part, key in (("head", "head_in_rifle_mm"), ("chest", "chest_in_rifle_mm")):
-                    mm = round(gun.depth(part_points(body, part), held) * 1000.0, 1)
+                head = part_points(body, "head")
+                parts = {"head_in_rifle_mm": head[HEAD_SKIN[body.name]], "neck_in_rifle_mm": head[~HEAD_SKIN[body.name]]}
+                parts["chest_in_rifle_mm"] = part_points(body, "chest")
+                for key, points in parts.items():
+                    mm = round(gun.depth(points, held) * 1000.0, 1)
                     if mm > worst[key]:
                         worst[key] = mm
                         where[key] = f"frame {f}"
@@ -983,7 +1121,7 @@ def pose_gap(a, b, bones=None):
     return worst
 
 
-def render_previews(folder, clips, bodies, rigs, hold, gun):
+def render_previews(folder, clips, bodies, rigs, holds, gun):
     """Contact sheets to look at: a row a view (the right side, the front left, above, behind the right
     shoulder), a column a frame, one sheet a clip and body."""
     folder.mkdir(parents=True, exist_ok=True)
@@ -1019,7 +1157,7 @@ def render_previews(folder, clips, bodies, rigs, hold, gun):
                 row = []
                 for f in picks:
                     posed = copy_pose(clip["frames"][f])
-                    held = hold.apply(rig, posed, clip["states"][f])
+                    held = holds[body.name].apply(rig, posed, clip["states"][f])
                     set_pose(body.arm, rig, posed)
                     gun.place(held)
                     eye = C[:3, :3] @ (target + np.array(offset))
@@ -1059,32 +1197,38 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.render.fps = FPS
-    base = library_pose(GAME / "assets/animation/universal/ual1.glb", "Idle")
-    models = GAME / "assets/characters/mannequin"
-    bodies, rigs = [], {}
-    for who in ("female", "male"):
-        arm, objects = import_glb(models / f"mannequin_{who}.glb")
+    base, base_time = library_pose(GAME / BASE_FILE, BASE_CLIP.split("/")[1])
+    print(f"  the legs and the pelvis: {BASE_CLIP} at {base_time:.4f} s")
+    bodies, rigs, holds = [], {}, {}
+    for stem in BODIES:
+        arm, objects = import_glb(GAME / MODELS / f"{stem}.glb")
+        # The nearest level of detail: the mesh with the most vertices.
         mesh = max((o for o in objects if o.type == "MESH" and o.parent == arm), key=lambda o: len(o.data.vertices))
         for o in objects:
             if o.type == "MESH" and o is not mesh:
                 bpy.data.objects.remove(o)
-        body = limb_overlap.Body(arm, mesh, f"mannequin_{who}")
+        body = limb_overlap.Body(arm, mesh, stem)
         bodies.append(body)
-        rigs[body.name] = Rig(arm)
+        rigs[stem] = Rig(arm, stem)
+        holds[stem] = Hold(f"{stem}.glb")
+        print(f"  {stem}: the hold is {holds[stem].fit}")
     female = bodies[0]
     rig = rigs[female.name]
-    hold = Hold()
+    hold = holds[female.name]
     gun = Gun()
     for body in bodies:
         own = rigs[body.name]
         set_pose(body.arm, own, {"local": {n: own.rest[n][:3, :3] for n in own.names}, "pelvis": own.rest["pelvis"][:3, 3]})
         points = part_points(body, "head")
         high = points[:, 1] > own.rest_world["Head"][1, 3] + 0.03
-        for bone, some in (("Head", points[high]), ("neck_01", points[~high])):
-            some = some[::2] - own.rest_world[bone][:3, 3]
-            SKIN_POINTS[bone] = np.concatenate([SKIN_POINTS[bone], some]) if bone in SKIN_POINTS else some
+        HEAD_SKIN[body.name] = high
+        SKIN_POINTS[body.name] = {
+            bone: some[::2] - own.rest_world[bone][:3, 3] for bone, some in (("Head", points[high]), ("neck_01", points[~high]))
+        }
 
-    clips = make_clips(rig, base, hold, args.only)
+    base = whole(rig, base)
+    others = [(rigs[b.name], holds[b.name]) for b in bodies[1:]]
+    clips = make_clips(rig, base, hold, args.only, others)
     report = {"fps": FPS, "clips": {}, "solved": {}}
     failures = []
     for name, clip in clips.items():
@@ -1117,12 +1261,12 @@ def main():
                     failures.append(f"{name}: frame {end} is {gap:.3f} degrees off {joined}'s first pose")
 
     if not args.no_checks:
-        floor = hold_alone(base, bodies, rigs, hold)
+        floor = hold_alone(base, bodies, rigs, holds)
         report["hold_alone_mm"] = {f"{name} {tag}": mm for (name, tag), mm in floor.items()}
-        print("  the hold alone, on the library's Idle:", report["hold_alone_mm"])
-        failures += measure(clips, bodies, rigs, hold, gun, report, floor)
+        print("  the hold alone, on the idle:", report["hold_alone_mm"])
+        failures += measure(clips, bodies, rigs, holds, gun, report, floor)
     if args.preview:
-        render_previews(Path(args.preview), clips, bodies, rigs, hold, gun)
+        render_previews(Path(args.preview), clips, bodies, rigs, holds, gun)
     if args.report:
         Path(args.report).write_text(json.dumps(report, indent=1), encoding="utf-8")
     if failures:
@@ -1133,6 +1277,8 @@ def main():
     if args.data:
         data = {
             "fps": FPS,
+            # The pose under the clips: the bones over `spine_01` are this clip's at this time.
+            "base": {"clip": BASE_CLIP, "seconds": round(base_time, 4)},
             "clips": {
                 name: {"frames": len(clip["frames"]) - 1, "seconds": round((len(clip["frames"]) - 1) / FPS, 4), "loop": clip["loop"]}
                 for name, clip in clips.items()

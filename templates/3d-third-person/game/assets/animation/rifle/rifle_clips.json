@@ -1,5 +1,9 @@
 {
  "fps": 30,
+ "base": {
+  "clip": "gds/Idle",
+  "seconds": 8.5
+ },
  "clips": {
   "Rifle_Idle": {
    "frames": 90,

@@ -12,6 +12,8 @@ extends GdUnitTestSuite
 const MODELS: Array[String] = ["female", "male"]
 const LIBRARY := "res://assets/animation/rifle/rifle_clips.glb"
 const RIFLE := "res://gameplay/weapon/rifle.tres"
+## The build's data: each clip's length and loop, and the pose the clips were keyed over (`base`).
+const DATA := "res://assets/animation/rifle/rifle_clips.json"
 ## Each clip's length in seconds and whether it loops.
 const CLIPS: Dictionary[StringName, Array] = {
 	&"Rifle_Idle": [3.0, true],
@@ -116,6 +118,10 @@ func test_loops_close_and_the_shot_and_the_reload_join_the_poses_they_leave() ->
 func test_the_clips_own_arms_are_the_holds_on_the_mannequin_they_were_keyed_on() -> void:
 	var stage := RifleStage.make_rifle(_holder, "female")
 	var worst := 0.0
+	# The clips key each bone in its parent, so their arms are the hold's over the pelvis they were
+	# keyed on: the standing idle on its steadiest frame, which the game holds under an aim.
+	var base: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(DATA)).base
+	assert_str(base.clip).is_equal(String(CharacterClips.IDLE))
 	for clip_name in CLIPS:
 		# The shot's kick is the hold's own and is not posed here: its first and last frames only.
 		var shares: Array[float] = [0.0, 0.25, 0.5, 0.75, 1.0]
@@ -125,7 +131,7 @@ func test_the_clips_own_arms_are_the_holds_on_the_mannequin_they_were_keyed_on()
 		for at in shares:
 			# On a key of the clip: between two keys a fast hand is a chord off its arc.
 			var share := roundf(at * frames) / frames
-			_pose(stage, CharacterClips.IDLE, clip_name, share)
+			_pose(stage, CharacterClips.IDLE, clip_name, share, base.seconds)
 			await stage.settle()
 			for side: String in ["r", "l"]:
 				# The skeleton holds the clip's pose again once its modifiers have run.
@@ -257,9 +263,12 @@ func test_the_rifle_names_its_clips_and_the_player_plays_them() -> void:
 	assert_float(animation.reload_progress().x).is_equal_approx(1.0, 0.01)
 
 
-# Puts `legs` at its first frame on the whole body, then the rifle clip at `share` of its length on
-# the upper body, and tells the hold what the game would while that clip plays.
-func _pose(stage: RifleStage, legs: StringName, clip_name: StringName, share: float) -> void:
+# Puts `legs` at `legs_time` (its first frame unless said) on the whole body, then the rifle clip at
+# `share` of its length on the upper body, and tells the hold what the game would while that clip
+# plays.
+func _pose(
+	stage: RifleStage, legs: StringName, clip_name: StringName, share: float, legs_time := 0.0
+) -> void:
 	var held := stage.hold as TwoHandHold
 	var state: Array = STATES[clip_name]
 	held.posed_aim = state[0]
@@ -268,7 +277,7 @@ func _pose(stage: RifleStage, legs: StringName, clip_name: StringName, share: fl
 	held.posed_lowered = 0.0
 	var kept := stage.hold
 	stage.hold = null
-	stage.pose(legs, 0.0)
+	stage.pose(legs, legs_time)
 	stage.hold = kept
 	var clip := (load(LIBRARY) as AnimationLibrary).get_animation(clip_name)
 	var start := stage.skeleton.find_bone(UPPER)
