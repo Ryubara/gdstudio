@@ -83,6 +83,15 @@ GROUPS = {
         "Crouch_Walk",
         "Stand_To_Crouch",
         "Crouch_To_Stand",
+        "Jump_Start",
+        "Jump_Start_Run_L",
+        "Jump_Start_Run_R",
+        "Jump_Rise",
+        "Jump_Apex",
+        "Jump_Fall",
+        "Land_Soft",
+        "Land_Hard",
+        "Land_To_Jog",
     ]
 }
 ## The deepest a limb may be inside another part of the body, on every body (mm).

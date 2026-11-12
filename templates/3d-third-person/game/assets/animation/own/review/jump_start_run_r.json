@@ -1,0 +1,342 @@
+{
+ "clips": {
+  "Jump_Start_Run_R_A": {
+   "bones": [
+    "Head",
+    "ball_l",
+    "ball_r",
+    "calf_l",
+    "calf_r",
+    "clavicle_l",
+    "clavicle_r",
+    "foot_l",
+    "foot_r",
+    "hand_l",
+    "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
+    "index_01_l",
+    "index_01_r",
+    "index_02_l",
+    "index_02_r",
+    "index_03_l",
+    "index_03_r",
+    "lowerarm_l",
+    "lowerarm_r",
+    "middle_01_l",
+    "middle_01_r",
+    "middle_02_l",
+    "middle_02_r",
+    "middle_03_l",
+    "middle_03_r",
+    "neck_01",
+    "pelvis",
+    "pinky_01_l",
+    "pinky_01_r",
+    "pinky_02_l",
+    "pinky_02_r",
+    "pinky_03_l",
+    "pinky_03_r",
+    "ring_01_l",
+    "ring_01_r",
+    "ring_02_l",
+    "ring_02_r",
+    "ring_03_l",
+    "ring_03_r",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "thigh_l",
+    "thigh_r",
+    "thumb_01_l",
+    "thumb_01_r",
+    "thumb_02_l",
+    "thumb_02_r",
+    "thumb_03_l",
+    "thumb_03_r",
+    "upperarm_l",
+    "upperarm_r"
+   ],
+   "carried": true,
+   "contacts": {
+    "l": [],
+    "r": []
+   },
+   "end_foot": "none",
+   "events": [],
+   "flat": {
+    "l": [],
+    "r": []
+   },
+   "frames": 6,
+   "join_frames": {
+    "first": 10,
+    "last": 0
+   },
+   "joins": {
+    "first": "Jog",
+    "last": "Jump_Rise"
+   },
+   "kind": "transition",
+   "loop": false,
+   "reduced_to_deg": 0.05,
+   "replaces": "",
+   "seconds": 0.2,
+   "speed": 4.0,
+   "start_foot": "none",
+   "style": "A",
+   "travel": [
+    [
+     0,
+     0.0,
+     0.0
+    ],
+    [
+     6,
+     0.8,
+     0.0
+    ]
+   ],
+   "turn": [
+    [
+     0,
+     0.0
+    ],
+    [
+     6,
+     0.0
+    ]
+   ]
+  },
+  "Jump_Start_Run_R_B": {
+   "bones": [
+    "Head",
+    "ball_l",
+    "ball_r",
+    "calf_l",
+    "calf_r",
+    "clavicle_l",
+    "clavicle_r",
+    "foot_l",
+    "foot_r",
+    "hand_l",
+    "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
+    "index_01_l",
+    "index_01_r",
+    "index_02_l",
+    "index_02_r",
+    "index_03_l",
+    "index_03_r",
+    "lowerarm_l",
+    "lowerarm_r",
+    "middle_01_l",
+    "middle_01_r",
+    "middle_02_l",
+    "middle_02_r",
+    "middle_03_l",
+    "middle_03_r",
+    "neck_01",
+    "pelvis",
+    "pinky_01_l",
+    "pinky_01_r",
+    "pinky_02_l",
+    "pinky_02_r",
+    "pinky_03_l",
+    "pinky_03_r",
+    "ring_01_l",
+    "ring_01_r",
+    "ring_02_l",
+    "ring_02_r",
+    "ring_03_l",
+    "ring_03_r",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "thigh_l",
+    "thigh_r",
+    "thumb_01_l",
+    "thumb_01_r",
+    "thumb_02_l",
+    "thumb_02_r",
+    "thumb_03_l",
+    "thumb_03_r",
+    "upperarm_l",
+    "upperarm_r"
+   ],
+   "carried": true,
+   "contacts": {
+    "l": [],
+    "r": []
+   },
+   "end_foot": "none",
+   "events": [],
+   "flat": {
+    "l": [],
+    "r": []
+   },
+   "frames": 7,
+   "join_frames": {
+    "first": 10,
+    "last": 0
+   },
+   "joins": {
+    "first": "Jog",
+    "last": "Jump_Rise"
+   },
+   "kind": "transition",
+   "loop": false,
+   "reduced_to_deg": 0.05,
+   "replaces": "",
+   "seconds": 0.2333,
+   "speed": 4.0,
+   "start_foot": "none",
+   "style": "B",
+   "travel": [
+    [
+     0,
+     0.0,
+     0.0
+    ],
+    [
+     7,
+     0.9333,
+     0.0
+    ]
+   ],
+   "turn": [
+    [
+     0,
+     0.0
+    ],
+    [
+     7,
+     0.0
+    ]
+   ]
+  },
+  "Jump_Start_Run_R_C": {
+   "bones": [
+    "Head",
+    "ball_l",
+    "ball_r",
+    "calf_l",
+    "calf_r",
+    "clavicle_l",
+    "clavicle_r",
+    "foot_l",
+    "foot_r",
+    "hand_l",
+    "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
+    "index_01_l",
+    "index_01_r",
+    "index_02_l",
+    "index_02_r",
+    "index_03_l",
+    "index_03_r",
+    "lowerarm_l",
+    "lowerarm_r",
+    "middle_01_l",
+    "middle_01_r",
+    "middle_02_l",
+    "middle_02_r",
+    "middle_03_l",
+    "middle_03_r",
+    "neck_01",
+    "pelvis",
+    "pinky_01_l",
+    "pinky_01_r",
+    "pinky_02_l",
+    "pinky_02_r",
+    "pinky_03_l",
+    "pinky_03_r",
+    "ring_01_l",
+    "ring_01_r",
+    "ring_02_l",
+    "ring_02_r",
+    "ring_03_l",
+    "ring_03_r",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "thigh_l",
+    "thigh_r",
+    "thumb_01_l",
+    "thumb_01_r",
+    "thumb_02_l",
+    "thumb_02_r",
+    "thumb_03_l",
+    "thumb_03_r",
+    "upperarm_l",
+    "upperarm_r"
+   ],
+   "carried": true,
+   "contacts": {
+    "l": [],
+    "r": []
+   },
+   "end_foot": "none",
+   "events": [],
+   "flat": {
+    "l": [],
+    "r": []
+   },
+   "frames": 5,
+   "join_frames": {
+    "first": 10,
+    "last": 0
+   },
+   "joins": {
+    "first": "Jog",
+    "last": "Jump_Rise"
+   },
+   "kind": "transition",
+   "loop": false,
+   "reduced_to_deg": 0.1,
+   "replaces": "",
+   "seconds": 0.1667,
+   "speed": 4.0,
+   "start_foot": "none",
+   "style": "C",
+   "travel": [
+    [
+     0,
+     0.0,
+     0.0
+    ],
+    [
+     5,
+     0.6667,
+     0.0
+    ]
+   ],
+   "turn": [
+    [
+     0,
+     0.0
+    ],
+    [
+     5,
+     0.0
+    ]
+   ]
+  }
+ },
+ "fps": 30,
+ "frozen": [
+  "Jump_Start_Run_R_A",
+  "Jump_Start_Run_R_B",
+  "Jump_Start_Run_R_C"
+ ],
+ "reference_hips": 0.9166,
+ "rig": "form_female.glb"
+}

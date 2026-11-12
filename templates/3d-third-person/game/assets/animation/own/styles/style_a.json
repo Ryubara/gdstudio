@@ -264,5 +264,13 @@
   "swing_ease": 1.0,
   "lean_live": 2.0,
   "speed_limit": 45.0
- }
+ },
+ "jump_start": {},
+ "jump_start_run": {},
+ "jump_rise": {},
+ "jump_apex": {},
+ "jump_fall": {},
+ "land_soft": {},
+ "land_hard": {},
+ "land_to_jog": {}
 }

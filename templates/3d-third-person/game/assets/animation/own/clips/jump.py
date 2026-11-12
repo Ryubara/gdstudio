@@ -258,9 +258,11 @@ HARD = {
     "pelvis": [24.0, 5.0, -4.0],
     "chest": [52.0, -7.0, 4.0],
     "head": [18.0, -3.0, 0.0],
-    "arm_swing": [-26.0, 30.0],
-    "arm_out": [34.0, 22.0],
-    "elbow": [40.0, 30.0],
+    # The right arm is held out past its knee: at 22 degrees out its hand went 37 to 62 mm into the thigh under it.
+    "arm_swing": [-26.0, 22.0],
+    "arm_out": [34.0, 50.0],
+    "elbow": [40.0, 42.0],
+    "arms_up": [0.5, 1.0],  # the arms come back once the thighs are down
     "trunk_late": 2.0,
     "arms_late": 3.0,
     "speed_limit": 70.0,

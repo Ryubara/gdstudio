@@ -419,5 +419,194 @@
   "chest_tip_rest": 1.2,
   "head_turn_rest": 0.8,
   "head_tip_rest": 0.8
+ },
+ "jump_start": {
+  "frames": 5,
+  "push": {
+   "knee": [
+    3.0,
+    8.0
+   ],
+   "point": [
+    54.0,
+    48.0
+   ],
+   "arm_swing": [
+    40.0,
+    22.0
+   ]
+  },
+  "legs_out": [
+   0.0,
+   0.36
+  ],
+  "speed_limit": 75.0
+ },
+ "jump_start_run": {
+  "frames": 5,
+  "drive": [
+   0.04,
+   0.02
+  ],
+  "trail": [
+   0.04,
+   0.02
+  ],
+  "pump": [
+   8.0,
+   6.0
+  ],
+  "speed_limit": 85.0
+ },
+ "jump_rise": {
+  "live": 0.6,
+  "pelvis": [
+   -2.0,
+   6.0,
+   -2.0
+  ],
+  "chest": [
+   -5.0,
+   -7.0,
+   2.0
+  ],
+  "thigh": [
+   -12.0,
+   44.0
+  ],
+  "knee": [
+   6.0,
+   82.0
+  ],
+  "point": [
+   46.0,
+   22.0
+  ],
+  "arm_swing": [
+   124.0,
+   28.0
+  ],
+  "arm_out": [
+   14.0,
+   30.0
+  ],
+  "elbow": [
+   30.0,
+   92.0
+  ],
+  "shrug": [
+   12.0,
+   3.0
+  ]
+ },
+ "jump_apex": {
+  "live": 0.6,
+  "thigh": [
+   40.0,
+   72.0
+  ],
+  "knee": [
+   88.0,
+   112.0
+  ],
+  "chest": [
+   14.0,
+   -7.0,
+   3.0
+  ],
+  "arm_swing": [
+   56.0,
+   12.0
+  ],
+  "arm_out": [
+   30.0,
+   58.0
+  ],
+  "elbow": [
+   64.0,
+   84.0
+  ]
+ },
+ "jump_fall": {
+  "live": 0.6,
+  "ahead": [
+   0.0,
+   0.11
+  ],
+  "heel": [
+   18.0,
+   22.0
+  ],
+  "lift": [
+   0.0,
+   0.045
+  ],
+  "arm_swing": [
+   20.0,
+   12.0
+  ],
+  "arm_out": [
+   44.0,
+   58.0
+  ],
+  "elbow": [
+   48.0,
+   66.0
+  ]
+ },
+ "land_soft": {
+  "frames": 19,
+  "keep": 4.8,
+  "dip": 0.16,
+  "bottom": 2,
+  "up": 10,
+  "stagger": 0.11,
+  "step": [
+   9,
+   14
+  ],
+  "right_lands": 1,
+  "heel_down": [
+   2,
+   2
+  ],
+  "chest": [
+   24.0,
+   -4.0,
+   2.0
+  ],
+  "arm_swing": [
+   -12.0,
+   10.0
+  ],
+  "trunk_late": 1.0,
+  "arms_late": 1.0,
+  "speed_limit": 75.0
+ },
+ "land_hard": {
+  "frames": 33,
+  "control": 17,
+  "keep": 6.0,
+  "bottom": 4,
+  "hold": 2,
+  "up": 13,
+  "stagger": 0.18,
+  "step": [
+   11,
+   17
+  ],
+  "trunk_up": [
+   0.05,
+   0.62
+  ],
+  "trunk_late": 3.0,
+  "arms_late": 2.0,
+  "speed_limit": 85.0
+ },
+ "land_to_jog": {
+  "keep": 3.6,
+  "sink": 0.02,
+  "fold": 5.0,
+  "speed_limit": 85.0
  }
 }
