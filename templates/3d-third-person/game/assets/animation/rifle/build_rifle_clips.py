@@ -7,7 +7,7 @@ Animation Library has pistol clips and no rifle clip. Six clips, at the library'
 - `Rifle_Idle` (a loop): the low ready, the head up and looking ahead, a slow breath;
 - `Rifle_Aim_Neutral`, `Rifle_Aim_Up` and `Rifle_Aim_Down` (loops of one length): the rifle at the shoulder with
   the view level and `AIM_PITCH` degrees up and down, the body leant into it, the right shoulder up behind the
-  butt and the head down on the stock with the right eye on the sight line;
+  butt and the head the game gives an aimed rifle, canted to the stock with the right eye by the sights;
 - `Rifle_Shoot`: a shot's recoil taken by the body, from `Rifle_Aim_Neutral`'s first pose and back to it;
 - `Rifle_Reload`: the body through a magazine change and the charging handle, from `Rifle_Idle`'s first pose and
   back to it, the beats at the shares of the reload the game's hold moves the left hand by.
@@ -36,7 +36,7 @@ build measures him posed that way; the search for the head's place keeps both bo
 It works in Godot's axes (the character faces +Z, its left is +X, up is +Y; a bone's pose in its parent is the
 same in Blender and in Godot) and keys every bone's rotation on every frame. It fails before it exports when a
 loop does not close, a clip does not start and end on the pose it joins, an arm cannot reach on either body, the
-eye is off the sight line in an aim clip, the head is in the stock, or a part of the body goes more than
+head is in the stock, or a part of the body goes more than
 `OVERLAP_LIMIT` into another on either body (`../limb_overlap.py`; the twist bones are turned as the engine's
 `MannequinTwist` turns them, so the skin measured is the skin drawn). It reports, and does not fail on, how deep
 the neck's base and the chest are in the butt: that is the hold's pocket. The hands against the rifle are

@@ -33,6 +33,11 @@ are the body under that.
   the chest 16 degrees forward and 13 turned, and the head 14 down; turns added on top of it bowed the head 40
   degrees. The legs and the pelvis are the idle's; everything above is stood upright and turned from there, the
   neck and the head in the character's space, so a breath or a recoil under them does not move the look.
+- **The head of an aim is the game's, so key the game's.** The game sets an aiming character's neck and head
+  after the clip (`AimHeadModifier`: level for a pistol, toward the sights for the rifle). The build runs the same
+  rule with the modifier's own numbers and the weapon's `AimEye` marker (`sight_head`) and keys that, so the file
+  shows what the game draws and the skin against the stock is measured on the head the player sees (the game's
+  standing head is within a degree and a millimetre of the build's).
 - **A shot is added, not played over.** A recoil clip made on the level aim replaces an aim up or down while it
   plays. In Godot the one-shot adds (`MIX_MODE_ADD`) an `AnimationNodeSub2` of the clip less the same clip held on
   its first frame (a time scale of 0), which is the aim pose it was made on.
