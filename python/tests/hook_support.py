@@ -38,6 +38,7 @@ def patch(monkeypatch: pytest.MonkeyPatch, name: str, value: Any) -> None:
 
 REAL_IDLE_ISSUES = guards.idle_issues
 REAL_START_SWEEP = guards.start_sweep
+REAL_RED_MAIN = guards.red_main
 REAL_START_DISK_GUARD = guards.start_disk_guard
 FREE = {"gb": 500.0}  # the disk every test sees, unless it sets another
 

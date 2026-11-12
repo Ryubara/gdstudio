@@ -206,7 +206,7 @@ func test_the_hud_survives_a_model_swap() -> void:
 	var old := slot.rig()
 	slot.remove_child(old)
 	old.free()
-	var male := load("res://assets/characters/mannequin/mannequin_male.glb") as PackedScene
+	var male := load(CharacterBodies.MALE) as PackedScene
 	var added := male.instantiate() as Node3D
 	added.name = "MannequinMale"
 	slot.add_child(added)

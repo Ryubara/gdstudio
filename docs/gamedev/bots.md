@@ -170,3 +170,75 @@ that will not end). A broken gate is read for its cause before a bot is tuned.
   worktree failed at the simulator step and ran an hour with no result; a soak that had to see a throw failed on CI once
   the bots threw less. **Seen:** Deadnight #827, 2026-11-03; Deadnight (grenade soak), 2026-11-03 (fix: the soak
   section of the bots page; a scripted throw night).
+
+### The AI characters' soak (3D Third Person) {#ai-soak}
+
+<!-- new section: the soaks above are Deadnight's bots; nothing said how the template's AI characters are soaked, what
+     each gate means, how its teeth are proved or how a replay is checked -->
+
+`tools/soak/ai_soak.tscn` (kit #971) runs the real `main.tscn` headless at `--fixed-fps 60`, seeded: the AI section's
+population (3 grunts, 2 shooters, 2 allies, 3 civilians) times `population_scale`, six civilians going about the
+pathing section, and the invulnerable player walked round the AI section by `SectionPilot`, which shoots every hostile
+in its sight at its chest as it stands now (crouched behind a low wall included). `AiSoakWatch` (`ai_soak_watch.gd`)
+is universal: it reads the group `ai_characters` and the parts in their slots, so any scene can hold one. Its gates,
+each an exported threshold:
+
+| Gate | Breaks when |
+| --- | --- |
+| `error` | the engine logs an error (a `Logger`) |
+| `stuck_episode` | a living character keeps asking its navigator for a goal and moves under 0.5 m for 10 s (a gap of a second without a goal ends the episode; a death or a respawn starts it again) |
+| `stuck_share` | the stuck seconds of all characters (episodes past 2 s) are over 1 % of their walking seconds |
+| `idle_with_threat` | its brain has a hostile in view and its controller asks for nothing (no reload, no switch) for 5 s |
+| `task_overdue` | the runner's active task, or the fallback it failed into, is active without a break past its hard timeout and 1 s |
+| `path_storm` | more queries in 5 s than 5 s over the navigator's `repath_seconds`, and one |
+| `think_p99` | the 99th percentile of every think (`AiCharacter.last_think_usec`) is over 2000 us times the calibration loop's slowdown against 11 ms |
+| `belief` | a belief names a node that is not a character with a faction (a wall) or one out of the tree (a body in the pool) |
+| `round` | the section's hostiles alive at a round's start are not all dead 30 s after `round_seconds` (120): the pilot is walked to the nearest at 120 s (a rescue), the soak kills what is left at 135 s (the safety net, counted as `rescue_kills`), and only a body nothing can end breaks it |
+
+Every broken gate prints `AI_SOAK_GATE {...}`: the character's beliefs, layer stack, last 20 decisions, path end,
+navigator, tier, situation and last event. `--lines` prints `AI_SOAK_CHARACTER {...}` a character (stuck and
+idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reason): the nightly job's rows. The
+`command_hash` folds every living character's position and controller channels each tick.
+
+- **Teeth:** `AiSoakFaults` (`--faults all`, one hostile a fault, each taken when its state lets the fault show)
+  breaks each gate: an injected error, a body held while its navigator is sent on, a paused runner with a refreshed
+  belief in the player (kept alive for the gate's `idle_seconds` and 1 s, then mortal again), a never-ending task
+  with its clock held, the navigator's query clock put back each tick, a think 6 ms longer, an invulnerable hostile, a
+  fully aware belief in a wall. `test_ai_soak.gd` runs them in one 60 s run at scale 2 and checks each gate names its
+  target.
+- **Replay:** the same seed in a fresh process gives the same `command_hash`; another seed does not. In one process the
+  second run differs: the navigators take their phase and seed from a static counter of navigators made.
+- **Where it runs:** the pull-request suite runs seed 1 for 120 s (about 10 s); `.github/workflows/ai-soak.yml` runs 50
+  seeds of 120 s nightly in five shards, with the teeth run, and opens an issue when one breaks.
+- **What it found on its first sweeps** (24 runs of 180 s at scale 1, seeds 1 to 16, Windows, 2026-11-11): 19 green; 5
+  broke `idle_with_threat`, all on one cause: a cornered civilian whose flee finds no path every second while its runner
+  is in its failure fallback, so the flee's own fallback (cower) never runs and it stands looking round with a hostile
+  in view (gdstudio issue below in the pull request). A grunt placed outside the AI section with no `patrol_route`
+  patrols the section's stops, which its mesh does not reach (the two sections' meshes do not join), so the soak's
+  pathing kinds are civilians.
+
+- **Approach:** Reset everything a watch keeps of a character when it was out of sight for a tick (dead, back in the
+  pool, spawned again), since a pooled character is the same object across lives. **Watch out for:** the first stuck
+  gate kept a shooter's anchor and goal time through its death and broke 20 s after it respawned on the marker it died
+  near. **Seen:** gdstudio #971, 2026-11-11 (`AiSoakWatch._begin_life`).
+- **Approach:** Give a soak's autopilot what it needs to keep the scenario going (ammunition refilled, aim at the
+  target's chest as it stands now) and count the rescues apart, so a round that needs the safety net says so.
+  **Watch out for:** the pilot ran dry after its 24 rounds and clicked an empty pistol for minutes, and it aimed over
+  crouched grunts behind low walls, so rounds ended only by the rescue (0 to 3 rounds a run); refilled and aiming at
+  the body's height, 4 to 22 rounds a run ended with no rescue. **Seen:** gdstudio #971, 2026-11-11
+  (`AiSoak._refill_pilot`, `SectionPilot.chest_of`).
+- **Approach:** Make each injected fault force the state its gate reads (a task of its own with a clock held, a belief
+  refreshed after the senses, a navigator's query clock put back) instead of hoping the scenario brings it. **Watch out
+  for:** a held task clock never broke the overdue gate because the AI's tasks change every few seconds; an injected
+  unnoticed belief faded in the same think; resetting a goal every tick did not storm because the navigator holds its
+  own interval. **Seen:** gdstudio #971, 2026-11-11 (`AiSoakFaults`).
+- **Approach:** Keep a fault's target alive for the whole window its gate needs (the `IDLE` target cannot die for the
+  watch's `idle_seconds` and a second, then it can), and run the teeth case for many seeds in fresh processes before
+  calling it deterministic. **Watch out for:** the pilot shoots every hostile in its sight and a still one is the
+  easiest, so the idle target died 2.4 s into its 5 s window whenever the pilot's loop passed it; whether it did
+  turned on the process's history (the navigators' static counters), so the case passed alone and failed inside the
+  full suite and on main's CI (seed 1 in a fresh process failed too). **Seen:** gdstudio #1328, 2026-11-12
+  (`AiSoakFaults._hold_idle`; 24 of 24 seeds then broke the gate).
+- **Approach:** Check a soak's replay in fresh processes, and look for static counters (`static var`) before calling a
+  run nondeterministic. **Watch out for:** two runs of the same seed in one GdUnit process gave different hashes
+  while separate processes matched. **Seen:** gdstudio #971, 2026-11-11 (`test_the_same_seed_repeats_its_commands`).

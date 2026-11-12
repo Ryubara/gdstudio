@@ -131,8 +131,7 @@ class HandSkin:
 
 func _init(skeleton: Skeleton3D) -> void:
 	_skeleton = skeleton
-	for node in skeleton.find_children("*", "MeshInstance3D", true, false):
-		var instance := node as MeshInstance3D
+	for instance in CharacterBodies.near_meshes(skeleton):
 		if instance.skin == null or instance.mesh == null:
 			continue
 		for surface in instance.mesh.get_surface_count():
@@ -192,6 +191,39 @@ func measure(side: String, over_other_hand := false) -> Dictionary:
 				entry.point = at
 		found[part] = entry
 	return found
+
+
+## The signed distance from each of `parts` of the hand of `side` to the weapon alone, in metres:
+## `measure()` for a few parts, for a solver that tries many poses (kit #1036).
+func measure_parts(side: String, parts: Array[String]) -> Dictionary:
+	_to_weapon = _weapon.global_transform.affine_inverse() * _skeleton.global_transform
+	var found := {}
+	var cache := {}
+	for part in parts:
+		var list: Array = _parts[side][part]
+		var least := INF
+		for index in list.size() / 2:
+			var at := _skinned(list[index * 2], list[index * 2 + 1], cache)
+			least = minf(least, _gun_distance(_to_weapon * at))
+		found[part] = least
+	return found
+
+
+## Turns the bones `rotations` names ({bone name: rotation in its parent's space}, a finger's
+## chain from the knuckle out) to those rotations over the snapshot, as a `HandPoseModifier`
+## would, with the leaf bones under them following: a solver tries a pose without waiting for the
+## skeleton to update (kit #1036). `snapshot()` puts the skeleton's own pose back.
+func pose_chain(rotations: Dictionary) -> void:
+	for bone_name: StringName in rotations:
+		var bone := _skeleton.find_bone(bone_name)
+		var parent := _skeleton.get_bone_parent(bone)
+		var local := Transform3D(
+			Basis(rotations[bone_name] as Quaternion), _skeleton.get_bone_pose_position(bone)
+		)
+		_poses[bone] = _poses[parent] * local
+		for child in _skeleton.get_bone_children(bone):
+			if not rotations.has(_skeleton.get_bone_name(child)):
+				_poses[child] = _poses[bone] * _skeleton.get_bone_pose(child)
 
 
 ## A bone's pose in the skeleton's space, as `snapshot()` copied it.
@@ -327,15 +359,24 @@ func _add_surface(instance: MeshInstance3D, surface: int) -> void:
 		var bone := _skeleton.find_bone(skin.get_bind_name(bind))
 		bind_bones.append(bone if bone >= 0 else skin.get_bind_bone(bind))
 		bind_poses.append(skin.get_bind_pose(bind))
+	var owners := _owners()
 	var main := PackedInt32Array()
 	var share := PackedFloat32Array()
 	for vertex in vertices.size():
 		var best := -1
 		var best_weight := 0.0
 		for slot in per:
-			if weights[vertex * per + slot] > best_weight:
-				best_weight = weights[vertex * per + slot]
-				best = bind_bones[bones[vertex * per + slot]]
+			var weight := weights[vertex * per + slot]
+			if weight <= 0.0:
+				continue
+			var owner := owners[bind_bones[bones[vertex * per + slot]]]
+			# The weights of the other slots with the same owner (a fingertip's bone and its leaf).
+			for other in slot:
+				if owners[bind_bones[bones[vertex * per + other]]] == owner:
+					weight += weights[vertex * per + other]
+			if weight > best_weight:
+				best_weight = weight
+				best = owner
 		main.append(best)
 		share.append(best_weight)
 	var index := _surfaces.size()
@@ -350,6 +391,21 @@ func _add_surface(instance: MeshInstance3D, surface: int) -> void:
 	_surfaces.append(entry)
 	for side: String in ["r", "l"]:
 		_collect_side(side, index, main, share, indices)
+
+
+# The bone each bone's skin counts for: itself, or for a bone with no children that hangs under
+# a part's bone (the leaf at a fingertip, which one mannequin's skin is weighted to) that bone.
+func _owners() -> PackedInt32Array:
+	var part_bones := {}
+	for side: String in ["r", "l"]:
+		for part: String in PARTS:
+			part_bones[_skeleton.find_bone(PARTS[part] % side)] = true
+	var owners := PackedInt32Array()
+	for bone in _skeleton.get_bone_count():
+		var parent := _skeleton.get_bone_parent(bone)
+		var leaf := _skeleton.get_bone_children(bone).is_empty() and not part_bones.has(bone)
+		owners.append(parent if leaf and part_bones.has(parent) else bone)
+	return owners
 
 
 func _collect_side(

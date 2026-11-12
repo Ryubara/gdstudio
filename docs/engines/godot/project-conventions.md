@@ -45,7 +45,8 @@ game/
   the main game) in the docs from the first playable. **Watch out for:** tuned numbers sat in script constants and code
   tables and nothing said which scene was which, while the maintainer meant to tune the game in the editor. **Seen:**
   Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export); gdstudio #904,
-  2026-11-10 (`MenuScene.server_scene` added without its pin; `grep -rl <Class> tests` finds the pin suite).
+  2026-11-10 (`MenuScene.server_scene` added without its pin; `grep -rl <Class> tests` finds the pin suite);
+  gdstudio #1255, 2026-11-11 (new `WeaponDef` fields unpinned: grep the tests for `pistol.tres` too).
 - **Approach:** Before adding more than a few lines to a script within about 100 lines of gdlint's 1000-line limit
   (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
   the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
@@ -58,18 +59,20 @@ game/
   `--replace-invalid`). Never write a uid by hand. **Watch out for:** uids copied from a kept game were left behind
   and failed the `uid` rule in CI, and hand-made ones held a `z`, a `9`, a word or over 63 bits, which Godot imports
   silently. **Seen:** gdstudio #845, #868, #872, #925 (2026-11-08 to 11-10); #910, #1074, #1091, #968 (36 at
-  once; 2026-11-11); seven
-  hand-made uids in 3D Third Person replaced, kit #1129, 2026-11-11; #1052 (a new suite iterated in a kept game,
-  where Godot writes the uid, then missing in the worktree: the template run stopped at the layout check).
+  once; 2026-11-11); #1186 (a
+  bench built with `bench-web`, which never checks layout); seven hand-made uids replaced, kit #1129, 2026-11-11; a
+  suite added after the first `gds template uids` run failed the full run's layout step, gdstudio #1187, #1052, 11-11
+  (run it again after the last new script); PR #1171, 11-12 (two `-s` tool scripts).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
   a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and
   run `gds check layout templates/<name>/game` before the push. **Watch out for:** a left `.ruff_cache/` or
-  `__pycache__/` failed the layout check (`snake-case`) and `test_new_game.py`, and looked like a problem of the change.
+  `__pycache__/` failed the layout check (`snake-case`) and `test_new_game.py`, like a fault of the change.
   From the kit's root ruff reads no config and wraps a template's Python at 88: pass `--line-length 120` (to undo an
   88 run, first `--config "format.skip-magic-trailing-comma=true"`). **Seen:**
   gdstudio #884, 2026-11-10; gdstudio #908, 2026-11-11 (`tools/net/__pycache__`); gdstudio #1110, 2026-11-11 (a kit
-  test loading `bad_network.py` failed CI's `test_layout.py`); gdstudio #1106, #1105, 2026-11-11 (gate files rewrapped).
+  test loading `bad_network.py` failed CI's `test_layout.py`); gdstudio #1106, #1105, 2026-11-11 (gate files rewrapped);
+  gdstudio #1040 (a sweep).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or

@@ -49,16 +49,21 @@ closes the hands on it:
   thigh.
 
 Measured on the skinned mesh in every pistol clip and every locomotion clip with the pistol out
-(`tests/gameplay/test_pistol_hold.gd`): no skin more than 1.6 mm inside the pistol or the other hand, and no holding
-part more than 2.7 mm off it on the female mannequin and 4.4 mm on the male (the limits are 2 mm and 5 mm).
+(`tests/gameplay/test_pistol_hold.gd`): no skin more than 1.8 mm inside the pistol or the other hand on the female
+body and 1.3 mm on
+the male, and no holding part more than 2.8 mm and 2.2 mm off it (the limits are 2 mm and 5 mm).
 
-No number of the hold is typed by hand. `tools/hold/dump_hold_rig.gd` writes the rig as Godot plays it,
+No number is typed into a file of the hold. `tools/hold/dump_hold_rig.gd` writes the rig as Godot plays it,
 `tools/hold/solve_pistol_hold.py` solves the seat, the fingers, the left hand's place over the right hand, the right
 thumb on it, the trigger finger's way to the trigger and the left hand's way off the pistol (the opened pose and the
 clear line it leaves along) and the left fingers on the new magazine with the shares of its way in over which they let
-go of it, on both mannequins at once, each hand measured against the other, and `tools/hold/write_hold.gd` writes
-`pistol_held.tscn`, the eight `HandPose` files of `gameplay/weapon/hold/` and, in `weapon_hold.tscn`, the way
-(`support_way`), the magazine's way in (`magazine_approach`) and those shares (`carry_release`).
+go of it, a body at a time, each hand measured against the other, and `tools/hold/write_hold.gd` writes
+`pistol_held.tscn`, the ten `HandPose` files of `gameplay/weapon/hold/` and, in `weapon_hold.tscn`, the way
+(`support_way`), the magazine's way in (`magazine_approach`) and those shares (`carry_release`); another body's go
+into its `HoldFit` file. A finger whose solved pose does not read as a hand is set by hand, as angles in
+`tools/hold/pistol_authored.json` (the female body's left middle, ring and little fingers, her right little finger
+and thumb, and both bodies' thumb on its way to the left thumb's root): look at it and measure it with
+`tools/hold/pose_bench.gd`, and `write_hold.gd` lays the file over whatever the solver wrote.
 After a change to the model or to a mannequin's hands, run the three (each file's header has its command), then
 `tools/capture/pistol_hold_study.tscn` for the numbers and close-ups, and the test.
 

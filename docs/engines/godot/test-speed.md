@@ -143,6 +143,14 @@ two clocks, and a slow runner pulls them apart. Give the real-time part an injec
   stayed 1.12 to 1.17 m at every slowdown); Deadnight #1059, 2026-11-04 (`GameServer.clock`); gdstudio #903,
   2026-11-10 (a socket rig on the real clock: lingers never ended at `--fixed-fps 60`).
 
+- **Approach:** On a clock of ticks counted in seconds (frame count over tick rate), compare a deadline made by a sum
+  (`now + delay`) with a slack far under a tick (`LinkConditioner.DUE_SLACK`, 1 µs), and test it from several start
+  frames; to reproduce a full-run flake alone, add a base frame count to `SocketRig.frame_clock` and sweep it.
+  **Watch out for:** `frame / 60.0 + 0.15` lands a hair past `(frame + 9) / 60.0` at one frame count in five, so a
+  150 ms hold took 10 frames for some packets, chosen by how many frames the process had run: the AI rewind suite's
+  drawn guard slipped a tick (7 cm against 3.6 mm alone) and its shot missed at 4 of 128 swept bases. **Seen:**
+  gdstudio #1310, 2026-11-11 (`test_net_link_conditioner.gd`, the frame clock case; 128 of 128 bases alike after).
+
 - **Approach:** Switch off a node that eases or animates in `_process` (`set_process(false)`,
   `AnimationTree.callback_mode_process = MANUAL`) and step it by hand with a fixed delta in the test's tick helper;
   give a delta-driven animation its time by hand (`animation._process(seconds)`) and assert relative to the start;

@@ -26,6 +26,8 @@ Each stage of making an asset has a page; the asset classes and the tooling have
 | Triangle budgets per class, decimation, levels of detail, fewer meshes | [Optimisation](optimisation.md) |
 | glTF flags, axes, shared atlases, reading a glb back, checks after the import | [Export to Godot](export.md) |
 | Running build scripts, rebuilding committed files, the checks a build makes | [Build scripts](build-scripts.md) |
+| GDStudio's own prototype bodies: what they are for, the three looks, the proof in Godot, building | [Prototype mannequins](prototype-mannequins.md) |
+| The skeleton of GDStudio's own rig: bones, rest pose, twist bones, sockets, IK targets, clip rules | [The prototype mannequin rig](mannequin-rig.md) |
 | Cleaning Quaternius characters and exporting their clips for a shared animation library | [Rig sharing](rig-sharing.md) |
 | Locomotion clips from a kit's Run, at a known ground speed | [Gaits](gaits.md) |
 | The plan to own every clip: the library's clips measured, the research, the set, checks, variants and review | [Our own animation set](own-animation.md) |
@@ -34,6 +36,7 @@ Each stage of making an asset has a page; the asset classes and the tooling have
 | Weapons in the kit's style: axes, sockets, hands, budgets | [Weapons](weapons.md) |
 | How hands hold a weapon, grip by grip: the two-handed pistol grip | [Hands on a weapon](weapon-hands/index.md) |
 | Rendering app icons and key art from the game's own models with Cycles | [Key art and icons](key-art.md) |
+| A realistic character: sculpt base, bakes, skin, eyes, hair cards, clothes, budgets, what fell short | [Realistic characters](realistic-characters.md) |
 
 The `blender-artist` agent is measured on these pages by five small tasks with numbers to meet
 ([Agent evals](../../studio/agent-evals.md)).

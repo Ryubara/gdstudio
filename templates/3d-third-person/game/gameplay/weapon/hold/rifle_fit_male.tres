@@ -1,0 +1,123 @@
+[gd_resource type="Resource" script_class="HoldFit" format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose.gd" id="1_ugvyd"]
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hold_fit.gd" id="2_qkht1"]
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose_way.gd" id="3_qkht1"]
+
+[sub_resource type="Resource" id="Resource_j7tpy"]
+script = ExtResource("1_ugvyd")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.16507, -0.7056, 0.04625, 0.68757),
+&"index_02_r": Quaternion(0.01963, 0, 0, 0.99981),
+&"index_03_r": Quaternion(0, 0, 0, 1),
+&"middle_01_r": Quaternion(0.38145, -0.47905, 0.52011, 0.59539),
+&"middle_02_r": Quaternion(0.16505, -0.00025, -0.00149, 0.98628),
+&"middle_03_r": Quaternion(0.47332, 0.00053, 0.001, 0.88089),
+&"pinky_01_r": Quaternion(0.0349, -0.6699, 0.22637, 0.70624),
+&"pinky_02_r": Quaternion(0.51877, 0.00043, 0.00071, 0.85491),
+&"pinky_03_r": Quaternion(0.35633, -0.00022, -0.00057, 0.93436),
+&"ring_01_r": Quaternion(0.24451, -0.5929, 0.38533, 0.66348),
+&"ring_02_r": Quaternion(0.47907, -1e-05, -1e-05, 0.87777),
+&"ring_03_r": Quaternion(0.37056, 0.0004, 0.00099, 0.92881),
+&"thumb_01_r": Quaternion(-0.37121, 0.89141, 0.23048, -0.12027),
+&"thumb_02_r": Quaternion(0.50504, -0.12594, -0.20661, 0.82849),
+&"thumb_03_r": Quaternion(0.33404, 0.0001, 0.00053, 0.94256)
+})
+
+[sub_resource type="Resource" id="Resource_akh41"]
+script = ExtResource("1_ugvyd")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_l": Quaternion(0.10757, 0.65677, -0.26202, 0.69887),
+&"index_02_l": Quaternion(0.59131, 0, 0, 0.80644),
+&"index_03_l": Quaternion(0.40075, 0, 0, 0.91619),
+&"middle_01_l": Quaternion(0.20994, 0.67538, -0.20943, 0.67522),
+&"middle_02_l": Quaternion(0.5628, 0.00085, 0.00125, 0.82659),
+&"middle_03_l": Quaternion(0.37865, -0.00043, -0.00105, 0.92554),
+&"pinky_01_l": Quaternion(-0.01291, 0.69879, -0.10813, 0.70699),
+&"pinky_02_l": Quaternion(0.42262, -0.00035, -0.00076, 0.90631),
+&"pinky_03_l": Quaternion(0.27983, 0.00017, 0.00059, 0.96005),
+&"ring_01_l": Quaternion(0.10732, 0.68133, -0.18921, 0.69891),
+&"ring_02_l": Quaternion(0.50566, 1e-05, 1e-05, 0.86273),
+&"ring_03_l": Quaternion(0.33792, -0.00036, -0.001, 0.94118),
+&"thumb_01_l": Quaternion(0.43812, 0.57838, 0.47464, 0.49824),
+&"thumb_02_l": Quaternion(-0.10794, -0.02667, 0.23836, 0.96479),
+&"thumb_03_l": Quaternion(0.04387, 6e-05, -0.00054, 0.99904)
+})
+
+[sub_resource type="Resource" id="Resource_wl1ko"]
+script = ExtResource("1_ugvyd")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_l": Quaternion(0.02927, 0.707, -0.02501, 0.70616),
+&"index_02_l": Quaternion(0.06627, 0, 0, 0.9978),
+&"index_03_l": Quaternion(0.04318, 0, 0, 0.99907),
+&"middle_01_l": Quaternion(0.04138, 0.70197, -0.07872, 0.70664),
+&"middle_02_l": Quaternion(0.05103, 8e-05, 0.00151, 0.9987),
+&"middle_03_l": Quaternion(0.05234, -6e-05, -0.00113, 0.99863),
+&"pinky_01_l": Quaternion(0.07342, 0.70779, -0.09511, 0.69613),
+&"pinky_02_l": Quaternion(0.0397, -3e-05, -0.00083, 0.99921),
+&"pinky_03_l": Quaternion(0.02574, 2e-05, 0.00061, 0.99967),
+&"ring_01_l": Quaternion(0.06918, 0.7021, -0.09091, 0.70285),
+&"ring_02_l": Quaternion(0.02705, 0, 1e-05, 0.99963),
+&"ring_03_l": Quaternion(0.04667, -5e-05, -0.00107, 0.99891)
+})
+
+[sub_resource type="Resource" id="Resource_umvhw"]
+script = ExtResource("1_ugvyd")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_l": Quaternion(0.14551, 0.6961, -0.12431, 0.69197),
+&"index_02_l": Quaternion(0.32557, 0, 0, 0.94552),
+&"index_03_l": Quaternion(0.21431, 0, 0, 0.97677),
+&"middle_01_l": Quaternion(0.26656, 0.63225, -0.31665, 0.65494),
+&"middle_02_l": Quaternion(0.25249, 0.00038, 0.00146, 0.9676),
+&"middle_03_l": Quaternion(0.25882, -0.00029, -0.00109, 0.96593),
+&"pinky_01_l": Quaternion(0.43732, 0.61054, -0.35672, 0.55565),
+&"pinky_02_l": Quaternion(0.19723, -0.00016, -0.00082, 0.98036),
+&"pinky_03_l": Quaternion(0.12836, 8e-05, 0.0006, 0.99173),
+&"ring_01_l": Quaternion(0.37711, 0.59457, -0.38274, 0.59815),
+&"ring_02_l": Quaternion(0.13485, 0, 1e-05, 0.99087),
+&"ring_03_l": Quaternion(0.23132, -0.00025, -0.00104, 0.97288),
+&"thumb_01_l": Quaternion(0.2285, 0.91256, 0.28473, 0.18427),
+&"thumb_02_l": Quaternion(-0.11718, -0.01082, 0.09091, 0.98888),
+&"thumb_03_l": Quaternion(0.11128, 2e-05, -0.00054, 0.99379)
+})
+
+[sub_resource type="Resource" id="Resource_1vdqf"]
+script = ExtResource("1_ugvyd")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.17555, -0.7037, 0.06931, 0.68497),
+&"index_02_r": Quaternion(0.74896, 0, 0, 0.66262),
+&"index_03_r": Quaternion(0.35225, 0, 0, 0.93591)
+})
+
+[sub_resource type="Resource" id="Resource_ph6ty"]
+script = ExtResource("1_ugvyd")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.06379531, -0.97502273, 0.1591132, -0.1412233),
+&"index_02_r": Quaternion(0.019629948, 0, 0, 0.99980736),
+&"index_03_r": Quaternion(0, 0, 0, 1)
+})
+
+[sub_resource type="Resource" id="Resource_vxpoj"]
+script = ExtResource("1_ugvyd")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.06379531, -0.97502273, 0.1591132, -0.1412233),
+&"index_02_r": Quaternion(0.74895763, 0, 0, 0.66261786),
+&"index_03_r": Quaternion(0.35224867, 0, 0, 0.9359064)
+})
+
+[sub_resource type="Resource" id="Resource_80kuy"]
+script = ExtResource("3_qkht1")
+poses = Array[ExtResource("1_ugvyd")]([SubResource("Resource_ph6ty"), SubResource("Resource_vxpoj")])
+
+[resource]
+script = ExtResource("2_qkht1")
+body = "form_male.glb"
+seat = Transform3D(-0.17364737, 2.831222e-06, -0.98480535, -0.9566252, 0.23750849, 0.1686802, 0.23390232, 0.97139055, -0.041243628, -0.040759213, 0.056245085, -0.022368968)
+support_hand = Transform3D(0, -0.6, -0.8, 1, 0, 0, 0, -0.8, 0.6, -0.204, 0.07657, 0.056)
+magazine_hand = Transform3D(0, -1, 0, 0, 0, 1, -1, 0, 0, -0.045, -0.07, 0.03045)
+grip_pose = SubResource("Resource_j7tpy")
+trigger_pose = SubResource("Resource_1vdqf")
+support_pose = SubResource("Resource_umvhw")
+magazine_pose = SubResource("Resource_akh41")
+open_pose = SubResource("Resource_wl1ko")
+trigger_way = SubResource("Resource_80kuy")

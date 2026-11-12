@@ -309,9 +309,12 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   changes after that, in the editor at once while `editor_preview` is on (Debug, Visible Collision Shapes), never
   saved: the glb a swap deletes would hold them. A character that never dies never carries them
   ([cost](#cost)). Any rig with these
-  65 bones works, both mannequins included. Generated, not the editor's Create Physical Skeleton: a joint's zero is the
-  pose it is made in (here a neutral pose, there the T-pose), the swap needs code anyway, and the mannequins differ by
-  up to 9 cm ([why](#building)).
+  65 bones works: the Quaternius mannequins and the prototype bodies the template's characters wear (kit #1187; the
+  capsules were measured against the `form` bodies' skin with `tools/mannequin/measure_segments.gd` and fit it but
+  for the calves, now 0.055 m; thinner arms and legs let the jogging male's shoulder twist 28 to 35 degrees past a
+  person's range in `test_ragdoll_cones.gd`, so the rest stay). Generated, not the editor's Create Physical
+  Skeleton: a joint's zero is the pose it is made in (here a neutral pose, there the T-pose), the swap needs code
+  anyway, and the mannequins differ by up to 9 cm ([why](#building)).
 - **How the limits are set.** A person's: hinges for elbows and knees (each held by `hinge_passes` hinges), cones for
   the rest (each held by `cone_passes` cones; the copies are `RagdollBraces`), the same both sides, the shoulder's
   twist 45 where a person's is 60 ([numbers](#limits)); a cone's centre is the clips' mean direction

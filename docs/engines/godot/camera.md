@@ -191,6 +191,21 @@ while aiming keeps its point to the end even if the aim is let go mid-swap.
   **Watch out for:** reading that frame of a capture as the anchor failing. **Seen:** gdstudio #1087, 2026-11-11 (the
   capture's contact sheets).
 
+## Aim and fire framing {#aim-and-fire-framing}
+
+<!-- new section: the page held the shoulder view, walls and the swap; nothing said what aiming and firing do to the
+     framing or who may change it -->
+
+3D Third Person's `PlayerCamera` frames three ways besides the follow view: aiming (its Aim group: `aim_fov`,
+`aim_distance`, `aim_shifts_shoulder`), firing without aiming (its Fire group: `zoom_when_firing`, `fire_fov`,
+`fire_distance`) and sprinting or sliding (wider by `sprint_fov_change`). The zoom follows the buttons (`aim_held`,
+`fire_held`), with no hold after a shot. The held weapon may change it: `WeaponDef.fire_zooms` off leaves the framing
+alone on fire (the fists), and with `override_zoom` on, the weapon's `aim_fov`, `aim_distance`, `fire_fov`,
+`fire_distance` and `zoom_offset` replace the camera's. The camera reads the held definition every frame
+(`held_definition()`), on each machine, never sent. The rules and their tests: [Ammo, reloading and
+switching](third-person/shooting.md#weapons) (gdstudio #1255) and [Crouch, aim and
+shoot](third-person/shooting.md#crouch-aim-shoot) (gdstudio #856).
+
 ## Reading a rotation {#rotations}
 
 <!-- new section: the page held smoothing, walls and projection but nothing on reading a turn back from a transform -->
@@ -354,6 +369,13 @@ From Deadnight #702 (a bot's body had the view):
   for:** a player's `camera_rig` is the `Node3D` that places the lens, not the `Camera3D` it moves: `make_current` is
   a nonexistent function there, and the Movie Maker frames stayed on the overview camera. **Seen:** Deadnight #634,
   2026-11-02 (fix: the rig's camera made current).
+
+- **Approach:** Film a close-up of a live game through a `SubViewport` of its own (sharing `world_3d`, in a
+  `SubViewportContainer` on a high `CanvasLayer`), never by making a second camera current in the main viewport.
+  **Watch out for:** the 3D Third Person player aims along the main viewport's camera, so a close-up camera made
+  current turned the character to face it: the rifle tour's front and side views showed her back as soon as she aimed,
+  and a walk steered by that camera missed the pickup. **Seen:** gdstudio #889, 2026-11-10 (fix: `rifle_tour.gd`'s
+  viewport).
 
 - **Approach:** Fix a fault found twice where the thing is made, not in each caller, and have camera tests read
   `get_viewport().get_camera_3d()` in the real Solo-with-bots flow. **Watch out for:** every body is `player.tscn` with
