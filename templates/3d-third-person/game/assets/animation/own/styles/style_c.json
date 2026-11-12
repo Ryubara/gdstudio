@@ -239,15 +239,15 @@
    "Not tried: a shift under 20 frames. The held poses are still but for breath and fingers (3 degrees), which is the point of it."
   ],
   "walk": [
-   "Sharp: a quiet trunk (the hips turn 6 degrees and tip 5, 32 mm of rise), a higher step, elbows bent 26 degrees, each side its own numbers at four fifths of the grounded one's, parts trail under a frame.",
-   "Not tried: held keys with fewer in-betweens; every change is still eased, so it is quieter, not snappier, than the grounded one. Its keys are 19.8 KB a second in the file, the most of the three."
+   "Sharp: a quiet trunk (the hips turn 6 degrees and tip 5, 34 mm of rise), a higher step, elbows bent 26 degrees, each side its own numbers at four fifths of the grounded one's and its own timing, parts trail under a frame.",
+   "Not tried: held keys with fewer in-betweens; every change is still eased, so it is quieter, not snappier, than the grounded one. Its keys are 23.7 KB a second in the file, the most of the three."
   ],
   "jog": [
-   "Sharp: the knee lifts higher (the foot passes 13 cm over its straight path), the front hand comes higher than the back one goes, the hips turn 9 degrees and tip 5, the right arm tighter and the right shoulder lower.",
+   "Sharp: the knee lifts higher (the foot passes 13 cm over its straight path), the front hand comes higher than the back one goes, the hips turn 9 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
    "Not tried: a shorter contact than the grounded one's six frames (five is 25 % of the cycle, under what people run with at this speed)."
   ],
   "sprint": [
-   "Sharp: more lean (the trunk 12 degrees forward), a higher knee, the elbows held at a right angle, the hips turn 14 degrees and tip 5, the right arm tighter and the right shoulder lower.",
+   "Sharp: more lean (the trunk 12 degrees forward), a higher knee, the elbows held at a right angle, the hips turn 14 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
    "Not tried: 16 frames a cycle (225 steps a minute, over the range): a contact would be under four frames."
   ]
  }
