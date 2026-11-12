@@ -445,6 +445,27 @@
         2,
         4
       ]
+    },
+    {
+      "name": "bandage_use",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/bandage",
+      "prefix": "bandage_use",
+      "takes": 4,
+      "seconds": 1.2,
+      "influence": 0.6,
+      "prompt": "A cloth bandage wrapped quickly around a forearm in a video game: a short soft rip of fabric off the roll, then two or three quick rustling wraps of gauze pulled snug. Close, dry, quiet, no voice, no music.",
+      "min_seconds": 0.5,
+      "max_seconds": 1.15,
+      "min_files": 1,
+      "measure": "momentary",
+      "target_lufs": -26.0,
+      "tail_db": -34.0,
+      "highpass_hz": 120.0,
+      "use_takes": [
+        2,
+        1
+      ]
     }
   ],
   "folder_notes": {
