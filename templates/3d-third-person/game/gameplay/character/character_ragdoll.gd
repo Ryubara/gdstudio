@@ -339,7 +339,7 @@ func start(velocity: Vector3 = Vector3.ZERO, viewer := Vector3.INF) -> bool:
 		bone.linear_velocity = velocity * carry_velocity
 		bone.angular_velocity = Vector3.ZERO
 		if from_pose:
-			_give_pose_velocity(key, bone)
+			_give_pose_velocity(key, bone, velocity)
 	_limp = true
 	_blend = 1.0
 	_since_start = 0.0
@@ -889,13 +889,13 @@ func _animated_body(skeleton: Skeleton3D, key: StringName) -> Transform3D:
 	)
 
 
-# The velocity of the body over the last tick: a bone's own motion plus the character's. Past 40
-# m/s the sample is a teleport, not a motion, and the character's velocity stays.
-func _give_pose_velocity(key: StringName, bone: PhysicalBone3D) -> void:
+# The velocity of the body: its motion in the pose over the last tick plus the character's
+# `velocity` (#1343); past 40 m/s the sample is a jump of the pose and the character's stays.
+func _give_pose_velocity(key: StringName, bone: PhysicalBone3D, velocity: Vector3) -> void:
 	var step := 1.0 / maxf(float(Engine.physics_ticks_per_second), 1.0)
 	var moved := _pose.body_velocity(key, bone.body_offset, step, MAX_POSE_SPEED)
 	if not moved.is_empty():
-		bone.linear_velocity = moved[0] * carry_velocity
+		bone.linear_velocity = (moved[0] + velocity) * carry_velocity
 		if moved[1] != Vector3.ZERO:
 			bone.angular_velocity = moved[1] * carry_velocity
 

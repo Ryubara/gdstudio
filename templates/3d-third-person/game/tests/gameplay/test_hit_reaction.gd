@@ -176,6 +176,7 @@ func test_the_hit_reaction_and_the_health_pin_their_exports() -> void:
 		&"character": null,
 		&"ragdoll": null,
 		&"death_push": 1.5,
+		&"push_most_speed": 5.0,
 		&"lying_push": 0.5,
 		&"flinch_enabled": true,
 		&"flinch_push": 0.6,
