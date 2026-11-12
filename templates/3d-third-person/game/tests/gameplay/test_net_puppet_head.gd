@@ -14,6 +14,8 @@ const BO_AT := Vector3(-3.5, 0.0, 13.3)
 const LEVEL := 3.0
 const LOOK := 4.0
 const ROLL_ON_NECK := 8.0
+## How far the eye may be off the sight line of a weapon aimed down its sights, in metres.
+const SIGHT_OFF := 0.081
 
 var _rig: OnlineRig
 var _ada: NetClient
@@ -52,6 +54,8 @@ func test_a_puppet_aiming_holds_its_head_level_on_the_neck() -> void:
 	puppet.loadout.equip_now(puppet.loadout.slot_of(rifle))
 	await _drive(_command(0.0, false), 40)
 	assert_str(String(puppet.weapon.definition.resource_path)).ends_with("rifle.tres")
+	# The rifle's hold made its modifiers after the probe: the probe reads the pose they leave.
+	probe.get_parent().move_child(probe, -1)
 	await _check(puppet, probe, "rifle")
 
 
@@ -77,6 +81,18 @@ func _check(puppet: Player, probe: HeadPoseProbe, weapon: String) -> void:
 				+ " (pitch %.1f, roll %.1f)" % [neck.x, neck.y]
 			)
 		)
+		if weapon == "rifle":
+			# A shouldered weapon: the eye by its sights, not a level head (`AimHead.SIGHT`).
+			assert_int(probe.eye_offs.size()).override_failure_message(label).is_greater(0)
+			print("%s: eye %.1f mm off the sight line" % [label, probe.eye_offs[-1] * 1e3])
+			(
+				assert_float(probe.eye_offs[-1])
+				. override_failure_message(label + ": the eye is off the sight line")
+				. is_less(SIGHT_OFF)
+			)
+			var ada := _ada.player.get_node("AimLayer") as AimLayer
+			assert_float(ada.head_weight()).is_greater(0.99)
+			continue
 		assert_float(absf(world.y)).override_failure_message(label + ": off level").is_less(LEVEL)
 		assert_float(probe.misses[-1]).override_failure_message(label + ": off the aim").is_less(
 			LOOK

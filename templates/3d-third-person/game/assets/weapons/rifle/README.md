@@ -89,7 +89,7 @@ turns and the chest turn added 0.3 ms a frame on the desktop (2.1 to 2.4 ms of p
 with), about 8 microseconds a character; it is a cosmetic pose, computed on each machine from the aim pitch the game
 already has, and never sent over the network.
 
-What it does not do: the head stays beside the stock rather than on it. Rifle clips made in Blender on the universal
-rig (an idle, an aim with up and down, a shot, a
-reload) would give a better body motion than a chest turn, at the cost of animating them; the IK hold above is the
-start that the weapon work can ship with, and a clip can replace any part of it later.
+What the hold alone does not do: the head stays beside the stock rather than on it. The rifle clips of kit #1082
+(`assets/animation/rifle/`: an idle, an aim with up and down, a shot, a reload) give the body under the hold: the
+lean, the shoulders, the head down on the stock, the recoil and the reload's looks. The hold still carries the rifle
+and puts the hands on it.
