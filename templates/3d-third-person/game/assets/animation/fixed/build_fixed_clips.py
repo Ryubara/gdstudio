@@ -40,7 +40,7 @@ from mathutils import Matrix, Vector
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-import limb_overlap  # noqa: E402
+import limb_overlap
 
 ASSETS = HERE.parent.parent
 LIBRARIES = HERE.parent / "universal"
