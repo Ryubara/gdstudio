@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="WeaponDef" load_steps=17 format=3]
+[gd_resource type="Resource" script_class="WeaponDef" load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://gameplay/weapon/weapon_def.gd" id="1_def"]
 [ext_resource type="Resource" path="res://gameplay/weapon/muzzle_flash.tres" id="3_flash"]
@@ -14,6 +14,7 @@
 [ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_reload_mag_in.ogg" id="r2"]
 [ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_reload_bolt.ogg" id="r3"]
 [ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_draw.ogg" id="d1"]
+[ext_resource type="Resource" path="res://gameplay/weapon/categories/rifle.tres" id="c1_category"]
 
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_shot"]
 streams_count = 5
@@ -56,6 +57,7 @@ ammo_item = &"rifle_ammo"
 reload_time = 2.2
 holster_time = 0.3
 draw_time = 0.4
+category = ExtResource("c1_category")
 view = NodePath("RifleHeld")
 view_scene = ExtResource("4_held")
 muzzle = NodePath("RifleHeld/Pivot/Rifle/Near/Rifle/Muzzle")

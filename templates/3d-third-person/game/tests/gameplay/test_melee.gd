@@ -8,6 +8,7 @@ extends GdUnitTestSuite
 
 const PISTOL := "res://gameplay/weapon/pistol.tres"
 const FISTS := "res://gameplay/weapon/fists.tres"
+const RIFLE := "res://gameplay/weapon/rifle.tres"
 const UNARMED := "res://gameplay/weapon/categories/unarmed.tres"
 const PISTOL_CATEGORY := "res://gameplay/weapon/categories/pistol.tres"
 const RIFLE_CATEGORY := "res://gameplay/weapon/categories/rifle.tres"
@@ -262,6 +263,7 @@ func test_a_definition_overrides_its_category_numbers_and_keeps_its_clips() -> v
 func test_the_weapons_point_at_their_categories() -> void:
 	assert_object((load(PISTOL) as WeaponDef).category).is_same(load(PISTOL_CATEGORY))
 	assert_object((load(FISTS) as WeaponDef).category).is_same(load(UNARMED))
+	assert_object((load(RIFLE) as WeaponDef).category).is_same(load(RIFLE_CATEGORY))
 	assert_int((load(FISTS) as WeaponDef).kind).is_equal(WeaponDef.Kind.MELEE)
 	for path: String in [UNARMED, PISTOL_CATEGORY, RIFLE_CATEGORY]:
 		var category := load(path) as WeaponCategory
