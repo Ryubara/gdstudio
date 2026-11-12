@@ -14,13 +14,16 @@ poses: a lean pose and the reference it leans from. Each clip here is one held p
 - **The difference is the lean.** It moves the pelvis, the spine, the neck, the head and the legs, and each
   upper arm by the little that keeps it hanging along the body's line with its hand off its thigh (a chest that
   bends further than the body leans does not take the arms with it); the forearms, the hands and the fingers
-  are the reference's, so a gait's arm swing is left alone. At full weight on the reference the feet are the
-  lean pose's: flat, within 2 mm of the floor (the build's floor check, on every body).
+  are the reference's, so a gait's arm swing is left alone. The `ik_` targets are keyed where their limbs'
+  ends are, so the difference moves each target with its hand or foot. At full weight on the reference the feet
+  are the lean pose's: flat, within 2 mm of the floor (the build's floor check, on every body).
 - **No side is the other flipped.** Left and right have their own shares, turns and degrees: the right shoulder
   carries the weapon arm and drops less, the hips swing out further to the left.
 
 `locomotion.json` says of each lean pose its `lean` (the way it leans, degrees to the left of ahead, and how many
-degrees of lean the full pose is) and its `reference`, so the tree's weight is `atan(a / g)` over those degrees.
+degrees of lean the full pose is) and its `reference`. The template's tree (`GaitLean`, kit #1158) adds a pose's
+difference from the idle's first frame, which `Lean_Ref` is within 0.3 degrees a bone, weighted by the
+acceleration over its `lean_full_at`.
 """
 
 import copy
@@ -72,8 +75,9 @@ DEFAULTS = {
 REFERENCE = "Lean_Ref"
 ## A held pose's length in frames: its first and last key are the one pose.
 FRAMES = 2
-## The bones a lean moves; the rest of the body is the reference's and stays out of the difference.
-MOVED = ("pelvis", "spine_", "neck_", "Head", "thigh_", "calf_", "foot_", "ball_", "upperarm_")
+## The bones a lean moves, and the `ik_` targets, which follow their limbs' ends; the rest of the body is the
+## reference's and stays out of the difference.
+MOVED = ("pelvis", "spine_", "neck_", "Head", "thigh_", "calf_", "foot_", "ball_", "upperarm_", "ik_")
 
 
 def _reference(joined) -> tuple:
@@ -104,7 +108,9 @@ def _held(name: str, joined, spec: dict, over: tuple, stretch: float, style_lett
         kind="action",
         # A held pose is two keys a bone: its cost is the clip's 1.6 KB, which a rate per second says nothing of.
         declared={"says": {"pose": True, **says}, "keys_kept": 1.0, "kb_a_second": 30.0},
-        bones=[name for name in keyed_bones(rig) if not name.startswith("ik_")],
+        # The `ik_` targets too, set from the finished pose: the tree adds a lean's difference from the idle's
+        # first frame, and a pose without them would pull each target back to its rest by the idle's offset.
+        bones=keyed_bones(rig),
         style=style_letter,
     )
 

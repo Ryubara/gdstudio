@@ -32,9 +32,10 @@ const STRAFES: Array[String] = ["Walk_Left", "Walk_Right", "Jog_Left", "Jog_Righ
 ## The lean poses and the way each leans (degrees to the left of ahead).
 const LEANS := {"Lean_Left": 90.0, "Lean_Right": -90.0, "Lean_Fwd": 0.0, "Lean_Back": 180.0}
 const REFERENCE := "Lean_Ref"
-## The bones a lean's difference from its reference may move (`clips/lean.py`, `MOVED`).
+## The bones a lean's difference from its reference may move (`clips/lean.py`, `MOVED`), and the
+## `ik_` targets, which follow their limbs' ends.
 const MOVED: Array[String] = [
-	"pelvis", "spine_", "neck_", "Head", "thigh_", "calf_", "foot_", "ball_", "upperarm_"
+	"pelvis", "spine_", "neck_", "Head", "thigh_", "calf_", "foot_", "ball_", "upperarm_", "ik_"
 ]
 ## A strafe's hips, knees and toes are turned a third toward its step: between these, degrees.
 const TOWARD := [15.0, 50.0]
@@ -481,6 +482,69 @@ func test_the_tree_adds_a_lean_s_difference_to_its_reference_and_the_soles_stay_
 			tree.active = false
 			tree.free()
 		measure.free_nodes()
+
+
+func test_the_player_s_tree_leans_with_these_poses_and_its_targets_follow_its_limbs() -> void:
+	# The template's tree (`GaitLean`, kit #1158) builds its lean from the four poses and adds each
+	# one's difference from the idle's first frame. On the player, at full weight each way: the
+	# head goes that way, the feet stay where they stand, and each `ik_` target keeps its place on
+	# its hand or foot (a pose that keyed no target pulled each one off by the idle's offset).
+	var arena: PlayArena = auto_free(PlayArena.new())
+	add_child(arena)
+	var body: Player = arena.add_player(Vector3.ZERO)
+	var animation: CharacterAnimation = body.get_node("Animation")
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	assert_bool(animation.gait.lean.is_built()).is_true()
+	var names := {
+		&"left": "Lean_Left", &"right": "Lean_Right", &"forward": "Lean_Fwd", &"back": "Lean_Back"
+	}
+	for way: StringName in names:
+		assert_str(String(animation.gait.lean.settings.lean_clips[way])).is_equal(
+			"gds/" + names[way]
+		)
+	_skeleton = body.find_children("*", "Skeleton3D", true, false)[0]
+	var tree := animation.tree
+	var upright := _leaned(tree, names, &"")
+	for way: StringName in names:
+		var leaned := _leaned(tree, names, way)
+		var head: Vector3 = (
+			(leaned["Head"] as Transform3D).origin - (upright["Head"] as Transform3D).origin
+		)
+		var toward := head.dot(_way(LEANS[names[way]]))
+		var feet := 0.0
+		for bone: String in ["foot_l", "foot_r"]:
+			var a: Transform3D = leaned[bone]
+			var b: Transform3D = upright[bone]
+			feet = maxf(feet, a.origin.distance_to(b.origin))
+		var targets := 0.0
+		for target: String in ["ik_foot_l", "ik_foot_r", "ik_hand_l", "ik_hand_r"]:
+			var limb := target.substr(3)
+			var now := (leaned[target] as Transform3D).origin.distance_to(
+				(leaned[limb] as Transform3D).origin
+			)
+			var was := (upright[target] as Transform3D).origin.distance_to(
+				(upright[limb] as Transform3D).origin
+			)
+			targets = maxf(targets, absf(now - was))
+		var message := (
+			"%s: the head %.0f mm its way, the feet %.1f mm, a target %.1f mm off its limb"
+			% [names[way], toward * 1000.0, feet * 1000.0, targets * 1000.0]
+		)
+		print(message)
+		assert_float(toward).override_failure_message(message).is_greater(0.05)
+		assert_float(feet).override_failure_message(message).is_less(0.005)
+		assert_float(targets).override_failure_message(message).is_less(0.01)
+	_leaned(tree, names, &"")
+
+
+# The player's pose with the lean of one way at full weight and the others at none.
+func _leaned(tree: AnimationTree, names: Dictionary, lean: StringName) -> Dictionary:
+	for way: StringName in names:
+		var node := "parameters/Lean%s/add_amount" % String(way).capitalize()
+		tree.set(node, 1.0 if way == lean else 0.0)
+	tree.advance(0.0)
+	return _read()
 
 
 # reference + (lean - reference), as an `AnimationTree` over the staged player.

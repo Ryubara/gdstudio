@@ -571,10 +571,15 @@ upper arm keeps hanging along the body's line with its hand off its thigh. Every
 the difference between a lean pose and `Lean_Ref` moves only the pelvis, the spine, the neck, the head, the legs
 and the upper arms.
 
-In Godot the tree adds `Lean_X - Lean_Ref` over a gait (`AnimationNodeSub2` into `AnimationNodeAdd2`). Over the
-reference at full weight that gives the lean pose back within 0.06 degrees a bone, with both soles within 0.7 mm
-of the floor on both of the template's bodies (`test_own_directions.gd`). Over a gait the legs' share of the lean
-moves the feet, which the tree's foot placement has to hold: that is kit #1158.
+In Godot the template's tree (`GaitLean`, kit #1158) adds `Lean_X - Idle` (the idle's first frame) over the
+locomotion (`AnimationNodeSub2` into `AnimationNodeAdd2`), weighted by the body's acceleration over
+`lean_full_at`. `Lean_Ref` is the idle's first frame within 0.3 degrees a bone, so the difference is the one the
+poses were built as. Over the reference at full weight it gives the lean pose back within 0.06 degrees a bone, both
+soles within 0.7 mm of the floor on both of the template's bodies; on the player, standing, the head goes 210 to
+330 mm the pose's way and the feet and the `ik_` targets stay within 0.1 mm of where they were on their limbs
+(`test_own_directions.gd`). The poses key the `ik_` targets where their hands and feet are: a pose without them
+would pull each target back toward its rest by the idle's offset. Over a gait the legs' share of the lean moves
+the feet, which a foot placement would have to hold; the tree has none yet.
 
 ### The variants of the directions and the lean
 
@@ -647,7 +652,7 @@ in the shipped gaits, thigh in thigh: his thighs meet by 2 mm in his rest pose a
   its travel (negative to the right).
 - A lean pose's record has `pose` (true), `lean` (`way`, degrees to the left of ahead, and `degrees`, the lean the
   full pose is) and `reference` (`Lean_Ref`). The weight of a lean is the lean wanted over `degrees`. Each pose is
-  two keys a bone on 52 bones, 1.7 KB in the file; they key no `ik_` target.
+  two keys a bone on 52 bones and the four `ik_` targets, 1.9 KB in the file.
 - **Imported size:** 166 KB for the nineteen clips, 29.7 s, with Godot's compression pages at 32 KiB: 5.58 KB a
   second against the 6 the test holds the file to (174 KB and 5.86 at 8 KiB pages; 130 KB and 5.3 before these
   clips, 6.2 with the directions' fingers keyed). The next short loops will need the budget looked at: a file of

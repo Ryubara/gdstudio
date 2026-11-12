@@ -342,7 +342,12 @@ part plays on at its own pace; a body asked for something else leaves it at once
 plays and the states change as before.
 
 **What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
-pose's difference from the idle's first frame.
+pose's difference from the idle's first frame, so it keys every bone the idle keys, the `ik_` targets too (where
+its hands and feet are), or the difference pulls an unkeyed one back toward its rest. The template's own are
+`gds/Lean_Left`, `Lean_Right`, `Lean_Fwd` and `Lean_Back` (`assets/animation/own/clips/lean.py`); each record says
+its `lean` (`way`, degrees to the left of ahead, and the `degrees` the full pose leans) and its `reference`
+(`Lean_Ref`, within 0.3 degrees a bone of the idle's first frame). On the player at full weight the head goes 210
+to 330 mm the pose's way and the feet and targets stay within 0.1 mm (`test_own_directions.gd`).
 
 The cost, from `tools/bench/gait_cost.tscn` (`gds template bench-web 3d-third-person gait_cost --run`, headless
 Chrome on a workstation, the settings off and on in turns, players walking, blending, sprinting and stopping): 38 µs a
