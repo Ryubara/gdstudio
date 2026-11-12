@@ -46,7 +46,7 @@ DEFAULTS = {
     "heel_rise": 1.0,  # the share of the contact the heel takes to get there (1: it starts to rise as the foot lands)
     "clearance": 0.045,  # metres the ball of the foot clears the floor by in its swing
     "toe_reach": 0.026,  # metres the male mannequin's toes are longer than the reference body's (24 mm, measured)
-    "lift": 0.065,  # metres the pelvis is carried higher than in the crouch idle
+    "lift": 0.056,  # metres the pelvis is carried higher than in the crouch idle
     "dip": 0.016,  # metres the pelvis goes down and up, twice a stride
     "dip_at": 0.22,  # where in a step (0 landing, 1 the next landing) the pelvis is lowest
     "shift": 0.3,  # how far the weight goes toward the planted foot (1 is over it)

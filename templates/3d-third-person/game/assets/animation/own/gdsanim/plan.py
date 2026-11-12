@@ -201,6 +201,15 @@ class ContactPlan:
         if pivot == "ball":
             hinge = at + (sole["hinge"] - sole["ball"])
             ankle = hinge + turn @ (sole["ankle"] - sole["hinge"])
+            if pitch > 0.0:
+                # The toes stay flat and the rest of the foot turns over them; the skin between the two is shared.
+                # Move the foot by how far that leaves its lowest skin from where the flat sole's is, so a body whose
+                # toes curl up off the floor at rest stands on the ball of its foot and not 3 mm over it. The move
+                # is measured from the hinge, so a foot in the air keeps its height.
+                rest = sole["tread"] - sole["hinge"]
+                toes = sole["tread_toes"]
+                lowest = float((toes * rest[:, 1] + (1.0 - toes) * (rest @ turn.T)[:, 1]).min())
+                ankle[1] += (sole["floor"] - sole["hinge"][1]) - lowest
         else:
             ankle = at + turn @ (sole["ankle"] - sole["heel"])
             # The heel's skin is shared with the shin, which does not turn with the foot: blend as the skin does.

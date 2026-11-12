@@ -38,9 +38,15 @@ from gdsanim.rig import Rig  # noqa: E402
 from gdsanim.solve import Solver  # noqa: E402
 
 ASSETS = HERE.parents[1]
-## The body clips are solved on, and the bodies every clip is checked on (the reference first).
-REFERENCE = ASSETS / "characters/mannequin/mannequin_female.glb"
-BODIES = [REFERENCE, ASSETS / "characters/mannequin/mannequin_male.glb"]
+## The body clips are solved on (the template's default, `CharacterBodies.FEMALE`), and the bodies every clip is
+## checked on, the reference first: the template's two, then the Quaternius pair a game can swap in.
+REFERENCE = ASSETS / "characters/prototype/form_female.glb"
+BODIES = [
+    REFERENCE,
+    ASSETS / "characters/prototype/form_male.glb",
+    ASSETS / "characters/mannequin/mannequin_female.glb",
+    ASSETS / "characters/mannequin/mannequin_male.glb",
+]
 ## A clip type's description, by its name in lower case.
 TYPES = {
     "idle": ("Idle", idle.describe),
@@ -120,7 +126,7 @@ def main() -> int:
     parser.add_argument("what", choices=["review", "ship", "self-test"])
     parser.add_argument("name", nargs="?", help="a clip type for review (idle), a group for ship (locomotion)")
     parser.add_argument("--model", type=Path, default=REFERENCE, help="the body clips are solved on")
-    parser.add_argument("--body", type=Path, action="append", help="a body to check on (default: both mannequins)")
+    parser.add_argument("--body", type=Path, action="append", help="a body to check on (default: the four of BODIES)")
     parser.add_argument("--blender", help="the pinned Blender, for limbs inside limbs")
     parser.add_argument("--no-overlap", action="store_true", help="write without the limbs check (never to commit)")
     parser.add_argument("--report", help="write the checks' numbers here as json")

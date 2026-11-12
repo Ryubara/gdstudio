@@ -9,6 +9,12 @@ the file before it is put in place).
 A body whose legs are not the reference body's cannot keep a planted foot on its place from rotations alone: the
 game plants it with the `ik_foot` targets. For such a body the floor and planted-foot numbers are reported with
 `needs_ik` and not held to the limits.
+
+A body whose toes do not rest where the reference body's do cannot stand on the ball of its foot at the reference's
+height: the prototype bodies' toes curl 7 mm up off the floor at rest and the Quaternius mannequins' lie on it, so
+a raised heel solved for one leaves the other that far over or under the floor. Such a body's floor limits
+and its planted sole's wander (the patch of sole that touches moves as the foot sinks) are wider by the difference
+(`toes_off_mm` in its numbers); the reference body and every body shaped like it keep the limits as they are.
 """
 
 import math
@@ -26,6 +32,8 @@ SEAM_FLOOR = 2e-5
 ## Floor: a planted sole's lowest vertex against the floor, and the lowest any vertex may go (m).
 SOLE_BAND = 0.002
 UNDER = 0.005
+## Floor: the least difference between a body's toes at rest and the reference body's that widens its limits (m).
+TOES_SAME = 0.002
 ## Planted feet: the furthest a planted sole wanders in one contact (m), and how far the planted sole's measured
 ## speed may be from the speed `clips.json` gives, as a share.
 WANDER = 0.005
@@ -76,6 +84,10 @@ class Played:
         self.same_legs = (
             all(abs(rig.length[b] - reference.length[b]) < 1e-3 for b in legs) and abs(rig.hips - reference.hips) < 1e-3
         )
+        # How far this body's toes rest from where the reference body's do (m): the floor limits' allowance.
+        self.toes_off = max(abs(rig.sole[s]["toes_up"] - reference.sole[s]["toes_up"]) for s, _ in SIDES)
+        if self.toes_off < TOES_SAME:
+            self.toes_off = 0.0
         self._feet = {}
 
     def foot(self, side: str) -> np.ndarray:
@@ -171,9 +183,11 @@ def check_floor(built, played: dict) -> tuple:
         if not body.same_legs:
             numbers[name]["needs_ik"] = True
             continue
-        if off > SOLE_BAND:
+        if body.toes_off:
+            numbers[name]["toes_off_mm"] = round(body.toes_off * 1000, 1)
+        if off > SOLE_BAND + body.toes_off:
             failures.append(f"floor: a planted sole is {off * 1000:.1f} mm off the floor on {name}")
-        if lowest < -UNDER:
+        if lowest < -(UNDER + body.toes_off):
             failures.append(f"floor: a vertex is {-lowest * 1000:.1f} mm under the floor on {name}")
     return {"floor": numbers}, failures
 
@@ -204,7 +218,7 @@ def check_planted(built, played: dict) -> tuple:
         if not body.same_legs:
             numbers[name]["needs_ik"] = True
             continue
-        if worst > WANDER:
+        if worst > WANDER + body.toes_off:
             failures.append(f"planted: a planted sole wanders {worst * 1000:.1f} mm in a contact on {name}")
         declared = built.record["speed"]
         steady = built.clip.kind == "gait"

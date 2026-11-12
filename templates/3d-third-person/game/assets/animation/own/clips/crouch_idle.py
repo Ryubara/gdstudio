@@ -47,7 +47,7 @@ DEFAULTS = {
     "share": 0.67,  # the share of the weight on the left (front, flat) foot at rest
     "shift": 0.05,  # how far the share moves to each side over the loop
     "shift_settle": [0.0, 0.0],  # the weight's own spring: frames it trails, and the share it swings past by
-    "ahead": 0.45,  # where the weight is between the heel (0) and the toe (1) of the flat foot
+    "ahead": 0.426,  # where the weight is between the heel (0) and the toe (1) of the flat foot
     "sway": 0.003,  # metres the weight drifts toward the toes and back, twice a loop
     "pelvis": [12.0, -11.0, -5.0],  # the pelvis's turn: pitch forward, yaw to the left, lean to the left
     "chest": [78.0, 7.0, 4.0],  # the top of the spine's turn, the same three

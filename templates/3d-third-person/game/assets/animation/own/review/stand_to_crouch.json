@@ -13,6 +13,10 @@
     "foot_r",
     "hand_l",
     "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -152,6 +156,10 @@
     "foot_r",
     "hand_l",
     "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -291,6 +299,10 @@
     "foot_r",
     "hand_l",
     "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -424,6 +436,6 @@
   "Stand_To_Crouch_B",
   "Stand_To_Crouch_C"
  ],
- "reference_hips": 0.9167,
- "rig": "mannequin_female.glb"
+ "reference_hips": 0.9166,
+ "rig": "form_female.glb"
 }

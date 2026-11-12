@@ -13,6 +13,10 @@
     "foot_r",
     "hand_l",
     "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -89,7 +93,7 @@
    "joins": {},
    "kind": "stand",
    "loop": true,
-   "reduced_to_deg": 0.025,
+   "reduced_to_deg": 0.0125,
    "replaces": "ual1/Crouch_Idle",
    "seconds": 8.0,
    "speed": 0.0,
@@ -131,6 +135,10 @@
     "foot_r",
     "hand_l",
     "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -270,6 +278,10 @@
     "foot_r",
     "hand_l",
     "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -316,17 +328,17 @@
     "l": [
      [
       0.0,
-      13.64
+      14.88
      ]
     ],
     "r": [
      [
       0.0,
-      2.64
+      2.88
      ],
      [
-      11.0,
-      22.0
+      12.0,
+      24.0
      ]
     ]
    },
@@ -339,7 +351,7 @@
     },
     {
      "foot": "r",
-     "frame": 11.0,
+     "frame": 12.0,
      "name": "footstep"
     }
    ],
@@ -356,21 +368,21 @@
       0.0
      ],
      [
-      11.0,
-      11.0
+      12.0,
+      12.0
      ]
     ]
    },
-   "frames": 22,
+   "frames": 24,
    "joins": {},
    "kind": "gait",
    "loop": true,
-   "reduced_to_deg": 0.025,
+   "reduced_to_deg": 0.05,
    "replaces": "ual1/Crouch_Fwd",
-   "seconds": 0.7333,
+   "seconds": 0.8,
    "speed": 1.5,
    "start_foot": "l",
-   "style": "A",
+   "style": "B",
    "travel": [
     [
      0,
@@ -378,8 +390,8 @@
      0.0
     ],
     [
-     22,
-     1.1,
+     24,
+     1.2,
      0.0
     ]
    ],
@@ -389,7 +401,7 @@
      0.0
     ],
     [
-     22,
+     24,
      0.0
     ]
    ]
@@ -407,6 +419,10 @@
     "foot_r",
     "hand_l",
     "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -525,6 +541,10 @@
     "foot_r",
     "hand_l",
     "hand_r",
+    "ik_foot_l",
+    "ik_foot_r",
+    "ik_hand_l",
+    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -660,6 +680,6 @@
   "Stand_To_Crouch",
   "Crouch_To_Stand"
  ],
- "reference_hips": 0.9167,
- "rig": "mannequin_female.glb"
+ "reference_hips": 0.9166,
+ "rig": "form_female.glb"
 }
