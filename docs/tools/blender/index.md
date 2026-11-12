@@ -36,6 +36,7 @@ Each stage of making an asset has a page; the asset classes and the tooling have
 | Character variants, clothes and modular parts on one rig | [Variants](variants.md) |
 | Weapons in the kit's style: axes, sockets, hands, budgets | [Weapons](weapons.md) |
 | Rendering app icons and key art from the game's own models with Cycles | [Key art and icons](key-art.md) |
+| A realistic character: sculpt base, bakes, skin, eyes, hair cards, clothes, budgets, what fell short | [Realistic characters](realistic-characters.md) |
 
 The `blender-artist` agent is measured on these pages by five small tasks with numbers to meet
 ([Agent evals](../../studio/agent-evals.md)).

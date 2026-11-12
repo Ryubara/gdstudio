@@ -405,7 +405,8 @@ The pull request for a clip type carries one **review sheet** per type, made by 
    column the same frames of the cycle; rows for the side, the front and the top, over a 0.25 m floor grid moving at
    the game's speed, so a foot that slides is seen sliding.
 2. **A clip (mp4):** the variants side by side in Godot from the game's camera, on the template's map: the loop for
-   five seconds, then the moves that use it (start, turn, stop) driven by the same recorded input for each.
+   five seconds, then the moves that use it (start, turn, stop) driven by the same recorded input for each
+   (`tools/capture/own_clips_review.tscn`; `OWN_ONLY=<clip>` films one variant, short enough for a GIF).
 3. **The numbers:** the audit's table with one column per variant and the library's, the limits beside them.
 4. **Notes:** two lines per variant: the vision, and what was tried and could not be done, with the number that
    shows it. A fault the agent can name in its own capture is fixed before review, not listed
@@ -427,7 +428,8 @@ other style files stay in the repository, so a game picks another vision by rebu
 <!-- new section: swapping a clip touches the constants, the tree and the web build; the steps are the same each time -->
 
 1. **A library of our own.** The shipped clips are `assets/animation/own/<group>.glb`, imported as animation
-   libraries under one name, `gds` (`gds/Walk`), beside `ual1` and `ual2`.
+   libraries under one name, `gds` (`gds/Walk`), beside `ual1` and `ual2`. Today the library is the one file
+   `locomotion.glb`; a second group's file needs the tree's issue to merge them under the name.
 2. **The constant moves.** `CharacterClips.WALK` becomes `&"gds/Walk"`; the library's name stays in `ALL` and in a
    `STAND_INS` table, so a game or a test can put the library clip back in the inspector, and a test proves each
    stand-in still plays.
@@ -494,7 +496,7 @@ clip that only works on the reference fails its build.
 | --- | --- | --- |
 | Tracks a gait clip keys | 22 body bones and the pelvis's position; fingers only where they move | fingers at rest come from one hand-pose clip under the gait; a clip names its bones and the export strips the rest |
 | Keys | under 40 % of the frames on a moving bone at half a degree | curves solved at 30 a second, reduced by the build, checked against the full curve on the skinned mesh (1 mm at the hands and feet) |
-| Imported size | 6 KB a second of clip, compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file |
+| Imported size | 6 KB a second of clip, compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
 | Clips blended at once | four on a character near the camera (two gaits, a transition or an action, one additive); one on a far one | the tree's layers are counted in the Godot issue's bench, in the browser |
 | Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)) |
 
@@ -507,7 +509,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 
 | Issue | Clips |
 | --- | --- |
-| #1154 the clip toolkit and the review sheet | `Idle`; the shared build, the checks, `review_sheet.py`, the first swap |
+| #1154 the clip toolkit and the review sheet (done) | `Idle`, three variants, A shipped as `gds/Idle`; the shared build, the checks and their self-test, `review_sheet.py`, the first swap ([the toolkit](animation.md#toolkit)) |
 | #1155 the loops | `Walk`, `Jog`, `Sprint` |
 | #1156 starts and stops | `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`; `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`; left and right |
 | #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |

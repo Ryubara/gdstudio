@@ -117,6 +117,10 @@ enum Kind {
 ## What a hitscan shot can hit (physics layers): by default what every shot meets
 ## (`PhysicsLayers.SHOT_MASK`: the level, characters, props, ragdoll bones and hit zones).
 @export_flags_3d_physics var hitscan_mask := PhysicsLayers.SHOT_MASK
+## The streak a hitscan shot draws from the muzzle to where its ray ended (a `TracerDef`, drawn
+## by the level's `TracerPool` on each screen, never sent). Empty: no tracer, the flash and the
+## impact are all there is.
+@export var tracer: TracerDef
 
 @export_group("Ammo")
 ## Rounds in a full magazine. Zero: the weapon needs no ammunition (fists, a blade) and shows no
@@ -193,6 +197,11 @@ enum Kind {
 ## pistol's `PistolHeld`); it is shown while the weapon is out and hidden otherwise. Empty: no
 ## model (fists).
 @export var view: NodePath
+## The scene of that model in the hand (the rifle's `rifle_held.tscn`), made under the `Model` slot
+## the first time a character carries the weapon, named as `view` says, when the slot has no such
+## node: a character that never picks the weapon up carries none of its nodes. Empty: the node is
+## part of the character's scene (the pistol's `PistolHeld`).
+@export var view_scene: PackedScene
 ## The marker the shots leave from, under the `Model` slot (the pistol's
 ## `PistolHeld/Pistol/Pistol/Muzzle`). Empty: no muzzle (shots leave from beside the shooter).
 @export var muzzle: NodePath
@@ -358,5 +367,5 @@ func blow_clip_speed() -> float:
 # reads them too).
 func _validate_property(property: Dictionary) -> void:
 	var field: String = property["name"]
-	if field in ["hitscan_range", "hitscan_mask"] and shot_kind() != Kind.HITSCAN:
+	if field in ["hitscan_range", "hitscan_mask", "tracer"] and shot_kind() != Kind.HITSCAN:
 		property["usage"] |= PROPERTY_USAGE_READ_ONLY

@@ -2,10 +2,15 @@ class_name CharacterClips
 extends RefCounted
 ## The names of every clip the character can play: the Universal Animation Library 1 and 2
 ## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
-## `ual2`, so a clip is `ual1/Idle`, and the template's own prone and crawl clips (gdstudio
-## #1009, `assets/animation/prone/`), the library `prone`, and its own melee blows (gdstudio
-## #1254, `assets/animation/melee/`), the library `melee`. The looping clips lose their `_Loop`
-## suffix on import (`Idle_Loop` is `Idle`) and loop.
+## `ual2`, so a clip is `ual1/Idle`, the template's own prone and crawl clips (gdstudio
+## #1009, `assets/animation/prone/`), the library `prone`, its own melee blows (gdstudio #1254,
+## `assets/animation/melee/`), the library `melee`, and GDStudio's own clips that replace the
+## library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
+## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
+##
+## When a clip of our own replaces a library clip its constant moves (`IDLE` is `gds/Idle`) and
+## `STAND_INS` names the library clip it replaced, which stays in the game: set a clip export
+## of `CharacterAnimation` to `CharacterClips.stand_in(CharacterClips.IDLE)` to play it again.
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
 ## `player_animation.play_clip(CharacterClips.SWORD_ATTACK)`. The constants below are the clips
@@ -15,11 +20,12 @@ extends RefCounted
 const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
+const LIBRARY_OWN := &"gds"
 const LIBRARY_VAULT := &"vault"
 const LIBRARY_MELEE := &"melee"
 
 # Locomotion and the clips the player's states use.
-const IDLE := &"ual1/Idle"
+const IDLE := &"gds/Idle"
 const WALK := &"ual1/Walk"
 const RUN := &"ual1/Jog_Fwd"
 const SPRINT := &"ual1/Sprint"
@@ -73,7 +79,12 @@ const MELEE_PISTOL_WHIP := &"melee/Melee_Pistol_Whip"
 const MELEE_PISTOL_BACKHAND := &"melee/Melee_Pistol_Backhand"
 const MELEE_PISTOL_JAB := &"melee/Melee_Pistol_Jab"
 
-## Every clip of the five libraries, with its library.
+## The library clip each clip of our own replaced, kept as a stand-in.
+const STAND_INS: Dictionary[StringName, StringName] = {
+	&"gds/Idle": &"ual1/Idle",
+}
+
+## Every clip of the six libraries, with its library.
 const ALL: Array[StringName] = [
 	&"ual1/A_TPose",
 	&"ual1/Crouch_Fwd",
@@ -165,6 +176,7 @@ const ALL: Array[StringName] = [
 	&"prone/Crouch_To_Prone",
 	&"prone/Prone_Idle",
 	&"prone/Prone_To_Crouch",
+	&"gds/Idle",
 	&"vault/Vault_High",
 	&"vault/Vault_Land",
 	&"vault/Vault_Low",
@@ -175,3 +187,8 @@ const ALL: Array[StringName] = [
 	&"melee/Melee_Unarmed_Hook",
 	&"melee/Melee_Unarmed_Jab",
 ]
+
+
+## The library clip a clip of our own replaced, or the clip itself when it replaced none.
+static func stand_in(clip: StringName) -> StringName:
+	return STAND_INS.get(clip, clip)

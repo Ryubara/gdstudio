@@ -16,7 +16,8 @@ own (`assets/animation/prone/`) and, since kit #1037, our three vault clips (`as
 kit #1016, not yet measured here) in place of `NinjaJump_Start`. Every number below is from
 `templates/3d-third-person/game/assets/animation/audit_clips.py`, which reads the glb itself and measures each frame
 on the skinned mesh; its docstring defines each measure. The body is the library's own (the male mannequin); the
-female, the template's default, is given where she differs. Limbs inside limbs are from `limb_overlap.py`.
+female, the template's default, is given where she differs. Limbs inside limbs are from `limb_overlap.py`, on every
+key at the files' own 30 frames a second (kit #1035).
 
 ```sh
 uv run --with numpy python audit_clips.py --clips universal/ual1.glb --clip Walk --clip Jog_Fwd \
@@ -44,7 +45,7 @@ uv run --with numpy python audit_clips.py --clips universal/ual1.glb --clip Walk
 | Left and right, half a cycle apart, differ by | 2.5 degrees | 3.7 | 13.4 | 6.1 |
 | Bones that move, fingers among them | 21, 0 | 19, 0 | 19, 0 | 16, 0 |
 | Rotation keys a reducer keeps at half a degree | 35 % | 63 % | 74 % | 28 % |
-| Limbs inside limbs | hand 11 mm in the thigh on the female | none | none | none |
+| Limbs inside limbs | hand 12 mm in the thigh on the female | none | none | none |
 
 What the table says:
 
@@ -88,16 +89,16 @@ Length is at the clip's own pace. "Join" is the furthest any main joint is from 
 | `Push` 2.67 s | pushing a prop | leans into it (47 degrees) | planted sole wanders 125 mm; 8 mm under the floor; the hands are where the clip has them, not on the prop | hands planted by IK on the prop, steady feet |
 | `Interact` 2.0 s | using things, over 0.7 s | simple reach | played 2.9 times too fast; the body does not turn or step toward the thing; 19 mm of hand in thigh on the female | reaches at three heights with the hand on the target |
 | `Hit_Chest` 0.33 s | flinch, over 0.45 s | short enough to stay responsive | 10 frames with no settle; pelvis 21 mm, no step; one side | flinches from four sides with a settle, additive over the gait |
-| `Death01` 2.4 s | death without a ragdoll | falls and settles (hand speed dies away over 10 frames) | one fall for every hit; 22 mm under the floor; hand 29 mm in the thigh | falls by hit side; the ragdoll stays the default |
+| `Death01` 2.4 s | death without a ragdoll | falls and settles (hand speed dies away over 10 frames) | one fall for every hit; 22 mm under the floor; hand 29 mm in the thigh on the female, 41 on the male | falls by hit side; the ragdoll stays the default |
 | `Swim_Fwd` 1.33 s | stand-in for prone | none here | a swim stroke lifted and tipped | our prone clips exist (kit #1009, #1020); kit #1026 plays them |
 | `Pistol_Idle` 1.67 s | the grip pose | hands held together | the two hands are 14 to 25 mm inside each other; 10 bones move | a pose per weapon class, hands placed by the hold solver |
 | `Pistol_Aim_Neutral`, `_Up`, `_Down` 0.17 s | aim blend by pitch | three poses that blend cleanly (2 mm from the grip pose) | static (0 bones move); hands 14 to 31 mm inside each other; the forearm 23 mm in the pelvis aiming down on the male | aim poses with breath, five pitches |
 | `Pistol_Shoot` 0.63 s | recoil | returns exactly to the aim pose | the whole kick is one frame, then 18 still frames: no rise and settle | recoil with a kick, an overshoot and a settle, sized by the weapon |
 | `Pistol_Reload` 1.67 s | reload | reads as a reload; the head looks down (58 degrees) | hands 22 to 28 mm inside each other; nothing in the clip knows where the magazine is | reload keyed on the weapon's sockets |
-| `Punch_Jab`, `Punch_Cross` 0.87, 1.0 s | the fists' two blows | the chest drives the blow (43 and 57 degrees) and hits in two frames (hand at 4 and 8.9 m/s) | no step or weight transfer (pelvis 2 and 27 mm); ends 631 mm from the idle; the hand is 19 to 28 mm in the head on the female | blows with a step, from a guard pose that the idle blends to |
+| `Punch_Jab`, `Punch_Cross` 0.87, 1.0 s | the fists' two blows | the chest drives the blow (43 and 57 degrees) and hits in two frames (hand at 4 and 8.9 m/s) | no step or weight transfer (pelvis 2 and 27 mm); ends 631 mm from the idle; the hand is 19 to 29 mm in the head on the female | blows with a step, from a guard pose that the idle blends to |
 | `Slide_Start`, `Slide`, `Slide_Exit` 0.83, 2.0, 0.5 s | the slide | start and exit meet the loop within 9 mm | 12 to 37 mm under the floor; one entry, whichever foot the sprint is on; the exit only stands up | start from each sprint foot, exit into a run or a crouch |
 | `NinjaJump_Start` 0.97 s | stood in for the vault until kit #1037 | tucks the legs | not a vault: no hand on anything | the vault clips of kit #1016, played since #1037 |
-| `ClimbUp_1m` 0.67 s | the mantle | quick | the chest is 23 to 32 mm in the thigh; the hands hold nothing; one height | mantles at two heights with planted hands, warped like the vaults |
+| `ClimbUp_1m` 0.67 s | the mantle | quick | the chest is 26 to 32 mm in the thigh; the hands hold nothing; one height | mantles at two heights with planted hands, warped like the vaults |
 
 The pistol clips' hands are closed on the gun by `WeaponHold` after the clip, so their overlap is what the solver
 starts from, not what the player sees.
