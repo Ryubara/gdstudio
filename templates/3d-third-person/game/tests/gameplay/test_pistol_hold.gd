@@ -50,12 +50,11 @@ const LIVE_NEAR := 0.2
 ## The equal parts of the trigger finger's way between the frame and the trigger that are
 ## measured (kit #1079).
 const TRIGGER_WAY_STEPS := 20
-## How deep the trigger finger may graze the trigger guard between its two places, in metres: the
-## mannequin's finger is as thick as the guard's opening is long (20 mm in 21), and the best way
-## in the solver found passes 3.7 mm through the guard's front strut (kit #1079; the guard's
-## opening is kit #1212). At its two places and against the left hand the limit is the
-## usual one.
-const TRIGGER_GUARD_GRAZE := 0.004
+## How deep the trigger finger may graze the trigger guard between its two places, in metres: as it
+## swings in, the last bone's tip rubs the inner face of the guard's front strut, 1.4 mm on the
+## female body and 2.2 mm on the male (kit #1273; a way that clears it is kit #1272). At its two
+## places and against the left hand the limit is the usual one.
+const TRIGGER_GUARD_GRAZE := 0.003
 ## The equal parts of the right thumb's way between the frame and the left thumb's root that are
 ## measured (kit #1084): the plan's `on` from `SupportHandPlan.ARM_UNTIL` to `WAY_FROM`.
 const THUMB_WAY_STEPS := 40
