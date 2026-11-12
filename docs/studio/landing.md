@@ -25,7 +25,8 @@ Open pull requests come before new work: each one left open goes stale against `
   pull requests landed unrefreshed and `main` went red: a shorter reload met a test added after its last run; on
   2026-11-10 #972 and #977 landed past unrelated-looking commits, and #954 nearly did the same with #986 and #989.
 - **Not on a red main.** While a `CI failing on the default branch` issue is open, only its fix forward (a body
-  saying `Fixes #<that issue>`) lands; the merge guard refuses the rest ([Red main](hooks-red-main.md#red-main)).
+  saying `Fixes #<that issue>`) lands; the merge guard refuses the rest ([Red main](hooks-red-main.md#red-main)), and
+  the required `main-green` check stops auto-merge too, then turns green when the issue closes ([CI](ci.md#main-runs)).
   Refreshing a branch with `gds merge-main` still works, and is the step before landing once the fix is on `main`.
 - **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
   rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them

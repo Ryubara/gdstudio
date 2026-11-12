@@ -281,6 +281,14 @@ A bed is judged by what the player hears of it in its own place, not by a loudne
   6 dB, so gusts levelled from the files stood 3 to 5 dB over a base that does not lose them. **Seen:** Deadnight #782,
   2026-11-03 (fix: trims from the Ambience-bus capture; the seed picked by a probe of the plan so the proof shows every
   part).
+- **Approach:** Level a wind bed by its integrated loudness over the whole loop and leave its gusts in: a wind is a
+  slow rise and fall of level and colour with a whistle in the gusts, not an even bed
+  ([A wind that reads as wind](../../gamedev/audio/sound-effects.md#wind)). Measure the movement as well as the level
+  (the 100 ms level's p5 to p95, gusts a minute, spectral flatness, the share over 4 kHz) and make the loop 20 s or
+  longer. **Watch out for:** a wind evened out to one level reads as white noise in the background: the template's
+  generated wind was divided by its own level every 0.25 s, so it moved 0.7 dB with 29% of its energy over 4 kHz, and
+  the maintainer heard a hiss, not wind; the regenerated loop moves 9.3 dB at the same -50 LUFS in the game, its lulls
+  at -56 and its gusts at -46 LUFS-M. **Seen:** gdstudio #1101, 2026-11-11 (review of #1083's sounds).
 
 ## A crowd's voices (the dead) {#a-crowds-voices-the-dead}
 

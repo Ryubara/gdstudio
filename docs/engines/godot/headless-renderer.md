@@ -42,3 +42,9 @@ scroll areas' room, the bars) comes from the router's stage. Without it a label 
 The dummy renderer keeps no instance data: `MultiMesh.get_instance_transform(i)` returns the zero transform for every
 copy. A test that checks where copies stand reads the `buffer` property instead (12 floats a copy, each basis row
 followed by its origin's coordinate), which keeps the scene's values.
+
+- **Approach:** A node that fills a `MultiMesh` from script keeps the floats it hands over (its own
+  `PackedFloat32Array`, sent with one `RenderingServer.multimesh_set_buffer`) and lets a test read that (3D Third
+  Person's `TracerPool.shown(i)`). **Watch out for:** headless, `get_instance_color` and `get_instance_custom_data`
+  return defaults too (white, zero) whatever was set, so a suite that read the colour and the width back failed four
+  cases that were right. **Seen:** gdstudio #1270, 2026-11-11 (`test_tracer.gd`).
