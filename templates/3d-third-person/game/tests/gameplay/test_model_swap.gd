@@ -8,8 +8,8 @@
 # mannequin, which the player scene does not hold; the female one is the default.
 extends GdUnitTestSuite
 
-const FEMALE := "res://assets/characters/mannequin/mannequin_female.glb"
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const FEMALE := CharacterBodies.FEMALE
+const MALE := CharacterBodies.MALE
 ## How far the seat may be from the bone it hangs on, in metres.
 const SEAT_TOLERANCE := 0.02
 

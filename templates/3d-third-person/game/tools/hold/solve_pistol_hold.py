@@ -1,12 +1,14 @@
 """Solves how the mannequin's hands hold the pistol (kit #1001), from the dump `dump_hold_rig.gd` writes.
 
     <godot> --headless --path game -s res://tools/hold/dump_hold_rig.gd -- <abs>/rig.json
-    uv run --no-project --with numpy --with scipy python tools/hold/solve_pistol_hold.py <abs>/rig.json <abs>/hold.json
-    <godot> --headless --path game -s res://tools/hold/write_hold.gd -- <abs>/hold.json
+    uv run --no-project --with numpy --with scipy python tools/hold/solve_pistol_hold.py <abs>/rig.json <abs>/hold.json         --body=female --search-seat --search-left
+    <godot> --headless --path game -s res://tools/hold/write_hold.gd -- <abs>/hold.json female
 
-It skins both mannequins' hands on the CPU as Godot does and measures them against the pistol's closed pieces on a
-1 mm grid (and, for the left hand, against the right hand of the same mannequin), so a pose is right for both at
-once. With no option it solves the fingers for the seat and the left hand's place below (the hold the template
+It skins one body's hands (`--body=female` or `--body=male`, the template's two bodies: `CharacterBodies`) on the CPU
+as Godot does and measures them against the pistol's closed pieces on a 1 mm grid (and, for the left hand, against
+the right hand of the same body). Each body gets a hold of its own (kit #1187): the prototype bodies' hands are a
+person's size and differ (0.181 m and 0.195 m), so no one pose closes both; `--body=both` measures two bodies whose
+skeletons match from the hands down at once, as the Quaternius pair did. With no option it solves the fingers for the seat and the left hand's place below (the hold the template
 ships, about 5 minutes); `--search-seat` and `--search-left` search those again from there (4 to 6 minutes each),
 `--seat=` and `--left=` give other starts, and `--scan=` prints a table of seats to choose from. The left hand
 under the magazine (kit #1031: where it pushes the magazine in during the reload) is solved next, from its
@@ -47,6 +49,10 @@ LEFT_THUMB_AT = np.array([-0.065, 0.060, 0.030])
 UNDER_GUARD_Y = 0.006  # the middle of a finger that lies under the trigger guard is no higher
 WEB_Y = 0.07  # how high on the gun the thumb's root should sit (the web under the tang)
 FRAME_Y = 0.079
+# How far the middle of the trigger finger's last bone lies from the trigger while it is along the frame: the
+# test wants its nearest skin 20 mm off (the middle of the bone is 7 to 10 mm farther), and a smaller hand's
+# finger lies lower (kit #1187).
+FRAME_TRIGGER_CLEAR = 0.034
 # The pistol on `hand_r` as kit #834 seated it (basis columns, then the origin): the barrel line the aim clips
 # were captured with, 1.5 degrees up and 3 degrees out in `Pistol_Aim_Neutral`.
 REFERENCE_SEAT = [0.0234, -0.9867, 0.1609, -0.0805, 0.1585, 0.9841, -0.9965, -0.036, -0.0757, -0.0264, 0.1234, 0.0091]
@@ -60,10 +66,17 @@ MAGAZINE = [0.0, 0.0, -0.07, 80.0, 0.0, 0.0]
 # How far the thumb of the hand under the magazine stays off every surface, metres: the test in Godot read
 # the male thumb's root 1.4 mm deeper than this solver there.
 CUP_THUMB_OFF = 0.0005
+# The places below the one under the magazine at which the cupped fingers are measured too, metres down the
+# magazine's line (`WeaponHold.magazine_approach` is 0.1 m).
+CUP_WAY_STEPS = (0.004, 0.008, 0.012, 0.016, 0.02, 0.025, 0.03, 0.035, 0.04, 0.05, 0.07)
+# How deep the cupped fingers may go at those places: tighter than `TOL`, since the test in Godot read the male
+# thumb 1 mm deeper than this solver on the way.
+CUP_WAY_TOL = 0.0004
 # The left hand's way off the gun (kit #1051). Its fingers open where the hand holds, then the opened hand
 # leaves along a straight line; the game plays both backwards to bring it on again.
 OPEN_CLEAR = 0.005  # how far off every surface an opened finger is lifted, where it can be, metres
-WAY_TOL = 0.001  # how deep any skin may pass on the way, metres (the test allows 2 mm)
+WAY_TOL = TOL  # how deep any skin may pass on the way, metres (the test allows 2 mm); the held palm itself
+# sits up to TOL in, so a smaller one found no clear way for the female prototype body (kit #1187)
 WAY_LENGTH = 0.06  # how far the opened hand goes before the clip's arm takes it, metres
 WAY_STEPS = 16  # the poses measured between closed and open, and the places between on and off
 WAY_GRID = 10.0  # degrees between the directions tried
@@ -110,17 +123,34 @@ class Scene:
                 d[..., mine] = np.minimum(d[..., mine], other(points[..., mine, :]))
         return d
 
-    def freeze_right(self):
-        """The right hand as it holds the gun becomes a surface for the left hand, on a grid in the gun's space."""
-        points = self.to_gun(self.right.points())
-        self.other = []
-        for index in range(self.rig.model.max() + 1):
-            # The triangles of this mannequin's right hand, as indices into the hand's own points.
-            mine = self.rig.model[self.right.ids][self.right.tris[:, 0]] == index
-            grid = hold_field.PiecesField(
-                points[self.right.tris[mine]], [-0.17, -0.09, -0.12], [0.10, 0.16, 0.09], 0.0015, rays=(0, 1, 2)
-            )
-            self.other.append(lambda at, grid=grid: grid(self.to_gun(at)))
+    def freeze_right(self, index_poses=None):
+        """The right hand as it holds the gun becomes a surface for the left hand, on a grid in the gun's space.
+        With `index_poses` (rows of the right index finger's angles) the surface is the right hand with its index
+        finger in each of them at once: the left hand lies over the finger on the trigger and along the frame
+        alike, since a reload takes the finger off the trigger while the left hand is still on the gun (kit #1187:
+        a left hand solved over the finger on the trigger went 6 mm into it on the frame)."""
+        kept = self.right.angles["index"].copy()
+        poses = [kept] if index_poses is None else [np.array(pose, float) for pose in index_poses]
+        grids = [[] for _ in range(self.rig.model.max() + 1)]
+        for pose in poses:
+            self.right.set("index", pose)
+            points = self.to_gun(self.right.points())
+            for index, found in enumerate(grids):
+                # The triangles of this mannequin's right hand, as indices into the hand's own points.
+                mine = self.rig.model[self.right.ids][self.right.tris[:, 0]] == index
+                found.append(
+                    hold_field.PiecesField(
+                        points[self.right.tris[mine]],
+                        [-0.17, -0.09, -0.12],
+                        [0.10, 0.16, 0.09],
+                        0.0015,
+                        rays=(0, 1, 2),
+                    )
+                )
+        self.right.set("index", kept)
+        self.other = [
+            lambda at, found=found: np.min([grid(self.to_gun(at)) for grid in found], axis=0) for found in grids
+        ]
 
 
 def finger_cost(scene, hand, finger, angles, mode):
@@ -134,6 +164,15 @@ def finger_cost(scene, hand, finger, angles, mode):
     if mode == "cup" and finger == "thumb":
         deep = relu(CUP_THUMB_OFF - sd.min(axis=1))
     cost = 100.0 * deep
+    if mode == "cup":
+        # The cupped fingers ride the hand up the magazine's line and a little way down it again, so each is
+        # measured at places down the line too (kit #1187: a fingertip that hooked round the grip's foot passed
+        # 3 to 5 mm through the gun or the right hand on the way, though it lay clear under the magazine).
+        down = scene.gun_global()[:3, :3] @ np.array([0.0, -1.0, 0.0])
+        which = hand.finger_verts[finger][:: hand.stride]
+        for step in CUP_WAY_STEPS:
+            moved = scene.field(hand, pts + step * down, which)
+            cost += 100.0 * relu(-moved.min(axis=1) - CUP_WAY_TOL)
     a = np.atleast_2d(angles)
     tip_at = scene.to_gun(pts[:, tip].mean(axis=1))
     mid_at = scene.to_gun(pts[:, mid].mean(axis=1))
@@ -152,6 +191,8 @@ def finger_cost(scene, hand, finger, angles, mode):
         cost += touch[2] + touch[1] + 2e-4 * (a[:, 2] + a[:, 3])
         cost += relu(tip_at[:, 2] + 0.014) + relu(mid_at[:, 2] + 0.014)
         cost += 0.1 * relu(FRAME_Y - tip_at[:, 1])
+        trigger = scene.sockets["Trigger"][:3, 3]
+        cost += relu(FRAME_TRIGGER_CLEAR - np.linalg.norm(tip_at - trigger, axis=1))
     elif mode == "cup":
         # Under the magazine: the fingers close on whatever is in reach (the grip's foot, the right hand).
         cost += touch[2] + 0.5 * touch[1]
@@ -477,7 +518,7 @@ def report(scene, hand, tag):
     pts = hand.points()
     sd = scene.field(hand, pts)
     model = scene.rig.model[hand.ids]
-    for which, name in enumerate(("female", "male")):
+    for which, name in enumerate(model_names()):
         line = []
         for part, idx in hand.part.items():
             line.append(f"{part} {sd[idx[model[idx] == which]].min() * 1000.0:.1f}")
@@ -492,9 +533,25 @@ def option(name, default):
     return default
 
 
+def body_option():
+    """The body of `--body=<name>` on the command line (`female` by default), or `both`."""
+    for argument in sys.argv:
+        if argument.startswith("--body="):
+            return argument.split("=", 1)[1]
+    return "female"
+
+
+def model_names():
+    """The names of the models the solver's rig carries, in the order of `Rig.model`."""
+    body = body_option()
+    return ("female", "male") if body == "both" else (body,)
+
+
 def main():
     rigs, pistol = R.load(sys.argv[1])
-    scene = Scene(R.merged(rigs["female"], rigs["male"]), pistol, sys.argv[1] + ".gun.npz")
+    body = body_option()
+    rig = R.merged(rigs["female"], rigs["male"]) if body == "both" else rigs[body]
+    scene = Scene(rig, pistol, sys.argv[1] + f".{body}.gun.npz")
     started = time.time()
     for argument in sys.argv:
         if argument.startswith("--scan="):
@@ -532,7 +589,7 @@ def main():
         "right total %.2f mm" % (total * 1000),
         "in %.0f s" % (time.time() - started),
     )
-    scene.freeze_right()
+    scene.freeze_right([on_trigger, angles["right"]["index"]])
     left = np.array(option("left", LEFT))
     if "--search-left" in sys.argv:
         scene.left.stride = 3
@@ -712,7 +769,7 @@ def solve_way(scene, support, support_pose, started):
             np.round(held[finger], 1),
             "to",
             np.round(opened[finger], 1),
-            "passes %.1f mm, ends %.1f mm off" % (-deepest * 1000, clear * 1000),
+            f"passes {-deepest * 1000:.1f} mm, ends {clear * 1000:.1f} mm off",
             flush=True,
         )
     for finger in FINGERS:
@@ -732,13 +789,13 @@ def solve_way(scene, support, support_pose, started):
         np.round(way, 4).tolist(),
         "toward the belt",
         np.round(toward, 3).tolist(),
-        "%.0f degrees off it, of %d clear directions; passes %.1f mm" % (off_line, count, -deepest * 1000),
+        f"{off_line:.0f} degrees off it, of {count} clear directions; passes {-deepest * 1000:.1f} mm",
     )
     quaternions = hand.quaternions()
     passes = way_depths(scene, held, opened, way)
     print(
         "way passes",
-        ", ".join("%s %.1f mm" % (name, depth * 1000) for name, depth in zip(("female", "male"), passes, strict=False)),
+        ", ".join(f"{name} {depth * 1000:.1f} mm" for name, depth in zip(model_names(), passes, strict=False)),
         "in %.0f s" % (time.time() - started),
         flush=True,
     )
@@ -761,7 +818,10 @@ def solve_magazine(scene, right_angles, support, started):
         total = close_magazine(scene)
     report(scene, scene.left, "magazine")
     print(
-        "magazine", np.round(params, 4).tolist(), "total %.2f mm" % (total * 1000), "in %.0f s" % (time.time() - started)
+        "magazine",
+        np.round(params, 4).tolist(),
+        "total %.2f mm" % (total * 1000),
+        "in %.0f s" % (time.time() - started),
     )
     return {
         "magazine_params": params.tolist(),

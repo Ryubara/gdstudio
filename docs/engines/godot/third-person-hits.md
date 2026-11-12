@@ -93,7 +93,9 @@ death, a shot between the parts flying on, zones met by nothing but the second t
 pins), `test_hit_reaction.gd` (the headshot and body-shot pushes, the flinch and its return in its time, a death during
 a flinch, a shot on a lying body pushing its bone and leaving a mark that rides it and goes on getting up),
 `test_physics_layers_meet.gd` (a living body has no bone in the world). The fixture is `tests/fixtures/hit_range.gd`.
-`tools/capture/hit_tour.tscn` films it from the player's camera (`HIT_MODEL=male` for the other mannequin):
+The zones' shapes are sized on the template's two prototype bodies (kit #1187, `tools/mannequin/measure_segments.gd`;
+[the bodies](third-person/character.md#mannequins)). `tools/capture/hit_tour.tscn` films it from the player's camera
+(`HIT_MODEL=male` for the male body):
 `gds capture frames --project game --scene res://tools/capture/hit_tour.tscn --seconds 26`.
 
 - **Approach:** Run a shot's second test along the projectile's own line (its centre at the touch), not from the
