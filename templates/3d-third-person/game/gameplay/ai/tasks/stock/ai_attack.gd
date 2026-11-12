@@ -7,10 +7,12 @@ extends AiStockTask
 ##   tracking noise that shrinks on the target, bursts), only at a subject believed and seen now,
 ##   never through a friend. It closes in past the profile's `engage_range` and backs off inside
 ##   `preferred_range - retreat_margin`; an empty magazine is reloaded.
-## - **Melee** (fists, or `melee` on): walks in until the subject is within the weapon's own
-##   `melee_reach` (plus `reach_slack`, never past the profile's `attack_range`), winds up for
-##   `windup_seconds`, then swings. Measuring the swing from the weapon's reach, not a looser
-##   number, is what lands a blow on a target 1.4 m away (Deadnight's reach fault).
+## - **Melee** (fists, or `melee` on with any weapon): walks in until the subject is within the
+##   weapon's own blow reach (`WeaponDef.blow_reach()`, its category's, plus `reach_slack`, never
+##   past the profile's `attack_range`), winds up for `windup_seconds`, then presses the melee
+##   button, as a player does (gdstudio #1254): the blow, its clips, damage and hit window are the
+##   weapon category's, the same as the player's. Measuring the swing from the weapon's reach, not
+##   a looser number, is what lands a blow on a target 1.4 m away (Deadnight's reach fault).
 ##
 ## It succeeds when the subject dies, fails `TARGET_LOST` when the subject has been out of sight
 ## `lose_after` seconds (the brain's `lost_sight`: a chase) and `NO_AMMO` when the gun is dry with
@@ -115,6 +117,7 @@ func _engage(delta: float) -> Status:
 		_unseen += delta
 		controller.aim = false
 		controller.fire = false
+		controller.melee = false
 		look_toward(belief.last_position)
 		_stand()
 		return _lose() if _unseen >= lose_after else Status.RUNNING
@@ -177,10 +180,11 @@ func _is_melee() -> bool:
 func _melee(delta: float, belief: AiBelief) -> Status:
 	var weapon := body().weapon
 	var profile := run_profile()
-	var reach := weapon.definition.melee_reach if weapon != null and weapon.definition else 1.0
+	var reach := weapon.definition.blow_reach() if weapon != null and weapon.definition else 1.0
 	var swing_at := minf(reach + reach_slack, profile.attack_range if profile else reach)
 	var away := flat_distance(belief.last_position)
 	controller.fire = false
+	controller.melee = false
 	# Fists up only for the last steps: an aim slows the walk in.
 	controller.aim = away <= swing_at + RAISE_FISTS
 	look_toward(belief.last_position)
@@ -190,8 +194,8 @@ func _melee(delta: float, belief: AiBelief) -> Status:
 		return Status.RUNNING
 	_stand()
 	_windup += delta
-	if _windup >= windup_seconds and weapon != null and weapon.can_fire():
-		controller.fire = true
+	if _windup >= windup_seconds and weapon != null and weapon.melee_ready:
+		controller.melee = true
 		swings += 1
 		_windup = 0.0
 	return Status.RUNNING
@@ -239,6 +243,7 @@ func _hold(belief: AiBelief) -> Status:
 	_stand()
 	controller.aim = false
 	controller.fire = false
+	controller.melee = false
 	look_toward(belief.last_position)
 	gun.reset()
 	return Status.RUNNING

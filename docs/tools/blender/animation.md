@@ -372,6 +372,14 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   and `measure("l", true)` reads the left hand into the right, never the right into the left. **Seen:** gdstudio
   #1081 (PR #1103), 2026-11-11.
 
+### Clips under a hold that carries the weapon {#clips-under-a-hold}
+
+<!-- new section: the solved clips above carry nothing; nothing said how to key a body for a weapon that the game's
+own modifiers place after the clip (the 3D Third Person rifle, kit #1082) -->
+
+Keying a body for a weapon that `TwoHandHold` places after the clip (the 3D Third Person rifle's six clips) is on its
+own page, [Clips under a hold](clips-under-a-hold.md#body-under-the-hold), which this page left when it passed 50 KB.
+
 ## The clip toolkit {#toolkit}
 
 <!-- new section: clips had been solved one build script at a time (prone, vault); the toolkit every clip of our own
@@ -478,11 +486,28 @@ the bodies it has to be clear on. The angles get a margin (2 degrees), a hold of
 raised-cosine ease nine frames wide, and are written over the library's keys of that one bone. The build then
 measures every body again, fails over 5 mm on the bodies it fixes and on anything deeper than before on the bodies
 the clip was keyed on, checks the first and last pose are still the library's, and exports only the corrected clips
-with a one-triangle skin. On the three clips of kit #1295 the swing peaks at 4 to 11 degrees and nothing else moves.
+with a one-triangle skin. On the three clips of kit #1295 the swing peaks at 4 to 11 degrees and nothing else moves;
+the two sword clips of kit #1320 turn a leg about its own hip and ankle instead (below).
 
-- A correction has a ceiling (30 degrees there). `Sword_Dash` and `Sword_Heavy_Combo` cross their thighs by 17 to 29
-  mm while the body turns a quarter in two frames, 30 degrees of thigh does not clear them, and a swung thigh moves
-  a planted foot: that is a pose to key again, and those clips were left as the library's.
+- A swing has a ceiling (30 degrees there): past it the fix is a new pose, and the build stops.
+- A leg whose foot is on the floor is swivelled, not swung (kit #1320): the whole leg turns about the line from its
+  hip to its ankle, the way that takes the knee from the other hip, and the foot bone is then keyed back to the turn
+  the library gave it in the world. The ankle is on the line, so the foot stays where it was, planted or sliding; only
+  the knee and the thigh move (3 to 5 mm of knee a degree on a bent leg, nothing on a straight one). The build
+  measures it rather than trusting it: on every body and frame the ankle, the ball and the toe tip are within 1 mm of
+  the library's (0.0 on the Quaternius pair the clips were keyed on, 0.18 to 0.48 on the `form` pair, whose legs have
+  other lengths). `Sword_Dash` and `Sword_Heavy_Combo` cross their thighs by 17 to 26 mm while the body turns a
+  quarter in two frames with both feet sliding on the floor; 30 degrees of thigh swung out does not clear them and
+  moves the foot, a swivel of one leg does (34 degrees of the left on frames 1 to 4 of the dash, 28 of the right on
+  frames 8 to 20 of the combo), and both read 0.0 on the `form` pair after it.
+- Swivel the leg whose knee is further from that line, and try each leg alone on a grid of angles before choosing:
+  on the combo the left leg alone never clears at 45 degrees and the right clears at 26; on the dash the left clears
+  at 32 and the right barely changes the depth.
+- A crossing in a clip's first frames gets a short ease (no hold, three frames wide on the dash, which crosses on
+  frames 2 and 3): the build refuses a swing that reaches the first or last frame, and names the frames that need
+  one.
+- Solve a clip's swings in order, each on the clip as the ones before left it: after the dash's leg was swivelled its
+  hand needed 1 degree of upper arm to leave the thigh, not the 4 it needed on the library's pose.
 - The corrected file is a changed copy of a third-party clip: it gets its own licence entry naming the source, and
   the pull request is held for the maintainer.
 
@@ -491,10 +516,14 @@ with a one-triangle skin. On the three clips of kit #1295 the swing peaks at 4 t
   track path was `Armature_004/Skeleton3D:<bone>` and no track found a node in the game; the Blender measure, which
   reads the file back by bone name, passed. **Seen:** gdstudio #1295, 2026-11-11 (caught by
   `test_character_clips.gd`'s walk of every track; fix: the rename and its assert in `export()`).
-- **Approach:** Compare a rebuilt clip's rotations with the source clip's in Godot with a limit over 0.1 degrees, or
-  compare the quaternions' components. **Watch out for:** `Quaternion.angle_to` of two single-precision quaternions
-  that are equal to the last bit or two reads 0.03 to 0.09 degrees, so a 0.05 degree limit failed 251 times on keys
-  that were the same. **Seen:** gdstudio #1295, 2026-11-11 (`tests/assets/test_fixed_clips.gd`, limit 0.2).
+- **Approach:** Compare a rebuilt clip's rotations with the source clip's in Godot after `normalized()`, with a limit
+  over 0.1 degrees; when two tracks read differently, print both files' values on that frame before guessing why.
+  **Watch out for:** `Quaternion.angle_to` of two equal single-precision quaternions reads 0.03 to 0.09 degrees (a
+  0.05 degree limit failed 251 times), and 0.29 to 0.35 where the importer dropped keys: the value between two kept
+  keys is a few millionths short of length one. **Seen:** gdstudio #1295, 2026-11-11
+  (`tests/assets/test_fixed_clips.gd`, limit 0.2); gdstudio #1320, 2026-11-11 (eleven finger tracks of
+  `Sword_Heavy_Combo`; first guessed as key times rounded differently and the test changed for nothing; fix:
+  `normalized()` before `angle_to`).
 - **Approach:** Before filming a clip from the game camera, check that the stage you film plays it: read the state
   the character is in on those frames, and film a stage made for the clip. **Watch out for:** the slide tour's jump
   is a jump out of a slide with crouch held, which lands crouched and never plays the landing clip, so the first

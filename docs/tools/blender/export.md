@@ -55,11 +55,25 @@ vertex buffers and triangle set, never by bytes, since the exporter does not kee
 ([Build scripts](build-scripts.md#rebuilding)). Models are Git LFS files: `git show` of one prints its pointer, and a
 pointer imported as a model leaves a broken `.import` behind ([Build scripts](build-scripts.md#rebuilding)).
 
+- **Approach:** Commit a new file's `.import` as Godot wrote it: import the game once, copy the `.import` back from
+  that game, and run `git status` in a game made from the branch after an import before the push. **Watch out
+  for:** a `.import` made by hand from a sibling's (no `uid`, a made-up name under `.godot/imported/`) loaded and
+  passed every suite locally, and CI failed its last step because the import rewrote the file; the copy back from
+  the probe game sat in a command the commit hook refused before it ran. **Seen:** gdstudio #1111 (PR #1191),
+  2026-11-11 (`prone_aim_male.glb.import`; the path's suffix is the MD5 of the `res://` path); gdstudio #1185 (PR
+  #1265), 2026-11-12 (`prone_reload_male.glb.import` made with `sed` from its sibling kept the sibling's suffix;
+  found by `diff` against the kept game's file before the push).
 - **Approach:** Give a new glb that holds only clips `importer="animation_library"` in its `.import` (the Import dock's
   "Import As: Animation Library") before the commit, as the template's other clip files have. **Watch out for:**
   Godot imports a new glb as a scene by default, so the clips sat in a scene nothing loads as a library and the
   player found no animation under the library's name. **Seen:** gdstudio #1090 (PR #1113), 2026-11-11
   ([the libraries](../../engines/godot/third-person/clips.md#animation-libraries)).
+- **Approach:** Commit the `.import` Godot wrote: change only its `importer` and `type` lines by hand, import once in
+  a kept game (`gds template test <template> --keep`), copy the file back, and check that `git status --porcelain`
+  in that game is empty. **Watch out for:** a `.import` written by hand has no `uid` line and a made-up name under
+  `path` and `dest_files`, so Godot rewrites it on the first import: every local suite passes (the kept game is a
+  copy) and CI's step that nothing the build made is left for git fails. **Seen:** gdstudio #1082 (PR #1267),
+  2026-11-12 (`rifle_clips.glb.import`; [the same step, missing files](../../engines/godot/new-game.md)).
 - **Approach:** When a build exports its clips from actions, use `export_animation_mode="ACTIONS"`, which names each
   glTF animation after its action, and check the names in Godot after the import. **Watch out for:**
   `ACTIVE_ACTIONS` writes the active actions as one animation named `Animation`, so the clip the game asks for by name

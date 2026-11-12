@@ -21,6 +21,11 @@ extends SkeletonModifier3D
 ## Where the elbow points, in the skeleton's space.
 @export var elbow := Vector3(0.6, 0.6, 0.2)
 
+## How far the elbow keeps the place the clip gives it (0 points at `elbow`, 1 the clip's own
+## elbow): for a clip made with the hand on the weapon already and the elbow where it must stay
+## (the prone aim's, planted on the floor).
+@export_range(0.0, 1.0, 0.01) var keep_elbow := 0.0
+
 ## The way the hand backs off when the arm is too short for `offset` (kit #1078), in the weapon's
 ## bone's space: the hand is put on the line from `offset` along it, at the nearest place the arm
 ## reaches, and never short of its place with the place's turn (which put its fingers through the
@@ -82,7 +87,7 @@ func _process_modification_with_delta(_delta: float) -> void:
 		(upper_length * upper_length - fore_length * fore_length + reach * reach) / (2.0 * reach)
 	)
 	var out := sqrt(maxf(upper_length * upper_length - forward * forward, 0.0))
-	var pole := elbow - upper.origin
+	var pole := elbow.lerp(fore.origin, keep_elbow) - upper.origin
 	pole = (pole - along * pole.dot(along)).normalized()
 	var elbow_at := upper.origin + along * forward + pole * out
 	var wrist_at := upper.origin + along * reach

@@ -76,6 +76,15 @@ const THUMB_AHEAD := 0.03
 const LEFT_HAND_PASSING := 0.0025
 ## The right thumb's tip rests this near the skin of the left thumb's root bone at most, in metres.
 const ON_THUMB_ROOT := 0.012
+## Where the shooting hand's middle finger lies (kit #1213): under the trigger guard, tight up
+## against it. The guard's underside is this high in the pistol, in metres. The grip slants back
+## below the guard, so a finger under it lies behind the guard's rear end along the barrel: only
+## its height and its contact are checked.
+const GUARD_UNDERSIDE := 0.014
+## How far below the guard's underside the middle of that finger's first bone lies at least, in
+## metres: about the finger's half thickness, so the bone is under the guard and not beside it
+## (beside it, as kit #1001's seat had it, the bone's middle is level with the underside).
+const UNDER_GUARD := 0.006
 ## How near the trigger the index finger's tip is while aiming, and how far off it otherwise.
 const ON_TRIGGER := 0.012
 const OFF_TRIGGER := 0.02
@@ -90,6 +99,10 @@ var _live_magazine: Node3D
 # the left hand is from the support marker and from the magazine marker.
 var _live_reload: Array[Dictionary] = []
 var _live_contact: HandContact
+# The same measure against the pistol without its magazine, for while it is out (kit #1052), and
+# the pistol's magazine.
+var _live_bare: HandContact
+var _live_gun_magazine: Node3D
 # The deepest the live left hand was in the gun or the right hand, in metres, what was playing
 # then, and how many updates were measured.
 var _live_deepest := 0.0
@@ -225,6 +238,14 @@ func test_the_two_hands_hold_the_pistol_together() -> void:
 func test_the_left_hand_follows_the_reload() -> void:
 	for model in MODELS:
 		var stage := HoldStage.make(_holder, model)
+		# While the pistol's own magazine is out (kit #1052) the hand is measured against the pistol
+		# without it; the new magazine it carries is `test_reload_magazine.gd`'s.
+		var gun_magazine := stage.pistol.get_node("Pistol/Magazine") as Node3D
+		gun_magazine.visible = false
+		var bare := HandContact.new(stage.skeleton)
+		bare.set_weapon(stage.pistol)
+		gun_magazine.visible = true
+		stage.skeleton.skeleton_updated.connect(bare.snapshot)
 		for share in _left_reload_shares():
 			_pose_reload(stage, share, 0.0)
 			await stage.settle()
@@ -237,7 +258,10 @@ func test_the_left_hand_follows_the_reload() -> void:
 			elif share >= RELOAD_MAGAZINE_FROM and share <= RELOAD_MAGAZINE_UNTIL:
 				contacts = HoldStage.MAGAZINE_CONTACTS
 				marker = ^"MagazineHand"
-			var parts := stage.contact.measure("l", true)
+			# Seated, the new magazine in the hand is where the pistol's own is.
+			var seated := gun_magazine.visible or share >= RELOAD_MAGAZINE_FROM
+			var contact := stage.contact if seated else bare
+			var parts := contact.measure("l", true)
 			if marker.is_empty():
 				for part: String in parts:
 					var depth: float = -parts[part].distance
@@ -273,6 +297,45 @@ func test_the_right_hand_holds_the_pistol_in_the_locomotion_clips() -> void:
 				stage.pose(clip_name, time, 0.0, grip_clip, bones)
 				await stage.settle()
 				_assert_holds(stage, "r", "%s %s at %.2f" % [model, clip_name, time])
+		stage.free()
+
+
+# The shooting hand's middle finger goes round the front of the grip under the trigger guard, as a
+# grip is taught (kit #1213), in the one-handed and the two-handed clips on both mannequins: the
+# middle of its first bone is below the guard's underside and the finger's skin is on the gun
+# there.
+func test_the_right_middle_finger_lies_under_the_trigger_guard() -> void:
+	var poses: Dictionary[StringName, float] = {
+		CharacterClips.PISTOL_IDLE: 0.0,
+		CharacterClips.PISTOL_AIM: 1.0,
+		CharacterClips.PISTOL_SHOOT: 1.0,
+	}
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		for clip_name: StringName in poses:
+			stage.pose(clip_name, 0.0, poses[clip_name])
+			await stage.settle()
+			var bone := (_in_gun(stage, &"middle_01_r") + _in_gun(stage, &"middle_02_r")) * 0.5
+			var right := stage.contact.measure("r", true)
+			var fails: Array[String] = []
+			if bone.y > GUARD_UNDERSIDE - UNDER_GUARD:
+				fails.append(
+					(
+						"its first bone's middle is %.1f mm up the gun, over %.1f"
+						% [bone.y * 1e3, (GUARD_UNDERSIDE - UNDER_GUARD) * 1e3]
+					)
+				)
+			if right.middle_base.gun > HandContact.MAX_FLOAT:
+				fails.append(
+					"its first bone is %.1f mm off the gun" % (right.middle_base.gun * 1e3)
+				)
+			(
+				assert_array(fails)
+				. override_failure_message(
+					"%s %s, the right middle finger: %s" % [model, clip_name, "; ".join(fails)]
+				)
+				. is_empty()
+			)
 		stage.free()
 
 
@@ -447,6 +510,7 @@ func test_the_players_left_hand_passes_through_nothing_as_it_reloads_while_aimin
 	_live_magazine = player.get_node("Model/PistolHeld/Pistol/MagazineHand") as Node3D
 	_live_contact = HandContact.new(_live_skeleton)
 	_live_contact.set_weapon(player.get_node("Model/PistolHeld/Pistol") as Node3D)
+	_make_bare(player)
 	_live_deepest = 0.0
 	_live_deepest_at = ""
 	_live_measured = 0
@@ -599,6 +663,7 @@ func _aim_up_and_down(model: String) -> void:
 	_live_magazine = player.get_node("Model/PistolHeld/Pistol/MagazineHand") as Node3D
 	_live_contact = HandContact.new(_live_skeleton)
 	_live_contact.set_weapon(player.get_node("Model/PistolHeld/Pistol") as Node3D)
+	_make_bare(player)
 	_live_deepest = 0.0
 	_live_deepest_at = ""
 	_live_measured = 0
@@ -632,6 +697,15 @@ func _aim_up_and_down(model: String) -> void:
 	AudioDrain.stop_all(arena)
 
 
+# The live measure against the pistol without its magazine (hidden while the contact is made).
+func _make_bare(player: Node) -> void:
+	_live_gun_magazine = player.get_node("Model/PistolHeld/Pistol/Pistol/Magazine") as Node3D
+	_live_gun_magazine.visible = false
+	_live_bare = HandContact.new(_live_skeleton)
+	_live_bare.set_weapon(player.get_node("Model/PistolHeld/Pistol") as Node3D)
+	_live_gun_magazine.visible = true
+
+
 # The hand's bone is read in the skeleton's update; the marker rides the attachment, which moves
 # in the same signal, so the two are compared once every listener ran.
 func _read_left_hand() -> void:
@@ -653,6 +727,7 @@ func _read_reload() -> void:
 # gun's attachment moved too, and only while the hand is within a hand's length of the gun.
 func _read_depth() -> void:
 	_live_contact.snapshot()
+	_live_bare.snapshot()
 	var weight: float = _live_hold.get(&"reload_weight")
 	var tag := (
 		"aim %.2f, reload %.2f at share %.3f"
@@ -672,7 +747,8 @@ func _measure_depth(tag: String) -> void:
 	if gap > LIVE_NEAR:
 		return
 	_live_measured += 1
-	var parts := _live_contact.measure("l", true)
+	var contact := _live_contact if _live_gun_magazine.visible else _live_bare
+	var parts := contact.measure("l", true)
 	for part: String in parts:
 		var depth: float = -parts[part].distance
 		if depth > _live_deepest:

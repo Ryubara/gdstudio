@@ -7,6 +7,10 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual1.glb" id="5_ual1"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual2.glb" id="6_ual2"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone.glb" id="6_prone"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_aim.glb" id="6_prone_aim"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_reload.glb" id="6_prone_reload"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_reload_male.glb" id="6_prone_reload_male"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_aim_male.glb" id="6_prone_aim_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault.glb" id="6_vault"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_male.glb" id="6_prone_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_form_female.glb" id="6_prone_form_female"]
@@ -14,7 +18,9 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault_male.glb" id="6_vault_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault_quaternius.glb" id="6_vault_quaternius"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/fixed/fixed.glb" id="6_fixed"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/melee/melee.glb" id="6_melee"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/own/locomotion.glb" id="7_gds"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/rifle/rifle_clips.glb" id="7_rifle"]
 [ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
 [ext_resource type="PackedScene" path="res://gameplay/character/footsteps.tscn" id="8_footsteps"]
 [ext_resource type="Script" path="res://gameplay/character/character_ragdoll.gd" id="9_ragdoll"]
@@ -87,9 +93,13 @@ libraries = {
 &"ual1": ExtResource("5_ual1"),
 &"ual2": ExtResource("6_ual2"),
 &"prone": ExtResource("6_prone_form_female"),
+&"prone_aim": ExtResource("6_prone_aim"),
 &"vault": ExtResource("6_vault"),
 &"fixed": ExtResource("6_fixed"),
-&"gds": ExtResource("7_gds")
+&"melee": ExtResource("6_melee"),
+&"gds": ExtResource("7_gds"),
+&"rifle": ExtResource("7_rifle"),
+&"prone_reload": ExtResource("6_prone_reload")
 }
 
 [node name="AnimationTree" type="AnimationTree" parent="." index="5"]
@@ -100,6 +110,12 @@ character = NodePath("..")
 model = NodePath("../Model")
 animation_player = NodePath("../AnimationPlayer")
 tree = NodePath("../AnimationTree")
+prone_aim_libraries = Dictionary[String, AnimationLibrary]({
+"res://assets/characters/prototype/form_male.glb": ExtResource("6_prone_aim_male")
+})
+prone_reload_libraries = Dictionary[String, AnimationLibrary]({
+"res://assets/characters/prototype/form_male.glb": ExtResource("6_prone_reload_male")
+})
 prone_libraries = Dictionary[String, AnimationLibrary]({
 "res://assets/characters/mannequin/mannequin_female.glb": ExtResource("6_prone"),
 "res://assets/characters/mannequin/mannequin_male.glb": ExtResource("6_prone_male"),

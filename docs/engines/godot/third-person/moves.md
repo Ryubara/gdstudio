@@ -60,6 +60,61 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   more than 2.2 mm and no frame is a mirror of itself (the wrists stay 96 mm and the shoulders 31 mm from one in the
   transitions) (`tests/gameplay/test_prone_clips.gd`, each body in its own file; `tools/capture/prone_clips_tour.tscn`
   films any of the four, `MODEL`, read by `tools/capture/study_body.gd`).
+- **The prone reload** (gdstudio #1185). A reload on a body that lies with a prone aim plays the held weapon's
+  `prone_reload_clip` (`WeaponDef`; the pistol's is `prone_reload/Prone_Reload_Pistol`, the library `prone_reload`:
+  `assets/animation/prone/prone_reload.glb` solved on `form_female`, the scene's library, and `prone_reload_male.glb`
+  on `form_male`, swapped in by `CharacterAnimation.prone_reload_libraries` as the aim's are) on the same reload
+  layer as the standing clip, from `spine_01` up and
+  stretched to `reload_time`: `ProneAnimation.reload_clip()` picks the clip when the reload starts, so the standing
+  clip never plays on a lying body, and a weapon with none shows no clip lying down. The clip starts and ends on the
+  prone aim's first pose and keeps the standing reload's shares for the left hand (off the pistol by 0.10, at the
+  belt at 0.22, under the magazine from 0.40, pushing it in to 0.54, back on from 0.88), so `WeaponHold` and
+  `SupportHandPlan` follow it unchanged, with the clip's own elbow (`support_keep_elbow`). The reload brings a
+  pistol that was put away out for as long as its clip holds the body (`ProneAnimation.stow_share(body,
+  reloading)`), and a body that gets up or lies down while a reload clip plays stops that clip
+  (`reload_misplaced()`); the rounds go in at the end of `reload_time` either way. The aim layer keeps the turn
+  it had when the reload began (`AimOffsetModifier.hold_turn`) and fades with the reload clip, since the clip is made
+  for the level look and moves the muzzle itself. Tests: `test_prone_reload.gd` (the main scene, simulated input)
+  and `test_prone_reload_hold.gd` (both bodies, each on its own file, the hold's 2 mm and 5 mm at every hundredth
+  the hand moves near the pistol).
+- **Approach:** While a clip that moves the weapon by itself plays over the aim (a reload), hold the aim layer's
+  turn at what it was before the clip (`hold_turn`, as for a shot's recoil) and let only its weight fade; measure
+  the hands over the floor on every update of the live player through both fades. **Watch out for:** the layer
+  solved, on every update, the whole turn that puts the muzzle back on the aim; as the lying reload (made for the
+  level look) faded in over a body aiming 14 degrees down it found up to 18 degrees and pitched the spine with
+  it: the hands and the muzzle 125 mm under the floor and the head 12 cm lower for nine updates at each end of the
+  reload, on a stage that passed every posed check. **Seen:** gdstudio #1185 (PR #1265), 2026-11-12
+  (`test_a_reload_lying_down_plays_the_prone_reload`; `AimLayer.refresh`).
+- **The prone aim** (gdstudio #1111). A lying body aims with clips made for the ground, never with the standing aim
+  layer: the held `WeaponDef` names them (`prone_aim_clip`, `prone_aim_up_clip`, `prone_aim_down_clip`, and
+  `prone_aim_angles`, the looks the down and up clips are made for: 25 and 20 degrees), the prone state blends them
+  by the look over the idle and the crawl from `spine_01` up (`ProneAnimation.build`: `Aim` over `Move`, with
+  `AimPose`), and while the body lies the standing `Armed` and `Aim` layers have no weight
+  (`CharacterAnimation.prone_hold_share()`; `pistol_weights()` still says held and aimed, for the hold). The
+  pistol's three clips (the library `prone_aim`, `assets/animation/prone/prone_aim.glb`,
+  [how they are solved](../../../tools/blender/animation.md#solved-clips)) lie flat behind the pistol with both arms
+  stretched ahead, the grip's foot just over the ground and the head low behind the sights, as pistol shooting is
+  taught lying down (the clips' README has the sources); looking up lifts the pistol off the ground and unlocks the
+  arms. Past the down clip's 25 degrees the pose stays there while the look and the shot go on to
+  `look_down_limit`: a body flat on the ground cannot point a pistol further down. There is no prone shot clip: a
+  shot kicks the look the pose is on (`prone_shot_kick` 7 degrees, settling over `prone_shot_kick_time` 0.22 s), so
+  the muzzle jumps at any look. The hold closes the hands as it does standing; its left arm keeps the elbow the clip
+  gives it (`HoldArm.keep_elbow`). The clips are solved a body, on its own arms and with its own hold:
+  `prone_aim.glb` on `form_female` (the scene's library) and `prone_aim_male.glb` on `form_male`, which
+  `CharacterAnimation.prone_aim_libraries` (the model's scene file to a library with the same clip names) swaps in
+  as `prone_libraries` does for the prone clips. The aim layer stops where the down clip does
+  (`ProneTuning.aim_limits`: `pitch_down` 25), so the look and the shot go on to `look_down_limit` and the pistol
+  stays over the floor. A weapon with no prone aim clip aims lying down with its standing clips, as before.
+  A reload lying down keeps the prone aim: the standing reload clip is not played on a lying body (it folded the
+  arms under the chest), so until there is a prone reload clip (gdstudio #1185) only the time and the sounds say
+  that the magazine is changed.
+- **The prone aim view.** The lying body's middle is its hips, so the standing aim view, close behind that point,
+  put the hands under the HUD's bottom row at the look-up limit and the pistol behind the head. While the player
+  lies and aims or fires, `PlayerCamera` blends to its Prone aim group (`prone_aim_view` on): the point the view
+  turns about moves `prone_aim_ahead` 0.55 m along the camera's heading (to the shoulders) and `prone_aim_rise`
+  0 m up, the lens is `prone_aim_distance` 1.8 m behind it at `prone_aim_fov` 50 degrees, and the view sits
+  `prone_aim_shoulder` 0.7 m to the side, from where the pistol shows beside the head. At the 12 degree look-up
+  limit the lens is 0.28 m over the floor (`test_prone_aim.gd`).
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
 studios; the template's run is 4.0 m/s and its walk 1.7):
@@ -90,6 +145,32 @@ of the stance is sent but the command's bit; the clips are cosmetic and played i
   in the real map with the stick held up. **Watch out for:** a limit taken from aim comfort alone (20 degrees) put the
   lens 7 cm over the floor, 2 cm from the near plane; the spring arm meets the floor at a grazing angle, so its margin
   is along the arm, not up. **Seen:** gdstudio #1012, 2026-11-10 (`test_prone_camera.gd`; 12 degrees keeps 0.3 m).
+- **Approach:** Pose a lying aim the way the weapon is shot lying down (a pistol: flat behind it, arms stretched,
+  the grip's foot on the ground), and look at it from the player's camera before tuning the camera: the pose decides
+  what the camera can show. **Watch out for:** the first prone aim propped the chest on planted elbows with the
+  forearms raised, a rifle's position: the pistol sat 10 cm in front of the face and the head hid it from behind
+  at every camera offset tried; pointing 25 degrees down from planted elbows bent the wrists 94 to 98 degrees.
+  With the arms stretched the pistol is 0.3 m past the head and shows beside it. **Seen:** gdstudio #1111,
+  2026-11-11 (three poses captured from the player's camera).
+- **Approach:** Give a lying body's aim layer the down limit of its pose (the look the down clip is made for), and
+  measure the muzzle and the grip's foot over the floor at every look to both look limits on the live player.
+  **Watch out for:** with the aim layer's default 45 degrees down, the spine turned the stretched arms on to the 40
+  degree look-down limit and put the muzzle 207 mm and the magazine 183 mm under the floor; the test looked at 0,
+  12 and 25 degrees only, so it passed. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11 (fix: `pitch_down` 25 in
+  `ProneTuning.aim_limits`, and the look-down limit in `test_prone_aim.gd`).
+- **Approach:** Test a framing against what it must show and what it must not sit under: project the shoulders, the
+  hands, the head and the muzzle into a 16:9 picture from the camera's own transform and field of view, hold them
+  above the HUD's bottom row, and run the same test with the new view switched off to see it fail. **Watch out
+  for:** a headless run's picture is square (1920 by 1920 with the template's `expand` stretch), so
+  `unproject_position` put a shoulder left of the picture that a 16:9 capture shows; and the first version of the
+  test (every point inside the picture) passed for the old view too, whose fault was the hands under the HUD row
+  when looking up. **Seen:** gdstudio #1111, 2026-11-11 (`test_prone_aim.gd`, `prone_aim_view` off: five points
+  at 0.85 to 0.90 of the height).
+- **Approach:** Give a capture tour's own camera a `SubViewport` of its own over the game (a `CanvasLayer` with a
+  full-rect `SubViewportContainer`), and leave the window's camera to the game. **Watch out for:** `PlayerInput`
+  aims the body along the viewport's current camera, so a tour camera made current turned the player after it on
+  every frame: the body spun, and a close-up aimed at the pistol showed it off-centre by what it had turned.
+  **Seen:** gdstudio #1111, 2026-11-11 (`tools/capture/prone_aim_tour.gd`).
 - **Approach:** Lay a placeholder on the ground with a pose offset on the model inside its slot, applied by how far
   down the body is and nothing at all while it is zero, and look at the capture before picking the clip. **Watch out
   for:** the crouch clips tipped forward still knelt, and the library's swim stroke is horizontal but floats under a

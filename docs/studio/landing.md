@@ -39,7 +39,9 @@ Open pull requests come before new work: each one left open goes stale against `
   **Watch out for:** a branch that was green meets what `main` gained meanwhile: a new clock for the suites, a new
   main menu in front of the probe. **Seen:** gdstudio #903 (PR #935), 2026-11-10: the local run on the real clock
   passed 876 cases while CI failed 5 socket cases, and the web probe stopped at the new menu (fix: the command
-  defaults to the CI clock, a test pins it against `ci.yml`, kit #976).
+  defaults to the CI clock, a test pins it against `ci.yml`, kit #976); gdstudio #1191, 2026-11-12: CLEAN and green
+  after #1353 landed, the merge failed `test_aim_head.gd` lying with the prone aim (head 8.9 degrees on the neck,
+  limit 8), which neither branch had alone (fix: `head_prone_neck_share`).
 
 - **Approach:** Look up the owner of any pull request red for over 30 minutes and assign one at once if none is live;
   when an agent is moved to other work, hand each pull request it leaves to someone. **Watch out for:** every open pull
@@ -170,11 +172,13 @@ force push, which is the maintainer's decision: open the same change from a new 
   2026-11-02 (fix: the rule above).
 - **Approach:** After a merge of `main`, conflicted or not, read the diff of every test file against `main` and run
   `gds check scripts` (or the template's test) before pushing. **Watch out for:** a merge of `main` doubled a step in a
-  test, so the branch failed for a reason the change never had; `main` retyping a shared property (the loadout's
-  `slots` to `Array[Resource]`) leaves the branch's new lines on the old type, which merge cleanly and fail to parse.
-  **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge); gdstudio #1258, 2026-11-11 (an
+  test; `main` retyping a shared property (the loadout's `slots` to `Array[Resource]`) leaves the branch's lines
+  on the old type, unparsable; suites picked by name miss a test `main` added over what the branch changed:
+  grep the tests for it (`fists.tres`) and run each hit.
+  **Seen:** Deadnight, 2026-11-01 (the night suite caught it); gdstudio #1258, 2026-11-11 (an
   inventory test from #1040 still typed `Array[WeaponDef]`; fix: retyped after the template check failed;
-  then a new export met the pins test `main` had added since).
+  then a new export met the pins test `main` had added since); gdstudio #1315, 2026-11-12 (the online
+  fire count expected the fists, now a blow, to shoot; fix: counted `melee_started`).
 - **Approach:** When a branch moves a shared asset path (a body, a model), grep the merged tree for the old path after
   `gds merge-main`, in tests and in scenes, and run the full template suite, not only the suites the branch touched.
   **Watch out for:** a scene and a suite that landed on `main` after the branch started still use the old path, so

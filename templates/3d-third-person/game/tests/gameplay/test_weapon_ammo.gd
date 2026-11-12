@@ -195,16 +195,22 @@ func test_a_blow_reaches_its_length_and_no_further() -> void:
 	var hits: Array[Dictionary] = []
 	_weapon.hit_scanned.connect(func(hit: Dictionary) -> void: hits.append(hit))
 	assert_int(_weapon.pull(Vector3(0.0, 1.0, 0.0), Vector3.FORWARD)).is_equal(Weapon.Pull.FIRED)
+	# The blow lands in its hit window, not on the press (gdstudio #1254).
+	_ticks(ceili(_weapon.definition.blow_hit_end() / TICK) + 1)
 	assert_int(hits.size()).is_equal(1)
 	assert_object(hits[0]["collider"]).is_same(near)
+	assert_bool(hits[0]["melee"]).is_true()
 	near.position = Vector3(0.0, 0.0, -2.5)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	assert_int(_pull()).is_equal(Weapon.Pull.FIRED)
+	_ticks(ceili(_weapon.definition.blow_cooldown() / TICK) + 1)
+	assert_int(_weapon.pull(Vector3(0.0, 1.0, 0.0), Vector3.FORWARD)).is_equal(Weapon.Pull.FIRED)
+	_ticks(ceili(_weapon.definition.blow_hit_end() / TICK) + 1)
 	assert_int(hits.size()).is_equal(1)
 	# No ammunition: it never runs out.
 	for _blow in 20:
-		assert_int(_pull()).is_equal(Weapon.Pull.FIRED)
+		_ticks(ceili(_weapon.definition.blow_cooldown() / TICK) + 1)
+		assert_int(_weapon.pull()).is_equal(Weapon.Pull.FIRED)
 
 
 func test_a_hundred_shots_make_no_new_mesh_shape_or_material() -> void:

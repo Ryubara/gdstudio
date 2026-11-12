@@ -238,6 +238,21 @@ check on the branch's commits since `origin/main` and refuses a `Model:` line th
 guard](pull-requests.md#pr-body)); run it before `gh pr create`. The base's commits stay on the list after the base
 lands (a squash merge makes a new commit on `main`), so the line keeps naming their models.
 
+- **Approach:** When the base has landed as a squash, merge `main` into the stacked branch, put `main`'s whole tree
+  in the merge (`git read-tree --reset -u origin/main` while the merge is open), re-apply only the branch's own
+  change (`git diff <base tip> <branch tip> | git apply --3way`) and resolve what is left. **Watch out for:** a plain
+  merge conflicts in every file of the base that changed before it landed (37 files, most of them the base's own
+  and none of them the stacked branch's), and resolving them by hand risks keeping an old side of the base; the
+  re-applied patch conflicted in 10 files, all the branch's own, and three of those `main` had since taken whole.
+  **Seen:** gdstudio #1267 on #1040, 2026-11-12.
+- **Approach:** While the base is still open, fetch it and merge its head into the stacked branch right after
+  `main`, before resolving any docs fold or rebuilding anything solved on the base's files; where both merged the
+  same `main`, take the stacked branch's code and the base's docs with the branch's own lines added. **Watch out
+  for:** the base's agent works at the same time: it had merged the same `main`, rebuilt its clips on the new hold
+  and folded its page into another section while the stacked branch was resolving `main` alone, so the fold made
+  there (a section of its own) was redone into the base's section, and the clip that joins the base's would have
+  been solved on the base's old files. **Seen:** gdstudio #1265 on #1191, 2026-11-12.
+
 ### The worktree is removed when the work is finished {#sweep}
 
 Nobody removes a worktree by hand: `gds worktree sweep` does it once the pull request merged or the issue closed (and

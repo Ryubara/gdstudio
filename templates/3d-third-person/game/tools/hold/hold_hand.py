@@ -15,6 +15,8 @@ LIMITS = {
     "thumb": np.array([[-50.0, 50.0], [-50.0, 50.0], [-50.0, 50.0], [-40.0, 40.0], [-15.0, 75.0], [0.0, 85.0]]),
 }
 X, Y, Z = np.eye(3)
+# How near a finger's capsule a point of the other hand must be for the finger's own skin to be read, metres.
+SKIN_NEAR = 0.006
 
 
 def local_rotations(finger, angles):
@@ -78,6 +80,7 @@ class Hand:
         self._apply_all()
         self._sample_palm()
         self._measure_fingers()
+        self._measure_finger_skins()
 
     def _measure_fingers(self):
         """Each finger bone's skin as a capsule, for each mannequin: `capsule[finger]` (models, 3, 5) holds
@@ -113,6 +116,40 @@ class Hand:
                     last = max(local[:, 1].max() - radius, 0.5 * lengths[k])
                     self.capsule[f][model, k] = [centre[0], centre[1], first, last, radius]
 
+    def _measure_finger_skins(self):
+        """Each finger bone's skin as it is, for each mannequin: `skin_field[finger][model][k]` is a distance
+        grid in the bone's own space over the triangles that touch the bone's vertices (closed where they
+        end), and `skin_span[finger][model][k]` the stretch of the bone's Y it is read on (from its joint, then from
+        its own first vertices, as far as they go). Between the joint and those vertices the skin is a tube
+        to the bone before, which the grid holds unbent (it read 2 mm too deep there), so a point there is as
+        deep as the shallower of this bone's grid and that bone's. A capsule is round where a low-poly
+        fingertip is blunt: the male prototype's right little knuckle lay 4.8 mm inside the left middle
+        fingertip's skin and 0.6 mm inside its capsule (kit #1213)."""
+        rig = self.rig
+        self.skin_field, self.skin_span = {}, {}
+        for f in FINGERS:
+            chain = self.chains[f]
+            self.skin_field[f], self.skin_span[f] = [], []
+            for model in range(rig.model.max() + 1):
+                fields, spans = [], []
+                for k, bone in enumerate(chain):
+                    mine = (rig.main == bone) & (rig.model == model)
+                    tris = rig.tris[mine[rig.tris].any(axis=1)]
+                    if f == "thumb" and k == 0 or len(tris) == 0:
+                        # The thumb's root is part of the palm, which is sampled all over.
+                        fields.append(None)
+                        spans.append((0.0, 0.0))
+                        continue
+                    local = (rig.homog @ rig.bind[bone].T)[:, :3]
+                    own = local[mine]
+                    faces = local[tris]
+                    faces = np.concatenate([faces, hold_field.ring_caps(faces)])
+                    low, high = faces.reshape(-1, 3).min(axis=0) - 0.004, faces.reshape(-1, 3).max(axis=0) + 0.004
+                    fields.append(hold_field.PiecesField(faces, low, high, 0.001, rays=(0, 1, 2)))
+                    spans.append((min(0.0, own[:, 1].min()), max(0.0, own[:, 1].min()), own[:, 1].max()))
+                self.skin_field[f].append(fields)
+                self.skin_span[f].append(spans)
+
     def finger_bones(self, finger, rots):
         """The finger's three bones in the world for each row of their rotations on top of their rests (as
         `finger_points_turned` takes them): (K, 3, 4, 4)."""
@@ -138,16 +175,40 @@ class Hand:
             mine = points[model == index]
             # Only what is within a finger's length of the knuckle can touch it; every other vertex of a
             # finely meshed hand is enough.
-            mine = mine[np.linalg.norm(mine - bones[0, 0, :3, 3], axis=1) < 0.14][::2]
+            mine = mine[np.linalg.norm(mine - bones[0, 0, :3, 3], axis=1) < 0.14]
             if len(mine) == 0:
                 continue
             for first in range(0, len(bones), 256):
                 rows = bones[first : first + 256]
+                view = deepest[first : first + 256]
                 for k, (x, z, first_y, last_y, radius) in enumerate(capsules):
                     a = rows[:, k] @ np.array([x, first_y, z, 1.0])
                     b = rows[:, k] @ np.array([x, last_y, z, 1.0])
-                    inside = (radius - segment_distance(mine[None], a[:, :3], b[:, :3])).max(axis=1)
-                    deepest[first : first + 256] = np.maximum(deepest[first : first + 256], inside)
+                    inside = radius - segment_distance(mine[None], a[:, :3], b[:, :3])
+                    # Every other point is enough for the capsule; a low-poly hand's lone knuckle vertex
+                    # is not among them, so the skin below reads them all.
+                    np.maximum(view, inside[:, ::2].max(axis=1), out=view)
+                    field = self.skin_field[finger][index][k]
+                    if field is None:
+                        continue
+                    # The points near the capsule, in the bone's own space, against the skin itself.
+                    row, point = np.nonzero(inside > -SKIN_NEAR)
+                    if len(row) == 0:
+                        continue
+                    turn = rows[row, k]
+                    local = np.einsum("nji,nj->ni", turn[:, :3, :3], mine[point] - turn[:, :3, 3])
+                    low, own, high = self.skin_span[finger][index][k]
+                    depth = np.where((local[:, 1] >= low) & (local[:, 1] <= high), -field(local), 0.0)
+                    before = self.skin_field[finger][index][k - 1] if k else None
+                    joint = (local[:, 1] < own) & (depth > 0.0)
+                    if joint.any():
+                        if before is None:
+                            depth[joint] = 0.0
+                        else:
+                            turn = rows[row[joint], k - 1]
+                            at = np.einsum("nji,nj->ni", turn[:, :3, :3], mine[point[joint]] - turn[:, :3, 3])
+                            depth[joint] = np.minimum(depth[joint], -before(at))
+                    np.maximum.at(view, row, depth)
         return deepest
 
     def _sample_palm(self, spacing=0.003):

@@ -8,10 +8,11 @@ extends Node3D
 ## arm reaches its hand's place on the gun, and the fingers close on it: the right hand on the
 ## pistol grip with the index finger along the receiver (on the trigger while the gun is up), the
 ## left hand cupped under the hand guard. Both hands stay on the gun in every state; only a reload
-## takes the left hand away, to the magazine and the belt and back. The legs and the head stay on
-## the locomotion clips. `two_hand_hold.tscn` is the part with no gun; the rifle's
-## `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and the hands' places under
-## `Pivot`.
+## takes the left hand away, to the magazine and the belt and back, and an action that reaches
+## with it (using a door: `FreeHand`, kit #1336), for which the gun goes down in the right hand
+## alone. The legs and the head stay on the locomotion clips. `two_hand_hold.tscn` is the part
+## with no gun; the rifle's `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and
+## the hands' places under `Pivot`.
 ##
 ## The parts a person tunes are scene nodes: `Pivot` (the shoulder's pocket, which this node moves
 ## and turns), the gun under it, the hands' places on the gun (`RightHandTarget`,
@@ -53,16 +54,15 @@ const _WAY_DOWN := 0.3
 const _WAY_THUMB := Vector2(0.2, 0.5)
 const _WAY_BESIDE := 0.7
 const _WAY_ON := 0.88
+## The share of a freed hand's way off the gun that takes it down under the hand guard (the
+## reload's own first steps); over the rest it goes out to `free_clearance`.
+const _FREE_DOWN := 0.6
 ## How many times at most the left shoulder is brought to the hand guard and the butt to the skin
 ## in one frame.
 const _PASSES := 3
 ## How far the push to the skin may move in a frame before the shoulder's reach is worked out
 ## again for it, in metres.
 const _PUSH_STEP := 0.003
-## The size of the cells the skin's points are grouped in under each bone, in metres.
-const _SKIN_CHUNK := 0.08
-## Where round the chest bone (on the rest pose, +X its left) the torso's skin can meet the stock.
-const _SKIN_REGION := AABB(Vector3(-0.32, -0.2, 0.0), Vector3(0.47, 0.5, 0.3))
 
 @export_group("Nodes")
 ## The character holding it. Empty: the `Model` slot's parent.
@@ -121,6 +121,21 @@ const _SKIN_REGION := AABB(Vector3(-0.32, -0.2, 0.0), Vector3(0.47, 0.5, 0.3))
 ## How far the muzzle points down there, and across the body.
 @export_range(0.0, 89.0, 0.5, "suffix:deg") var stow_pitch := 40.0
 @export_range(-60.0, 60.0, 0.5, "suffix:deg") var stow_yaw := 10.0
+
+@export_group("Free hand")
+## How far the muzzle points down, and across the body, while the left hand is away for an action
+## that reaches with it (using a door or a lever: `FreeHand`): the gun in the right hand alone,
+## its butt still in the shoulder's pocket, lower than the low ready and out of the left arm's way.
+@export_range(0.0, 89.0, 0.5, "suffix:deg") var free_pitch := 50.0
+@export_range(-60.0, 60.0, 0.5, "suffix:deg") var free_yaw := 0.0
+## Where the opened left hand goes from under the hand guard before the action's arm takes it,
+## and where it comes back to, from its place on the gun in the gun's space: down and well out to
+## the left, so its way to and from a reach in front goes beside the gun and never through it.
+@export var free_clearance := Vector3(0.0, -0.1, 0.14)
+## Seconds the left hand takes off the hand guard to the action's arm (its fingers open and it
+## drops clear over the first half), and back from it, ending as the action ends.
+@export_range(0.01, 1.0, 0.01, "suffix:s") var free_release_time := 0.16
+@export_range(0.01, 1.0, 0.01, "suffix:s") var free_return_time := 0.26
 
 @export_group("Recoil")
 ## How far a shot pushes the gun back along the barrel.
@@ -213,6 +228,8 @@ var posed_aim := 0.0
 var posed_pitch := 0.0
 var posed_reload := -1.0
 var posed_lowered := 0.0
+## For a figure posed by hand: how far the left hand is let go (`FreeHand.amount()`).
+var posed_free := 0.0
 ## True while the camera is past `fingers_far_distance` (set by `CharacterAnimationThrottle`).
 var fingers_far := false
 
@@ -227,21 +244,14 @@ var _kick := 0.0
 var _reach := 1.0
 var _down := 0.0
 var _leaving := false
+# The left hand let go for an action that reaches with it, and how far it is gone this frame.
+var _free := FreeHand.new()
+var _freed := 0.0
 var _chest := Vector3.ZERO
 var _left_rest := Transform3D.IDENTITY
 var _magazine_rest := Transform3D.IDENTITY
-# The torso's skin the butt meets (`_measure_chest`): each point in its main bone's rest space,
-# in groups (a cell of `_SKIN_CHUNK` under one bone): the points of group `i` run from
-# `_skin_starts[i]` to the next start, inside `_skin_boxes[i]`, so a group the stock is not near
-# is passed over whole.
-var _skin_points := PackedVector3Array()
-var _skin_starts := PackedInt32Array()
-var _skin_boxes: Array[AABB] = []
-# The bones the groups ride, in the groups' order: each bone's index, the box round all its
-# points and its first group (one more entry ends the last).
-var _torso_bones := PackedInt32Array()
-var _torso_boxes: Array[AABB] = []
-var _torso_starts := PackedInt32Array()
+# The torso's skin the butt meets, thinned and grouped by bone (`TorsoSkin`).
+var _skin := TorsoSkin.new()
 # The push of the last frame it was measured.
 var _push := 0.0
 var _weapon: Weapon
@@ -286,6 +296,7 @@ func _ready() -> void:
 	if character != null:
 		_weapon = character.weapon
 		_loadout = character.loadout
+		character.interacted.connect(free_hand_for_interact.unbind(1))
 		if _weapon != null:
 			_weapon.fired.connect(_on_fired.unbind(1))
 		if _loadout != null:
@@ -307,6 +318,25 @@ func _process(delta: float) -> void:
 ## How far the gun is up at the shoulder: 0 at the low ready, 1 aimed.
 func raised_amount() -> float:
 	return _raised
+
+
+## How far the left hand is let go for an action that reaches with it (`FreeHand.amount()`).
+func free_amount() -> float:
+	return _freed
+
+
+## Lets the left hand go for an action of `seconds` that reaches with it (the gun goes down in
+## the right hand); a reload keeps the hand. The character's `interacted` does it by itself.
+func free_hand(seconds: float) -> void:
+	if visible and _reload_progress() < 0.0:
+		_free.release_time = free_release_time
+		_free.return_time = free_return_time
+		_free.start(seconds)
+
+
+## The character used something: the interact clip reaches with the left hand.
+func free_hand_for_interact() -> void:
+	free_hand(character.tuning.interact_time)
 
 
 ## How far the arms are on the gun's places: 1 while the gun is in the hands, and the way there
@@ -343,6 +373,11 @@ func refresh() -> void:
 		var share := fingers if modifier is HandPoseModifier else _reach
 		if not alive:
 			share = 0.0
+		elif _arms.size() > 1 and modifier == _arms[1]:
+			# The clip's own arm has the left hand while an action reaches with it.
+			share *= 1.0 - FreeHand.gone(_freed)
+		elif _fingers.size() > 1 and modifier == _fingers[1]:
+			share *= 1.0 - FreeHand.relaxed(_freed)
 		if not is_equal_approx(modifier.influence, share):
 			modifier.influence = share
 		if modifier.active != (share > 0.0):
@@ -352,7 +387,7 @@ func refresh() -> void:
 	# The finger is on the trigger while the gun is up, and off it through a reload.
 	var reload := _reload_progress()
 	_fingers[0].second_weight = _raised if reload < 0.0 else 0.0
-	var to_magazine := _to_magazine(reload)
+	var to_magazine := maxf(_to_magazine(reload), _let_go())
 	# The thumb goes from the hand guard's side to its place behind the magazine while the hand
 	# comes down off the hand guard (the open pose leaves it be): a thumb still standing up
 	# on the way across went 17 mm through the magazine well. The four fingers stay open until
@@ -393,6 +428,8 @@ func place(skeleton: Skeleton3D) -> void:
 	var aim := _turned(-pitch - kick_degrees * _kick, 0.0)
 	var turn := low.slerp(aim, _raised)
 	var pocket := low_pocket.lerp(aim_pocket, _raised)
+	if _freed > 0.0:
+		turn = turn.slerp(_turned(free_pitch, free_yaw), smoothstep(0.0, 1.0, _freed))
 	if _down > 0.0:
 		var eased := smoothstep(0.0, 1.0, _down)
 		turn = turn.slerp(_turned(stow_pitch, stow_yaw), eased)
@@ -416,7 +453,9 @@ func place(skeleton: Skeleton3D) -> void:
 		if _fingers_far():
 			break
 		var before := _push
-		_push = _butt_push(skeleton, Transform3D(basis_now, pocket), to_here)
+		_push = _skin.push(
+			skeleton, Transform3D(basis_now, pocket), to_here, butt_pad, butt_depth, butt_margin
+		)
 		pivot_xf.origin = pocket + basis_now.z * (_push - kick_distance * _kick)
 		if absf(_push - before) <= _PUSH_STEP or _clavicle_index < 0:
 			break
@@ -445,136 +484,6 @@ func spine_indices() -> PackedInt32Array:
 	return _spine_indices
 
 
-# Keeps a thinned set of the torso's skin, each point in its main bone's rest space, for the butt
-# to meet (`_butt_push`): the skin of every vertex whose main bone is one of `torso_bones`, one
-# point per `skin_spacing` cell, in front of the chest bone.
-func _measure_chest(skeleton: Skeleton3D) -> void:
-	_skin_points = PackedVector3Array()
-	_skin_starts = PackedInt32Array()
-	_skin_boxes.clear()
-	_torso_bones = PackedInt32Array()
-	_torso_boxes.clear()
-	_torso_starts = PackedInt32Array()
-	_push = 0.0
-	var chest := _chest_index
-	if chest < 0:
-		return
-	var origin := skeleton.get_bone_global_rest(chest).origin
-	var torso := {}
-	for bone_name in torso_bones:
-		var bone := skeleton.find_bone(bone_name)
-		if bone >= 0:
-			torso[bone] = true
-	var cells := {}
-	# The nearest level of detail only: the farther ones are the same skin with fewer points.
-	for instance in CharacterBodies.near_meshes(skeleton):
-		if instance.skin == null or instance.mesh == null:
-			continue
-		var to_skeleton := skeleton.global_transform.affine_inverse() * instance.global_transform
-		var skin := instance.skin
-		var binds: Array[Transform3D] = []
-		var bind_bones := PackedInt32Array()
-		for bind in skin.get_bind_count():
-			var bone := skeleton.find_bone(skin.get_bind_name(bind))
-			bone = bone if bone >= 0 else skin.get_bind_bone(bind)
-			bind_bones.append(bone)
-			binds.append(skeleton.get_bone_global_rest(bone) * skin.get_bind_pose(bind))
-		for surface in instance.mesh.get_surface_count():
-			var arrays := instance.mesh.surface_get_arrays(surface)
-			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-			var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
-			var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
-			if vertices.is_empty() or bones.is_empty():
-				continue
-			var per := bones.size() / vertices.size()
-			# Each vertex on the rest pose, in the skeleton's space, and the bone it follows most.
-			var rests := PackedVector3Array()
-			var mains := PackedInt32Array()
-			for vertex in vertices.size():
-				var main := 0
-				var rest := Vector3.ZERO
-				for slot in per:
-					var share := weights[vertex * per + slot]
-					if share > weights[vertex * per + main]:
-						main = slot
-					if share > 0.0:
-						rest += share * (binds[bones[vertex * per + slot]] * vertices[vertex])
-				rests.append(to_skeleton * rest)
-				mains.append(bind_bones[bones[vertex * per + main]])
-			# Points over each triangle, a `skin_spacing` apart: a body of few, large triangles has
-			# skin far from any vertex, and a stock pushed clear of the vertices alone stood up
-			# to 19 mm inside a face (the prototype male, kit #1177).
-			var indices := PackedInt32Array()
-			if arrays[Mesh.ARRAY_INDEX] != null:
-				indices = arrays[Mesh.ARRAY_INDEX]
-			var corners := indices.size() if not indices.is_empty() else vertices.size()
-			for triangle in corners / 3:
-				var at: Array[int] = []
-				for corner in 3:
-					var index := triangle * 3 + corner
-					at.append(indices[index] if not indices.is_empty() else index)
-				if not (
-					torso.has(mains[at[0]]) or torso.has(mains[at[1]]) or torso.has(mains[at[2]])
-				):
-					continue
-				var a := rests[at[0]]
-				var b := rests[at[1]]
-				var c := rests[at[2]]
-				var longest := maxf(a.distance_to(b), maxf(b.distance_to(c), c.distance_to(a)))
-				var steps := clampi(ceili(longest / maxf(skin_spacing, 0.001)), 1, 12)
-				for u in steps + 1:
-					for v in steps + 1 - u:
-						var w := steps - u - v
-						# The point follows the bone of the corner it is nearest.
-						var near := at[0] if u >= v and u >= w else (at[1] if v >= w else at[2])
-						var bone := mains[near]
-						if not torso.has(bone):
-							continue
-						var rest := (a * u + b * v + c * w) / steps
-						_keep_skin(cells, skeleton, bone, rest, rest - origin)
-	# Grouped by bone and, under each bone, by a `_SKIN_CHUNK` cell of its rest space: a push
-	# takes each bone's pose once and goes through the points of the chunks near the stock only.
-	var by_chunk := {}
-	for cell in cells:
-		var entry: Array = cells[cell]
-		var at: Vector3 = entry[1]
-		var inside := Vector3i((at / _SKIN_CHUNK).floor())
-		var chunk := Vector4i(entry[0], inside.x, inside.y, inside.z)
-		if not by_chunk.has(chunk):
-			by_chunk[chunk] = []
-		(by_chunk[chunk] as Array).append(at)
-	var chunks := by_chunk.keys()
-	chunks.sort()
-	for chunk: Vector4i in chunks:
-		var box := AABB((by_chunk[chunk] as Array)[0] as Vector3, Vector3.ZERO)
-		for at: Vector3 in by_chunk[chunk]:
-			_skin_points.append(at)
-			box = box.expand(at)
-		if _torso_bones.is_empty() or _torso_bones[-1] != chunk.x:
-			_torso_bones.append(chunk.x)
-			_torso_boxes.append(box)
-			_torso_starts.append(_skin_boxes.size())
-		_torso_boxes[-1] = _torso_boxes[-1].merge(box)
-		_skin_starts.append(_skin_points.size() - (by_chunk[chunk] as Array).size())
-		_skin_boxes.append(box)
-	_skin_starts.append(_skin_points.size())
-	_torso_starts.append(_skin_boxes.size())
-
-
-# Keeps `rest` (a point of the skin on the rest pose, `ahead` of the chest bone) as its cell's
-# point when it is in the region the stock can meet and the frontmost there.
-func _keep_skin(
-	cells: Dictionary, skeleton: Skeleton3D, bone: int, rest: Vector3, ahead: Vector3
-) -> void:
-	# The front half only, round the right shoulder and across to the sternum's left.
-	if ahead.z <= 0.0 or not _SKIN_REGION.has_point(ahead):
-		return
-	var cell := Vector3i((ahead / maxf(skin_spacing, 0.001)).floor())
-	if cells.has(cell) and ((cells[cell] as Array)[2] as Vector3).z >= ahead.z:
-		return
-	cells[cell] = [bone, skeleton.get_bone_global_rest(bone).affine_inverse() * rest, ahead]
-
-
 # The frame the pockets are given in: the chest's turn about the up axis, and `pocket_lean` of
 # the rest of its turn from its rest (a lean forward, back or aside).
 func _chest_frame(turned: Quaternion) -> Basis:
@@ -584,36 +493,6 @@ func _chest_frame(turned: Quaternion) -> Basis:
 	twist = twist.normalized()
 	var lean := turned * twist.inverse()
 	return Basis(Quaternion.IDENTITY.slerp(lean, pocket_lean) * twist)
-
-
-# How far the gun goes forward along its barrel from the pocket so no point of the torso's skin is
-# inside its stock: a box `butt_pad` across and `butt_depth` long from the butt's place, facing
-# back along the barrel. The skin points ride their main bones in the pose of this update (the
-# clip, the crouch and the chest turn, from the local poses up the parents), so the butt comes to
-# the skin of whichever body holds it.
-func _butt_push(skeleton: Skeleton3D, gun: Transform3D, to_here: Transform3D) -> float:
-	var push := 0.0
-	var to_gun := gun.affine_inverse() * to_here
-	var wide := butt_pad.x * 0.5 + butt_margin
-	var high := butt_pad.y * 0.5 + butt_margin
-	var stock := AABB(
-		Vector3(-wide, -high, -butt_margin),
-		Vector3(wide * 2.0, high * 2.0, butt_depth + butt_margin)
-	)
-	for bone in _torso_bones.size():
-		var pose := to_gun * HandPoseModifier.global_pose(skeleton, _torso_bones[bone])
-		var deepest := 0.0
-		if (pose * _torso_boxes[bone]).intersects(stock):
-			for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
-				if not (pose * _skin_boxes[group]).intersects(stock):
-					continue
-				for index in range(_skin_starts[group], _skin_starts[group + 1]):
-					var at := pose * _skin_points[index]
-					if at.z > -butt_margin and at.z < butt_depth and absf(at.x) < wide:
-						if absf(at.y) < high:
-							deepest = maxf(deepest, at.z + butt_margin)
-		push = maxf(push, deepest)
-	return push
 
 
 # Turns the left collarbone (by `reach_turn` at most) so the left shoulder comes toward the hand
@@ -658,7 +537,7 @@ func _reach_shoulder(
 	var share := (both - length * length) / maxf(twice, 1e-9)
 	if share < 1.0:
 		high = minf(high, maxf(whole - acos(maxf(share, -1.0)), 0.0))
-	var angle := high * weight()
+	var angle := high * weight() * (1.0 - FreeHand.gone(_freed))
 	var turned := Transform3D(Basis(axis, angle) * root.basis, root.origin)
 	skeleton.set_bone_pose(_clavicle_index, parent.affine_inverse() * turned)
 	return angle > 0.0
@@ -687,9 +566,16 @@ func _pull(
 	return clampf(-along - reach, 0.0, pull_limit)
 
 
-## The weight of the chest turn: with the arms.
+## The weight of the hold on the arms and the chest: with the arms.
 func weight() -> float:
 	return _reach
+
+
+## The weight of the chest's turn toward the hand guard: with the arms, and none while the left
+## hand is away for an action, whose clip then has the shoulders (the turn would bring its
+## reaching arm across the gun).
+func chest_weight() -> float:
+	return _reach * (1.0 - smoothstep(0.0, 1.0, _freed))
 
 
 # How far the arms are on the gun's places now. In the hands: all the way. While the weapon
@@ -755,13 +641,20 @@ func _on_switch_finished() -> void:
 
 func _step(delta: float) -> void:
 	if character != null:
+		_free.step(delta)
+		if _reload_progress() >= 0.0 or not visible:
+			_free.stop()
+		_freed = _free.amount()
 		var wants := character.aim_amount
 		_shot_left = maxf(_shot_left - delta, 0.0)
 		if _shot_left > 0.0:
 			wants = 1.0
+		if _freed > 0.0:
+			wants = 0.0
 		_raised = move_toward(_raised, wants, delta / maxf(raise_time, 0.001))
 	else:
 		_raised = posed_aim
+		_freed = posed_free
 	_kick = move_toward(_kick, 0.0, delta / maxf(kick_recover_time, 0.001))
 
 
@@ -812,11 +705,12 @@ func _place_reload(gun_here: Transform3D) -> void:
 	var left := _targets[1]
 	if left == null:
 		return
-	var progress := _reload_progress()
+	var progress := _reload_progress() if _on_magazine != null else -1.0
 	var mag := _mag
 	var mag_far := _mag_far
-	var on_magazine := _on_magazine
-	if progress < 0.0 or on_magazine == null:
+	# A hand let go for an action comes off the hand guard the way a reload's does, and no further.
+	var let_go := _let_go()
+	if progress < 0.0 and let_go <= 0.0:
 		# At rest nothing but this moves the hand's place and the magazine: put them back once.
 		if not _hand_at_rest:
 			left.transform = _left_rest
@@ -824,12 +718,13 @@ func _place_reload(gun_here: Transform3D) -> void:
 			_hand_at_rest = true
 		return
 	_hand_at_rest = false
-	var to_magazine := _to_magazine(progress)
+	var to_magazine := maxf(_to_magazine(progress), let_go)
 	var away := smoothstep(reload_out.x, reload_out.y, progress)
 	away *= 1.0 - smoothstep(reload_in.x, reload_in.y, progress)
 	# Down off the hand guard, across to beside the magazine, then onto it.
 	var below := _left_rest.translated(reload_clearance)
-	var beside := on_magazine.transform.translated(magazine_approach)
+	var on_magazine := _on_magazine.transform if _on_magazine != null else below
+	var beside := on_magazine.translated(magazine_approach)
 	# A little straight down while the knuckles let go (the hooked fingers come off the far side
 	# clear), then down and out to the thumb's side together: a move sideways under closed fingers
 	# pushes the far side's into the hand guard, and a drop with none drags the thumb through it.
@@ -838,9 +733,10 @@ func _place_reload(gun_here: Transform3D) -> void:
 	)
 	hand = hand.interpolate_with(below, smoothstep(_WAY_OPEN * 0.5, _WAY_DOWN, to_magazine))
 	hand = hand.interpolate_with(beside, smoothstep(_WAY_DOWN, _WAY_BESIDE, to_magazine))
-	hand = hand.interpolate_with(
-		on_magazine.transform, smoothstep(_WAY_BESIDE, _WAY_ON, to_magazine)
-	)
+	hand = hand.interpolate_with(on_magazine, smoothstep(_WAY_BESIDE, _WAY_ON, to_magazine))
+	if progress < 0.0:
+		var aside := smoothstep(_FREE_DOWN, 1.0, FreeHand.off(_freed))
+		hand = hand.interpolate_with(_left_rest.translated(free_clearance), aside)
 	# Out of the well along the gun's own up axis, then to the belt, which is a place on the
 	# body (the hand's place is on the gun).
 	var out := Vector3.DOWN * magazine_well * minf(away / _WELL_SHARE, 1.0)
@@ -853,6 +749,11 @@ func _place_reload(gun_here: Transform3D) -> void:
 	if mag != null:
 		mag_xf.origin += (mag.get_parent() as Node3D).transform.basis.inverse() * out
 	_set_magazine(mag, mag_far, mag_xf, away < 0.9)
+
+
+# How far down the reload's way off the hand guard a freed hand is (`_WAY_DOWN` at most).
+func _let_go() -> float:
+	return minf(FreeHand.off(_freed) / _FREE_DOWN, 1.0) * _WAY_DOWN
 
 
 func _set_magazine(near: Node3D, far: Node3D, xf: Transform3D, shown: bool) -> void:
@@ -877,7 +778,8 @@ func _on_rig_changed() -> void:
 		return
 	_fit_body(slot)
 	_find_bones()
-	_measure_chest(_skeleton)
+	_skin.measure(_skeleton, _chest_index, torso_bones, skin_spacing)
+	_push = 0.0
 	_stance = STANCE_SCRIPT.new() as SkeletonModifier3D
 	_stance.set(&"hold", self)
 	_add_modifier(_stance, "Stance")
