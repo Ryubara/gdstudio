@@ -20,16 +20,14 @@
   command line it reads a clip file at the file's own frame rate (`test_limb_overlap.py` proves both ways agree).
 - `assets/weapons/pistol/` is GDStudio's own pistol (MIT, from Deadnight's build script, with a `LICENSE.md`), and
   `pistol_held.tscn` puts it in the mannequin's right hand for the pistol clips (the folder's README).
-- `assets/audio/coin/` (a coin pickup, four variants) and `assets/audio/footsteps/` (four soft steps) are generated
-  with ElevenLabs Sound Effects on the free tier, like the base's wind: attribution required, not licensed for
-  commercial use. **Temporary: replace or relicense them before any commercial release**, and name ElevenLabs on the
-  Credits screen until then.
-- `assets/audio/weapon_pickup/` (the weapon pickup, two variants) is generated with ElevenLabs Sound Effects on a
-  paid plan: licensed for commercial use, no attribution required and nothing to replace (its `LICENSE.md`).
-- `assets/audio/pistol/` is five pistol shots synthesised by Deadnight's code (MIT, GDStudio's own, with a
-  `LICENSE.md`): no attribution and nothing to replace.
-- `assets/audio/impacts/` is nine bullet impact sounds (default, wood and metal, three each) synthesised by the kit's
-  `tools/audio/impact_sounds.py` (MIT, GDStudio's own, with a `LICENSE.md`); `assets/shaders/impacts/` and
+- `assets/audio/coin/` (a coin pickup, four variants), `assets/audio/footsteps/` (four soft steps),
+  `assets/audio/fists/` (three punch whooshes), `assets/audio/weapon_pickup/` (the weapon pickup, two variants),
+  `assets/audio/impacts/` (nine bullet impacts: default, wood and metal, three each) and the pistol's empty click,
+  reload and draw in `assets/audio/pistol/` are generated with ElevenLabs
+  Sound Effects on the studio's paid plan, like the base's wind: commercial use in a game allowed, no attribution
+  required, not to be shared on their own as sound files (each folder's `LICENSE.md`).
+- The five pistol shots in `assets/audio/pistol/` are synthesised by Deadnight's code (MIT, GDStudio's own; the
+  folder's `LICENSE.md`): no attribution and nothing to replace. `assets/shaders/impacts/` and
   `assets/materials/impacts/` are the mark's shader and its default material (original).
 - `assets/ui/minimap/` is the minimap's six icon shapes (dot, ring, square, diamond, arrow, triangle: white on
   clear, 64 px, GDStudio's own, drawn by `tools/minimap/make_icons.py`; a marker tints them). The scripts and scenes

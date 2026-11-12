@@ -35,6 +35,17 @@ not started has one of two reasons, and the reason is written down:
 - **It is blocked**: it needs something another issue or pull request makes (its `### Blocked by` section, its
   `Depends on:` or `Starts after` line names it), or it waits on the maintainer.
 
+**The landing freeze.** Running everything stops while the kit has a queue. While more kit pull requests are open
+than `merge.queue_cap` in `.github/conventions.yml` (0: any open one), no issue starts in any repository and no pull
+request opens, and every agent works on landing or closing the open ones ([Landing](landing.md#landing)). Work that
+would end in a new pull request is committed on its branch and parked, with a `STATUS.md` in its scratch folder that
+says where it stands and what is left; a small fix found on the way rides in the open pull request being worked on, or
+waits in `scratch/kit-lessons-queue/`. Every open pull request has an owner, a live agent or the coordinator's landing script,
+on a line of the follow-up list. A pull request that another supersedes is closed as soon as that is known. A change
+that makes measured work stale (a body swap that every solved hand and clip stands on) lands only with the re-solves
+it causes filed and queued behind it, each with an owner. While the freeze is on, the idle-issue `Stop` check demands
+no starts ([Hooks: idle issues](hooks.md#idle)).
+
 Working on the same subsystem is not a conflict, and neither is "the same agent takes them in order". Agents on one
 subsystem run side by side: each keeps its change to its own part, adds new modules where it can, and merges
 `origin/main` before each push. Before blocking one issue on another, read where the blocked issue names its
@@ -88,6 +99,12 @@ issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.
   what it made, and the kit's own example of a block taught that reason; one agent tuned numbers while three issues
   could run. **Seen:** GDStudio coordinator, 2026-11-02 (fix: `gds issue block` takes a named dependency or `--conflict`
   files (gdstudio #218)).
+- **Approach:** While any kit pull request is open (`merge.queue_cap` is 0), start no issue and open no pull request;
+  give every open one an owner, close a superseded one at once, and land a change that invalidates measured work only
+  with its re-solves queued behind it. **Watch out for:** the idle check kept demanding starts while about 31 kit pull
+  requests sat open: #1299's body swap sent some 15 hand and clip pull requests back to a re-solve, two stacks hung on
+  one hard fit each, three pull requests had no owner and superseded ones stayed open. **Seen:** gdstudio, 2026-11-12
+  (fix: the freeze, its cap in the conventions, and an idle check that honours it).
 
 - **Approach:** Before building the core of a system, run `gh pr list` and search the open and in-progress issues for
   its words; if another branch builds it, build only the part that sits on top, against its interface, or wait for it to
@@ -209,6 +226,17 @@ relative path with `git -C` resolves inside the repository.
   paragraph passed locally and failed CI on the stored commit (Deadnight #503 became #531). **Seen:** gdstudio #107,
   2026-11-02 (fix: `gds issue start`, a pre-push hook that runs CI's message functions on the stored commits, and `gds
   merge-main` ([Writing checks](writing-checks.md#same-input))).
+
+### A branch stacked on another {#stacked}
+
+<!-- new section: nothing said what a pull request built on an open branch carries (kit #1303) -->
+
+Work that builds on a branch not landed yet starts from that branch, and its pull request against `main` carries the
+base branch's commits as well as its own. Its `Model:` line names the model of every co-author trailer on those
+commits, and its `Read first:` line the sections the base's author read. `gds pr check-body` runs the CI `commits`
+check on the branch's commits since `origin/main` and refuses a `Model:` line that misses one ([the body
+guard](pull-requests.md#pr-body)); run it before `gh pr create`. The base's commits stay on the list after the base
+lands (a squash merge makes a new commit on `main`), so the line keeps naming their models.
 
 ### The worktree is removed when the work is finished {#sweep}
 

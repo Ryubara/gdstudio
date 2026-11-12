@@ -25,7 +25,8 @@ Open pull requests come before new work: each one left open goes stale against `
   pull requests landed unrefreshed and `main` went red: a shorter reload met a test added after its last run; on
   2026-11-10 #972 and #977 landed past unrelated-looking commits, and #954 nearly did the same with #986 and #989.
 - **Not on a red main.** While a `CI failing on the default branch` issue is open, only its fix forward (a body
-  saying `Fixes #<that issue>`) lands; the merge guard refuses the rest ([Red main](hooks-red-main.md#red-main)).
+  saying `Fixes #<that issue>`) lands; the merge guard refuses the rest ([Red main](hooks-red-main.md#red-main)), and
+  the required `main-green` check stops auto-merge too, then turns green when the issue closes ([CI](ci.md#main-runs)).
   Refreshing a branch with `gds merge-main` still works, and is the step before landing once the fix is on `main`.
 - **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
   rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
@@ -176,14 +177,13 @@ force push, which is the maintainer's decision: open the same change from a new 
   the merge is clean but they fail. **Seen:** gdstudio #1298 on #1187, 2026-11-11 (the online enemy look and
   `test_net_ai_section.gd` from #1243 still used the Quaternius male).
 
-- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, with the whole message from a file and
-  nothing after the trailer, through `gds merge-main`; run `uvx pre-commit run --files <resolved files>` before
-  `--continue`, run `--continue` unpiped, and check that `git log -1` shows the merge before rebuilding or pushing.
-  **Watch out for:** a hand-written title (`ui: Merge main into x`) is refused because `Merge` is not on the verb list,
-  so the merge stayed open; `--continue` commits through pre-commit and a licence line of 155 characters met the 120
-  limit there; a merge left staged for hours (248 files, `MERGE_HEAD` set) first met `gdlint` at commit time, when
-  `main`'s growth had put a file at 1,016 lines. **Seen:** Deadnight #539, 2026-11-02;
-  Deadnight #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (another branch merged with `--no-edit`).
+- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, through `gds merge-main` (the message
+  from a file, nothing after the trailer); run `uvx pre-commit run --files <resolved files>` before `--continue`, run it
+  unpiped, and check that `git log -1` shows the merge before rebuilding or pushing. **Watch out for:** a hand-written
+  title (`ui: Merge main into x`) is refused (`Merge` is not a verb on the list); `--continue` commits through
+  pre-commit, where a 155-character licence line met the 120 limit, a merge staged for hours met `gdlint` at 1,016
+  lines, and two `Seen:` lists joined in a conflict passed the 900-character rule limit. **Seen:** Deadnight #539,
+  #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (merged with `--no-edit`); gdstudio #1256, 2026-11-11.
 - **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
   after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
   HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply
