@@ -134,12 +134,13 @@ rest). The Quaternius mannequins are measured in the same run, and a body is rea
   debugger and prints the same line until the timeout (4.7 MB of log); a `-s` script that fails never quits.
   **Seen:** gdstudio #1149, 2026-11-11.
 - **Approach:** Measure a body's contact with the floor or with itself on the mesh the camera sees up close
-  (`CharacterBodies.near_meshes`), and keep a passing run's printed numbers by running the suite in a kept game
-  with Godot's output in a file of your own. **Watch out for:** the farthest level's hand is a mitten whose
-  thumb no clip moves, 31 to 36 mm under the floor wherever a flat hand rests on it (beyond 22 m, a property of
-  the far mesh, not of a clip); `gds template test` prints its log's path only when a suite fails, so a green
-  run's `print` lines are gone (`gds template test --keep --suite ...`, then the pinned Godot headless on the
-  kept game with `-s res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a <suite>`). **Seen:** gdstudio #1293,
+  (`CharacterBodies.near_meshes`); keep a green run's printed numbers by running the suite in a kept game
+  (`gds template test --keep --suite ...`, then the pinned Godot headless on it with `-s
+  res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a <suite>` into a file); run the whole suite with nothing beside it.
+  **Watch out for:** the farthest level's hand is a mitten whose thumb no clip moves, 31 to 36 mm under the floor
+  wherever a flat hand rests (beyond 22 m: the far mesh, not a clip); `gds template test` does not print its
+  log's path after every green run; run beside Blender renders and two captures, the suite failed two timing
+  budgets (`test_net_server_cost.gd`, `test_parts_budget.gd`) that pass alone. **Seen:** gdstudio #1293,
   2026-11-11 and 2026-11-12.
 - **Approach:** Do not count on `meshes/ensure_tangents=false` to shrink a skinned mesh: check the imported surface's
   format. **Watch out for:** the file holds no tangents and the option was off, and the imported mesh still carried
