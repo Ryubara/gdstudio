@@ -69,3 +69,28 @@ feet cover a known ground speed and the new clips blend in step with the old. Le
   landing and after the push counted as contact: the library's jog read 6.4 m/s with a fifth of its cycle
   planted where the sole is on the floor for three frames at 5.9 m/s. **Seen:** gdstudio #1150, 2026-11-11
   (`PLANT_BAND` in the template's `assets/animation/audit_clips.py`).
+- **Approach:** Give a gait its own overlap numbers (`overlap_<type>` in the style file), sized to its step: a
+  part may trail by a sixth of a step at most, and three bones that share a part's lag each get a third of it, never
+  under half a frame. **Watch out for:** the loose style's idle numbers (the forearm 4 frames behind the upper arm,
+  which is 4 behind the chest) on a 12-frame step swung each arm with its own side's leg (-0.31 where the check
+  asks for 0.7), and trailed the hands 38 to 49 mm into thighs that rose in a stance change; a chest lag of half
+  a frame shared by three spine bones is a sixth of a frame each, and the spring ran to infinity.
+  **Seen:** gdstudio #1160, 2026-11-11 (fix: `overlap_crouch_walk` and `overlap_stand_to_crouch` in the styles).
+- **Approach:** On a deeply bent leg, land the foot flat and let its heel rise from the landing on, and read the
+  ankle's bend and the sole's wander on every frame of a first gait before tuning anything else. **Watch out for:**
+  a flat sole under a shin that swings 45 degrees slid 6.8 mm in a contact with its joints still, because the
+  heel's skin is shared with the shin; the same low pelvis asked 67 to 80 degrees of the ankle and put the
+  trailing knee 15 cm off the floor; the male mannequin's toes are 24 mm longer and went 14 mm under the floor in
+  a swing cleared for the reference body. **Seen:** gdstudio #1160, 2026-11-11 (fix: `heel_rise`, a quicker
+  cadence, `ContactPlan.toe_reach`; the wander is 4.3 to 5.0 mm).
+- **Approach:** When a foot lands on its ball, bend the toes before the landing and give the stepping foot the
+  longest body's toes (`toe_reach`); let a foot that leaves a flat stance roll over its toes for at least three
+  frames. **Watch out for:** a step that landed heel-up with straight toes put them 33 mm under the floor on the
+  landing frame (50 on the male), and a roll of one frame turned the toe bone 46 degrees in a frame. **Seen:**
+  gdstudio #1160 (PR #1285), 2026-11-11 (fix: `Footfall.heel`, the toe's bend in `plan._swing`).
+- **Approach:** Measure a correction to a pivoted part from the pivot, never from the floor, and read the
+  swinging foot's height on every frame after any change to how a planted foot is placed. **Watch out for:** the
+  settle that puts a raised foot's lowest skin on the floor was first written as floor minus lowest, and the swing
+  reuses the planted foot's function with the ball lifted, so it snapped the swinging foot back down and through
+  the floor by 29 mm; the planted frames read perfect. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11 (fix: the
+  move is the lowest skin's change against the hinge, `plan._state`).

@@ -511,6 +511,13 @@ other style files stay in the repository, so a game picks another vision by rebu
   the sheet's notes. **Watch out for:** the sheets print the checks' default limits even where a clip declares its own,
   so a 0.42 or a 17.99 (keys kept, key bytes a second, on a 22-frame stride) looks like a failure that passes. **Seen:**
   gdstudio #1160 (PR #1285), 2026-11-11.
+- **Approach:** When the pick of a pose other clips are built on changes (a crouch idle that the walk is carried
+  like and the stance changes join), rebuild every review file of those types and the shipped file, then run the
+  whole game suite: what the hands hold is measured there, not in the build. **Watch out for:** idle B passed every
+  build check and, picked, put the held pistol 32 mm into the thigh its hand lay on in two clips
+  (`test_pistol_clearance.gd`); the walk's A and C variants, tuned on idle A's carriage, put a forearm 50 to 70 mm
+  into a thigh or the pelvis on idle B's, 22 checks at once. **Seen:** gdstudio #1160 (PR #1285), 2026-11-12 (fix:
+  the hand held 0.06 m higher, the walk's default carriage fitted to the shipped idle).
 
 ## How a chosen clip replaces the library's {#replacing}
 

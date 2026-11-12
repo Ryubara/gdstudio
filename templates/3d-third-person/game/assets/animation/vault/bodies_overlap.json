@@ -1,20 +1,10 @@
 {
- "clips_file": "vault.glb",
- "sha256": "8a2a6c0945f8cbba62bbe9e7aa6d88602b62ee626399036f0497687a46825640",
+ "clips_file": "vault_quaternius.glb",
+ "sha256": "4a3c236d942750454a3deca8677fda5b1e4c066fb5f3274c502cdaa62d6909f2",
  "fps": 24,
  "limit_mm": 5.0,
  "clips": {
   "Vault_High": {
-   "form_female": {
-    "deepest_mm": 34.0,
-    "frame": 18,
-    "pair": "thigh_l in thigh_r"
-   },
-   "form_male": {
-    "deepest_mm": 23.6,
-    "frame": 14,
-    "pair": "thigh_l in thigh_r"
-   },
    "mannequin_female": {
     "deepest_mm": 0.0,
     "frame": null,
@@ -27,16 +17,6 @@
    }
   },
   "Vault_Land": {
-   "form_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   },
-   "form_male": {
-    "deepest_mm": 2.1,
-    "frame": 2,
-    "pair": "thigh_l in thigh_r"
-   },
    "mannequin_female": {
     "deepest_mm": 0.0,
     "frame": null,
@@ -49,16 +29,6 @@
    }
   },
   "Vault_Low": {
-   "form_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   },
-   "form_male": {
-    "deepest_mm": 1.0,
-    "frame": 2,
-    "pair": "thigh_l in thigh_r"
-   },
    "mannequin_female": {
     "deepest_mm": 0.0,
     "frame": null,

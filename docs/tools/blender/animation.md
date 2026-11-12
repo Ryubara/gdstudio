@@ -90,8 +90,11 @@ reads them (the template's `assets/animation/vault/build_vault.py` and `vault_cl
 The build checks, on every frame and on the skinned mesh, before it exports: the lowest vertex against the floor, the
 deepest vertex inside the obstacle (12 mm allowed, as wide as a wall so the legs must clear the top), the planted
 palm's gap to the surface, how far each planted wrist or ankle moves in the world while planted (0.5 mm on the vault
-clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on either mannequin
-([Keyframes](#keyframes); 5 mm allowed). It also checks what the body does between its contacts: its centre of mass
+clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on the body the file
+is for
+([Keyframes](#keyframes); 5 mm allowed). It reads the legs and the skin against the obstacle **between the keys**
+as well, ten times a frame, since two keys that are clear of an edge say nothing of the path between them. It also
+checks what the body does between its contacts: its centre of mass
 on the arc of a free fall while nothing touches it, the planted arm giving and then straight, the landing leg reaching,
 an arm that has let go staying under its shoulder's height and gaining speed without a snap, the legs going over
 together with no leg astride, folded shut, snapped or held
@@ -142,6 +145,14 @@ together with no leg astride, folded shut, snapped or held
   `spine_01`, which read the rest pose as 87 mm of chest in thigh. **Seen:** gdstudio #1016, 2026-11-10 (fix:
   `limb_overlap.py` closes the rims; its `--self-test` reads 0 on the rest pose and a crossing on swung legs).
 
+- **Approach:** Measure a clip against what it must not touch between its keys, as a game draws it: set every baked
+  key's interpolation to `LINEAR` (a loop over the action's curves after the last `keyframe_insert`), then
+  `scene.frame_set(whole, subframe=part)` ten times a frame with the root moved to that time, and read each joint of
+  every mannequin and the skin (`check_between` in `build_vault.py`), a planted hand's own skin with a limit of its
+  own. **Watch out for:** a check on whole frames passes a limb that crosses an edge between two keys (a knee 60 mm
+  inside a wall); Blender joins a script's new keys with Bezier curves whatever the preference
+  `keyframe_new_interpolation_type` says; a planted palm sinks 16 mm into the top between keys that read 4 mm.
+  **Seen:** gdstudio #1221, 2026-11-11 (`Vault_Low`; the build asserts that every key is linear).
 - **Approach:** Let a planted hand pull the pelvis toward itself when the arm cannot reach, smooth that pull over a
   few frames, and keep the planted arm a little bent (0.94 of its length) so the arm takes up what the smoothing
   leaves. **Watch out for:** a pull applied only on the frames that needed it moved the body 30 to 45 mm for single
@@ -268,6 +279,14 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   never ran (`n[:-4]` of `index_01_l` is `index_`); a nearest-normal test called a finger 90 mm inside the thumb's
   open base. **Seen:** gdstudio #1020, 2026-11-11 (fix: `floor_mm` and `fist_mm` in the build's report; the male's
   own clip set is a follow-up).
+- **Approach:** Key only the bones the clip library has, and measure the skin with the body's other bones where
+  the game puts them: the prototype bodies' six twist bones are turned by a modifier in Godot
+  (`mannequin_twist.gd`), so `limb_overlap.py` turns them the same way before it reads the skin
+  (`twist_bones`, `twist_roll`; `build_vault.py` keys them for its own measures and strips them from the file).
+  **Watch out for:** a build that keys every bone of a prototype body writes tracks the Quaternius bodies have no
+  bone for, and a build that leaves the twist bones at rest measures thighs and forearms wrung as no player sees
+  them near the camera (beyond 9 m the game rests them). **Seen:** gdstudio #1294, 2026-11-11 (the tool and the
+  build read the same 4.5 and 4.6 mm on the two `form` bodies).
 - **Approach:** Run the limb overlap check on both mannequins inside the build, and when a transition crosses, move
   the keys of the limb that can leave first in time before changing its path. **Watch out for:** the transitions
   passed their own checks with the chest 25 to 50 mm in the front thigh going down and the left arm 51 mm in the
@@ -395,20 +414,6 @@ reference body's is reported with `needs_ik` and not held to the floor and plant
   printed. Sparse keys can be whole frames at a lower rate too, so a rate guessed from them can be wrong.
   **Seen:** gdstudio #1154, 2026-11-11 (measured again at 30 after #1035: our idles still 0, 1.3 and 0 mm; the
   library's walk 11 to 12 mm, `Death01` 41 mm on the male, `ClimbUp_1m` 23 to 26 mm).
-- **Approach:** Give a gait its own overlap numbers (`overlap_<type>` in the style file), sized to its step: a
-  part may trail by a sixth of a step at most, and three bones that share a part's lag each get a third of it, never
-  under half a frame. **Watch out for:** the loose style's idle numbers (the forearm 4 frames behind the upper arm,
-  which is 4 behind the chest) on a 12-frame step swung each arm with its own side's leg (-0.31 where the check
-  asks for 0.7), and trailed the hands 38 to 49 mm into thighs that rose in a stance change; a chest lag of half
-  a frame shared by three spine bones is a sixth of a frame each, and the spring ran to infinity.
-  **Seen:** gdstudio #1160, 2026-11-11 (fix: `overlap_crouch_walk` and `overlap_stand_to_crouch` in the styles).
-- **Approach:** On a deeply bent leg, land the foot flat and let its heel rise from the landing on, and read the
-  ankle's bend and the sole's wander on every frame of a first gait before tuning anything else. **Watch out for:**
-  a flat sole under a shin that swings 45 degrees slid 6.8 mm in a contact with its joints still, because the
-  heel's skin is shared with the shin; the same low pelvis asked 67 to 80 degrees of the ankle and put the
-  trailing knee 15 cm off the floor; the male mannequin's toes are 24 mm longer and went 14 mm under the floor in
-  a swing cleared for the reference body. **Seen:** gdstudio #1160, 2026-11-11 (fix: `heel_rise`, a quicker
-  cadence, `ContactPlan.toe_reach`; the wander is 4.3 to 5.0 mm).
 - **Approach:** Time a move that lowers or raises the body from the fall of its centre of mass, and let the check
   refuse what gravity does not allow, before fitting it to a controller's number. **Watch out for:** the
   controller's `crouch_time` is 0.2 s and the crouch lowers the centre of mass 0.45 m, which a free fall takes
@@ -436,22 +441,11 @@ reference body's is reported with `needs_ik` and not held to the floor and plant
   before the pass was suspected; a hanging arm's `clear` opens the arm on one frame as a thigh passes it, which
   reads as a pop on a landing frame. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11 (fix: `rest` reads each
   body, resting arms are not in `chains`, the walk carries both arms outside the thighs).
-- **Approach:** When a foot lands on its ball, bend the toes before the landing and give the stepping foot the
-  longest body's toes (`toe_reach`); let a foot that leaves a flat stance roll over its toes for at least three
-  frames. **Watch out for:** a step that landed heel-up with straight toes put them 33 mm under the floor on the
-  landing frame (50 on the male), and a roll of one frame turned the toe bone 46 degrees in a frame. **Seen:**
-  gdstudio #1160 (PR #1285), 2026-11-11 (fix: `Footfall.heel`, the toe's bend in `plan._swing`).
 - **Approach:** Film a review clip in a game made from the branch (`gds template test <template> --suite <one
   suite> --keep`, then `gds capture frames --project game` in the kept folder), and count the frames it wrote.
   **Watch out for:** the template's own `game/` folder has no kit addons, so the capture scene did not parse
   (`AudioSettings` not declared) and Movie Maker still wrote 300 frames of an empty scene; an import there
   rewrote three `.exr.import` files. **Seen:** gdstudio #1160, 2026-11-11.
-- **Approach:** Measure a correction to a pivoted part from the pivot, never from the floor, and read the
-  swinging foot's height on every frame after any change to how a planted foot is placed. **Watch out for:** the
-  settle that puts a raised foot's lowest skin on the floor was first written as floor minus lowest, and the swing
-  reuses the planted foot's function with the ball lifted, so it snapped the swinging foot back down and through
-  the floor by 29 mm; the planted frames read perfect. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11 (fix: the
-  move is the lowest skin's change against the hinge, `plan._state`).
 - **Approach:** Read the audit's planted rows on a review sheet beside the build's own (`planted` in the report,
   which uses the declared contacts), and say in the variant's notes when they differ and why. **Watch out for:**
   `audit_clips.py` calls a foot planted while its lowest vertex is within a fifth of the swing's lift of the floor
@@ -476,3 +470,40 @@ reference body's is reported with `needs_ik` and not held to the floor and plant
 
 The `clip-walk` eval ([Agent evals](../../studio/agent-evals.md)) animates a walk on a given rig and measures the loop
 seam, the in-place hips, the bob, the leg and arm swings and their phases, the arms' hang and the feet on the floor.
+
+## Correcting a library clip for another body {#corrected-clips}
+
+<!-- new section: the page covered clips derived from a kit clip and clips solved from nothing; nothing said how to
+change a library clip only where it fails on a body it was not keyed on (the 3D Third Person fixed clips, #1295) -->
+
+A library clip that puts a limb a few millimetres into another on a body with thicker limbs is corrected, not
+replaced (`templates/3d-third-person/game/assets/animation/fixed/build_fixed_clips.py`): the build reads the
+library's action, and on each frame turns one bone about the axis through its own joint that moves the limb's end
+one way (out from the body's middle), a degree at a time, until `limb_overlap.py` reads no crossing of that limb on
+the bodies it has to be clear on. The angles get a margin (2 degrees), a hold of two frames either side and a
+raised-cosine ease nine frames wide, and are written over the library's keys of that one bone. The build then
+measures every body again, fails over 5 mm on the bodies it fixes and on anything deeper than before on the bodies
+the clip was keyed on, checks the first and last pose are still the library's, and exports only the corrected clips
+with a one-triangle skin. On the three clips of kit #1295 the swing peaks at 4 to 11 degrees and nothing else moves.
+
+- A correction has a ceiling (30 degrees there). `Sword_Dash` and `Sword_Heavy_Combo` cross their thighs by 17 to 29
+  mm while the body turns a quarter in two frames, 30 degrees of thigh does not clear them, and a swung thigh moves
+  a planted foot: that is a pose to key again, and those clips were left as the library's.
+- The corrected file is a changed copy of a third-party clip: it gets its own licence entry naming the source, and
+  the pull request is held for the maintainer.
+
+- **Approach:** Name the armature you export `Armature` in the export function, and assert it. **Watch out for:** a
+  build that imports four bodies and then the library exports the library's armature as `Armature.004`, so every
+  track path was `Armature_004/Skeleton3D:<bone>` and no track found a node in the game; the Blender measure, which
+  reads the file back by bone name, passed. **Seen:** gdstudio #1295, 2026-11-11 (caught by
+  `test_character_clips.gd`'s walk of every track; fix: the rename and its assert in `export()`).
+- **Approach:** Compare a rebuilt clip's rotations with the source clip's in Godot with a limit over 0.1 degrees, or
+  compare the quaternions' components. **Watch out for:** `Quaternion.angle_to` of two single-precision quaternions
+  that are equal to the last bit or two reads 0.03 to 0.09 degrees, so a 0.05 degree limit failed 251 times on keys
+  that were the same. **Seen:** gdstudio #1295, 2026-11-11 (`tests/assets/test_fixed_clips.gd`, limit 0.2).
+- **Approach:** Before filming a clip from the game camera, check that the stage you film plays it: read the state
+  the character is in on those frames, and film a stage made for the clip. **Watch out for:** the slide tour's jump
+  is a jump out of a slide with crouch held, which lands crouched and never plays the landing clip, so the first
+  before-and-after sheet of the landing compared two captures of another clip; and a clip the game blends out early
+  (the landing gets 0.3 s of its 1.27) never shows its later frames at all. **Seen:** gdstudio #1295, 2026-11-11
+  (fix: `tools/capture/fixed_clips_tour.tscn`, a jump on the spot seen from the swung arm's side).

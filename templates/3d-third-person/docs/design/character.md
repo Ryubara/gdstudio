@@ -316,7 +316,8 @@ which runs into the `slide` loop, and `slide_exit`, played when a slide ends sta
 Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up
 `prone/Prone_To_Crouch` for its `exit_time`. Lying, the weapon is put away (its model hidden, the grip off) because the
 fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male mannequin's,
-kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file.
+kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file; the vault clips come a body the
+same way, from `vault_libraries` (kit #1294).
 Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the locomotion clip drives the
 arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do unarmed) and only the gripping hand
 (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
@@ -417,6 +418,16 @@ that moves the body over an obstacle of another size. No scene uses them yet: ad
 a library (`vault`) and play `vault/Vault_Low`. `tools/capture/vault_study.tscn` plays them over their reference boxes,
 `tests/assets/test_vault_clips.gd` checks them, and the folder's README says how they are rebuilt.
 
+### Fixed library clips {#fixed-clips}
+
+`assets/animation/fixed/fixed.glb` holds three of the library's clips with one arm swung a few degrees clear of the
+shin it passed through on the template's bodies: `Jump_Land` and `Slide_Exit`, which the character plays
+(`land_clip`, `slide_exit_clip`), and `NinjaJump_Land`. Everything else in them is the library's. To play the
+library's own clip, set the clip in the inspector to the name `CharacterClips.STAND_INS` gives (`ual1/Jump_Land`,
+`ual2/Slide_Exit`). A body of your own with thicker or longer limbs may cross elsewhere: measure it with
+`assets/animation/limb_overlap.py` and add the clip to `assets/animation/fixed/build_fixed_clips.py` (its `README.md`
+says how).
+
 ### Prone and crawl clips {#prone-clips}
 
 `assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
@@ -437,7 +448,8 @@ The two mannequins, both animation libraries and Phantom Camera are third-party 
 and MIT for Phantom Camera. Give them a line on the game's Credits screen. The pistol and the rifle are GDStudio's own
 (MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`. The prone and crawl
 clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`), and so is the slide
-rack clip (`assets/animation/pistol/LICENSE.md`).
+rack clip (`assets/animation/pistol/LICENSE.md`). The fixed clips (`assets/animation/fixed/`) are three of the
+library's clips with one arm moved, CC0 like the library, with their own `LICENSE.md`.
 
 ## Testing it in a browser
 
