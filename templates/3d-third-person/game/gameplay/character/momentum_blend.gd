@@ -16,6 +16,11 @@ extends SkeletonModifier3D
 ## every bone that differed, and the same to the pelvis's place. Nothing while the tree is off (a
 ## ragdoll holds the skeleton). Cosmetic, never sent.
 
+## Parts of the bone names it leaves to the clip alone.
+const SKIPPED: Array[String] = [
+	"thumb", "index", "middle", "ring", "pinky", "twist", "socket", "ik_", "root"
+]
+
 ## The node whose body state it follows (`CharacterGait.pose_key()`).
 var animation: CharacterAnimation
 ## Seconds in which the difference halves.
@@ -24,6 +29,8 @@ var half_life := 0.05
 var speed_limit := deg_to_rad(720.0)
 
 var _key: Variant = null
+var _count := -1
+var _followed := PackedInt32Array()
 var _last: Array[Quaternion] = []
 var _before: Array[Quaternion] = []
 var _last_pelvis := Vector3.ZERO
@@ -58,6 +65,7 @@ func largest_offset() -> float:
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
 	_forget()
+	_count = -1
 
 
 func _process_modification_with_delta(delta: float) -> void:
@@ -65,19 +73,16 @@ func _process_modification_with_delta(delta: float) -> void:
 	if skeleton == null or animation == null or animation.tree == null or not animation.tree.active:
 		_forget()
 		return
-	var count := skeleton.get_bone_count()
-	if _last.size() != count:
+	if _count != skeleton.get_bone_count():
 		_forget()
-		_last.resize(count)
-		_before.resize(count)
-		_pelvis = skeleton.find_bone(&"pelvis")
+		_follow(skeleton)
 	var key: Variant = animation.gait.pose_key(animation)
 	if key != _key and _seen >= 2 and delta > 0.0:
 		_begin(skeleton, delta)
 	_key = key
 	if _blending:
 		_apply(skeleton, delta)
-	_remember(skeleton, count)
+	_remember(skeleton)
 
 
 func _begin(skeleton: Skeleton3D, delta: float) -> void:
@@ -85,10 +90,11 @@ func _begin(skeleton: Skeleton3D, delta: float) -> void:
 	_x0.clear()
 	_j0.clear()
 	var y := _damping()
-	for bone in _last.size():
+	for slot in _followed.size():
+		var bone := _followed[slot]
 		var now := skeleton.get_bone_pose_rotation(bone)
-		var x0 := _turn(_last[bone] * now.inverse())
-		var v0 := (_turn(_last[bone] * _before[bone].inverse()) / delta).limit_length(speed_limit)
+		var x0 := _turn(_last[slot] * now.inverse())
+		var v0 := (_turn(_last[slot] * _before[slot].inverse()) / delta).limit_length(speed_limit)
 		if x0.length() < 0.002 and v0.length() < 0.05:
 			continue
 		_bones.append(bone)
@@ -122,16 +128,30 @@ func _apply(skeleton: Skeleton3D, delta: float) -> void:
 		_blending = false
 
 
-func _remember(skeleton: Skeleton3D, count: int) -> void:
+func _remember(skeleton: Skeleton3D) -> void:
 	var swap := _before
 	_before = _last
 	_last = swap
-	for bone in count:
-		_last[bone] = skeleton.get_bone_pose_rotation(bone)
+	for slot in _followed.size():
+		_last[slot] = skeleton.get_bone_pose_rotation(_followed[slot])
 	if _pelvis >= 0:
 		_before_pelvis = _last_pelvis
 		_last_pelvis = skeleton.get_bone_pose_position(_pelvis)
 	_seen += 1
+
+
+# The bones it carries: the body's, without the fingers, the twist bones, the sockets and the
+# `ik_` targets (a clip turns few of them, and each bone read every frame costs).
+func _follow(skeleton: Skeleton3D) -> void:
+	_count = skeleton.get_bone_count()
+	_followed.clear()
+	for bone in _count:
+		var name := String(skeleton.get_bone_name(bone)).to_lower()
+		if not SKIPPED.any(func(part: String) -> bool: return name.contains(part)):
+			_followed.append(bone)
+	_last.resize(_followed.size())
+	_before.resize(_followed.size())
+	_pelvis = skeleton.find_bone(&"pelvis")
 
 
 func _forget() -> void:
