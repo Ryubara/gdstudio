@@ -103,6 +103,11 @@ underside. The seat of kit #1213 tips the hand instead of sliding it down the gr
 | Thumb's root up the gun (the web under the tang) | 62 mm (64 before) | 63 mm (69 before) |
 | Wrist bend | 31 degrees | 30 degrees |
 | Left arm to spare at the worst pose | 9.3 mm | 7.3 mm |
+| Right hand, one-handed (deepest in, farthest holding part off) | 1.0 mm, 3.1 mm | 1.2 mm, none off |
+| Right hand, aim and shoot clips | 1.4 mm, 0.7 mm | 1.2 mm, 1.2 mm |
+| Left hand, aim and shoot clips | 1.5 mm, 2.2 mm | 1.1 mm, 3.5 mm |
+| Either hand at the reload's filmed shares (deepest in) | 1.5 mm | 1.6 mm |
+| Either hand through the rack, every half frame (deepest in) | 1.5 mm | 2.3 mm |
 
 A moved seat is a new hold: the left hand's place (the gun is 10 to 14 mm farther from the left shoulder), every
 finger of both hands, the hand under the magazine, the way off the gun, the hand-set poses, the rack's hand on the
