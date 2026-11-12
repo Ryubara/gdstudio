@@ -31,14 +31,25 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1150, 2026-11-11 (a page section
   written through a heredoc); gdstudio #1149, 2026-11-11 (a heredoc that wrote `styles.py` held "an artist's"; and a
   patch that matched whole lines stopped matching once `gdformat` had rewritten the file with CRLF: read the file
-  with its line ends folded to LF before matching).
+  with its line ends folded to LF before matching); gdstudio #1151 and #1154, 2026-11-11 (the same).
+- **Approach:** Run every build stage with `--python-exit-code 1` and stop on a non-zero exit. **Watch out for:**
+  without it Blender exits 0 when the script raises, so a runner that reads the exit code printed `exit 0` above a
+  traceback and the next stage opened the last good file. **Seen:** gdstudio #1151, 2026-11-11 (fix: the flag in
+  `sandbox/realistic-character/build.py`).
 - **Approach:** Keep the probes and one-off scripts you write in your own scratch folder
   (`<workspace>/scratch/<repo>/<branch>/probes/`) and run them from there. **Watch out for:** Python puts the
   script's folder first on its import path, so a probe written to the machine's shared temp folder imported
   another agent's `inspect.py` in place of the standard library's, and numpy failed to load with
   `No module named 'bpy'`; a probe that imported a template's script left a `__pycache__` folder beside it, which
   the layout test refuses (run probes with `python -B`). **Seen:** gdstudio #1150, 2026-11-11 (fix: the probes
-  moved to the scratch folder; the cache folder was deleted before the push).
+  moved to the scratch folder; the cache folder was deleted before the push); gdstudio #1151, 2026-11-11 (the same
+  numpy failure from a script in the shared temp folder).
+- **Approach:** Keep a Python package inside a game free of `__init__.py` (a folder of modules imports as a
+  namespace package) and start Blender with `PYTHONDONTWRITEBYTECODE=1` in its environment when its script imports
+  a module of the game. **Watch out for:** the template's layout check refuses a file named `__init__.py` (not
+  snake case), and `-B` covers only the Python you start: Blender importing `limb_overlap.py` left a `__pycache__`
+  folder in the game, which the commit would have taken. **Seen:** gdstudio #1154, 2026-11-11 (fix: the toolkit's
+  rate moved from `gdsanim/__init__.py` into `maths.py`; `build_own.py` passes the variable).
 - **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
   old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
   last good file in place, so the next step copied and rendered the old clips as if they were the new ones.

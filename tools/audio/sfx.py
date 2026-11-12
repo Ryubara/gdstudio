@@ -63,20 +63,45 @@ def take_names(sound: dict) -> list[str]:
     return [f"{sound['name']}_t{n}" for n in range(1, sound["takes"] + 1)]
 
 
-def kept_takes(sound: dict) -> list[str]:
-    """The takes `encode` makes files of: the ones `keep` names (numbers from 1, after listening), else every take."""
+def used_takes(sound: dict) -> list[str]:
+    """The takes `encode` cuts files from: `use_takes` (numbers from 1) when the data file picks some after listening
+    and measuring, else every take."""
     names = take_names(sound)
-    return [names[n - 1] for n in sound["keep"]] if sound.get("keep") else names
+    if not sound.get("use_takes"):
+        return names
+    return [names[n - 1] for n in sound["use_takes"]]
+
+
+def prompt_of(sound: dict, take: str) -> str:
+    """The prompt a take is asked with: the sound's `take_prompts` entry for its number when an earlier prompt was
+    changed (the takes already made keep theirs), else `prompt`."""
+    n = take.rsplit("_t", 1)[1]
+    return sound.get("take_prompts", {}).get(n, sound["prompt"])
 
 
 def model_of(data: dict, sound: dict) -> str:
-    """The sound's own `model` (the newest the API takes for it), else the data file's."""
+    """The sound-effects model a sound is asked of: its own `model`, else the data file's."""
     return sound.get("model", data["model"])
 
 
-def licence_of(data: dict, tier: str) -> dict:
-    """What the plan a take was made on allows: `free` needs attribution and is not commercial; any paid plan is."""
-    return data["licences"]["free" if tier == "free" else "paid"]
+def file_names(sound: dict, count: int) -> list[str]:
+    """The names of a sound's files: its `names` when the game wants fixed ones (`pistol_draw.ogg`), else
+    `<prefix>_<n>.ogg`."""
+    if sound.get("names"):
+        if count > len(sound["names"]):
+            raise SystemExit(
+                f"{sound['name']}: {count} pieces for {len(sound['names'])} names"
+            )
+        return list(sound["names"][:count])
+    return [f"{sound['prefix']}_{n}.ogg" for n in range(1, count + 1)]
+
+
+def licence_of(data: dict, tier: str) -> tuple[str, str | None]:
+    """(licence line, attribution or None) for the plan a take was made on: the free tier needs attribution and allows
+    no commercial use; a paid plan allows commercial use and needs no attribution (`sound-effects.md#licence`)."""
+    if tier == "free":
+        return data["licence_free"], data["attribution"]
+    return data["licence_paid"].format(tier=tier), None
 
 
 def chosen(data: dict, only: str | None) -> list[dict]:
@@ -111,7 +136,7 @@ def plan_rows(data: dict, cache: Path, only: str | None = None) -> list[dict]:
                     "seconds": sound["seconds"],
                     "credits": 0 if cached else request_cost(data, sound["seconds"]),
                     "cached": cached,
-                    "prompt": sound["prompt"],
+                    "prompt": prompt_of(sound, take),
                 }
             )
     return rows
@@ -155,9 +180,9 @@ def balance() -> dict:
     }
 
 
-def request_take(data: dict, sound: dict) -> tuple[bytes, dict]:
+def request_take(data: dict, sound: dict, take: str) -> tuple[bytes, dict]:
     body = {
-        "text": sound["prompt"],
+        "text": prompt_of(sound, take),
         "duration_seconds": sound["seconds"],  # always explicit: auto length costs more
         "prompt_influence": sound["influence"],
         "model_id": model_of(data, sound),
@@ -376,6 +401,68 @@ def flatten(x, seconds: float = 0.8, limit_db: float = 14.0):
     return x * gain
 
 
+def gust_speed(x, step: int):
+    """A loop's own wind speed, 0 to 1, one value every `step` samples: its level in dB smoothed over 1 s round the
+    loop, from its 5th percentile (a lull) to its 98th (the top of a gust)."""
+    import numpy as np
+
+    blocks = len(x) // step
+    db = 20 * np.log10(np.sqrt(np.mean(x[: blocks * step].reshape(blocks, step) ** 2, axis=1)) + 1e-12)
+    k = max(1, round(RATE / step))
+    kern = np.zeros(blocks)
+    kern[:k] = 1.0 / k
+    smooth = np.roll(np.real(np.fft.ifft(np.fft.fft(db) * np.fft.fft(kern))), -(k // 2))
+    lo, hi = np.percentile(smooth, 5), np.percentile(smooth, 98)
+    return np.clip((smooth - lo) / (hi - lo + 1e-9), 0.0, 1.0)
+
+
+def whistle(x, spec: dict):
+    """Layer a soft whistle over a wind loop, driven by the loop's own gusts (`sound-effects.md#wind`): noise through a
+    resonant band-pass (`q`) whose centre rises with the speed from 0.7 to 1.6 times `hz` (an Aeolian tone's pitch is
+    proportional to the air's speed) and wanders a little, faded in from speed 0.45 to 0.9, with a fainter partner
+    2.37 times higher; its RMS at full speed is `mix` times the loop's. The filter works on 0.2 s frames round the loop
+    (75% overlap, wrapping), so the layer loops exactly as the take does; a loop's length is a whole number of 50 ms."""
+    import numpy as np
+
+    hop, frame = 2205, 8820
+    n = len(x)
+    if n % hop:
+        raise SystemExit(f"a whistled loop is a whole number of 50 ms; this one is {n} samples")
+    rng = np.random.default_rng(spec.get("seed", 1))
+    count = n // hop
+    speed = gust_speed(np.roll(x, -(frame // 2 - hop // 2)), hop)  # the speed at each frame's centre
+    phase = rng.random(4) * 2 * math.pi
+    t = np.arange(count) / count
+    wander = sum(np.sin(2 * math.pi * (k + 1) * t + phase[k]) / (k + 1) for k in range(4)) / 1.5
+    centre = spec["hz"] * (0.7 + 0.9 * speed) * 2 ** (0.08 * wander)
+    window = np.hanning(frame + 1)[:frame]
+    freqs = np.fft.rfftfreq(frame, 1 / RATE) + 1e-6
+
+    def band(noise, mult: float, q: float):
+        out = np.zeros(n)
+        idx = np.arange(frame)
+        for i in range(count):
+            at = (i * hop + idx) % n
+            fc = min(centre[i] * mult, 9000.0)
+            gain = 1.0 / np.sqrt(1.0 + q * q * (freqs / fc - fc / freqs) ** 2)
+            out[at] += np.fft.irfft(np.fft.rfft(noise[at] * window) * gain, frame) * window
+        return out / (np.sqrt(np.mean(out * out)) + 1e-12)
+
+    def fade(lo: float, hi: float):
+        u = np.clip((speed - lo) / (hi - lo), 0.0, 1.0)
+        u = u * u * (3 - 2 * u)
+        start = frame // 2 - hop // 2  # the frame i's centre, in samples
+        pos = (start + hop * np.arange(count + 1)) % n
+        order = np.argsort(pos[:-1])
+        return np.interp(np.arange(n), pos[:-1][order], u[order], period=n)
+
+    main = band(rng.standard_normal(n), 1.0, spec.get("q", 45.0))
+    upper = band(rng.standard_normal(n), 2.37, spec.get("q_upper", 70.0))
+    rms = math.sqrt(float(np.mean(x * x)))
+    layer = main * fade(0.45, 0.9) + 0.3 * upper * fade(0.65, 1.0)
+    return x + spec["mix"] * rms * layer
+
+
 def highpass(x, hz: float):
     import numpy as np
 
@@ -431,6 +518,12 @@ def write_ogg(ffmpeg: str, x, ogg: Path) -> None:
 
 
 def files_of(sound: dict, root: Path) -> list[Path]:
+    if sound.get("names"):
+        return [
+            root / sound["folder"] / n
+            for n in sound["names"]
+            if (root / sound["folder"] / n).exists()
+        ]
     return sorted(
         (root / sound["folder"]).glob(f"{sound['prefix']}_*.ogg"),
         key=lambda p: int(p.stem.split("_")[-1]),
@@ -475,7 +568,7 @@ def cmd_generate(args) -> None:
                 )
             print(f"requesting {take} ({sound['seconds']} s, {cost} credits)")
             try:
-                audio, info = request_take(data, sound)
+                audio, info = request_take(data, sound, take)
             except urllib.error.HTTPError as error:
                 raise SystemExit(
                     f"{take}: HTTP {error.code} {error.read()[:300]!r}"
@@ -503,34 +596,63 @@ def cmd_generate(args) -> None:
 def licence_text(
     data: dict, sounds: list[dict], root: Path, cache: Path, ffmpeg: str
 ) -> dict[str, str]:
-    """One LICENSE.md per folder: each file, its prompt, its length, the generator, model, plan and the attribution."""
+    """One LICENSE.md per folder: each generated file with its prompt and length, the generator, model, plan, the
+    licence of that plan and the attribution it asks for, then the folder's `folder_notes` (files in it that are not
+    generated, such as the pistol's synthesised shots). Every sound of the data file in the folder is listed, not only
+    those of this run, so `--only` does not drop the others."""
     out = {}
-    for sound in sounds:
-        files = files_of(sound, root)
-        if not files:
+    folders = {s["folder"] for s in sounds}
+    for folder in sorted(folders):
+        rows, infos = [], []
+        for sound in (s for s in data["sounds"] if s["folder"] == folder):
+            files = files_of(sound, root)
+            first = cache / f"{used_takes(sound)[0]}.json"
+            if not files or not first.exists():
+                continue
+            info = json.loads(first.read_text(encoding="utf-8"))
+            infos.append(info)
+            # a hit is one file a take, in the order of `used_takes`; steps are cut from every take of one prompt
+            takes = (
+                used_takes(sound)
+                if sound["kind"] == "hit"
+                else [used_takes(sound)[0]] * len(files)
+            )
+            for f, take in zip(files, takes, strict=False):
+                seconds = len(decode(ffmpeg, f)) / RATE
+                asked = json.loads((cache / f"{take}.json").read_text(encoding="utf-8"))
+                rows.append(
+                    f"| `{f.name}` | {asked['body']['text']} (requested {sound['seconds']} s, `{asked['model']}`) "
+                    f"| {seconds:.2f} |"
+                )
+        if not rows:
             continue
-        info = json.loads(
-            (cache / f"{kept_takes(sound)[0]}.json").read_text(encoding="utf-8")
-        )
-        licence = licence_of(data, info["tier"])
+        tiers = sorted({i["tier"] for i in infos})
+        dates = sorted({i["date"] for i in infos})
+        licence, attribution = licence_of(data, tiers[0] if len(tiers) == 1 else "free")
         lines = [
             "# Sounds generated with ElevenLabs Sound Effects",
             "",
-            "- Generator: ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>), model",
-            f"  `{info['model']}`, plan `{info['tier']}`, generated {info['date']} with `tools/audio/sfx.py` in the",
-            "  kit.",
-            f"- Licence: {licence['text']}",
-            f"- Attribution: {licence['attribution']}",
-            "",
-            "| File | Prompt | Seconds |",
-            "| --- | --- | ---: |",
+            "- Generator: ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>), plan "
+            + ", ".join(f"`{t}`" for t in tiers)
+            + ",",
+            (
+                f"  generated {' to '.join(dict.fromkeys([dates[0], dates[-1]]))} with `tools/audio/sfx.py` in the kit (the"
+                " model of each file is in the table)."
+            ),
+            f"- Licence: {licence}",
         ]
-        for f in files:
-            seconds = len(decode(ffmpeg, f)) / RATE
-            lines.append(
-                f"| `{f.name}` | {sound['prompt']} (requested {sound['seconds']} s) | {seconds:.2f} |"
-            )
-        out[sound["folder"]] = "\n".join(lines) + "\n"
+        if attribution:
+            lines += [
+                f"- Attribution: {attribution}",
+                "  A game's Credits screen names ElevenLabs.",
+            ]
+        else:
+            lines += ["- Attribution: not required."]
+        lines += ["", "| File | Prompt | Seconds |", "| --- | --- | ---: |", *rows]
+        note = data.get("folder_notes", {}).get(folder)
+        if note:
+            lines += ["", note.rstrip()]
+        out[folder] = "\n".join(lines) + "\n"
     return out
 
 
@@ -542,35 +664,39 @@ def cmd_encode(args) -> None:
         for old in files_of(sound, root):
             old.unlink()
         pieces = []
-        for take in kept_takes(sound):
+        for take in used_takes(sound):
             mp3 = cache / f"{take}.mp3"
             if not mp3.exists():
                 raise SystemExit(f"{take} is not in the cache; run generate")
             x = decode(ffmpeg, mp3)
             if sound["kind"] == "hit":
+                if sound.get("highpass_hz"):
+                    x = highpass(x, sound["highpass_hz"])
                 pieces.append(hit(x, sound))
             elif sound["kind"] == "steps":
                 pieces.extend(steps_of(x, sound))
             else:
-                x = flatten(highpass(x, 40.0), sound["flatten_seconds"])
-                pieces.append(make_loop(x, sound["crossfade"]))
+                x = highpass(x, 40.0)
+                if sound.get("flatten_seconds"):  # an even bed only: a wind's gusts are what make it wind
+                    x = flatten(x, sound["flatten_seconds"])
+                x = make_loop(x, sound["crossfade"])
+                if sound.get("whistle"):
+                    x = whistle(x, sound["whistle"])
+                pieces.append(x)
         if sound.get("max_files"):
             pieces = (
                 pieces[: sound["max_files"]]
                 if len(pieces) <= sound["max_files"]
                 else spread(pieces, sound)
             )
-        for n, x in enumerate(pieces, 1):
+        for name, x in zip(file_names(sound, len(pieces)), pieces, strict=True):
             x, gain, limited = level(ffmpeg, x, sound)
-            name = f"{sound['prefix']}_{n}.ogg"
             write_ogg(ffmpeg, x, root / sound["folder"] / name)
             print(
                 f"{name}: {len(x) / RATE:.3f} s, gain {gain:+.1f} dB{' (peak limited)' if limited else ''}"
             )
     for folder, text in licence_text(data, sounds, root, cache, ffmpeg).items():
-        (root / folder / "LICENSE.md").write_text(
-            text, encoding="utf-8", newline="\n"
-        )
+        (root / folder / "LICENSE.md").write_text(text, encoding="utf-8", newline="\n")
         print(f"wrote {folder}/LICENSE.md")
 
 
@@ -579,10 +705,11 @@ def hit(x, sound: dict):
     sound's length range (a longer one is cut with a fade, a shorter one keeps on into the take's own tail)."""
     whole = trim(x, tail_db=-60.0)
     short = trim(x, tail_db=sound["tail_db"])
-    # Vorbis pads the end by up to a frame (about 25 ms) when it encodes, so the cut leaves room for it
+    # Vorbis pads the end by up to a frame (about 25 ms) when it encodes, so the cut leaves room for it; a cut at the
+    # shortest length decodes about 3 ms short (0.300 s cut, 0.297 s read), so that end has room too
     most, least = (
         int((sound["max_seconds"] - 0.03) * RATE),
-        int(sound["min_seconds"] * RATE),
+        int((sound["min_seconds"] + 0.01) * RATE),
     )
     x = whole[: min(max(len(short), least), most)]
     return fade_out(fade_in(x), 0.06)
@@ -672,9 +799,13 @@ def cmd_check(args) -> None:
                 row += f"  wrap {s['wrap_ratio']:.2f}x  edges {s['edge_db']:+.2f} dB  spread {spreadlu:.2f} LU"
                 if s["wrap_ratio"] > 3.0 or abs(s["edge_db"]) > 1.5:
                     failures.append(f"{f.name}: the loop seam shows ({row})")
-                if spreadlu > sound["max_spread_lu"]:
+                if spreadlu > sound.get("max_spread_lu", math.inf):
                     failures.append(
                         f"{f.name}: level moves {spreadlu:.2f} LU, a gust (limit {sound['max_spread_lu']})"
+                    )
+                if spreadlu < sound.get("min_spread_lu", 0.0):
+                    failures.append(
+                        f"{f.name}: level moves {spreadlu:.2f} LU, an even hiss (at least {sound['min_spread_lu']})"
                     )
             print(row)
         if loud and max(loud) - min(loud) > 1.0:

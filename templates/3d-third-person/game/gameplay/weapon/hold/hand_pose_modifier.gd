@@ -35,6 +35,9 @@ extends SkeletonModifier3D
 		open_first = value
 		_dirty = true
 @export_range(0.05, 0.95, 0.01) var open_first_share := 0.5
+## Every bone opens together though `open_first` names some: fingers closing round a part they
+## are not hooked over (a magazine's front) curl as one.
+@export var open_together := false
 ## An upper arm lifted away from the body before the pose is put on, and by how many degrees: the
 ## weapon's arm held out from the thigh while the weapon is carried (`swing_out()`).
 @export var swing_bone: StringName = &""
@@ -81,7 +84,7 @@ func _process_modification_with_delta(_delta: float) -> void:
 		minf(open_weight / open_first_share, 1.0),
 		maxf((open_weight - open_first_share) / (1.0 - open_first_share), 0.0),
 	]
-	if open_first.is_empty():
+	if open_first.is_empty() or open_together:
 		shares = [open_weight, open_weight, open_weight]
 	for index in _indexes.size():
 		var turned := _rotations[index]

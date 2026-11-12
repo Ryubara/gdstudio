@@ -102,8 +102,10 @@ Proof (`tests/gameplay/test_net_ai_rewind.gd`, two clients over the real socket 
 screen draws on a running guard's chest hits on the server and flinches the guard's puppet on Bo's screen; with
 `ai_rewind_seconds` at 0 the same shot misses (it missed on main); a shot led to where the server will have the guard
 misses, and hits with the rewind off; the drawn guard is 1.8 mm on average (3.6 mm at worst) from the history at the
-tick its shot is met at. `tests/gameplay/test_shot_rewind.gd`: the history, the 16-bit tick across its wrap, the ray
-against a capsule, and the costs below. The clip `tools/capture/ai_rewind_tour.tscn` shows the server's world beside
+tick its shot is met at, the same at every frame count the process has run (the rig's 150 ms is 9 ticks on every
+packet since #1310: [one clock per test](../test-speed.md#one-clock-per-test)).
+`tests/gameplay/test_shot_rewind.gd`: the history, the 16-bit tick across its wrap, the ray against a capsule, and the
+costs below. The clip `tools/capture/ai_rewind_tour.tscn` shows the server's world beside
 Ada's screen: three shots with the rewind off miss, three with it on hit, a ghost capsule on the server's half where
 each was met.
 

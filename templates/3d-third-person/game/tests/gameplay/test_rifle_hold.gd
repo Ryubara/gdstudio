@@ -33,8 +33,9 @@ const PALM_TO_SUPPORT := 0.04
 ## otherwise.
 const ON_TRIGGER := 0.012
 const OFF_TRIGGER := 0.02
-## The shares of the reload that are measured.
-const RELOAD_STEP := 0.02
+## The step between the shares of the reload that are measured: every half hundredth, since a
+## hand passed 8 to 17 mm through the rifle between two steps of 2 hundredths (kit #1187).
+const RELOAD_STEP := 0.005
 ## How deep the left hand may pass through the rifle while it moves between its places, in
 ## metres: where it holds (the hand guard, the magazine) `HandContact`'s 2 mm stand.
 const PASSING_DEPTH := 0.006

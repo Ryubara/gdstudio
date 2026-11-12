@@ -196,7 +196,11 @@ shooting page once that work lands).
   or `--body=male` (`--body=both` is the old measure of two bodies whose skeletons match from the hands down), and
   `write_hold.gd -- <hold.json> <body>` writes the female's into the files above and any other body's into one
   `HoldFit` (`gameplay/weapon/hold/pistol_fit_male.tres`: seat, both markers, `support_way` and the five poses)
-  that `WeaponHold.fits` lists and puts on when the model is that body's file. The left hand is solved over the right
+  that `WeaponHold.fits` lists and puts on when the model is that body's file. A smaller hand changes more than
+  the finger angles, on every gun: its straight index finger ends nearer the trigger, its thumb reaches other
+  surfaces, and the place of the whole hand that suited a larger one can leave the palm off the grip (the rifle's
+  did: [the rifle in both hands](../../engines/godot/third-person/weapon-pickups.md#rifle-hands)), so look at each
+  body's close-ups again and do not stop at the contact numbers. The left hand is solved over the right
   index finger on the trigger and along the frame at once (a reload takes the finger off the trigger while the left
   hand still holds), the finger along the frame is kept 20 mm from the trigger, and the cupped fingers under the
   magazine are measured along the magazine's line too, which they ride up and down. On the two bodies: right hand at
@@ -268,7 +272,7 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
 - **The hold in the game (kit #889)** is not that study's: `TwoHandHold` places the gun from the chest bone, reaches
   each arm with a `HoldArm` and closes the fingers with poses solved on the rifle's own `Grip`, `Trigger` and
   `Support`, as the pistol's are. How it is built, its numbers and what went wrong on the way:
-  [The rifle in both hands](../../engines/godot/third-person/rifle-hands.md#rifle-hands).
+  [The rifle in both hands](../../engines/godot/third-person/weapon-pickups.md#rifle-hands).
 
 - **Approach:** Measure the left arm's reach to the `Support` in the pose the game will hold before keeping a support
   copied from another rig's model: shoulder to the hand's target against the arm's length, with the chest turn the hold

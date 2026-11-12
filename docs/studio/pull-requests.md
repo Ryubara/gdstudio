@@ -41,8 +41,7 @@ a branch fresh are in [Landing a pull request](landing.md#landing).
   agent's commit, merging main to settle a conflict, or finishing a handed-over branch wrote only one model. A stacked
   pull request carries its base's commits, which `gds pr check-body` does not read (`groundwork.py check-commits` does).
   **Seen:** gdstudio #207 and #208, 2026-11-02; Deadnight #553, 2026-11-02 (fix: every model listed, checked before
-  the push); gdstudio #1264, 2026-11-11 (stacked on #1239); gdstudio #1311, #1268
-  and #1258, 2026-11-11.
+  the push); gdstudio #1264, 2026-11-11 (stacked on #1239); gdstudio #1311 (stacked on #1172) and #1268, 2026-11-11.
 - **Approach:** Name the model that wrote the commits on the `Model:` line and in each `Co-Authored-By` trailer (`Claude
   Opus 5.5`, `Claude Sonnet 5.5`), never the harness that ran the session or an alias. **Watch out for:** an
   attribution line that names a tool (`Claude Code`) is not a model name; when a machine maps an alias to another
@@ -140,8 +139,13 @@ the API's list of closed issues, the body's own `Fixes #N` lines say which issue
 machine at all), and when the checkout knows `origin/main` each section is looked up in `origin/main`'s `docs/`
 (`check-body --docs-ref origin/main`, `git show origin/main:./<page>`), as the `body` job of `pr.yml` reads its checkout
 of the base branch. A section only the branch adds is refused there and here; it belongs on the `Lessons:` line, which
-still reads the branch (kit #1131). The guard is a hand-merge path (`.claude/hooks/`): a maintainer merges changes to
-it.
+still reads the branch (kit #1131). The `commits` job reads the pull request's commits: `gds pr check-body` and the
+guard run the same `groundwork.py check-commits --body` on `git log origin/main..HEAD` of the checkout (the commits
+GitHub lists for a pull request against `main`; those a merge of `main` brings are not among them), so a commit's bad
+trailer, or a co-author model the `Model:` line does not name, is refused before the push. A stacked branch carries its
+base's commits, so its `Model:` line names their models too ([stacked](starting-work.md#stacked)). With no branch to
+read it prints `commits: cannot tell`, as the docs rule does (kit #1303). The guard is a hand-merge path
+(`.claude/hooks/`): a maintainer merges changes to it.
 
 - **Approach:** Give the pull request template an Issues affected section and a Failed first test from the first day,
   and update every affected issue after a merge. **Watch out for:** follow-up work and real regressions went untracked
@@ -150,6 +154,11 @@ it.
 - **Approach:** Run `groundwork.py check-body` on a pull request body before opening it. **Watch out for:** a body wrote
   `None` without the expected form, and the body check in CI refused it after the pull request was open. **Seen:**
   Deadnight, 2026-11-01 (fix: the CI body check caught it; the hook here now checks a body before it is sent).
+- **Approach:** Judge the `Model:` line against every commit the pull request carries, the branch's commits since
+  `origin/main`, not only the ones this task wrote. **Watch out for:** a stacked pull request carried its base
+  branch's commits by another model; `gds pr check-body` passed its body and the CI `commits` job refused it after the
+  push. **Seen:** gdstudio #1264 and #1274, 2026-11-11 (fix: kit #1303, `gds pr check-body` and the guard run
+  `check-commits --body` on the branch's commits).
 - **Approach:** Make a local check read its input from where CI reads it: the base branch's docs for what existed
   before the branch (`Read first:`), the branch for what it writes (`Lessons:`), and check that its refusal words
   the fault as CI's does for the same body. **Watch out for:** `gds pr check-body`

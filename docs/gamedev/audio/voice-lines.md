@@ -309,7 +309,7 @@ The dead have no words, so they do not use text to speech: their voices are most
 | Repeatable | a seed per take | no seed: variety comes from asking again |
 | Selection | every take kept; Scribe flags tags read aloud | three candidates a slot, picked by analysis: hiss above 5 kHz, silence inside the take, a slow onset on the short sounds; any clipping is rejected |
 | Clean-up | trim, -20 LUFS, -1 dBFS peak | trim, low-pass at 8 kHz on the voices, fades, normalised to the synthesised variants' peak (-3 dBFS) |
-| Cost | characters (tags free) | 40 credits per second of requested length planned; billed 10 a second on the free tier in 2026 ([Sound effects](sound-effects.md#what-a-request-costs)) |
+| Cost | characters (tags free) | 40 credits per second of requested length planned; billed 10 a second on the free tier and on the paid starter plan in 2026 ([Sound effects](sound-effects.md#what-a-request-costs)) |
 | Bus | Voice, never ducked | Effects, ducked under a sting like every sound of the lot |
 | Playback | one at a time, by the director | rationed: one idle voice every 0.6 to 1.6 s for the whole horde, six zombie voices at most ([Godot: Audio](../../engines/godot/audio.md#a-crowds-voices-the-dead)) |
 
