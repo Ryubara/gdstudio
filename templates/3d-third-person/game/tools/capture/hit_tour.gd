@@ -8,11 +8,13 @@
 ## Record it with Movie Maker through the kit, once for each mannequin (`HIT_MODEL=male` puts the
 ## male on the targets; the female is the default):
 ## `gds capture frames --project game --scene res://tools/capture/hit_tour.tscn --seconds 30`
+## `HIT_HITSCAN=1` fires the pistol hitscan (a copy of its definition with `WeaponDef.hitscan` on,
+## gdstudio #1252): the same shots with no round in the air, the impact at once.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
 const DRESSED := "res://gameplay/character/character_dressed.tscn"
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const MALE := CharacterBodies.MALE
 ## Where the player stands, and where the targets stand and walk (an open stretch of the map).
 const STAND := Vector3(-3.0, 0.0, 9.0)
 const HEAD_TARGET := Vector3(-4.6, 0.0, 15.5)
@@ -57,6 +59,11 @@ var _held: Array[StringName] = []
 
 
 func _ready() -> void:
+	if OS.get_environment("HIT_HITSCAN") == "1":
+		var pistol := _player.loadout.slots[0].duplicate() as WeaponDef
+		pistol.hitscan = true
+		_player.loadout.slots[0] = pistol
+		_player.weapon.definition = pistol
 	_player.teleport(STAND, 0.0)
 	_targets["head"] = _add_target(HEAD_TARGET)
 	_targets["body"] = _add_target(BODY_TARGET)

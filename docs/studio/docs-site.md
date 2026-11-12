@@ -211,4 +211,4 @@ first push, where the strict build and markdownlint otherwise find it -->
 - **Approach:** Never start a wrapped line with an issue number (`#785's`, `#787 is`): rewrap so a word comes first.
   **Watch out for:** Markdown reads a line that starts with `#` as a heading, and markdownlint fails MD018 on a
   sentence. **Seen:** Deadnight, 2026-11-03 (fix: the lines rewrapped); gdstudio #1153, 2026-11-11 (a rewrap put
-  `#1132` first and the commit was refused).
+  `#1132` first and the commit was refused); #1304, 11-11 (a scripted `textwrap` did the same).

@@ -18,11 +18,12 @@ out of a sprint plays a turn of its own instead of snapping round ([the feel as 
 <!-- new section: nobody had measured the library's clips; a replacement needs the number it has to beat -->
 
 The template plays 27 of the libraries' 86 clips (`CharacterClips`, `pistol.tres`, `fists.tres`), four clips of our
-own (`assets/animation/prone/`) and three vault clips (`assets/animation/vault/`, kit #1016, not yet measured
-here). Every number below is from
+own (`assets/animation/prone/`) and, since kit #1037, our three vault clips (`assets/animation/vault/`, made in
+kit #1016, not yet measured here) in place of `NinjaJump_Start`. Every number below is from
 `templates/3d-third-person/game/assets/animation/audit_clips.py`, which reads the glb itself and measures each frame
 on the skinned mesh; its docstring defines each measure. The body is the library's own (the male mannequin); the
-female, the template's default, is given where she differs. Limbs inside limbs are from `limb_overlap.py`.
+female, the template's default, is given where she differs. Limbs inside limbs are from `limb_overlap.py`, on every
+key at the files' own 30 frames a second (kit #1035).
 
 ```sh
 uv run --with numpy python audit_clips.py --clips universal/ual1.glb --clip Walk --clip Jog_Fwd \
@@ -50,7 +51,7 @@ uv run --with numpy python audit_clips.py --clips universal/ual1.glb --clip Walk
 | Left and right, half a cycle apart, differ by | 2.5 degrees | 3.7 | 13.4 | 6.1 |
 | Bones that move, fingers among them | 21, 0 | 19, 0 | 19, 0 | 16, 0 |
 | Rotation keys a reducer keeps at half a degree | 35 % | 63 % | 74 % | 28 % |
-| Limbs inside limbs | hand 11 mm in the thigh on the female | none | none | none |
+| Limbs inside limbs | hand 12 mm in the thigh on the female | none | none | none |
 
 What the table says:
 
@@ -94,19 +95,27 @@ Length is at the clip's own pace. "Join" is the furthest any main joint is from 
 | `Push` 2.67 s | pushing a prop | leans into it (47 degrees) | planted sole wanders 125 mm; 8 mm under the floor; the hands are where the clip has them, not on the prop | hands planted by IK on the prop, steady feet |
 | `Interact` 2.0 s | using things, over 0.7 s | simple reach | played 2.9 times too fast; the body does not turn or step toward the thing; 19 mm of hand in thigh on the female | reaches at three heights with the hand on the target |
 | `Hit_Chest` 0.33 s | flinch, over 0.45 s | short enough to stay responsive | 10 frames with no settle; pelvis 21 mm, no step; one side | flinches from four sides with a settle, additive over the gait |
-| `Death01` 2.4 s | death without a ragdoll | falls and settles (hand speed dies away over 10 frames) | one fall for every hit; 22 mm under the floor; hand 29 mm in the thigh | falls by hit side; the ragdoll stays the default |
+| `Death01` 2.4 s | death without a ragdoll | falls and settles (hand speed dies away over 10 frames) | one fall for every hit; 22 mm under the floor; hand 29 mm in the thigh on the female, 41 on the male | falls by hit side; the ragdoll stays the default |
 | `Swim_Fwd` 1.33 s | stand-in for prone | none here | a swim stroke lifted and tipped | our prone clips exist (kit #1009, #1020); kit #1026 plays them |
 | `Pistol_Idle` 1.67 s | the grip pose | hands held together | the two hands are 14 to 25 mm inside each other; 10 bones move | a pose per weapon class, hands placed by the hold solver |
 | `Pistol_Aim_Neutral`, `_Up`, `_Down` 0.17 s | aim blend by pitch | three poses that blend cleanly (2 mm from the grip pose) | static (0 bones move); hands 14 to 31 mm inside each other; the forearm 23 mm in the pelvis aiming down on the male | aim poses with breath, five pitches |
 | `Pistol_Shoot` 0.63 s | recoil | returns exactly to the aim pose | the whole kick is one frame, then 18 still frames: no rise and settle | recoil with a kick, an overshoot and a settle, sized by the weapon |
 | `Pistol_Reload` 1.67 s | reload | reads as a reload; the head looks down (58 degrees) | hands 22 to 28 mm inside each other; nothing in the clip knows where the magazine is | reload keyed on the weapon's sockets |
-| `Punch_Jab`, `Punch_Cross` 0.87, 1.0 s | the fists' two blows | the chest drives the blow (43 and 57 degrees) and hits in two frames (hand at 4 and 8.9 m/s) | no step or weight transfer (pelvis 2 and 27 mm); ends 631 mm from the idle; the hand is 19 to 28 mm in the head on the female | blows with a step, from a guard pose that the idle blends to |
+| `Punch_Jab`, `Punch_Cross` 0.87, 1.0 s | the fists' two blows | the chest drives the blow (43 and 57 degrees) and hits in two frames (hand at 4 and 8.9 m/s) | no step or weight transfer (pelvis 2 and 27 mm); ends 631 mm from the idle; the hand is 19 to 29 mm in the head on the female | blows with a step, from a guard pose that the idle blends to |
 | `Slide_Start`, `Slide`, `Slide_Exit` 0.83, 2.0, 0.5 s | the slide | start and exit meet the loop within 9 mm | 12 to 37 mm under the floor; one entry, whichever foot the sprint is on; the exit only stands up | start from each sprint foot, exit into a run or a crouch |
-| `NinjaJump_Start` 0.97 s | stand-in for the vault | tucks the legs | not a vault: no hand on anything | the vault clips of kit #1016, played by #1037 |
-| `ClimbUp_1m` 0.67 s | the mantle | quick | the chest is 23 to 32 mm in the thigh; the hands hold nothing; one height | mantles at two heights with planted hands, warped like the vaults |
+| `NinjaJump_Start` 0.97 s | stood in for the vault until kit #1037 | tucks the legs | not a vault: no hand on anything | the vault clips of kit #1016, played since #1037 |
+| `ClimbUp_1m` 0.67 s | the mantle | quick | the chest is 26 to 32 mm in the thigh; the hands hold nothing; one height | mantles at two heights with planted hands, warped like the vaults |
 
 The pistol clips' hands are closed on the gun by `WeaponHold` after the clip, so their overlap is what the solver
 starts from, not what the player sees.
+
+### Limbs inside limbs on the template's bodies {#audit-bodies}
+
+<!-- new section: the audit measured the Quaternius bodies; since kit #1187 the template wears the prototype form
+bodies, and a replacement has to beat the library on those -->
+
+Every clip's deepest crossing on the prototype `form` bodies beside the Quaternius pair (kit #1286) is on its own page,
+[Clip crossings on the template's bodies](body-crossings.md#library-clips), which this page left when it neared 50 KB.
 
 ### What the clips cost {#audit-cost}
 
@@ -212,6 +221,10 @@ transition ends on a gait's exact pose and speed, and is long enough to be seen 
   less; in a walk the body is lowest just after the foot lands and highest as the legs pass
   ([notes on Williams](https://s184753.blogspot.com/2019/01/more-research-animators-survival-kit.html); a
   secondary summary).
+- A crouched walk has no figures here: the crouch gait studies found
+  ([one](https://pmc.ncbi.nlm.nih.gov/articles/PMC3233366/)) are about crouch as a gait fault, not a crouch someone
+  chooses, and no page we found gave a healthy crouched walk's cadence and step length, or the time of a drop from
+  standing to a crouch. The crouch clips' numbers are working ones until a crouch issue measures them (gdstudio #1160).
 
 **What we take.** The walk ranges in [the feel](#feel) are these figures at the game's speed. The library's Walk
 takes 90 steps a minute at 0.96 m/s where people take 118 at 1.32. Follow-through goes after the frame the game
@@ -348,6 +361,11 @@ one clip symmetric about its own middle.
   and the hands placed evenly on both sides, which read as squatting on a toilet beside the library's staggered,
   relaxed crouch; the clip toolkit's style files and solved poses drift toward symmetry unless each side is asked
   for on its own. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11, from the maintainer's review.
+- **Approach:** Check a one-shot on the every-frame front sheet, not only on the key frames, for limbs that line up on
+  the way out and back, and pose each hand from its own per-side table, never from one tuple with a flipped sign.
+  **Watch out for:** the melee clips had the guard and the striking fist level at frames 4 and 12 to 14, between keys,
+  so the key-frame sheet looked uneven while the move passed through a mirror pose; a flipped tuple mirrors the sides by
+  construction. **Seen:** gdstudio #1254, 2026-11-11.
 
 ## The set we will own {#set}
 
@@ -476,7 +494,8 @@ The pull request for a clip type carries one **review sheet** per type, made by 
    column the same frames of the cycle; rows for the side, the front and the top, over a 0.25 m floor grid moving at
    the game's speed, so a foot that slides is seen sliding.
 2. **A clip (mp4):** the variants side by side in Godot from the game's camera, on the template's map: the loop for
-   five seconds, then the moves that use it (start, turn, stop) driven by the same recorded input for each.
+   five seconds, then the moves that use it (start, turn, stop) driven by the same recorded input for each
+   (`tools/capture/own_clips_review.tscn`; `OWN_ONLY=<clip>` films one variant, short enough for a GIF).
 3. **The numbers:** the audit's table with one column per variant and the library's, the limits beside them.
 4. **Notes:** two lines per variant: the vision, and what was tried and could not be done, with the number that
    shows it. A fault the agent can name in its own capture is fixed before review, not listed
@@ -488,12 +507,18 @@ variants live in `own/review/<type>.glb` under their letters (`Walk_A`) and are 
 chosen one is built again under its plain name into the shipped file by the same pull request once chosen, and the
 other style files stay in the repository, so a game picks another vision by rebuilding.
 
+- **Approach:** When a clip declares its own limits, read its numbers on the review sheet against those, and say so in
+  the sheet's notes. **Watch out for:** the sheets print the checks' default limits even where a clip declares its own,
+  so a 0.42 or a 17.99 (keys kept, key bytes a second, on a 22-frame stride) looks like a failure that passes. **Seen:**
+  gdstudio #1160 (PR #1285), 2026-11-11.
+
 ## How a chosen clip replaces the library's {#replacing}
 
 <!-- new section: swapping a clip touches the constants, the tree and the web build; the steps are the same each time -->
 
 1. **A library of our own.** The shipped clips are `assets/animation/own/<group>.glb`, imported as animation
-   libraries under one name, `gds` (`gds/Walk`), beside `ual1` and `ual2`.
+   libraries under one name, `gds` (`gds/Walk`), beside `ual1` and `ual2`. Today the library is the one file
+   `locomotion.glb`; a second group's file needs the tree's issue to merge them under the name.
 2. **The constant moves.** `CharacterClips.WALK` becomes `&"gds/Walk"`; the library's name stays in `ALL` and in a
    `STAND_INS` table, so a game or a test can put the library clip back in the inspector, and a test proves each
    stand-in still plays.
@@ -560,7 +585,7 @@ clip that only works on the reference fails its build.
 | --- | --- | --- |
 | Tracks a gait clip keys | 22 body bones and the pelvis's position; fingers only where they move | fingers at rest come from one hand-pose clip under the gait; a clip names its bones and the export strips the rest |
 | Keys | under 40 % of the frames on a moving bone at half a degree | curves solved at 30 a second, reduced by the build, checked against the full curve on the skinned mesh (1 mm at the hands and feet) |
-| Imported size | 6 KB a second of clip, compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file |
+| Imported size | 6 KB a second of clip, compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
 | Clips blended at once | four on a character near the camera (two gaits, a transition or an action, one additive); one on a far one | the tree's layers are counted in the Godot issue's bench, in the browser |
 | Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)) |
 
@@ -573,7 +598,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 
 | Issue | Clips |
 | --- | --- |
-| #1154 the clip toolkit and the review sheet | `Idle`; the shared build, the checks, `review_sheet.py`, the first swap |
+| #1154 the clip toolkit and the review sheet (done) | `Idle`, three variants, A shipped as `gds/Idle`; the shared build, the checks and their self-test, `review_sheet.py`, the first swap ([the toolkit](animation.md#toolkit)) |
 | #1155 the loops | `Walk`, `Jog`, `Sprint` |
 | #1156 starts and stops | `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`; `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`; left and right |
 | #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |

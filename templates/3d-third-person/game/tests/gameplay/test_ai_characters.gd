@@ -13,10 +13,10 @@ const SCENES := {
 }
 ## What makes each kind: its profile file, its set, its faction, its model and whether it is armed.
 const KINDS := {
-	"grunt": ["grunt.tres", "hostile_guard.tres", &"enemy", "mannequin_male.glb", true],
-	"shooter": ["shooter.tres", "hostile_guard.tres", &"enemy", "mannequin_male.glb", true],
-	"ally": ["ally.tres", "friendly_ally.tres", &"ally", "mannequin_female.glb", true],
-	"civilian": ["civilian.tres", "civilian.tres", &"civilian", "mannequin_female.glb", false],
+	"grunt": ["grunt.tres", "hostile_guard.tres", &"enemy", "form_male.glb", true],
+	"shooter": ["shooter.tres", "hostile_guard.tres", &"enemy", "form_male.glb", true],
+	"ally": ["ally.tres", "friendly_ally.tres", &"ally", "form_female.glb", true],
+	"civilian": ["civilian.tres", "civilian.tres", &"civilian", "form_female.glb", false],
 }
 ## How far the pistol's seat may be from the right hand's bone, metres.
 const SEAT_TOLERANCE := 0.02
@@ -149,10 +149,10 @@ func test_a_variant_male_keeps_the_pistol_in_his_hand_after_a_pool_parks_him_and
 func test_the_variant_set_while_running_replaces_the_model_at_once() -> void:
 	var character := _arena.add_kind(SCENES["ally"], Vector3(0, 0, -3))
 	await _ticks(2)
-	character.model.variant = load("res://assets/characters/mannequin/mannequin_male.glb")
+	character.model.variant = load(CharacterBodies.MALE)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	assert_str(character.model.rig().scene_file_path.get_file()).is_equal("mannequin_male.glb")
+	assert_str(character.model.rig().scene_file_path.get_file()).is_equal("form_male.glb")
 	assert_int(_rigs_under(character.model)).is_equal(1)
 	await _ticks(3)
 	assert_float(await _seat_gap(character)).is_less(SEAT_TOLERANCE)

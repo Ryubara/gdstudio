@@ -15,8 +15,12 @@ server's cost of the AI blocks a TICK and its step (its `stats` lines) and the p
 them (its `PREDICT_BOT` line). `--delay-ms` delays the relay each way (150: a 300 ms round trip) and `--freeze` freezes
 the predicting client's thread (`8:5000`: 5 s at 8 s), as the measurement of gdstudio #970 asks.
 
+With `--shoot` the bots fire at each other (`server_bot.gd --shoot`, every shot a SHOT and a HIT), and `--hitscan` makes
+the server's pistol hitscan (`gate_server.gd --hitscan`), so the same run with and without it compares a hitscan shot's
+bytes and server step against a projectile's (gdstudio #1252); the table adds the server's shots and hits.
+
     python tools/net/bandwidth.py --godot <pinned godot> --project game --out <folder> [--players 2,4,8] [--seconds 10]
-        [--ai 0,40,120] [--delay-ms 150] [--freeze 8:5000]
+        [--ai 0,40,120] [--delay-ms 150] [--freeze 8:5000] [--shoot] [--hitscan]
 """
 
 from __future__ import annotations
@@ -54,6 +58,8 @@ def measure(args: argparse.Namespace, players: int, out: Path, ai: int = 0) -> d
     relay: Relay | None = None
     result: dict = {"players": players, "ai": ai}
     server_args = ["--port", "0"] + (["--ai", str(ai)] if ai > 0 else [])
+    if args.hitscan:
+        server_args.append("--hitscan")
     try:
         server = start(
             godot_cmd(args.godot, project, "res://tools/net/gate_server.gd", *server_args),
@@ -65,6 +71,8 @@ def measure(args: argparse.Namespace, players: int, out: Path, ai: int = 0) -> d
         life = str(int(BOTS_SEATED_S + CLIENT_SEATED_S + args.seconds + 20))
         if players > 1:
             bot_args = ["--connect", url, "--bots", str(players - 1), "--seconds", life]
+            if args.shoot:
+                bot_args.append("--shoot")
             bots = start(
                 godot_cmd(args.godot, project, "res://tools/net/server_bot.gd", *bot_args),
                 out / "bots.log",
@@ -138,6 +146,9 @@ def server_stats(log: Path) -> dict:
         "step_ms_p50",
         "step_ms_p95",
         "out_bytes_per_s",
+        "shots",
+        "hits",
+        "shots_rejected",
     )
     return {key: found.get(key) for key in keys}
 
@@ -173,7 +184,8 @@ def row(result: dict, ai: int) -> str:
         f"{client.get('down_bytes_per_s')} "
         f"| {result['up_mean']} / {result['up_max']}; {client.get('up_bytes_per_s')} | {down_budget} / {UP_BUDGET} "
         f"| {stats.get('ai_encode_us_per_tick')} us, {stats.get('step_ms_p95')} ms "
-        f"| {own_ai.get('apply_us_p50')} / {own_ai.get('apply_us_p95')} us, {own_ai.get('puppets')} |"
+        f"| {own_ai.get('apply_us_p50')} / {own_ai.get('apply_us_p95')} us, {own_ai.get('puppets')} "
+        f"| {stats.get('shots')}, {stats.get('hits')}, {stats.get('step_ms_p50')} ms |"
     )
 
 
@@ -200,6 +212,8 @@ def main() -> int:
         default=0.0,
         help="the relay's delay each way, milliseconds",
     )
+    parser.add_argument("--shoot", action="store_true", help="the bots fire at each other (server_bot.gd --shoot)")
+    parser.add_argument("--hitscan", action="store_true", help="the server's pistol fires hitscan (gate_server.gd)")
     parser.add_argument(
         "--freeze",
         default="",
@@ -211,9 +225,10 @@ def main() -> int:
     failures: list[str] = []
     print(
         "| Players | AI | Down a client, B/s (mean / most; the predicting client) | Up a client, B/s "
-        "| Budget down / up | Server: AI blocks a TICK, step p95 | Client: apply p50 / p95, puppets |"
+        "| Budget down / up | Server: AI blocks a TICK, step p95 | Client: apply p50 / p95, puppets "
+        "| Server: shots, hits, step p50 |"
     )
-    print("| ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+    print("| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
     for ai in [int(a) for a in args.ai.split(",") if a]:
         for players in [int(p) for p in args.players.split(",") if p]:
             result = measure(args, players, args.out / f"players_{players}_ai_{ai}", ai)
@@ -227,7 +242,9 @@ def main() -> int:
             down_budget = AI_DOWN_BUDGET if ai > 0 else DOWN_BUDGET
             if result["down_max"] >= down_budget:
                 failures.append(f"{players} players, {ai} AI: a client got {result['down_max']} B/s down")
-            if result["up_max"] >= UP_BUDGET:
+            # A `--shoot` bot puts a shot block on every command (a player's client only on a tick that can
+            # fire), so its up rate is not a client's.
+            if result["up_max"] >= UP_BUDGET and not args.shoot:
                 failures.append(f"{players} players, {ai} AI: a client sent {result['up_max']} B/s up")
     passed = not failures
     (args.out / "result.json").write_text(json.dumps({"runs": results, "passed": passed}, indent=2), encoding="utf-8")
