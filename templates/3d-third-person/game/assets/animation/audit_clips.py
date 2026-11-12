@@ -1,7 +1,7 @@
 """Measure animation clips the way a reviewer would judge them: contacts, timing, weight, loops, overlap, cost.
 
 The numbers behind the audit of the library clips the template plays (kit #1150,
-`docs/tools/blender/own-animation.md#audit`), and the same numbers for a clip of our own, so a replacement is
+`docs/tools/blender/library-clip-audit.md#audit`), and the same numbers for a clip of our own, so a replacement is
 compared with what it replaces on one scale.
 
 It reads the glb files directly (the glTF JSON and its binary chunk, numpy only), so it runs anywhere and needs no

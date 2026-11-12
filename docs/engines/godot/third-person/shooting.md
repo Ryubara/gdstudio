@@ -423,8 +423,8 @@ about 3.5 µs a streak, and nothing while none shows. The web build linked 3 pro
   (`projectile_cap`, 24): a finished one parks hidden out of the physics and is fired again, and every projectile of
   a size shares one mesh and shape and every one of a colour one material, so a hundred shots make no resource. A
   hitscan shot is one ray and a hit record (`hit_scanned`: collider, position, normal, from, damage and, on a
-  character, the `HitRecord` its `HitZones` delivered, as a projectile's hit does); a blow is a ray of `melee_reach`
-  from the chest.
+  character, the `HitRecord` its `HitZones` delivered, as a projectile's hit does); a blow is the weapon's melee
+  ([Melee blows](melee.md#melee)).
 - **`WeaponLoadout`** (`Loadout`, a child of `character.tscn`, so a server's body has it too) holds the `slots` (`WeaponDef`s,
   typed `Array[Resource]` with a `WeaponDef` hint: [why](../test-exit-leaks.md#typed-array-export-and-self-cast)) and
   `unarmed`, gives the weapon the definition in the hands, keeps each slot's magazine and reserve while it is put
@@ -443,16 +443,16 @@ about 3.5 µs a streak, and nothing while none shows. The web build linked 3 pro
   `.loadout`), so a server and a predicting client reload and switch on the same tick. What is in the hands is
   gameplay; the clips, the sounds and the flash are cosmetic and never sent.
 - **The animation** builds its weapon layer from the held definition (`CharacterAnimation.held_definition()`): a clip
-  left empty has no weight, so the fists take no grip and no aim pose, and their two clips alternate (jab, cross). The
-  reload is a one-shot on the upper body stretched to `reload_time`; a switch lowers the grip and the aim by
-  `WeaponLoadout.lowered_amount()`. A change to a definition's clip rebuilds the tree (`changed`).
+  left empty has no weight, so the fists take no grip and no aim pose; their blows are the melee layer's
+  ([melee](melee.md#melee)). The reload is a one-shot on the upper body stretched to `reload_time`; a switch lowers
+  the grip and the aim by `WeaponLoadout.lowered_amount()`. A change to a definition's clip rebuilds the tree (`changed`).
 - **What aim and fire do** is the weapon's too (`WeaponDef`'s Aim and zoom group, gdstudio #1255): `can_aim` (off:
   the aim button does nothing), `fire_needs_aim` (on: fire shoots only with the aim button held, and never with
   `can_aim` off; `WeaponDef.fire_allowed()`), `fire_zooms` (off: holding fire leaves the camera's framing alone; the
   camera's own `zoom_when_firing` must be on too) and `show_crosshair` (off: the `Crosshair` stays hidden). With
   `override_zoom` on, the weapon's `aim_fov`, `aim_distance`, `fire_fov`, `fire_distance` and `zoom_offset` (further to
   the chosen shoulder and up, blended in with the zoom) replace the camera's. The defaults keep the pistol as it was; the
-  fists have `fire_zooms` off, so a punch does not zoom. The character reads `can_aim` and `fire_needs_aim` every step
+  fists have `fire_zooms` off, so a blow does not zoom. The character reads `can_aim` and `fire_needs_aim` every step
   from the definition its server body holds too (gameplay); `PlayerCamera.held_definition()` and the `Crosshair` read
   the rest every frame (local, never sent), so every toggle applies while the game runs. Tests:
   `test_weapon_aim_toggles.gd`; capture: `tools/capture/fire_zoom_tour.tscn` (pistol fire zooms, fist fire does not).

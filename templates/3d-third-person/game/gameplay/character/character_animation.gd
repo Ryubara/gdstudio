@@ -272,6 +272,7 @@ const _RELOAD_FADE_OUT := 0.2
 		action_blend_time = value
 		_rebuild()
 
+var melee := MeleeLayer.new()  # The melee blow's one-shot (gdstudio #1254).
 var _machine: AnimationNodeStateMachine
 var _ground: AnimationNodeBlendSpace1D
 var _crouch: AnimationNodeBlendSpace1D
@@ -462,12 +463,9 @@ func play_clip(clip: StringName, duration: float = 0.0) -> void:
 	action_started.emit(clip)
 
 
-## How much of the upper body the pistol holds (0 none, 1 all of it): the holding pose, then the
-## aim over it.
+## The pistol's share of the upper body (pose, aim; 0 to 1), less during a melee blow.
 func pistol_weights() -> Vector2:
-	if tree == null:
-		return Vector2.ZERO
-	return Vector2(tree.get(_P_ARMED), tree.get(_P_AIM))
+	return melee.weigh(tree, _P_ARMED, _P_AIM) if tree != null else Vector2.ZERO
 
 
 ## Where the aim pose is on its pitch axis, in degrees (negative looks down).
@@ -801,7 +799,7 @@ func _build_root() -> AnimationNodeBlendTree:
 	HitLayer.prepare(action, _bone_paths([upper_body_bone]))
 	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
-	root.connect_node(_ACTION, 0, _RELOAD)
+	root.connect_node(_ACTION, 0, MeleeLayer.NODE)
 	root.connect_node(_ACTION, 1, _ACTION_SCALE)
 	root.connect_node(&"output", 0, _ACTION)
 	return root
@@ -869,6 +867,7 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	root.connect_node(_RELOAD_SCALE, 0, _RELOAD_CLIP)
 	root.connect_node(_RELOAD, 0, _SHOOT)
 	root.connect_node(_RELOAD, 1, _RELOAD_SCALE)
+	melee.add_to(self, root, _RELOAD, upper, _clip(_or_idle(MeleeLayer.first_clip(hold))))
 
 
 # The clip node of the hold's `property` (`aim_clip`), or of the idle clip when the hold leaves it

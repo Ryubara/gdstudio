@@ -223,5 +223,8 @@ func test_the_weapon_layer_lets_go_of_the_hand_for_the_fists() -> void:
 	await _seconds(_switch_time())
 	await get_tree().process_frame
 	assert_float(animation.pistol_weights().x).is_equal(0.0)
-	var shot_clip := (animation.tree.tree_root as AnimationNodeBlendTree).get_node("ShootClip")
-	assert_str(String((shot_clip as AnimationNodeAnimation).animation)).is_equal("ual1/Punch_Jab")
+	# The fists' blows are the melee layer's (gdstudio #1254), built on the first of their clips.
+	var blow_clip := (animation.tree.tree_root as AnimationNodeBlendTree).get_node("MeleeClip")
+	assert_str(String((blow_clip as AnimationNodeAnimation).animation)).is_equal(
+		"melee/Melee_Unarmed_Jab"
+	)

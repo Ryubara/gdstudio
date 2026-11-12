@@ -5,7 +5,7 @@ clips on the bodies the template wears, which a clip of our own has to beat -->
 
 How deep one limb goes into another when the library's clips play on the prototype `form` bodies the template wears
 (kit #1187), measured beside the Quaternius pair the clips were made on. The audit of the clips themselves is
-[The library clips the template plays, measured](own-animation.md#audit); how the crossing is measured is under
+[The library clips the template plays, measured](library-clip-audit.md#audit); how the crossing is measured is under
 [Solved clips](animation.md#solved-clips).
 
 ## The library clips on four bodies {#library-clips}

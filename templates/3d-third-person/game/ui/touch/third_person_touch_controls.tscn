@@ -58,3 +58,12 @@ offset_right = -640.0
 offset_bottom = -240.0
 action = &"next_weapon"
 label = "Swap"
+
+[node name="Melee" parent="SafeArea/Buttons" index="8" instance=ExtResource("2_button")]
+layout_mode = 1
+offset_left = -780.0
+offset_top = -560.0
+offset_right = -640.0
+offset_bottom = -420.0
+action = &"melee"
+label = "Melee"
