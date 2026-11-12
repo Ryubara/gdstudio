@@ -146,8 +146,8 @@ func _follow(skeleton: Skeleton3D) -> void:
 	_count = skeleton.get_bone_count()
 	_followed.clear()
 	for bone in _count:
-		var name := String(skeleton.get_bone_name(bone)).to_lower()
-		if not SKIPPED.any(func(part: String) -> bool: return name.contains(part)):
+		var bone_name := String(skeleton.get_bone_name(bone)).to_lower()
+		if not SKIPPED.any(func(part: String) -> bool: return bone_name.contains(part)):
 			_followed.append(bone)
 	_last.resize(_followed.size())
 	_before.resize(_followed.size())

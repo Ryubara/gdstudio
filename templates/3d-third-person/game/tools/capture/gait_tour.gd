@@ -59,7 +59,7 @@ func _physics_process(delta: float) -> void:
 		var swing := (
 			clampf((_clock - 0.3) / 0.25, 0.0, 1.0) - clampf((_clock - 1.4) / 0.25, 0.0, 1.0)
 		)
-		_rig.yaw = 120.0 * swing
+		_rig.yaw = -90.0 + 120.0 * swing
 	var tree := _animation.tree
 	var at: float = tree.get(&"parameters/Locomotion/ground/blend_position")
 	var pace: float = tree.get(&"parameters/Locomotion/ground/walk/Pace/scale")
@@ -98,6 +98,10 @@ func _next() -> void:
 	if _part >= PARTS.size():
 		_finish()
 		return
+	if PARTS[_part][0] == "Sprint":
+		# Back to the spot and round to the east, where the floor is open for the sprint.
+		_player.teleport(SPOT, 0.0)
+		_rig.yaw = -90.0
 	for action: StringName in PARTS[_part][2]:
 		Input.action_press(action)
 
