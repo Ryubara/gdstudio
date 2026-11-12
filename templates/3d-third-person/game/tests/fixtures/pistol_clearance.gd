@@ -175,8 +175,7 @@ func _globals() -> Array[Transform3D]:
 
 
 func _collect_body() -> void:
-	for node in rig.find_children("*", "MeshInstance3D", true, false):
-		var instance := node as MeshInstance3D
+	for instance in CharacterBodies.near_meshes(rig):
 		var skin := instance.skin
 		if skin == null or instance.mesh == null:
 			continue

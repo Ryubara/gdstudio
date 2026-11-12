@@ -20,6 +20,7 @@ const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
 const LIBRARY_OWN := &"gds"
+const LIBRARY_VAULT := &"vault"
 
 # Locomotion and the clips the player's states use.
 const IDLE := &"gds/Idle"
@@ -55,9 +56,6 @@ const SWIM := &"ual1/Swim_Fwd"
 const DANCE := &"ual1/Dance"
 const OPEN_CHEST := &"ual2/Chest_Open"
 const CLIMB_UP := &"ual2/ClimbUp_1m"
-## Stands in for the vault until the template's own vault clips land (kit #1010): a jump take-off
-## that tucks the legs, played warped to the vault's time.
-const VAULT_PLACEHOLDER := &"ual2/NinjaJump_Start"
 const KNOCKBACK := &"ual2/Hit_Knockback"
 const SLIDE := &"ual2/Slide"
 const SLIDE_START := &"ual2/Slide_Start"
@@ -69,6 +67,12 @@ const PRONE_IDLE := &"prone/Prone_Idle"
 const CRAWL := &"prone/Crawl_Fwd"
 const TO_PRONE := &"prone/Crouch_To_Prone"
 const TO_CROUCH := &"prone/Prone_To_Crouch"
+# Vaulting: the template's own clips (gdstudio #1010, `assets/animation/vault/`), the library
+# `vault`. What each was keyed on is a `VaultClip` (`gameplay/character/vault_low.tres`,
+# `vault_high.tres`).
+const VAULT_LOW := &"vault/Vault_Low"
+const VAULT_HIGH := &"vault/Vault_High"
+const VAULT_LAND := &"vault/Vault_Land"
 
 ## The library clip each clip of our own replaced, kept as a stand-in.
 const STAND_INS: Dictionary[StringName, StringName] = {
@@ -174,6 +178,9 @@ const ALL: Array[StringName] = [
 	&"gds/Crouch_Walk",
 	&"gds/Idle",
 	&"gds/Stand_To_Crouch",
+	&"vault/Vault_High",
+	&"vault/Vault_Land",
+	&"vault/Vault_Low",
 ]
 
 

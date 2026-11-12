@@ -44,7 +44,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds
   nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
   #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
-  #1127 (a tool's `write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218 (four files), #1154, 11-11.
+  #1127 (a tool's `write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154 and #1260, 11-11.
 
 ## Scripted edits {#scripted-edits}
 
@@ -113,7 +113,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   name does not say whose it is; `taskkill /IM` and a `GdUnitCmdTool` pattern ended other agents' suites and a
   pre-commit run; stopping a background task ends the shell, not the `timeout` and Godot under it, which kept writing to
   the same log beside the new run. **Seen:** Deadnight, 2026-11-01; Deadnight #1086, 2026-11-04; gdstudio, 2026-11-06
-  (fix: the hooks refuse a kill by name ([Hooks](hooks.md)); a short `timeout` on every run).
+  (fix: the hooks refuse a kill by name ([Hooks](hooks.md)); a short `timeout` on every run); gdstudio #1149,
+  2026-11-11 (a stopped task's `bash record.sh` started its next capture: end that bash first).
 - **Approach:** Leave a shell script alone while a background run executes it: edit the source, and copy it over the
   running copy only after the run ends (or run a copy made for that run). **Watch out for:** bash reads a script as
   it goes, by byte offset, so a `cp` over `check.sh` during a 10 minute bot run made bash resume inside the new text:

@@ -1,5 +1,5 @@
-## Plays the prone and crawl clips (`assets/animation/prone/prone.glb`, kit #1009) on the
-## mannequin, on a floor of 0.25 m squares: the library's crouch idle, down to prone, the prone
+## Plays the prone and crawl clips (`assets/animation/prone/prone.glb`, kit #1009) on a body of
+## the template, on a floor of 0.25 m squares: the library's crouch idle, down to prone, the prone
 ## idle, a crawl at the speed the clip was made for, the prone idle again and back up to the
 ## crouch. It plays the round four times: from the right side, from the front quarter, from
 ## behind and above, where the game's camera sits, and close over the arms from straight above
@@ -10,14 +10,16 @@
 ## Record it with Movie Maker through the kit:
 ## `gds capture frames --project game --seconds 39 --fps 30
 ## --scene res://tools/capture/prone_clips_tour.tscn`
-## (`MODEL=male` films the male mannequin; `PRONE_SHOTS=<folder>` also saves one still of each
+## (`MODEL=male` films the template's male body, `MODEL=quaternius_female` or `quaternius_male`
+## a Quaternius mannequin: `study_body.gd`; `PRONE_SHOTS=<folder>` also saves one still of each
 ## clip from the side, the front and the top; `PRONE_FISTS=<folder>` saves one sheet of the
 ## forearms and fists instead: the crawl at five moments of its cycle and the prone idle, from the
-## game camera's place and close from the side, the front and above; `PRONE_CLIPS=<res path>`
-## plays another clip file, for a Before).
+## game camera's place and close from the side, the front and above, and the legs from the side;
+## `PRONE_CLIPS=<res path>` plays another clip file, for a Before).
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node3D
 
+const STUDY_BODY := preload("res://tools/capture/study_body.gd")
 const UAL1 := "res://assets/animation/universal/ual1.glb"
 const OWN := "res://assets/animation/own/locomotion.glb"
 const PRONE := "res://assets/animation/prone/prone.glb"
@@ -69,14 +71,10 @@ var _speed := 0.0
 
 
 func _ready() -> void:
-	var male := OS.get_environment("MODEL") == "male"
 	_stage()
 	_holder = Node3D.new()
 	add_child(_holder)
-	var path := (
-		"res://assets/characters/mannequin/mannequin_%s.glb" % ["male" if male else "female"]
-	)
-	var model: Node3D = (load(path) as PackedScene).instantiate()
+	var model: Node3D = (load(STUDY_BODY.path()) as PackedScene).instantiate()
 	_holder.add_child(model)
 	_player = AnimationPlayer.new()
 	_holder.add_child(_player)
@@ -96,7 +94,7 @@ func _ready() -> void:
 	var shots := OS.get_environment("PRONE_SHOTS")
 	var fists := OS.get_environment("PRONE_FISTS")
 	if fists != "":
-		_fists.call_deferred(fists, "male" if male else "female")
+		_fists.call_deferred(fists, STUDY_BODY.chosen())
 	elif shots != "":
 		_stills.call_deferred(shots)
 	else:
@@ -128,7 +126,7 @@ func _next() -> void:
 	var step := STEPS[_step]
 	_left = step.seconds
 	_player.play(step.clip, step.get("blend", 0.0))
-	_label.text = "%s   (%s)" % [String(step.clip), VIEWS[_pass].name]
+	_label.text = "%s   (%s, %s)" % [String(step.clip), VIEWS[_pass].name, STUDY_BODY.chosen()]
 	_aim(VIEWS[_pass])
 
 
@@ -161,7 +159,8 @@ func _stills(folder: String) -> void:
 
 
 # The forearms and fists as one sheet, a row a view and a column a moment: the crawl at five
-# moments of its cycle (the right arm plants at 0 %, the left at 50 %) and the prone idle.
+# moments of its cycle (the right arm plants at 0 %, the left at 50 %) and the prone idle; the
+# last row is the legs from the side at the floor's height, the knees and feet on it.
 func _fists(folder: String, model: String) -> void:
 	var views := [
 		{
@@ -178,6 +177,12 @@ func _fists(folder: String, model: String) -> void:
 		},
 		{"name": "front", "from": Vector3(0.0, 0.4, 2.5), "at": Vector3(0, 0.12, 0.8), "fov": 19.0},
 		{"name": "above", "from": Vector3(0.01, 1.7, 0.98), "at": Vector3(0, 0, 0.98), "fov": 30.0},
+		{
+			"name": "legs, side",
+			"from": Vector3(-2.2, 0.16, -0.45),
+			"at": Vector3(0, 0.1, -0.45),
+			"fov": 30.0
+		},
 	]
 	var moments := [
 		[&"prone/Crawl_Fwd", 0.0],

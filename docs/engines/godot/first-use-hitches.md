@@ -71,6 +71,13 @@ not their cause; headless Chrome with a real GPU (`channel="chrome"`) is enough,
   `DISABLE_LIGHT_DIRECTIONAL`) were the minimap's live camera drawing the body, and the bodies had just left its layer:
   a warm-up draw would have built nothing that counted. **Seen:** gdstudio #1218, 2026-11-11 (`late_programs` in
   `net_play_smoke.py`, which fails on any link after the seat).
+- **Approach:** Warm up in every view that draws the level's world, each as it draws (its camera's environment and
+  layers, its viewport's shadow atlas), where a first use happens there: where the player stands, in every probe and
+  outside them, with a look round before each draw. **Watch out for:** the live minimap drew the first flash, sparks
+  and mark in its own flat environment (no `USE_RADIANCE_MAP`): 6 to 7 programs, a 117 to 151 ms frame. Touring its
+  view only at the probes left 2 to 3 (the open place was not one), and an unlit draw straight after a lit one missed
+  a program in two runs of three. **Seen:** gdstudio #1297, 2026-11-11 (fix: `EffectEmitter.other_views()`; 0 programs
+  in four runs after).
 
 ## The first draw of a shader builds four programs, two of them huge {#first-shader-draw}
 
@@ -371,7 +378,9 @@ SwiftShader, which records the same programs as a GPU, and fails when it links m
 `shader_programs.py build/web out --list assets/shaders/web/shader_programs.json --max-missed 10` (it also fails on an
 attribute `mismatch`, and the step first checks that the export served the list and wrote the page's start). A current
 list lacks 0 to 4 (the warm-up's timing); with 20 of its 157 programs taken out the check counted 23 and exited 1. When
-it fails, record the list again with `--write <list> --merge` and commit it.
+it fails, record the list again with `--write <list> --merge` and commit it. A change to the warm-up counts too:
+touring the minimap's view (kit #1297) left the list 12 programs short, and recording it again (`--merge`, the page
+plain and with `?play`) took it from 157 to 169, after which the check missed 0 and 1.
 
 ## Testing it {#testing-it}
 
