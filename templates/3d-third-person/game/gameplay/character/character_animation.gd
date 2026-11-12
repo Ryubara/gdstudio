@@ -15,8 +15,8 @@ extends Node
 ##
 ## The clips come from the Universal Animation Library 1 and 2 and the template's own clips, the
 ## `AnimationPlayer`'s libraries `ual1`, `ual2`, `prone`, `vault` and `gds`. Pick another clip for a
-## state in the inspector; `CharacterClips` names them all. A model whose body needs prone clips of
-## its own gets them from `prone_libraries`.
+## state in the inspector; `CharacterClips` names them all. A model whose body needs prone or vault
+## clips of its own gets them from `prone_libraries` and `vault_libraries`.
 ##
 ## It is a `@tool` script so the editor shows the tree too: opening the character scene builds the
 ## same tree, so the AnimationTree panel shows its graph and the node has no warning. Only the
@@ -190,13 +190,14 @@ const _RELOAD_FADE_OUT := 0.2
 @export var vault_high_clip: StringName = CharacterClips.VAULT_HIGH
 ## The step out of a vault's landing, played straight after either vault. Empty: none.
 @export var vault_land_clip: StringName = CharacterClips.VAULT_LAND
+## Vault clips a model plays instead of the `vault` library, by its scene file (`prone_libraries`).
+@export var vault_libraries: Dictionary[String, AnimationLibrary] = {}
 ## The climb onto an obstacle; played to last the mantle's time.
 @export var mantle_clip: StringName = CharacterClips.CLIMB_UP
 ## The climb onto an obstacle from `VaultSettings.high_mantle_above` up.
 @export var mantle_high_clip: StringName = CharacterClips.CLIMB_UP
-## The fastest and slowest a traversal clip is played against its own speed, so a very short or
-## very long crossing does not show a clip blurred or crawling (the body's path keeps its time; the
-## clip then ends early or is cut by the next state).
+## The slowest and fastest a traversal clip is played against its own speed, so no crossing shows
+## it crawling or blurred (the body's path keeps its time; the clip ends early or is cut).
 @export var traversal_speed_range := Vector2(0.5, 2.0)
 
 @export_group("Prone")
@@ -274,10 +275,8 @@ const _RELOAD_FADE_OUT := 0.2
 var _machine: AnimationNodeStateMachine
 var _ground: AnimationNodeBlendSpace1D
 var _crouch: AnimationNodeBlendSpace1D
-# The tuning whose speeds the blend spaces show (its `changed` is connected).
-var _tuning: CharacterTuning
-# The crawl's share and pace, the weapon put away lying, and a model's own prone clips.
-var _prone_look := ProneAnimation.new()
+var _tuning: CharacterTuning  # its speeds are the blend spaces' (its `changed` is connected)
+var _prone_look := ProneAnimation.new()  # the crawl, the weapon put away, a model's own clips
 var _vault_look := VaultAnimation.new()  # a vault timed by its clip and its landing step
 var _shoot_scale_node: AnimationNodeTimeScale
 var _shoot_clip_node: AnimationNodeAnimation
@@ -306,6 +305,7 @@ func _ready() -> void:
 		model.rig_changed.connect(_on_rig_changed)
 		_follow_rig()
 	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_libraries)
+	_vault_look.use_model_clips(animation_player, _rig_or_null(), vault_libraries)
 	_build()
 	_follow_tuning()
 	if Engine.is_editor_hint():
@@ -547,6 +547,7 @@ func _on_rig_changed(_rig: Node3D) -> void:
 		return
 	_follow_rig()
 	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_libraries)
+	_vault_look.use_model_clips(animation_player, _rig_or_null(), vault_libraries)
 	tree.anim_player = NodePath()
 	if not Engine.is_editor_hint():
 		tree.active = _fits(model.rig()) and not _dead
