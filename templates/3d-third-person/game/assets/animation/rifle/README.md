@@ -11,7 +11,7 @@ the prototype mannequin rig (`form_female.glb`, the player's body), at the libra
 | `Rifle_Aim_Neutral` | 2.0 s, loops | At the shoulder, the view level: the trunk leant into the rifle, the right shoulder up behind the butt, the head canted toward the stock with the eye by the sights |
 | `Rifle_Aim_Up`, `Rifle_Aim_Down` | 2.0 s, loop | The same with the view 45 degrees up and down (`CharacterAnimation.aim_pitch_range`) |
 | `Rifle_Shoot` | 0.4 s | A shot's recoil in the body: the upper spine rocks back 1.1 degrees a bone in one frame, the right collarbone is pushed back, the head stays by the sights; back by frame 4, a small sway forward, still from frame 9. It starts and ends on `Rifle_Aim_Neutral`'s first pose |
-| `Rifle_Reload` | 2.2 s | The body through a magazine change: the eyes go down to the magazine well (0.14 of the clip), follow the left hand to the belt as the left shoulder drops (0.42), come back for the new magazine, a jolt as it seats (0.62) and as the bolt runs home (0.88), level again at the end. It starts and ends on `Rifle_Idle`'s first pose |
+| `Rifle_Reload` | 2.2 s | The body through a magazine change: the eyes go down to the magazine well (0.14 of the clip), follow the left hand to the belt as the left shoulder drops (0.42), come back for the new magazine, a jolt as it seats (0.62) and as the bolt runs home (0.86), level again at the end. It starts and ends on `Rifle_Idle`'s first pose |
 
 The game plays them on the upper body (`spine_01` and everything under it) over its own locomotion:
 `gameplay/weapon/rifle.tres` names them, the idle as the grip clip, the three aims by the view's pitch, the shot
@@ -43,9 +43,10 @@ the male, whose arms are longer and whose hands are bigger, the hold's reach doe
 clip. **When the hold's numbers, a body or the solved hands change, run the build again.**
 
 The left hand's way to the magazine, the belt and back, and the magazine's move, are the hold's (by the weapon's
-reload share); the reload clip moves the body at the same shares. The hand does not go to the charging handle
-yet, and the `Bolt` node does not move: the clip has the body's beat for it (the head lifting from 0.72, the
-jolt at 0.88 where the bolt's sound is), and the hand and its fingers on the handle are kit #1266.
+reload share); the reload clip moves the body at the same shares. After the magazine the hand goes to the
+charging handle, hooks the latch, pulls the `Bolt` node back 6 cm and lets it go (the hold's `ChargePull` of kit
+issue 1266, ported to the build's `Hold`, so the clip's own left arm follows it); the clip has the body's beat for it,
+the head lifting from 0.72 and the jolt at 0.86 where the bolt's sound is.
 
 ## How the body is shaped
 

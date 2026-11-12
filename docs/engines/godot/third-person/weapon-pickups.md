@@ -152,7 +152,8 @@ are named as such.
   thumb's side off the hand guard (`reload_clearance`), across to beside the magazine and onto `MagazineHand`
   (`reload_leave`), closes on the magazine, takes it straight down out of the well (`magazine_well`) and to the belt
   at the left hip (`reload_belt`, a place on the body; `reload_out`), where the magazine is out of sight and changed,
-  comes back up and straight in (`reload_in`), and goes back under the hand guard the way it came (`reload_return`).
+  comes back up and straight in (`reload_in`), pulls the charging handle (below), and goes back under the hand
+  guard the way it came (`reload_return`).
   The `magazine` node rides the hand. The thumb goes from the hand guard's side to its place behind the magazine
   while the hand comes down off the hand guard (`_WAY_THUMB`), and on the magazine the four fingers close as one
   (`HandPoseModifier.open_together`; off the hand guard they open knuckles first).
@@ -170,7 +171,45 @@ the clips were built round it on both bodies, each under its own fit
 numbers, a fit or the solved hands change, their build is run again
 (`assets/animation/rifle/build_rifle_clips.py`, 90 s; a new step of the hold is ported to the build's `Hold`
 first). The
-left hand does not go to the charging handle yet (kit #1266).
+left arm's way to the charging handle and its pull are the hold's `ChargePull`, ported to the build's `Hold`
+(kit #1266).
+
+- **The charging handle** (kit #1266, `gameplay/weapon/hold/charge_pull.gd`, the hold's `charge`). After the new
+  magazine is seated the left hand comes off it the way it came on with its fingers opening as one
+  (`leave`, 0.63 to 0.69 of the reload), goes up the rifle's left side to 8 cm left of the handle (`reach`, to
+  0.77), comes onto the `ChargeHand` marker as its fingers close on the latch (`grip`, to 0.80: the
+  `HandPoseModifier`'s `third` pose, the hold's `charge_pose`), pulls the `Bolt` node back its `travel` of 6 cm
+  (`pull`, to 0.86, the bolt's sound, moved there from 0.88), lets go out to the left while the bolt runs home in
+  `slam` (`release`, to 0.88), goes forward beside the magazine and under the hand guard by `reload_return.x`
+  (0.94) and onto it by 0.98, the hold's own last leg, its fingers following the hold's own way back from where
+  they are open. The far level's `Bolt` moves with the near one, and a reload cut off puts the bolt home. A hold
+  with no `charge`, `ChargeHand` or `charge_pose` keeps the straight way back.
+- **How the handle is held.** The model's latch was a 1.4 cm bar within the stock's width with its rear face on
+  the stock's front, so no finger fitted in front of it and a pull ran it into the stock: `build_rifle.py` now
+  runs the handle 5 mm higher (`BOLT_Z`, 1 mm over the stock's top) and gives the latch an extended left side, the
+  bar 2.2 cm past the stock and a tab dropping beside it (3.2 cm tall, 3 mm clear of the stock). The hand is left
+  of the stock with the palm toward the shooter, the index finger hooked round the bar's front and the middle
+  finger round the tab's, the ring and little fingers curled clear and the thumb bent in, tilted 25 degrees
+  (fingers up, toward the forearm from the low elbow). `solve_rifle_hold.py` solves it on each body (`charge`)
+  against the `Bolt` part for the touch and against the rest of the rifle at three shares of the pull, so the
+  hand riding the handle stays off the stock; `write_hold.gd` writes `ChargeHand` and `rifle_charge_pose.tres`,
+  or the male's `charge_hand` and `charge_pose` in his fit. While it holds (0.80 to 0.86, every half hundredth,
+  against the rifle with the bolt where it is): female 0.8 to 0.9 mm in and the fingertips 0.9 mm off at most,
+  male 1.1 mm in and 3.1 mm off; on the way the hand passes 1.2 mm (female) and 5.1 mm (male) through the rifle
+  at most. Captures: `tools/capture/rifle_charge_closeups.tscn` (from the rifle's left, above, the front and
+  left, and the player's camera, at the reach, the grip, the pull's end and the release, both bodies).
+
+- **Approach:** Give a hooking finger a bend in the solver's cost, not only a touch, and look at the hand from
+  the weapon's side before the numbers. **Watch out for:** with only the tips held on the latch the solver laid
+  the index and middle fingers straight across its front, and the close-up read as a hand poking the handle
+  with a thumb standing out like a spike, though every contact passed. **Seen:** gdstudio #1266, 2026-11-12
+  (fix: `hook` and `thumb_rest` cost a straight joint).
+- **Approach:** Route a hand's way between two places on opposite ends of a long gun through a place beside it
+  (the magazine's `beside`), and measure the way every half hundredth against the gun as it is then (the bolt
+  back or home). **Watch out for:** the straight way from the handle's let-go to under the hand guard went 13 to
+  29 mm through the receiver's left side, and the thumb 13.6 mm through the hand guard until the fingers' share
+  of the hold's way matched the places the hand passed (`to_magazine` at `_WAY_BESIDE` beside the magazine).
+  **Seen:** gdstudio #1266, 2026-11-12 (`home_beside`).
 
 Measured on the skinned mesh against the rifle (`HandContact`, the same in every clip, since the fingers are absolute
 and the arms reach their places), on the prototype bodies:

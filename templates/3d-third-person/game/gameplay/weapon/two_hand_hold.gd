@@ -8,7 +8,8 @@ extends Node3D
 ## arm reaches its hand's place on the gun, and the fingers close on it: the right hand on the
 ## pistol grip with the index finger along the receiver (on the trigger while the gun is up), the
 ## left hand cupped under the hand guard. Both hands stay on the gun in every state; only a reload
-## takes the left hand away, to the magazine and the belt and back, and an action that reaches
+## takes the left hand away, to the magazine and the belt and back by the charging handle
+## (`ChargePull`, kit #1266), and an action that reaches
 ## with it (using a door: `FreeHand`, kit #1336), for which the gun goes down in the right hand
 ## alone. The legs and the head stay on the locomotion clips. `two_hand_hold.tscn` is the part
 ## with no gun; the rifle's `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and

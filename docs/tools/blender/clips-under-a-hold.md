@@ -97,6 +97,13 @@ are the body under that.
   the rifle is drawn after a walk into its pickup; the capture with `main`'s `rifle.tres` (no rifle clip) has the
   same three frames, so it is the switch's, not the clips'. **Seen:** gdstudio #1267, 2026-11-12.
 
+- **Approach:** When a pull request moves code out of the hold a build reads as text (a constant to a new
+  class), run the build once in that pull request, and have the build read every file the hold's numbers now
+  live in. **Watch out for:** kit #1336 moved the torso's skin to `hold/torso_skin.gd`, and
+  `build_rifle_clips.py` stopped before it built anything (`_SKIN_REGION` no longer in `two_hand_hold.gd`); no
+  check runs the build, so `main` carried it broken until the next clip change. **Seen:** gdstudio #1266,
+  2026-11-12 (fix: the build reads `torso_skin.gd` too).
+
 ## Solving a held pose {#solved-holds}
 
 <!-- new section: folded in from held-clips.md, which gdstudio #1191 split from animation.md#solved-clips at the same
