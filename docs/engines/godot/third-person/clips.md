@@ -64,7 +64,8 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   where the pistol's muzzle is while the character aims standing on the idle, so the idle solved again on the
   prototype bodies put it 6.2 mm from the real muzzle, over the test's 5 mm; the full run before the merge had
   passed, because main's steady stance under the aim, which set the offset to main's idle, landed in between.
-  **Seen:** gdstudio #1155 (PR #1275), 2026-11-11 (the offset's z from -0.716 to -0.722).
+  **Seen:** gdstudio #1155 (PR #1275), 2026-11-11 (the offset's z from -0.716 to -0.722) and 2026-11-12 (main's
+  pistol seat, #1262, moved the muzzle and the line conflicted: taking main's -0.728 failed by 6 mm; it is -0.734).
 - **Approach:** When a `CharacterClips` constant moves to another library, grep for every table that lists libraries
   by name (`grep -rn LIBRARIES`, `universal/ual1`: `tests/fixtures/hold_stage.gd`, `pistol_clearance.gd`,
   `tools/ragdoll/measure_joints.gd`) and add the library, then run the weapon and hold suites (`test_weapon*.gd`,
