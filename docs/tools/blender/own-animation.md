@@ -18,8 +18,8 @@ out of a sprint plays a turn of its own instead of snapping round ([the feel as 
 <!-- new section: nobody had measured the library's clips; a replacement needs the number it has to beat -->
 
 The template plays 27 of the libraries' 86 clips (`CharacterClips`, `pistol.tres`, `fists.tres`), four clips of our
-own (`assets/animation/prone/`) and three vault clips (`assets/animation/vault/`, kit #1016, not yet measured
-here). Every number below is from
+own (`assets/animation/prone/`) and, since kit #1037, our three vault clips (`assets/animation/vault/`, made in
+kit #1016, not yet measured here) in place of `NinjaJump_Start`. Every number below is from
 `templates/3d-third-person/game/assets/animation/audit_clips.py`, which reads the glb itself and measures each frame
 on the skinned mesh; its docstring defines each measure. The body is the library's own (the male mannequin); the
 female, the template's default, is given where she differs. Limbs inside limbs are from `limb_overlap.py`.
@@ -102,11 +102,19 @@ Length is at the clip's own pace. "Join" is the furthest any main joint is from 
 | `Pistol_Reload` 1.67 s | reload | reads as a reload; the head looks down (58 degrees) | hands 22 to 28 mm inside each other; nothing in the clip knows where the magazine is | reload keyed on the weapon's sockets |
 | `Punch_Jab`, `Punch_Cross` 0.87, 1.0 s | the fists' two blows | the chest drives the blow (43 and 57 degrees) and hits in two frames (hand at 4 and 8.9 m/s) | no step or weight transfer (pelvis 2 and 27 mm); ends 631 mm from the idle; the hand is 19 to 28 mm in the head on the female | blows with a step, from a guard pose that the idle blends to |
 | `Slide_Start`, `Slide`, `Slide_Exit` 0.83, 2.0, 0.5 s | the slide | start and exit meet the loop within 9 mm | 12 to 37 mm under the floor; one entry, whichever foot the sprint is on; the exit only stands up | start from each sprint foot, exit into a run or a crouch |
-| `NinjaJump_Start` 0.97 s | stand-in for the vault | tucks the legs | not a vault: no hand on anything | the vault clips of kit #1016, played by #1037 |
+| `NinjaJump_Start` 0.97 s | stood in for the vault until kit #1037 | tucks the legs | not a vault: no hand on anything | the vault clips of kit #1016, played since #1037 |
 | `ClimbUp_1m` 0.67 s | the mantle | quick | the chest is 23 to 32 mm in the thigh; the hands hold nothing; one height | mantles at two heights with planted hands, warped like the vaults |
 
 The pistol clips' hands are closed on the gun by `WeaponHold` after the clip, so their overlap is what the solver
 starts from, not what the player sees.
+
+### Limbs inside limbs on the template's bodies {#audit-bodies}
+
+<!-- new section: the audit measured the Quaternius bodies; since kit #1187 the template wears the prototype form
+bodies, and a replacement has to beat the library on those -->
+
+Every clip's deepest crossing on the prototype `form` bodies beside the Quaternius pair (kit #1286) is on its own page,
+[Clip crossings on the template's bodies](body-crossings.md#library-clips), which this page left when it neared 50 KB.
 
 ### What the clips cost {#audit-cost}
 
@@ -212,6 +220,10 @@ transition ends on a gait's exact pose and speed, and is long enough to be seen 
   less; in a walk the body is lowest just after the foot lands and highest as the legs pass
   ([notes on Williams](https://s184753.blogspot.com/2019/01/more-research-animators-survival-kit.html); a
   secondary summary).
+- A crouched walk has no figures here: the crouch gait studies found
+  ([one](https://pmc.ncbi.nlm.nih.gov/articles/PMC3233366/)) are about crouch as a gait fault, not a crouch someone
+  chooses, and no page we found gave a healthy crouched walk's cadence and step length, or the time of a drop from
+  standing to a crouch. The crouch clips' numbers are working ones until a crouch issue measures them (gdstudio #1160).
 
 **What we take.** The walk ranges in [the feel](#feel) are these figures at the game's speed. The library's Walk
 takes 90 steps a minute at 0.96 m/s where people take 118 at 1.32. Follow-through goes after the frame the game
@@ -334,6 +346,25 @@ What makes it loose is in the joins, more than in the loops:
   each a frame or two later, each overshooting a little.
 - **Blends carry momentum.** A new clip starts from the pose and the speed of the old one, not from a mix of two
   poses ([in the tree](#replacing)).
+
+**No mirror poses.** A held pose is never the same on both sides: one foot ahead of the other and turned out
+more, one knee lower, the weight more on one leg, the hips and shoulders tilted and turned a little against each
+other, the hands at different heights and doing different things. Start a held pose from how a person rests in it
+(the library's crouch idle has one heel up, the knees apart at different heights, one forearm on a knee), then
+write each side's numbers on their own. A mirrored clip for the other foot is the build's job, not a reason to make
+one clip symmetric about its own middle.
+
+- **Approach:** Give every pose and loop its own numbers per side (stance, knee height, weight, hand place and
+  task), check a capture from the front and from above for anything lined up, and compare it with the library clip
+  it replaces before it goes to review. **Watch out for:** our crouch idle stood with the feet side by side and level
+  and the hands placed evenly on both sides, which read as squatting on a toilet beside the library's staggered,
+  relaxed crouch; the clip toolkit's style files and solved poses drift toward symmetry unless each side is asked
+  for on its own. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11, from the maintainer's review.
+- **Approach:** Check a one-shot on the every-frame front sheet, not only on the key frames, for limbs that line up on
+  the way out and back, and pose each hand from its own per-side table, never from one tuple with a flipped sign.
+  **Watch out for:** the melee clips had the guard and the striking fist level at frames 4 and 12 to 14, between keys,
+  so the key-frame sheet looked uneven while the move passed through a mirror pose; a flipped tuple mirrors the sides by
+  construction. **Seen:** gdstudio #1254, 2026-11-11.
 
 ## The set we will own {#set}
 
@@ -473,6 +504,11 @@ The pull request carries `S-hold`; the maintainer answers with a letter per clip
 variants live in `own/review/<type>.glb` under their letters (`Walk_A`) and are not imported by the game; the
 chosen one is built again under its plain name into the shipped file by the same pull request once chosen, and the
 other style files stay in the repository, so a game picks another vision by rebuilding.
+
+- **Approach:** When a clip declares its own limits, read its numbers on the review sheet against those, and say so in
+  the sheet's notes. **Watch out for:** the sheets print the checks' default limits even where a clip declares its own,
+  so a 0.42 or a 17.99 (keys kept, key bytes a second, on a 22-frame stride) looks like a failure that passes. **Seen:**
+  gdstudio #1160 (PR #1285), 2026-11-11.
 
 ## How a chosen clip replaces the library's {#replacing}
 

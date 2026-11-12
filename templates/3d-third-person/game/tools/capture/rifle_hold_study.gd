@@ -1,5 +1,5 @@
 ## The rifle hold study (kit #886): five ways to hold `assets/weapons/rifle/rifle.glb` on the
-## mannequin with the clips the template has (the Universal Animation Library has pistol clips
+## template's body with the clips the template has (the Universal Animation Library has pistol clips
 ## only), side by side, for the weapon work to choose from:
 ##
 ## - A: a pistol clip (`Pistol_Aim_Neutral`) with the rifle seated in the right fist the way the
@@ -17,10 +17,12 @@
 ## from its target and the barrel's direction. Run with a window and `HOLD_OUT=<folder>`, it
 ## also saves the renders (a front, a left and a game-camera view of each figure):
 ## `HOLD_OUT=<abs folder> gds godot -- --path game --resolution 1200x900
-## res://tools/capture/rifle_hold_study.tscn` (`MODEL=male` studies the male mannequin).
+## res://tools/capture/rifle_hold_study.tscn` (`MODEL=male` studies the template's male body,
+## `MODEL=quaternius_female` or `quaternius_male` a Quaternius mannequin: `study_body.gd`).
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node3D
 
+const STUDY_BODY := preload("res://tools/capture/study_body.gd")
 const UAL1 := "res://assets/animation/universal/ual1.glb"
 const RIFLE := "res://assets/weapons/rifle/rifle.glb"
 const PISTOL := "res://assets/weapons/pistol/pistol.glb"
@@ -57,10 +59,7 @@ var _figures: Array[Dictionary] = []
 
 
 func _ready() -> void:
-	var male := OS.get_environment("MODEL") == "male"
-	var mannequin := (
-		"res://assets/characters/mannequin/mannequin_%s.glb" % ["male" if male else "female"]
-	)
+	var mannequin := STUDY_BODY.path()
 	var held := (load(PISTOL_HELD) as PackedScene).instantiate()
 	var pistol_seat := (held.get_child(0) as Node3D).transform
 	held.free()

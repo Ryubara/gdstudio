@@ -190,8 +190,12 @@ func _fail(why: Reason, end_state: State) -> Status:
 	var at := runner()
 	if at != null and (why == Reason.TIMED_OUT or not _fails_through_children()):
 		at.note_failure(self)
-	if why != Reason.INVALID and (at == null or not at.in_fallback()):
-		if on_fail == OnFail.RETRY and _retries < retry_count:
+	if why != Reason.INVALID:
+		# A failure storm stops retries (the same thing again, a loop) but not a fallback: it runs
+		# once per task, and it is the answer left when the task cannot be done (a cornered
+		# flight's cower, kit #1246).
+		var retry_allowed := at == null or not at.in_fallback()
+		if retry_allowed and on_fail == OnFail.RETRY and _retries < retry_count:
 			_retries += 1
 			state = State.PENDING
 			_retry_wait = retry_delay if retry_delay > 0.0 else -1.0

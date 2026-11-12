@@ -176,7 +176,9 @@ Those are the times a learning makes a new page. The check names the page and it
   on the merge result; when the page is over 50 KB, move the branch's own section to a subpage of its subject and leave
   a pointer under the old anchor. **Watch out for:** each side was under the limit, so neither pull request's checks
   saw it; only the merge put `hooks.md` over 50 KB, and the branch could not land. **Seen:** gdstudio #1202, 2026-11-11
-  (the hold section moved to `hooks-hold.md`, a pointer stays at `hooks.md#hold`; the check passed).
+  (the hold section moved to `hooks-hold.md`, a pointer stays at `hooks.md#hold`; the check passed); gdstudio #1298,
+  2026-11-11 (main had `own-animation.md` at 49.8 KB, so the branch's `#audit-bodies` table moved to
+  `body-crossings.md`).
 
 ## Where the entry is named {#named}
 

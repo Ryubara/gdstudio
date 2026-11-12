@@ -1,7 +1,7 @@
 ## The vault study (kit #1010): plays `Vault_Low` and `Vault_High` from
-## `assets/animation/vault/vault.glb` on the mannequin over each clip's reference box, with a
-## sprint in, `Vault_Land` and a sprint out, from four views (a camera that follows behind the
-## left shoulder as the game's does, the side, the front and the top, then four close views:
+## `assets/animation/vault/vault.glb` on a body of the template over each clip's reference box,
+## with a sprint in, `Vault_Land` and a sprint out, from four views (a camera that follows behind
+## the left shoulder as the game's does, the side, the front and the top, then four close views:
 ## `arm` on the hand that carries the body over, `landing` on the foot coming down, `free_arm`
 ## behind the right shoulder, on the arm that lets go, `legs` from past the box on the right,
 ## on the legs coming over the top). The body is moved forward
@@ -12,12 +12,14 @@
 ## while it is on the box, its height over the top, the lowest foot and how near the right hand
 ## comes to the box. Record it with Movie Maker through the kit:
 ## `gds capture frames --project game --scene res://tools/capture/vault_study.tscn --seconds 22
-## --fps 24` (`MODEL=male` films the male mannequin, `VIEWS=side,top` only those views,
+## --fps 24` (`MODEL=male` films the template's male body, `MODEL=quaternius_female` or
+## `quaternius_male` a Quaternius mannequin: `study_body.gd`; `VIEWS=side,top` only those views,
 ## `SLOW=0.5` half speed, `LOW_HEIGHT=0.5` and `HIGH_HEIGHT=1.3` another box height, with the
 ## body lifted by the difference while a hand is on the top: the simplest warp).
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node3D
 
+const STUDY_BODY := preload("res://tools/capture/study_body.gd")
 const VAULT := "res://assets/animation/vault/vault.glb"
 const UAL1 := "res://assets/animation/universal/ual1.glb"
 const CLIPS := "res://assets/animation/vault/vault_clips.json"
@@ -52,11 +54,7 @@ func _ready() -> void:
 	_clips = file.clips
 	_fps = int(file.fps)
 	_stage()
-	var male := OS.get_environment("MODEL") == "male"
-	var path := (
-		"res://assets/characters/mannequin/mannequin_%s.glb" % ["male" if male else "female"]
-	)
-	_model = (load(path) as PackedScene).instantiate()
+	_model = (load(STUDY_BODY.path()) as PackedScene).instantiate()
 	add_child(_model)
 	_skeleton = _model.find_children("*", "Skeleton3D", true, false)[0]
 	_player = AnimationPlayer.new()
@@ -67,7 +65,7 @@ func _ready() -> void:
 	_player.add_animation_library(&"vault", load(VAULT))
 	if DisplayServer.get_name() == "headless":
 		await get_tree().process_frame
-		_report("male" if male else "female")
+		_report(STUDY_BODY.chosen())
 		get_tree().quit()
 		return
 	var views := ALL_VIEWS

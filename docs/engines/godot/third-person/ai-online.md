@@ -26,16 +26,44 @@ plays everything cosmetic itself; nothing cosmetic is sent.
 | `AiTierRates` | `gameplay/net/ai_tier_rates.gd`, `ai_tier_rates.tres` (the server's `ai_rates`) | How often a client hears of a character by its distance from that client's body: within `full_radius` (12 m) every TICK (`full_hz` 30), within `reduced_radius` (40 m) at `reduced_hz` (10), within `interest_radius` (80 m) at `dormant_hz` (1), past it never (the client drops it); a full snapshot every `keyframe_seconds` (10 s) mends a client that dropped a delta. |
 | `AiReplica` | `gameplay/net/ai_replica.gd`, a node beside `RemotePlayers` in `online_main.tscn` (the `NetClient`'s `ai_replica`) | Draws each character the client holds as a puppet: the dressed character of its look (`variant_scenes[row.variant]`, `character_dressed.tscn` by default) with no AI part, no collision and no step of its own, placed by its `AiGlide` and animated from the row (state, speed, aim, the pitch toward its target). Puppets are made a few a physics step (`puppets_per_frame` 4, `puppet_budget_usec` 4000), nearest the client's player (`viewer`) first, and shown for the first time `puppets_shown_per_frame` (2) a step; a character still waiting has its glide, so it appears where it is now (#1208, [the numbers](#replication-cost)). A death starts the puppet's own ragdoll from one event with its velocity; a shot is a cosmetic shot from its muzzle; a HIT on it flinches it. |
 | `AiGlide` | `gameplay/net/ai_glide.gd` | A playout buffer of rows (`interp_delay`, 0.1 s), each released row walked to over the ticks since the one before (even steps: 0.050 m a tick at 3 m/s from 30 Hz rows, and from 7.5 Hz ones), set down at once for the first row, a jump past `glide_max_jump` (4 m) or a gap past 2 s, and guessed ahead at its speed for at most `extrapolate_seconds` (0.1 s), never through `extrapolate_mask`. |
-| Population | `AiDirector.match_cap`, set by `NetServer` from the HELLO's `F_WEB` flag | A browser in the match caps the population for everyone at `web_cap` (40): the newest characters past it are parked (frozen, not stepped, not sent) until the browser leaves. |
+| Population | `AiDirector.match_cap`, set by `NetServer` from the HELLO's `F_WEB` flag | A browser in the match caps the population for everyone at `web_cap` (40 living: a corpse is not counted, kit #1247): the newest living characters past it are parked (frozen, not stepped, not sent) until the browser leaves. |
 
 The server's inspector (`net_server.tscn`, group AI; the lag compensation's two are under Shots, [below](#rewind)):
-`ai_rates`, `ai_section_origin` (positions travel as
-centimetres from it, 327.67 m each way), `ai_variants` (a character's look on the wire is the index of its profile
-here: `grunt.tres`, `ally.tres`, `civilian.tres`), `ai_sees_players` (the players' bodies join the group `player`
-with the faction `player`, so the AI sees, fights and measures its tiers from them). The client's (`AiReplica`,
-group Drawing): `interp_delay`, `extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`,
-`variant_scenes`; group Making puppets: `puppets_per_frame`, `puppet_budget_usec`, `puppets_shown_per_frame`,
+`ai_rates`, `ai_section_origin` (positions travel as centimetres from it, 327.67 m each way), `ai_variants` (a
+character's look on the wire is the index of its profile here: `grunt.tres`, `ally.tres`, `civilian.tres`,
+`shooter.tres`), `ai_sees_players` (the players' bodies join the group `player` with the faction `player`, so the AI
+sees, fights and measures its tiers from them). The client's (`AiReplica`, group Drawing): `interp_delay`,
+`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes` (the male body's
+`character_dressed_male.tscn` for the grunt and the shooter, the female `character_dressed.tscn` for the ally and the
+civilian, as offline); group Making puppets: `puppets_per_frame`, `puppet_budget_usec`, `puppets_shown_per_frame`,
 `viewer`.
+
+### The AI section online {#section-online}
+
+<!-- new section: the AI section's population (#969) spawned offline only; nothing said how a level's spawners run on
+     a game server and how their characters look on a client (kit #1234) -->
+
+The prototype map's AI section ([its population](ai-characters.md#parts)) runs on the game server: its four
+`AiSpawner`s have `on_server` on, a client's map hands its own over when it joins (`AiAuthority.hand_over` stops them
+and frees their pools), and the server's spawners wake when a player's body on the server comes within `wake_range`
+(the bodies join the group `player` with `ai_sees_players`). The allies follow the server's body of the first player
+in their world. Each character reaches every client as a row like any other, drawn in its own look: the grunt and the
+shooter in the male body, the ally and the civilian in the female (`ai_variants` and `variant_scenes` at the same
+index). A body the spawner takes back to the pool leaves the tree, so its row stops and the client frees its puppet; a
+spawn from the pool keeps its wire id and is a new puppet on the client.
+
+A male puppet costs what a female one does to make (the `variant` swap in `CharacterModel._ready`): 0.24 ms against
+0.24 to 0.30 ms at the median over 20, headless on the desktop (Windows, Godot 4.7.2, 2026-11-11).
+
+Proof: `tests/gameplay/test_net_ai_section.gd` (a server and a client in an `OnlineRig`: the client's spawners
+spawn nothing, the server's wait for Ada's body and then spawn all 10, the allies follow her server body, her client
+draws every one in its look; a death, a body taken back and a respawn reach her screen). The clip
+`tools/capture/ai_section_online_tour.tscn` is Ada's screen in the section's fight.
+
+- **Approach:** In a test of a character the server just spawned, wait for its wire id (`NetHits.AI_META`, given at
+  the next TICK's `AiBroadcast.build`) before asking a client for its puppet. **Watch out for:** an id read right after
+  `spawned` is -1, so `puppet_of(-1)` stays null and the test waits for a puppet that can never come, which reads like
+  a death that removed it. **Seen:** gdstudio #1234, 2026-11-11 (`test_a_death_a_body_taken_back_and_a_respawn_reach_the_client`).
 
 ### A shot meets the AI where its shooter drew it {#rewind}
 

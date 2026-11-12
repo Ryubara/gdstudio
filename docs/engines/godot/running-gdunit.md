@@ -80,15 +80,30 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
 
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form
-  of a filter here: nothing ran and the exit code was 0 in 2 s, and no failure reads as a pass. **Seen:** Deadnight,
-  2026-11-04 (fix: run the suite and read the count).
+  of a filter here, nor is `x.gd:test_y`: nothing ran and the exit code was 0 in 2 s, and no failure reads as a
+  pass; `-i` (ignore) ran the whole suite. **Seen:** Deadnight, 2026-11-04 (fix: run the suite and read the count);
+  gdstudio #1252, 2026-11-11 (`:` and `-i`).
 
 - **Approach:** After a full run, find each new suite by name in its list (`gds template test` prints one line a
   suite), and write a new test file with LF line ends. **Watch out for:** two new suites written with CRLF ends ran and
   passed when named with `-a`, but the folder scan (`-a res://tests`, what CI and `gds template test` run) skipped both
   without a word: 193 suites passed and neither was among them. Git stores them with LF, so a fresh checkout scans
   them; the working tree that `gds template test` copies does not. **Seen:** gdstudio #1073, 2026-11-11 (`file` named
-  the two; converted to LF).
+  the two; converted to LF); gdstudio #1203, 2026-11-11 (gdformat on Windows rewrote a new suite it reformatted with
+  CRLF ends; git's warning at commit named it; converted to LF before the full run); #1037, 11-11 (five files).
+
+- **Approach:** Measure a drawn pose on `Skeleton3D.skeleton_updated` (after the tree and the modifiers), and read the
+  clip's time there from the tree (`parameters/<node>/current_position`), not from the body or a clock. **Watch out
+  for:** bones read before that signal, or set from a node that runs after the tree, show the frame before: a planted
+  wrist read 67 mm off for each frame of lag at 4 m/s. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11
+  (`test_vault_contacts.gd`).
+
+- **Approach:** To iterate on one suite, keep a game (`gds template test <t> --keep`), copy the files you change into
+  its `game/` and rerun that suite there with the command line above; make a fresh game for the full run before the
+  push. **Watch out for:** each `gds template test` makes, imports and parses a whole game before its first suite, so a
+  loop of fresh games for one suite spent minutes a turn; a kept game holds the code of when it was made, so the last
+  run starts from the working tree again. **Seen:** gdstudio #1252 (PR #1269), #1085 (PR #1274), #1100 (PR #1261),
+  2026-11-11.
 
 - **Approach:** When a run ends with no failure and no tests, read the top of the log for a `Parse Error` first, fix
   the one script, and check that the executed-suite count matches the folder; before moving constants into a resource,
@@ -175,12 +190,18 @@ game](new-game.md#proof), gdstudio #830 and #917).
   -n "<name>(" -- '*.gd'`) and run the full suite once, not only `--suite` on the files you changed. **Watch out
   for:** GDScript finds a wrong call only when the calling script loads, so the changed suites passed and the callers
   in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10.
-- **Approach:** Read the run's exit code, not only its summary: free or clear in `after_test` every node a suite keeps
-  out of the tree (a pool's parked characters, a node removed with `remove_child`). **Watch out for:** GdUnit counts a
-  node outside the tree as an orphan and exits 101 with every case green; CI pipes the run with `pipefail`, so the job
-  fails. 1710 cases passed and the exit was 101 from the spawner's parked pools in the net suites, which load the map
-  ([the spawner](third-person/ai-characters.md#spawner): it now makes its pool on the approach). **Seen:** kit #969,
-  2026-11-11.
+- **Approach:** Read the run's exit code, not only its summary: free every node a suite keeps out of the tree (a pool's
+  parked characters, a node removed with `remove_child`) inside the case, or keep it in the tree. **Watch out for:**
+  GdUnit counts a node outside the tree as an orphan and exits 101 with every case green; CI pipes the run with
+  `pipefail`, so the job fails; GdUnit counts a case's orphans before `after_test`, so freeing them there is too late.
+  1710 cases passed and the exit was 101 from the spawner's parked pools in the net suites, which load the map ([the
+  spawner](third-person/ai-characters.md#spawner): it now makes its pool on the approach). **Seen:** kit #969,
+  2026-11-11; PR #1233, 11-11 (`after_test` too late).
+- **Approach:** Judge a `leaked at exit` line against `main` only from a full run of both; a run of a few `--suite`s
+  that ends with one is run on `main` with the same suites before it counts against the change. **Watch out for:** a
+  subset run can end with "leaked at exit" on `main` too (which scripts load, and in what order, depends on what ran:
+  [the folder scan](test-exit-leaks.md#folder-scan)), so a subset's leak is not the branch's until `main` is clean on
+  the same run. **Seen:** gdstudio PR #1233 (AI section), 2026-11-11.
 
 ## Change nothing a run reads {#inputs-of-a-run}
 

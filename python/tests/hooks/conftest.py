@@ -39,6 +39,13 @@ def heads_hold_main(monkeypatch):
     patch(monkeypatch, "behind", lambda target, repo, cwd: ({"behind_by": 0}, ""))
 
 
+@pytest.fixture(autouse=True)
+def main_is_green(monkeypatch):
+    """No test asks GitHub for an open `CI failing on the default branch` issue: every repository's main is green
+    (test_hook_red_main.py has the red-main guard's own tests)."""
+    patch(monkeypatch, "red_main", lambda target, repo, cwd: ({"open": [], "fixes": False}, ""))
+
+
 @pytest.fixture()
 def repo(tmp_path: Path) -> Path:
     path = tmp_path / "repos" / "game"
