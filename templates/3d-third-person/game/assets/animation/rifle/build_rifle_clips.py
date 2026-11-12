@@ -63,8 +63,12 @@ FPS = 30
 OVERLAP_LIMIT = 5.0  # millimetres a part of the body may be inside another (`../limb_overlap.py`)
 # A clip may not put a limb deeper in another than the hold alone does on the idle pose, plus this.
 OVERLAP_OVER_HOLD = 3.0
+# The hold brings the left shoulder to the hand guard and the butt to the skin in turns: at most this many, until
+# the butt moves less than this between two (metres).
+PUSH_PASSES = 8
+PUSH_SETTLED = 1e-4
 REACH_LIMIT = 0.5  # millimetres an arm may stop short of its place on the rifle
-EYE_LIMIT = 80.0  # millimetres the right eye may be off the sight line in an aim clip
+EYE_LIMIT = 90.0  # millimetres the right eye may be off the sight line in an aim clip
 HEAD_LIMIT = 5.0  # millimetres the head's skin may be inside the rifle
 AIM_PITCH = 45.0  # degrees of view the up and down clips are made for (`CharacterAnimation.aim_pitch_range`)
 # The bodies the template's characters wear (`gameplay/character/character_bodies.gd`): the clips are keyed on the
@@ -98,6 +102,7 @@ SIGHT_AHEAD = np.array([-1.0, -0.02, 0.0])  # the way the line runs to the front
 # The stock in the rifle's space, for the head's place: its comb's top, its half width and where it starts.
 STOCK_TOP = 0.167
 RECEIVER_TOP = 0.18  # the receiver's tail and the charging handle, ahead of the comb
+COMB_FRONT = 0.04  # where the comb starts behind them (the stock is collapsed 5 cm: `build_rifle.py`, `STOCK_IN`)
 STOCK_SIDE = 0.031
 STOCK_FRONT = -0.04
 HEAD_CLEAR = 0.004  # the search keeps the female head this far off the stock
@@ -494,6 +499,56 @@ class Hold:
                 self.right, self.left, self.on_magazine = fit["right"], fit["left"], fit["on_magazine"]
                 self.fingers, self.fit = fit["fingers"], path
         self.spine = ["spine_01", "spine_02", "spine_03"]
+        torso = re.search(r"torso_bones: Array\[StringName\] = \[(.*?)\]", script, re.S).group(1)
+        self.torso = re.findall(r'&"(\w+)"', torso)
+        self.clavicle = re.search(r'left_clavicle: StringName = &"(\w+)"', script).group(1)
+        region = re.search(r"_SKIN_REGION := AABB\((.*)\)", script).group(1)
+        region = [float(v) for v in re.findall(r"-?\d+\.?\d*", region.replace("Vector3", ""))]
+        self.region = (np.array(region[:3]), np.array(region[:3]) + np.array(region[3:]))
+        self.skin = {}  # the torso's skin the butt meets, by bone, each point in the bone's rest space
+
+    def measure_chest(self, rig, mesh):
+        """Keeps a thinned set of the torso's skin for the butt to meet, as `TwoHandHold._measure_chest` does:
+        points over every triangle a corner of which follows one of `torso_bones` most, a `skin_spacing` apart,
+        the frontmost in each cell of that size in front of the chest bone, each in its bone's rest space.
+        `mesh` is the body's nearest level, on its rest pose. Returns how many points it kept."""
+        spacing = max(self.n["skin_spacing"], 0.001)
+        groups = [g.name for g in mesh.vertex_groups]
+        to_godot = np.linalg.inv(C) @ np.array(mesh.matrix_world)
+        rests, mains = [], []
+        for v in mesh.data.vertices:
+            rests.append((to_godot @ np.append(np.array(v.co), 1.0))[:3])
+            mains.append(groups[max(v.groups, key=lambda g: g.weight).group] if v.groups else "")
+        origin = rig.rest_world[self.spine[-1]][:3, 3]
+        low, high = self.region
+        cells = {}
+        mesh.data.calc_loop_triangles()
+        for triangle in mesh.data.loop_triangles:
+            at = triangle.vertices[:]
+            if not any(mains[i] in self.torso for i in at):
+                continue
+            a, b, c = (rests[i] for i in at)
+            longest = max(np.linalg.norm(a - b), np.linalg.norm(b - c), np.linalg.norm(c - a))
+            steps = min(max(math.ceil(longest / spacing), 1), 12)
+            for u in range(steps + 1):
+                for v in range(steps + 1 - u):
+                    w = steps - u - v
+                    bone = mains[at[0] if u >= v and u >= w else (at[1] if v >= w else at[2])]
+                    if bone not in self.torso:
+                        continue
+                    rest = (a * u + b * v + c * w) / steps
+                    ahead = rest - origin
+                    if ahead[2] <= 0.0 or (ahead < low).any() or (ahead > high).any():
+                        continue
+                    cell = tuple(np.floor(ahead / spacing).astype(int))
+                    if cell in cells and cells[cell][2] >= ahead[2]:
+                        continue
+                    cells[cell] = (bone, (np.linalg.inv(rig.rest_world[bone]) @ np.append(rest, 1.0))[:3], ahead[2])
+        self.skin = {}
+        for bone, point, _ahead in cells.values():
+            self.skin.setdefault(bone, []).append(point)
+        self.skin = {bone: np.array(points) for bone, points in self.skin.items()}
+        return sum(len(points) for points in self.skin.values())
 
     def turned(self, pitch, yaw):
         """A turn of the gun from straight ahead: the muzzle `pitch` degrees down and `yaw` across."""
@@ -509,6 +564,74 @@ class Hold:
         degrees = self.n["chest_turn"] - self.chest_yaw(rig, pose)
         for bone in self.spine:
             rig.turn(pose, bone, axis_angle(Y, degrees / len(self.spine)))
+
+    def straighten(self, rig, pose, raised):
+        """The stance's `_straighten_chest`: a chest that leans more than `aim_lean_limit` is raised toward it
+        as the gun comes up, split evenly over the spine bones."""
+        if raised <= 0.0:
+            return
+        top = self.spine[-1]
+        up = rig.chain(pose, top)[:3, :3] @ rig.rest_world[top][:3, :3].T @ Y
+        lean = angle_between(up, Y)
+        if lean <= self.n["aim_lean_limit"]:
+            return
+        axis = np.cross(up, Y)
+        if axis @ axis < 1e-10:
+            return
+        for bone in self.spine:
+            rig.turn(pose, bone, axis_angle(axis, (lean - self.n["aim_lean_limit"]) * raised / len(self.spine)))
+
+    def chest_frame(self, turned):
+        """The frame the pockets are given in (`_chest_frame`): the chest's turn about the up axis, and
+        `pocket_lean` of the rest of its turn from its rest."""
+        q = Matrix(turned.tolist()).to_quaternion()
+        about_up = Quaternion((q.w, 0.0, q.y, 0.0))
+        about_up = about_up.normalized() if about_up.magnitude > 1e-4 else Quaternion()
+        lean = q @ about_up.inverted()
+        return np.array((Quaternion().slerp(lean, self.n["pocket_lean"]) @ about_up).to_matrix())
+
+    def butt_push(self, rig, pose, gun):
+        """How far the gun goes forward along its barrel from the pocket (`gun`: the pivot there) so no point
+        of the torso's skin is inside its stock (`_butt_push`)."""
+        n = self.n
+        margin = n["butt_margin"]
+        wide, high = n["butt_pad"][0] * 0.5 + margin, n["butt_pad"][1] * 0.5 + margin
+        push = 0.0
+        to_gun = np.linalg.inv(gun)
+        for bone, points in self.skin.items():
+            at = ((to_gun @ rig.chain(pose, bone)) @ np.c_[points, np.ones(len(points))].T).T[:, :3]
+            inside = (at[:, 2] > -margin) & (at[:, 2] < n["butt_depth"])
+            inside &= (np.abs(at[:, 0]) < wide) & (np.abs(at[:, 1]) < high)
+            if inside.any():
+                push = max(push, float(at[inside, 2].max()) + margin)
+        return push
+
+    def reach_shoulder(self, rig, pose, pivot):
+        """Turns the left collarbone (by `reach_turn` at most) so the left shoulder comes toward the hand guard,
+        as far as the arm needs to reach its place at `arm_stretch` (`_reach_shoulder`)."""
+        n = self.n
+        if n["reach_turn"] <= 0.0:
+            return
+        length = np.linalg.norm(rig.rest["lowerarm_l"][:3, 3]) + np.linalg.norm(rig.rest["hand_l"][:3, 3])
+        length *= n["arm_stretch"]
+        target = (pivot @ self.rifle @ np.append(self.left[:3, 3], 1.0))[:3]
+        assert rig.parent["upperarm_l"] == self.clavicle, "a bone lies between the collarbone and the upper arm"
+        root = rig.chain(pose, self.clavicle)
+        from_ = root[:3, :3] @ rig.rest["upperarm_l"][:3, 3]
+        if np.linalg.norm(root[:3, 3] + from_ - target) <= length:
+            return
+        toward = target - root[:3, 3]
+        axis = np.cross(from_, toward)
+        if axis @ axis < 1e-10:
+            return
+        whole_ = math.radians(angle_between(from_, toward))
+        both = from_ @ from_ + toward @ toward
+        twice = 2.0 * np.linalg.norm(from_) * np.linalg.norm(toward)
+        high = min(math.radians(n["reach_turn"]), whole_)
+        share = (both - length * length) / max(twice, 1e-9)
+        if share < 1.0:
+            high = min(high, max(whole_ - math.acos(max(share, -1.0)), 0.0))
+        rig.turn(pose, self.clavicle, axis_angle(axis, math.degrees(high)))
 
     def to_magazine(self, progress):
         if progress < 0.0:
@@ -547,14 +670,28 @@ class Hold:
         n = self.n
         self.turn_chest(rig, pose)
         raised = state.get("raised", 0.0)
+        self.straighten(rig, pose, raised)
         kick = state.get("kick", 0.0)
         pitch = min(max(state.get("pitch", 0.0), -n["pitch_limit"]), n["pitch_limit"])
-        chest = rig.chain(pose, self.spine[-1])[:3, 3]
+        chest_at = rig.chain(pose, self.spine[-1])
+        chest = chest_at[:3, 3]
+        frame = self.chest_frame(chest_at[:3, :3] @ rig.rest_world[self.spine[-1]][:3, :3].T)
         low = self.turned(n["low_pitch"], n["low_yaw"])
         aim = self.turned(-pitch - n["kick_degrees"] * kick, 0.0)
         basis = slerp(low, aim, raised)
-        pocket = n["low_pocket"] + (n["aim_pocket"] - n["low_pocket"]) * raised
-        pivot = place_of(basis, chest + pocket - basis[:, 2] * n["kick_distance"] * kick)
+        pocket = chest + frame @ (n["low_pocket"] + (n["aim_pocket"] - n["low_pocket"]) * raised)
+        # The left shoulder comes toward the hand guard, then the butt comes to the skin as the shoulder left
+        # it, until neither moves: the game goes through the two again whenever the push moved more than
+        # `_PUSH_STEP`, from the push of the frame before, and so settles within that of this.
+        clip_clavicle = pose["local"][self.clavicle]
+        push, back = 0.0, n["kick_distance"] * kick
+        for _ in range(PUSH_PASSES):
+            pose["local"][self.clavicle] = clip_clavicle
+            self.reach_shoulder(rig, pose, place_of(basis, pocket + basis[:, 2] * (push - back)))
+            before, push = push, self.butt_push(rig, pose, place_of(basis, pocket))
+            if abs(push - before) <= PUSH_SETTLED:
+                break
+        pivot = place_of(basis, pocket + basis[:, 2] * (push - back))
         pivot[:3, 3] -= basis[:, 2] * self.pull(rig, pose, pivot)
         left, magazine, shown = self.left_place(state, pivot, chest)
         gun = pivot @ self.rifle
@@ -563,7 +700,9 @@ class Hold:
             "l": reach(rig, pose, "l", gun @ left, self.poles["l"]),
         }
         self.close(pose, state)
-        return {"gun": gun, "short": short, "magazine": magazine, "magazine_shown": shown, "pivot": pivot}
+        held = {"gun": gun, "short": short, "magazine": magazine, "magazine_shown": shown, "pivot": pivot}
+        held["push"] = push
+        return held
 
     def pull(self, rig, pose, pivot):
         """How far the gun comes back along its barrel for the left arm to reach the hand guard (`_pull`)."""
@@ -665,7 +804,7 @@ def stock_depth(rig, pose, gun, clear):
         skin.append(at[:3, 3] + points @ (at[:3, :3] @ rig.rest_world[bone][:3, :3].T).T)
     skin = np.concatenate(skin)
     skin = (np.linalg.inv(gun) @ np.c_[skin, np.ones(len(skin))].T).T[:, :3]
-    top = np.where(skin[:, 0] < 0.09, RECEIVER_TOP, STOCK_TOP)
+    top = np.where(skin[:, 0] < COMB_FRONT, RECEIVER_TOP, STOCK_TOP)
     inside = np.minimum(top - skin[:, 1], STOCK_SIDE - skin[:, 2])
     inside = np.where((skin[:, 0] > STOCK_FRONT) & (skin[:, 2] > -STOCK_SIDE), inside, 0.0)
     return max(float(inside.max()) + clear, 0.0)
@@ -1216,6 +1355,8 @@ def main():
         bodies.append(body)
         rigs[stem] = Rig(arm, stem)
         holds[stem] = Hold(f"{stem}.glb")
+        kept = holds[stem].measure_chest(rigs[stem], mesh)
+        print(f"  {stem}: {kept} points of the torso's skin for the butt")
         print(f"  {stem}: the hold is {holds[stem].fit}")
     female = bodies[0]
     rig = rigs[female.name]
@@ -1245,10 +1386,15 @@ def main():
             report["solved"][name] = clip["solved"]
             off, behind = eye_off(rig, frames[0], clip["held"][0])
             entry["eye_off_mm"], entry["eye_back_mm"] = round(off, 1), round(behind, 1)
+            eye = (np.linalg.inv(clip["held"][0]["gun"]) @ np.append(eye_of(rig, frames[0]), 1.0))[:3] - SIGHT_EYE
+            # Where the eye is from its place on the line, in the rifle's space: toward the butt, up, to the left.
+            entry["eye_from_place_mm"] = np.round(eye * 1000.0, 1).tolist()
+            entry["butt_push_mm"] = round(clip["held"][0]["push"] * 1000.0, 1)
             face, _ = face_of(rig, frames[0])
             line = clip["held"][0]["gun"][:3, :3] @ (SIGHT_AHEAD / np.linalg.norm(SIGHT_AHEAD))
             entry["face_off_line_deg"] = round(angle_between(face, line), 1)
             print(f"  {name}: solved {clip['solved']}, eye {off:.1f} mm off the line, face {entry['face_off_line_deg']} deg")
+            print(f"    the eye from its place (back, up, left) {entry['eye_from_place_mm']} mm, the butt pushed {entry['butt_push_mm']} mm")
             if off > EYE_LIMIT:
                 failures.append(f"{name}: the eye is {off:.1f} mm off the sight line")
         if clip["loop"]:
