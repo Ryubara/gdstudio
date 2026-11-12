@@ -35,7 +35,11 @@ not played): kit #1295. The prototype male's thighs meet by 1.9 mm at rest, so h
 Those three are the library's numbers. Since kit #1295 the game plays corrected copies (`fixed/Jump_Land`,
 `fixed/Slide_Exit`; `fixed/NinjaJump_Land` beside them), which read 0.0 on `form_female`, 0.0, 1.0 and 0.0 on
 `form_male` and what the library's read on the Quaternius pair
-([correcting a library clip](animation.md#corrected-clips)). `Sword_Dash` (29.4 and 25.5 on the `form` pair) and
-`Sword_Heavy_Combo` (16.8 and 5.8) cross their thighs and were not corrected (kit #1320).
+([correcting a library clip](animation.md#corrected-clips)). `Sword_Dash` (29.4 and 25.5 on the `form` pair: the
+thighs by 22.2 and 25.5 on frame 2, the left hand in the left thigh on frame 4) and `Sword_Heavy_Combo` (16.8 and
+5.8, the thighs on frame 14) are not played; since kit #1320 `fixed/Sword_Dash` and `fixed/Sword_Heavy_Combo` read
+0.0 on both `form` bodies, with one leg swivelled about its hip and ankle and each foot within 0.57 mm of the
+library's. On the Quaternius pair the fixed dash reads 2.4 and 0.0 for the library's 8.0 and 23.3, and the fixed
+combo 0.0 and 11.0 as the library's (a forearm in a thigh on frame 50 of the male, not a body the template wears).
 Reproduce with `limb_overlap.py -- --clips universal/ual1.glb --model characters/prototype/form_female.glb --model
 characters/prototype/form_male.glb --json <file>` (about 10 minutes a file for two bodies).
