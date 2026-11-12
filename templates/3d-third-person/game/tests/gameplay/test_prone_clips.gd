@@ -44,6 +44,11 @@ const FEET: Array[StringName] = [&"foot_l", &"foot_r"]
 ## toes dip in the transitions).
 const FLOOR_LIMITS := {"form_female": 0.006, "form_male": 0.006, "female": 0.006, "male": 0.005}
 const FEET_HELD: Array[String] = ["form_female", "form_male"]
+## The bodies whose clips are held to our own animation's no-mirror rule, and how far (metres) a
+## wrist and a shoulder joint stay from the other side's mirror place on every frame.
+const MIRROR_HELD: Array[String] = ["form_female", "form_male"]
+const MIRROR_WRIST := 0.09
+const MIRROR_SHOULDER := 0.025
 ## The numbers of the clips' README, which the code that crawls reads.
 const CRAWL_SPEED := 0.618
 const CRAWL_SECONDS := 28.0 / 30.0
@@ -232,6 +237,61 @@ func test_planted_elbows_and_feet_do_not_slide_at_the_crawl_speed() -> void:
 
 # No bone goes under the floor on the female mannequin, which the clips were solved on; the
 # male's longer arms put his thumb tips 2 cm lower. The prototype bodies: LIMITS_BONE_FLOOR.
+# No clip of our own bodies passes through a mirror of itself (kit #1293, the kit's
+# `tools/blender/own-animation.md#feel`): on every frame each wrist is MIRROR_WRIST from where the
+# other would be mirrored across the body's middle, and so are the shoulders by MIRROR_SHOULDER in
+# the held pose and the transitions (a crawl's shoulders pass level twice a stride). The build
+# holds the same limits before it exports; the first files moved both arms on the same frames
+# under a square chest, 22 mm from a mirror for six frames of the push up.
+func test_our_bodies_never_pass_through_a_mirror_of_themselves() -> void:
+	for body: String in MIRROR_HELD:
+		_stage(body)
+		for clip: StringName in [
+			&"prone/Prone_Idle",
+			&"prone/Crawl_Fwd",
+			&"prone/Crouch_To_Prone",
+			&"prone/Prone_To_Crouch"
+		]:
+			var frames := roundi(_player.get_animation(clip).length * 30.0)
+			var least := {"hand": [1.0, 0], "upperarm": [1.0, 0]}
+			for frame in frames + 1:
+				var pose := _pose(clip, frame / 30.0)
+				for joint: String in least:
+					var left: Vector3 = (pose[joint + "_l"] as Transform3D).origin
+					var right: Vector3 = (pose[joint + "_r"] as Transform3D).origin
+					var apart := left.distance_to(Vector3(-right.x, right.y, right.z))
+					if apart < least[joint][0]:
+						least[joint] = [apart, frame]
+			var where := "%s on %s" % [clip, body]
+			print(
+				(
+					"PRONE mirror %s: wrists %.3f at frame %d, shoulders %.3f at frame %d"
+					% [where, least.hand[0], least.hand[1], least.upperarm[0], least.upperarm[1]]
+				)
+			)
+			(
+				assert_float(least.hand[0])
+				. override_failure_message(
+					(
+						"%s: wrists %.3f from a mirror at frame %d"
+						% [where, least.hand[0], least.hand[1]]
+					)
+				)
+				. is_greater(MIRROR_WRIST)
+			)
+			if clip != &"prone/Crawl_Fwd":
+				(
+					assert_float(least.upperarm[0])
+					. override_failure_message(
+						(
+							"%s: shoulders %.3f from a mirror at frame %d"
+							% [where, least.upperarm[0], least.upperarm[1]]
+						)
+					)
+					. is_greater(MIRROR_SHOULDER)
+				)
+
+
 func test_the_body_stays_low_while_prone() -> void:
 	for body: String in MODELS:
 		_stage(body)

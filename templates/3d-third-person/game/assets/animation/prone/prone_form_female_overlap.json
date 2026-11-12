@@ -1,6 +1,6 @@
 {
  "clips_file": "prone_form_female.glb",
- "sha256": "9d13e6a290427df009506316979f914895222a6ea1c827120bb7bf9bef9a348c",
+ "sha256": "7b86068646f282f22ebb0da8fc297e033aadde85df1ed53a129ea308d91f49b3",
  "fps": 30,
  "limit_mm": 5.0,
  "clips": {
@@ -27,9 +27,9 @@
   },
   "Prone_To_Crouch": {
    "form_female": {
-    "deepest_mm": 0.3,
-    "frame": 19,
-    "pair": "thigh_l in upperarm_l"
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
    }
   }
  }
