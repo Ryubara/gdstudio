@@ -204,6 +204,18 @@ func part_distance_to(side: String, part: String, point: Vector3) -> float:
 	return least
 
 
+## How high the lowest point of the skin of the hand of `side` is, in metres, in the skeleton's
+## space (a model standing at the origin: over the floor), in the pose `snapshot()` copied.
+func lowest(side: String) -> float:
+	var cache := {}
+	var least := INF
+	for part: String in _parts[side]:
+		var list: Array = _parts[side][part]
+		for index in list.size() / 2:
+			least = minf(least, _skinned(list[index * 2], list[index * 2 + 1], cache).y)
+	return least
+
+
 ## What is wrong with one hand's `parts` (from `measure`): a part more than `MAX_DEPTH` into a
 ## surface, or one of `contacts` more than `MAX_FLOAT` off every surface. One sentence each,
 ## starting with `tag`; empty when the hand holds.

@@ -79,38 +79,38 @@ OVERLAP_LIMIT = base.OVERLAP_LIMIT
 BODIES = {
     "female": {
         "hold": "form_female",
-        "extend": 0.93,  # how far the right arm is stretched toward the pistol (1 is locked straight)
-        "grip_right": 0.012,  # metres the grip is to the right of the body's middle: in front of the right eye
+        "extend": 0.95,  # how far the right arm is stretched toward the pistol (1 is locked straight)
+        "grip_right": 0.035,  # metres the grip is to the right of the body's middle: in front of the right eye
         "grip_up": {20.0: 0.125},  # the grip over the floor for a look that lifts the pistol off it
         # each trunk bone's pitch from standing (90 lies face down), its yaw (negative brings the left shoulder
         # ahead) and its roll; the spine then gives until the chest rests
         "trunk": {
             "spine_01": (86.0, -1.0, 0.5),
-            "spine_02": (79.0, -2.5, 1.0),
-            "spine_03": (71.0, -5.0, 1.5),
+            "spine_02": (79.0, -4.0, 1.0),
+            "spine_03": (71.0, -8.0, 2.0),
             "neck_01": (54.0, -1.0, 3.0),
             "Head": (30.0, 6.0, 8.0),  # turned and tipped to the left, the right eye behind the sights
         },
         # degrees each collarbone lifts toward the head and pushes toward the chest
         "clav": {"l": (25.0, 1.0), "r": (19.0, -1.0)},
         # where each elbow points: ahead (negative is back), out to its side, up
-        "pole": {"l": (-0.10, 0.80, -0.75), "r": (-0.25, 0.55, -1.0)},
+        "pole": {"l": (0.0, 0.85, -1.3), "r": (-0.25, 0.25, -1.1)},
         "bone_floor": 0.008,  # metres the lowest hand or finger bone is over the floor (the Godot test's limit)
     },
     "male": {
         "hold": "form_male",
-        "extend": 0.93,
-        "grip_right": 0.014,
+        "extend": 0.95,
+        "grip_right": 0.04,
         "grip_up": {20.0: 0.13},
         "trunk": {
             "spine_01": (86.0, -1.0, 0.5),
-            "spine_02": (79.0, -2.0, 1.0),
-            "spine_03": (71.0, -4.5, 1.5),
+            "spine_02": (79.0, -3.5, 1.0),
+            "spine_03": (71.0, -7.0, 2.0),
             "neck_01": (54.0, -1.0, 2.5),
             "Head": (30.0, 5.0, 7.0),
         },
         "clav": {"l": (24.0, 1.5), "r": (18.0, -1.0)},
-        "pole": {"l": (-0.08, 0.85, -0.70), "r": (-0.22, 0.40, -1.0)},
+        "pole": {"l": (0.05, 0.85, -1.2), "r": (-0.22, 0.28, -1.0)},
         "bone_floor": 0.004,
     },
 }

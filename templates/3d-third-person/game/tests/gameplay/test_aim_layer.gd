@@ -203,11 +203,15 @@ func test_every_aim_limit_is_pinned() -> void:
 	sliding.merge(
 		{&"yaw_left": 75.0, &"yaw_right": 75.0, &"pitch_up": 50.0, &"pitch_down": 70.0}, true
 	)
+	# Lying, the weapon stops at the look the prone down clips are made for (kit #1111).
+	var lying := standing.duplicate()
+	lying[&"pitch_down"] = 25.0
 	var pinned := [
 		[tuning.aim_limits, standing],
 		[tuning.crouch_aim_limits, standing],
 		[CharacterTuning.new().aim_limits, standing],
-		[prone.aim_limits, standing],
+		[prone.aim_limits, lying],
+		[ProneTuning.new().aim_limits, lying],
 		[slide.aim_limits, sliding],
 		[SlideTuning.new().aim_limits, sliding],
 	]

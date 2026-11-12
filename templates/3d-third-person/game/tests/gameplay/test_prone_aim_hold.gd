@@ -29,6 +29,8 @@ const ELBOW_KEPT: Dictionary[String, float] = {"female": 0.01, "male": 0.025}
 ## pistol's foot and muzzle may be.
 const BONE_FLOOR: Dictionary[String, float] = {"female": 0.008, "male": 0.004}
 const PISTOL_FLOOR := 0.0
+## The lowest a hand's skin may be, in metres: on the floor, never in it.
+const SKIN_FLOOR := 0.0
 
 var _holder: Node3D
 
@@ -140,6 +142,16 @@ func test_the_hands_and_the_pistol_stay_over_the_floor() -> void:
 				)
 				. is_greater(BONE_FLOOR[model])
 			)
+			# The skin itself, fingers closed by the hold: nothing of either hand is under the floor.
+			for side: String in ["r", "l"]:
+				var skin := stage.skeleton.global_transform.origin.y + stage.contact.lowest(side)
+				(
+					assert_float(skin)
+					. override_failure_message(
+						"%s %s: the %s hand's skin is %.1f mm up" % [model, clip, side, skin * 1e3]
+					)
+					. is_greater(SKIN_FLOOR)
+				)
 			for part: String in ["Magazine", "Muzzle"]:
 				var node := stage.pistol.find_child(part, true, false) as Node3D
 				(
