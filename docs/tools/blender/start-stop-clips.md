@@ -63,7 +63,7 @@ that follow -->
   `ik_` targets a stride (1.47 m in the walk) behind on frame 0 and on the last frame. Nothing in the game reads
   the targets yet and the seam test compares a loop's last pose with its first, which were wrong alike; a start
   that joins the walk's first pose found it, 1473 mm off. **Seen:** gdstudio #1156, 2026-11-12 (fix: the copy in
-  `build.build_clip`; the four loops rebuilt).
+  `build.build_clip` and `retarget`, as kit #1161 wrote it; the four loops rebuilt).
 - **Approach:** Shape a start's speed as a body can make it (a fall forward over the feet that grows with the
   distance fallen), give the schedule the frames that needs, and read the lean check before looking at the clip.
   **Watch out for:** the first speed curve was an ease from rest to the walk's speed in 26 frames with its hardest
@@ -100,3 +100,12 @@ that follow -->
   sprint stop: the pose at frame 0 was the gait's to the bit and the pelvis left it 14 mm a frame faster than the
   gait moves, a pop the join check does not read. **Seen:** gdstudio #1156, 2026-11-12 (1.2 mm after the fade;
   `tests/gameplay/test_own_moves.gd` holds the step to 12 mm on the imported clips).
+- **Approach:** Import the library with 32 KiB compression pages, as the jump's clips do
+  ([animation libraries](../../engines/godot/third-person/clips.md#animation-libraries)), and compare every bone
+  of every new clip, imported, with the same file read uncompressed before any test of planted feet.
+  **Watch out for:** with 8 KiB pages the import held `Idle_To_Walk_L`'s pelvis place still from frame 13 to 26
+  while the file's keys were right, and the planted-foot tests read 46 mm and 31 mm for that one clip, which looks
+  like a fault of the clip. The import bakes a key a frame, so only fewer tracks make it smaller: 289,356 bytes
+  for 43.7 s at 32 KiB (6.6 KB a second; 286,880 at 64), 275,564 without the hands' `ik_` targets, still over 6.
+  **Seen:** gdstudio #1156, 2026-11-12 (`tests/gameplay/test_own_moves.gd`'s
+  `test_the_import_keeps_every_start_and_stop_s_motion`).

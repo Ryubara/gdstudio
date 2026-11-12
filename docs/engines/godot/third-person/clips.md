@@ -23,11 +23,20 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
 - **Approach:** Import a clip file whose keys a build already reduced and checked (GDStudio's own clips,
   `assets/animation/own/`, the library `gds`) with the importer's optimizer off and track compression on (in the
   `.import`: `_subresources` > `nodes` > `PATH:AnimationPlayer` > `optimizer/enabled` false, `compression/enabled`
-  true, `compression/page_size` 8), and test a planted foot on the imported library, not on the file.
+  true, `compression/page_size` 32), and test a planted foot on the imported library, not on the file.
   **Watch out for:** the glTF import samples every track at `animation/fps` whatever keys the file holds, so sparse
   keys do not arrive sparse: the default optimizer then moved a planted foot 4 mm in a slow idle (the build held it
   to 0.3 mm), its error settings changed nothing, and with it off the 10 s clip was 256 KB; compressed it is 39 KB
   with the foot within 1 mm. **Seen:** gdstudio #1154, 2026-11-11 (`tests/gameplay/test_own_clips.gd`).
+- **Approach:** Give a compressed library a page (`compression/page_size`, in KiB) larger than its densest
+  clip, and compare every bone's place and turn in the imported clips, frame by frame, with the same file read
+  uncompressed at run time (`GLTFDocument`; a loop is `<name>_Loop` there).
+  **Watch out for:** with 8 KiB pages `Land_Hard` (38 frames, 61 tracks with a key on nearly every frame) was
+  split over pages and the pelvis's place lost its keys from frame 16 to 28 (Godot held frame 15's value, a
+  planted foot 194 mm off), while the file's keys were right. At 32 KiB every clip is within 0.05 mm and
+  0.07 degrees of the file, and the import is 183 KB.
+  **Seen:** gdstudio #1161, 2026-11-12 (`locomotion.glb.import`; the test is
+  `test_own_jump_clips.gd`'s `test_the_import_keeps_every_clip_s_motion`).
 - **Approach:** When a clip of our own replaces a library clip, move its constant (`CharacterClips.IDLE` is
   `gds/Idle`), keep the library clip in `CharacterClips.STAND_INS`, and read a clip file the game does not import
   (a review file under a `.gdignore`) with `GLTFDocument` at run time. **Watch out for:** `GLTFDocument` keeps the

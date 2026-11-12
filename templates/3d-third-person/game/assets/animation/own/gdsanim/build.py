@@ -130,8 +130,8 @@ def solve_frames(rig: Rig, solver: Solver, clip: Clip) -> tuple:
 def build_clip(rig: Rig, solver: Solver, clip: Clip) -> Built:
     frames, miss = solve_frames(rig, solver, clip)
     if clip.loop:
-        # The seam's pose is a copy of its own: the root's travel is taken out of each (`unroot`), and a table the
-        # two shared had it taken out twice, which left a loop's `ik_` targets a stride behind on its first frame.
+        # The last pose is the first, a stride further on: a copy of its own, the `ik_` targets' places too, or
+        # taking the travel out of the copy takes it out of the first pose a second time.
         frames.append({**frames[0], "local": dict(frames[0]["local"])})
         if "places" in frames[0]:
             frames[-1]["places"] = dict(frames[0]["places"])
@@ -144,7 +144,24 @@ def build_clip(rig: Rig, solver: Solver, clip: Clip) -> Built:
         frames[-1] = frames[0]
     if clip.meet:
         meet_ends(frames, clip.meet)
+    retarget(rig, frames)
+    if clip.loop:
+        frames[-1] = frames[0]
     return finish(rig, clip, frames, miss)
+
+
+def retarget(rig: Rig, frames: list) -> None:
+    """Put each `ik_` target of poses in place back on the end of its limb. The solver sets them from the solved
+    pose; the overlap pass then turns the arms and `meet_ends` moves a clip's ends, and a target left where the
+    solve had it is off its hand (0.3 m in a take-off)."""
+    if "places" not in frames[0]:
+        return
+    world = rig.world(*rig.arrays(frames))
+    for name in frames[0]["places"]:
+        parent, end = rig.rest[rig.parent[name]], world[:, rig.index[name[3:]]]
+        for f, pose in enumerate(frames):
+            pose["places"][name] = parent[:3, :3].T @ (end[f, :3, 3] - parent[:3, 3]) / rig.motion_scale
+            pose["local"][name] = parent[:3, :3].T @ end[f, :3, :3]
 
 
 def meet_ends(frames: list, meet: dict) -> None:

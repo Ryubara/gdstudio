@@ -28,7 +28,7 @@ const STAND := 0.8
 const REST := 1.0
 const GAIT_LEAST := 1.0
 ## Where the camera stands from the middle of the row for each pass (the bodies face +Z).
-const VIEWS: Array[Vector3] = [Vector3(1.6, 2.0, -4.6), Vector3(-6.2, 1.3, 0.6)]
+const VIEWS: Array[Vector3] = [Vector3(1.3, 1.8, -3.8), Vector3(-5.2, 1.5, 4.2)]
 const GRID := """
 shader_type spatial;
 uniform float travel = 0.0;

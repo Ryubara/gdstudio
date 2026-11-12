@@ -5,7 +5,8 @@
 # a stop the other way; the body's parts are moving as the gait's are where the two meet, so
 # nothing pops; the two clips of a pair are not mirror images of each other; each names the frame
 # from which the game may cut to new input. Planted feet, skin on the floor, tracks, limbs and
-# the budget are `test_own_clips.gd`'s, which reads every clip of the file.
+# the budget are `test_own_clips.gd`'s, which reads every clip of the file. The compressed
+# import keeps every bone's motion of these clips as the file has it.
 extends GdUnitTestSuite
 
 const OWN := "res://assets/animation/own/locomotion.glb"
@@ -18,6 +19,9 @@ const FEET: Array[String] = ["L", "R"]
 const JOIN_STEP := 0.012
 ## How far apart a pair's two clips must be, read as mirror images, at the worst bone (m).
 const NOT_A_MIRROR := 0.01
+## How far the compressed import may move a bone's place (m) and turn (degrees) from the file's.
+const IMPORT_PLACE := 0.002
+const IMPORT_TURN := 1.0
 
 var _model: Node3D
 var _skeleton: Skeleton3D
@@ -169,3 +173,63 @@ func test_the_two_clips_of_a_pair_are_not_mirror_images() -> void:
 		var where := "%s: left and right differ by %.0f mm as mirror images" % [pair, worst * 1e3]
 		print(where)
 		assert_float(worst).override_failure_message(where).is_greater(NOT_A_MIRROR)
+
+
+func test_the_import_keeps_every_start_and_stop_s_motion() -> void:
+	# Godot's compressed import cuts the library into pages; with 8 KiB pages it held the pelvis's
+	# place of `Idle_To_Walk_L` still from frame 13 to 26 (a planted foot 46 mm off its place),
+	# with 32 every track is whole (kit docs, third-person/clips.md#animation-libraries). Every
+	# bone's place and turn in the imported clips against the same file read uncompressed.
+	var state := GLTFState.new()
+	assert_int(GLTFDocument.new().append_from_file(OWN, state)).is_equal(OK)
+	var scene: Node = auto_free(GLTFDocument.new().generate_scene(state))
+	var raw: AnimationPlayer = scene.find_children("*", "AnimationPlayer", true, false)[0]
+	var imported: AnimationLibrary = load(OWN)
+	var compared := 0
+	for pair in _pairs():
+		for foot in FEET:
+			var clip := StringName(pair + "_" + foot)
+			assert_bool(raw.has_animation(clip)).override_failure_message(String(clip)).is_true()
+			if not raw.has_animation(clip):
+				continue
+			var packed := imported.get_animation(clip)
+			var source := raw.get_animation(clip)
+			var tracks := {}
+			for track in source.get_track_count():
+				var bone := source.track_get_path(track).get_concatenated_subnames()
+				tracks["%s %d" % [bone, source.track_get_type(track)]] = track
+			var worst_place := 0.0
+			var worst_turn := 0.0
+			var where := ""
+			for track in packed.get_track_count():
+				var kind := packed.track_get_type(track)
+				var bone := packed.track_get_path(track).get_concatenated_subnames()
+				var key := "%s %d" % [bone, kind]
+				if not tracks.has(key):
+					continue
+				var from: int = tracks[key]
+				for frame in int(round(packed.length * 30.0)) + 1:
+					var at := minf(frame / 30.0, packed.length)
+					if kind == Animation.TYPE_POSITION_3D:
+						var off := packed.position_track_interpolate(track, at).distance_to(
+							source.position_track_interpolate(from, at)
+						)
+						if off > worst_place:
+							worst_place = off
+							where = "%s frame %d" % [bone, frame]
+					elif kind == Animation.TYPE_ROTATION_3D:
+						var turn := rad_to_deg(
+							packed.rotation_track_interpolate(track, at).angle_to(
+								source.rotation_track_interpolate(from, at)
+							)
+						)
+						worst_turn = maxf(worst_turn, turn)
+				compared += 1
+			var message := (
+				"%s: a place %.2f mm off (%s), a turn %.3f degrees off"
+				% [clip, worst_place * 1000.0, where, worst_turn]
+			)
+			print(message)
+			assert_float(worst_place).override_failure_message(message).is_less(IMPORT_PLACE)
+			assert_float(worst_turn).override_failure_message(message).is_less(IMPORT_TURN)
+	assert_int(compared).is_greater(0)
