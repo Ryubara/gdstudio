@@ -10,8 +10,9 @@ Run it with the pinned Blender, headless (`gds tool path blender`), every path a
 
 It exits 1 when a clip goes deeper than `--limit` (default `LIMIT_MM`). With `--brief` the `--json` file holds only
 each clip's deepest crossing a body and the clip file's SHA-256, so a Godot test can read it and tell when the file
-it was measured on has changed (`prone/bodies_overlap.json`, `vault/bodies_overlap.json`, kit #1286). A build that keys clips imports this file
-and calls `measure()` on its baked actions before it exports (`vault/build_vault.py`).
+it was measured on has changed (`prone/<clip file>_overlap.json`, one a body's file, and `vault/bodies_overlap.json`,
+kit #1286). A build that keys clips imports this file and calls `measure()` on its baked actions before it exports
+(`vault/build_vault.py`).
 
 Which frames it measures: every key, at the clips' own frame rate. A glb stores key times in seconds and no frame
 rate, and Blender puts a key at its seconds times the scene's rate. So the command line reads the rate from the
