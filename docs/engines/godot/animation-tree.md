@@ -129,8 +129,14 @@ that steps the tree by hand.
 The cause (Godot 4.7, measured in Deadnight #619): with a modifier on, the bones it turns do not all follow `influence`.
 The chest and the hand bones blend linearly with it, but the upper and lower arm bones of an IK chain stay in the
 modifier's pose at any influence, 0 included, so switching the modifier off at 0 snaps them to the clip's (27 to 66
-degrees in one tick, a hand 0.7 m). Fading it out for any other reason (a sprint carry that takes the arms back
-over 0.2 s) pops the same way. Leave `influence` at 1 and blend inside `_process_modification`: keep each bone's local
+degrees in one tick, a hand 0.7 m). Why, from the engine's source (`Skeleton3D::_process_modifiers`, 4.7.2): for a
+modifier whose influence is under 1, every `set_bone_pose*` call during its update copies the bone's cached pose as the
+pose to blend from (`make_bone_modified()`), and a `get_bone_pose` between two writes refreshes that cache. So the blend
+runs from the pose before the bone's *last* write, not from the pose before the modifier: a bone written once (the
+chest, the hand) blends as documented, and a bone written again and again (an IK solver's iterations, a solve in two
+passes) keeps every write but the last whole, at influence 0 too. Fading it out for any other reason (a sprint carry
+that takes the arms back over 0.2 s) pops the same way. Leave `influence` at 1 and blend inside
+`_process_modification`: keep each bone's local
 rotation before solving, then `set_bone_pose_rotation(bone, before.slerp(solved, weight))` for every bone the modifier
 turns. At weight 0 the pose is the clip's, so switching off moves nothing. The modified pose is only readable at
 `skeleton_updated`; record the bones there, every tick, and fail on a per-tick turn or move far above the clip's own
@@ -141,6 +147,13 @@ stride.
   modifier's `influence` and switched it off at 0, but Godot blends only the chest and hand bones by `influence`, so the
   arms stayed in the IK pose and snapped to the carry clip in one tick (66 degrees) as a sprint began. **Seen:**
   Deadnight #619, 2026-11-02 (fix: deadnight #645 added the per-tick test).
+- **Approach:** In a `SkeletonModifier3D` whose `influence` fades it, work the solve out on copies of the bones' local
+  poses and write each bone once, at the end of the update; or keep `influence` at 1 and blend inside it, as above.
+  Prove it with a probe modifier placed just before it that records a bone, read again at `skeleton_updated`, at
+  influences 1, 0.5, 0.1 and 0. **Watch out for:** the third-person aim layer wrote the spine once per pass of its
+  two-pass solve, so at an aim weight of 0.11 the chest took the first pass whole (80 of 80 degrees) and at an
+  influence of 0 it still turned 75 degrees; a modifier that writes each bone once blended exactly (9.0 of 90 degrees at
+  0.1). **Seen:** gdstudio #1318, 2026-11-11 (`test_aim_fold.gd`).
 
 ## A state machine that starts at Start and has no way out {#a-state-machine-that-starts-at-start-and-has-no-way-out}
 

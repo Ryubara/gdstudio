@@ -14,8 +14,10 @@ extends Node
 ## made again when the model or the hold's modifiers are made again. It follows the aim ray of the
 ## character's last two steps, blended by the physics interpolation as the aim clips are, and it
 ## is on by as much as the weapon is aimed (`CharacterAnimation.pistol_weights()`), less a
-## reload. It is a pose on each machine from what the body already has (the view's yaw and
-## pitch): cosmetic, never sent. A weapon with no muzzle (the fists) turns nothing.
+## reload; until the weapon is nearly up, the turn is the one the aim pose alone needs (`AimPose`),
+## so the chest never folds back as the aim comes up or goes down. It is a pose on each machine
+## from what the body already has (the view's yaw and pitch): cosmetic, never sent. A weapon with
+## no muzzle (the fists) turns nothing.
 
 const _MODIFIER := &"AimOffset"
 
@@ -39,10 +41,16 @@ const _MODIFIER := &"AimOffset"
 @export_range(1.0, 200.0, 0.5, "suffix:m") var converge_distance := 15.0
 ## Seconds the turn takes to ease back after a shot's recoil, which it leaves as the clip plays.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var release_time := 0.12
+## From this much of the aim up (`CharacterAnimation.pistol_weights().y`) the turn is solved on the
+## drawn pose more and more, and below it on the aim pose alone (`AimPose`): the drawn pose is the
+## aim pose blended with the carry pose, whose muzzle points at the floor, so a turn solved on it
+## while the weapon comes up or goes down folds the chest back (kit #1318).
+@export_range(0.0, 1.0, 0.01) var drawn_from := 0.9
 ## On: no turn (the clips alone aim the weapon, as before the layer).
 @export var disabled := false
 
 var _modifier: AimOffsetModifier
+var _aim_pose := AimPose.new()
 var _ray_before := PackedVector3Array()
 var _ray_now := PackedVector3Array()
 
@@ -104,6 +112,27 @@ func refresh() -> void:
 	aim.target = aim_point(Engine.get_physics_interpolation_fraction())
 	aim.hold_turn = animation.is_shooting()
 	aim.release_time = release_time
+	_pose_aim(aim)
+
+
+# Gives the modifier the weapon's aim pose alone at the aim's pitch now, and how far to trust the
+# drawn pose instead.
+func _pose_aim(aim: AimOffsetModifier) -> void:
+	var held := animation.held_definition()
+	var clips: Array[StringName] = []
+	if held != null:
+		clips = [held.aim_down_clip, held.aim_clip, held.aim_up_clip]
+	var skeleton := model.skeleton() if model != null else null
+	if not _aim_pose.prepare(
+		animation.animation_player, skeleton, clips, animation.aim_pitch_range
+	):
+		aim.aim_pose = null
+		aim.drawn_trust = 1.0
+		return
+	_aim_pose.set_pitch(animation.aim_pitch())
+	aim.aim_pose = _aim_pose
+	var up := animation.pistol_weights().y
+	aim.drawn_trust = smoothstep(drawn_from, 1.0, up) if drawn_from < 1.0 else float(up >= 1.0)
 
 
 ## The point the muzzle is turned toward, `fraction` of the way from the step before the last to

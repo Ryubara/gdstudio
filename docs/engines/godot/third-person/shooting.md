@@ -225,8 +225,22 @@ muzzle's own swing round the spine (1.3 to 1.8 degrees off with one pass, 0.1 to
 `WeaponHold`'s grip (whose wrist turn moves the muzzle) and before its support arm, which reaches for the weapon where
 the turn left it: the left hand, the fingers and the trigger finger stay on the gun with no change to the hold.
 `WeaponHold` says `built` when it makes its modifiers again, and the layer puts itself back after the grip. The layer is
-on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's; a weapon with no muzzle (the fists)
-turns nothing.
+on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's, through the modifier's `influence`;
+a weapon with no muzzle (the fists) turns nothing. The modifier works both passes out on copies of the chain's local
+poses and writes each spine bone once, because Godot blends a modifier by `influence` from the pose before a bone's
+last write ([A clip on top of a pose a modifier fades
+out](../animation-tree.md#a-clip-on-top-of-a-pose-a-modifier-fades-out)).
+
+**Solved on the aim pose, not on the blend** (gdstudio #1318). While the weapon comes up or goes down the drawn pose is
+the aim pose blended with the carry pose, whose muzzle points at the floor; a turn solved on it asks for up to 70
+degrees of lift (115 at a look 30 degrees up) that the aim pose does not need. So the layer hands the modifier the aim
+pose alone (`AimPose`: the hold's three aim clips read once at their start and blended by `aim_pitch()` as the weapon
+layer's blend space blends them) and the modifier solves on that: the chain and the arm down to the hand as the clips
+pose them, the hand as drawn (the grip has turned the wrist). From `drawn_from` (0.9) of the aim up it moves to the
+solve on the drawn pose, which alone is exact once the weapon is all the way up (the aim pose's turn and the drawn
+pose's differ by 2 to 3 degrees standing). The turn then comes on by the aim's weight: standing, 0.3 degrees at a
+tenth of the aim where it was 83, and a shot from the carry, which keeps the turn found before it, keeps a few degrees
+where it kept the whole lift (the pistol pointed at the sky through the recoil).
 
 **Recoil.** While the shot's one-shot plays (`CharacterAnimation.is_shooting()`), the turn found before the shot is kept
 and moved only with the aim, so the recoil the clip shows is not turned away; after it the turn eases back over
@@ -256,13 +270,21 @@ whose support arm is off leaves the layer as it is.
 **What it costs** (`tools/bench/aim_layer_cost.tscn`, 40 dressed players aiming 30 degrees off their facing, the
 modifier timed alone on a shared machine under load): about 31 to 37 microseconds a character a frame with two passes,
 25 with one (`passes`), against 9 for the hold's support arm in the same run. Only an aiming character pays it (the
-modifier is off at weight 0). The web export was not measured.
+modifier is off at weight 0). The web export was not measured. Once the weapon is all the way up the solve on the aim
+pose is skipped, so a held aim costs what it did; the frames of an aim coming up or going down solve on both poses
+(five solves instead of two, for about nine frames). The bench, `on` less `off` of the same code, on a loaded
+machine: 36 and 45 microseconds a character before, 19 and 42 after (gdstudio #1318; a third pair was spoiled by load).
 
 The tests are `tests/gameplay/test_aim_layer.gd` (sliding ahead, 50 degrees left and right, 20 up and 25 down within 3
 degrees with the body along the slide; without the layer the slide misses by more than 10; past the reach the body turns
 by the overshoot; a refusing weapon keeps the body and fires nothing until the aim is back; standing and crouched; the
-limits are the move's; a zero limit holds the aim along the body). The capture is `tools/capture/slide_aim_tour.tscn`
-(`AIM_LAYER_OFF=1` shows the clips alone, `CLOSE=1` and `CLOSE_SIDE=left` film the hands).
+limits are the move's; a zero limit holds the aim along the body) and `tests/gameplay/test_aim_fold.gd` (on every
+frame of an aim going up and coming down, standing at three pitches, crouched, lying and through a shot from the carry,
+the chest turns at most the aim's weight times the full aim's turn and 3 degrees; a probe modifier just before the
+layer records the chest, read again at `skeleton_updated`). The captures are `tools/capture/slide_aim_tour.tscn`
+(`AIM_LAYER_OFF=1` shows the clips alone, `CLOSE=1` and `CLOSE_SIDE=left` film the hands) and
+`tools/capture/aim_fold_tour.tscn` (an aim in and out standing and crouched and a shot from the carry, from the game
+camera; record at 60 frames a second and play at 15).
 
 - **Approach:** Solve an aim offset as a pitch about the body's side axis first, then a yaw about up, and hold the
   *aimed direction* within the limits, not the turn. **Watch out for:** a yaw about up first, then a pitch, with the
@@ -274,6 +296,14 @@ limits are the move's; a zero limit holds the aim along the body). The capture i
   once. **Watch out for:** two rotations (pitch and yaw) each shared over the chain double the bone writes, and
   `HandPoseModifier.global_pose` called for every bone and every muzzle read walks to the root each time. **Seen:**
   gdstudio #1253, 2026-11-11 (`aim_layer_cost.tscn`).
+- **Approach:** Solve an aim offset on the pose it is meant for (the aim pose alone, read from the aim clips), not on the
+  pose drawn while the aim blends in, and let the drawn pose take over only once the weapon is nearly up; apply the
+  result by the aim's weight. Test every frame of an aim going up and coming down, and a shot from the carry, reading
+  the chest at `skeleton_updated`. **Watch out for:** the drawn pose of the first and last frames of an aim is mostly
+  the carry pose, so the solve asked for a 70 degree lift there, and with each bone written once per pass the
+  `influence` did not scale it: the chest folded back by 80 degrees at a tenth of the aim, and a hip shot held that
+  lift through its recoil. The layer's own tests read only frames at full aim. **Seen:** gdstudio #1318, 2026-11-11
+  (`test_aim_fold.gd`, found by the Blender artist on PR #1315).
 
 ## Ammo, reloading and switching {#weapons}
 

@@ -8,7 +8,10 @@ extends SkeletonModifier3D
 ## whole turn is one rotation, and each bone of the chain turns by its share of it about the same
 ## axis, so the shares add up to it exactly. The arms, the hands and the weapon ride the spine, so
 ## they follow; the support hand that reaches for the weapon after this (`HoldArm`) finds it there.
-## A second pass takes the muzzle's own swing round the spine into account.
+## A second pass takes the muzzle's own swing round the spine into account. While the weapon comes
+## up or goes down, the drawn pose is the aim pose blended with the carry pose, so the turn is
+## solved on the aim pose alone (`aim_pose`) and on the drawn pose only by `drawn_trust` (kit
+## #1318). The passes work on copies of the chain's poses and each bone is written once.
 ##
 ## While `hold_turn` is on (a shot's recoil playing), the turn found before is kept and only moved
 ## by as much as the aim moved since, so the recoil the clip shows is not turned away; when it
@@ -38,6 +41,12 @@ extends SkeletonModifier3D
 @export_range(0.0, 1.0, 0.01, "suffix:s") var release_time := 0.12
 ## Passes of the solve (the second takes in the muzzle's own swing round the spine).
 @export_range(1, 4, 1) var passes := 2
+## The weapon's aim pose alone, solved on in place of the drawn pose (null: the drawn pose).
+var aim_pose: AimPose
+## How far the turn is the one solved on the drawn pose rather than on `aim_pose` (0 the aim pose
+## alone, 1 the drawn pose alone): the drawn pose is the aim pose blended with the carry pose
+## until the weapon is all the way up.
+var drawn_trust := 1.0
 
 ## The pitch (x, positive lifts the muzzle) and yaw (y, positive to the model's left) of the last
 ## update's turn, in radians, before `influence`.
@@ -49,9 +58,10 @@ var miss := 0.0
 var _bones := PackedInt32Array()
 var _attachment: BoneAttachment3D
 var _bone := -1
-# The pose of the chain's parent, of each chain bone now, and from the last one to the muzzle.
+# The pose of the chain's parent, each chain bone's local pose now, and from the last one to the
+# muzzle.
 var _base := Transform3D.IDENTITY
-var _globals: Array[Transform3D] = []
+var _locals: Array[Transform3D] = []
 var _below := Transform3D.IDENTITY
 var _offset := Transform3D.IDENTITY
 var _held := Vector2.ZERO
@@ -72,9 +82,19 @@ func _process_modification_with_delta(delta: float) -> void:
 	if not _find_parts(skeleton):
 		return
 	var point := skeleton.global_transform.affine_inverse() * target
-	var wanted := _solve(point)
+	var trust := drawn_trust if aim_pose != null and aim_pose.has_pose() else 1.0
+	var wanted := Vector2.ZERO
+	# The drawn pose turned by the passes on it, used as it is when the turn is theirs alone.
+	var solved: Array[Transform3D] = []
+	if trust < 1.0:
+		wanted = _solve_passes(_aim_locals(), _aim_below(skeleton), point, solved)
+	if trust > 0.0:
+		var drawn_turn := _solve_passes(_locals, _below, point, solved)
+		wanted = wanted.lerp(drawn_turn, trust)
+	# The passes on the drawn pose alone, with no recoil kept or eased: their pose is the result.
+	var as_solved := trust >= 1.0 and not hold_turn and _release <= 0.0
 	if hold_turn:
-		var angles := _angles(_aimed_direction(point))
+		var angles := _angles(_aimed_direction(point, _muzzle_of(_locals, _below)))
 		if not _holding:
 			_holding = true
 			_held = turn
@@ -90,23 +110,44 @@ func _process_modification_with_delta(delta: float) -> void:
 			var share := clampf(delta / _release, 0.0, 1.0)
 			_release = maxf(_release - delta, 0.0)
 			wanted = turn.lerp(wanted, share)
-	_apply(wanted)
-	if not hold_turn:
-		for _pass in passes - 1:
-			var more := _solve(point)
-			_apply(more)
+	var turned := solved
+	if not as_solved:
+		turned = _turned(_locals, wanted)
+		if not hold_turn and trust > 0.0:
+			# One more pass on the drawn pose, by as much as it is trusted.
+			var more := _solve(turned, _below, point) * trust
+			turned = _turned(turned, more)
 			wanted += more
+	_write(skeleton, turned)
 	turn = wanted
-	miss = rad_to_deg((-_muzzle().basis.z).normalized().angle_to(_aimed_direction(point)))
+	var drawn := _muzzle_of(turned, _below)
+	miss = rad_to_deg((-drawn.basis.z).normalized().angle_to(_aimed_direction(point, drawn)))
 
 
-# The turn that puts the muzzle, as it is posed now, along the aimed direction: a pitch (x) about
-# the model's side axis, the chest bending forward or back, then a yaw (y) about its up axis.
-# Both are exact for the direction: the pitch brings the muzzle to the aim's elevation, the yaw to
-# its heading.
-func _solve(point: Vector3) -> Vector2:
-	var pointing := (-_muzzle().basis.z).normalized()
-	var aimed := _aimed_direction(point)
+# The turn summed over `passes` solves on the chain posed by `locals`, each solve made on the chain
+# the passes before turned (the second takes in the muzzle's own swing round the spine). `posed`
+# is filled with the chain turned by every pass.
+func _solve_passes(
+	locals: Array[Transform3D], below: Transform3D, point: Vector3, posed: Array[Transform3D]
+) -> Vector2:
+	var total := Vector2.ZERO
+	var turned := locals
+	for _pass in passes:
+		var more := _solve(turned, below, point)
+		total += more
+		turned = _turned(turned, more)
+	posed.assign(turned)
+	return total
+
+
+# The turn that puts the muzzle, with the chain posed by `locals`, along the aimed direction: a
+# pitch (x) about the model's side axis, the chest bending forward or back, then a yaw (y) about its
+# up axis. Both are exact for the direction: the pitch brings the muzzle to the aim's elevation,
+# the yaw to its heading.
+func _solve(locals: Array[Transform3D], below: Transform3D, point: Vector3) -> Vector2:
+	var at := _muzzle_of(locals, below)
+	var pointing := (-at.basis.z).normalized()
+	var aimed := _aimed_direction(point, at)
 	# About +X: the forward (z) and up (y) parts turn, the side part (x) stays.
 	var reach := Vector2(pointing.z, pointing.y).length()
 	var pitch := 0.0
@@ -118,10 +159,10 @@ func _solve(point: Vector3) -> Vector2:
 	return Vector2(pitch, yaw)
 
 
-# The direction from the muzzle to `point` in the skeleton's space, held within the limits: its
-# heading off the model's +Z (the way the body faces) and its elevation.
-func _aimed_direction(point: Vector3) -> Vector3:
-	var toward := point - _muzzle().origin
+# The direction from the muzzle at `at` to `point` in the skeleton's space, held within the limits:
+# its heading off the model's +Z (the way the body faces) and its elevation.
+func _aimed_direction(point: Vector3, at: Transform3D) -> Vector3:
+	var toward := point - at.origin
 	if toward.is_zero_approx():
 		return Vector3.BACK
 	var angles := _angles(toward.normalized())
@@ -136,34 +177,72 @@ func _angles(direction: Vector3) -> Vector2:
 	return Vector2(atan2(direction.x, direction.z), asin(clampf(direction.y, -1.0, 1.0)))
 
 
-# Turns the chain by `by` (pitch, yaw): the whole turn is one rotation (the pitch about the side
-# axis, then the yaw about up), and each bone turns by its share of it about the same axis, so
-# the shares add up to it exactly.
-func _apply(by: Vector2) -> void:
+# The chain's local poses turned by `by` (pitch, yaw): the whole turn is one rotation (the pitch
+# about the side axis, then the yaw about up), and each bone turns by its share of it about the
+# same axis, so the shares add up to it exactly. Nothing is written to the skeleton.
+func _turned(locals: Array[Transform3D], by: Vector2) -> Array[Transform3D]:
 	if by.is_zero_approx():
-		return
+		return locals
 	var whole := Quaternion(Vector3.UP, by.y) * Quaternion(Vector3.LEFT, by.x)
-	var skeleton := get_skeleton()
+	var result: Array[Transform3D] = []
+	result.resize(locals.size())
 	var above := _base
-	for index in _bones.size():
+	for index in locals.size():
 		var share := weights[index] if index < weights.size() else 0.0
-		var bone := _bones[index]
-		var posed := above * skeleton.get_bone_pose(bone)
+		var local := locals[index]
 		if share > 0.0:
 			var part := Basis(Quaternion.IDENTITY.slerp(whole, share))
-			var local := (
+			var posed := above * local
+			var turned := (
 				above.basis.orthonormalized().inverse() * part * posed.basis.orthonormalized()
 			)
-			skeleton.set_bone_pose_rotation(bone, local.orthonormalized().get_rotation_quaternion())
-			posed = above * skeleton.get_bone_pose(bone)
-		_globals[index] = posed
-		above = posed
+			var spin := turned.orthonormalized().get_rotation_quaternion()
+			local = Transform3D(Basis(spin).scaled(local.basis.get_scale()), local.origin)
+		result[index] = local
+		above = above * local
+	return result
 
 
-# The muzzle's pose in the skeleton's space: the last bone of the chain, the bones below it to
-# the one the attachment rides (which the turn does not move), and the muzzle's place there.
-func _muzzle() -> Transform3D:
-	return _globals[_globals.size() - 1] * _below
+# Writes the chain's turned rotations to the skeleton, each bone once: Godot 4.7 blends a
+# modifier's result by its `influence` from the pose a bone had before its last write in the
+# update, so a bone written twice (once per pass) took the first pass whole (kit #1318).
+func _write(skeleton: Skeleton3D, locals: Array[Transform3D]) -> void:
+	for index in _bones.size():
+		var share := weights[index] if index < weights.size() else 0.0
+		if share > 0.0:
+			skeleton.set_bone_pose_rotation(
+				_bones[index], locals[index].basis.orthonormalized().get_rotation_quaternion()
+			)
+
+
+# The muzzle's pose in the skeleton's space with the chain posed by `locals`: the chain from its
+# parent, the bones below it to the one the attachment rides (`below`, which the turn does not
+# move), and the muzzle's place there.
+func _muzzle_of(locals: Array[Transform3D], below: Transform3D) -> Transform3D:
+	var above := _base
+	for local in locals:
+		above = above * local
+	return above * below
+
+
+# The chain's local poses in the weapon's aim pose alone (`aim_pose`).
+func _aim_locals() -> Array[Transform3D]:
+	var result: Array[Transform3D] = []
+	for index in _bones.size():
+		result.append(aim_pose.local(_bones[index], _locals[index]))
+	return result
+
+
+# From the last bone of the chain to the muzzle in the aim pose alone: the arm as the aim clips
+# pose it, and the hand the attachment rides as it is drawn (the grip has turned the wrist).
+func _aim_below(skeleton: Skeleton3D) -> Transform3D:
+	var result := _offset
+	var cursor := _bone
+	while cursor != _bones[-1] and cursor >= 0:
+		var pose := skeleton.get_bone_pose(cursor)
+		result = (pose if cursor == _bone else aim_pose.local(cursor, pose)) * result
+		cursor = skeleton.get_bone_parent(cursor)
+	return result
 
 
 # Finds the chain's bones, the attachment the muzzle rides and the muzzle's place on its bone, and
@@ -181,7 +260,7 @@ func _find_parts(skeleton: Skeleton3D) -> bool:
 				_bones.clear()
 				return false
 			_bones.append(found)
-		_globals.resize(_bones.size())
+		_locals.resize(_bones.size())
 		if _bones.is_empty():
 			return false
 	if _attachment == null or not is_instance_valid(_attachment):
@@ -212,8 +291,6 @@ func _find_parts(skeleton: Skeleton3D) -> bool:
 		cursor = skeleton.get_bone_parent(cursor)
 	var parent := skeleton.get_bone_parent(_bones[0])
 	_base = HandPoseModifier.global_pose(skeleton, parent) if parent >= 0 else Transform3D.IDENTITY
-	var above := _base
 	for index in _bones.size():
-		above = above * skeleton.get_bone_pose(_bones[index])
-		_globals[index] = above
+		_locals[index] = skeleton.get_bone_pose(_bones[index])
 	return true
