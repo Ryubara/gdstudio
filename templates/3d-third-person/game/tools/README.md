@@ -19,7 +19,8 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   `solve_pistol_hold.py` (numpy and scipy; `hold_rig.py`, `hold_field.py` and `hold_hand.py` are its parts) closes
   both hands on the pistol for both mannequins, and `write_hold.gd` writes the seat and the `HandPose` files, with the
   finger poses set by hand
-  (`pistol_authored.json`, read by `authored_pose.gd`) laid over them; `pose_bench.gd` measures such a file on the
+  (`pistol_authored.json`, read by `authored_pose.gd`) laid over them (`lay_authored.py` lays them into the solve's
+  own file before `--magazine-only` or `--way-only`); `pose_bench.gd` measures such a file on the
   tests' stage before it is written (`PARTS=1`, `JOINTS=`, `OBJ=`).
 - `tools/capture/rack_closeups.tscn` poses a body on every frame of the pistol's slide-rack clip
   (`assets/animation/pistol/`) with the hold's hands, the left hand reached to the slide and the body's own fingers
