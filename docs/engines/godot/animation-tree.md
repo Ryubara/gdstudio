@@ -58,7 +58,7 @@ cycle: a seek is a cut.
   the blend points at the clips' speeds, and measure a planted foot's slide in a test. **Watch out for:** the
   template's blend space puts each gait at a tuned speed and plays it at its own pace, so no gait's feet hold the
   floor ([the gaits, measured](../../tools/blender/library-clip-audit.md#audit-gaits)). **Seen:** gdstudio #1150 (PR
-  #1165), 2026-11-11 (not fixed yet: gdstudio #1158 adds the speed matching).
+  #1165), 2026-11-11; fixed in gdstudio #1158 ([gaits fitted to the body](#gait-fitting)).
 
 ## Stepping a tree by hand in tests {#stepping-a-tree-by-hand-in-tests}
 
@@ -263,3 +263,39 @@ between points, a state's seek to its start): an `AnimationNodeAnimation` with `
 does not hold, since the sync and the state machine move it again. The still aim stance of 3D Third Person is built this
 way: the idle point is the idle playing and the same idle held on its steadiest frame, blended by the aim (in
 gdstudio #1206, PR #1256).
+
+## Gaits fitted to the body's motion {#gait-fitting}
+
+<!-- new section: the page said how a tree is built and read; nothing said how its gaits are made to hold the floor at
+any speed, or how a state change keeps its motion, which 3D Third Person needed (gdstudio #1158) -->
+
+3D Third Person's `CharacterAnimation` hands this to `CharacterGait` (`gait_blend.gd`, `gait_transitions.gd`,
+`momentum_blend.gd`, `gait_lean.gd`), each part a choice of `GaitSettings`
+([the template's gait settings](third-person/clips.md#gait-settings)). What Godot 4.7 does underneath:
+
+- **Phase.** A `BlendSpace1D` with `sync` true (`SYNC_MODE_INDEPENDENT`) advances every point by the same delta,
+  each at its own clip's rate, so clips of other lengths drift apart. 4.7 adds `sync_mode` `CYCLIC_MUTABLE` (each
+  point covers a cycle in the weighted mean length) and `CYCLIC_CONSTANT` (in `cyclic_length`), measured with a probe
+  (a 10 s idle beside a 0.87 s walk: the walk slowed to a twelfth, so the idle cannot share such a space). The
+  template keeps `INDEPENDENT` and puts each gait behind its own `AnimationNodeTimeScale` (`Clip`, `Seek`, `Pace`),
+  setting each pace so that every gait covers its cycle in the same time: the gaits start together on the left
+  foot's landing and keep one phase (read 0.164, 0.164, 0.164 for walk, jog and sprint in the test's probe).
+- **Speed.** One clip at another pace holds a foot to the millimetre; a blend of two does not: the walk and the jog
+  half and half let a planted foot slide 10 mm forward and 4 mm across in a contact, a turn blended not being a place
+  blended. So each gait plays alone over a range of paces (`stretch`), the blend is kept to the speeds between, its
+  stride is the weights' geometric mean, and a trim measured from the planted foot itself corrects the rest.
+- **Momentum.** A state machine transition with `xfade_time` 0 shows the new state in the same process; the
+  modifier then adds the decaying difference from the last drawn pose. A `SkeletonModifier3D` added as an internal
+  child at the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
+
+- **Approach:** Play a gait alone, slowed or sped up, for as many speeds as it looks right at, and blend two gaits
+  only across the speeds between; measure a planted foot's slide in the world in a test that steps the body and the
+  tree by hand, inside the blend as well as at the points. **Watch out for:** matching the rate to the blended
+  stride held each clip alone to 1 mm and still let the blended foot slide 10.6 mm at 2.6 m/s, and a blend of the
+  idle and the walk slid 13.6 mm across; the test at the three points alone passed. **Seen:** gdstudio #1158,
+  2026-11-12 (`test_gait_speed_match.gd`: every speed under 7 mm after the stretch and the trim; 167 mm between the
+  jog and the sprint before).
+- **Approach:** Feed each `AnimationNodeBlendTree` node's output to one input only; a pose used twice (the base of
+  four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
+  `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
+  **Seen:** gdstudio #1158, 2026-11-12 (the lean's base pose, three errors for four poses).
