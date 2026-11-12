@@ -48,6 +48,9 @@ const _LET_GO_DROP := 0.006
 ## What a finger's first bone (the knuckle's) has in its name: those open first.
 const _KNUCKLE := "_01_"
 const _WAY_DOWN := 0.3
+## The shares of that way over which the thumb goes from its place on the hand guard to its place
+## behind the magazine.
+const _WAY_THUMB := Vector2(0.2, 0.5)
 const _WAY_BESIDE := 0.7
 const _WAY_ON := 0.88
 
@@ -268,9 +271,13 @@ func refresh() -> void:
 	var reload := _reload_progress()
 	_fingers[0].second_weight = _raised if reload < 0.0 else 0.0
 	var to_magazine := _to_magazine(reload)
-	# The thumb goes to its place behind the magazine on the way across (the open pose leaves
-	# it be); the four fingers stay open until the hand is on the magazine, then close.
-	_fingers[1].second_weight = smoothstep(_WAY_DOWN, _WAY_BESIDE, to_magazine)
+	# The thumb goes from the hand guard's side to its place behind the magazine while the hand
+	# comes down off the hand guard (the open pose leaves it be): a thumb still standing up
+	# on the way across went 17 mm through the magazine well. The four fingers stay open until
+	# the hand is on the magazine, then close as one: closing tips first, as they open off the
+	# hand guard, swung the little finger 8 mm through the magazine's front.
+	_fingers[1].second_weight = smoothstep(_WAY_THUMB.x, _WAY_THUMB.y, to_magazine)
+	_fingers[1].open_together = to_magazine > _WAY_DOWN
 	_fingers[1].open_weight = (
 		smoothstep(0.0, _WAY_OPEN, to_magazine) * (1.0 - smoothstep(_WAY_ON, 1.0, to_magazine))
 	)

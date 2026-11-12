@@ -75,9 +75,9 @@ rotations = Dictionary[StringName, Quaternion]({
 &"ring_01_l": Quaternion(0.37711, 0.59457, -0.38274, 0.59815),
 &"ring_02_l": Quaternion(0.13485, 0, 1e-05, 0.99087),
 &"ring_03_l": Quaternion(0.23132, -0.00025, -0.00104, 0.97288),
-&"thumb_01_l": Quaternion(0.43966, 0.86559, 0.2387, 0.02192),
-&"thumb_02_l": Quaternion(-0.11931, 0.01112, -0.09296, 0.98843),
-&"thumb_03_l": Quaternion(0.32786, -0.0001, -0.00053, 0.94472)
+&"thumb_01_l": Quaternion(0.2285, 0.91256, 0.28473, 0.18427),
+&"thumb_02_l": Quaternion(-0.11718, -0.01082, 0.09091, 0.98888),
+&"thumb_03_l": Quaternion(0.11128, 2e-05, -0.00054, 0.99379)
 })
 
 [sub_resource type="Resource" id="Resource_1vdqf"]

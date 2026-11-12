@@ -68,6 +68,12 @@ THUMB_BACK_Z = 0.0
 REGISTER_TRIGGER_CLEAR = option("register-clear", [0.034])[0]
 # How high the right thumb's last two bones may lie: under the receiver, whose underside is at 0.065.
 THUMB_TOP = 0.055
+# How far under the hand guard's middle the support hand's thumb tip may end.
+SUPPORT_THUMB_UNDER = 0.005
+# How far over the hand guard's middle the support hand's thumb tip may end (the side is flat to there).
+SUPPORT_THUMB_OVER = 0.02
+# How far to the left of the rifle's middle the support hand's thumb tip stays (the hand guard's side).
+SUPPORT_THUMB_Z = 0.03
 # How high the thumb's root sits on the grip (the web under the receiver's tail).
 WEB_Y = 0.03
 # The palm's middle in the hand bone's space (+Y along the fingers, +Z toward the thumb's side).
@@ -281,6 +287,14 @@ def finger_cost(placed, finger, angles, mode):
         lie = tip_at - mid_at
         cost += 2.0 * touch[2] + 0.7 * touch[1] + 0.3 * touch[0]
         cost += relu(0.012 - tip_at[:, 2]) + relu(lie[:, 0] + 0.005)
+        if placed.name == "left":
+            # Up the hand guard's left side as far as its middle (`Support`): a small hand's thumb lay flat
+            # along the lower edge, and from the left nothing held the hand guard (kit #1187).
+            # And on that side, not hooked over the top: a thumb over the top went 8 mm through the hand
+            # guard as the hand left it for the reload.
+            cost += relu(placed.sockets["Support"][1, 3] - SUPPORT_THUMB_UNDER - tip_at[:, 1])
+            cost += relu(SUPPORT_THUMB_Z - tip_at[:, 2])
+            cost += relu(tip_at[:, 1] - placed.sockets["Support"][1, 3] - SUPPORT_THUMB_OVER)
         if placed.name == "right":
             # On the grip's left panel, under the receiver: a small hand high on the grip laid its thumb up the
             # receiver's side, its tip 4 cm above the grip (kit #1187).
