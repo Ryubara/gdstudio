@@ -2,7 +2,9 @@
 # are the library's clips with one limb swung clear of the limb it passed through on the
 # template's bodies: the file is the one the build measured, no limb is deeper than the limit in
 # it, every bone but the swung one plays what the library keyed, the swung one leaves and comes
-# back to the library's pose, and the game plays them where it played the library's.
+# back to the library's pose, and the game plays them where it played the library's. A leg is
+# swivelled about the line from its hip to its ankle instead (kit #1320): its foot bone is keyed
+# too, and the foot stays where the library's clip puts it.
 extends GdUnitTestSuite
 
 const FIXED := "res://assets/animation/fixed/fixed.glb"
@@ -18,6 +20,8 @@ const RATE := 30.0
 ## quaternions that are all but equal reads 0.03 to 0.09 degrees, so the turn's limit is over it.
 const SAME := 0.0005
 const SAME_TURN := 0.2
+## How far a swivelled leg's foot may be from the library's on any frame (m): the build's limit.
+const FOOT_STAYS := 0.001
 
 var _report: Dictionary
 
@@ -33,6 +37,14 @@ func _clip(clip: StringName) -> Animation:
 
 func _bone(animation: Animation, track: int) -> String:
 	return String(animation.track_get_path(track).get_concatenated_subnames())
+
+
+# A rotation track's value on a frame, of length one. Godot's importer drops the keys a track
+# can do without, and the value it then gives between two keys is not quite of length one where
+# the library's fingers jitter: `angle_to` of two such quaternions that are equal reads 0.3
+# degrees (kit #1320).
+func _turn(animation: Animation, track: int, frame: int) -> Quaternion:
+	return animation.rotation_track_interpolate(track, frame / RATE).normalized()
 
 
 # The numbers in the sidecar are the Blender measure's, on the skinned meshes of both template
@@ -67,6 +79,22 @@ func test_the_file_is_the_one_the_build_measured_and_no_limb_is_deeper_than_the_
 		for body: String in measured.not_worse_on:
 			var limit := maxf(measured.limit_mm, entry.before[body].deepest_mm + 0.5)
 			assert_float(entry.after[body].deepest_mm).is_less_equal(limit)
+		# A swivelled leg comes with the build's measure of its foot, on every body.
+		var swivelled := false
+		for swing: Dictionary in entry.swings:
+			swivelled = swivelled or swing.way == "swivel"
+		assert_bool(entry.has("foot_drift_mm")).override_failure_message(clip).is_equal(swivelled)
+		if swivelled:
+			assert_float(measured.foot_drift_limit_mm).is_less_equal(FOOT_STAYS * 1000.0)
+			assert_int(entry.foot_drift_mm.size()).is_equal(
+				measured.clear_on.size() + measured.not_worse_on.size()
+			)
+			for body: String in entry.foot_drift_mm:
+				(
+					assert_float(entry.foot_drift_mm[body])
+					. override_failure_message("%s on %s: the foot moved" % [clip, body])
+					. is_less_equal(measured.foot_drift_limit_mm)
+				)
 
 
 func test_the_file_holds_exactly_the_clips_with_a_stand_in() -> void:
@@ -96,6 +124,9 @@ func test_only_the_swung_bone_differs_from_the_library_and_only_inside_the_clip(
 		var swung := {}
 		for swing: Dictionary in entry.swings:
 			swung[swing.bone] = swing.peak_degrees
+			# A swivelled leg's foot is turned back to the library's turn in the world.
+			if swing.has("keeps"):
+				swung[swing.keeps] = swing.keeps_peak_degrees
 		assert_float(fixed.length).is_equal_approx(library.length, 0.0001)
 		assert_int(fixed.loop_mode).is_equal(library.loop_mode)
 		assert_int(fixed.get_track_count()).is_equal(library.get_track_count())
@@ -126,9 +157,7 @@ func test_only_the_swung_bone_differs_from_the_library_and_only_inside_the_clip(
 				if type != Animation.TYPE_ROTATION_3D:
 					continue
 				var degrees := rad_to_deg(
-					fixed.rotation_track_interpolate(track, time).angle_to(
-						library.rotation_track_interpolate(other, time)
-					)
+					_turn(fixed, track, frame).angle_to(_turn(library, other, frame))
 				)
 				if not swung.has(bone) or frame == 0 or frame == frames:
 					(
@@ -181,6 +210,71 @@ func test_on_the_template_bodies_the_fixed_clips_overlap_no_more_than_the_librar
 				. is_less_equal(library.overlap + 0.001)
 			)
 		body.free_nodes()
+
+
+# A swivelled leg turns about the line from its hip to its ankle, so its foot does not move: on
+# the template's two bodies, in Godot's own pose, the ankle and the ball of that foot are where
+# the library's clip puts them on every frame, and the foot is turned the same way.
+func test_a_swivelled_legs_foot_stays_where_the_library_puts_it() -> void:
+	var checked := 0
+	for model: String in [CharacterBodies.FEMALE, CharacterBodies.MALE]:
+		var holder: Node3D = auto_free(Node3D.new())
+		add_child(holder)
+		var body := BodyMeasure.stage(holder, model, LIBRARIES)
+		for fixed_name: StringName in CharacterClips.STAND_INS:
+			var entry: Dictionary = _report.clips[String(fixed_name).get_slice("/", 1)]
+			var bones: Array[int] = []
+			for swing: Dictionary in entry.swings:
+				if swing.way != "swivel":
+					continue
+				var foot := body.skeleton.find_bone(swing.keeps)
+				assert_int(foot).is_not_equal(-1)
+				bones.append(foot)
+				bones.append_array(body.skeleton.get_bone_children(foot))
+			if bones.is_empty():
+				continue
+			var worst := 0.0
+			var turned := 0.0
+			var frames := int(entry.last_frame) - int(entry.first_frame) + 1
+			for frame in frames:
+				var time: float = frame / RATE
+				body.pose(CharacterClips.STAND_INS[fixed_name], time)
+				var library: Array[Transform3D] = []
+				for bone in bones:
+					library.append(body.skeleton.get_bone_global_pose(bone))
+				body.pose(fixed_name, time)
+				for i in bones.size():
+					var now := body.skeleton.get_bone_global_pose(bones[i])
+					worst = maxf(worst, now.origin.distance_to(library[i].origin))
+					turned = maxf(
+						turned,
+						rad_to_deg(
+							now.basis.get_rotation_quaternion().angle_to(
+								library[i].basis.get_rotation_quaternion()
+							)
+						)
+					)
+			(
+				assert_float(worst)
+				. override_failure_message(
+					(
+						"%s on %s: the foot is %.2f mm off the library's"
+						% [fixed_name, model, worst * 1e3]
+					)
+				)
+				. is_less(FOOT_STAYS)
+			)
+			(
+				assert_float(turned)
+				. override_failure_message(
+					"%s on %s: the foot is turned %.2f degrees" % [fixed_name, model, turned]
+				)
+				. is_less(SAME_TURN)
+			)
+			checked += 1
+		body.free_nodes()
+	# Both sword clips, on both bodies.
+	assert_int(checked).is_equal(4)
 
 
 func test_the_game_plays_the_fixed_landing_and_slide_exit() -> void:

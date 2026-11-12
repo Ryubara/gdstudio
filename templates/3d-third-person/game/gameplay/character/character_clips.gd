@@ -6,7 +6,7 @@ extends RefCounted
 ## #1009, `assets/animation/prone/`), the library `prone`. The looping clips lose their `_Loop`
 ## suffix on import (`Idle_Loop` is `Idle`) and loop. The library `fixed` holds the few library
 ## clips that put a limb through another on the template's bodies, with that limb swung clear
-## (gdstudio #1295, `assets/animation/fixed/`).
+## (gdstudio #1295 and #1320, `assets/animation/fixed/`).
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
 ## `player_animation.play_clip(CharacterClips.SWORD_ATTACK)`. The constants below are the clips
@@ -168,6 +168,8 @@ const ALL: Array[StringName] = [
 	&"fixed/Jump_Land",
 	&"fixed/NinjaJump_Land",
 	&"fixed/Slide_Exit",
+	&"fixed/Sword_Dash",
+	&"fixed/Sword_Heavy_Combo",
 ]
 
 ## The library clip each fixed clip was made from: the same clip, as Quaternius keyed it. A game
@@ -176,4 +178,6 @@ const STAND_INS: Dictionary[StringName, StringName] = {
 	&"fixed/Jump_Land": &"ual1/Jump_Land",
 	&"fixed/NinjaJump_Land": &"ual2/NinjaJump_Land",
 	&"fixed/Slide_Exit": &"ual2/Slide_Exit",
+	&"fixed/Sword_Dash": &"ual2/Sword_Dash",
+	&"fixed/Sword_Heavy_Combo": &"ual2/Sword_Heavy_Combo",
 }
