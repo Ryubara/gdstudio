@@ -4,6 +4,8 @@
 # running player.
 extends GdUnitTestSuite
 
+const SETTINGS := "res://gameplay/character/gait_settings.tres"
+
 var _arena: PlayArena
 var _player: Player
 var _animation: CharacterAnimation
@@ -46,9 +48,8 @@ func test_the_crouch_state_blends_the_crouch_idle_into_the_crouch_walk_by_speed(
 		assert_str(String((space.get_blend_point_node(0) as AnimationNodeAnimation).animation))
 		. is_equal(String(CharacterClips.CROUCH_IDLE))
 	)
-	(
-		assert_str(String((space.get_blend_point_node(1) as AnimationNodeAnimation).animation))
-		. is_equal(String(CharacterClips.CROUCH_WALK))
+	assert_str(String(GaitBlend.clip_of(space, &"walk"))).is_equal(
+		String(CharacterClips.CROUCH_WALK)
 	)
 	# The machine links every state to every other, the crouch included.
 	assert_bool(machine.has_transition(&"ground", &"crouch")).is_true()
@@ -56,6 +57,10 @@ func test_the_crouch_state_blends_the_crouch_idle_into_the_crouch_walk_by_speed(
 
 
 func test_the_crouch_walk_point_follows_the_tuning() -> void:
+	# Without the speed matching; with it the point is the crouch walk clip's speed.
+	var settings := (load(SETTINGS) as GaitSettings).duplicate()
+	settings.speed_match = false
+	_animation.gait_settings = settings
 	_player.tuning.crouch_speed = 2.2
 	for _frame in 4:
 		await get_tree().process_frame
@@ -174,7 +179,4 @@ func test_a_clip_set_in_the_inspector_replaces_the_one_in_the_tree() -> void:
 	assert_str(String(shoot.animation)).is_equal(String(CharacterClips.PUNCH))
 	var machine := _root().get_node("Locomotion") as AnimationNodeStateMachine
 	var space := machine.get_node("crouch") as AnimationNodeBlendSpace1D
-	(
-		assert_str(String((space.get_blend_point_node(1) as AnimationNodeAnimation).animation))
-		. is_equal(String(CharacterClips.WALK))
-	)
+	assert_str(String(GaitBlend.clip_of(space, &"walk"))).is_equal(String(CharacterClips.WALK))

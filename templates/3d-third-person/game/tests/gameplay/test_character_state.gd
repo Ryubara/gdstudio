@@ -31,6 +31,7 @@ const NOT_STATE := {
 	&"sliding": "read only, from _slide",
 	&"aim_limits": "read only, the current move's tuning",
 	&"aim_yaw": "read only, from view_yaw and facing",
+	&"goal_speed": "read only, from the last command and the tuning",
 	&"_slide": "the slide; its step state is CharacterState.slide",
 	&"_stand_probe": "a shape made for a query",
 	&"vault_settings": "an export",
