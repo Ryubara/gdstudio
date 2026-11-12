@@ -110,9 +110,16 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   number `tests/world/test_jump_reach.gd` pins).
 - `tools/capture/sections_tour.tscn` saves stills of the two map sections from the player's camera and from above
   (`--debug-navigation` draws the navigation meshes); the header says how to run it.
-- `tools/soak/ai_section_soak.tscn` fights round the AI section with its whole population for `AI_SOAK_SECONDS` (180)
-  and fails on a character stuck for 3 s, idle with a threat in view for 5 s, or an engine error (`SOAK {...}`); the
-  header says how to run it. `tools/soak/section_pilot.gd` is its autopilot.
+- `tools/soak/ai_soak.tscn` is the AI soak: the AI section's population (times `--scale`) fighting the player's
+  autopilot (`tools/soak/section_pilot.gd`) and civilians in the pathing section, seeded, at the fixed step; the gates
+  of `ai_soak_watch.gd` (an engine error, a stuck episode, stuck time, idle with a threat in view, a task past its hard
+  timeout, a path-query storm, think p99, a belief naming a wall, a round that never ends) print what the character
+  held, did and decided (`AI_SOAK_GATE {...}`); `ai_soak_faults.gd` breaks a character for each gate
+  (`--faults all`). `--lines` prints a line of numbers a character. The header says how to run it; the nightly
+  `ai-soak.yml` runs 50 seeds, `tests/gameplay/test_ai_soak.gd` the pull-request seed and the faults.
+- `tools/web_smoke/ai.py` runs the soak's web export (`gds template bench-web 3d-third-person
+  tools/soak/ai_soak.tscn`) in Chrome at each population and CPU throttle and prints the frame's work, the AI step
+  and ticks a frame.
 - `tools/capture/section_tour.tscn` films the AI section's population from the game camera (`SECTION_TOUR=fight`,
   `cover`, `chase` or `civilians`).
 - `tools/capture/ai_section_online_tour.tscn` films the AI section's fight online from a client's screen: the game
