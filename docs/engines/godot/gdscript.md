@@ -117,7 +117,7 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   navigation mesh built in a lambda had no vertices (every path `[]`); assigning a whole Array or Dictionary to the
   outer variable inside the lambda is the same trap. **Seen:** Deadnight #226, 2026-11-02 (bot counts, a
   mesh); gdstudio #836, 2026-11-08 (`hits += 1` read 0); gdstudio #1251, 2026-11-11 (`met = {...}` left the
-  dict empty); gdstudio #1206, 2026-11-11 (a `maxf` into a captured float read 0 mm).
+  dict empty); gdstudio #1206, 2026-11-11 (a `maxf` into a captured float read 0 mm); #1158, 2026-11-12 (the same).
 
 ## Project and scene files {#project-and-scene-files}
 
