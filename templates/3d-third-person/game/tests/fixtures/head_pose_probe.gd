@@ -21,6 +21,9 @@ var chest_turns := PackedVector3Array()
 ## With a layer: each frame, degrees between the way the head faces and the way from it to the
 ## layer's aim point.
 var misses := PackedFloat32Array()
+## With a layer and a weapon whose head goes to its sights (`WeaponDef.AimHead.SIGHT`): each
+## frame, metres between the head's eye and the weapon's sight line.
+var eye_offs := PackedFloat32Array()
 ## The aim layer whose aim point `misses` reads, or null.
 var layer: AimLayer
 ## The head's whole turn on the neck each frame (for the frame-to-frame change).
@@ -42,6 +45,7 @@ static func attach(skeleton: Skeleton3D) -> HeadPoseProbe:
 
 
 func clear() -> void:
+	eye_offs.clear()
 	turns.clear()
 	neck_turns.clear()
 	model_turns.clear()
@@ -98,6 +102,13 @@ func _process_modification_with_delta(_delta: float) -> void:
 		var facing := skeleton.global_basis * (Basis(head * rest_head.inverse()) * Vector3.BACK)
 		var toward := layer.aim_point(Engine.get_physics_interpolation_fraction()) - place.origin
 		misses.append(rad_to_deg(facing.angle_to(toward)))
+		# With a weapon whose head goes to its sights: how far the eye is off the sight line.
+		var looking := layer.head_modifier()
+		if looking != null and looking.eye != null and is_instance_valid(looking.eye):
+			var sights := skeleton.global_transform.affine_inverse() * looking.eye.global_transform
+			var off := looking.eye_place(skeleton) - sights.origin
+			var line := -sights.basis.z.normalized()
+			eye_offs.append((off - line * off.dot(line)).length())
 
 
 func _global(skeleton: Skeleton3D, bone: int) -> Quaternion:
