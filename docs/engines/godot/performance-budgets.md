@@ -181,6 +181,14 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   the markers) to every living character, rifle or not, and `test_parts_budget.gd` refused 78 against 46. **Seen:**
   gdstudio #889, 2026-11-10 (fix: `rifle.tres`'s `view_scene`).
 
+- **Approach:** Time both sides of a time ratio in the same frames: run the calibration loop at the end of each
+  measured frame and divide the median frame by the median loop; prove it with 10 runs beside other suites and a frame
+  made to spin as long again (it must fail), and set the limit again after merging main. **Watch out for:** a loop's
+  fastest of nine, timed after the frames, dodged the load the frames took (0.83 to 1.45 against 1.3, paired 0.90 to
+  1.12); a day of character work then moved the paired ratio from 1.01-1.08 to 1.16-1.33 and 1.3 failed 5 of 10
+  healthy runs. **Seen:** gdstudio #1324, 2026-11-12 (3D Third Person `test_parts_budget.gd`'s
+  `test_ten_walking_characters_stay_under_the_frame_budget`; limit 1.7, doubled frame 2.21 to 2.60).
+
 ## In the editor {#in-the-editor}
 
 The pinned Godot is a debug build, so a game run from the editor costs about what a run with `godot --path` costs (a
