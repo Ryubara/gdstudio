@@ -4,8 +4,18 @@ extends RefCounted
 ## input path (`Input.parse_input_event`), so the project's `InputMap` decides what each one
 ## does. Part of the synced `gds_game` addon: used by tests only, never by shipped code.
 
+## The keys and pad buttons pressed through here and not let go yet, for `release_all`: a held key
+## outside its fixed list (a suite's `KEY_Y`) kept `Input.is_anything_pressed()` true in every
+## suite after it, in whatever order the run took.
+static var _held_keys: Dictionary[Key, bool] = {}
+static var _held_buttons: Dictionary[JoyButton, bool] = {}
+
 
 static func key(code: Key, pressed: bool) -> void:
+	if pressed:
+		_held_keys[code] = true
+	else:
+		_held_keys.erase(code)
 	var event := InputEventKey.new()
 	event.keycode = code
 	event.physical_keycode = code
@@ -15,6 +25,10 @@ static func key(code: Key, pressed: bool) -> void:
 
 
 static func pad_button(index: JoyButton, pressed: bool) -> void:
+	if pressed:
+		_held_buttons[index] = true
+	else:
+		_held_buttons.erase(index)
 	var event := InputEventJoypadButton.new()
 	event.device = 3  # Never device 0: pads are numbered as they connect.
 	event.button_index = index
@@ -47,6 +61,8 @@ static func release_all() -> void:
 		KEY_W, KEY_A, KEY_S, KEY_D, KEY_SPACE, KEY_SHIFT, KEY_X, KEY_E, KEY_C, KEY_CTRL
 	]:
 		key(code, false)
+	for code: Key in _held_keys.keys():
+		key(code, false)
 	for axis: JoyAxis in [
 		JOY_AXIS_LEFT_X,
 		JOY_AXIS_LEFT_Y,
@@ -57,6 +73,8 @@ static func release_all() -> void:
 	]:
 		pad_axis(axis, 0.0)
 	pad_button(JOY_BUTTON_B, false)
+	for index: JoyButton in _held_buttons.keys():
+		pad_button(index, false)
 	mouse_button(MOUSE_BUTTON_LEFT, false)
 	mouse_button(MOUSE_BUTTON_RIGHT, false)
 	# A base suite that sends a click leaves the left button and its action (`fire`) down, and a
