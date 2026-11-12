@@ -464,6 +464,13 @@ reference body's is reported with `needs_ik` and not held to the floor and plant
   1.1 mm at a foot under a pelvis that travels 73 mm (1.5 mm on a body whose hips or shins differ by a millimetre);
   a 1 mm limit fitted to one build failed on the next with nothing wrong in the clip. **Seen:** gdstudio #1160
   (PR #1285), 2026-11-11 (`PLANTED`, `BALL_SINKS` and the skin test in `test_own_clips.gd`).
+- **Approach:** After rebuilding a shipped clip, and again after every merge of main into the branch that rebuilds
+  it, search the game for numbers measured on that clip's pose and measure them again; run the whole template suite,
+  not only the clip suites. **Watch out for:** this branch rebuilt `Idle` on the form body while main (#1256)
+  measured `Weapon.no_muzzle_offset` on the old `Idle` and tightened its test from 50 mm to 5: each side passed alone
+  and the two together put the aimed muzzle 6.2 mm from the offset, so the pull request's check went red in a weapon
+  suite no clip change had touched. **Seen:** gdstudio #1160 (PR #1285), 2026-11-12 (the offset measured again:
+  0.2 mm off).
 
 ## The clip eval {#eval}
 
