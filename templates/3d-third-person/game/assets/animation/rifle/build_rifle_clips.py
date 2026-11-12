@@ -68,7 +68,8 @@ OVERLAP_OVER_HOLD = 3.0
 PUSH_PASSES = 8
 PUSH_SETTLED = 1e-4
 REACH_LIMIT = 0.5  # millimetres an arm may stop short of its place on the rifle
-EYE_LIMIT = 90.0  # millimetres the right eye may be off the sight line in an aim clip
+ROLL_LIMIT = 6.5  # degrees the head may roll on the neck, and the neck on the chest, in an aim clip
+ROLL_SOFT = 4.0  # the search leans the trunk to keep both under this
 HEAD_LIMIT = 5.0  # millimetres the head's skin may be inside the rifle
 AIM_PITCH = 45.0  # degrees of view the up and down clips are made for (`CharacterAnimation.aim_pitch_range`)
 # The bodies the template's characters wear (`gameplay/character/character_bodies.gd`): the clips are keyed on the
@@ -113,17 +114,10 @@ SKIN_POINTS = {}
 # skin from 3 cm over the head bone up. The rest is the neck down to its base at the shoulders, where the butt
 # sits: it is measured with the chest.
 HEAD_SKIN = {}
-# How far the search may lean the trunk past where a clip starts it (forward, to the right), and turn the neck and
-# the head from the view's own pitch (down, to the left, a roll to the right), in degrees: what a body gives.
+# How far the search may lean the trunk past where a clip starts it (forward, to the right), in degrees.
 AIM_LIMITS = {
-    "lean": (-2.0, 12.0),
-    "side": (-4.0, 2.0),
-    "np": (-8.0, 28.0),
-    "ny": (-20.0, 20.0),
-    "nr": (-4.0, 10.0),
-    "hp": (-12.0, 20.0),
-    "hy": (-20.0, 20.0),
-    "hr": (-4.0, 12.0),
+    "lean": (-12.0, 12.0),
+    "side": (-6.0, 6.0),
 }
 # The collarbones in an aim: the right one up and forward behind the butt, the left one forward with the reach.
 # Degrees (up, forward).
@@ -134,6 +128,7 @@ IDLE_CLAVICLE_L = (0.0, 5.0)
 # The low ready: the trunk a little forward, the head level and a little down the rifle's way.
 IDLE_LEAN = 6.0
 IDLE_HUNCH = 12.0  # the chest bone alone, forward: rounded shoulders keep the right forearm off the ribs
+AIM_LEAN = 8.0  # degrees the trunk leans into the rifle with the view level
 AIM_HUNCH = 8.0
 AIM_DOWN_LEAN = 14.0
 AIM_DOWN_HUNCH = 10.0
@@ -150,7 +145,6 @@ AIM_BREATH = 0.25
 SHOOT_SPEED = 1.6
 SHOT_SPINE = 1.1
 SHOT_CLAVICLE = (1.5, 5.0)
-SHOT_HEAD = -0.8
 # The recoil's share by frame: up in one frame, back by the fourth, a small sway forward, still from the ninth.
 SHOT_KEYS = [(0, 0.0), (1, 1.0), (2, 0.72), (3, 0.36), (4, 0.08), (5, -0.14), (7, -0.06), (9, 0.0), (12, 0.0)]
 
@@ -756,8 +750,9 @@ def shape(rig, base, hold, state, body):
     over the upper two; `hunch` forward on the chest bone alone) and turned as the hold turns the chest; the collarbones are set from their rest
     (`clavicle_r`, `clavicle_l`: degrees up, forward); the neck and the head are stood upright facing the
     front and turned in the character's space (`neck`, `head`: degrees of pitch down, yaw to the left and roll
-    to the right); then the hold is run (the rifle's place, the arms, the fingers). Returns the pose and what
-    the hold worked out."""
+    to the right); then the hold is run (the rifle's place, the arms, the fingers). A body with `look` (the
+    aim's pitch up, degrees) has the head the game gives an aiming character instead (`level_head`). Returns the
+    pose and what the hold worked out."""
     pose = copy_pose(base)
     spine = hold.spine
     for i, bone in enumerate(spine):
@@ -779,7 +774,54 @@ def shape(rig, base, hold, state, body):
         pitch, yaw, roll = body.get("neck" if bone == "neck_01" else "head", (0.0, 0.0, 0.0))
         rig.face(pose, bone, axis_angle(Y, yaw) @ axis_angle(X, pitch) @ axis_angle(Z, roll))
     held = hold.apply(rig, pose, state)
+    if "look" in body:
+        level_head(rig, pose, body["look"])
     return pose, held
+
+
+def head_rule():
+    """The aim layer's numbers for the head: the neck's share of the turn and the most it may turn, degrees."""
+    script = (GAME / "gameplay/character/aim/aim_layer.gd").read_text(encoding="utf-8")
+    found = dict(re.findall(r"^@export\S*(?:\([^\n]*\))? var (head_\w+) := ([\d.]+)$", script, re.M))
+    return float(found["head_neck_share"]), float(found["head_max_turn"])
+
+
+def level_head(rig, pose, pitch):
+    """The neck and the head as the game's `AimHeadModifier` sets them while a character aims (kit #1334), which
+    runs after the clip and the spine's turn: from where the chest leaves the head (the neck and the head at
+    their rest turns on it) to looking along the aim, `pitch` degrees up, with no roll against the world's up;
+    the neck takes its share of that turn and the head the rest, about the same axis."""
+    share, most = head_rule()
+    chest = rig.chain(pose, rig.parent["neck_01"])[:3, :3]
+    neck_line = chest @ rig.rest["neck_01"][:3, :3]
+    lined = neck_line @ rig.rest["Head"][:3, :3]
+    p = math.radians(pitch)
+    look = np.array([[1.0, 0.0, 0.0], [0.0, math.cos(p), math.sin(p)], [0.0, -math.sin(p), math.cos(p)]])
+    wanted = look @ rig.rest_world["Head"][:3, :3]
+    turn = Matrix((wanted @ lined.T).tolist()).to_quaternion()
+    if turn.angle > math.radians(most) and turn.angle > 1e-4:
+        turn = Quaternion().slerp(turn, math.radians(most) / turn.angle)
+    neck_world = np.array(Quaternion().slerp(turn, share).to_matrix()) @ neck_line
+    head_world = np.array(turn.to_matrix()) @ lined
+    pose["local"]["neck_01"] = chest.T @ neck_world
+    pose["local"]["Head"] = neck_world.T @ head_world
+
+
+def head_rolls(rig, pose):
+    """How far the head is rolled on the neck and the neck on the chest, in degrees, read as the game's test
+    reads them (`tests/fixtures/head_pose_probe.gd`): the turn from the rest, in the parent's rest frame, as yaw,
+    then pitch, then roll."""
+    out = []
+    for bone in ("Head", "neck_01"):
+        above = rig.parent[bone]
+        turned = (
+            rig.rest_world[above][:3, :3]
+            @ rig.chain(pose, above)[:3, :3].T
+            @ rig.chain(pose, bone)[:3, :3]
+            @ rig.rest_world[bone][:3, :3].T
+        )
+        out.append(math.degrees(math.atan2(turned[1, 0], turned[1, 1])))
+    return out
 
 
 def eye_of(rig, pose):
@@ -811,46 +853,36 @@ def stock_depth(rig, pose, gun, clear):
 
 
 def solve_aim(rig, base, hold, state, body, others=()):
-    """Finds the lean, the neck and the head that put the right eye on the sight line with the face along it:
-    a damped least-squares search over eight angles, each held near nothing by its cost (a neck gives more than
-    a spine). `others` are the other bodies that play the clip, as (rig, hold): the same angles on each, under
-    its own hold, keep its head off the stock too."""
-    names = ["lean", "side", "np", "ny", "nr", "hp", "hy", "hr"]
-    soft = np.array([10.0, 5.0, 14.0, 15.0, 8.0, 14.0, 15.0, 8.0])  # degrees each is cheap up to
+    """Finds the trunk's lean for an aim. The head is not the clip's while a character aims: the game holds it
+    level and along the aim (`level_head`), so the search only leans the trunk, forward and to the side, until
+    that head and its neck are clear of the stock and neither is rolled far on the bone under it: a damped
+    least-squares search over two angles, each held near nothing by its cost. `others` are the other bodies that
+    play the clip, as (rig, hold): the same clip on each, under its own hold, keeps its head off the stock too."""
+    names = ["lean", "side"]
+    soft = np.array([10.0, 5.0])  # degrees each is cheap up to
     # What a body gives and no more (`AIM_LIMITS`): past it an angle costs steeply.
     low = np.array([AIM_LIMITS[n][0] for n in names])
     high = np.array([AIM_LIMITS[n][1] for n in names])
-    view = -state.get("pitch", 0.0)  # the neck and the head are counted from the view's own pitch
-    centre = np.array([0, 0, view * 0.4, 0, 0, view, 0, 0])
-    x = centre + np.array([6.0, 2.0, 12.0, 0.0, 3.0, 0.0, 0.0, 4.0])
+    centre = np.zeros(2)
+    x = centre.copy()
 
     def build(v):
-        shaped = dict(body, lean=body.get("lean", 0.0) + v[0], side=v[1], neck=tuple(v[2:5]), head=tuple(v[5:8]))
+        shaped = dict(body, lean=body.get("lean", 0.0) + v[0], side=v[1], look=state.get("pitch", 0.0))
         return shape(rig, base, hold, state, shaped) + (shaped,)
 
     def residual(v):
         pose, held, _ = build(v)
-        gun = held["gun"]
-        eye = (np.linalg.inv(gun) @ np.append(eye_of(rig, pose), 1.0))[:3]
-        off = eye - SIGHT_EYE
-        line = SIGHT_AHEAD / np.linalg.norm(SIGHT_AHEAD)
-        face, up = face_of(rig, pose)
         clear = body.get("clear", HEAD_CLEAR)
-        deepest = [stock_depth(rig, pose, gun, clear)]
+        deepest = [stock_depth(rig, pose, held["gun"], clear)]
+        rolls = head_rolls(rig, pose)
         for other, others_hold in others:
             # The clip on the other body: the same turns in each bone's parent, then that body's hold.
             posed = whole(other, {"local": dict(pose["local"]), "pelvis": pose["pelvis"]})
             deepest.append(stock_depth(other, posed, others_hold.apply(other, posed, state)["gun"], clear))
-        ahead = gun[:3, :3] @ line
-        gun_up = gun[:3, :3] @ Y
         return np.concatenate(
             [
-                # A millimetre to the side of the line or under it costs as much as 4 degrees of a soft angle;
-                # over it a third of that (a cheek on the comb holds the eye up); along it a tenth.
-                [off[2] * 400.0, off[1] * (300.0 if off[1] > 0.0 else 400.0), off[0] * 40.0],
                 np.array(deepest) * 1500.0,
-                np.cross(face, ahead) * 12.0,  # the face along the line
-                [max(angle_between(up, gun_up) - 12.0, 0.0) * 0.2],  # the head may roll onto the stock
+                np.maximum(np.abs(rolls) - ROLL_SOFT, 0.0) * 1.5,
                 (v - centre) / soft,
                 np.maximum(v - centre - high, 0.0) * 4.0,
                 np.maximum(low - (v - centre), 0.0) * 4.0,
@@ -922,7 +954,7 @@ def make_clips(rig, base, hold, only, others=()):
     }
     aim_bodies, solved = {}, {}
     for name, pitch in (("Rifle_Aim_Neutral", 0.0), ("Rifle_Aim_Up", AIM_PITCH), ("Rifle_Aim_Down", -AIM_PITCH)):
-        start = {"clavicle_r": AIM_CLAVICLE_R, "clavicle_l": AIM_CLAVICLE_L, "lean": -pitch * 0.35, "hunch": AIM_HUNCH}
+        start = {"clavicle_r": AIM_CLAVICLE_R, "clavicle_l": AIM_CLAVICLE_L, "lean": AIM_LEAN - pitch * 0.35, "hunch": AIM_HUNCH}
         if pitch < 0.0:
             # Looking down the trunk folds over the rifle: more of both keeps the right forearm off the ribs.
             start.update(lean=AIM_DOWN_LEAN, hunch=AIM_DOWN_HUNCH, clear=AIM_DOWN_CLEAR, clavicle_r=AIM_DOWN_CLAVICLE_R)
@@ -964,10 +996,6 @@ def make_clips(rig, base, hold, only, others=()):
         out = dict(aim_body, breath=SHOT_SPINE * share)
         up, forward = aim_body["clavicle_r"]
         out["clavicle_r"] = (up + SHOT_CLAVICLE[0] * share, forward - SHOT_CLAVICLE[1] * share)
-        pitch, yaw, roll = aim_body["head"]
-        out["head"] = (pitch + SHOT_HEAD * share, yaw, roll)
-        neck = aim_body["neck"]
-        out["neck"] = (neck[0] + SHOT_HEAD * 0.4 * share, neck[1], neck[2])
         return out
 
     add(
@@ -1395,8 +1423,11 @@ def main():
             entry["face_off_line_deg"] = round(angle_between(face, line), 1)
             print(f"  {name}: solved {clip['solved']}, eye {off:.1f} mm off the line, face {entry['face_off_line_deg']} deg")
             print(f"    the eye from its place (back, up, left) {entry['eye_from_place_mm']} mm, the butt pushed {entry['butt_push_mm']} mm")
-            if off > EYE_LIMIT:
-                failures.append(f"{name}: the eye is {off:.1f} mm off the sight line")
+            rolls = [max(abs(r) for r in pair) for pair in zip(*(head_rolls(rig, pose) for pose in frames))]
+            entry["head_roll_deg"], entry["neck_roll_deg"] = round(rolls[0], 1), round(rolls[1], 1)
+            print(f"    the head rolled {rolls[0]:.1f} degrees on the neck, the neck {rolls[1]:.1f} on the chest")
+            if max(rolls) > ROLL_LIMIT:
+                failures.append(f"{name}: the head rolls {rolls[0]:.1f} degrees on the neck, the neck {rolls[1]:.1f}")
         if clip["loop"]:
             gap = pose_gap(frames[0], frames[-1])
             entry["loop_gap_deg"] = round(gap, 4)
