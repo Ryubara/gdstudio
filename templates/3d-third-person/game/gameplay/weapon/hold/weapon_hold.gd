@@ -16,7 +16,10 @@ extends Node
 ## - the left hand's one way on and off the weapon (kit #1051): its fingers open where it holds
 ##   (`open_pose`), then the opened hand leaves along `support_way`, and it comes on the same way
 ##   backwards, for the aim and from the magazine alike. `SupportHandPlan` says where on all of
-##   this the hand is now, and holds the reload's phases.
+##   this the hand is now, and holds the reload's phases;
+## - for an action that reaches with the left hand (using a door: the interact clip, kit #1336),
+##   the left hand off the weapon along that same way and back on it after (`FreeHand`), with the
+##   trigger finger off the trigger meanwhile, since the action's clip has the weapon's arm down.
 ##
 ## The skeleton is inside the model's `.glb`, which a scene cannot add nodes to, so the three
 ## modifiers (two `HandPoseModifier`s and a `HoldArm`) are made here, as children of the model's
@@ -80,6 +83,16 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 ## How far the weapon is aimed: the left hand is on it by this much, and the trigger finger.
 @export_range(0.0, 1.0, 0.01) var aim_weight := 0.0
 
+## How far the left hand is let go for an action that reaches with it (`FreeHand.amount()`: 0 on
+## the weapon as the aim has it, 1 with the clip's arm); from the character's `interacted`, or
+## the caller's for a character posed by hand.
+@export_range(0.0, 1.0, 0.01) var free_weight := 0.0
+## Seconds the left hand takes off the weapon for such an action, and back onto it at its end: the
+## action's clip takes the weapon's arm down and brings it back over its own blend time, and the
+## left hand leaves before the weapon is down and comes on as it is up again.
+@export_range(0.01, 1.0, 0.01, "suffix:s") var free_release_time := 0.1
+@export_range(0.01, 1.0, 0.01, "suffix:s") var free_return_time := 0.12
+
 @export_group("Reload")
 ## The left hand's fingers while the heel of its palm pushes the magazine in.
 @export var magazine_pose: HandPose
@@ -121,6 +134,8 @@ var _marker: Node3D
 var _magazine: Node3D
 # Where the left hand is now: on its way on or off the weapon, at the magazine, with the clip.
 var _left := SupportHandPlan.new()
+# The left hand let go for an action that reaches with it.
+var _free := FreeHand.new()
 # The scene's own hold as a fit, kept the first time a model is built, for a model with no fit.
 var _own: HoldFit
 
@@ -128,11 +143,27 @@ var _own: HoldFit
 func _ready() -> void:
 	if model != null:
 		model.rig_changed.connect(_build.unbind(1))
+	if animation != null and animation.character != null:
+		animation.character.interacted.connect(free_hand_for_interact.unbind(1))
 	_build.call_deferred()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_free.step(delta)
 	refresh()
+
+
+## Lets the left hand go for an action of `seconds` that reaches with it. The character's
+## `interacted` does it by itself.
+func free_hand(seconds: float) -> void:
+	_free.release_time = free_release_time
+	_free.return_time = free_return_time
+	_free.start(seconds)
+
+
+## The character used something: the interact clip reaches with the left hand.
+func free_hand_for_interact() -> void:
+	free_hand(animation.character.tuning.interact_time)
 
 
 ## Puts the weights on the modifiers now (the frame's own `_process` does it too).
@@ -145,16 +176,18 @@ func refresh() -> void:
 		var reload := animation.reload_progress() if animation.tree.active else Vector2.ZERO
 		reload_weight = reload.x
 		reload_share = reload.y
+		free_weight = _free.amount() if animation.tree.active else 0.0
 	if _grip == null or not is_instance_valid(_grip):
 		return
 	_weigh(_grip, held_weight)
-	# The finger leaves the trigger for the reload.
-	_grip.second_weight = aim_weight * (1.0 - reload_weight)
+	# The finger leaves the trigger for the reload, and while an action's clip has the arm.
+	var aim := aim_weight * (1.0 - FreeHand.gone(free_weight))
+	_grip.second_weight = aim * (1.0 - reload_weight)
 	_grip.swing_bone = carry_arm
 	# The arm comes back in for a reload as for the aim: the reload clip holds the weapon in front of
 	# the body, and swung out the weapon was past the left hand's reach on the prototype bodies at
 	# the clip's start and end (kit #1187: the arm 9 to 29 mm short).
-	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight) * (1.0 - reload_weight)
+	_grip.swing_degrees = carry_arm_out * (1.0 - aim) * (1.0 - reload_weight)
 	if _arm == null:
 		return
 	_plan_left()
@@ -199,7 +232,12 @@ func _plan_left() -> void:
 	_left.reach = reload_reach
 	_left.insert = reload_insert
 	_left.back = reload_return
-	_left.update(aim_weight, reload_weight if _magazine != null else 0.0, reload_share)
+	# Let go for an action, the hand is as far on the weapon as the aim has it less its way off
+	# (the hold's arm has it to the way's far end, `WAY_FROM`) and less what the clip's arm has.
+	var gone := FreeHand.gone(free_weight)
+	var on := lerpf(1.0, SupportHandPlan.WAY_FROM, FreeHand.off(free_weight)) * (1.0 - gone)
+	var reload := reload_weight * (1.0 - gone) if _magazine != null else 0.0
+	_left.update(aim_weight * on, reload, reload_share)
 
 
 ## The modifiers this node made on the skeleton now: the grip, then the left arm and fingers.
