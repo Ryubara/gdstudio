@@ -3,12 +3,13 @@
 importer="animation_library"
 importer_version=1
 type="AnimationLibrary"
-path="res://.godot/imported/prone_form_male.glb-16f5151fc081f1bbc1520be8a38181f6.res"
+uid="uid://b6tbkl3fdwlym"
+path="res://.godot/imported/prone_form_male.glb-65847d2ef883803adbd9d12b75f0bed8.res"
 
 [deps]
 
 source_file="res://assets/animation/prone/prone_form_male.glb"
-dest_files=["res://.godot/imported/prone_form_male.glb-16f5151fc081f1bbc1520be8a38181f6.res"]
+dest_files=["res://.godot/imported/prone_form_male.glb-65847d2ef883803adbd9d12b75f0bed8.res"]
 
 [params]
 

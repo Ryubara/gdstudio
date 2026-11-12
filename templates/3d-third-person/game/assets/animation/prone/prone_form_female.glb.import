@@ -3,12 +3,13 @@
 importer="animation_library"
 importer_version=1
 type="AnimationLibrary"
-path="res://.godot/imported/prone_form_female.glb-16f5151fc081f1bbc1520be8a38181f6.res"
+uid="uid://dxxcvg2kl55da"
+path="res://.godot/imported/prone_form_female.glb-bc9369bc770884d7589c2c37de16d8ca.res"
 
 [deps]
 
 source_file="res://assets/animation/prone/prone_form_female.glb"
-dest_files=["res://.godot/imported/prone_form_female.glb-16f5151fc081f1bbc1520be8a38181f6.res"]
+dest_files=["res://.godot/imported/prone_form_female.glb-bc9369bc770884d7589c2c37de16d8ca.res"]
 
 [params]
 
