@@ -38,6 +38,10 @@ const RIFLE_MAGAZINE_CONTACTS: Array[String] = [
 	"index_tip", "middle_tip", "ring_tip", "thumb_tip", "palm"
 ]
 
+## The parts of the left hand that hook the charging handle's latch through the pull (kit
+## #1266): the fingertips round its front.
+const RIFLE_CHARGE_CONTACTS: Array[String] = ["index_tip", "middle_tip"]
+
 ## The rifle scene under the hold's `Pivot` (its near level is what `contact` measures against).
 var rifle: Node3D
 

@@ -157,14 +157,20 @@ func test_the_index_finger_is_on_the_trigger_only_while_the_rifle_is_up() -> voi
 
 # Through the reload the right hand holds as ever with its finger off the trigger, and the left
 # hand is under the hand guard at the ends, round the magazine while it is in the rifle, with
-# the magazine while it is out, and never deeper than `PASSING_DEPTH` in the rifle on the way.
+# the magazine while it is out, hooked on the charging handle while it pulls the bolt back (kit
+# #1266: the bolt travels with it and runs home when it lets go), and never deeper than
+# `PASSING_DEPTH` in the rifle on the way. The rifle's triangles are read again where the bolt is.
 func test_the_left_hand_takes_the_magazine_out_and_in_through_the_reload() -> void:
 	for model in MODELS:
 		var stage := RifleStage.make_rifle(_holder, model)
 		var hold := stage.hold as TwoHandHold
 		var magazine := hold.get_node(hold.magazine) as Node3D
 		var marker := stage.rifle.get_node(^"MagazineHand") as Node3D
+		var handle := stage.rifle.get_node(^"ChargeHand") as Node3D
+		var bolt := hold.get_node(hold.bolt) as Node3D
+		var bolt_rest := bolt.position
 		var seated := 0
+		var hooked := 0
 		# How far the hand's bone is from the magazine's origin while it holds it.
 		var in_hand := marker.position.distance_to(
 			stage.rifle.global_transform.affine_inverse() * magazine.global_position
@@ -173,7 +179,20 @@ func test_the_left_hand_takes_the_magazine_out_and_in_through_the_reload() -> vo
 		while share <= 1.0001:
 			stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0, 0.0, share)
 			await stage.settle()
+			stage.contact.set_weapon(stage.rifle.get_node(^"Near") as Node3D)
 			var tag := "%s reload at %.2f" % [model, share]
+			var pulled := hold.charge.bolt_pull(share)
+			var travelled := bolt.position.distance_to(bolt_rest)
+			(
+				assert_float(travelled)
+				. override_failure_message(
+					(
+						"%s: the bolt is %.1f mm back, not %.1f"
+						% [tag, travelled * 1e3, hold.charge.travel.length() * pulled * 1e3]
+					)
+				)
+				. is_equal_approx(hold.charge.travel.length() * pulled, 0.0005)
+			)
 			_assert_hand(stage, "r", tag)
 			var off := _tip_to_trigger(stage)
 			(
@@ -191,7 +210,7 @@ func test_the_left_hand_takes_the_magazine_out_and_in_through_the_reload() -> vo
 			)
 			var out := share > hold.reload_out.x + 0.001 and share < hold.reload_in.y - 0.001
 			var on_magazine := (
-				share > hold.reload_leave.y - 0.001 and share < hold.reload_return.x + 0.001
+				share > hold.reload_leave.y - 0.001 and share < hold.charge.leave.x + 0.001
 			)
 			if share <= hold.reload_leave.x or share >= hold.reload_return.y:
 				_assert_hand(stage, "l", tag)
@@ -222,6 +241,23 @@ func test_the_left_hand_takes_the_magazine_out_and_in_through_the_reload() -> vo
 					tag + " l:", stage.contact.measure("l"), RifleStage.RIFLE_MAGAZINE_CONTACTS
 				)
 				assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
+			elif hold.charge.is_gripping(share):
+				hooked += 1
+				# On its place on the handle, moved by what the bolt has moved.
+				var at := stage.bone_origin(&"hand_l").distance_to(
+					stage.rifle.global_transform * (handle.position + hold.charge.travel * pulled)
+				)
+				(
+					assert_float(at)
+					. override_failure_message(
+						"%s: the left hand is %.1f mm from the handle" % [tag, at * 1e3]
+					)
+					. is_less(REACH)
+				)
+				var fails := HandContact.failures(
+					tag + " l:", stage.contact.measure("l"), RifleStage.RIFLE_CHARGE_CONTACTS
+				)
+				assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
 			else:
 				var parts := stage.contact.measure("l")
 				for part: String in parts:
@@ -235,12 +271,14 @@ func test_the_left_hand_takes_the_magazine_out_and_in_through_the_reload() -> vo
 					)
 			share += RELOAD_STEP
 		assert_int(seated).override_failure_message("never on the magazine").is_greater(1)
+		assert_int(hooked).override_failure_message("never on the handle").is_greater(1)
 		stage.free()
 
 
 # The hold puts the left hand's place and the magazine back only when a reload ends (kit #1178:
 # it no longer writes them every frame), so a reload cut off with the magazine out of the rifle
-# still leaves both where they rest and the left hand on the hand guard.
+# still leaves both where they rest and the left hand on the hand guard, and one cut off in the
+# charging handle's pull leaves the bolt home.
 func test_a_reload_cut_off_puts_the_magazine_and_the_left_hand_back() -> void:
 	var stage := RifleStage.make_rifle(_holder, "female")
 	var hold := stage.hold as TwoHandHold
@@ -259,6 +297,16 @@ func test_a_reload_cut_off_puts_the_magazine_and_the_left_hand_back() -> void:
 	assert_bool(magazine.visible).is_true()
 	assert_bool(target.transform.is_equal_approx(target_rest)).is_true()
 	_assert_hand(stage, "l", "after a reload cut off")
+	# Cut off with the charging handle pulled back, the bolt is home again (kit #1266).
+	var bolt := hold.get_node(hold.bolt) as Node3D
+	var bolt_rest := bolt.transform
+	stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0, 0.0, hold.charge.pull.y)
+	await stage.settle()
+	assert_bool(bolt.transform.is_equal_approx(bolt_rest)).is_false()
+	stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0)
+	await stage.settle()
+	assert_bool(bolt.transform.is_equal_approx(bolt_rest)).is_true()
+	assert_bool(target.transform.is_equal_approx(target_rest)).is_true()
 	stage.free()
 
 
@@ -327,8 +375,9 @@ func test_the_player_keeps_both_hands_on_the_rifle_in_every_state() -> void:
 
 
 # R starts the rifle's reload: the left hand leaves the hand guard, is on the magazine's marker
-# on its way out and in, and is back under the hand guard at the end, with the magazine back in
-# the rifle; the right hand never leaves the grip.
+# on its way out and in, on the charging handle as it pulls the bolt all the way back (kit
+# #1266), and is back under the hand guard at the end, with the magazine back in the rifle and
+# the bolt home; the right hand never leaves the grip.
 func test_the_players_left_hand_leaves_the_rifle_only_for_the_reload() -> void:
 	await _player_with_the_rifle()
 	_player.weapon.set_ammo(3, 60)
@@ -337,6 +386,11 @@ func test_the_players_left_hand_leaves_the_rifle_only_for_the_reload() -> void:
 	var magazine := _hold.get_node(_hold.magazine) as Node3D
 	var rest := left.transform
 	var magazine_rest := magazine.transform
+	var handle := _hold.find_child("ChargeHand", true, false) as Node3D
+	var bolt := _hold.get_node(_hold.bolt) as Node3D
+	var bolt_rest := bolt.transform
+	var bolt_back := 0.0
+	var nearest_handle := 1.0
 	_skeleton.skeleton_updated.connect(_read_live)
 	_tap(KEY_R)
 	var farthest := 0.0
@@ -348,9 +402,20 @@ func test_the_players_left_hand_leaves_the_rifle_only_for_the_reload() -> void:
 			nearest_magazine = minf(
 				nearest_magazine, left.transform.origin.distance_to(marker.transform.origin)
 			)
+			var back := bolt.transform.origin.distance_to(bolt_rest.origin)
+			bolt_back = maxf(bolt_back, back)
+			var on_handle := handle.transform.origin + _hold.charge.travel.normalized() * back
+			nearest_handle = minf(nearest_handle, left.transform.origin.distance_to(on_handle))
 	_skeleton.skeleton_updated.disconnect(_read_live)
 	assert_float(farthest).override_failure_message("the hand never left").is_greater(0.2)
 	assert_float(nearest_magazine).override_failure_message("never at the magazine").is_less(0.002)
+	assert_float(nearest_handle).override_failure_message("never on the handle").is_less(0.002)
+	(
+		assert_float(bolt_back)
+		. override_failure_message("the bolt went %.1f mm back" % (bolt_back * 1e3))
+		. is_greater(_hold.charge.travel.length() * 0.95)
+	)
+	assert_bool(bolt.transform.is_equal_approx(bolt_rest)).is_true()
 	assert_int(_player.weapon.ammo).is_equal(30)
 	assert_bool(left.transform.is_equal_approx(rest)).is_true()
 	assert_bool(magazine.transform.is_equal_approx(magazine_rest)).is_true()

@@ -4,6 +4,26 @@
 [ext_resource type="Script" path="res://gameplay/weapon/hold/hold_fit.gd" id="2_qkht1"]
 [ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose_way.gd" id="3_qkht1"]
 
+[sub_resource type="Resource" id="Resource_qkht1"]
+script = ExtResource("1_ugvyd")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_l": Quaternion(-0.21263, 0.70644, -0.03084, 0.67438),
+&"index_02_l": Quaternion(0.39073, 0, 0, 0.9205),
+&"index_03_l": Quaternion(0.25882, 0, 0, 0.96593),
+&"middle_01_l": Quaternion(-0.1558, 0.70655, 0.02803, 0.68973),
+&"middle_02_l": Quaternion(0.25038, 0.00038, 0.00147, 0.96815),
+&"middle_03_l": Quaternion(0.16935, -0.00019, -0.00111, 0.98556),
+&"pinky_01_l": Quaternion(0.28849, 0.57263, -0.41484, 0.64558),
+&"pinky_02_l": Quaternion(0.64279, -0.00054, -0.00064, 0.76604),
+&"pinky_03_l": Quaternion(0.43837, 0.00027, 0.00055, 0.89879),
+&"ring_01_l": Quaternion(0.29861, 0.57909, -0.40578, 0.64096),
+&"ring_02_l": Quaternion(0.64279, 1e-05, 1e-05, 0.76604),
+&"ring_03_l": Quaternion(0.43837, -0.00047, -0.00096, 0.89879),
+&"thumb_01_l": Quaternion(0.24741, 0.94579, 0.20344, 0.05358),
+&"thumb_02_l": Quaternion(0.30058, -6e-05, 7e-05, 0.95376),
+&"thumb_03_l": Quaternion(0.30094, -8e-05, -0.00053, 0.95364)
+})
+
 [sub_resource type="Resource" id="Resource_j7tpy"]
 script = ExtResource("1_ugvyd")
 rotations = Dictionary[StringName, Quaternion]({
@@ -115,9 +135,11 @@ body = "form_male.glb"
 seat = Transform3D(-0.17364737, 2.831222e-06, -0.98480535, -0.9566252, 0.23750849, 0.1686802, 0.23390232, 0.97139055, -0.041243628, -0.040759213, 0.056245085, -0.022368968)
 support_hand = Transform3D(0, -0.6, -0.8, 1, 0, 0, 0, -0.8, 0.6, -0.204, 0.07657, 0.056)
 magazine_hand = Transform3D(0, -1, 0, 0, 0, 1, -1, 0, 0, -0.045, -0.07, 0.03045)
+charge_hand = Transform3D(1, 0, 0, 0, 0.42262, 0.90631, 0, -0.90631, 0.42262, 0.05026, 0.12042, 0.18344)
 grip_pose = SubResource("Resource_j7tpy")
 trigger_pose = SubResource("Resource_1vdqf")
 support_pose = SubResource("Resource_umvhw")
 magazine_pose = SubResource("Resource_akh41")
 open_pose = SubResource("Resource_wl1ko")
+charge_pose = SubResource("Resource_qkht1")
 trigger_way = SubResource("Resource_80kuy")

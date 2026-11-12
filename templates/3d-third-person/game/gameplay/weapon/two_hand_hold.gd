@@ -160,6 +160,8 @@ const _PUSH_STEP := 0.003
 @export var open_pose: HandPose
 ## The left hand's fingers round the magazine.
 @export var magazine_pose: HandPose
+## The left hand's fingers hooked on the charging handle (`charge`). None: no pull.
+@export var charge_pose: HandPose
 
 ## Past this distance from the camera the fingers keep the clip's fist (the hands are a few
 ## pixels there; the rifle's far level shows from 10 m). 0: always posed. The hold reads no
@@ -193,6 +195,13 @@ const _PUSH_STEP := 0.003
 @export var magazine: NodePath
 ## The far level's magazine, moved and hidden with it. Empty: none.
 @export var magazine_far: NodePath
+## The charging handle's pull after the magazine is seated (kit #1266): the left hand goes from
+## the magazine to the `ChargeHand` marker, pulls the `bolt` node back and lets it go, then comes
+## back under the hand guard by `reload_return`. None (or no `ChargeHand`): straight back.
+@export var charge: ChargePull
+## The bolt node under the gun the pull moves, and the far level's. Empty: none moves.
+@export var bolt: NodePath
+@export var bolt_far: NodePath
 
 @export_group("Bodies")
 ## Holds solved on other bodies than the one the scene's own hands' places and poses were solved
@@ -263,6 +272,9 @@ var _gun: Node3D
 var _targets: Array[Node3D] = [null, null]
 var _poles: Array[Node3D] = [null, null]
 var _on_magazine: Node3D
+var _on_handle: Node3D
+var _bolts: Array[Node3D] = []
+var _bolt_rest := Transform3D.IDENTITY
 var _mag: Node3D
 var _mag_far: Node3D
 var _chest_index := -1
@@ -285,6 +297,8 @@ func _ready() -> void:
 		_left_rest = _targets[1].transform
 	if _mag != null:
 		_magazine_rest = _mag.transform
+	if not _bolts.is_empty():
+		_bolt_rest = _bolts[0].transform
 	if Engine.is_editor_hint():
 		set_process(false)
 		return
@@ -398,6 +412,8 @@ func refresh() -> void:
 	_fingers[1].open_weight = (
 		smoothstep(0.0, _WAY_OPEN, to_magazine) * (1.0 - smoothstep(_WAY_ON, 1.0, to_magazine))
 	)
+	if _charging():
+		charge.set_fingers(_fingers[1], reload)
 
 
 ## Puts the pocket and the gun where they are this frame, and gives each arm its hand's place.
@@ -693,6 +709,12 @@ func _reload_progress() -> float:
 func _to_magazine(progress: float) -> float:
 	if progress < 0.0:
 		return 0.0
+	if _charging():
+		var way := charge.to_magazine(
+			progress, Vector3(_WAY_ON, _WAY_BESIDE, _WAY_DOWN), reload_return.x, reload_return.y
+		)
+		if way >= 0.0:
+			return way
 	var there := smoothstep(reload_leave.x, reload_leave.y, progress)
 	return there * (1.0 - smoothstep(reload_return.x, reload_return.y, progress))
 
@@ -715,6 +737,7 @@ func _place_reload(gun_here: Transform3D) -> void:
 		if not _hand_at_rest:
 			left.transform = _left_rest
 			_set_magazine(mag, mag_far, _magazine_rest, true)
+			_set_bolt(0.0)
 			_hand_at_rest = true
 		return
 	_hand_at_rest = false
@@ -737,6 +760,12 @@ func _place_reload(gun_here: Transform3D) -> void:
 	if progress < 0.0:
 		var aside := smoothstep(_FREE_DOWN, 1.0, FreeHand.off(_freed))
 		hand = hand.interpolate_with(_left_rest.translated(free_clearance), aside)
+	elif _charging():
+		if charge.holds_way(progress, reload_return.x):
+			hand = charge.hand_place(
+				progress, on_magazine, beside, _on_handle.transform, below, reload_return.x
+			)
+		_set_bolt(charge.bolt_pull(progress))
 	# Out of the well along the gun's own up axis, then to the belt, which is a place on the
 	# body (the hand's place is on the gun).
 	var out := Vector3.DOWN * magazine_well * minf(away / _WELL_SHARE, 1.0)
@@ -754,6 +783,21 @@ func _place_reload(gun_here: Transform3D) -> void:
 # How far down the reload's way off the hand guard a freed hand is (`_WAY_DOWN` at most).
 func _let_go() -> float:
 	return minf(FreeHand.off(_freed) / _FREE_DOWN, 1.0) * _WAY_DOWN
+
+
+# Whether the reload pulls the charging handle: a `charge`, its marker and its finger pose.
+func _charging() -> bool:
+	return charge != null and _on_handle != null and charge_pose != null
+
+
+# Puts the bolt `pulled` of the way back along the pull's travel (0: home).
+func _set_bolt(pulled: float) -> void:
+	for each in _bolts:
+		var xf := _bolt_rest
+		if charge != null:
+			var travel := charge.travel * pulled
+			xf.origin += (each.get_parent() as Node3D).transform.basis.inverse() * travel
+		each.transform = xf
 
 
 func _set_magazine(near: Node3D, far: Node3D, xf: Transform3D, shown: bool) -> void:
@@ -789,6 +833,7 @@ func _on_rig_changed() -> void:
 	if trigger_way != null:
 		_fingers[-1].second_way = trigger_way.poses
 	_add_fingers(support_pose, magazine_pose, open_pose, "LeftFingers")
+	_fingers[-1].third = charge_pose
 	refresh()
 
 
@@ -804,11 +849,14 @@ func _fit_body(slot: CharacterModel) -> void:
 	var right := _targets[0]
 	var left := _targets[1]
 	var on_magazine := _on_magazine
+	var on_handle := _on_handle
 	if _own == null:
 		_own = HoldFit.new()
 		_own.seat = right.transform.affine_inverse() if right != null else Transform3D.IDENTITY
 		_own.support_hand = _left_rest
 		_own.magazine_hand = on_magazine.transform if on_magazine != null else Transform3D.IDENTITY
+		_own.charge_hand = on_handle.transform if on_handle != null else Transform3D.IDENTITY
+		_own.charge_pose = charge_pose
 		_own.grip_pose = grip_pose
 		_own.trigger_pose = trigger_pose
 		_own.support_pose = support_pose
@@ -825,6 +873,10 @@ func _fit_body(slot: CharacterModel) -> void:
 		left.transform = _left_rest
 	if on_magazine != null:
 		on_magazine.transform = chosen.magazine_hand
+	if on_handle != null and chosen.charge_pose != null:
+		on_handle.transform = chosen.charge_hand
+	if chosen.charge_pose != null:
+		charge_pose = chosen.charge_pose
 	_hand_at_rest = false
 	grip_pose = chosen.grip_pose
 	trigger_pose = chosen.trigger_pose
@@ -881,6 +933,12 @@ func _find_parts() -> void:
 	_poles[0] = get_node_or_null(^"RightPole") as Node3D
 	_poles[1] = get_node_or_null(^"LeftPole") as Node3D
 	_on_magazine = find_child("MagazineHand", true, false) as Node3D
+	_on_handle = find_child("ChargeHand", true, false) as Node3D
+	_bolts.clear()
+	for path in [bolt, bolt_far]:
+		var found := get_node_or_null(path) as Node3D
+		if found != null:
+			_bolts.append(found)
 	_gun = _targets[1].get_parent() as Node3D if _targets[1] != null else null
 	_mag = get_node_or_null(magazine) as Node3D
 	_mag_far = get_node_or_null(magazine_far) as Node3D
