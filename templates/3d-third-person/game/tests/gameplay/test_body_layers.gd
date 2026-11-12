@@ -8,7 +8,7 @@ extends GdUnitTestSuite
 const DRESSED := "res://gameplay/character/character_dressed.tscn"
 const PLAYER := "res://gameplay/player/player.tscn"
 const MINIMAP := "res://ui/minimap/minimap.tscn"
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const MALE := CharacterBodies.MALE
 ## A layer the inventory preview might add (its default, 20).
 const PREVIEW_BIT := 1 << 19
 

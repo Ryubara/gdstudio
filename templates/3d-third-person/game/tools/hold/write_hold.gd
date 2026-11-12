@@ -9,7 +9,13 @@
 ## change the model or the solver, run both again, then the hold's test
 ## (`tests/gameplay/test_pistol_hold.gd`, `tests/gameplay/test_rifle_hold.gd`).
 ##
-## `<godot> --headless --path game -s res://tools/hold/write_hold.gd -- <hold.json> [rifle]`
+## Each body has its own pistol hold (kit #1187). The default body's (`female`,
+## `CharacterBodies.FEMALE`) goes into the files above; another body's into one `HoldFit` file,
+## `gameplay/weapon/hold/pistol_fit_<body>.tres`, which `weapon_hold.tscn` lists in `fits`. The
+## rifle has one hold, the default body's.
+##
+## `<godot> --headless --path game -s res://tools/hold/write_hold.gd -- <hold.json> [rifle]
+## [female|male]`
 extends SceneTree
 
 ## For each weapon: the pose file of each solved pose, the scene that holds the weapon, and which
@@ -50,6 +56,9 @@ const WEAPONS: Dictionary[String, Dictionary] = {
 }
 ## The pistol's hold scene, which takes the left hand's way off the pistol.
 const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
+## The body whose hold is the scene's own; every other body's is a `HoldFit` file.
+const DEFAULT_BODY := "female"
+const FIT := "res://gameplay/weapon/hold/pistol_fit_%s.tres"
 ## The line of the hold scene the way is written after when the scene has none yet.
 const _WAY_AFTER := "open_pose = "
 
@@ -59,13 +68,30 @@ func _initialize() -> void:
 	var parsed: Variant = null
 	if arguments.size() >= 1 and FileAccess.file_exists(arguments[0]):
 		parsed = JSON.parse_string(FileAccess.get_file_as_string(arguments[0]))
-	var which := arguments[1] if arguments.size() > 1 else "pistol"
-	if not parsed is Dictionary or not WEAPONS.has(which):
+	var which := "pistol"
+	var body := DEFAULT_BODY
+	for word: String in arguments.slice(1):
+		if WEAPONS.has(word):
+			which = word
+		elif CharacterBodies.BY_NAME.has(word):
+			body = word
+		else:
+			parsed = null
+	if not parsed is Dictionary or (which == "rifle" and body != DEFAULT_BODY):
 		# A path relative to another folder reads as nothing: stop here instead of hanging.
-		printerr("write_hold: give the solved hold as one absolute path to a JSON file [rifle]")
+		printerr(
+			"write_hold: give the solved hold as one absolute path to a JSON file, then [rifle]",
+			" and a body of ",
+			CharacterBodies.BY_NAME.keys(),
+			" (the rifle's hold is the default body's only)"
+		)
 		quit(1)
 		return
 	var solved: Dictionary = parsed
+	if body != DEFAULT_BODY:
+		_write_fit(solved, body)
+		quit()
+		return
 	var weapon := WEAPONS[which]
 	var poses: Dictionary = weapon.poses
 	for key: String in poses:
@@ -74,14 +100,7 @@ func _initialize() -> void:
 		var pose := HandPose.new()
 		if ResourceLoader.exists(poses[key]):
 			pose = load(poses[key]) as HandPose
-		var rotations: Dictionary[StringName, Quaternion] = {}
-		for bone: String in solved.get(key, {}):
-			rotations[StringName(bone)] = _quaternion(solved[key][bone])
-		pose.rotations = rotations
-		var turns: Dictionary[StringName, Quaternion] = {}
-		if key == "grip" and solved.has("wrist"):
-			turns[&"hand_r"] = _quaternion(solved.wrist)
-		pose.turns = turns
+		_fill(pose, solved, key)
 		var error := ResourceSaver.save(pose, poses[key])
 		print("wrote ", poses[key], " (", error, ")")
 	var places := {}
@@ -103,6 +122,60 @@ func _initialize() -> void:
 	if solved.has("way"):
 		_write_way(solved.way)
 	quit()
+
+
+# Writes another body's hold as one `HoldFit` file, its poses inside it.
+func _write_fit(solved: Dictionary, body: String) -> void:
+	var path := FIT % body
+	var fit := HoldFit.new()
+	fit.body = CharacterBodies.BY_NAME[body].get_file()
+	fit.seat = _transform(solved.seat)
+	if solved.has("support_hand"):
+		fit.support_hand = _transform(solved.support_hand)
+	if solved.has("magazine_hand"):
+		fit.magazine_hand = _transform(solved.magazine_hand)
+	if solved.has("way"):
+		fit.support_way = Vector3(
+			snappedf(solved.way[0], 1e-5),
+			snappedf(solved.way[1], 1e-5),
+			snappedf(solved.way[2], 1e-5)
+		)
+	for key: String in WEAPONS.pistol.poses:
+		if solved.has(key):
+			var pose := HandPose.new()
+			_fill(pose, solved, key)
+			fit.set(key + "_pose", pose)
+	var error := ResourceSaver.save(fit, path)
+	print("wrote ", path, " (", error, ")")
+
+
+# Puts the solved rotations of `key` (and, for the grip, the wrist's turn) on `pose`.
+func _fill(pose: HandPose, solved: Dictionary, key: String) -> void:
+	var rotations: Dictionary[StringName, Quaternion] = {}
+	for bone: String in solved.get(key, {}):
+		rotations[StringName(bone)] = _quaternion(solved[key][bone])
+	pose.rotations = rotations
+	var turns: Dictionary[StringName, Quaternion] = {}
+	if key == "grip" and solved.has("wrist"):
+		turns[&"hand_r"] = _quaternion(solved.wrist)
+	pose.turns = turns
+
+
+# A 4 x 4 matrix (rows) as a Transform3D, rounded as `_text` writes one.
+func _transform(rows: Array) -> Transform3D:
+	var columns: Array[Vector3] = []
+	for column in 3:
+		columns.append(
+			Vector3(
+				snappedf(rows[0][column], 1e-5),
+				snappedf(rows[1][column], 1e-5),
+				snappedf(rows[2][column], 1e-5)
+			)
+		)
+	return Transform3D(
+		Basis(columns[0], columns[1], columns[2]),
+		Vector3(snappedf(rows[0][3], 1e-5), snappedf(rows[1][3], 1e-5), snappedf(rows[2][3], 1e-5))
+	)
 
 
 # Puts the left hand's way off the pistol on the hold scene's root: its `support_way` line is

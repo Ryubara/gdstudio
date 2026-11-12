@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" path="res://gameplay/character/character.tscn" id="1_character"]
 [ext_resource type="Script" path="res://gameplay/character/character_model.gd" id="2_model"]
-[ext_resource type="PackedScene" path="res://assets/characters/mannequin/mannequin_female.glb" id="3_mannequin"]
+[ext_resource type="PackedScene" path="res://assets/characters/prototype/form_female.glb" id="3_mannequin"]
 [ext_resource type="PackedScene" path="res://assets/weapons/pistol/pistol_held.tscn" id="4_pistol"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual1.glb" id="5_ual1"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual2.glb" id="6_ual2"]
@@ -19,46 +19,46 @@
 [ext_resource type="Script" path="res://gameplay/character/aim/aim_layer.gd" id="15_aim"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_head"]
-radius = 0.12
+radius = 0.11
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_chest"]
 radius = 0.15
 height = 0.44
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_pelvis"]
-radius = 0.15
+radius = 0.16
 height = 0.36
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_upperarml"]
-radius = 0.06
-height = 0.3
+radius = 0.055
+height = 0.33
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_forearml"]
-radius = 0.055
-height = 0.42
+radius = 0.05
+height = 0.44
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_upperarmr"]
-radius = 0.06
-height = 0.3
+radius = 0.055
+height = 0.33
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_forearmr"]
-radius = 0.055
-height = 0.42
+radius = 0.05
+height = 0.44
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_thighl"]
-radius = 0.085
-height = 0.46
+radius = 0.09
+height = 0.48
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_shinl"]
-radius = 0.07
+radius = 0.06
 height = 0.46
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_thighr"]
-radius = 0.085
-height = 0.46
+radius = 0.09
+height = 0.48
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_shinr"]
-radius = 0.07
+radius = 0.06
 height = 0.46
 
 [node name="CharacterDressed" node_paths=PackedStringArray("model", "ragdoll_body") instance=ExtResource("1_character")]
@@ -119,7 +119,7 @@ shape = SubResource("SphereShape3D_head")
 script = ExtResource("11_hit_zone")
 zone = &"head"
 bone = &"Head"
-offset = Vector3(0, 0.1, 0.02)
+offset = Vector3(0, 0.105, 0.01)
 damage_multiplier = 3
 
 [node name="Chest" type="CollisionShape3D" parent="HitZones"]
@@ -141,7 +141,7 @@ shape = SubResource("CapsuleShape3D_upperarml")
 script = ExtResource("11_hit_zone")
 zone = &"arm_l"
 bone = &"upperarm_l"
-offset = Vector3(0, 0.12, 0)
+offset = Vector3(0, 0.13, 0)
 damage_multiplier = 0.6
 
 [node name="ForearmL" type="CollisionShape3D" parent="HitZones"]
@@ -149,7 +149,7 @@ shape = SubResource("CapsuleShape3D_forearml")
 script = ExtResource("11_hit_zone")
 zone = &"forearm_l"
 bone = &"lowerarm_l"
-offset = Vector3(0, 0.2, 0)
+offset = Vector3(0, 0.21, 0)
 damage_multiplier = 0.6
 
 [node name="UpperArmR" type="CollisionShape3D" parent="HitZones"]
@@ -157,7 +157,7 @@ shape = SubResource("CapsuleShape3D_upperarmr")
 script = ExtResource("11_hit_zone")
 zone = &"arm_r"
 bone = &"upperarm_r"
-offset = Vector3(0, 0.12, 0)
+offset = Vector3(0, 0.13, 0)
 damage_multiplier = 0.6
 
 [node name="ForearmR" type="CollisionShape3D" parent="HitZones"]
@@ -165,7 +165,7 @@ shape = SubResource("CapsuleShape3D_forearmr")
 script = ExtResource("11_hit_zone")
 zone = &"forearm_r"
 bone = &"lowerarm_r"
-offset = Vector3(0, 0.2, 0)
+offset = Vector3(0, 0.21, 0)
 damage_multiplier = 0.6
 
 [node name="ThighL" type="CollisionShape3D" parent="HitZones"]
@@ -173,7 +173,7 @@ shape = SubResource("CapsuleShape3D_thighl")
 script = ExtResource("11_hit_zone")
 zone = &"thigh_l"
 bone = &"thigh_l"
-offset = Vector3(0, 0.2, 0)
+offset = Vector3(0, 0.19, 0)
 damage_multiplier = 0.7
 
 [node name="ShinL" type="CollisionShape3D" parent="HitZones"]
@@ -181,7 +181,7 @@ shape = SubResource("CapsuleShape3D_shinl")
 script = ExtResource("11_hit_zone")
 zone = &"shin_l"
 bone = &"calf_l"
-offset = Vector3(0, 0.21, 0)
+offset = Vector3(0, 0.23, 0)
 damage_multiplier = 0.7
 
 [node name="ThighR" type="CollisionShape3D" parent="HitZones"]
@@ -189,7 +189,7 @@ shape = SubResource("CapsuleShape3D_thighr")
 script = ExtResource("11_hit_zone")
 zone = &"thigh_r"
 bone = &"thigh_r"
-offset = Vector3(0, 0.2, 0)
+offset = Vector3(0, 0.19, 0)
 damage_multiplier = 0.7
 
 [node name="ShinR" type="CollisionShape3D" parent="HitZones"]
@@ -197,7 +197,7 @@ shape = SubResource("CapsuleShape3D_shinr")
 script = ExtResource("11_hit_zone")
 zone = &"shin_r"
 bone = &"calf_r"
-offset = Vector3(0, 0.21, 0)
+offset = Vector3(0, 0.23, 0)
 damage_multiplier = 0.7
 
 [node name="HitReaction" type="Node" parent="." node_paths=PackedStringArray("character", "ragdoll")]

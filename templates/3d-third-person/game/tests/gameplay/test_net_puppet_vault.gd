@@ -26,11 +26,14 @@ const MAX_TIME_GAP := 0.08
 ## The stepping body's suite: the planted wrist's limits are read from it, so a puppet is held to
 ## exactly what the body that steps is held to (`WRIST_UP`, `WRIST_ALONG`, `WRIST_DRIFT`).
 const CONTACTS := "res://tests/gameplay/test_vault_contacts.gd"
-## The two mannequins a puppet may be drawn with, by the name of their limits: Ada's puppet wears
-## the female, the server's first AI look (a grunt) the male (`AiReplica.variant_scenes`).
+## The two mannequins a puppet is drawn with here, by the name of their limits: Ada's puppet wears
+## the female, the server's first AI look (a grunt) the male (`AiReplica.variant_scenes`). The
+## limits were measured on the Quaternius pair the vault clips were keyed on, so the suite draws
+## the puppets with those (`_draw_with`); the template's prototype bodies have longer upper arms
+## and their planted wrists sit lower (kit #1187; gdstudio #1286 measures the clips on them).
 const MANNEQUINS := {
-	"res://assets/characters/mannequin/mannequin_female.glb": "female",
-	"res://assets/characters/mannequin/mannequin_male.glb": "male",
+	CharacterBodies.QUATERNIUS_FEMALE: "female",
+	CharacterBodies.QUATERNIUS_MALE: "male",
 }
 
 var _rig: OnlineRig
@@ -59,6 +62,7 @@ func test_a_puppet_plays_the_vault_clip_on_the_plan_the_server_ran() -> void:
 	await _rig.wait(30)
 	var puppet := _bo.remote_players.puppet_at(_ada.slot)
 	assert_object(puppet).is_not_null()
+	await _draw_with(puppet, CharacterBodies.QUATERNIUS_FEMALE)
 	var server_plans: Array[VaultPlan] = []
 	_rig.server_body(_ada).vault_motion.started.connect(
 		func(plan: VaultPlan) -> void: server_plans.append(plan)
@@ -190,6 +194,7 @@ func test_an_ai_puppets_planted_hand_rests_on_the_top_on_bos_screen() -> void:
 	assert_object(puppet).is_not_null()
 	if puppet == null:
 		return
+	await _draw_with(puppet, CharacterBodies.QUATERNIUS_MALE)
 	var server_plans: Array[VaultPlan] = []
 	runner.vault_motion.started.connect(func(plan: VaultPlan) -> void: server_plans.append(plan))
 	var puppet_plans: Array[VaultPlan] = []
@@ -252,6 +257,13 @@ func _record(puppet: Character, into: Array[Dictionary]) -> void:
 		into[-1] = sample
 		return
 	into.append(sample)
+
+
+# Puts the body `path` on the puppet, as a character's scene does with `variant`, and lets the slot
+# and the clips follow it.
+func _draw_with(puppet: Character, path: String) -> void:
+	puppet.model.variant = load(path) as PackedScene
+	await _rig.wait(2)
 
 
 # Each hand the clip of `plan` plants is on the wall's top where the clip puts it, on every drawn

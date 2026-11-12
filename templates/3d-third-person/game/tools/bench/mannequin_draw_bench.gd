@@ -39,6 +39,12 @@ const LIBRARY := "res://assets/animation/universal/ual1.glb"
 const DAYLIGHT := "res://world/lighting/daylight.tscn"
 const FLOOR := "res://assets/materials/prototype/prototype_floor.tres"
 const CLIP := &"ual1/Walk"
+## The prototype looks are also stood in two other builds of their levels of detail, as pools of
+## their own (`form@swap/16/lod1`): `@swap` keeps one `MeshInstance3D` and gives it the level's
+## mesh (no visibility ranges, no hidden nodes), `@lods` keeps `Body_LOD0` with Godot's own mesh
+## LODs (`ImporterMesh.generate_lods`, as the Quaternius body has) and drops the other two.
+const LOOKS: Array[String] = ["form", "joint", "facet"]
+const BUILDS: Array[String] = ["swap", "lods"]
 const COUNTS: Array[int] = [1, 8, 16]
 ## The first row's distance from the camera (m) at each level of detail; the second row stands
 ## `ROW_GAP` behind it, and every body stays inside its level's band.
@@ -62,6 +68,9 @@ var only: Array[String] = []
 var _camera: Camera3D
 ## Model name to its pool of `COUNTS.max()` bodies, hidden and still until a cell shows them.
 var _pools: Dictionary[String, Array] = {}
+## `<look>` to its three level meshes, and to `Body_LOD0`'s mesh with Godot's LODs.
+var _levels: Dictionary[String, Array] = {}
+var _lodded: Dictionary[String, ArrayMesh] = {}
 var _last_us := 0
 var _samples := PackedInt32Array()
 var _draw_calls := 0
@@ -97,6 +106,9 @@ func _ready() -> void:
 			player.seek(index * 0.071)
 			pool.append(body)
 		_pools[model] = pool
+		if model in LOOKS:
+			for build in BUILDS:
+				_pools["%s@%s" % [model, build]] = _rebuilt_pool(model, scene, library, build)
 	_show("", 0, 0)
 	var shown_crowd := OS.get_environment("MANNEQUIN_DRAW_SHOW")
 	if shown_crowd.is_empty():
@@ -162,6 +174,54 @@ func _run() -> void:
 		JavaScriptBridge.eval("window.__mannequin_draw_bench = %s;" % line, true)
 	else:
 		get_tree().quit()
+
+
+# `COUNTS.max()` bodies of `look` with their levels built as `build` (`swap` or `lods`).
+func _rebuilt_pool(
+	look: String, scene: PackedScene, library: AnimationLibrary, build: String
+) -> Array:
+	var pool: Array[Node3D] = []
+	for index in COUNTS.max():
+		var body: Node3D = scene.instantiate()
+		var meshes: Array[MeshInstance3D] = []
+		for level in 3:
+			meshes.append(body.find_child("Body_LOD%d" % level, true, false) as MeshInstance3D)
+		if not _levels.has(look):
+			_levels[look] = meshes.map(func(node: MeshInstance3D) -> Mesh: return node.mesh)
+		meshes[0].visibility_range_begin = 0.0
+		meshes[0].visibility_range_end = 0.0
+		for level in [1, 2]:
+			meshes[level].get_parent().remove_child(meshes[level])
+			meshes[level].free()
+		if build == "lods":
+			meshes[0].mesh = _lodded_mesh(look, meshes[0].mesh as ArrayMesh)
+		var player := AnimationPlayer.new()
+		body.add_child(player)
+		player.add_animation_library(&"ual1", library)
+		add_child(body)
+		player.play(CLIP)
+		player.seek(index * 0.071)
+		pool.append(body)
+	return pool
+
+
+# `source` with Godot's own LODs, made once a look so every body shares one mesh.
+func _lodded_mesh(look: String, source: ArrayMesh) -> ArrayMesh:
+	if _lodded.has(look):
+		return _lodded[look]
+	var importer := ImporterMesh.new()
+	for surface in source.get_surface_count():
+		importer.add_surface(
+			source.surface_get_primitive_type(surface),
+			source.surface_get_arrays(surface),
+			[],
+			{},
+			source.surface_get_material(surface)
+		)
+	importer.generate_lods(25.0, 60.0, [])
+	var mesh := importer.get_mesh()
+	_lodded[look] = mesh
+	return mesh
 
 
 # Every cell in the order a round walks them: each level, each count, no body then each model;
@@ -243,6 +303,9 @@ func _show(model: String, count: int, level: int) -> void:
 				modifier.active = variant != "notwist"
 			if not shown:
 				continue
+			if pool_name.ends_with("@swap"):
+				var node := body.find_child("Body_LOD0", true, false) as MeshInstance3D
+				node.mesh = _levels[pool_name.get_slice("@", 0)][level]
 			var in_row := mini(count, COLUMNS)
 			var column := index % COLUMNS
 			var row := index / COLUMNS
@@ -261,6 +324,7 @@ static func _row(key: String, cell: Array, runs: Array) -> Dictionary:
 		means.append(run.mean)
 		medians.append(run.median)
 		p95s.append(run.p95)
+	var in_order := means.duplicate()
 	means.sort()
 	medians.sort()
 	p95s.sort()
@@ -272,6 +336,7 @@ static func _row(key: String, cell: Array, runs: Array) -> Dictionary:
 		"level": cell[2],
 		"frame_ms": means[means.size() / 2],
 		"frame_ms_runs": means,
+		"frame_ms_rounds": in_order,
 		"median_ms": medians[medians.size() / 2],
 		"p95_ms": p95s[p95s.size() / 2],
 		"draw_calls": last.draw_calls,
