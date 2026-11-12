@@ -254,6 +254,14 @@ A solved pose is clear where it holds; the blend the game plays between two of t
   be, in millimetres) and many starts, then look at the result from above. **Watch out for:** walked downhill from
   the solved pose on the test's limits alone, the female thumb met them with its tip bend changed by 16 degrees and
   still hooked down behind the palm. **Seen:** gdstudio #1084 after #1299, 2026-11-12.
+- **Approach:** When a hold's plan gains a step, build again every clip that hands a hand to that hold, key the
+  clip's own hand where the plan gives it up (the far end of the hand's way, not the grip), and measure both
+  hands, each against the other, on every passing frame. **Watch out for:** the slide rack (#1103) had its left
+  hand at the support grip on the frames the hold lets it go; this hold takes the hand out along its way, then
+  lays the right thumb back on the frame, so the hand snapped back under the thumb (7.1 to 8.0 mm, female, arm
+  in). The rack's test measured only the left hand; its right-hand case read the thumb on the left thumb's root
+  as 7.5 to 10.1 mm off the gun. **Seen:** gdstudio #1084 after #1103, 2026-11-12 (fix: `build_pistol_rack.py`'s
+  `ARM_UNTIL` keys; `test_pistol_rack.gd` measures the right hand against the left).
 - **Approach:** Write a long solve's output after every stage. **Watch out for:** the file was written once at the
   end, and a run stopped by its time limit in the last stage lost forty minutes of solved stages; the writer then
   wrote the old file into the project. **Seen:** gdstudio #1084, 2026-11-11 (fix: `save` after each stage).
