@@ -37,9 +37,9 @@ const LIBRARY_MELEE := &"melee"
 
 # Locomotion and the clips the player's states use.
 const IDLE := &"gds/Idle"
-const WALK := &"ual1/Walk"
-const RUN := &"ual1/Jog_Fwd"
-const SPRINT := &"ual1/Sprint"
+const WALK := &"gds/Walk"
+const RUN := &"gds/Jog"
+const SPRINT := &"gds/Sprint"
 const JUMP_START := &"ual1/Jump_Start"
 const AIR := &"ual1/Jump"
 # The library's landing with the left arm swung clear of the shin (gdstudio #1295,
@@ -102,6 +102,9 @@ const MELEE_PISTOL_JAB := &"melee/Melee_Pistol_Jab"
 ## suits puts it back in the inspector (`CharacterAnimation.land_clip`).
 const STAND_INS: Dictionary[StringName, StringName] = {
 	&"gds/Idle": &"ual1/Idle",
+	&"gds/Walk": &"ual1/Walk",
+	&"gds/Jog": &"ual1/Jog_Fwd",
+	&"gds/Sprint": &"ual1/Sprint",
 	&"fixed/Jump_Land": &"ual1/Jump_Land",
 	&"fixed/NinjaJump_Land": &"ual2/NinjaJump_Land",
 	&"fixed/Slide_Exit": &"ual2/Slide_Exit",
@@ -214,6 +217,9 @@ const ALL: Array[StringName] = [
 	&"prone_aim/Prone_Aim_Up",
 	&"prone_reload/Prone_Reload_Pistol",
 	&"gds/Idle",
+	&"gds/Jog",
+	&"gds/Sprint",
+	&"gds/Walk",
 	&"vault/Vault_High",
 	&"vault/Vault_Land",
 	&"vault/Vault_Low",

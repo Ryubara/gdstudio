@@ -98,6 +98,14 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   GdUnit4 and is not a game one opens (a new game gets its addons and its import when it is made), so a capture pointed
   at it does not film the game. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11.
 
+- **Approach:** Give `gds capture frames --project` an imported game: for a template, the kept game of `gds template
+  test <template> --suite <one suite> --keep` (run from its folder with `--out` into your scratch folder; remove the
+  kept folder afterwards), and look at a frame of every variant's turn before making the clip. **Watch out for:** a
+  worktree's own `templates/<t>/game/` was never opened by the editor, so the run logged 547 errors and wrote
+  `.godot` and `.import` files into the worktree; the 3D Third Person spawn pad ends 4.6 m ahead, so bodies filmed
+  walking off it played their fall (`OWN_AHEAD`); and that offset, read from the camera at each turn's start while
+  it still looked back at the body, put later variants 6 m behind the spawn. **Seen:** gdstudio #1155, 2026-11-11.
+
 ## sheet {#sheet}
 
 Tiles every `--every`-th frame (default 1) in `--columns` columns (default 4) into `sheet.png` in the folder. Tiles
