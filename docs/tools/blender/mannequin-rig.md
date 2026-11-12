@@ -83,6 +83,13 @@ The skin's weights run from the limb bone to its twist bone along the limb's len
 stay rigid on their parents and the body skins as a rig with no twist bones does, so a far level of detail and a
 dedicated server skip the modifier.
 
+A check in Blender turns them too: no clip keys a twist bone, so a build or a measure that skins the clip's pose
+alone reads the limbs' skin where no player sees it. `limb_overlap.apply_twist` (the template's
+`assets/animation/limb_overlap.py`) does the modifier's swing-twist split on the posed armature, and can use the
+modifier's own formula because Blender's glTF importer keeps the file's bone axes when it is called with
+`bone_heuristic="BLENDER"` (the default for these scripts); a Godot test that reads bones straight after
+`seek` calls `MannequinTwist.apply` itself ([solved clips](animation.md#solved-clips)).
+
 ## Sockets {#sockets}
 
 <!-- new section: sockets are named bones on this rig, so a weapon or a camera is attached by name on every body -->

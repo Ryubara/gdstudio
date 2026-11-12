@@ -10,8 +10,9 @@ Run it with the pinned Blender, headless (`gds tool path blender`), every path a
 
 It exits 1 when a clip goes deeper than `--limit` (default `LIMIT_MM`). With `--brief` the `--json` file holds only
 each clip's deepest crossing a body and the clip file's SHA-256, so a Godot test can read it and tell when the file
-it was measured on has changed (`prone/bodies_overlap.json`, `vault/bodies_overlap.json`, kit #1286). A build that keys clips imports this file
-and calls `measure()` on its baked actions before it exports (`vault/build_vault.py`).
+it was measured on has changed (`prone/<clip file>_overlap.json`, one a body's file, and `vault/bodies_overlap.json`,
+kit #1286). A build that keys clips imports this file and calls `measure()` on its baked actions before it exports
+(`vault/build_vault.py`).
 
 Which frames it measures: every key, at the clips' own frame rate. A glb stores key times in seconds and no frame
 rate, and Blender puts a key at its seconds times the scene's rate. So the command line reads the rate from the
@@ -30,7 +31,9 @@ an open rim alone reads a point beyond a limb's end as inside it). The depth is 
 nearest skin: how far the sample would have to move to be out. The deepest sample of a pair is the pair's depth.
 
 The clips play on a model as Godot plays them: each bone's rotation relative to its parent, on the model's own bone
-lengths, and the pelvis's place. So the male mannequin is measured with his longer arms, not the female's.
+lengths, and the pelvis's place. So the male mannequin is measured with his longer arms, not the female's. A body
+with twist bones (the prototype mannequins, kit #1149) has them turned as the game's `MannequinTwist` turns them
+(`apply_twist`), since no clip keys them and the forearm's and the thigh's skin follows them (kit #1293).
 """
 
 import argparse
@@ -88,6 +91,17 @@ JOINED = [
 ]
 LEG = ("thigh", "calf", "foot")
 ARM = ("upperarm", "lowerarm", "hand")
+## The twist bones of the prototype mannequin rig, as `mannequin_twist.gd` drives them: the twist bone's name, the
+## bone whose roll it reads, and whether it takes that roll back out (true) or copies it (false).
+TWISTS = [
+    (f"{twist}_twist_01_{side}", f"{source}_{side}", counter)
+    for side in ("l", "r")
+    for twist, source, counter in (
+        ("upperarm", "upperarm", True),
+        ("thigh", "thigh", True),
+        ("lowerarm", "hand", False),
+    )
+]
 
 
 def _kind(part):
@@ -104,6 +118,48 @@ def pair_class(a, b):
     """The kind of crossing a pair is: `leg/leg`, `arm/leg`, `arm/arm`, `leg/torso` or `arm/torso`."""
     kinds = sorted("leg" if _kind(p) in LEG else "arm" if _kind(p) in ARM else "torso" for p in (a, b))
     return "/".join(kinds)
+
+
+def roll_about_y(turn):
+    """The part of a quaternion that is a roll about the bone's length, its Y axis (the swing-twist split, as
+    `MannequinTwist.twist_about_y` does it)."""
+    roll = Quaternion((turn.w, 0.0, turn.y, 0.0))
+    return roll.normalized() if roll.magnitude > 1e-6 else Quaternion()
+
+
+def twist_turns(turn_of, rest_of):
+    """Each twist bone's rotation relative to its parent, as the game's `MannequinTwist` sets it for a pose.
+    `turn_of(bone)` and `rest_of(bone)` give a bone's posed and rest rotation relative to its parent, as quaternions
+    in the file's own bone axes (Blender's importer keeps them with `bone_heuristic="BLENDER"`, its default)."""
+    out = {}
+    for twist, source, counter in TWISTS:
+        if counter:
+            # the limb's turn from its rest, in its own axes; its roll is taken back out at the shoulder or hip
+            out[twist] = rest_of(twist) @ roll_about_y(rest_of(source).inverted() @ turn_of(source)).inverted()
+        else:
+            # the hand's turn from its rest, in the forearm's axes; the wrist end of the forearm takes its roll
+            out[twist] = roll_about_y(turn_of(source) @ rest_of(source).inverted()) @ rest_of(twist)
+    return out
+
+
+def apply_twist(arm):
+    """Turn the twist bones of an armature for the pose its limbs hold now (nothing on a rig without them)."""
+    bones = arm.pose.bones
+    if TWISTS[0][0] not in bones:
+        return
+    rest = {}
+    for twist, source, _ in TWISTS:
+        for name in (twist, source):
+            bone = arm.data.bones[name]
+            rest[name] = (bone.parent.matrix_local.inverted() @ bone.matrix_local).to_quaternion()
+
+    def turn_of(name):
+        return rest[name] @ bones[name].matrix_basis.to_quaternion()
+
+    for twist, turn in twist_turns(turn_of, rest.__getitem__).items():
+        bones[twist].rotation_mode = "QUATERNION"
+        bones[twist].rotation_quaternion = rest[twist].inverted() @ turn
+    bpy.context.view_layer.update()
 
 
 def roll_about(turn, axis):
@@ -152,7 +208,6 @@ class Body:
         self.rest_rel = {
             n: (rest[self.parent[n]].inverted() @ rest[n]) if self.parent[n] else rest[n].copy() for n in self.order
         }
-        self.twists = twist_bones(self.rest_rel)
         part_of = {}
         for name_ in self.order:  # parents come before children
             part_of[name_] = PARTS.get(name_) or part_of.get(self.parent[name_]) or "pelvis"
@@ -220,6 +275,7 @@ class Body:
         """Take the source armature's pose as Godot would play it here: each bone's rotation relative to its
         parent on this body's own bone lengths, and the pelvis's place."""
         if source is self.arm:
+            apply_twist(self.arm)
             return
         bones = source.pose.bones
         for name in self.order:
@@ -233,15 +289,7 @@ class Body:
             local = Matrix.LocRotScale(offset, rel.to_quaternion(), None)
             bone.matrix_basis = self.rest_rel[name].inverted() @ local
         bpy.context.view_layer.update()
-        # The twist bones as the game turns them near the camera, so the skin measured is the skin drawn.
-        own = self.arm.pose.bones
-        for twist, followed, axis, counter in self.twists:
-            rel = (own[self.parent[followed]].matrix.inverted() @ own[followed].matrix).to_quaternion()
-            roll = twist_roll(self.rest_rel, followed, rel, axis, counter)
-            rest = self.rest_rel[twist].to_quaternion()
-            own[twist].matrix_basis = (rest.inverted() @ roll @ rest).to_matrix().to_4x4()
-        if self.twists:
-            bpy.context.view_layer.update()
+        apply_twist(self.arm)
 
     def skinned(self):
         """Every welded vertex of the deformed mesh, in the world (an N x 3 array)."""

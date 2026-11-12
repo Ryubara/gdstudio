@@ -1,0 +1,36 @@
+{
+ "clips_file": "prone_male.glb",
+ "sha256": "e7a8d788ca642ffff5004c2718383a9df094521d0f2ddf5d60ae082676c83a12",
+ "fps": 30,
+ "limit_mm": 5.0,
+ "clips": {
+  "Crawl_Fwd_Loop": {
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
+  "Crouch_To_Prone": {
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
+  "Prone_Idle_Loop": {
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
+  "Prone_To_Crouch": {
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  }
+ }
+}

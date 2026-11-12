@@ -1,7 +1,7 @@
 """Build the template's prone and crawl clips and export them to glTF (kit #1009).
 
-GDStudio's own animation, made from nothing on the Quaternius universal rig (the female mannequin's skeleton, CC0),
-because the Universal Animation Library has no prone or crawl clip. Every frame is solved by this script from a few
+GDStudio's own animation, made from nothing on the Quaternius universal rig (CC0), one file a mannequin: `prone.glb`
+on the female's skeleton and skin and `prone_male.glb` on the male's (kit #1090; `BODIES` holds what differs), because the Universal Animation Library has no prone or crawl clip. Every frame is solved by this script from a few
 targets (where the pelvis lies, how the spine arches, where an elbow, a hand and a foot rest on the ground) and keyed
 on the armature in Blender; nothing is copied from another game's or pack's motion. The only pose read from
 another file is frame 0 of `Crouch_Idle_Loop`, where the two transitions have to start and end: GDStudio's own
@@ -9,15 +9,18 @@ crouch idle (`../own/locomotion.glb`, kit #1160), given as `--library`.
 
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute:
 
-    blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --male <mannequin_male.glb>
+    blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --other <mannequin_male.glb>
         --library <own/locomotion.glb> --out <prone.glb> [--report <numbers.json>]
+    blender -b --factory-startup -P build_prone_clips.py -- --body male --model <mannequin_male.glb>
+        --other <mannequin_female.glb> --library <own/locomotion.glb> --out <prone_male.glb> [--report <numbers.json>]
 
 Axes: Blender's, 1 unit = 1 m, up +Z, the mannequin faces -Y (Godot's +Z) with its left at +X. The clips are in place
 (the game moves the body) at 30 frames a second, the library's rate. The build fails before it exports when a loop
 does not close, a planted elbow, hand or foot slides, the body sinks into the floor or rises over the prone height, a
-transition does not start or end on the pose it joins, or a limb goes more than 5 mm into another part of the body on
-either mannequin (`../limb_overlap.py`, the check every clip build of the template shares; `--male` names the other
-mannequin).
+transition does not start or end on the pose it joins, a limb goes more than 5 mm into another part of the body
+(`../limb_overlap.py`, the check every clip build of the template shares) or a part named in `FLOOR_PARTS` goes more
+than 5 mm under the floor, on the skinned mesh of every body that plays the file (`PLAYED_BY`). `--other` names the
+other mannequin: the report has its numbers with the file's clips too, as Godot would play them on it.
 """
 
 import argparse
@@ -29,6 +32,9 @@ from pathlib import Path
 import bpy
 import numpy as np
 from mathutils import Matrix, Quaternion, Vector
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import limb_overlap  # the check every clip build of the template shares
 
 FPS = 30
 CLIPS = (
@@ -50,6 +56,7 @@ WRIST_H = 0.045  # the wrist joint over the floor when the hand lies flat
 FIST_H = 0.0655  # the wrist joint over the floor when the fist rests on its outer edge, rolled with the forearm
 ANKLE_H = 0.040  # the ankle joint over the floor when the foot lies on it
 KNEE_H = 0.058  # the knee joint over the floor when the knee rests on it
+LYING_REACH = 0.992  # how straight a lying leg is (ankle to hip over the leg's length): the knee hangs under the line
 TOE_H = 0.012  # the tip of the toe bone over the floor when the toes rest on it
 SQUASH = (
     0.006  # how far the belly may sink into the floor (a body flattens where it lies)
@@ -60,10 +67,16 @@ SQUASH = (
 # the hand part of the way back toward straight ahead.
 IDLE_FOREARM_IN = 29.5  # degrees a lying forearm points inward of straight ahead
 IDLE_ELBOW_OUT = 0.095  # metres a lying elbow rests outside its shoulder
+IDLE_ELBOW_FWD = 0.035  # metres a lying elbow rests ahead of its shoulder (the staggered pair's middle)
+IDLE_CLAV_PUSH = (
+    4.0  # degrees the collarbones push the shoulders toward the floor lying still
+)
 IDLE_STAGGER = (
     0.025  # metres the right elbow lies ahead of the middle and the left behind it
 )
 FOREARM_IN = 40.0  # degrees a planted forearm points inward in the crawl
+CRAWL_ELBOW_OUT = 0.085  # metres a crawling elbow plants outside its shoulder
+CRAWL_ELBOW_FWD = 0.17  # metres ahead of its shoulder a crawling elbow plants
 FOREARM_SWING = 14.0  # degrees it points inward at the top of its swing, so the hand passes outside the other
 FOREARM_ROLL = 45.0  # degrees a resting forearm is rolled onto its outer edge: the palm faces down and inward
 # The fist a resting hand is closed into: degrees each finger joint bends from the knuckle to the tip, and the way
@@ -103,7 +116,6 @@ LEG_DRAW = 0.70  # the phase the knee starts to draw up again
 IDLE_FRAMES = 90
 TO_PRONE_FRAMES = 27
 TO_CROUCH_FRAMES = 30
-HAND_FLOOR_LIMIT = 5.0  # millimetres a hand may be under the floor on either mannequin (skin pressed on it)
 FIST_LIMIT_IN = 3.0  # millimetres a finger piece may be inside the palm or another finger in the fist
 FIST_LIMIT_OFF = 5.0  # millimetres the thumb may be off the fingers it lies across
 OVERLAP_LIMIT = 5.0  # millimetres a part of the body may be inside another (`../limb_overlap.py`, both mannequins)
@@ -127,7 +139,265 @@ OPEN_FRAMES = (
     3,
     7,
 )  # coming up, the frames between which the fists open and the palms turn down
+ELBOW_CLEAR = (
+    0.22  # metres the elbows go out to the side going down, clear of the front knee
+)
 KNEE_OPEN = 0.45  # how far the front knee opens to the side going down (added to its unit direction)
+DIVE_LIFT = 0.0  # metres higher the pelvis is at the dive's key, where the back knee passes just over the floor
+FOOT_LIFT = 0.0  # metres more a lying foot lifts as it comes onto its toes to get up (thicker toes)
+# How each side lies in the prone idle when the two sides differ (kit #1293: a held pose is never a mirror of itself).
+# By side: `forearm_in` (degrees, in place of `IDLE_FOREARM_IN`), and the leg's `spread` (metres from the centre line
+# to the ankle), `straight` (in place of `LYING_REACH`), `knee` (the way it points: out to its side, up) and `flex`
+# (degrees the foot points), `foot_roll` (degrees the foot is rolled back onto its instep) and `ankle_up` (metres the
+# ankle rests over `ANKLE_H`: a leg turned out lies on the inner edge of its foot). None lies both sides alike, as the Quaternius mannequins' files do.
+IDLE_SIDES = None
+IDLE_HEAD = (
+    0.0,
+    0.0,
+)  # degrees the lying head is turned to its left and tipped, about which it drifts
+LYING_KNEE = (
+    1.0,
+    -0.35,
+)  # the way a lying knee points in the transitions: out to its side and up (negative is down)
+# Going down, the way a knee points while its foot is still coming down (out, up) and the frames it holds that until
+# and has turned to where it lies by; `LYING_KNEE` from frame 20 when None.
+LAND_KNEE = None
+# Going down, each hand's way over the front knee: metres out to its own side and up at frame 3 (from its place in
+# the crouch), and metres back, out and up at frame 5 (from where it lies).
+REACH_OVER = {
+    "l": ((0.03, 0.14), (0.24, 0.20, 0.22)),
+    "r": ((0.03, 0.14), (0.24, 0.20, 0.22)),
+}
+LAND_LIFT = 0.0  # metres over its lying place an ankle still is on the frame it used to arrive, going down
+UP_ELBOW_EARLY = None  # coming up, (frame, metres out, metres up) the elbows' hint has left the floor by
+LEG_IN_FRAME = 2  # going down, the frame from which the legs are the solved ones, not the crouch's own
+UP_ELBOW_FRAME = 8  # coming up, the frame the elbows have risen beside the chest
+# The transitions' two sides, each with its own numbers (kit #1293: a move never passes through a mirror of itself).
+# None on all four moves both arms on the same frames with a square trunk, as the Quaternius mannequins' files do.
+# `DOWN_HANDS`, by side: `frames` (the hand is over the knee, above its place, flat on the floor) and `roll` (the
+# frames between which its forearm rolls and its hand closes, in place of `ROLL_FRAMES`).
+DOWN_HANDS = None
+# `UP_HANDS`, by side: `under` (metres ahead of and out from where the hand pushes beside the chest), `frames` (it
+# leaves its lying place, is half way, is planted) and `open` (in place of `OPEN_FRAMES`).
+UP_HANDS = None
+# The chest's turn in each transition, as (yaw, roll) in degrees at its two keys (going down: the dive and the
+# landing; coming up: the first lift and the push), shared along the spine by `TURN_SHARE`.
+DOWN_TURN = None
+UP_TURN = None
+# By side, the way a knee points while it is bent under the body in the transitions (ahead, out to its side, up);
+# None points both (0.3, 1.0, -0.25).
+UNDER_KNEE = None
+TURN_SHARE = {
+    "pelvis": 0.3,
+    "spine_01": 0.5,
+    "spine_02": 0.75,
+    "spine_03": 1.0,
+    "neck_01": 0.5,
+    "Head": 0.15,
+}
+# Millimetres a wrist and a shoulder joint must be from the other side's mirror place on every frame of every clip
+# (wrists, shoulders; the crawl's shoulders are not held, they pass level twice a stride); None measures and reports
+# it without a limit.
+MIRROR_LIMIT = None
+CRAWL_REACH = None  # how straight a crawling leg drags (`LYING_REACH` when None)
+FLOOR_LIMIT = 5.0  # millimetres a part named in `FLOOR_PARTS` may be under the floor on the body solved on
+FLOOR_PARTS = (
+    "hand",
+)  # the parts of the body solved on that the build holds to `FLOOR_LIMIT`
+PLAYED_BY = (
+    "female",
+    "male",
+)  # the bodies that play the file: their fists and limbs are held to the limits
+
+# One file a body (kit #1090). The numbers above are the female mannequin's, the template's default, and build
+# `prone.glb`. A clip holds the pelvis's height and every joint angle that sets an elbow's or a knee's height, so
+# the male mannequin, whose upper arms are 5 cm longer and whose limbs are thicker, lies 2 to 4 cm in the floor in
+# her clips: `--body male` solves the same targets on his skeleton and skin with the numbers below in place of
+# hers and builds `prone_male.glb`. Only what his thicker limbs and longer arms need differs; the forearms' angle
+# and roll, the timing, the stride and so the crawl's speed are the same. What each group is for:
+# - thicker limbs: the joints rest higher (`ELBOW_H`, `FIST_H`, `WRIST_H`, `ANKLE_H`, `TOE_H`), and a lying leg is
+#   straighter (`LYING_REACH`), or his thick knees hold the pelvis 4 cm up and the belly never reaches the floor;
+# - upper arms 5 cm longer: on the same elbows his shoulders ride 7 cm higher and the back arches. The collarbones
+#   draw back instead (`IDLE_CLAV_PUSH`, `CRAWL_CLAV_PUSH`: the chest hangs between the shoulders, as it does on
+#   anyone propped on the elbows) and the elbows rest a little further out and ahead (`IDLE_ELBOW_*`,
+#   `CRAWL_ELBOW_OUT`), which also brings his fists as near the centre line as hers;
+# - the transitions: the pelvis higher where the back knee passes the floor (`DIVE_LIFT`), the feet higher as they
+#   come onto their toes (`FOOT_LIFT`), the elbows and the waiting left hand further out past the front knee
+#   (`ELBOW_CLEAR`, `HAND_WAIT`);
+# - the fist: his fingers are longer, so they curl 4 degrees less at the middle joint (`FIST_CURL`).
+BODIES = {
+    "female": {"OTHER": "male"},
+    "male": {
+        "OTHER": "female",
+        "ELBOW_H": 0.0569,
+        "FIST_H": 0.0666,
+        "WRIST_H": 0.051,
+        "ANKLE_H": 0.044,
+        "TOE_H": 0.023,
+        "LYING_REACH": 0.998,
+        "SQUASH": 0.003,
+        "IDLE_ELBOW_OUT": 0.11,
+        "IDLE_ELBOW_FWD": 0.08,
+        "IDLE_CLAV_PUSH": -16.0,
+        "CRAWL_ELBOW_OUT": 0.11,
+        "CRAWL_CLAV_PUSH": -12.0,
+        "DIVE_LIFT": 0.035,
+        "FOOT_LIFT": 0.02,
+        "ELBOW_CLEAR": 0.32,
+        "HAND_WAIT": {
+            "l": ((0.0, 0.26, 0.10), (-0.05, 0.28, 0.10)),
+            "r": ((0.0, 0.06, 0.04), (-0.03, 0.08, 0.04)),
+        },
+        "FIST_CURL": {
+            "index": (75.0, 84.0, 25.0),
+            "middle": (75.0, 84.0, 20.0),
+            "ring": (75.0, 84.0, 25.0),
+            "pinky": (75.0, 94.0, 25.0),
+        },
+        "FLOOR_PARTS": ("hand", "lowerarm", "thigh", "calf"),
+        "PLAYED_BY": ("male",),
+    },
+    "form_female": {
+        "OTHER": "form_male",
+        "ELBOW_H": 0.033,
+        "FIST_H": 0.0505,
+        "WRIST_H": 0.037,
+        "TOE_H": 0.033,
+        "LYING_REACH": 0.999,
+        "CRAWL_REACH": 0.996,
+        "SQUASH": 0.004,
+        "KNEE_H": 0.061,
+        "FIST_CURL": {
+            "index": (80.0, 100.0, 52.0),
+            "middle": (80.0, 100.0, 40.0),
+            "ring": (80.0, 98.0, 43.0),
+            "pinky": (80.0, 105.0, 45.0),
+        },
+        "IDLE_STAGGER": 0.04,
+        "IDLE_HEAD": (7.0, 3.0),
+        "IDLE_ELBOW_OUT": 0.07,
+        "IDLE_ELBOW_FWD": 0.09,
+        "IDLE_SIDES": {
+            "l": {
+                "forearm_in": 38.0,
+                "spread": 0.12,
+                "straight": 0.999,
+                "knee": (0.45, -1.0),
+                "flex": 64.0,
+            },
+            "r": {
+                "forearm_in": 31.0,
+                "spread": 0.19,
+                "straight": 0.990,
+                "knee": (1.0, -0.35),
+                "flex": 54.0,
+                "foot_roll": 13.0,
+                "ankle_up": 0.006,
+            },
+        },
+        "CRAWL_CLAV_PUSH": 2.0,
+        "DIVE_LIFT": 0.015,
+        "FOOT_LIFT": 0.02,
+        "LEG_IN_FRAME": 1,
+        "LAND_KNEE": (1.0, -0.35, 23, 26),
+        "LAND_LIFT": 0.012,
+        "ELBOW_CLEAR": 0.32,
+        "REACH_OVER": {
+            "l": ((0.03, 0.14), (0.12, 0.20, 0.22)),
+            "r": ((0.03, 0.14), (0.24, 0.20, 0.22)),
+        },
+        "UP_ELBOW_EARLY": (2, 0.05, 0.03),
+        "HAND_WAIT": {
+            "l": ((0.0, 0.34, 0.10), (-0.05, 0.40, 0.10)),
+            "r": ((0.0, 0.06, 0.04), (-0.03, 0.08, 0.04)),
+        },
+        "DOWN_HANDS": {
+            "l": {"frames": (3, 5, 8), "roll": (11, 18)},
+            "r": {"frames": (4, 7, 11), "roll": (14, 21)},
+        },
+        "DOWN_TURN": ((8.0, -6.0), (4.0, 5.0)),
+        "UP_HANDS": {
+            "l": {"under": (-0.05, 0.23), "frames": (1, 4, 7), "open": (2, 6)},
+            "r": {"under": (0.06, 0.28), "frames": (2, 5, 9), "open": (4, 8)},
+        },
+        "UP_TURN": ((4.0, 5.0), (8.0, -6.0)),
+        "UNDER_KNEE": {"l": (0.3, 1.0, -0.1), "r": (0.9, 0.55, -0.25)},
+        "MIRROR_LIMIT": (90.0, 25.0),
+        "FLOOR_PARTS": ("hand", "lowerarm", "thigh", "calf", "foot"),
+        "PLAYED_BY": ("form_female",),
+    },
+    "form_male": {
+        "OTHER": "form_female",
+        "ELBOW_H": 0.040,
+        "FIST_H": 0.055,
+        "WRIST_H": 0.040,
+        "ANKLE_H": 0.046,
+        "TOE_H": 0.036,
+        "LYING_REACH": 0.999,
+        "CRAWL_REACH": 0.996,
+        "SQUASH": 0.003,
+        "KNEE_H": 0.061,
+        "FIST_CURL": {
+            "index": (80.0, 100.0, 50.0),
+            "middle": (80.0, 98.0, 38.0),
+            "ring": (80.0, 96.0, 42.0),
+            "pinky": (80.0, 103.0, 43.0),
+        },
+        "IDLE_STAGGER": 0.04,
+        "IDLE_HEAD": (7.0, 3.0),
+        "IDLE_ELBOW_OUT": 0.07,
+        "IDLE_ELBOW_FWD": 0.12,
+        "IDLE_CLAV_PUSH": -4.0,
+        "IDLE_SIDES": {
+            "l": {
+                "forearm_in": 38.0,
+                "spread": 0.12,
+                "straight": 0.999,
+                "knee": (0.45, -1.0),
+                "flex": 64.0,
+            },
+            "r": {
+                "forearm_in": 31.0,
+                "spread": 0.19,
+                "straight": 0.990,
+                "knee": (1.0, -0.35),
+                "flex": 54.0,
+                "foot_roll": 13.0,
+                "ankle_up": 0.006,
+            },
+        },
+        "CRAWL_CLAV_PUSH": -12.0,
+        "DIVE_LIFT": 0.015,
+        "FOOT_LIFT": 0.02,
+        "LEG_IN_FRAME": 1,
+        "LAND_KNEE": (1.0, -0.35, 23, 26),
+        "LAND_LIFT": 0.012,
+        "ELBOW_CLEAR": 0.32,
+        "REACH_OVER": {
+            "l": ((0.03, 0.14), (0.12, 0.20, 0.22)),
+            "r": ((0.03, 0.14), (0.24, 0.20, 0.22)),
+        },
+        "UP_ELBOW_EARLY": (2, 0.05, 0.03),
+        "HAND_WAIT": {
+            "l": ((0.0, 0.34, 0.10), (-0.05, 0.40, 0.10)),
+            "r": ((0.0, 0.06, 0.04), (-0.03, 0.08, 0.04)),
+        },
+        "DOWN_HANDS": {
+            "l": {"frames": (3, 5, 8), "roll": (11, 18)},
+            "r": {"frames": (4, 7, 11), "roll": (14, 21)},
+        },
+        "DOWN_TURN": ((8.0, -6.0), (4.0, 5.0)),
+        "UP_HANDS": {
+            "l": {"under": (-0.05, 0.23), "frames": (1, 4, 7), "open": (2, 6)},
+            "r": {"under": (0.06, 0.28), "frames": (2, 5, 9), "open": (4, 8)},
+        },
+        "UP_TURN": ((4.0, 5.0), (8.0, -6.0)),
+        "UNDER_KNEE": {"l": (0.3, 1.0, -0.1), "r": (0.9, 0.55, -0.25)},
+        "MIRROR_LIMIT": (90.0, 25.0),
+        "FLOOR_PARTS": ("hand", "lowerarm", "thigh", "calf", "foot"),
+        "PLAYED_BY": ("form_male",),
+    },
+}
 
 
 # ---- small maths ------------------------------------------------------------------------------------------------
@@ -259,6 +529,12 @@ class Rig:
         depth = {b.name: len(b.parent_recursive) for b in bones}
         bones.sort(key=lambda b: depth[b.name])
         self.names = [b.name for b in bones]
+        # the prototype rig's leaves that no clip keys: the twist bones (turned as the game turns them, in
+        # `world`), the sockets and the IK targets (left at rest)
+        self.extra = {
+            n for n in self.names if "_twist_" in n or n.startswith(("socket_", "ik_"))
+        }
+        self.twisted = any("_twist_" in n for n in self.names)
         self.parent = {b.name: (b.parent.name if b.parent else None) for b in bones}
         self.rest = {b.name: np.array(b.matrix_local) for b in bones}
         self.rest_rot = {n: m[:3, :3] for n, m in self.rest.items()}
@@ -302,16 +578,29 @@ class Rig:
         self.rest_inv = np.stack([np.linalg.inv(self.rest[n]) for n in self.names])
 
     def world(self, local_rot, pelvis_pos):
-        """World matrices of a pose given as local rotations and the pelvis's place."""
+        """World matrices of a pose given as local rotations and the pelvis's place. A bone the pose does not hold
+        (`extra`) rests on its parent, but the twist bones, which turn as the game's `MannequinTwist` turns them."""
         out = {}
+        twists = {}
+        if self.twisted:
+            twists = {
+                n: np.array(q.to_matrix())
+                for n, q in limb_overlap.twist_turns(
+                    lambda n: to_quat(local_rot[n]),
+                    lambda n: to_quat(self.local_rot[n]),
+                ).items()
+            }
         for n in self.names:
             p = self.parent[n]
             m = np.eye(4)
+            rot = local_rot.get(n)
+            if rot is None:
+                rot = twists.get(n, self.local_rot[n])
             if p is None:
-                m[:3, :3] = local_rot[n]
+                m[:3, :3] = rot
                 m[:3, 3] = self.local_pos[n]
             else:
-                m[:3, :3] = out[p][:3, :3] @ local_rot[n]
+                m[:3, :3] = out[p][:3, :3] @ rot
                 m[:3, 3] = (
                     pelvis_pos
                     if n == "pelvis"
@@ -587,6 +876,8 @@ class Solver:
         fist = spec.get("fist", {})
         local = {}
         for n in rig.names:
+            if n in rig.extra:
+                continue
             p = rig.parent[n]
             if n in world:
                 local[n] = (
@@ -660,7 +951,7 @@ def prone_base(pelvis_up):
             "Head": (24.0, 0.0, 0.0),
         },
         "comply": True,
-        "clav": {"l": (8.0, 4.0), "r": (8.0, 4.0)},
+        "clav": {"l": (8.0, IDLE_CLAV_PUSH), "r": (8.0, IDLE_CLAV_PUSH)},
         "arm": {},
         "leg": {},
         "curl": {"l": 2.0, "r": 2.0},
@@ -670,8 +961,10 @@ def prone_base(pelvis_up):
     return spec
 
 
-def idle_spec(rig, phase, pelvis_up, anchor):
-    """Prone idle: one slow breath over the loop, the head drifting a little, elbows and hands where they lie."""
+def idle_spec(rig, phase, pelvis_up, anchor, own=True):
+    """Prone idle: one slow breath over the loop, the head drifting a little, elbows and hands where they lie. With
+    `own` false the two sides lie alike whatever `IDLE_SIDES` says: the pose the shoulders and hips are measured in
+    for every clip."""
     breath = math.sin(2 * math.pi * phase)
     late = math.sin(2 * math.pi * (phase - 0.12))
     look = math.sin(2 * math.pi * phase + 1.1)
@@ -680,22 +973,36 @@ def idle_spec(rig, phase, pelvis_up, anchor):
     trunk["spine_01"] = (85.0 - 0.5 * breath, 0.0, 0.0)
     trunk["spine_02"] = (76.0 - 1.0 * breath, 0.6 * look, 0.0)
     trunk["spine_03"] = (66.0 - 1.4 * breath, 1.0 * look, 0.0)
-    trunk["neck_01"] = (46.0 - 1.2 * late, 2.0 * look, 0.0)
-    trunk["Head"] = (17.0 - 1.6 * late, 4.0 * look, 0.6 * look)
+    turned, tipped = IDLE_HEAD if own else (0.0, 0.0)
+    trunk["neck_01"] = (46.0 - 1.2 * late, 2.0 * look + 0.4 * turned, 0.0)
+    trunk["Head"] = (17.0 - 1.6 * late, 4.0 * look + turned, 0.6 * look + tipped)
     for s, sign in SIDES:
-        spec["clav"][s] = (8.0 + 1.5 * breath, 4.0 + 1.2 * breath)
+        spec["clav"][s] = (8.0 + 1.5 * breath, IDLE_CLAV_PUSH + 1.2 * breath)
         elbow = vec(
-            anchor["shoulder_fwd"] + 0.035 - sign * IDLE_STAGGER,
+            anchor["shoulder_fwd"] + IDLE_ELBOW_FWD - sign * IDLE_STAGGER,
             sign * (anchor["shoulder_left"] + IDLE_ELBOW_OUT),
             ELBOW_H,
         )
-        reach = math.radians(IDLE_FOREARM_IN)
+        side = (IDLE_SIDES or {}).get(s, {}) if own else {}
+        inward = side.get("forearm_in", IDLE_FOREARM_IN)
+        reach = math.radians(inward)
         flat = math.sqrt(rig.len["lowerarm_" + s] ** 2 - (ELBOW_H - FIST_H) ** 2)
         wrist = elbow + vec(
             flat * math.cos(reach), -sign * flat * math.sin(reach), FIST_H - ELBOW_H
         )
-        spec["arm"][s] = forearm_on_floor(elbow, wrist, sign, IDLE_FOREARM_IN)
+        spec["arm"][s] = forearm_on_floor(elbow, wrist, sign, inward)
         spec["leg"][s] = lying_leg(rig, sign, anchor)
+        if side:
+            spec["leg"][s] = lying_leg(
+                rig, sign, anchor, spread=side["spread"], straight=side["straight"]
+            ) | {
+                "pole": vec(0.0, sign * side["knee"][0], side["knee"][1]),
+                "flex": side["flex"],
+                "foot_roll": sign * side.get("foot_roll", 0.0),
+            }
+            spec["leg"][s]["ankle"] = spec["leg"][s]["ankle"] + vec(
+                0.0, 0.0, side.get("ankle_up", 0.0)
+            )
     return spec
 
 
@@ -713,9 +1020,9 @@ def forearm_on_floor(elbow, wrist, sign, inward, roll=FOREARM_ROLL):
     }
 
 
-def lying_leg(rig, sign, anchor, spread=0.13):
+def lying_leg(rig, sign, anchor, spread=0.13, straight=None):
     """A straight leg lying behind the body, the instep on the floor and the toes a little out."""
-    reach = (rig.len["thigh_l"] + rig.len["calf_l"]) * 0.992
+    reach = (rig.len["thigh_l"] + rig.len["calf_l"]) * (straight or LYING_REACH)
     drop = anchor["hip_up"] - ANKLE_H
     side = spread - anchor["hip_left"]
     back = math.sqrt(reach**2 - drop**2 - side**2)
@@ -753,8 +1060,8 @@ def crawl_spec(rig, phase, pelvis_up, anchor):
             lift**0.45
         )  # the forearm opens out sooner than it rises, clear of its own shoulder
         elbow = vec(
-            anchor["shoulder_fwd"] + 0.17 - travel + fwd,
-            sign * (anchor["shoulder_left"] + 0.085 + 0.03 * swing),
+            anchor["shoulder_fwd"] + CRAWL_ELBOW_FWD - travel + fwd,
+            sign * (anchor["shoulder_left"] + CRAWL_ELBOW_OUT + 0.03 * swing),
             ELBOW_H + CRAWL_ELBOW_UP + 0.05 * lift,
         )
         inward = FOREARM_IN - (FOREARM_IN - FOREARM_SWING) * swing
@@ -771,7 +1078,7 @@ def crawl_spec(rig, phase, pelvis_up, anchor):
         )  # the fist loosens a little while it is carried
 
         fwd, lift, push = leg_stroke(leg_phase)
-        straight = lying_leg(rig, sign, anchor, spread=0.19)
+        straight = lying_leg(rig, sign, anchor, spread=0.19, straight=CRAWL_REACH)
         ankle = straight["ankle"] + vec(
             fwd, sign * 0.03 * lift, 0.012 + 0.012 * lift + 0.05 * push
         )
@@ -849,7 +1156,7 @@ def measure_anchor(rig, solver):
         pose = settle(
             rig,
             solver,
-            lambda up, anchor=anchor: idle_spec(rig, 0.0, up, anchor),
+            lambda up, anchor=anchor: idle_spec(rig, 0.0, up, anchor, own=False),
             anchor,
         )
         world = rig.world(pose["local"], pose["pelvis"])
@@ -932,12 +1239,15 @@ def transition(rig, solver, count, keys, limbs_from, anchor_pose):
         spec = {
             "pelvis_pos": keyed(keys["pelvis"], f),
             "trunk": {n: keyed_turn(keys["trunk"][n], f) for n in TRUNK},
-            "clav": {s: tuple(keyed(keys["clav"], f)) for s, _ in SIDES},
+            "clav": {
+                s: tuple(keyed(keys["clav"], f) + (0.0, keyed(keys["clav_push"], f)))
+                for s, _ in SIDES
+            },
             "arm": {},
             "leg": {},
-            "curl": {s: keyed(keys["curl"], f) for s, _ in SIDES},
-            "thumb_flat": {s: keyed(keys["thumb_flat"], f) for s, _ in SIDES},
-            "fist": {s: keyed(keys["fist"], f) for s, _ in SIDES},
+            "curl": {s: keyed(keys["curl"][s], f) for s, _ in SIDES},
+            "thumb_flat": {s: keyed(keys["thumb_flat"][s], f) for s, _ in SIDES},
+            "fist": {s: keyed(keys["fist"][s], f) for s, _ in SIDES},
         }
         for s, _ in SIDES:
             spec["arm"][s] = {
@@ -997,6 +1307,44 @@ def pose_points(rig, pose):
     return out
 
 
+def turned(trunk, turn):
+    """A trunk pose (pitch, yaw, roll by bone) with a chest turn (yaw, roll) shared along the spine."""
+    if not turn:
+        return trunk
+    return {
+        b: (v[0], v[1] + turn[0] * TURN_SHARE[b], v[2] + turn[1] * TURN_SHARE[b])
+        for b, v in trunk.items()
+    }
+
+
+def hand_frames(side):
+    """The frames a hand is planted on in the transitions: going down from `[0]` until it starts to roll at `[1]`
+    and again from `[2]`, coming up from `[3]` until it leaves the floor."""
+    down, up = (DOWN_HANDS or {}).get(side, {}), (UP_HANDS or {}).get(side, {})
+    roll = down.get("roll", ROLL_FRAMES)
+    return (
+        down.get("frames", (3, 5, 9))[2] + 1,
+        roll[0],
+        roll[1],
+        up.get("frames", (1, 4, 8))[2],
+    )
+
+
+def mirror_numbers(rig, frames):
+    """How far the pose is from a mirror of itself: the least distance, over the frames, between each left joint
+    and the right one's place mirrored across the body's middle, in millimetres with the frame it is at."""
+    left = vec(0.0, 1.0, 0.0)
+    flip = np.eye(3) - 2.0 * np.outer(left, left)
+    least = {}
+    for f, pose in enumerate(frames):
+        world = rig.world(pose["local"], pose["pelvis"])
+        for joint, bone in (("wrist", "hand"), ("elbow", "lowerarm"), ("shoulder", "upperarm"), ("knee", "calf"), ("ankle", "foot")):
+            apart = float(np.linalg.norm(world[bone + "_l"][:3, 3] - flip @ world[bone + "_r"][:3, 3])) * 1000.0
+            if joint not in least or apart < least[joint][0]:
+                least[joint] = [round(apart, 1), f]
+    return least
+
+
 def build_transitions(rig, solver, anchor, crouch, clips):
     """Crouch to prone and back. Down: the hands reach for the floor ahead, the chest follows them down while the
     feet go back one after the other, and the body settles on its forearms. Up: the hands come back beside the
@@ -1004,12 +1352,27 @@ def build_transitions(rig, solver, anchor, crouch, clips):
     idle = clips["Prone_Idle_Loop"][0]
     c, p = pose_points(rig, crouch), pose_points(rig, idle)
     down = np.array([0.0, 0.0, -1.0])
-    lying_knee = {s: vec(0.0, sign * 1.0, -0.35) for s, sign in SIDES}
+    lying_knee = {s: vec(0.0, sign * LYING_KNEE[0], LYING_KNEE[1]) for s, sign in SIDES}
+    lying_flex = {s: 62.0 for s, _ in SIDES}
+    if IDLE_SIDES:
+        for s, sign in SIDES:
+            lying_knee[s] = vec(
+                0.0, sign * IDLE_SIDES[s]["knee"][0], IDLE_SIDES[s]["knee"][1]
+            )
+            lying_flex[s] = IDLE_SIDES[s]["flex"]
     crouch_knee = {s: unit(c["knee_" + s] - c["hip_" + s]) for s, _ in SIDES}
     under_knee = {
         s: unit(vec(0.3, sign * 1.0, -0.25)) for s, sign in SIDES
     }  # a bent knee goes out to the side
+    if UNDER_KNEE:
+        under_knee = {
+            s: unit(vec(UNDER_KNEE[s][0], sign * UNDER_KNEE[s][1], UNDER_KNEE[s][2]))
+            for s, sign in SIDES
+        }
     r0, l0 = c["ankle_r"], c["ankle_l"]
+    lying_push = (
+        IDLE_CLAV_PUSH - 4.0
+    )  # what the lying pose's collarbones add to the transitions' own push
 
     # ---- crouch to prone: the left foot is the front one in the crouch, the right is back on its toes
     n = TO_PRONE_FRAMES
@@ -1029,10 +1392,12 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "neck_01": (52, 0, 0),
         "Head": (30, 0, 0),
     }
+    down_dive = turned(dive, DOWN_TURN and DOWN_TURN[0])
+    down_land = turned(land, DOWN_TURN and DOWN_TURN[1])
     keys = {
         "pelvis": [
             (0, c["pelvis"]),
-            (9, vec(0.08, 0.0, 0.39)),
+            (9, vec(0.08, 0.0, 0.39 + DIVE_LIFT)),
             (15, vec(0.03, 0.0, 0.33)),
             (20, vec(0.0, 0.0, 0.215)),
             (24, p["pelvis"]),
@@ -1041,23 +1406,19 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "trunk": {
             b: [
                 (0, c["trunk"][b]),
-                (9, trunk_turn(*dive[b])),
-                (18, trunk_turn(*land[b])),
+                (9, trunk_turn(*down_dive[b])),
+                (18, trunk_turn(*down_land[b])),
                 (24, p["trunk"][b]),
                 (n, p["trunk"][b]),
             ]
             for b in TRUNK
         },
         "clav": [(0, (8.0, 4.0)), (n, (8.0, 4.0))],
-        "curl": [(0, 12.0), (9, 2.0), (n, 2.0)],
-        "thumb_flat": [(0, 0.0), (9, 1.0), (n, 1.0)],
-        # the open hands catch the body; as the elbows come down the forearms roll and the hands close
-        "fist": [
-            (0, 0.0),
-            (ROLL_FRAMES[0] + 1, 0.0),
-            (ROLL_FRAMES[1] - 1, 1.0),
-            (n, 1.0),
-        ],
+        # the collarbones take the lying pose's push as the elbows come down
+        "clav_push": [(0, 0.0), (12, 0.0), (19, lying_push), (n, lying_push)],
+        "curl": {},
+        "thumb_flat": {},
+        "fist": {},
         "wrist": {},
         "elbow": {},
         "palm": {},
@@ -1067,41 +1428,49 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "flex": {},
         "foot_world": {},
         "arm_w": [(0, 0.0), (4, 1.0), (n, 1.0)],
-        "leg_w": [(0, 0.0), (2, 1.0), (n, 1.0)],
+        "leg_w": [(0, 0.0), (LEG_IN_FRAME, 1.0), (n, 1.0)],
         "anchor_w": [(0, 0.0), (21, 0.0), (n, 1.0)],
     }
     for s, sign in SIDES:
-        above = p["wrist_" + s] + vec(-0.24, sign * 0.20, 0.22)
+        over, back = REACH_OVER[s]
+        hand = (DOWN_HANDS or {}).get(s, {})
+        over_f, above_f, land_f = hand.get("frames", (3, 5, 9))
+        roll = hand.get("roll", ROLL_FRAMES)
+        keys["curl"][s] = [(0, 12.0), (land_f, 2.0), (n, 2.0)]
+        keys["thumb_flat"][s] = [(0, 0.0), (land_f, 1.0), (n, 1.0)]
+        # the open hands catch the body; as the elbows come down the forearms roll and the hands close
+        keys["fist"][s] = [(0, 0.0), (roll[0] + 1, 0.0), (roll[1] - 1, 1.0), (n, 1.0)]
+        above = p["wrist_" + s] + vec(-back[0], sign * back[1], back[2])
         flat_hand = p["wrist_" + s] * np.array([1.0, 1.0, 0.0]) + vec(0.0, 0.0, WRIST_H)
         keys["wrist"][s] = [
             (0, c["wrist_" + s]),
             (
-                3,
-                c["wrist_" + s] + vec(0.16, sign * 0.03, 0.14),
+                over_f,
+                c["wrist_" + s] + vec(0.16, sign * over[0], over[1]),
             ),  # up and ahead, over the knee
-            (5, above),
-            (9, flat_hand),
-            (ROLL_FRAMES[0], flat_hand),
+            (above_f, above),
+            (land_f, flat_hand),
+            (roll[0], flat_hand),
             # the hand lifts off the floor to close: a fist is taller than a flat hand
-            (ROLL_FRAMES[0] + 3, p["wrist_" + s] + vec(0.0, 0.0, HAND_LIFT)),
-            (ROLL_FRAMES[1], p["wrist_" + s]),
+            (roll[0] + 3, p["wrist_" + s] + vec(0.0, 0.0, HAND_LIFT)),
+            (roll[1], p["wrist_" + s]),
             (n, p["wrist_" + s]),
         ]
         keys["elbow"][s] = [
             (0, c["elbow_" + s]),
             (
-                4,
-                c["elbow_" + s] + vec(-0.04, sign * 0.22, 0.14),
+                over_f + 1,
+                c["elbow_" + s] + vec(-0.04, sign * ELBOW_CLEAR, 0.14),
             ),  # out, clear of the knee
-            (9, p["elbow_" + s] + vec(-0.1, sign * 0.1, 0.25)),
-            (19, p["elbow_" + s]),
+            (land_f, p["elbow_" + s] + vec(-0.1, sign * 0.1, 0.25)),
+            (roll[1], p["elbow_" + s]),
             (n, p["elbow_" + s]),
         ]
         keys["palm"][s] = [
             (0, c["palm_" + s]),
-            (8, down),
-            (ROLL_FRAMES[0], down),
-            (ROLL_FRAMES[1] - 2, p["palm_" + s]),
+            (land_f - 1, down),
+            (roll[0], down),
+            (roll[1] - 2, p["palm_" + s]),
             (n, p["palm_" + s]),
         ]
         # the flat hands land pointing nearly straight ahead, clear of each other, and turn in as they close
@@ -1110,9 +1479,9 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         )
         keys["fingers"][s] = [
             (0, c["fingers_" + s]),
-            (8, landing),
-            (ROLL_FRAMES[0] + 2, landing),
-            (ROLL_FRAMES[1], p["fingers_" + s]),
+            (land_f - 1, landing),
+            (roll[0] + 2, landing),
+            (roll[1], p["fingers_" + s]),
             (n, p["fingers_" + s]),
         ]
     # the right foot slides back on its toes; the left steps back after the hands have landed
@@ -1123,7 +1492,7 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         (8, (r0 + p["ankle_r"]) / 2 + vec(0.0, 0.0, STEP_LIFT)),
         (14, p["ankle_r"] + vec(0.07, 0.0, 0.10)),
         (19, p["ankle_r"] + vec(0.03, 0.0, 0.07)),
-        (24, p["ankle_r"]),
+        (24, p["ankle_r"] + vec(0.0, 0.0, LAND_LIFT)),
         (n, p["ankle_r"]),
     ]
     keys["ankle"]["l"] = [
@@ -1133,7 +1502,7 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         (13, (l0 + p["ankle_l"]) / 2 + vec(0.0, 0.03, 0.20)),
         (17, p["ankle_l"] + vec(0.05, 0.0, 0.10)),
         (20, p["ankle_l"] + vec(0.03, 0.0, 0.07)),
-        (25, p["ankle_l"]),
+        (25, p["ankle_l"] + vec(0.0, 0.0, LAND_LIFT)),
         (n, p["ankle_l"]),
     ]
     # the front (left) knee opens to the side as the chest comes down, so the chest passes beside it
@@ -1146,6 +1515,14 @@ def build_transitions(rig, solver, anchor, crouch, clips):
             (20, lying_knee[s]),
             (n, lying_knee[s]),
         ]
+        if LAND_KNEE:
+            # the knee stays out to the side until the foot is down, then turns to where it lies
+            out = vec(0.0, sign * LAND_KNEE[0], LAND_KNEE[1])
+            keys["knee"][s][3:] = [
+                (20, out),
+                (LAND_KNEE[2], out),
+                (LAND_KNEE[3], lying_knee[s]),
+            ] + ([(n, lying_knee[s])] if LAND_KNEE[3] < n else [])
         if s == "l":
             keys["knee"][s][1:2] = [
                 (2, crouch_knee[s]),
@@ -1161,14 +1538,20 @@ def build_transitions(rig, solver, anchor, crouch, clips):
                 (n, 0.0),
             ],
         )
-    keys["flex"]["r"] = [(0, 20.0), (14, 22.0), (19, 30.0), (24, 62.0), (n, 62.0)]
+    keys["flex"]["r"] = [
+        (0, 20.0),
+        (14, 22.0),
+        (19, 30.0),
+        (24, lying_flex["r"]),
+        (n, lying_flex["r"]),
+    ]
     keys["flex"]["l"] = [
         (0, 0.0),
         (13, 30.0),
         (17, 22.0),
         (20, 30.0),
-        (25, 62.0),
-        (n, 62.0),
+        (25, lying_flex["l"]),
+        (n, lying_flex["l"]),
     ]
     to_prone = transition(rig, solver, n, keys, crouch, idle)
 
@@ -1182,6 +1565,8 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "neck_01": (70, 0, 0),
         "Head": (44, 0, 0),
     }
+    up_land = turned(land, UP_TURN and UP_TURN[0])
+    up_push = turned(push, UP_TURN and UP_TURN[1])
     keys = {
         "pelvis": [
             (0, p["pelvis"]),
@@ -1195,18 +1580,20 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "trunk": {
             b: [
                 (0, p["trunk"][b]),
-                (5, trunk_turn(*land[b])),
-                (14, trunk_turn(*push[b])),
+                (5, trunk_turn(*up_land[b])),
+                (14, trunk_turn(*up_push[b])),
                 (25, c["trunk"][b]),
                 (n, c["trunk"][b]),
             ]
             for b in TRUNK
         },
         "clav": [(0, (8.0, 4.0)), (n, (8.0, 4.0))],
-        "curl": [(0, 2.0), (14, 2.0), (22, 12.0), (n, 12.0)],
-        "thumb_flat": [(0, 1.0), (14, 1.0), (22, 0.0), (n, 0.0)],
-        # the fists open as the hands come back beside the chest: the push is on flat palms
-        "fist": [(0, 1.0), (OPEN_FRAMES[0], 1.0), (OPEN_FRAMES[1], 0.0), (n, 0.0)],
+        "clav_push": [(0, lying_push), (2, lying_push), (8, 0.0), (n, 0.0)],
+        "curl": {s: [(0, 2.0), (14, 2.0), (22, 12.0), (n, 12.0)] for s, _ in SIDES},
+        "thumb_flat": {
+            s: [(0, 1.0), (14, 1.0), (22, 0.0), (n, 0.0)] for s, _ in SIDES
+        },
+        "fist": {},
         "wrist": {},
         "elbow": {},
         "palm": {},
@@ -1220,13 +1607,20 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         "anchor_w": [(0, 1.0), (4, 0.0), (n, 0.0)],
     }
     for s, sign in SIDES:
-        under = vec(-p["shoulder_" + s][1] - 0.06, sign * 0.23, WRIST_H)
+        hand = (UP_HANDS or {}).get(s, {})
+        ahead_of, out = hand.get("under", (0.0, 0.23))
+        start_f, half_f, under_f = hand.get("frames", (1, 4, 8))
+        opens = hand.get("open", OPEN_FRAMES)
+        elbow_f = under_f if UP_HANDS else UP_ELBOW_FRAME
+        under = vec(-p["shoulder_" + s][1] - 0.06 + ahead_of, sign * out, WRIST_H)
         leave, wait, arrive = HAND_WAIT_FRAMES[s]
+        # the fists open as the hands come back beside the chest: the push is on flat palms
+        keys["fist"][s] = [(0, 1.0), (opens[0], 1.0), (opens[1], 0.0), (n, 0.0)]
         keys["wrist"][s] = [
             (0, p["wrist_" + s]),
-            (1, p["wrist_" + s]),
-            (4, (p["wrist_" + s] + under) / 2 + vec(0, 0, 0.06)),
-            (8, under),
+            (start_f, p["wrist_" + s]),
+            (half_f, (p["wrist_" + s] + under) / 2 + vec(0, 0, 0.06)),
+            (under_f, under),
             (leave, under),
             (
                 wait,
@@ -1237,7 +1631,18 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         ]
         keys["elbow"][s] = [
             (0, p["elbow_" + s]),
-            (8, under + vec(-0.25, sign * 0.12, 0.2)),
+            *(
+                [
+                    (
+                        UP_ELBOW_EARLY[0],
+                        p["elbow_" + s]
+                        + vec(0.0, sign * UP_ELBOW_EARLY[1], UP_ELBOW_EARLY[2]),
+                    )
+                ]
+                if UP_ELBOW_EARLY
+                else []
+            ),
+            (elbow_f, under + vec(-0.25, sign * 0.12, 0.2)),
             (15, under + vec(-0.25, sign * 0.12, 0.3)),
             (
                 wait,
@@ -1248,8 +1653,8 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         ]
         keys["palm"][s] = [
             (0, p["palm_" + s]),
-            (OPEN_FRAMES[0], p["palm_" + s]),
-            (OPEN_FRAMES[1], down),
+            (opens[0], p["palm_" + s]),
+            (opens[1], down),
             (15, down),
             (22, c["palm_" + s]),
             (n, c["palm_" + s]),
@@ -1257,7 +1662,7 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         ahead = vec(1.0, -sign * 0.25, 0.0)
         keys["fingers"][s] = [
             (0, p["fingers_" + s]),
-            (8, ahead),
+            (under_f, ahead),
             (15, ahead),
             (22, c["fingers_" + s]),
             (n, c["fingers_" + s]),
@@ -1265,7 +1670,7 @@ def build_transitions(rig, solver, anchor, crouch, clips):
     # the right knee bends under the body on its toes first; the left foot then steps up to the front
     keys["ankle"]["r"] = [
         (0, p["ankle_r"]),
-        (4, p["ankle_r"] + vec(0.0, 0.0, 0.07)),
+        (4, p["ankle_r"] + vec(0.0, 0.0, 0.07 + FOOT_LIFT)),
         (8, p["ankle_r"] + vec(0.0, 0.0, 0.10)),
         (13, (r0 + p["ankle_r"]) / 2 + vec(0.0, 0.0, STEP_LIFT)),
         (17, r0),
@@ -1273,7 +1678,7 @@ def build_transitions(rig, solver, anchor, crouch, clips):
     ]
     keys["ankle"]["l"] = [
         (0, p["ankle_l"]),
-        (5, p["ankle_l"] + vec(0.0, 0.0, 0.07)),
+        (5, p["ankle_l"] + vec(0.0, 0.0, 0.07 + FOOT_LIFT)),
         (11, p["ankle_l"] + vec(0.0, 0.0, 0.10)),
         (17, (l0 + p["ankle_l"]) / 2 + vec(0.05, 0.05, 0.16)),
         (22, l0 + vec(0.0, 0.0, 0.02)),
@@ -1297,9 +1702,15 @@ def build_transitions(rig, solver, anchor, crouch, clips):
                 (n, 1.0),
             ],
         )
-    keys["flex"]["r"] = [(0, 62.0), (4, 30.0), (8, 22.0), (17, 20.0), (n, 20.0)]
+    keys["flex"]["r"] = [
+        (0, lying_flex["r"]),
+        (4, 30.0),
+        (8, 22.0),
+        (17, 20.0),
+        (n, 20.0),
+    ]
     keys["flex"]["l"] = [
-        (0, 62.0),
+        (0, lying_flex["l"]),
         (5, 30.0),
         (11, 22.0),
         (17, 30.0),
@@ -1352,6 +1763,8 @@ def key_clip(arm, rig, name, frames):
     for f, pose in enumerate(frames):
         for pb in arm.pose.bones:
             n = pb.name
+            if n in rig.extra:
+                continue
             basis = rig.local_rot[n].T @ pose["local"][n]
             q = to_quat(basis)
             if n in last and q.dot(last[n]) < 0:
@@ -1383,6 +1796,7 @@ def check_against_blender(arm, mesh, rig, action, frames, frame_no):
     arm.animation_data.action_slot = action.slots[0]
     bpy.context.scene.frame_set(frame_no)
     bpy.context.view_layer.update()
+    limb_overlap.apply_twist(arm)
     deps = bpy.context.evaluated_depsgraph_get()
     shaped = mesh.evaluated_get(deps)
     world = np.array(shaped.matrix_world)
@@ -1396,9 +1810,17 @@ def check_against_blender(arm, mesh, rig, action, frames, frame_no):
     return float(np.abs(co - mine).max())
 
 
-def export(arm, path):
+def export(arm, path, extra=()):
     """The armature and its clips as a glb: a one-triangle mesh skinned to the root stands in for the model, so the
-    file has a skin (Godot makes its `Skeleton3D` from it) and no copy of the mannequin."""
+    file has a skin (Godot makes its `Skeleton3D` from it) and no copy of the mannequin. The bones of `extra` (a
+    prototype body's twist bones, sockets and IK targets, which no clip keys) are left out of the file, so it holds
+    the library's 65 bones whichever body it was solved on."""
+    if extra:
+        bpy.context.view_layer.objects.active = arm
+        bpy.ops.object.mode_set(mode="EDIT")
+        for name in sorted(extra):
+            arm.data.edit_bones.remove(arm.data.edit_bones[name])
+        bpy.ops.object.mode_set(mode="OBJECT")
     mesh = bpy.data.meshes.new("ProneClips")
     mesh.from_pydata([(0, 0, 0), (0.01, 0, 0), (0, 0, 0.01)], [], [(0, 1, 2)])
     proxy = bpy.data.objects.new("ProneClips", mesh)
@@ -1612,9 +2034,10 @@ def fist_numbers(rig, pose):
 
 
 def floor_numbers(arm, actions, clips, bodies, failures):
-    """How low each mannequin's hands (with their fingers) and forearms get in each clip, in millimetres over the
-    floor, with the frame. A hand deeper than `HAND_FLOOR_LIMIT` on the first body, the one the clips are solved on,
-    fails the build; the other's numbers are reported (his longer upper arms put his elbows lower)."""
+    """How low each mannequin's hands (with their fingers), forearms, thighs and shins get in each clip, in
+    millimetres over the floor, with the frame. A part of `FLOOR_PARTS` deeper than `FLOOR_LIMIT` on the first body,
+    the one the clips are solved on, fails the build; the other body's numbers are reported (it plays its own
+    file)."""
     scene = bpy.context.scene
     out = {}
     for name, frames in clips.items():
@@ -1626,7 +2049,7 @@ def floor_numbers(arm, actions, clips, bodies, failures):
             for body in bodies:
                 body.pose_from(arm)
                 coords = body.skinned()
-                for part in ("hand", "lowerarm"):
+                for part in ("hand", "lowerarm", "thigh", "calf", "foot"):
                     for s, _ in SIDES:
                         low = round(
                             float(coords[body.parts[f"{part}_{s}"]["verts"], 2].min())
@@ -1643,12 +2066,12 @@ def floor_numbers(arm, actions, clips, bodies, failures):
             for part, entry in out[name][body.name].items():
                 if (
                     body is bodies[0]
-                    and part.startswith("hand")
-                    and entry["lowest"] < -HAND_FLOOR_LIMIT
+                    and part.startswith(FLOOR_PARTS)
+                    and entry["lowest"] < -FLOOR_LIMIT
                 ):
                     failures.append(
                         f"{name} on the {body.name}: {part} goes {-entry['lowest']} mm under the floor at"
-                        f" frame {entry['frame']} (the limit is {HAND_FLOOR_LIMIT} mm)"
+                        f" frame {entry['frame']} (the limit is {FLOOR_LIMIT} mm)"
                     )
     arm.animation_data.action = None
     return out
@@ -1658,7 +2081,19 @@ def main():
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
-    parser.add_argument("--male", required=True)
+    parser.add_argument(
+        "--other",
+        "--male",
+        dest="other",
+        required=True,
+        help="the other mannequin, measured with the clips as Godot would play them on it",
+    )
+    parser.add_argument(
+        "--body",
+        choices=sorted(BODIES),
+        default="female",
+        help="the mannequin `--model` is: its numbers are used and the clips are solved on it",
+    )
     parser.add_argument("--library", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--report")
@@ -1668,13 +2103,20 @@ def main():
         help="export even when a check fails, to look at it",
     )
     args = parser.parse_args(argv)
+    numbers = dict(BODIES[args.body])
+    solved_on = args.body
+    other_name = numbers.pop("OTHER")
+    globals().update(numbers)
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.render.fps = FPS
     crouch = library_pose(args.library, "Crouch_Idle_Loop")
     arm, objects = import_glb(args.model)
-    mesh = next(o for o in objects if o.type == "MESH" and o.parent == arm)
+    mesh = max(
+        (o for o in objects if o.type == "MESH" and o.parent == arm),
+        key=lambda o: len(o.data.vertices),
+    )
     for obj in objects:
         if obj.type == "MESH" and obj.parent is None:
             bpy.data.objects.remove(obj)
@@ -1690,7 +2132,7 @@ def main():
     if from_transitions:
         clips.update(from_transitions(rig, solver, anchor, crouch, clips))
 
-    report = {"fps": FPS, "clips": {}}
+    report = {"fps": FPS, "body": solved_on, "clips": {}}
     failures = []
     for name, frames in clips.items():
         numbers = clip_numbers(rig, name, frames)
@@ -1744,26 +2186,24 @@ def main():
             if turn > 0.05 or apart > 0.0005:
                 failures.append(f"{what}: off by {turn:.3f} degrees and {apart:.4f} m")
         down, up = clips["Crouch_To_Prone"], clips["Prone_To_Crouch"]
-        planted = {
-            "Crouch_To_Prone hand_l 10-12": stray(
-                rig, down, "hand_l", 10, ROLL_FRAMES[0]
-            ),
-            "Crouch_To_Prone hand_r 10-12": stray(
-                rig, down, "hand_r", 10, ROLL_FRAMES[0]
-            ),
-            "Crouch_To_Prone hand_l 19-27": stray(
-                rig, down, "hand_l", ROLL_FRAMES[1], TO_PRONE_FRAMES
-            ),
-            "Crouch_To_Prone hand_r 19-27": stray(
-                rig, down, "hand_r", ROLL_FRAMES[1], TO_PRONE_FRAMES
-            ),
-            "Crouch_To_Prone foot_l 0-7": stray(rig, down, "foot_l", 0, 7),
-            "Prone_To_Crouch hand_l 8-13": stray(
-                rig, up, "hand_l", 8, HAND_WAIT_FRAMES["l"][0]
-            ),
-            "Prone_To_Crouch hand_r 8-14": stray(
-                rig, up, "hand_r", 8, HAND_WAIT_FRAMES["r"][0]
-            ),
+        planted = {}
+        for s, _ in SIDES:
+            flat, rolls, lies, pushes = hand_frames(s)
+            planted[f"Crouch_To_Prone hand_{s} {flat}-{rolls}"] = stray(
+                rig, down, "hand_" + s, flat, rolls
+            )
+        for s, _ in SIDES:
+            flat, rolls, lies, pushes = hand_frames(s)
+            planted[f"Crouch_To_Prone hand_{s} {lies}-{TO_PRONE_FRAMES}"] = stray(
+                rig, down, "hand_" + s, lies, TO_PRONE_FRAMES
+            )
+        planted["Crouch_To_Prone foot_l 0-7"] = stray(rig, down, "foot_l", 0, 7)
+        for s, _ in SIDES:
+            pushes, leaves = hand_frames(s)[3], HAND_WAIT_FRAMES[s][0]
+            planted[f"Prone_To_Crouch hand_{s} {pushes}-{leaves}"] = stray(
+                rig, up, "hand_" + s, pushes, leaves
+            )
+        planted |= {
             "Prone_To_Crouch foot_r 18-30": stray(
                 rig, up, "foot_r", 18, TO_CROUCH_FRAMES
             ),
@@ -1775,6 +2215,18 @@ def main():
         for what, value in planted.items():
             if value > 0.006:
                 failures.append(f"{what}: strays {value:.4f} m while planted")
+    report["mirror"] = {name: mirror_numbers(rig, frames) for name, frames in clips.items()}
+    if MIRROR_LIMIT:
+        for name, least in report["mirror"].items():
+            for joint, limit in zip(("wrist", "shoulder"), MIRROR_LIMIT):
+                # a gait's shoulders cross level twice a stride: only its wrists are held
+                if joint == "shoulder" and name == "Crawl_Fwd_Loop":
+                    continue
+                if least[joint][0] < limit:
+                    failures.append(
+                        f"{name}: the {joint}s are {least[joint][0]:.0f} mm from a mirror of each other at frame"
+                        f" {least[joint][1]} (limit {limit:.0f}): give each side its own frames and places"
+                    )
     groups = {}
     for name, frames in clips.items():
         per = {}
@@ -1804,18 +2256,20 @@ def main():
         groups[name] = per
     report["lowest_by_part"] = groups
     # The fist on both mannequins: the clip's rotations on each one's own hand, as Godot plays them.
-    other_arm, other_objects = import_glb(args.male)
+    other_arm, other_objects = import_glb(args.other)
     other_mesh = max(
         (o for o in other_objects if o.type == "MESH" and o.parent == other_arm),
         key=lambda o: len(o.data.vertices),
     )
-    fist_rigs = {"female": rig, "male": Rig(other_arm, other_mesh)}
+    fist_rigs = {solved_on: rig, other_name: Rig(other_arm, other_mesh)}
     for obj in other_objects:
         bpy.data.objects.remove(obj)
     report["fist_mm"] = {}
     for body, body_rig in fist_rigs.items():
         report["fist_mm"][body] = fist_numbers(body_rig, clips["Prone_Idle_Loop"][0])
         for side, entry in report["fist_mm"][body].items():
+            if body not in PLAYED_BY:
+                continue
             if entry["deepest"] > FIST_LIMIT_IN:
                 failures.append(
                     f"the {body}'s {side} fist: {entry['pair']} by {entry['deepest']} mm (the limit is"
@@ -1837,11 +2291,8 @@ def main():
                 f"{name}: the script's skinning is {off:.4f} m off Blender's"
             )
     # Limbs through each other, on both mannequins' skinned meshes, on every frame of the keyed clips.
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    import limb_overlap
-
-    male = limb_overlap.load_body(args.male, "male")
-    bodies = [limb_overlap.Body(arm, mesh, "female"), male]
+    male = limb_overlap.load_body(args.other, other_name)
+    bodies = [limb_overlap.Body(arm, mesh, solved_on), male]
     report["overlap_mm"] = {}
     report["floor_mm"] = floor_numbers(arm, actions, clips, bodies, failures)
     for name, frames in clips.items():
@@ -1854,7 +2305,7 @@ def main():
                 "pair": entry["pair"],
                 "pairs": entry["pairs"],
             }
-            if entry["deepest_mm"] > OVERLAP_LIMIT:
+            if body in PLAYED_BY and entry["deepest_mm"] > OVERLAP_LIMIT:
                 failures.append(
                     f"{name} on the {body}: {entry['pair']} by {entry['deepest_mm']} mm at frame"
                     f" {entry['frame']} (the limit is {OVERLAP_LIMIT} mm); all: {entry['pairs']}"
@@ -1874,7 +2325,7 @@ def main():
         if not args.preview:
             raise SystemExit(1)
     bpy.data.objects.remove(mesh)
-    export(arm, args.out)
+    export(arm, args.out, rig.extra)
     print("EXPORTED", args.out)
 
 
