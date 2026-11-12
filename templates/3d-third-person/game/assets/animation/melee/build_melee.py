@@ -53,12 +53,14 @@ from mathutils.bvhtree import BVHTree
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE.parent.parent
 GAME = ASSETS.parent
-MANNEQUIN = ASSETS / "characters" / "mannequin" / "mannequin_female.glb"
-MANNEQUIN_MALE = ASSETS / "characters" / "mannequin" / "mannequin_male.glb"
+## The bodies the template's characters wear (kit #1187; `CharacterBodies.FEMALE` and `MALE` in Godot): the clips
+## are keyed on the first and measured on both.
+MANNEQUIN = ASSETS / "characters" / "prototype" / "form_female.glb"
+MANNEQUIN_MALE = ASSETS / "characters" / "prototype" / "form_male.glb"
 LIBRARY = ASSETS / "animation" / "universal" / "ual1.glb"
 PISTOL = ASSETS / "weapons" / "pistol" / "pistol.glb"
-PISTOL_HELD = ASSETS / "weapons" / "pistol" / "pistol_held.tscn"
-GRIP_POSE = GAME / "gameplay" / "weapon" / "hold" / "pistol_grip_pose.tres"
+## Reads each body's pistol hold out of the game's files (`hold_files.read`).
+HOLD_TOOLS = GAME / "tools" / "hold"
 ## The library's rate: these clips play beside its clips (kit docs/tools/blender/animation.md#conventions).
 FPS = 30
 ## The clips this file carries, and nothing else (kit docs/tools/blender/build-scripts.md#rebuilding).
@@ -291,35 +293,34 @@ class Channel:
 # ---------------------------------------------------------------------------------------------------------------
 # The pistol as the game holds it
 # ---------------------------------------------------------------------------------------------------------------
-def godot_quat(text):
-    x, y, z, w = (float(v) for v in text.split(","))
+def godot_quat(value):
+    x, y, z, w = value
     return Quaternion((w, x, y, z))
 
 
-def read_hold():
-    """The pistol's seat on `hand_r` (a 4x4 in the bone's space), the wrist's turn `WeaponHold` adds after the
-    clip, and the right hand's finger rotations on the grip (each in its parent's space), from the game's files."""
-    text = PISTOL_HELD.read_text(encoding="utf-8")
-    found = re.search(r'\[node name="Pistol"[^\[]*?transform = Transform3D\(([^)]*)\)', text, re.S)
-    v = [float(x) for x in found.group(1).split(",")]
-    seat = Matrix((v[0:3] + [v[9]], v[3:6] + [v[10]], v[6:9] + [v[11]], [0, 0, 0, 1]))
-    text = GRIP_POSE.read_text(encoding="utf-8")
-    rotations, turns = text.split("turns = ")
-    quat = r'&"(\w+)": Quaternion\(([^)]*)\)'
-    fingers = {name: godot_quat(value) for name, value in re.findall(quat, rotations)}
-    turn = {name: godot_quat(value) for name, value in re.findall(quat, turns)}["hand_r"]
-    return seat, turn, fingers
+class Hold:
+    """One body's pistol hold, from the game's files (`tools/hold/hold_files.py`: the female's is the hold scene's
+    own, the male's his `HoldFit`, `gameplay/weapon/hold/pistol_fit_male.tres`): the pistol's seat on `hand_r` (a
+    4x4 in the bone's space, in Blender's axes), the wrist's turn `WeaponHold` adds after the clip, and the right
+    hand's finger rotations on the grip (each in its parent's space)."""
+
+    def __init__(self, body):
+        import hold_files
+
+        found = hold_files.read(GAME, body)
+        self.seat = Matrix(found["seat"].tolist()) @ TO_Y_UP
+        self.turn = godot_quat(found["grip"]["turns"]["hand_r"])
+        self.fingers = {name: godot_quat(value) for name, value in found["grip"]["rotations"].items()}
 
 
 class Gun:
     """The pistol's mesh (in the axes Blender imports it in), for the checks and the renders."""
 
-    def __init__(self, seat):
+    def __init__(self):
         before = set(bpy.data.objects)
         bpy.ops.import_scene.gltf(filepath=str(PISTOL))
         self.objects = [o for o in bpy.data.objects if o not in before]
         self.root = next(o for o in self.objects if o.parent is None)
-        self.seat = seat @ TO_Y_UP
         bpy.context.view_layer.update()
         verts, tris = [], []
         for obj in self.objects:
@@ -340,12 +341,15 @@ class Gun:
         self.low, self.high = self.verts.min(axis=0), self.verts.max(axis=0)
         self.root.rotation_mode = "QUATERNION"
 
-    def matrix(self, hand):
-        """The pistol's world matrix from the world matrix of `hand_r` as the game shows it (the wrist turned)."""
-        return hand @ self.seat
+    @staticmethod
+    def matrix(hand, hold):
+        """The pistol's world matrix from the world matrix of `hand_r` as the game shows it (the wrist turned) and
+        the body's hold."""
+        return hand @ hold.seat
 
-    def point(self, hand, name):
-        return hand @ self.seat @ TO_Z_UP @ GUN_POINTS[name]
+    @staticmethod
+    def point(hand, hold, name):
+        return hand @ hold.seat @ TO_Z_UP @ GUN_POINTS[name]
 
     def against(self, body, coords, matrix, skip=("hand_r",)):
         """The pistol against a body's skin now: `(deepest mm, part, nearest mm to the head or the trunk)`. Both
@@ -437,16 +441,29 @@ class Rig:
 
         male = limb_overlap.load_body(MANNEQUIN_MALE, "male")
         self.bodies = [limb_overlap.Body(self.arm, self.mesh, "female"), male]
-        self.order = [b.name for b in self.arm.data.bones]  # parents before children
-        self.parent = {b.name: (b.parent.name if b.parent else None) for b in self.arm.data.bones}
-        self.rest = {b.name: b.matrix_local.copy() for b in self.arm.data.bones}
+        # The clips key the library's bones. A bone the library does not have (the prototype rig's twist bones,
+        # sockets and IK targets, all leaves) gets no key: the game turns the twist bones from the limbs' pose
+        # (`MannequinTwist`), and so does every measure here (`limb_overlap.apply_twist`, in `Body.pose_from`).
+        library = self.library_arm.pose.bones
+        bones = self.arm.data.bones
+        self.unkeyed = [b.name for b in bones if b.name not in library]
+        for name in self.unkeyed:
+            assert not bones[name].children, f"{name} is not in the library and has bones under it"
+        self.order = [b.name for b in bones if b.name in library]  # parents before children
+        self.parent = {n: (bones[n].parent.name if bones[n].parent else None) for n in self.order}
+        self.rest = {n: bones[n].matrix_local.copy() for n in self.order}
         self.rest_rel = {
             n: (self.rest[self.parent[n]].inverted() @ self.rest[n]) if self.parent[n] else self.rest[n].copy()
             for n in self.order
         }
         self.rest_rot = {n: self.rest[n].to_3x3() for n in self.order}
-        seat, self.grip_turn, grip = read_hold()
-        self.gun = Gun(seat)
+        sys.path.insert(0, str(HOLD_TOOLS))
+        self.holds = {body.name: Hold(body.name) for body in self.bodies}
+        sys.path.remove(str(HOLD_TOOLS))
+        # The clips are keyed for the body they are keyed on: its grip's fingers, and its wrist's turn taken out.
+        self.grip_turn = self.holds["female"].turn
+        grip = self.holds["female"].fingers
+        self.gun = Gun()
         # The closed poses of each hand, as each finger bone's own rotation (what Blender keys).
         self.fist, self.grip = {}, {}
         for side, sign in (("l", 1.0), ("r", -1.0)):
@@ -467,6 +484,25 @@ class Rig:
                 above = turn @ rest
         for name, quat in grip.items():
             self.grip[name] = (self.rest_rel[name].to_3x3().inverted() @ quat.to_matrix()).to_quaternion()
+
+    def pose_body(self, body, holds):
+        """Pose `body` as the game shows the pose the keyed armature holds now. With `holds` (a pistol clip baked
+        as shown), another body than the keyed one gets its own hold in place of the keyed body's, as
+        `WeaponHold` puts it on after the clip: its own wrist's turn and its own fingers on the grip."""
+        body.pose_from(self.arm)
+        if not holds or body.arm is self.arm:
+            return
+        import limb_overlap
+
+        hold = self.holds[body.name]
+        bones = body.arm.pose.bones
+        swap = self.grip_turn.inverted() @ hold.turn
+        bones["hand_r"].matrix_basis = bones["hand_r"].matrix_basis @ swap.to_matrix().to_4x4()
+        for name, quat in hold.fingers.items():
+            local = Matrix.LocRotScale(body.rest_rel[name].translation, quat, None)
+            bones[name].matrix_basis = body.rest_rel[name].inverted() @ local
+        bpy.context.view_layer.update()
+        limb_overlap.apply_twist(body.arm)  # the forearm's twist follows the hand's turn
 
     def finger_bones(self, side):
         return [f"{f}_0{i}_{side}" for f in FINGERS for i in (1, 2, 3)]
@@ -690,11 +726,12 @@ class Clip:
                     mats[name] = mats[rig.parent[name]] @ rig.rest_rel[name]
         return mats
 
-    def strike(self, hand, knuckle):
-        """The striking point, from the world matrix of the striking hand as the game shows it."""
+    def strike(self, hand, knuckle, hold):
+        """The striking point, from the world matrix of the striking hand as the game shows it and its body's
+        hold."""
         if self.point == "knuckles":
             return knuckle.copy()
-        return self.rig.gun.point(hand, self.point)
+        return self.rig.gun.point(hand, hold, self.point)
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -1099,12 +1136,13 @@ def check(rig, clip, action, shown):
             if behind > lean["head_back_mm"][0]:
                 lean["head_back_mm"] = [round(behind, 1), frame]
         for body in rig.bodies:
-            body.pose_from(arm)
+            rig.pose_body(body, gun is not None)
+            hold = rig.holds[body.name]
             bones = body.arm.pose.bones
             world = body.arm.matrix_world
             now = joints_of(body.arm, watched)
             places[body.name].append(now)
-            strikes[body.name].append(clip.strike(world @ bones[hand].matrix, world @ bones[knuckle].head))
+            strikes[body.name].append(clip.strike(world @ bones[hand].matrix, world @ bones[knuckle].head, hold))
             chests.setdefault(body.name, now["spine_03"].copy())
             for side in "lr":
                 upper, lower, end = (world @ bones[f"{b}_{side}"].head for b in ("upperarm", "lowerarm", "hand"))
@@ -1127,7 +1165,8 @@ def check(rig, clip, action, shown):
                             ]
             pairs = {f"{a} in {b}": depth * 1000.0 for (a, b), (depth, _place) in body.overlaps().items()}
             if gun:
-                deep, part, near = gun.against(body, body.skinned(), gun.matrix(world @ bones["hand_r"].matrix))
+                held = gun.matrix(world @ bones["hand_r"].matrix, hold)
+                deep, part, near = gun.against(body, body.skinned(), held)
                 if deep > 0.0:
                     pairs[f"pistol in {part}"] = deep
                 if near < gun_near[body.name][0]:
@@ -1281,10 +1320,10 @@ def self_test(rig):
     bpy.context.view_layer.update()
     out = {}
     for body in rig.bodies:
-        body.pose_from(rig.arm)
+        rig.pose_body(body, True)
         world = body.arm.matrix_world
         coords = body.skinned()
-        held = rig.gun.matrix(world @ body.arm.pose.bones["hand_r"].matrix)
+        held = rig.gun.matrix(world @ body.arm.pose.bones["hand_r"].matrix, rig.holds[body.name])
         # the joined pose's left hand lies on the pistol (the game's own solver holds it there): set aside here
         clear = rig.gun.against(body, coords, held, skip=("hand_r", "hand_l", "lowerarm_l"))
         # the hand that holds it, measured for once: the seat and the grip read here are the game's
@@ -1365,6 +1404,15 @@ def export(rig, actions, out):
     male = rig.bodies[1]
     for obj in rig.library_objects + male.objects + rig.gun.objects + rig.extras + [rig.mesh]:
         bpy.data.objects.remove(obj, do_unlink=True)
+    # The file carries the library's skeleton: the bones no clip keys go.
+    for bone in arm.pose.bones:
+        bone.matrix_basis = Matrix.Identity(4)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    for name in rig.unkeyed:
+        arm.data.edit_bones.remove(arm.data.edit_bones[name])
+    bpy.ops.object.mode_set(mode="OBJECT")
+    assert [b.name for b in arm.data.bones] == rig.order, "the exported skeleton is not the library's"
     keep = set(actions)
     for action in list(bpy.data.actions):
         if action not in keep:
@@ -1539,7 +1587,9 @@ def trace(rig, clip):
         chest = mats["spine_03"].to_3x3() @ clip.base["spine_03"].to_3x3().inverted()
         ahead = chest @ Vector((0, -1, 0))
         yaw = math.degrees(math.atan2(ahead.x, -ahead.y))
-        strike = clip.strike(mats[f"hand_{clip.side}"], mats[f"middle_01_{clip.side}"].translation)
+        strike = clip.strike(
+            mats[f"hand_{clip.side}"], mats[f"middle_01_{clip.side}"].translation, rig.holds["female"]
+        )
         line = f"TRACE {clip.name} {frame:2d} chest {yaw:+5.1f} | strike {lfu(strike)}"
         for side in "lr":
             a, b, c = (mats[f"{n}_{side}"].translation for n in ("upperarm", "lowerarm", "hand"))
