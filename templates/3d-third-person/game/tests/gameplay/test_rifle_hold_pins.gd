@@ -27,6 +27,7 @@ const HOLD_PINS := {
 	&"support_pose": null,
 	&"open_pose": null,
 	&"magazine_pose": null,
+	&"fingers_far_distance": 10.0,
 	&"reload_belt": Vector3(0.17, -0.3, 0.1),
 	&"magazine_well": 0.1,
 	&"reload_clearance": Vector3(0.0, -0.07, 0.035),
