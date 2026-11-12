@@ -1,10 +1,12 @@
 # The pistol's slide-rack clip (`assets/animation/pistol/pistol_rack.glb`, kit #1081) imports as a
-# library beside the Universal Animation Library and plays on both mannequins: it starts and ends
-# on the pose `Pistol_Reload` ends on, the right hand holds the pistol through it with the finger
-# off the trigger, and the left hand is on its support grip at the ends and on the slide while it
-# racks, within the hold's limits (2 mm in, 5 mm off; `HandContact`), never deeper than the
-# reload's passing depth on the way. Measured on the skinned mesh after the hold's modifiers and
-# the reach to the slide ran (`RackStage`).
+# library beside the Universal Animation Library and plays on both bodies the template's
+# characters wear (`CharacterBodies`): it starts and ends on the pose `Pistol_Reload` ends on, the
+# right hand holds the pistol through it with the finger off the trigger, and the left hand is on
+# its support grip at the ends and on the slide while it racks, within the hold's limits (2 mm in,
+# 5 mm off; `HandContact`), the index finger and the thumb on the serrations, never deeper than
+# the reload's passing depth on the way. Each body has its own place on the slide and its own
+# fingers (`SlideRack.fit()`), as each has its own hold. Measured on the skinned mesh after the
+# hold's modifiers, the reach to the slide and the rack's fingers ran (`RackStage`).
 extends GdUnitTestSuite
 
 const LIBRARY := "res://assets/animation/pistol/pistol_rack.glb"
@@ -22,6 +24,13 @@ const REACH := 0.005
 const OFF_TRIGGER := 0.02
 ## How far a bone of the clip's ends may be turned from the reload's last frame, in degrees.
 const JOIN_DEGREES := 0.05
+## The middle of the serrations on the slide's right and left sides, in the `Slide` node's space
+## (the model's build: three bars 24 mm along the barrel and 32 mm up the side, at the rear).
+const SERRATIONS_RIGHT := Vector3(-0.026, -0.0005, -0.0205)
+const SERRATIONS_LEFT := Vector3(-0.026, -0.0005, 0.0205)
+## How far from that middle the index finger's and the thumb's last parts may be, in metres: the
+## bars' half length and half height, so the pad is on the bars and not beside them.
+const ON_SERRATIONS := 0.02
 
 var _holder: Node3D
 
@@ -39,6 +48,46 @@ func test_the_library_holds_the_rack_clip() -> void:
 	assert_int(clip.loop_mode).is_equal(Animation.LOOP_NONE)
 	var rack := load(RackStage.RACK) as SlideRack
 	assert_str(String(rack.clip)).is_equal("pistol/" + CLIP)
+
+
+# One hand's place and fingers do not close another hand: every body has a rack solved on it,
+# with its own place on the slide, its own way there and its own fingers.
+func test_each_body_has_a_rack_of_its_own() -> void:
+	var base := load(RackStage.RACK) as SlideRack
+	var racks: Array[SlideRack] = []
+	for model in MODELS:
+		var file := HoldStage.MODELS[model].get_file()
+		var rack := base.fit(file)
+		assert_str(rack.body).is_equal(file)
+		assert_bool(racks.has(rack)).is_false()
+		racks.append(rack)
+		assert_str(String(rack.clip)).is_equal(String(base.clip))
+		assert_int(rack.places.size()).is_equal(base.places.size())
+		for pose: HandPose in [rack.grip_pose, rack.open_pose]:
+			assert_object(pose).is_not_null()
+			assert_int(pose.rotations.size()).is_equal(15)
+			for bone: StringName in pose.rotations:
+				assert_bool(String(bone).ends_with("_l")).is_true()
+		# Every share is the clip's, so the bodies rack in step.
+		for share: StringName in [
+			&"reach",
+			&"away",
+			&"fingers_over",
+			&"fingers_away",
+			&"leave",
+			&"grip",
+			&"pull",
+			&"release",
+			&"back"
+		]:
+			var mine: Vector2 = rack.get(share)
+			var theirs: Vector2 = base.get(share)
+			assert_vector(mine).override_failure_message(String(share)).is_equal(theirs)
+		assert_vector(rack.travel).is_equal(base.travel)
+	# A body with no rack of its own takes the default body's.
+	assert_object(base.fit("another_body.glb")).is_same(base)
+	assert_str(base.body).is_equal(CharacterBodies.FEMALE.get_file())
+	assert_float(racks[0].hand.origin.distance_to(racks[1].hand.origin)).is_greater(0.002)
 
 
 func test_every_track_drives_a_bone_of_the_mannequins() -> void:
@@ -118,6 +167,17 @@ func test_the_shares_run_in_order_and_the_slide_follows_the_hand() -> void:
 	assert_float(rack.hand_weight(rack.grip.x)).is_equal(1.0)
 	assert_float(rack.hand_weight(rack.release.y)).is_equal(1.0)
 	assert_float(rack.hand_weight(1.0)).is_equal(0.0)
+	# The fingers are opened over the slide before they close, closed from the grip to the letting
+	# go, and the hold's own at the clip's ends.
+	assert_float(rack.fingers_opened(rack.grip.x)).is_equal(1.0)
+	assert_float(rack.fingers_closed(rack.grip.x)).is_equal(0.0)
+	assert_float(rack.fingers_close).is_between(rack.grip.x, rack.grip.y)
+	assert_float(rack.fingers_closed(rack.fingers_close)).is_equal(0.0)
+	assert_float(rack.fingers_closed(rack.grip.y)).is_equal(1.0)
+	assert_float(rack.fingers_closed(rack.release.x)).is_equal(1.0)
+	assert_float(rack.fingers_closed(rack.release.y)).is_equal(0.0)
+	assert_float(rack.fingers_opened(rack.leave.y)).is_equal(0.0)
+	assert_float(rack.fingers_opened(rack.back.x)).is_equal(0.0)
 	assert_float(rack.places_from).is_less_equal(rack.reach.x)
 	assert_float(rack.places_to).is_greater_equal(rack.away.y)
 	assert_int(rack.places.size()).is_greater(10)
@@ -159,8 +219,10 @@ func test_the_right_hand_holds_the_pistol_through_the_rack() -> void:
 
 
 # The left hand through the rack: on its support grip at the clip's ends, on the slide from the
-# share it has closed on it to the share it lets go (wherever the slide is by then), and no deeper
-# than `PASSING_DEPTH` in the gun or the right hand on the way.
+# share it has closed on it to the share it lets go (wherever the slide is by then: nothing more
+# than 2 mm inside the steel, the palm, the four fingertips and the thumb no more than 5 mm off
+# it, the index finger's pad on the right side's serrations and the thumb's on the left side's),
+# and no deeper than `PASSING_DEPTH` in the gun or the right hand on the way.
 func test_the_left_hand_grips_the_slide_and_pulls_it_back() -> void:
 	for model in MODELS:
 		var made: RackStage = await RackStage.make(_holder, model)
@@ -187,6 +249,22 @@ func test_the_left_hand_grips_the_slide_and_pulls_it_back() -> void:
 					)
 					. is_less(REACH)
 				)
+				var pads := {
+					"index_tip": made.slide.global_transform * SERRATIONS_RIGHT,
+					"thumb_tip": made.slide.global_transform * SERRATIONS_LEFT,
+				}
+				for part: String in pads:
+					var off := made.stage.contact.part_distance_to("l", part, pads[part])
+					(
+						assert_float(off)
+						. override_failure_message(
+							(
+								"%s %s is %.1f mm from the middle of the serrations"
+								% [tag, part, off * 1e3]
+							)
+						)
+						. is_less(ON_SERRATIONS)
+					)
 			else:
 				for part: String in parts:
 					var depth: float = -parts[part].distance
@@ -199,6 +277,48 @@ func test_the_left_hand_grips_the_slide_and_pulls_it_back() -> void:
 					)
 		assert_int(gripped).is_greater_equal(4)
 		made.free_stage()
+
+
+# The same hand between the frames, and with the pistol where the clip itself has it: the stage
+# carries the pistol as the hold does when the character is not aiming (the right arm held out
+# from the thigh), which moves it about 7 cm from where the clip's own left arm expects it on the
+# way off the support grip and back; a character that aims, or a game that keeps the arm in for
+# the rack, has it where the clip does. Every half frame, both ways: nothing deeper than
+# `PASSING_DEPTH` on the way, nor than the hold's 2 mm while the hand grips the slide.
+func test_the_left_hand_passes_clear_between_frames_and_with_the_arm_in() -> void:
+	for model in MODELS:
+		for carried: bool in [true, false]:
+			var made: RackStage = await RackStage.make(_holder, model)
+			if not carried:
+				made.stage.hold.set(&"carry_arm_out", 0.0)
+			var rack := made.rack
+			for step in FRAMES * 2 + 1:
+				var share := step / (FRAMES * 2.0)
+				if rack.support_weight(share) >= 1.0:
+					continue
+				made.pose(share)
+				await made.stage.settle()
+				var limit := HandContact.MAX_DEPTH if rack.is_gripping(share) else PASSING_DEPTH
+				var parts := made.stage.contact.measure("l", true)
+				for part: String in parts:
+					var depth: float = -parts[part].distance
+					(
+						assert_float(depth)
+						. override_failure_message(
+							(
+								"%s %s frame %.1f: %s %.1f mm inside"
+								% [
+									model,
+									"carried" if carried else "arm in",
+									step / 2.0,
+									part,
+									depth * 1e3
+								]
+							)
+						)
+						. is_less(limit)
+					)
+			made.free_stage()
 
 
 # The slide moves with the hand: at the end of the pull the gripping hand and the `Slide` node are
@@ -223,12 +343,15 @@ func test_the_hand_and_the_slide_travel_together() -> void:
 	made.free_stage()
 
 
-# Why the reach is there: the clip's own arm puts the hand on the slide of the mannequin it was
-# keyed on, with the pistol where the clip's right hand has it; it misses on the other mannequin,
-# whose arms are longer, and on either once the hold moves the pistol after the clip (the carried
-# arm held out from the thigh, `WeaponHold.carry_arm_out`).
-func test_the_clips_own_arm_is_on_the_slide_only_where_it_was_keyed() -> void:
+# Why the reach and the rack's fingers are there: the clip is keyed on one body
+# (`CharacterBodies.FEMALE`), with the pistol where the clip's own right hand has it. There its own
+# arm puts the hand on the slide and its own fingers close on it; on the other body the same
+# rotations leave the hand off the slide and the fingers off it or in it, and on either body the
+# hold moves the pistol after the clip (the carried arm held out from the thigh,
+# `WeaponHold.carry_arm_out`).
+func test_the_clips_own_arm_and_fingers_fit_only_the_body_it_was_keyed_on() -> void:
 	var gaps := {}
+	var fingers := {}
 	for model in MODELS:
 		for carried: bool in [false, true]:
 			var made: RackStage = await RackStage.make(_holder, model)
@@ -241,7 +364,19 @@ func test_the_clips_own_arm_is_on_the_slide_only_where_it_was_keyed() -> void:
 				made.rack.pull.x
 			)
 			made.free_stage()
+		# The clip's own fingers on the hand held at its place on the slide.
+		var own: RackStage = await RackStage.make(_holder, model)
+		own.fingers_on = false
+		own.pose(own.rack.pull.x)
+		await own.stage.settle()
+		var parts := own.stage.contact.measure("l", true)
+		fingers[model] = HandContact.failures(model, parts, RackStage.SLIDE_CONTACTS)
+		own.free_stage()
 	assert_float(gaps["female as keyed"]).is_less(0.002)
 	assert_float(gaps["male as keyed"]).is_greater(0.01)
 	assert_float(gaps["female carried"]).is_greater(0.01)
 	assert_float(gaps["male carried"]).is_greater(0.01)
+	var female: Array = fingers["female"]
+	assert_array(female).override_failure_message("\n".join(female)).is_empty()
+	var male: Array = fingers["male"]
+	assert_array(male).is_not_empty()

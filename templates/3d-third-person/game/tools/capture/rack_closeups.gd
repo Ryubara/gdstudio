@@ -5,13 +5,15 @@
 ## Run headless, it prints one `RACK` line a frame: for each hand the deepest part in the weapon
 ## (or the other hand) and the farthest holding part off it, in millimetres, how far the left
 ## hand's bone is from its place on the slide, and how far back the slide is (`RACK_PARTS=1` adds
-## every part of the left hand). Run with a window and `RACK_OUT=<folder>`, it also saves five
-## views of each moment of `MOMENTS` (from the front left, the gun's right, from above, a
-## close-up from the player's aim camera and that camera's own view):
+## every part of the left hand). Run with a window and `RACK_OUT=<folder>`, it also saves six
+## views of each moment of `MOMENTS` (from the front left, the gun's right, from above, the
+## gun's left, a close-up from the player's aim camera and that camera's own view):
 ## `RACK_OUT=<abs folder> gds godot -- --path game --resolution 1000x800
-## res://tools/capture/rack_closeups.tscn`. `MODEL=male` films the male mannequin, `RACK_REACH=0`
-## leaves the reach to the slide out (the clip's own arm), `RACK_ALL=1` films every frame. It
-## lives in tools/, which the export leaves out.
+## res://tools/capture/rack_closeups.tscn`. `MODEL=male` films the male body, `RACK_REACH=0`
+## leaves the reach to the slide out (the clip's own arm) and `RACK_FINGERS=0` the body's own
+## fingers (the clip's), `RACK_CARRY=0` holds the pistol where the clip has it (the hold's carried
+## arm not held out, as when the character aims), `RACK_ALL=1` films every frame. It lives in
+## tools/, which the export leaves out.
 extends Node3D
 
 ## The moments filmed, in frames (30 a second): the hand over the slide, closed on it (the grip),
@@ -36,6 +38,9 @@ func _ready() -> void:
 func _run(model: String) -> void:
 	_made = await RackStage.make(self, model)
 	_made.reach_on = OS.get_environment("RACK_REACH") != "0"
+	_made.fingers_on = OS.get_environment("RACK_FINGERS") != "0"
+	if OS.get_environment("RACK_CARRY") == "0":
+		_made.stage.hold.set(&"carry_arm_out", 0.0)
 	var out := OS.get_environment("RACK_OUT")
 	var film := not out.is_empty() and DisplayServer.get_name() != "headless"
 	var camera := Camera3D.new()
@@ -98,10 +103,11 @@ func _light() -> void:
 	add_child(sun)
 
 
-# Five views of the pose: from in front of the character's left (the gun's left side is toward
-# the chest, so that side is seen from the front), the gun's right, from
-# above (the muzzle up the picture), a close-up from the player's aim camera (1.1 m behind the
-# 1.55 m target, 0.5 m to the right) and that camera's own 50 degree view.
+# Six views of the pose: from in front of the character's left, the gun's right, from above (the
+# muzzle up the picture), the gun's left from behind and above it (the thumb's side, which is
+# toward the chest: nothing nearer than the hands is drawn), a close-up from the player's aim
+# camera (1.1 m behind the 1.55 m target, 0.5 m to the right) and that camera's own 50 degree
+# view.
 func _shoot(camera: Camera3D, path: String) -> void:
 	var stage := _made.stage
 	var gun := stage.pistol.global_transform.orthonormalized()
@@ -111,6 +117,7 @@ func _shoot(camera: Camera3D, path: String) -> void:
 		"front": [middle + stage.global_basis * Vector3(0.28, 0.12, 0.45), Vector3.UP, 34.0],
 		"right": [middle + gun.basis * Vector3(-0.08, 0.05, -0.5), gun.basis.y, 34.0],
 		"top": [middle + gun.basis * Vector3(0.0, 0.5, 0.02), -gun.basis.x, 34.0],
+		"left": [middle + gun.basis * Vector3(0.1, 0.16, 0.42), gun.basis.y, 34.0],
 		"player": [eye, Vector3.UP, 13.0],
 	}
 	# The first view after a new pose is taken twice: its first picture still had the camera of
@@ -119,7 +126,7 @@ func _shoot(camera: Camera3D, path: String) -> void:
 	order.append_array(views.keys())
 	for view: String in order:
 		# From the sides and above, nothing nearer than the hands is drawn (the chest, the head).
-		camera.near = 0.3 if view == "right" or view == "top" else 0.02
+		camera.near = 0.3 if view in ["right", "top", "left"] else 0.02
 		camera.fov = views[view][2]
 		camera.look_at_from_position(views[view][0], middle, views[view][1])
 		for _i in 3:

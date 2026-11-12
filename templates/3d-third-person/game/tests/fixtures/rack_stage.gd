@@ -1,11 +1,12 @@
 class_name RackStage
 extends RefCounted
-## A mannequin racking the pistol's slide (kit #1081), posed by hand on a `HoldStage`: the rack
-## clip at a share of its length, the hold's own right hand, the left hand on its support grip at
-## the clip's ends (the hold, told it is at a reload's end), reached to the slide by a `HoldArm`
-## while it racks (`SlideRack`), and the pistol's `Slide` node moved with it. A test or a capture
-## then measures the hands on the weapon (`stage.contact`, taken again with the slide where it
-## is). What plays the clip in the game does the same three things.
+## A body racking the pistol's slide (kit #1081), posed by hand on a `HoldStage`: the rack clip at
+## a share of its length, the hold's own right hand, the left hand on its support grip at the
+## clip's ends (the hold, told it is at a reload's end), reached to the slide by a `HoldArm` while
+## it racks and its fingers put on by a `HandPoseModifier` (both from the body's own `SlideRack`),
+## and the pistol's `Slide` node moved with it. A test or a capture then measures the hands on the
+## weapon (`stage.contact`, taken again with the slide where it is). What plays the clip in the
+## game does the same three things.
 
 const RACK := "res://gameplay/weapon/hold/pistol_slide_rack.tres"
 ## The parts of the left hand that hold the slide: the palm on its top, the four fingertips on its
@@ -18,17 +19,21 @@ var stage: HoldStage
 var rack: SlideRack
 var slide: Node3D
 var arm: HoldArm
+var fingers: HandPoseModifier
 ## With the reach off, the left hand is the clip's own arm (what the reach is for).
 var reach_on := true
+## With the fingers off, they are the clip's own: the ones of the body the clip was keyed on.
+var fingers_on := true
 
 var _slide_rest := Vector3.ZERO
 
 
-## Builds the stage under `holder` (a node of a running tree) with the mannequin `model`.
+## Builds the stage under `holder` (a node of a running tree) with the body `model` (`female` or
+## `male`) and the rack solved on it.
 static func make(holder: Node, model: String) -> RackStage:
 	var made := RackStage.new()
 	made.stage = HoldStage.make(holder, model)
-	made.rack = load(RACK) as SlideRack
+	made.rack = (load(RACK) as SlideRack).fit(HoldStage.MODELS[model].get_file())
 	made.slide = made.stage.pistol.find_child("Slide", true, false) as Node3D
 	made._slide_rest = made.slide.position
 	# The hold makes its modifiers a frame later; the reach to the slide comes after them, so it
@@ -39,6 +44,10 @@ static func make(holder: Node, model: String) -> RackStage:
 	made.arm.bone = made.stage.seat.bone_name
 	made.arm.active = false
 	made.stage.skeleton.add_child(made.arm)
+	made.fingers = HandPoseModifier.new()
+	made.fingers.name = &"RackFingers"
+	made.fingers.active = false
+	made.stage.skeleton.add_child(made.fingers)
 	return made
 
 
@@ -63,6 +72,8 @@ func pose(share: float) -> void:
 	arm.elbow = rack.elbow
 	arm.influence = weight
 	arm.active = weight > 0.0
+	rack.set_fingers(fingers, stage.hold.get(&"open_pose") as HandPose, share)
+	fingers.active = fingers.active and fingers_on
 	# The slide moved: the weapon's surface is taken again.
 	stage.contact.set_weapon(stage.pistol)
 

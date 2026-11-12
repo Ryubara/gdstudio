@@ -1,7 +1,9 @@
 """Build the template's pistol slide-rack clip and export it to glTF (kit #1081).
 
-GDStudio's own animation, made from nothing on the Quaternius universal rig (the female mannequin's skeleton, CC0),
-because the Universal Animation Library's `Pistol_Reload` has no rack of the slide. An overhand rack: the right
+GDStudio's own animation, made from nothing on the rig the template's bodies share (the prototype `form_female`
+body's skeleton: the Universal Animation Library's 65 bones, whose names are Quaternius's, CC0, and the
+prototype rig's 17 leaves, which the clip leaves alone), because the library's `Pistol_Reload` has no rack of
+the slide. An overhand rack: the right
 hand brings the pistol a little in and cants it, the left hand comes over the top of the slide just in front of the
 rear sight, grips it, pulls it back while the right hand pushes the frame forward, lets go at the rear (the slide
 runs home on its own), follows through toward the chest and comes back to the support grip. Nothing is copied
@@ -13,27 +15,28 @@ Run it with the pinned Blender, headless (`gds tool path blender`), every path a
     blender -b --factory-startup -P build_pistol_rack.py -- --out <pistol_rack.glb> [--data <rack_clip.json>]
         [--hand <rack_hand.json>] [--report <numbers.json>] [--preview]
 
-It reads, from the game it lives in: both mannequins, `ual1.glb`, the pistol's seat on `hand_r`
-(`pistol_held.tscn`), the wrist's turn of the hold (`pistol_grip_pose.tres`) and the left hand's place and fingers
-on the slide (`rack_hand.json`, written by `solve_rack_hand.py`). It works in Godot's axes (the character faces +Z,
+It reads, from the game it lives in: the two bodies the template's characters wear (`form_female.glb`,
+`form_male.glb`), `ual1.glb`, each body's hold (`tools/hold/hold_files.py`: the pistol's seat on `hand_r`, the
+wrist's turn, the `SupportHand` marker and the hold's hand poses) and each body's left hand on the slide, its
+place and its fingers (`rack_hand.json`, written by `solve_rack_hand.py`, one entry a body). It works in Godot's axes (the character faces +Z,
 its left is +X, up is +Y; a bone's pose in its parent is the same in Blender and in Godot) and keys every bone's
 rotation on every frame at 30 frames a second, the library's rate.
 
 The hands as the game draws them: the hold turns the right wrist and closes the right fingers after the clip, so
 the clip keys the right hand as the library has it and the pistol's place is worked out with the hold's turn. The
-left hand is keyed onto the slide on the female mannequin; on a body with other arms (the male's are 5 cm
-longer) the same rotations miss, so the game reaches the left hand to the place this build writes to `--data`
-(`SlideRack`: the hand bone's way over the slide in the pistol's space, the slide's travel, the clip's shares), as it reaches the
-`SupportHand` marker. The build poses both mannequins that way and fails before it exports when the clip does not
-start and end on the library's pose, an arm cannot reach, the wrist bends too far, or a part of the body goes more
-than 5 mm into another on either mannequin (`../limb_overlap.py`). The hands against the pistol are measured in
-Godot (`tests/gameplay/test_pistol_rack.gd`).
+left hand is keyed onto the slide on the female body, with her fingers; on a body with other arms and hands
+(the male's) the same rotations miss, so the game reaches the left hand to the body's own place and closes the
+body's own fingers, which this build writes to `--data` for each body (`SlideRack`: the hand bone's way over the
+slide in the pistol's space, the fingers closed on it and opened over it, the slide's travel, the clip's shares),
+as it reaches the `SupportHand` marker. The build poses both bodies that way and fails before it exports when
+the clip does not start and end on the library's pose, an arm cannot reach, the wrist bends too far, or a part of
+the body goes more than 5 mm into another on either body (`../limb_overlap.py`). The hands against the pistol
+are measured in Godot (`tests/gameplay/test_pistol_rack.gd`).
 """
 
 import argparse
 import json
 import math
-import re
 import sys
 from pathlib import Path
 
@@ -42,12 +45,20 @@ import numpy as np
 from mathutils import Matrix, Quaternion
 
 GAME = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(GAME / "tools" / "hold"))
+
+import hold_files  # noqa: E402
+
 FPS = 30
 CLIP = "Pistol_Rack"
 JOIN_CLIP = "Pistol_Reload"
 FRAMES = 28  # the clip's last frame: 0.933 s
 OVERLAP_LIMIT = 5.0  # millimetres a part of the body may be inside another (`../limb_overlap.py`)
 WRIST_LIMIT = 45.0  # degrees the left wrist may bend from the forearm's line while it grips
+# On its way between the support grip and the slide the hand holds nothing, so it is turned toward the forearm's
+# line by whatever its wrist would bend past this (degrees): the keys give the hand its turn at each end of the
+# way, and held between them it bent the wrist 81 degrees beside the gun.
+WAY_WRIST = 40.0
 
 # The beats, in frames. The clip's own left hand goes from the library's place to its support grip (`AT_SUPPORT`,
 # where the hold has the hand anyway) and opens there; between `LEAVE` the hold lets the hand go to the clip's arm.
@@ -59,6 +70,9 @@ LEAVE = (1.0, 2.5)
 # The beats the game reads fall on whole frames: its reach follows the hand's place frame by frame.
 OVER = 7.0
 GRIP = (7.0, 9.0)
+# The hand is down on the slide at `CLOSE_AT`, straight from over it, its fingers opened, and only then closes
+# them: closing while it still came down, the thumb's tip went 5 mm through the slide's left edge.
+CLOSE_AT = 8.0
 PULL = (10.0, 13.0)
 RELEASE = (13.0, 15.0)
 SLAM = 1.0
@@ -74,28 +88,32 @@ X, Y, Z = np.eye(3)
 # space (left, up, forward), then degrees about the pistol's own axes (roll about the barrel, the top toward the
 # gun's left; pitch, the muzzle down; yaw, the muzzle to the character's left). The pistol comes in and down in
 # front of the right shoulder and cants, is pushed forward against the pull, nods as the slide runs home, settles
-# and goes back.
+# and goes back. How far in, how far canted and how far turned are what the left wrist needs on the body the clip
+# is keyed on (the forearm has to lie along the hand that lies across the slide): on `form_female` 11.5 cm in,
+# canted 28 degrees and turned 10 bent the wrist 53 to 57 degrees; 16 cm, 36 and 15 bend it 35. The turn stays
+# at 15: the muzzle is kept downrange.
 GUN_KEYS = [
     # frame, (left, up, forward), (roll, pitch, yaw), stop
     (0.0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), True),
-    (7.5, (-0.03, -0.005, -0.115), (-28.0, 0.0, 10.0), False),
-    (10.0, (-0.03, -0.006, -0.120), (-28.0, 0.0, 10.0), True),
-    (13.0, (-0.03, -0.004, -0.088), (-28.0, -1.0, 10.0), False),
-    (15.0, (-0.03, -0.008, -0.080), (-27.0, 3.0, 10.0), False),
-    (18.0, (-0.028, -0.005, -0.100), (-22.0, 0.0, 8.0), False),
+    (7.5, (-0.03, -0.005, -0.160), (-36.0, 0.0, 15.0), False),
+    (10.0, (-0.03, -0.006, -0.165), (-36.0, 0.0, 15.0), True),
+    (13.0, (-0.03, -0.004, -0.133), (-36.0, -1.0, 15.0), False),
+    (15.0, (-0.03, -0.008, -0.125), (-35.0, 3.0, 15.0), False),
+    (18.0, (-0.028, -0.005, -0.140), (-28.0, 0.0, 12.0), False),
     (28.0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), True),
 ]
 # The left hand's way to the slide and back, as moves of its place on the slide in the pistol's own space (the
-# muzzle is -X, up +Y, the gun's left +Z): over the slide, opened; after the release, off the slide's rear toward
-# the chest.
-OVER_MOVE = (0.0, 0.045, 0.03)
+# muzzle is -X, up +Y, the gun's left +Z): over the slide, opened (the solver's `OVER_MOVE`, which opened the
+# fingers to clear the slide on the straight way down from there); after the release, off the slide's rear
+# toward the chest.
 FOLLOW_MOVE = (0.075, 0.03, 0.035)
 # The hand's way between the support grip and the slide goes round the gun's left side, as a hand does: off the
-# support grip sideways with its fingers as they let go (`CLEAR_MOVE`, from the support grip: the fingers lie
-# round the front of the grip and under the trigger guard, and lifted straight up they go through the guard and
-# the right hand's fingers), then to the left of the slide and above it, turned as it will grip (`SWING_MOVE`,
-# from its place over the slide), then over the top.
-CLEAR_MOVE = (0.02, -0.01, 0.09)
+# support grip with its fingers as they let go, along the line the hold solved clear for that body's opened
+# hand (`WeaponHold.support_way`, 6 cm; the fingers lie round the front of the grip and under the trigger guard,
+# and lifted straight up they go through the guard and the right hand's fingers) and `CLEAR_FAR` times as far,
+# turned as it held; then to the left of the slide and above it, turned as it will grip (`SWING_MOVE`, from its
+# place over the slide), then over the top.
+CLEAR_FAR = 1.5
 CLEAR_AT = 4.0
 SWING_MOVE = (0.0, 0.03, 0.07)
 SWING_IN_AT = 5.0
@@ -200,28 +218,6 @@ def place_spline(keys, frame):
     return out
 
 
-# ---- the files of the hold --------------------------------------------------------------------------------------
-
-
-def read_transform(path, node):
-    """A node's `transform` in a scene file as a 4 x 4 (the file writes the basis by rows, then the origin)."""
-    text = Path(path).read_text(encoding="utf-8")
-    block = text.split(f'[node name="{node}"', 1)[1].split("[node", 1)[0]
-    numbers = [float(v) for v in re.search(r"transform = Transform3D\(([^)]*)\)", block).group(1).split(",")]
-    out = np.eye(4)
-    out[:3, :3] = np.array(numbers[:9]).reshape(3, 3)
-    out[:3, 3] = numbers[9:]
-    return out
-
-
-def read_quaternions(path, block):
-    """The `block` dictionary (`rotations` or `turns`) of a `HandPose` file: bone name to (x, y, z, w)."""
-    text = Path(path).read_text(encoding="utf-8")
-    body = re.search(block + r" = Dictionary\[StringName, Quaternion\]\(\{(.*?)\}\)", text, re.S)
-    found = re.findall(r'&"(\w+)": Quaternion\(([^)]*)\)', body.group(1) if body else "")
-    return {name: [float(v) for v in numbers.split(",")] for name, numbers in found}
-
-
 # ---- the rig ----------------------------------------------------------------------------------------------------
 
 
@@ -315,16 +311,15 @@ def aimed(basis, source, target):
 
 
 class Rack:
-    """What the clip is made from: the pose it joins, the hold's seat and turn, the hand's place on the slide."""
+    """What the clip is made from, for one body: the pose it joins, that body's hold (the seat, the wrist's turn,
+    the support grip, the hand poses) and its left hand's place and fingers on the slide. The clip is keyed from
+    the female's; the male's gives his hand's way and fingers, which the game puts on over the clip."""
 
-    def __init__(self, rig, join, hand_file):
+    def __init__(self, rig, join, hold, solved):
         self.rig, self.join = rig, join
-        held = GAME / "assets" / "weapons" / "pistol" / "pistol_held.tscn"
-        grip = GAME / "gameplay" / "weapon" / "hold" / "pistol_grip_pose.tres"
-        self.seat = read_transform(held, "Pistol")
+        self.seat = hold["seat"]
         self.turn = np.eye(4)
-        self.turn[:3, :3] = quat_to_mat(read_quaternions(grip, "turns")["hand_r"])
-        solved = json.loads(Path(hand_file).read_text(encoding="utf-8"))
+        self.turn[:3, :3] = quat_to_mat(hold["grip"]["turns"]["hand_r"])
         self.slide_hand = np.array(solved["slide_hand"])
         self.travel = np.array(solved["travel"])
         self.grip = {n: quat_to_mat(q) for n, q in solved["rack"].items()}
@@ -334,12 +329,12 @@ class Rack:
         self.to_gun = self.turn @ self.seat
         self.gun0 = world["hand_r"] @ self.to_gun
         self.left0 = np.linalg.inv(self.gun0) @ world["hand_l"]
-        self.support = read_transform(held, "SupportHand")
-        self.right_grip = {n: quat_to_mat(q) for n, q in read_quaternions(grip, "rotations").items()}
-        support = read_quaternions(grip.with_name("pistol_support_pose.tres"), "rotations")
-        self.support_grip = {n: quat_to_mat(q) for n, q in support.items()}
-        let_go = read_quaternions(grip.with_name("pistol_open_pose.tres"), "rotations")
-        self.let_go = {n: quat_to_mat(q) for n, q in let_go.items()}
+        self.support = hold["support_hand"]
+        self.way_off = hold["support_way"]
+        self.right_grip = {n: quat_to_mat(q) for n, q in hold["grip"]["rotations"].items()}
+        self.support_grip = {n: quat_to_mat(q) for n, q in hold["support"]["rotations"].items()}
+        self.let_go = {n: quat_to_mat(q) for n, q in hold["open"]["rotations"].items()}
+        self.solved = solved
         # Where the library's pose has the elbows: a reach with its own elbow as the pole gives the pose back.
         self.elbow0 = {}
         for side in ("l", "r"):
@@ -349,6 +344,7 @@ class Rack:
             self.elbow0[side] = elbow + (elbow - foot) * 2.0
         self.elbow0["l"] = tuple(self.elbow0["l"])
         self.left_keys_in, self.left_keys_out = self._left_keys()
+        self.ease = {}
 
     def gun(self, frame):
         """The pistol's place in the character's space on a frame."""
@@ -372,20 +368,20 @@ class Rack:
 
     def _left_keys(self):
         """The left hand's places in the pistol's space on its way in and on its way back, and its elbow's."""
-        over = moved(self.slide_hand, OVER_MOVE)
+        over = moved(self.slide_hand, self.solved["over_move"])
         follow = moved(self.slide_hand, self.travel + np.array(FOLLOW_MOVE))
         swing_in = moved(over, SWING_MOVE)
         # Back the way it came: the way off the support grip is clear of the right hand, a shorter one is not.
         swing_back = swing_in
-        clear = moved(self.support, CLEAR_MOVE)
+        clear = moved(self.support, self.way_off * CLEAR_FAR)
         way_in = [
             (0.0, self.left0, True),
             (AT_SUPPORT, self.support, True),
             (LEAVE[1], self.support, True),
             (CLEAR_AT, clear, False),
             (SWING_IN_AT, swing_in, False),
-            (OVER, over, False),
-            (GRIP[1], self.slide_hand, True),
+            (OVER, over, True),
+            (CLOSE_AT, self.slide_hand, True),
         ]
         pulled = self.slide_hand.copy()
         pulled[:3, 3] = pulled[:3, 3] + self.travel
@@ -418,6 +414,25 @@ class Rack:
             return self.on_slide(frame)
         return place_spline(self.left_keys_out, frame)
 
+    def way_weight(self, frame):
+        """How free the hand's turn is, 0 to 1: all of it between the support grip and the slide, none where
+        the hand holds either."""
+        # Not before the hand is at the far end of its clear line off the support grip: turned nearer the gun,
+        # its fingers went 5.6 mm into the right hand.
+        to_slide = smoothstep(CLEAR_AT, SWING_IN_AT, frame) * (1.0 - smoothstep(OVER, CLOSE_AT, frame))
+        back = smoothstep(RELEASE[0], FOLLOW, frame) * (1.0 - smoothstep(SWING_BACK_AT, CLEAR_BACK_AT, frame))
+        return max(to_slide, back)
+
+    def place(self, frame):
+        """The left hand bone's place in the pistol's space on a whole frame, as the clip has it: `left()` with
+        the hand turned toward the forearm on the way (`WAY_WRIST`; the turns are found while the clip's body
+        is posed, on the body it is keyed on, and every body takes them)."""
+        out = self.left(frame).copy()
+        turn = self.ease.get(round(frame))
+        if turn is not None:
+            out[:3, :3] = turn @ out[:3, :3]
+        return out
+
     def fingers(self, frame, name):
         """A left finger bone's rotation in its parent on a frame: the library's, opened at the support grip (the
         hold's own opened hand), opened over the slide, closed on it, opened again as the slide is let go, and
@@ -429,6 +444,7 @@ class Rack:
             (LEAVE[1], let_go),
             (CLEAR_AT, let_go),
             (OVER, opened),
+            (CLOSE_AT, opened),
             (GRIP[1], grip),
             (RELEASE[0], grip),
             (RELEASE[1], opened),
@@ -465,7 +481,23 @@ class Rack:
         gun = self.gun(frame)
         short_r = reach(rig, pose, "r", gun @ np.linalg.inv(self.to_gun), self.elbow0["r"])
         left = gun @ self.left(frame)
-        short_l = reach(rig, pose, "l", left, spline(self.elbow_keys, frame))
+        elbow = spline(self.elbow_keys, frame)
+        short_l = reach(rig, pose, "l", left, elbow)
+        loose = self.way_weight(frame)
+        if loose > 0.0:
+            # The wrist's place gives the arm; the hand's turn is free on the way, so it follows the forearm.
+            world = rig.world(pose)
+            fore = world["hand_l"][:3, 3] - world["lowerarm_l"][:3, 3]
+            fore = fore / np.linalg.norm(fore)
+            along = world["hand_l"][:3, 1]
+            bend = math.degrees(math.acos(min(max(fore @ along, -1.0), 1.0)))
+            excess = loose * max(bend - WAY_WRIST, 0.0)
+            if excess > 0.0:
+                turn = axis_angle(np.cross(along, fore), excess)
+                # The same turn in the pistol's space, for the hand's way the game reaches it along.
+                self.ease[round(frame)] = gun[:3, :3].T @ turn @ gun[:3, :3]
+                left = gun @ self.place(frame)
+                reach(rig, pose, "l", left, elbow)
         for name in self.grip:
             pose["local"][name] = self.fingers(frame, name)
         world = rig.world(pose)
@@ -476,7 +508,7 @@ class Rack:
             "short_l": short_l,
             "wrist_l": math.degrees(math.acos(min(max(fore @ world["hand_l"][:3, 1], -1.0), 1.0))),
             "gun": gun,
-            "left_in_gun": self.left(frame),
+            "left_in_gun": self.place(frame),
         }
         return pose
 
@@ -518,8 +550,8 @@ def library_pose(path, clip, last=True):
     return {"local": local, "pelvis": pelvis, "frames": end - first}
 
 
-def key_clip(arm, rig, name, frames):
-    """Key a clip on the armature: every bone's rotation on every frame, and the pelvis's place."""
+def key_clip(arm, rig, name, frames, bones):
+    """Key a clip on the armature: the rotation of every bone of `bones` on every frame, and the pelvis's place."""
     action = bpy.data.actions.new(name)
     arm.animation_data_create()
     arm.animation_data.action = action
@@ -527,6 +559,8 @@ def key_clip(arm, rig, name, frames):
     for f, pose in enumerate(frames):
         for pb in arm.pose.bones:
             n = pb.name
+            if n not in bones:
+                continue
             q = Matrix((rig.rest[n][:3, :3].T @ pose["local"][n]).tolist()).to_quaternion()
             if n in last and q.dot(last[n]) < 0:
                 q.negate()
@@ -635,10 +669,11 @@ def body_reach(body, goal, elbow, weight):
 
 
 def held(body, rack, frame):
-    """Poses a measured body as the game draws it on a frame of the clip: the hold's right hand (the wrist's
-    turn, the fingers on the grip), the left hand on its support grip at the clip's ends (the hold's reach to
-    `SupportHand` and its fingers), and the left hand reached to its place on the slide by as much as the game
-    holds it there. Returns how far the clip's own left hand was from the slide's place, in metres."""
+    """Poses a measured body as the game draws it on a frame of the clip, from the body's own `rack`: the hold's
+    right hand (the wrist's turn, the fingers on the grip), the left hand on its support grip at the clip's ends
+    (the hold's reach to `SupportHand` and its fingers), the body's own fingers for the rack wherever the hand
+    is off that grip, and the left hand reached to its place on the slide by as much as the game holds it
+    there. Returns how far the clip's own left hand was from the slide's place, in metres."""
     bones = body.arm.pose.bones
     bones["hand_r"].matrix_basis = bones["hand_r"].matrix_basis @ Matrix(rack.turn.tolist())
     for name, rotation in rack.right_grip.items():
@@ -646,19 +681,22 @@ def held(body, rack, frame):
     bpy.context.view_layer.update()
     gun = np.linalg.inv(C) @ np.array(bones["hand_r"].matrix) @ rack.seat
     on_support = rack.support_weight(frame)
-    off = body_reach(body, gun @ rack.left(frame), LEFT_ELBOW, 0.0)
+    off = body_reach(body, gun @ rack.place(frame), LEFT_ELBOW, 0.0)
     if on_support > 0.0:
         body_reach(body, gun @ rack.support, SUPPORT_ELBOW, on_support)
         for name, rotation in rack.support_grip.items():
             turn_to(body, name, rotation, on_support)
-    body_reach(body, gun @ rack.left(frame), LEFT_ELBOW, rack.hand_weight(frame))
+    if on_support < 1.0:
+        for name in rack.grip:
+            turn_to(body, name, rack.fingers(frame, name), 1.0 - on_support)
+    body_reach(body, gun @ rack.place(frame), LEFT_ELBOW, rack.hand_weight(frame))
     return off
 
 
 def pose_gap(a, b):
     """The largest turn between two poses' bones, in degrees, and how far their pelvises are apart."""
     worst = 0.0
-    for n in a["local"]:
+    for n in b["local"]:
         # By the distance between the two matrices: an arc cosine near 1 turns rounding into a twentieth of a degree.
         apart = np.linalg.norm(a["local"][n] - b["local"][n]) / (2.0 * math.sqrt(2.0))
         worst = max(worst, math.degrees(2.0 * math.asin(min(apart, 1.0))))
@@ -668,16 +706,17 @@ def pose_gap(a, b):
 def main():
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     here = Path(__file__).resolve().parent
-    mannequins = GAME / "assets" / "characters" / "mannequin"
+    bodies = GAME / "assets" / "characters" / "prototype"
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default=str(mannequins / "mannequin_female.glb"))
-    parser.add_argument("--male", default=str(mannequins / "mannequin_male.glb"))
+    parser.add_argument("--model", default=str(bodies / "form_female.glb"), help="the body the clip is keyed on")
+    parser.add_argument("--male", default=str(bodies / "form_male.glb"))
     parser.add_argument("--library", default=str(GAME / "assets" / "animation" / "universal" / "ual1.glb"))
     parser.add_argument("--hand", default=str(here / "rack_hand.json"))
     parser.add_argument("--out", required=True)
     parser.add_argument("--data", help="write what the game's reach needs (the SlideRack resource's numbers)")
     parser.add_argument("--report")
     parser.add_argument("--preview", action="store_true", help="export even when a check fails, to look at it")
+    parser.add_argument("--arms-only", action="store_true", help="skip the limb check and the export (tuning)")
     args = parser.parse_args(argv)
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -689,8 +728,18 @@ def main():
         if obj is not arm:
             bpy.data.objects.remove(obj)
     rig = Rig(arm)
-    rack = Rack(rig, join, args.hand)
+    # The clip keys the library's bones; a bone the library does not have (the prototype rig's leaves: twist
+    # bones, sockets, IK targets) stays at its rest and gets no key.
+    library_bones = set(join["local"])
+    for pose in (join, first):
+        for name in rig.names:
+            pose["local"].setdefault(name, rig.rest[name][:3, :3])
+    solved = json.loads(Path(args.hand).read_text(encoding="utf-8"))
+    racks = {name: Rack(rig, join, hold_files.read(GAME, name), solved[name]) for name in ("female", "male")}
+    rack = racks["female"]
     frames = [rack.pose(float(f)) for f in range(FRAMES + 1)]
+    for each in racks.values():
+        each.ease = rack.ease
 
     failures = []
     report = {"fps": FPS, "frames": FRAMES, "seconds": round(FRAMES / FPS, 4), "per_frame": []}
@@ -717,7 +766,10 @@ def main():
     }
     report["joins"] = {k: [round(v[0], 4), round(v[1], 5)] for k, v in joins.items()}
     worst = sorted(
-        ((pose_gap({"local": {n: frames[0]["local"][n]}, "pelvis": join["pelvis"]}, join)[0], n) for n in rig.names),
+        (
+            (pose_gap({"local": frames[0]["local"], "pelvis": join["pelvis"]}, {"local": {n: join["local"][n]}, "pelvis": join["pelvis"]})[0], n)
+            for n in library_bones
+        ),
         reverse=True,
     )[:4]
     print("JOIN worst bones", worst)
@@ -725,7 +777,11 @@ def main():
         if turn > 0.05 or apart > 0.0005:
             failures.append(f"{what}: off by {turn:.3f} degrees and {apart:.4f} m")
 
-    action = key_clip(arm, rig, CLIP, frames)
+    if args.arms_only:
+        print("ARMS", json.dumps(report["per_frame"]))
+        print("ARMS failures:", "; ".join(failures) or "none")
+        return
+    action = key_clip(arm, rig, CLIP, frames, library_bones)
 
     # Limbs through each other, on both mannequins' skinned meshes as the game draws them, on every frame.
     sys.path.insert(0, str(here.parent))
@@ -734,18 +790,30 @@ def main():
     bodies = [limb_overlap.load_body(args.model, "female"), limb_overlap.load_body(args.male, "male")]
     arm.animation_data.action = action
     arm.animation_data.action_slot = action.slots[0]
-    report["overlap_mm"] = {body.name: {"deepest": 0.0, "frame": None, "pair": None, "pairs": {}} for body in bodies}
+    report["overlap_mm"] = {
+        body.name: {"deepest": 0.0, "frame": None, "pair": None, "pairs": {}, "support_grip": 0.0, "frames": []}
+        for body in bodies
+    }
     report["clip_hand_off_mm"] = {body.name: [] for body in bodies}
     for f in range(FRAMES + 1):
         bpy.context.scene.frame_set(f)
         for body in bodies:
             body.pose_from(arm)
-            off = held(body, rack, float(f))
+            off = held(body, racks[body.name], float(f))
             report["clip_hand_off_mm"][body.name].append(round(off * 1000.0, 1))
             entry = report["overlap_mm"][body.name]
+            entry["frames"].append(0.0)
             for (a, b), (depth, _place) in body.overlaps().items():
                 mm = round(depth * 1000.0, 1)
                 pair = f"{a} in {b}"
+                if rack.support_weight(float(f)) >= 1.0 and {a, b} == {"hand_l", "hand_r"}:
+                    # The hold has the left hand on its support grip, over the right hand's fingers: the two
+                    # hands touch there by the hold's own solve, which its test measures (2 mm, `HandContact`;
+                    # this check reads touching hands several millimetres deeper). It is the hold's number,
+                    # reported and not judged here; every frame on which the rack moves the hand is.
+                    entry["support_grip"] = max(entry["support_grip"], mm)
+                    continue
+                entry["frames"][-1] = max(entry["frames"][-1], mm)
                 if mm > entry["pairs"].get(pair, [0.0])[0]:
                     entry["pairs"][pair] = [mm, f]
                 if mm > entry["deepest"]:
@@ -753,14 +821,17 @@ def main():
     arm.animation_data.action = None
     for body in bodies:
         entry = report["overlap_mm"][body.name]
-        print(f"OVERLAP {CLIP} {body.name}: {entry['deepest']} mm at frame {entry['frame']} ({entry['pair']})")
+        print(
+            f"OVERLAP {CLIP} {body.name}: {entry['deepest']} mm at frame {entry['frame']} ({entry['pair']});"
+            f" the hold's support grip at the clip's ends reads {entry['support_grip']} mm"
+        )
         if entry["deepest"] > OVERLAP_LIMIT:
             failures.append(
                 f"on the {body.name}: {entry['pair']} by {entry['deepest']} mm at frame {entry['frame']}"
                 f" (the limit is {OVERLAP_LIMIT} mm); all: {entry['pairs']}"
             )
         if max(report["clip_hand_off_mm"]["female"][round(GRIP[1]) : round(PULL[1]) + 1]) > 0.5:
-            failures.append("the clip's own left hand is off the slide on the female mannequin")
+            failures.append("the clip's own left hand is off the slide on the female body")
         for obj in body.objects:
             bpy.data.objects.remove(obj)
 
@@ -768,20 +839,31 @@ def main():
     data = {
         "clip": f"pistol/{CLIP}",
         "length": FRAMES / FPS,
-        "hand": rack.slide_hand.tolist(),
         "travel": rack.travel.tolist(),
         "elbow": list(LEFT_ELBOW),
-        "places": [rack.left(float(f)).tolist() for f in range(first_place, last_place + 1)],
         "places_from": first_place / FRAMES,
         "places_to": last_place / FRAMES,
         "reach": [SWING_IN_AT / FRAMES, OVER / FRAMES],
         "away": [FOLLOW / FRAMES, SWING_BACK_AT / FRAMES],
         "leave": [LEAVE[0] / FRAMES, LEAVE[1] / FRAMES],
+        "fingers_over": [CLEAR_AT / FRAMES, OVER / FRAMES],
         "grip": [GRIP[0] / FRAMES, GRIP[1] / FRAMES],
+        "fingers_close": CLOSE_AT / FRAMES,
         "pull": [PULL[0] / FRAMES, PULL[1] / FRAMES],
         "release": [RELEASE[0] / FRAMES, RELEASE[1] / FRAMES],
         "slam": SLAM / FRAMES,
+        "fingers_away": [FOLLOW / FRAMES, CLEAR_BACK_AT / FRAMES],
         "back": [BACK[0] / FRAMES, BACK[1] / FRAMES],
+        # What differs from body to body: the hand's place on the slide, its way there and back, its fingers.
+        "bodies": {
+            name: {
+                "hand": each.slide_hand.tolist(),
+                "places": [each.place(float(f)).tolist() for f in range(first_place, last_place + 1)],
+                "grip": each.solved["rack"],
+                "open": each.solved["rack_open"],
+            }
+            for name, each in racks.items()
+        },
     }
     report["data"] = data
     print("REPORT", json.dumps(report, indent=1))
