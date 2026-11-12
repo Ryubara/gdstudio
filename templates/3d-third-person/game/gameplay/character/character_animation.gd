@@ -8,11 +8,10 @@ extends Node
 ## own; a slide plays `slide_start` into the `slide` loop and, standing up, `slide_exit`), a
 ## weapon layer built from the held `WeaponDef`'s clips (the weapon sits in one hand while the arms
 ## and the spine follow the locomotion clip; aiming or firing brings the arm up to aim by its look,
-## a shot recoils or a blow is thrown, a reload plays stretched to the reload's time, and a switch
-## lowers the arm and brings the next weapon up) and a one-shot layer on the whole body for actions
-## (interact, hit, and any clip a game asks for with
-## `play_clip()`). While it is dead the tree is off and the ragdoll holds the skeleton; on
-## getting up it starts again from the ground state.
+## a shot kicks or a blow is thrown (`ShotLayer`), a reload plays stretched to the reload's time,
+## and a switch lowers the arm and brings the next weapon up) and a one-shot layer on the whole body
+## for actions (interact, hit, and any clip a game asks for with `play_clip()`). Dead, the tree is
+## off and the ragdoll holds the skeleton; on getting up it starts again from the ground.
 ##
 ## The clips come from the Universal Animation Library 1 and 2 and the template's own prone and
 ## vault clips, the `AnimationPlayer`'s libraries `ual1`, `ual2`, `prone` and `vault`. Pick another
@@ -24,10 +23,9 @@ extends Node
 ## building runs in the editor, never the driving (no signals, no `_process`), and the built tree
 ## is taken off the node while the scene is saved, so no `.tscn` holds a generated resource.
 ##
-## It follows the `CharacterModel` too: when the character's model is replaced, it points the
-## `AnimationPlayer` at the new model and builds the tree again, so a swap in the editor needs
-## nothing set by hand (the editor empties the character's Root Node when the node it pointed at is
-## deleted).
+## It follows the `CharacterModel` too: a replaced model gets the `AnimationPlayer` pointed at it
+## and the tree built again, so a swap in the editor needs nothing set by hand (the editor empties
+## the character's Root Node when the node it pointed at is deleted).
 
 ## An action clip started; `clip` is its name.
 signal action_started(clip: StringName)
@@ -179,7 +177,7 @@ const _RELOAD_FADE_OUT := 0.2
 	set(value):
 		interact_clip = value
 		_rebuild()
-## Being hit.
+## Being hit: on the whole body standing, on the upper body crouched, lying or sliding (`HitLayer`).
 @export var hit_clip: StringName = CharacterClips.HIT:
 	set(value):
 		hit_clip = value
@@ -279,6 +277,7 @@ var _vault_look := VaultAnimation.new()  # a vault timed by its clip and its lan
 var _shoot_scale_node: AnimationNodeTimeScale
 var _shoot_clip_node: AnimationNodeAnimation
 var _shots := 0
+var _shot_added := false
 var _watched_hold: WeaponDef
 var _action_clip_node: AnimationNodeAnimation
 var _action_scale_node: AnimationNodeTimeScale
@@ -423,6 +422,7 @@ func _drive(delta: float) -> void:
 	_drive_prone(speed, delta)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
+	HitLayer.follow(tree, active and _action_clip == hit_clip, body_state())
 	if _action_was_active and not active:
 		action_finished.emit(_action_clip)
 	_action_was_active = active
@@ -563,9 +563,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if model == null:
 		warnings.append("Set `model` to the CharacterModel that holds the character.")
 	elif model.rig() != null and not _fits(model.rig()):
-		warnings.append(
-			"The clips name `Armature/Skeleton3D` under the model, and this one has none."
-		)
+		warnings.append("The clips name `Armature/Skeleton3D` under the model; it has none.")
 	return warnings
 
 
@@ -587,9 +585,8 @@ func _watch_hold() -> void:
 		hold.changed.connect(_rebuild)
 
 
-# Builds the tree again from the exports: in the editor so the graph shows the change, and in
-# the game so a clip or a blend time changed while it runs takes effect (the body goes on from the
-# state it was in).
+# Builds the tree again from the exports: in the editor so the graph shows it, and in the game so
+# a clip or a blend time changed while it runs takes effect (the body goes on from its state).
 func _rebuild() -> void:
 	if not is_node_ready() or tree == null or animation_player == null or character == null:
 		return
@@ -654,13 +651,13 @@ func _drive_pistol(delta: float) -> void:
 	tree.set(_P_ARMED, armed)
 	tree.set(_P_AIM, arm * aims)
 	tree.set(_P_SHOOT_SCALE, shoot_speed)
+	ShotLayer.drive(tree, _shot_added)
 	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
 	tree.set(_P_AIM_POSE, clampf(up, -aim_pitch_range, aim_pitch_range))
 
 
 # How far up the character looks, in degrees, `fraction` of the way from the step before the last
-# to the last one: the pose moves on every drawn frame although the body is stepped 60 times a
-# second, as the engine does for the body itself.
+# to the last one: the pose moves on every drawn frame, as the engine moves the body itself.
 func _look_up_at(fraction: float) -> float:
 	return rad_to_deg(lerpf(_pitch_before, _pitch_now, clampf(fraction, 0.0, 1.0)))
 
@@ -733,6 +730,7 @@ func _on_interacted(_target: Node3D) -> void:
 
 func _on_hit(_amount: float, _source: Node3D) -> void:
 	play_clip(hit_clip, character.tuning.hit_stun_time)
+	HitLayer.follow(tree, true, body_state())
 
 
 # A vault or a mantle plays its clip over the whole body (`VaultAnimation.start()`).
@@ -799,6 +797,7 @@ func _build_root() -> AnimationNodeBlendTree:
 	var action := AnimationNodeOneShot.new()
 	action.fadein_time = action_blend_time
 	action.fadeout_time = action_blend_time
+	HitLayer.prepare(action, _bone_paths([upper_body_bone]))
 	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
 	root.connect_node(_ACTION, 0, _RELOAD)
@@ -809,9 +808,8 @@ func _build_root() -> AnimationNodeBlendTree:
 
 # The weapon layer, from the held definition's clips: `Armed` blends the grip pose over the
 # locomotion, on the gripping hand only (or on the whole upper body in the `HELD_POSE` carry), `Aim`
-# blends the aim pose over that on the upper body, `Shoot` plays a shot's clip (a recoil, a blow)
-# over whatever is under it, and `Reload` the reload clip, both on the upper body. A clip the
-# definition leaves empty is the idle clip with no weight (`_drive_pistol`).
+# blends the aim pose over that on the upper body, `Shoot` plays a shot's clip over it or added to
+# it (`ShotLayer`) and `Reload` the reload clip, both on the upper body. An empty clip is idle.
 func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	var hold := held_definition()
 	var grip_bones: Array[StringName] = []
@@ -865,7 +863,8 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	root.connect_node(_AIM, 1, _AIM_POSE)
 	root.connect_node(_SHOOT_SCALE, 0, _SHOOT_CLIP)
 	root.connect_node(_SHOOT, 0, _AIM)
-	root.connect_node(_SHOOT, 1, _SHOOT_SCALE)
+	var added := hold != null and hold.shoot_additive and first_shot != &""
+	_shot_added = ShotLayer.wire(root, shoot, _SHOOT, _SHOOT_SCALE, _clip(first_shot), added)
 	root.connect_node(_RELOAD_SCALE, 0, _RELOAD_CLIP)
 	root.connect_node(_RELOAD, 0, _SHOOT)
 	root.connect_node(_RELOAD, 1, _RELOAD_SCALE)
