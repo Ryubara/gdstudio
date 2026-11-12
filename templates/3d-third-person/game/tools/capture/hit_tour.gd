@@ -17,7 +17,7 @@
 extends Node
 
 const DRESSED := "res://gameplay/character/character_dressed.tscn"
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const MALE := CharacterBodies.MALE
 const TRACER := "res://gameplay/weapon/pistol_tracer.tres"
 ## Where the player stands, and where the targets stand and walk (an open stretch of the map).
 const STAND := Vector3(-3.0, 0.0, 9.0)
