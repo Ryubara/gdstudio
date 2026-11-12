@@ -59,6 +59,7 @@ const TRUNK := &"spine_01"
 
 var _flinch_left := 0.0
 var _flinch_bones: Array[StringName] = []
+var _lengths: RagdollLengths
 
 
 func _ready() -> void:
@@ -164,15 +165,17 @@ func _flinch(record: HitRecord) -> void:
 	if is_flinching():
 		# A new hit starts the flinch again, on its own part.
 		simulator.physical_bones_stop_simulation()
-	for key in bones:
-		var body := ragdoll.body(key)
-		body.global_transform = ragdoll.animated_body(key)
-		body.reset_physics_interpolation()
-		body.linear_velocity = Vector3.ZERO
-		body.angular_velocity = Vector3.ZERO
+	# Off first: every body is static while the simulator is off, so placing it moves it at once.
+	simulator.active = false
+	_place_bodies()
 	simulator.influence = flinch_strength
 	simulator.active = true
 	simulator.physical_bones_start_simulation(bones)
+	# With the character's velocity: at rest, a running body's limbs were left behind it.
+	var moving := character.velocity if character != null else Vector3.ZERO
+	for key in bones:
+		ragdoll.body(key).linear_velocity = moving
+	_hold_lengths(simulator, bones)
 	var hit_body := body_for(record.bone)
 	var pushed := ragdoll.body(hit_body if bones.has(hit_body) else bones[0])
 	if flinch_push > 0.0 and record.strength > 0.0:
@@ -181,6 +184,39 @@ func _flinch(record: HitRecord) -> void:
 	_flinch_left = flinch_time
 	set_physics_process(true)
 	flinched.emit(bones)
+
+
+# Puts every body at rest where the animated pose has it while the simulator is off. Every body,
+# not only the flinch's: the flinch's top body hangs by a joint from one that is not simulated,
+# which stays where the last flinch or death left it, and once the simulator is on it is
+# kinematic, which Jolt carries to a new place over the next tick at whatever speed that takes
+# (`MoveKinematic`): a parent 0.9 m away pulled the limb at 50 to 70 m/s, a rod on screen for a
+# few frames (gdstudio #1338).
+func _place_bodies() -> void:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
+		var body := ragdoll.body(entry.bone)
+		if body == null:
+			continue
+		var placed := ragdoll.animated_body(entry.bone)
+		body.global_transform = placed
+		# The server too: a body that is not simulated does not hand its node's move on.
+		PhysicsServer3D.body_set_state(body.get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, placed)
+		body.reset_physics_interpolation()
+		body.linear_velocity = Vector3.ZERO
+		body.angular_velocity = Vector3.ZERO
+
+
+# The flinch's bones keep their lengths while the clip moves the bones between the bodies.
+func _hold_lengths(simulator: PhysicalBoneSimulator3D, bones: Array[StringName]) -> void:
+	_lengths = RagdollLengths.place(_lengths, simulator)
+	if _lengths == null:
+		return
+	var skeleton := simulator.get_parent() as Skeleton3D
+	var ids := PackedInt32Array()
+	for key in bones:
+		ids.append(skeleton.find_bone(key))
+	_lengths.bones = ids
+	_lengths.active = true
 
 
 func _tick_flinch(delta: float) -> void:
@@ -208,6 +244,8 @@ func _stop_flinch(release: bool) -> void:
 		simulator.physical_bones_stop_simulation()
 		simulator.active = false
 		simulator.influence = 1.0
+	if is_instance_valid(_lengths):
+		_lengths.active = false
 	_flinch_left = 0.0
 	_flinch_bones = []
 	set_physics_process(false)
@@ -222,6 +260,27 @@ func _on_revived() -> void:
 		var impacts := Impacts.find(self)
 		if impacts != null:
 			impacts.clear_marks_on(simulator)
+		_hold_lengths_getting_up(simulator)
+
+
+# The get-up blend keeps the bones' lengths too, all but the pelvis (it moves the body): blending
+# from where the bodies lie, a hand stood 6 cm off its forearm (gdstudio #1338).
+func _hold_lengths_getting_up(simulator: PhysicalBoneSimulator3D) -> void:
+	if not ragdoll.is_active() or ragdoll.is_limp():
+		return
+	var all: Array[StringName] = []
+	for entry: Dictionary in CharacterRagdoll.BODIES:
+		if entry.bone != &"pelvis":
+			all.append(entry.bone)
+	_hold_lengths(simulator, all)
+	if not ragdoll.stopped.is_connected(_release_lengths):
+		ragdoll.stopped.connect(_release_lengths)
+		ragdoll.started.connect(_release_lengths)
+
+
+func _release_lengths() -> void:
+	if is_instance_valid(_lengths) and not is_flinching():
+		_lengths.active = false
 
 
 func _get_configuration_warnings() -> PackedStringArray:
