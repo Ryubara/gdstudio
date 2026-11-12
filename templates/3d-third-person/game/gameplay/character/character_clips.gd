@@ -194,7 +194,6 @@ const ALL: Array[StringName] = [
 ]
 
 
-## The library clip a clip of our own replaced or a fixed clip was made from, or the clip itself
-## when it has none.
+## The library clip a clip of our own replaced, or the clip itself when it replaced none.
 static func stand_in(clip: StringName) -> StringName:
 	return STAND_INS.get(clip, clip)

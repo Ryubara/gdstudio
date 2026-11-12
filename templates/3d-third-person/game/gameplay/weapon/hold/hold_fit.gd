@@ -24,6 +24,10 @@ extends Resource
 @export var support_pose: HandPose
 @export var magazine_pose: HandPose
 @export var open_pose: HandPose
+## The poses the trigger finger passes through between `grip_pose` and `trigger_pose` on this
+## body (`TwoHandHold.trigger_way`, written by `tools/hold/solve_trigger_way.gd`). None: the
+## straight way.
+@export var trigger_way: HandPoseWay
 
 
 ## The fit of `fits` solved on the body `model` wears (its file is the fit's `body`), or null.
