@@ -27,7 +27,7 @@ import numpy as np
 from mathutils import Matrix
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import limb_overlap  # noqa: E402  (for the twist bones of a prototype body, turned as the game turns them)
+import limb_overlap  # for the twist bones of a prototype body, turned as the game turns them
 
 VIEWS = ("side", "front", "top", "quarter")
 # Where each camera stands for a model at the origin, and how it is turned. The model faces -Y, so the side view

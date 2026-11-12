@@ -95,7 +95,11 @@ ARM = ("upperarm", "lowerarm", "hand")
 TWISTS = [
     (f"{twist}_twist_01_{side}", f"{source}_{side}", counter)
     for side in ("l", "r")
-    for twist, source, counter in (("upperarm", "upperarm", True), ("thigh", "thigh", True), ("lowerarm", "hand", False))
+    for twist, source, counter in (
+        ("upperarm", "upperarm", True),
+        ("thigh", "thigh", True),
+        ("lowerarm", "hand", False),
+    )
 ]
 
 

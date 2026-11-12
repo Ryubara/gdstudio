@@ -33,7 +33,7 @@ import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import limb_overlap  # noqa: E402  (the check every clip build of the template shares)
+import limb_overlap  # the check every clip build of the template shares
 
 FPS = 30
 CLIPS = (
