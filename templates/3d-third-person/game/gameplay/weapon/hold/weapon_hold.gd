@@ -189,6 +189,8 @@ var _magazine_speed := Vector3.ZERO
 var _slide: Node3D
 var _slide_rest := Transform3D.IDENTITY
 var _slide_released := false
+# Whether this node has the slide back now (what it last wrote).
+var _slide_locked := false
 # Where the left hand is now: on its way on or off the weapon, at the magazine, with the clip.
 var _left := SupportHandPlan.new()
 # The scene's own hold as a fit, kept the first time a model is built, for a model with no fit.
@@ -395,7 +397,9 @@ func _make_dropped() -> RigidBody3D:
 	return body
 
 
-# The slide: back while the weapon is empty, until the reload's last sound releases it.
+# The slide: back while the weapon is empty, until the reload's last sound releases it. The node
+# is written only when that changes, so whatever else moves it between (the hand that racks it,
+# `SlideRack`) is not put back every frame.
 func _place_slide() -> void:
 	if _slide == null or not is_instance_valid(_slide):
 		return
@@ -408,11 +412,14 @@ func _place_slide() -> void:
 		_slide_released = false
 	elif reload_weight > 0.0 and reload_share >= _sound_share(-1, reload_slide):
 		_slide_released = true
+	var locked := empty and not _slide_released
+	if locked == _slide_locked:
+		return
+	_slide_locked = locked
 	var place := _slide_rest
-	if empty and not _slide_released:
+	if locked:
 		place.origin += _slide_rest.basis.x.normalized() * slide_travel
-	if not _slide.transform.is_equal_approx(place):
-		_slide.transform = place
+	_slide.transform = place
 
 
 # A node's place in `root`'s space, from the transforms between them.
@@ -447,6 +454,10 @@ func _build() -> void:
 		_held_magazine.queue_free()
 	_held_magazine = null
 	_gun_magazine = null
+	if _slide != null and is_instance_valid(_slide) and _slide_locked:
+		# The same weapon may be built on again: its slide is at rest when its place is read.
+		_slide.transform = _slide_rest
+	_slide_locked = false
 	_slide = null
 	_skeleton = model.skeleton() if model != null else null
 	if _skeleton == null or seat == null or seat.get_child_count() == 0:

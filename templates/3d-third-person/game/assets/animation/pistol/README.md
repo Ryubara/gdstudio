@@ -3,8 +3,8 @@
 One clip of GDStudio's own for the pistol, made from nothing (kit #1081) because the Universal Animation Library's
 `Pistol_Reload` has no rack of the slide. It is in `pistol_rack.glb`, which Godot imports as an `AnimationLibrary` the
 same way as `assets/animation/universal/`: add it to an `AnimationPlayer` as the library `pistol` and the clip is
-`pistol/Pistol_Rack`. The player scene does not hold the library yet: the reload that plays it (kit #1052) adds it
-with the code that moves the slide.
+`pistol/Pistol_Rack`. The player scene does not hold the library yet: the reload that plays it (kit #1337) adds it
+with the code that moves the slide (until then the hold releases the slide at the reload's last sound, kit #1052).
 
 | Clip | Length | Loops | What it is |
 | --- | --- | --- | --- |

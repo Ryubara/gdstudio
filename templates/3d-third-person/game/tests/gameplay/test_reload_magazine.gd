@@ -39,11 +39,12 @@ func test_the_new_magazine_rides_the_left_hand_up_the_grips_line() -> void:
 		var hold := stage.hold as WeaponHold
 		var gun_magazine := stage.pistol.get_node("Pistol/Magazine") as Node3D
 		var rest := WeaponHold._in(gun_magazine, stage.pistol)
-		var line := hold.magazine_approach.normalized()
 		# The hand measured against the new magazine, and the new magazine against the pistol
 		# without its own: each contact keeps the meshes shown when it is made.
 		_pose_reload(stage, 0.0)
 		await stage.settle()
+		# Read once the hold is built: the body's own fit puts its way in on the hold.
+		var line := hold.magazine_approach.normalized()
 		var held := hold.held_magazine()
 		held.visible = true
 		var on_magazine := HandContact.new(stage.skeleton)
