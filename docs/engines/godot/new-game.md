@@ -168,14 +168,14 @@ every exit, kept with `--keep`, two calls at once).
   hand, and hand-made ones held text Godot never writes. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR
   #1092), 2026-11-11; gdstudio #1148, 2026-11-11 (a suite written after the scripts); kit #1129, 2026-11-11 (the
   command).
-- **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game`
-  (the `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree. Send a
-  run's log to a new name in your own scratch folder or from `mktemp`, never a fixed name in the session scratchpad.
-  **Watch out for:** a run showed another agent's worktree as the source: gds had built from the right checkout, but
-  two agents sent their runs to the same `full2.log` in the shared scratchpad, and the later run's header landed in the
-  file the first read back. **Seen:** gdstudio #1011 (PR #1019), 2026-11-10 (fix: gdstudio #1048, the `kit` line and
-  `python/tests/test_kit_source.py` with two worktrees); gdstudio #1047, 2026-11-10 (`--project` of main's
-  checkout built main; use `--project ./python`); gdstudio #1026 and #1148, 2026-11-11 (the same).
+- **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game` (the
+  `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree (the kit is the
+  `--project` checkout, not your folder). Send a run's log to a new name in your own scratch folder or from `mktemp`,
+  never a fixed name in the session scratchpad. **Watch out for:** a run showed another agent's worktree as the source:
+  gds had built from the right checkout, but two agents sent their runs to the same `full2.log` in the shared
+  scratchpad, and the later run's header landed in the file the first read back. **Seen:** gdstudio #1011 (PR #1019),
+  2026-11-10 (fix: gdstudio #1048); gdstudio #1047, 2026-11-10 (`--project` of main's checkout built main; use
+  `--project ./python`); gdstudio #1026, #1148 (2026-11-11) and #1315 (2026-11-12), the same.
 - **Approach:** Make a game by hand only in a workspace of its own from `mktemp -d` under the system temp folder (copies
   of `.gdstudio-workspace`, `gdstudio.local.toml` and the `tools/` addons), and remove only that; read a template's
   `project.godot` in a test with `ConfigFile`. **Watch out for:** a folder inside the real workspace or an empty
