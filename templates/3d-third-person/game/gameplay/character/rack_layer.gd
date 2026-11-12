@@ -7,21 +7,25 @@ extends RefCounted
 ## by it (`SlideRack`). The `CharacterAnimation` owns one (`rack`) and steps it every frame.
 ##
 ## The rack clip starts on the reload clip's last frame, so it comes in over the reload's last
-## `FADE_IN` seconds, and the reload's one-shot is told not to fade out for that reload: the two
-## blend between the same poses and the body never passes the pose under them (with both fading
-## the arms sank a quarter of the way to the carry). It is cosmetic and never sent: the rounds go
-## in at the end of the weapon's `reload_time`, as with no rack, and a shot or a switch cuts the
-## rack short. A reload with rounds left, or lying down, has none. The reload's last sound (the
-## slide) is left to the rack, which plays it where the hand lets the slide go
+## moments (`FADE_IN`, `START_EARLY`), and the reload's one-shot is told not to fade out for that
+## reload: the two blend between the same poses and the body never passes the pose under them
+## (with both fading the arms sank a quarter of the way to the carry). It is cosmetic and never
+## sent: the rounds go in at the end of the weapon's `reload_time`, as with no rack, and a shot or
+## a switch cuts the rack short. A reload with rounds left, or lying down, has none. The reload's
+## last sound (the slide) is left to the rack, which plays it where the hand lets the slide go
 ## (`WeaponDef.rack_sound_at`).
 
 ## The tree's nodes: the one-shot and its clip.
 const NODE := "Rack"
 const CLIP := "RackClip"
-## Seconds the rack takes to come over the reload's end, and to leave the body at its own end or
-## when a shot cuts it short.
-const FADE_IN := 0.12
+## Seconds the rack takes to come over the reload's end (short: the two clips meet on one pose,
+## and the hand leaves its grip 0.03 s into the rack), and to leave the body at its own end or when
+## a shot cuts it short.
+const FADE_IN := 0.03
 const FADE_OUT := 0.2
+## Seconds before the reload clip's end, past `FADE_IN`, at which the rack starts: it is all in
+## before the reload's one-shot ends, whichever frame that falls on.
+const START_EARLY := 0.04
 
 const _P_ACTIVE := StringName("parameters/%s/active" % NODE)
 const _P_REQUEST := StringName("parameters/%s/request" % NODE)
@@ -101,7 +105,7 @@ func step() -> void:
 			# Lain down since: the prone reload has no rack.
 			_restore_reload()
 		elif _animation.is_reloading():
-			if (1.0 - reload.y) * _reload_seconds <= FADE_IN:
+			if (1.0 - reload.y) * _reload_seconds <= FADE_IN + START_EARLY:
 				_start()
 		elif weapon == null or not weapon.is_reloading():
 			_start()
@@ -135,9 +139,10 @@ func progress() -> Vector2:
 	return Vector2(clampf(weight, 0.0, 1.0), clampf(share, 0.0, 1.0))
 
 
-## True while the rack plays (or will, at the end of the reload under way).
+## True from a reload that will end with the rack until the rack has left the body (asked for,
+## the tree may not have started it yet).
 func is_racking() -> bool:
-	return pending or progress().x > 0.0
+	return pending or _playing
 
 
 ## Cuts the rack short (a shot, a blow, a switch): it fades out, and the hold hands the slide back

@@ -377,7 +377,9 @@ func refresh() -> void:
 		if racked.x > 0.0 and not _was_racking and _rack != null:
 			rack_lock = _lock_share() if _slide_locked else 0.0
 		_was_racking = racked.x > 0.0
-		rack_weight = racked.x
+		# While the rack comes in the reload under it is on its last frame, the rack's first: the
+		# body is the rack's by both together, and no hand is half one plan and half the other.
+		rack_weight = minf(racked.x + reload.x, 1.0) if racked.x > 0.0 else 0.0
 		rack_share = racked.y
 		shot_kick = kick_at(_shot_age / kick_time) if animation.tree.active else 0.0
 		var held := animation.held_definition()
@@ -485,12 +487,14 @@ func _plan_left() -> void:
 
 # The reload the left hand's plan follows: the reload clip's weight and share, and through the
 # rack the reload's end (the support grip) by as much as the rack's hand leaves the slide to it
-# (`SlideRack.support_weight()`), so the plan goes on from where the reload left the hand.
+# (`SlideRack.support_weight()`), so the plan goes on from where the reload left the hand. The
+# share stays at the end while the rack fades out: blended toward the share of no reload (0) it
+# went back through the reload's steps, the new magazine in the hand again.
 func _reload_now() -> Vector2:
 	if _rack == null or rack_weight <= 0.0:
 		return Vector2(reload_weight, reload_share)
 	var on := _rack.support_weight(rack_share)
-	return Vector2(lerpf(reload_weight, on, rack_weight), lerpf(reload_share, 1.0, rack_weight))
+	return Vector2(lerpf(reload_weight, on, rack_weight), 1.0)
 
 
 # How much of the upper body a reload or the rack holds now: the arm stays in and the trigger
@@ -676,9 +680,10 @@ func _place_slide() -> void:
 	_slide.transform = place
 
 
-# True while a rack will follow the reload under way (`RackLayer.pending`).
+# True from a reload that ends with the rack until the rack is over (`RackLayer.is_racking()`):
+# the rack is asked for a frame before the tree plays it.
 func _rack_follows() -> bool:
-	return _rack != null and animation != null and animation.rack.pending
+	return _rack != null and animation != null and animation.rack.is_racking()
 
 
 # How far back along the rack's travel the locked slide stands (`slide_travel` of it).
