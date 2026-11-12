@@ -327,7 +327,7 @@ Every template sound but the pistol shots is generated with ElevenLabs Sound Eff
   2026-11-11 (fix: `gds template test --keep`, the tour copied into the kept game, `gds template clean` after);
   gdstudio #1320, 2026-11-11 (a probe script run with `--path` at the kept folder the command prints, which is the
   game's repository: the Godot project is its `game/` folder, the script found no resource, did not quit and held
-  the shell for its ten minutes; run every such probe under `timeout 120`); #1274, 2026-11-12.
+  the shell for its ten minutes; run every such probe under `timeout 120`); #1274 and #1319, 2026-11-12.
 
 ## What every template is built and reviewed against {#template-checklist}
 

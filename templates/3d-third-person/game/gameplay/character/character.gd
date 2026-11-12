@@ -173,6 +173,12 @@ var max_health: float:
 ## declined it: the cap on limp ragdolls or the range).
 var died_by_clip := false
 
+## The ground speed the last command steers the body toward, in m/s (0 when it asks for no move):
+## the speed the body is heading for, which the animation's transitions read (`GaitTransitions`).
+var goal_speed: float:
+	get:
+		var push := _wish_direction().length() if _action_lock <= 0.0 else 0.0
+		return _target_speed(push) if push > 0.0 else 0.0
 ## What the body is doing; `CharacterAnimation` plays the clip for it.
 var state := State.IDLE:
 	set(value):
