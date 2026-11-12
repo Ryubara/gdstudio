@@ -46,10 +46,10 @@ static func drive(tree: AnimationTree, added: bool) -> void:
 		tree.set(_P_DELTA, 1.0)
 
 
-## Plays the shot's clip once for a shot of the weapon `hold`. A weapon with no shot clip (the
-## rifle, whose recoil is its hold's) plays nothing: the layer's clip node then holds the idle
-## clip only so the tree has one, and playing it put the idle's upper body over a run, a sprint
-## and a slide for the idle's whole length after every shot (kit #1333).
+## Plays the shot's clip once for a shot of the weapon `hold`. A weapon with no shot clip plays
+## nothing: the layer's clip node then holds the idle clip only so the tree has one, and playing
+## it put the idle's upper body over a run, a sprint and a slide for the idle's whole length after
+## every shot (kit #1333, the rifle before it had its own `Rifle_Shoot`).
 static func fire(tree: AnimationTree, hold: WeaponDef) -> void:
 	if hold == null or hold.shoot_clips.is_empty() or hold.shoot_clips[0] == &"":
 		return
