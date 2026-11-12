@@ -21,8 +21,19 @@ var hands := 0.0
 var away := false
 
 var _playing: StringName = &""
+# The `vault` library the scene holds, put back for a model with no library of its own.
+var _shared: AnimationLibrary
 var _was_running := false
 var _rig_path := ""
+
+
+## Gives `player` the vault library `libraries` names for `rig`'s scene file, or the scene's
+## shared one (`CharacterAnimation.vault_libraries`): the clips are solved a body, since a planted
+## hand is on the obstacle only on the arms it was solved for (kit #1294).
+func use_model_clips(player: AnimationPlayer, rig: Node3D, libraries: Dictionary) -> void:
+	_shared = ProneAnimation.swap_library(
+		player, rig, CharacterClips.LIBRARY_VAULT, libraries, _shared
+	)
 
 
 ## Plays `clip` over the whole body for the crossing `plan` on `animation`. A vault timed by its

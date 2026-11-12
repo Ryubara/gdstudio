@@ -27,13 +27,11 @@ const MAX_TIME_GAP := 0.08
 ## exactly what the body that steps is held to (`WRIST_UP`, `WRIST_ALONG`, `WRIST_DRIFT`).
 const CONTACTS := "res://tests/gameplay/test_vault_contacts.gd"
 ## The two mannequins a puppet is drawn with here, by the name of their limits: Ada's puppet wears
-## the female, the server's first AI look (a grunt) the male (`AiReplica.variant_scenes`). The
-## limits were measured on the Quaternius pair the vault clips were keyed on, so the suite draws
-## the puppets with those (`_draw_with`); the template's prototype bodies have longer upper arms
-## and their planted wrists sit lower (kit #1187; gdstudio #1286 measures the clips on them).
+## the female, the server's first AI look (a grunt) the male (`AiReplica.variant_scenes`). Each
+## plays the vault clips solved on its own body (`CharacterAnimation.vault_libraries`, kit #1294).
 const MANNEQUINS := {
-	CharacterBodies.QUATERNIUS_FEMALE: "female",
-	CharacterBodies.QUATERNIUS_MALE: "male",
+	CharacterBodies.FEMALE: "female",
+	CharacterBodies.MALE: "male",
 }
 
 var _rig: OnlineRig
@@ -62,7 +60,7 @@ func test_a_puppet_plays_the_vault_clip_on_the_plan_the_server_ran() -> void:
 	await _rig.wait(30)
 	var puppet := _bo.remote_players.puppet_at(_ada.slot)
 	assert_object(puppet).is_not_null()
-	await _draw_with(puppet, CharacterBodies.QUATERNIUS_FEMALE)
+	await _draw_with(puppet, CharacterBodies.FEMALE)
 	var server_plans: Array[VaultPlan] = []
 	_rig.server_body(_ada).vault_motion.started.connect(
 		func(plan: VaultPlan) -> void: server_plans.append(plan)
@@ -194,7 +192,7 @@ func test_an_ai_puppets_planted_hand_rests_on_the_top_on_bos_screen() -> void:
 	assert_object(puppet).is_not_null()
 	if puppet == null:
 		return
-	await _draw_with(puppet, CharacterBodies.QUATERNIUS_MALE)
+	await _draw_with(puppet, CharacterBodies.MALE)
 	var server_plans: Array[VaultPlan] = []
 	runner.vault_motion.started.connect(func(plan: VaultPlan) -> void: server_plans.append(plan))
 	var puppet_plans: Array[VaultPlan] = []
