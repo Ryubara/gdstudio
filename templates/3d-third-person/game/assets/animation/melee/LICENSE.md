@@ -11,10 +11,11 @@
   skeleton), `melee_clips.json` (each clip's contact time, hit window and measured checks), `build_melee.py` and
   `render_melee.py`
 
-The clips are keyed on the bones of Quaternius's universal rig, read from
-`assets/characters/mannequin/mannequin_female.glb` (CC0, its own `LICENSE.md`), and their first and last poses are
+The clips are keyed on the Universal Animation Library's bone names, on the rest pose of GDStudio's own prototype
+body `assets/characters/prototype/form_female.glb` (kit #1319; before it, of Quaternius's
+`assets/characters/mannequin/mannequin_female.glb`, CC0), and their first and last poses are
 frame 0 of `Idle_Loop` and `Pistol_Idle_Loop` from `assets/animation/universal/ual1.glb` (CC0, its own `LICENSE.md`),
 so they join the poses the game stands in. The fist is the one of the prone clips (`../prone/`, our own); the pistol
 hand's fingers are the game's own grip pose (`gameplay/weapon/hold/pistol_grip_pose.tres`, our own). `melee.glb`
-carries the rig's bone names and rest pose and no mesh of the mannequin or the pistol. No third-party file is in this
+carries the rig's bone names and rest pose and no mesh of a body or the pistol. No third-party file is in this
 folder.
