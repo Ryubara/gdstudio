@@ -349,7 +349,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | --- | --- |
 | #1154 the clip toolkit and the review sheet (done) | `Idle`, three variants, A shipped as `gds/Idle`; the shared build, the checks and their self-test, `review_sheet.py`, the first swap ([the toolkit](animation.md#toolkit)) |
 | #1155 the loops (done) | `Walk`, `Jog`, `Sprint`, three variants, `Walk` B and `Jog` and `Sprint` A shipped; one description, `clips/gait.py` ([adding a gait](animation.md#toolkit)) |
-| #1156 starts and stops | `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`; `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`; left and right |
+| #1156 starts and stops (done) | `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`; `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`; each `_L` and `_R`, three variants, A shipped; one description, `clips/moves.py` ([start and stop clips](start-stop-clips.md#description)) |
 | #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |
 | #1158 the tree (Godot) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost |
 | #1159 directions and lean | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`; `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` |

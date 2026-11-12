@@ -65,6 +65,8 @@ SLOW = {
     "swing_ease": 1.0,
     "land_speed": 0.0,
 }
+## Metres the hips are under their carriage's height at which the arms are fully opened from the body (`arm_wide`).
+LOW_FULL = 0.03
 ## The fastest the centre of mass may drop with a foot on the floor, as a share of gravity (the check's limit is 1.05).
 FALL_MOST = 0.9
 ## What each number of a style's `idle_to_walk`, `idle_to_jog` or `idle_to_sprint` section means. A pair is the
@@ -93,7 +95,7 @@ START = {
     "body": [0.1, 0.9],  # the shares of the clip between which the carriage goes from the idle's to the gait's
     "body_turn": 0.5,  # where in that window it changes fastest (0.5: evenly)
     "arms": [0.05, 0.8],  # the same for the arms and the hands
-    "arms_free": 0.0,  # how far the arms' keeping clear of the thighs is let go in the middle of the change
+    "arm_wide": [8.0, 10.0],  # degrees each arm (left, right) opens from the body in the middle of the change
     "first_clear": 0.035,  # metres the first step's foot clears the floor by
     "heel_early": 0.5,  # the share of a contact of the clip's own over which the heel comes up
     "reach_fore": 0.42,  # metres ahead of the root a foot lands at most
@@ -167,7 +169,7 @@ STOP = {
     "body": [0.1, 0.85],  # the shares of the clip between which the carriage goes from the gait's to the idle's
     "body_turn": 0.5,
     "arms": [0.2, 0.95],
-    "arms_free": 0.0,
+    "arm_wide": [8.0, 10.0],
     "close_clear": 0.03,  # metres the last step's foot clears the floor by
     "heel_early": 0.45,
     "reach_fore": 0.5,
@@ -699,9 +701,9 @@ class Move:
         place = place + np.array([0.0, 0.0, self.x(float(f))])
         place[0] += self._shift(float(f))
         place[2] += n["lean_fore"] * self.h * math.tan(math.radians(lean))
-        place[1] -= n["lean_low"] * self.h * abs(math.tan(math.radians(lean)))
-        place[1] -= self._dip(float(f)) + float(np.interp(f, np.arange(F + 1), self.lower))
-        place[1] += float(np.interp(f, np.arange(F + 1), self.level))
+        low = self._dip(float(f)) + float(np.interp(f, np.arange(F + 1), self.lower))
+        low += n["lean_low"] * self.h * abs(math.tan(math.radians(lean)))
+        place[1] += float(np.interp(f, np.arange(F + 1), self.level)) - low
         turn = mix(tuple(idle["pelvis"]["turn"]), tuple(own["pelvis"]["turn"]), w)
         chest = mix(tuple(idle["chest"]), tuple(own["chest"]), w)
         head = mix(tuple(idle["head"]), tuple(own["head"]), w)
@@ -711,15 +713,19 @@ class Move:
             "ribs": idle["ribs"] * (1.0 - w),
             "head": (head[0] + n["lean_head"] * lean, head[1], head[2]),
             "clavicle": {s: mix(tuple(idle["clavicle"][s]), tuple(own["clavicle"][s]), arms) for s, _ in SIDES},
-            "arm": {s: self._arm(mix(self.idle_arms[s], plain_arm(own["arm"][s]), arms), arms) for s, _ in SIDES},
+            "arm": {
+                s: self._arm(mix(self.idle_arms[s], plain_arm(own["arm"][s]), arms), arms, s, low) for s, _ in SIDES
+            },
             "fingers": {s: mix(dict(idle["fingers"][s]), dict(own["fingers"][s]), arms) for s, _ in SIDES},
             "leg": {s: self.leg(s, float(f)) for s, _ in SIDES},
         }
 
-    def _arm(self, arm: dict, share: float) -> dict:
-        """An arm between the idle's and the gait's. `clear` opens an arm on the frame a thigh passes under it,
-        which jerks it while the legs do what neither clip's do; it is let go in the middle of the change."""
-        arm["clear"] = arm["clear"] * (1.0 - self.n["arms_free"] * math.sin(math.pi * share) ** 2)
+    def _arm(self, arm: dict, share: float, s: str, low: float) -> dict:
+        """An arm between the idle's and the gait's, opened from the body in the middle of the change and while
+        the hips are low: a thigh that folds forward under a hanging hand is not where the arm's `clear` looks
+        for it (the thigh's line as the body stands)."""
+        wide = min(max(4.0 * share * (1.0 - share), low / LOW_FULL), 1.0)
+        arm["out"] = arm["out"] + self.n["arm_wide"][AT[s]] * maths.smooth(wide)
         return arm
 
     def _shift(self, f: float) -> float:
@@ -788,7 +794,9 @@ class Move:
             if more.max() > 1e-4:
                 wide = np.array([more[max(f - 2, 0) : f + 3].max() for f in range(count)])
                 add = np.maximum(_soft(wide, 1.5), more)
-                add[0] = add[-1] = 0.0
+                # Nothing is lowered where the clip joins another: its first and last frames move as the joined
+                # clips do.
+                add = add * np.array([maths.smooth(f / 5.0) * maths.smooth((self.frames - f) / 5.0) for f in range(count)])
                 self.lower = np.minimum(self.lower + add, 0.3)
                 moved = max(moved, float(more.max()))
             # Where the centre of mass drops faster than `FALL_MOST` of gravity with a foot down, its height is
@@ -802,13 +810,11 @@ class Move:
             if bad:
                 soft = _soft(height, 1.2)
                 share = np.array([max(maths.smooth(1.0 - abs(f - b) / 4.0) for b in bad) for f in range(count)])
-                share[0] = share[-1] = 0.0
+                share[:2] = share[-2:] = 0.0
                 self.level = self.level + share * (soft - height)
                 moved = max(moved, float(np.abs(share * (soft - height)).max()))
             if moved < 1e-4:
                 break
-        self.lower = _soft(self.lower, 1.0) if self.lower.max() > 0.0 else self.lower
-        self.lower[0] = self.lower[-1] = 0.0
 
     # ---- the plan the checks and `clips.json` read ----------------------------------------------------------------
 
