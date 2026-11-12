@@ -115,6 +115,19 @@ The test: **every sound a player hears every few seconds must still be pleasant 
   cue a **fight trim** (Deadnight: -10 dB while a night runs) rather than duck the game: a cue that lowers the guns
   hides what the player needs (`docs/research/menu-sfx.md`, "The progression sounds", in the game).
 
+- **Approach:** Read the peak rung between sounds of one character (a hint, a tick, a press: all clicks), and between
+  a click and a tonal commit read loudness and length: the commit 4 LU or more over the press and two to four times
+  longer. **Watch out for:** in 3D Third Person the press, a sharp click, peaks at -13 dBFS at -37 LUFS-M (a crest of
+  24 dB) and the confirm, a soft click into a marimba chime, at -23 dBFS at -33 LUFS-M: its peak is 10 dB under the
+  press while it is 4.3 LU louder and 0.42 s against 0.1. Raising the confirm 3 dB over the press's peak would take
+  it to about -20 LUFS-M, over the pistol shot (-28.4), so the peak order is left reversed there. **Seen:** gdstudio
+  #1100, 2026-11-11 (the menu sounds' levels, kit docs `engines/godot/audio.md#menu-sounds`).
+- **Approach:** Take a hint's band (the one holding 80% of its energy) from every variant played alone, then gate the
+  margin over the bed for each variant in it. **Watch out for:** a band taken from the first of three takes (383 to 462
+  Hz, a tonal tock) held almost none of the others' energy, and the margin read 1.9 dB, a failure; from all three
+  (403 to 560 Hz) it read 21 dB on a flat speaker and 24 on the phone model. **Seen:** gdstudio #1100, 2026-11-11 (the
+  pause menu over the template's wind).
+
 ## 5. Touch, mouse, keyboard and pad {#5-touch-mouse-keyboard-and-pad}
 
 - **No hover on a touch screen** (the CSS `hover: none` media feature exists for this; it fails on devices with both).

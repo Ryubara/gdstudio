@@ -68,6 +68,8 @@ var director: AiDirector
 var situation := AiSituation.new()
 ## How many thinks it has run.
 var think_count := 0
+## Microseconds the last think took (the senses, the brain and the tasks): the soak's think gate.
+var last_think_usec := 0
 
 
 func _ready() -> void:
@@ -128,6 +130,7 @@ func ai_controller() -> AiController:
 ## One think, called by the director at the profile's rate for the tier, `seconds` after the last
 ## one: the situation's clock moves, then the parts in the slots decide.
 func think(seconds: float) -> void:
+	var began := Time.get_ticks_usec()
 	think_count += 1
 	situation.configure(profile)
 	situation.advance(seconds)
@@ -136,6 +139,7 @@ func think(seconds: float) -> void:
 	if brain is AiBrain:
 		(brain as AiBrain).think(seconds)
 	thought.emit(seconds)
+	last_think_usec = Time.get_ticks_usec() - began
 	if debug:
 		_show_debug()
 

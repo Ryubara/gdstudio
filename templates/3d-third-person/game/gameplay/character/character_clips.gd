@@ -6,13 +6,14 @@ extends RefCounted
 ## #1009, `assets/animation/prone/`), the library `prone`, and GDStudio's own clips that replace
 ## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
 ## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
-##
-## When a clip of our own replaces a library clip its constant moves (`IDLE` is `gds/Idle`) and
-## `STAND_INS` names the library clip it replaced, which stays in the game: set a clip export
-## of `CharacterAnimation` to `CharacterClips.stand_in(CharacterClips.IDLE)` to play it again.
 ## The library `fixed` holds the few library clips that put a limb through another on the
 ## template's bodies, with that limb swung clear (gdstudio #1295 and #1320,
-## `assets/animation/fixed/`); `STAND_INS` names the library's own clip for each of those too.
+## `assets/animation/fixed/`).
+##
+## When a clip of our own or a fixed clip replaces a library clip its constant moves (`IDLE` is
+## `gds/Idle`, `LAND` is `fixed/Jump_Land`) and `STAND_INS` names the library clip it replaced,
+## which stays in the game: set a clip export of `CharacterAnimation` to
+## `CharacterClips.stand_in(CharacterClips.IDLE)` to play it again.
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
 ## `player_animation.play_clip(CharacterClips.SWORD_ATTACK)`. The constants below are the clips
@@ -77,9 +78,9 @@ const VAULT_LOW := &"vault/Vault_Low"
 const VAULT_HIGH := &"vault/Vault_High"
 const VAULT_LAND := &"vault/Vault_Land"
 
-## The library clip each clip of our own replaced, kept as a stand-in, and the library clip each
-## fixed clip was made from: the same clip, as Quaternius keyed it. A game whose bodies the
-## library's suit puts it back in the inspector (`CharacterAnimation.land_clip`).
+## The library clip each clip of our own replaced, kept as a stand-in, and the library clip
+## each fixed clip was made from: the same clip, as Quaternius keyed it. A game whose bodies it
+## suits puts it back in the inspector (`CharacterAnimation.land_clip`).
 const STAND_INS: Dictionary[StringName, StringName] = {
 	&"gds/Idle": &"ual1/Idle",
 	&"fixed/Jump_Land": &"ual1/Jump_Land",

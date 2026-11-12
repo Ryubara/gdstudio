@@ -53,6 +53,18 @@ class Hand:
                 self.part[f + "_" + tag] = np.where(rig.main[self.ids] == self.chains[f][k])[0]
         self.part["palm"] = np.where(rig.main[self.ids] == self.hand)[0]
         self.finger_verts = {f: np.where(np.isin(rig.main[self.ids], self.chains[f]))[0] for f in FINGERS}
+        # The bones under each finger's last one, and where each is from that bone (it never turns).
+        self.tips = {f: [b for b in rig.under(rig.names[self.chains[f][2]]) if b != self.chains[f][2]] for f in FINGERS}
+        self.tip_local = {}
+        for f in FINGERS:
+            last = self.chains[f][2]
+            for bone in self.tips[f]:
+                at = self.local[bone].copy()
+                above = rig.parent[bone]
+                while above != last:
+                    at = self.local[above] @ at
+                    above = rig.parent[above]
+                self.tip_local[bone] = at
         self._apply_all()
 
     def _apply_all(self):
@@ -98,6 +110,12 @@ class Hand:
             local[:, :3, :3] = rig.rest[bone][:3, :3] @ rot
             g = g @ local
             mats.append(g @ rig.bind[bone])
+        # A bone under the finger's last one (a leaf bone at the tip, which one mannequin's skin is weighted
+        # to and the other's is not) rides it.
+        chain = list(chain)
+        for bone in self.tips[finger]:
+            chain.append(bone)
+            mats.append(g @ self.tip_local[bone] @ rig.bind[bone])
         vid = self.ids[self.finger_verts[finger][:: self.stride]]
         homog = rig.homog[vid]
         static = np.zeros((len(vid), 3))

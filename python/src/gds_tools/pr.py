@@ -238,6 +238,29 @@ def check_docs(repo: Path, body: str, kit: Path | None = None) -> BodyCheck:
             return BodyCheck(True, [], unknown=f"the docs checker failed: {error}")
 
 
+def check_commits(repo: Path, body: str, kit: Path | None = None) -> BodyCheck:
+    """The `commits` check of `pr-rules` (`groundwork.py check-commits --body`: every commit's trailers, and a `Model:`
+    line naming the model of each commit's co-author trailer) against the branch's commits since origin/main, the
+    commits GitHub lists for the pull request. A stacked branch carries its base's commits, so its `Model:` line must
+    name their models too; this refuses that here, before CI does (kit #1303, seen on #1264 and #1274). When the branch
+    cannot be told, the result says why in `unknown` and is never a pass."""
+    _, why = branch_changes(repo)
+    if why:
+        return BodyCheck(True, [], unknown=why)
+    if not (repo / CONVENTIONS).is_file():
+        raise PrCheckError(f"{CONVENTIONS.as_posix()} is missing in {repo}")
+    checker = checker_for(repo, kit)
+    with tempfile.TemporaryDirectory(prefix="gds-pr-commits-") as folder:
+        body_file = Path(folder) / "body.md"
+        body_file.write_text(body, encoding="utf-8", newline="\n")
+        try:
+            return _run_checker(
+                repo, checker, ["check-commits", "--commits", f"git:{BASE}..HEAD", "--body", str(body_file)]
+            )
+        except PrCheckError as error:  # an older groundwork.py without `check-commits --body`, or one that cannot run
+            return BodyCheck(True, [], unknown=f"the commits checker failed: {error}")
+
+
 def hold(
     repo: str,
     number: int,

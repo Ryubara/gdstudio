@@ -247,7 +247,8 @@ only *named* `WeaponDef` (the call compiled, never run) was clean. So read every
   cut of the list while the leak stays. **Watch out for:** loading every game script first (the Deadnight cure above)
   made every 3D Third Person suite leak, since name order loads `effect_def.gd` before `effect_emitter.gd`, as the
   export does; an array that tests or scenes assign typed breaks as `Array[Resource]`, so change only the one the cut
-  names. **Seen:** gdstudio #1236, 2026-11-11 (`EffectEmitter.warm_up`; `Hotbar` and `AiRelations` have the shape
+  names. **Seen:** gdstudio #1081 (PR #1103), 2026-11-11 (`SlideRack.fits`); gdstudio #1236, 2026-11-11
+  (`EffectEmitter.warm_up`; `Hotbar` and `AiRelations` have the shape
   and did not leak in any order tried).
 - **Approach:** When a suite leaks alone and not in the whole run, cut it to the smallest set of its cases that still
   leaks (each case in a file of its own with the suite's head, then one body a line at a time; a case turned off by a
