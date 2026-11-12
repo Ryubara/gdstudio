@@ -171,10 +171,12 @@ force push, which is the maintainer's decision: open the same change from a new 
 - **Approach:** After a merge of `main`, conflicted or not, read the diff of every test file against `main` and run
   `gds check scripts` (or the template's test) before pushing. **Watch out for:** a merge of `main` doubled a step in a
   test, so the branch failed for a reason the change never had; `main` retyping a shared property (the loadout's
-  `slots` to `Array[Resource]`) leaves the branch's new lines on the old type, which merge cleanly and fail to parse.
+  `slots` to `Array[Resource]`) leaves the branch's new lines on the old type, which merge cleanly and fail to parse;
+  a total both sides raised to the same number merges with no diff and is wrong: recount it.
   **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge); gdstudio #1258, 2026-11-11 (an
   inventory test from #1040 still typed `Array[WeaponDef]`; fix: retyped after the template check failed;
-  then a new export met the pins test `main` had added since).
+  then a new export met the pins test `main` had added since); #1275, 2026-11-12 (a clip count of 97 on both
+  sides, 100 merged).
 - **Approach:** When a branch moves a shared asset path (a body, a model), grep the merged tree for the old path after
   `gds merge-main`, in tests and in scenes, and run the full template suite, not only the suites the branch touched.
   **Watch out for:** a scene and a suite that landed on `main` after the branch started still use the old path, so
