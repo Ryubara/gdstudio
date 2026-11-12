@@ -9,9 +9,9 @@ research and its sources are in `../README.md`):
 - **In step with the forward gaits.** The cycle is the shipped `Walk`'s or `Jog`'s, the left foot lands at frame 0
   and the right half a cycle later, so the tree can blend a direction with the forward gait in step. The steps are
   shorter than the forward gait's, as a person's are backward and sideways, so each clip has its own speed.
-- **A backpedal lands on the ball of the foot.** The foot reaches back toes first, the heel comes down under the
-  weight, and in a walk the heel is the last part to leave, with the toes up (a forward walk played backward). The
-  run lands and leaves on the ball, sits lower and leans over its toes.
+- **A backpedal lands on the ball of the foot.** The foot reaches back toes first and the heel comes down under
+  the weight; a walk lifts the sole whole from in front of the body, a run leaves over the ball, sits lower and
+  leans over its toes.
 - **A strafe turns the hips a third toward the step and passes its feet in two lanes.** The pelvis, the knees and
   the toes are turned toward the step (`face`, `foot_turn`), so the trailing leg swings across in front of the
   leading one: the leading foot's lane is behind the root's path and the trailing foot's ahead of it (`lane`), and
@@ -46,6 +46,11 @@ EXTRA = {
     "pelvis_lean": 0.0,  # degrees the pelvis leans to the left
     "weight_ahead": 0.0,  # metres the centre of mass rides ahead of the root's place, the way the body faces
 }
+## These gaits play while the character aims, with a weapon in its hands whose hold poses the fingers, so the
+## fingers hold their curl here: thirty finger tracks that open and close 3 degrees were a quarter to a third of a
+## clip's key bytes, and with them the library file was over its 6 KB a second in Godot. The share of keys a
+## reducer keeps is then read on the 26 bones that move, without thirty cheap ones to bring it down.
+HELD_HANDS = {"finger_live": 0.0}
 ## The numbers a side may have of its own, beside `gait.SIDED`.
 SIDED = gait.SIDED + ("foot_turn", "knee_turn", "lane", "pass_wide", "heel_strike", "toe_off", "roll_in")
 _WALK = {
@@ -57,6 +62,7 @@ _WALK = {
     "swing_early": 0.0,
     "swing_ease": 1.0,
     "speed_limit": 27.0,
+    "keys_kept": 0.6,
 }
 _JOG = {**gait.DEFAULTS["jog"], **EXTRA, "pelvis_waves": 3, "swing_early": 0.0, "swing_ease": 1.0, "speed_limit": 36.0}
 DEFAULTS = {
@@ -70,7 +76,7 @@ DEFAULTS = {
         "toe_out": 7.0,
         "heel_strike": -16.0,  # the ball of the foot lands, the heel this far up
         "roll_in": 4.5,
-        "toe_off": -7.0,  # the heel leaves last, the toes this far up
+        "toe_off": 0.0,  # the sole is lifted whole (under 0: the heel leaves last, the toes this far up)
         "roll_out": 3.5,
         "kick": 0.012,
         "kick_at": 0.4,
@@ -97,7 +103,7 @@ DEFAULTS = {
         "elbow": 22.0,
         "elbow_live": 6.0,
         "wrist_live": 3.0,
-        "finger_live": 3.0,
+        **HELD_HANDS,
     },
     "walk_left": {
         **_WALK,
@@ -137,7 +143,7 @@ DEFAULTS = {
         "elbow": 20.0,
         "elbow_live": 6.0,
         "wrist_live": 3.0,
-        "finger_live": 3.0,
+        **HELD_HANDS,
         "arm_at": 0.5,
         # The swinging foot goes round the planted one (`pass_wide`) and the knees pass apart (`knee_turn`): in
         # two straight lanes 0.2 m apart with one turn for both legs, a foot went 36 mm through the other.
@@ -182,13 +188,14 @@ DEFAULTS = {
         "elbow": 20.0,
         "elbow_live": 6.0,
         "wrist_live": 3.0,
-        "finger_live": 3.0,
+        **HELD_HANDS,
         "arm_at": 0.5,
         "left": {"ahead": 0.28, "lane": 0.125, "foot_turn": -22.0, "knee_turn": 10.0, "pass_wide": 0.055},
         "right": {"ahead": 0.7, "lane": -0.115, "foot_turn": -33.0, "knee_turn": -22.0, "pass_wide": 0.045},
     },
     "jog_back": {
         **_JOG,
+        **HELD_HANDS,
         "heading": 180.0,
         "speed": 3.0,
         "duty": 7 / 20,
@@ -231,6 +238,7 @@ DEFAULTS = {
     },
     "jog_left": {
         **_JOG,
+        **HELD_HANDS,
         "heading": 90.0,
         "speed": 3.0,
         "duty": 6 / 20,
@@ -279,6 +287,7 @@ DEFAULTS = {
     },
     "jog_right": {
         **_JOG,
+        **HELD_HANDS,
         "heading": -90.0,
         "speed": 3.0,
         "duty": 6 / 20,
@@ -352,7 +361,11 @@ class Directed(Gait):
         falls = []
         for s, sign in SIDES:
             land = self._land(s)
-            falls.append(Footfall(s, land, land + self.contact, self._place(s, sign, 0), yaw=self._yaw(s, sign)))
+            # The rolls are named so `clips.json` says when the foot is at rest on the floor (`flat`); the foot's
+            # path is this description's own.
+            fall = Footfall(s, land, land + self.contact, self._place(s, sign, 0), yaw=self._yaw(s, sign))
+            fall.roll_in, fall.roll_out = self.own(s, "roll_in"), self.own(s, "roll_out")
+            falls.append(fall)
         speed = n["speed"]
         travel = Travel(
             forward=lambda f: speed * float(self.way[2]) * f / FPS, left=lambda f: speed * float(self.way[0]) * f / FPS

@@ -8,7 +8,7 @@ It reads the review file `review/<type>.glb` with its `review/<type>.json`, and 
 
 - `<type>_sheet.png`: the **strip** (a column per variant and a last one for the library clip, each the same
   frames of the cycle, in rows from the side, the front and the top, over a floor of 0.25 m squares that moves at
-  the clip's speed), the **other bodies** (one frame of each variant on every body), the **numbers** with their
+  the clip's speed, against the way the clip travels), the **other bodies** (one frame of each variant on every body), the **numbers** with their
   limits and the **notes** of each style file;
 - `<type>_numbers.md`: the numbers as a table for the pull request.
 
@@ -19,6 +19,7 @@ The clip from the game's camera is the other half of a review: `tools/capture/ow
 
 import argparse
 import json
+import math
 import os
 import subprocess
 import sys
@@ -206,6 +207,8 @@ def main() -> int:
                 record = records.get(clip["name"], {})
                 last = clip["rotation"].shape[0] - 1
                 speed = args.speed if args.speed is not None else record.get("speed", 0.0)
+                # The floor moves against the way the clip travels (`heading`, degrees to the left of ahead).
+                heading = math.radians(record.get("heading", 0.0))
                 if b == 0:
                     for k in range(args.frames):
                         frame = int(round(last * k / args.frames))
@@ -217,7 +220,10 @@ def main() -> int:
                                     "frame": frame,
                                     "view": view,
                                     "out": out.as_posix(),
-                                    "shift": speed * frame / 30.0,
+                                    "shift": [
+                                        -math.sin(heading) * speed * frame / 30.0,
+                                        math.cos(heading) * speed * frame / 30.0,
+                                    ],
                                 }
                             )
                             shots_of[(clip["name"], view, k)] = (out, frame)

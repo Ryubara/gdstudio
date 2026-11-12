@@ -85,6 +85,17 @@ GROUPS = {
         "Crouch_Walk",
         "Stand_To_Crouch",
         "Crouch_To_Stand",
+        "Walk_Back",
+        "Walk_Left",
+        "Walk_Right",
+        "Jog_Back",
+        "Jog_Left",
+        "Jog_Right",
+        "Lean_Ref",
+        "Lean_Left",
+        "Lean_Right",
+        "Lean_Fwd",
+        "Lean_Back",
     ]
 }
 ## The deepest a limb may be inside another part of the body, on every body (mm).
@@ -201,7 +212,9 @@ def main() -> int:
     builts = []
     for name in GROUPS[args.name]:
         _, describe = TYPES[name.lower()]
-        builts.append(build.build_clip(rig, solver, described(describe, rig, styles[picks[name]], name, joined)))
+        # A clip that is the same in every variant (the leans' reference) has no pick.
+        one = styles[picks.get(name, next(iter(styles)))]
+        builts.append(build.build_clip(rig, solver, described(describe, rig, one, name, joined)))
     return make(args, builts, GROUPS[args.name], rig, bodies, HERE / f"{args.name}.glb")
 
 
