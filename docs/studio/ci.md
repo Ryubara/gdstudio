@@ -48,8 +48,10 @@ request's failure. Tests: `python/tests/test_main_green.py` (the steps run under
   than main, merge main in when main has changed a file the pull request also changes, even where the merge is clean,
   and push once. **Watch out for:** #1250 added two cases to `test_ai_spawner.gd` and landed; #1243's green head,
   built before that, added one more and auto-merged 24 minutes later, so the suite reached 21 public methods and
-  main's gdlint failed though neither pull request had. **Seen:** gdstudio #1279, 2026-11-11 (fix: the suite split in
-  two).
+  main's gdlint failed though neither pull request had. Auto-merge never merges main in, so a pull request with it on
+  needs the same refresh by hand when main changes one of its files. **Seen:** gdstudio #1279, 2026-11-11 (fix: the
+  suite split in two); gdstudio #1312, 2026-11-11: #1296 auto-merged on a head built before #1239 and
+  `character_animation.gd` reached 1001 lines (fix: a comment reflowed; the split is #1287).
 - **Approach:** When a job can skip itself, work out how often it skips at the real run time and merge rate and give a
   recurring skip a signal; deploy any green commit newer than the live one, and read the live commit after a merge
   someone waits on. **Watch out for:** deploy jobs skipped unless their commit was still main's head; CI took 10 to 25
