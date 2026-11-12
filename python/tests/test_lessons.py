@@ -477,6 +477,50 @@ def test_propose_takes_a_pull_requests_changed_files_and_its_labels(brief_kit):
     assert lessons.propose(brief_kit, "zzz qqq") == []
 
 
+def test_propose_skips_a_path_mention_in_a_section_far_from_the_issues_words(brief_kit):
+    """A section that only mentions a path the issue names in passing (gdstudio #1133: the `Area` line's `game/core/`
+    named the voice-lines section for an online-play task) is not named when its words are far from the issue's."""
+    (brief_kit / "docs" / "studio" / "voices.md").write_text(
+        "# Voices\n\n## Voice lines {#voice-lines}\n\nRecorded barks and announcer lines, cut per speaker and kept "
+        "under `game/core/` beside the bus they play on.\n",
+        encoding="utf-8",
+    )
+    found = lessons.propose(
+        brief_kit, "hooks: Fix the agent guard prompt", "The guard misreads a prompt. Area: `game/core/`.", limit=6
+    )
+    assert refs_of(found)[0] == "studio/hooks.md#agent-guard"
+    assert not any(p.why == "mentions game/core/" for p in found)  # a tiny kit may still list it by words, last
+    close = lessons.propose(brief_kit, "audio: Add voice lines", "Barks for each speaker under `game/core/`.", limit=6)
+    assert [p.why for p in close if p.section.ref == "studio/voices.md#voice-lines"] == ["mentions game/core/"]
+
+
+ROBOTS_PAGE = """# Robot characters in the template
+
+The base every robot character is made from, the profile that says what kind of robot it is, and the director that
+budgets every robot character.
+
+## Robot parts
+
+Every robot character part, with no anchor of its own, long enough to be read as a section of robot characters.
+
+## Robot senses {#senses}
+
+What a robot character sees and hears, how far its senses reach, and how long a robot remembers what it sensed.
+"""
+
+
+def test_propose_names_only_headings_with_an_explicit_anchor(brief_kit):
+    """A page's `#` title and a heading with no `{#anchor}` get a slug, but a `Read:` line naming one reads as missing
+    to the agent given it (gdstudio #1193: `ai.md#ai-characters-in-3d-third-person`, `index.md#blender`)."""
+    (brief_kit / "docs" / "studio" / "robots.md").write_text(ROBOTS_PAGE, encoding="utf-8")
+    words = "godot: Add robot characters, their parts and senses"
+    found = lessons.propose(brief_kit, words, "See docs/studio/robots.md and studio/robots.md#robot-parts.", limit=6)
+    assert "studio/robots.md#senses" in refs_of(found)
+    assert not {"studio/robots.md#robot-characters-in-the-template", "studio/robots.md#robot-parts"} & set(
+        refs_of(found)
+    )
+
+
 def test_brief_text_and_missing_refs(brief_kit):
     found = lessons.propose(brief_kit, "the disk guard", limit=1)
     assert lessons.brief_text(found) == "Read: studio/hooks.md#disk"
@@ -491,3 +535,17 @@ def test_the_kit_proposes_real_sections_for_this_issue():
     )
     assert "studio/starting-work.md#starting-an-agent" in refs_of(found)
     assert lessons.missing_refs(KIT, "\n".join(p.line for p in found)) == []
+
+
+def test_the_kit_does_not_name_voice_lines_for_online_play():
+    """gdstudio #909 (online play with a web probe) was briefed with `gamedev/audio/voice-lines.md#voice-lines`,
+    because its `Area` line names `game/core/` and only that section mentions it (gdstudio #1133)."""
+    body = (Path(__file__).parent / "fixtures" / "issue_bodies" / "gdstudio-909.txt").read_text(encoding="utf-8")
+    found = refs_of(
+        lessons.propose(
+            KIT, "godot: Add online play and a web probe to 3D Third Person", body, {"A-godot": "", "task": ""}
+        )
+    )
+    assert not any(r.startswith("gamedev/audio/voice-lines.md") for r in found)
+    assert "engines/godot/multiplayer.md#web-export" in found
+    assert "engines/godot/third-person/online-client.md#play-online" in found

@@ -128,6 +128,20 @@ func shot(
 	return part.record(damage, found.point, along, strength, source)
 
 
+## Where an aim ray that met this character's capsule at `point`, going `along`, meets the body:
+## the point on the part it meets, or `Vector3.INF` when it passes between the parts (the aim goes
+## on past the body, as a shot along it would). With the zones off, or none, it is `point`: a shot
+## there is a hit on the whole body. A weapon aims at this point, not at the capsule's surface: the
+## muzzle is beside the camera, so a shot sent at a point in front of the part crosses the
+## crosshair's line there and passes beside the part (gdstudio #1251).
+func aimed_point(point: Vector3, along: Vector3) -> Vector3:
+	if not enabled or zones().is_empty():
+		return point
+	var way := along.normalized()
+	var found := find(point - way * 0.05, point + way * ray_length)
+	return found.point if not found.is_empty() else Vector3.INF
+
+
 ## Gives `record` to the receiver: a `Character` takes it (`take_hit()`), any other body's
 ## `Health` child applies it. A hit its source may not deal (a friend's, `AiFactions.can_hurt`)
 ## is dropped.
@@ -187,6 +201,10 @@ func follow_bones() -> void:
 		_bones_found = true
 	if top_level:
 		global_transform = skeleton.global_transform
+		# The physics server hears of a node's new transform when the frame's transforms are sent,
+		# after this shot's query: send it now (a body that moved since the last shot was met where
+		# that shot left its zones, gdstudio #1198).
+		force_update_transform()
 	var to_here := global_transform.affine_inverse() * skeleton.global_transform
 	for part in zones():
 		if part.bone_index < 0:

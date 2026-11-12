@@ -91,7 +91,8 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   `test_commands_only.gd` leaks alone too; rewriting the suite's lambdas into methods changed nothing, and in a run of
   nine suites, and the whole run, it left nothing. **Seen:** gdstudio #901, 2026-11-10 (part 3, an hour of bisecting
   a leak CI never sees); gdstudio #887, 2026-11-10 (`test_prone_aim.gd` alone: 195 GDScript objects with every test
-  but one turned off, none in the whole run; the RID lines beside them were real, next entry).
+  but one turned off, none in the whole run; the RID lines beside them were real, next entry); gdstudio #1026,
+  2026-11-11 (the player scene loaded alone).
 - **Approach:** When a typed `@export var x: MyResource` makes `godot --headless --import` end with `resources still in
   use at exit` (CI fails an import with any `^ERROR`), put each changed script back to `main`'s, one at a time, and
   declare it `@export_custom(PROPERTY_HINT_RESOURCE_TYPE, "MyResource") var x: Resource`, the same slot in the
@@ -125,6 +126,13 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
 <!-- new section: the page covers the folder scan and a suite that only names a class; the causes a test creates
      itself (cycles, nodes never freed, a preloaded scene) were only in one-problem files -->
 
+- **Approach:** When a capture scene (a `tools/capture/*_tour.tscn`) ends with `17 resources still in use at exit`,
+  run an existing tour on the same game as the control and bisect the new tour against a bare one that only waits and
+  quits (each run about a minute at `--fps 10`); have the tour learn what it labels from signals (`weapon_changed`),
+  read once, rather than from a resource it fetches every physics frame. **Watch out for:** the fire-zoom tour read the
+  held `WeaponDef` (its `display_name`) every physics frame for its label and left 17 scripts (the UI, Phantom Camera
+  and shake addons) and the variant pools alive at exit in five runs in a row, with no input at all; the same label fed
+  by `weapon_changed` exited clean twice. The engine-side cause was not found. **Seen:** gdstudio #1255, 2026-11-11.
 - **Approach:** Ask `ResourceLoader.exists(path)` before `load_threaded_request(path)` and treat a missing path as the
   failure it is. **Watch out for:** a request for a scene that is not there printed two engine errors and left one
   `RefCounted` behind at exit (`1 ObjectDB instance was leaked`), which the suite's summary does not carry and CI's
@@ -184,12 +192,68 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
      with the same message on one run and passed on the next with the same code -->
 
 The template job's `--export-release Web` sometimes ends with `N resources still in use at exit` and passes on a rerun
-of the same commit (gdstudio #954 saw it on one run and not the next two; #888 the same). CI now exports once more when
-the only `ERROR` lines are at-exit leaks, prints the first run's leak lines (the export runs with `--verbose`, which
-names each script) as a warning, and fails when the second run leaks too or when any other error shows.
+of the same commit (gdstudio #954 saw it on one run and not the next two; #888 the same). The lines come from the
+editor process after the pack is written (the add-ons unload, then the leak report), so they say nothing about the
+build, which the steps after the export judge (the pack's contents, the browser boot). The export step fails on any
+other `ERROR:` line and on Godot's own failure, and prints the at-exit lines as a warning (gdstudio #1236).
+
+The retry that #998 added never ran. A leaking editor also prints `Pages in use exist at exit in PagedAllocator` (an
+`ERROR:` line the leak filter did not name) and, with `--verbose`, a list of orphan names, some of which hold the word
+`ERROR` (`Orphan StringName: REPORT_ASSERT_ERRORS`). The step read those as "another error", printed every `ERROR`
+line and exited 1 at once: runs 43022827198 (#1194) and 43044822252 (#1223) both failed in the export step with every
+test green and no line other than the leak, and neither reached the retry.
+
+- **Approach:** Classify a Godot log by `ERROR:` lines (with the colon) that do not contain `at exit`, and test the
+  classifier against the failed run's own log before trusting it (`gh run view <id> --log --job <job>`, cut to the
+  step). **Watch out for:** `grep ERROR` also matches verbose orphan names, and the leak brings a
+  `Pages in use exist at exit` line besides the two the filter knew; a job that "failed with every test green" was the
+  export step, not the tests step (`Exit code: 0`, `0 orphans` in its summary): read which step carries
+  `##[error]Process completed` before looking at the tests. **Seen:** gdstudio #1236, 2026-11-11 (runs 43022827198,
+  43044822252).
 
 - **Approach:** Tell a flake from a real leak by rerunning the job, then by exporting early in the job (before the
   tests) with `--verbose`: a leak that names the same script on every run and in the early export is real and is fixed
   in that script; one that comes and goes with the same code is the flake, which the retry absorbs. **Watch out for:**
   a retry hides a leak that happens one run in two, so read the warning's script names in the log when it shows.
-  **Seen:** gdstudio #998, 2026-11-10 (retry in the template job's export step).
+  **Seen:** gdstudio #998, 2026-11-10 (retry in the template job's export step); gdstudio #1194, 2026-11-11 (237
+  scripts from the add-ons and gdUnit4, none of them the change's; the retry did not run, see above).
+
+## An exported typed array and a cast to the script's own class {#typed-array-export-and-self-cast}
+
+<!-- new section: the sections above find which suite or script leaks; none names an engine pattern in a game
+     script that leaves other scripts (GdUnit4's, the autoloads') in use at exit -->
+
+Under Godot 4.7.2 a script that has **all three** of these leaves scripts in use at exit when the class its array holds
+was loaded as itself first: an `@export var x: Array[Other]` of a `class_name` class, a cast or type test against its
+own class in a function (`node as Self`, `node is Self`, `var s: Self = node`, a `-> Self` that returns a `Node`), and a
+GdUnit4 run in the same process. The scripts left are not the two named: they are GdUnit4's, the autoloads' (`gds_ui`,
+Phantom Camera, the audio settings, the camera shake) and whatever their statics hold, about 190 objects and 120
+scripts. Taking away any one of the three cures it (a single typed export, `return self`, an array that is not
+exported, `Array[Resource]`). A ten-file project shows it: GdUnit4, `def.gd` (`class_name Def extends Resource`),
+`emitter.gd` (`@export var arr: Array[Def] = []` and `static func find(n: Node) -> Emitter: return n as Emitter`), a
+one-assert suite, and a wrapper of `GdUnitCmdTool.gd` that loads `def.gd` then `emitter.gd` first; loading them the
+other way round, or without GdUnit4, is clean. Godot's tracker has the same family, closed unfixed
+(godotengine/godot#122601, #123883 and #122022); 4.8's shutdown clean-up does more.
+
+The cast is not always needed: `WeaponLoadout` (`@export var slots: Array[WeaponDef]`, no cast to `WeaponLoadout`
+anywhere in it) left the same 188 objects and 117 resources when a suite ran a player and held a `WeaponDef` it got at
+run time (`var hold := animation.held_definition()`), or gave its weapon a duplicated `WeaponDef`. The same suite that
+only *named* `WeaponDef` (the call compiled, never run) was clean. So read every exported `Array[Other]` of a
+`class_name` class on the suite's path as a candidate, with or without a cast.
+
+- **Approach:** Export such an array as `@export_custom(PROPERTY_HINT_TYPE_STRING, "24/17:Other") var x:
+  Array[Resource] = []` (the inspector still offers only `Other`) and cast each item where it is used. Find the script
+  with a wrapper of `GdUnitCmdTool.gd` that loads a list of scripts before `super()`, a one-assert suite, and a greedy
+  cut of the list while the leak stays. **Watch out for:** loading every game script first (the Deadnight cure above)
+  made every 3D Third Person suite leak, since name order loads `effect_def.gd` before `effect_emitter.gd`, as the
+  export does; an array that tests or scenes assign typed breaks as `Array[Resource]`, so change only the one the cut
+  names. **Seen:** gdstudio #1236, 2026-11-11 (`EffectEmitter.warm_up`; `Hotbar` and `AiRelations` have the shape
+  and did not leak in any order tried).
+- **Approach:** When a suite leaks alone and not in the whole run, cut it to the smallest set of its cases that still
+  leaks (each case in a file of its own with the suite's head, then one body a line at a time; a case turned off by a
+  rename still compiles, so cut bodies out), then put the exported `Array[Other]` the last line reaches to
+  `Array[Resource]`. **Watch out for:** `test_player_step.gd` (a duplicated `WeaponDef` after `CommandCodec`) was
+  first filed as the engine family with no script to change; it and `test_prone_animation.gd` (the case that calls
+  `held_definition()`) were both `WeaponLoadout.slots`, which has no self-cast. **Seen:** gdstudio #1236, 2026-11-11
+  (four other suites of #1138 already clean alone at 9ebaa690); gdstudio #1249, 2026-11-11 (fix: `slots` as
+  `Array[Resource]`: prone 188 objects and 117 resources to none, player step 191 and 120 to none).

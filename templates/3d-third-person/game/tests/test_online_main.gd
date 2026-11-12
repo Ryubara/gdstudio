@@ -37,7 +37,9 @@ func _open(url: String) -> OnlineMain:
 	return online
 
 
-func _until(condition: Callable, frames := 240) -> bool:
+# A client joins after the level's warm-up (`JoinWait`), which tours every reflection probe and
+# then the minimap's view of the world as well (kit #1297): give a join room for both.
+func _until(condition: Callable, frames := 600) -> bool:
 	for _i in frames:
 		if condition.call():
 			return true
@@ -53,16 +55,24 @@ func test_the_online_game_is_the_offline_game_with_a_client() -> void:
 	assert_object(online.client.world_root).is_same(online.get_node("Main/World"))
 	assert_object(online.client.remote_players).is_same(online.remote_players)
 	assert_bool(online.client.join_on_ready).is_true()
+	assert_bool(online.client.join_after_warm_up).is_true()
 	assert_object(online.status.client).is_same(online.client)
 
 
-func test_it_joins_shows_connecting_then_plays_and_sees_the_other_player() -> void:
+func test_it_joins_shows_loading_then_connecting_then_plays_and_sees_the_other_player() -> void:
 	var rig := _start_rig()
 	var other := await rig.join("Other")
 	assert_object(other).is_not_null()
 	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
-	assert_int(online.status.state).is_equal(OnlineStatus.State.CONNECTING)
-	assert_bool(await _until(func() -> bool: return online.client.is_seated())).is_true()
+	assert_int(online.status.state).is_equal(OnlineStatus.State.LOADING)
+	var states: Array[OnlineStatus.State] = []
+	online.status.state_changed.connect(
+		func(shown: OnlineStatus.State) -> void: states.append(shown)
+	)
+	assert_bool(await _until(func() -> bool: return online.client.is_seated(), 600)).is_true()
+	assert_array(states).contains_exactly(
+		[OnlineStatus.State.CONNECTING, OnlineStatus.State.PLAYING]
+	)
 	assert_int(online.status.state).is_equal(OnlineStatus.State.PLAYING)
 	assert_bool((online.status.get_node("%Root") as Control).visible).is_false()
 	assert_bool(online.client.player.input_enabled).is_true()
@@ -76,7 +86,7 @@ func test_it_joins_shows_connecting_then_plays_and_sees_the_other_player() -> vo
 func test_a_lost_server_shows_connection_lost_and_turns_the_input_off() -> void:
 	var rig := _start_rig()
 	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
-	assert_bool(await _until(func() -> bool: return online.client.is_seated())).is_true()
+	assert_bool(await _until(func() -> bool: return online.client.is_seated(), 600)).is_true()
 	rig.server.listener.close()
 	(
 		assert_bool(
@@ -85,6 +95,7 @@ func test_a_lost_server_shows_connection_lost_and_turns_the_input_off() -> void:
 		. is_true()
 	)
 	assert_str(online.status.message()).is_equal("Connection lost.")
+	assert_int(online.client.rejoined).is_equal(0)
 	assert_bool((online.status.get_node("%Root") as Control).visible).is_true()
 	assert_bool((online.status.get_node("%BackButton") as Control).visible).is_true()
 	assert_bool(online.client.player.input_enabled).is_false()
@@ -149,11 +160,60 @@ func test_nobody_answering_is_unreachable_not_connecting_for_ever() -> void:
 	assert_str(online.status.message()).is_equal("The server did not answer.")
 
 
+func test_a_hello_the_server_hung_up_on_gets_a_new_socket_and_plays() -> void:
+	# A server whose hello window has passed before any hello can come (a page that compiled its
+	# shaders for 14 s, gdstudio #1137); it waits as usual once the client opens a new socket.
+	var rig := _start_rig(func(server: NetServer) -> void: server.hello_seconds = -1.0)
+	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
+	var shown: Array[OnlineStatus.State] = []
+	online.status.state_changed.connect(
+		func(state: OnlineStatus.State) -> void: shown.append(state)
+	)
+	online.client.rejoining.connect(
+		func(_attempt: int) -> void: rig.server.hello_seconds = 10.0, CONNECT_ONE_SHOT
+	)
+	assert_bool(await _until(func() -> bool: return online.client.is_seated())).is_true()
+	assert_int(online.client.rejoined).is_equal(1)
+	assert_int(online.status.state).is_equal(OnlineStatus.State.PLAYING)
+	assert_array(shown).not_contains([OnlineStatus.State.UNREACHABLE])
+	assert_int(rig.server.player_count()).is_equal(1)
+
+
+func test_a_server_that_always_hangs_up_is_unreachable_after_the_rejoins() -> void:
+	var rig := _start_rig(func(server: NetServer) -> void: server.hello_seconds = -1.0)
+	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
+	(
+		assert_bool(
+			await _until(
+				func() -> bool: return online.status.state == OnlineStatus.State.UNREACHABLE
+			)
+		)
+		. is_true()
+	)
+	assert_int(online.client.rejoined).is_equal(online.client.rejoins)
+	assert_bool(online.client.is_seated()).is_false()
+
+
+func test_a_refusal_is_never_rejoined() -> void:
+	var rig := _start_rig(func(server: NetServer) -> void: server.max_players = 1)
+	assert_object(await rig.join("First")).is_not_null()
+	var full := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
+	(
+		assert_bool(
+			await _until(func() -> bool: return full.status.state == OnlineStatus.State.FULL)
+		)
+		. is_true()
+	)
+	await rig.wait(30)
+	assert_int(full.client.rejoined).is_equal(0)
+	assert_int(full.status.state).is_equal(OnlineStatus.State.FULL)
+
+
 func test_bot_plays_through_the_players_own_input() -> void:
 	var rig := _start_rig()
 	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
 	var bot := online.add_bot(PlayerBot.Plan.ROUTE)
-	assert_bool(await _until(func() -> bool: return online.client.is_seated())).is_true()
+	assert_bool(await _until(func() -> bool: return online.client.is_seated(), 600)).is_true()
 	assert_object(online.client.player.controller).is_instanceof(PlayerInput)
 	var start := online.client.player.global_position
 	await rig.wait(120)
@@ -174,8 +234,8 @@ func test_the_probe_reports_what_the_client_measured() -> void:
 	probe.remote = online.remote_players
 	probe.status = online.status
 	online.add_child(probe)
-	assert_str(probe.state).is_equal("connecting")
-	assert_bool(await _until(func() -> bool: return online.client.is_seated())).is_true()
+	assert_str(probe.state).is_equal("loading")
+	assert_bool(await _until(func() -> bool: return online.client.is_seated(), 600)).is_true()
 	await rig.wait(60)
 	var report := probe.report()
 	assert_str(report["state"]).is_equal("seated")
@@ -184,3 +244,64 @@ func test_the_probe_reports_what_the_client_measured() -> void:
 	assert_int(report["rtt_ms"]).is_greater_equal(0)
 	assert_float(report["gap_m"]).is_between(0.0, 0.05)
 	assert_int(report["frame_us_p50"]).is_greater(0)
+	assert_int(report["settle_ms"]).is_greater(0)
+	assert_int(report["wait_ms"]).is_greater_equal(report["settle_ms"])
+	assert_int(report["seated_ms"]).is_greater(0)
+	assert_int(report["rejoined"]).is_equal(0)
+
+
+func test_the_join_waits_for_the_levels_warm_up_and_settled_frames_saying_loading() -> void:
+	var rig := _start_rig()
+	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
+	var emitter := EffectEmitter.find(online.client)
+	assert_object(emitter).is_not_null()
+	assert_bool(emitter.is_warming()).is_true()
+	assert_bool(online.client.is_waiting_to_join()).is_true()
+	assert_object(online.client.link).is_null()
+	# A device that draws every frame in 70 ms is settled: only a stall resyncs the client.
+	assert_float(online.client.join_wait.settle.longest).is_equal(StallGuard.STALL_SECONDS)
+	assert_str((online.status.get_node("%Title") as Label).text).is_equal("Loading")
+	assert_bool((online.status.get_node("%BackButton") as Control).visible).is_true()
+	assert_bool(online.client.player.input_enabled).is_false()
+	# The link opens only once the warm-up is over and the frames that follow have settled.
+	var warm_at := -1
+	var frames := 0
+	while online.client.link == null and frames < 600:
+		await get_tree().process_frame
+		frames += 1
+		if warm_at < 0 and not emitter.is_warming():
+			warm_at = frames
+	assert_object(online.client.link).is_not_null()
+	assert_int(warm_at).is_greater(0)
+	assert_int(frames - warm_at).is_greater_equal(online.client.join_wait.settle.frames - 1)
+	await get_tree().process_frame
+	assert_int(online.status.state).is_equal(OnlineStatus.State.CONNECTING)
+	assert_bool(await _until(func() -> bool: return online.client.is_seated(), 600)).is_true()
+
+
+func test_a_client_told_not_to_wait_joins_at_once() -> void:
+	var rig := _start_rig()
+	var view := SubViewport.new()
+	view.own_world_3d = true
+	add_child(auto_free(view))
+	NetClient.next_url = "ws://127.0.0.1:%d" % rig.server.listener.port()
+	var online := (load(ONLINE) as PackedScene).instantiate() as OnlineMain
+	online.client.clock = SocketRig.frame_clock
+	online.client.join_after_warm_up = false
+	view.add_child(online)
+	assert_object(online.client.link).is_not_null()
+	assert_bool(online.client.is_waiting_to_join()).is_false()
+	assert_int(online.status.state).is_equal(OnlineStatus.State.CONNECTING)
+
+
+func test_leaving_while_loading_never_joins() -> void:
+	var rig := _start_rig()
+	var online := _open("ws://127.0.0.1:%d" % rig.server.listener.port())
+	var wait := online.client.join_wait
+	assert_bool(wait.is_waiting()).is_true()
+	var ended := [false]
+	wait.finished.connect(func() -> void: ended[0] = true)
+	online.queue_free()
+	await rig.wait(240)
+	assert_bool(ended[0]).is_false()
+	assert_int(rig.server.player_count()).is_equal(0)

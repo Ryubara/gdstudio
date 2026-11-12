@@ -7,41 +7,80 @@ slide, the ragdoll and touch controls. Part of [the 3D Third Person template](..
 
 ## The animation libraries {#animation-libraries}
 
-<!-- new section: no page said how the Universal Animation Library reaches a Godot character -->
+<!-- new section: a pointer left when the section moved to its own page at the size limit (#1016) -->
 
-- **Approach:** Import each Universal Animation Library glb as an `AnimationLibrary` (`importer="animation_library"` in
-  its `.import`, the "Import As" choice of the Import dock), add it to the player's `AnimationPlayer` under a library
-  name (`ual1`, `ual2`), and keep the mannequin as a plain scene whose root is the `AnimationPlayer`'s `root_node`.
-  **Watch out for:** the importer drops the glb's mesh (the library is 0.75 MB where the file is 7.6 MB), removes the
-  `_Loop` suffix and makes the clip loop (`Idle_Loop` is `ual1/Idle`, `Jump_Loop` is `ual1/Jump`), and the track paths
-  are `Armature/Skeleton3D:<bone>`, which match the mannequin's scene (`mannequin/Armature/Skeleton3D`) with no
-  retargeting, since the libraries and the mannequin share the Quaternius universal rig. A test walks every track of all
-  86 clips and finds its bone. **Seen:** gdstudio #821, 2026-11-08.
-- **Approach:** Name every point of an `AnimationNodeBlendSpace1D` (`add_blend_point(node, pos, -1, &"walk")`) and
-  travel a state machine between states that all have transitions to each other. **Watch out for:** Godot 4.7 warns "No
-  name provided" for an unnamed point, once per point and per player. **Seen:** gdstudio #821, 2026-11-08.
-- The Pro and Source tiers of the packs are not free; the template holds the Standard files only (43 clips each, 86 in
-  all). Their licence is CC0 on the official pages (itch.io and quaternius.com) and in each zip's `License.txt`.
-  A download needs the itch.io page's free "name your own price" path (a CSRF token, then `download_url`, then
-  `file/<id>`, all within seconds of each other); keep the zips in `<workspace>/cache/downloads/` and record their
-  sha256 in the licence entry.
+Moved to [The character's clips](clips.md#animation-libraries).
 
-## The two mannequins {#mannequins}
+## The vault clips {#vault-clips}
+
+<!-- new section: a pointer left when the section moved to its own page at the size limit (#1016) -->
+
+Moved to [The character's clips](clips.md#vault-clips).
+
+## The bodies {#mannequins}
 
 <!-- new section: the template shipped one mannequin under a neutral name; #843 added the other and named both -->
 
-The template ships both Quaternius mannequins, CC0, on the one universal rig (65 bones, the same names and parents), so
-every clip of both libraries plays on either: `mannequin_female.glb` (the pack's `Mannequin_F.glb`, 1.4 MB, the
-default in `player.tscn`) and `mannequin_male.glb` (0.6 MB). The pack has no model-only file for the male: he is the
-`Mannequin` mesh inside `UAL1_Standard.glb` and `UAL2_Standard.glb` (byte for byte the same mesh, skin and skeleton in
-both), so `mannequin_male.glb` is `UAL1_Standard.glb` with its 43 clips removed, by
-`tools/models/strip_glb_animations.py` (it copies the nodes, mesh, skin and materials as they are and drops only the
-animation data; no Blender round trip, which would have renamed and re-ordered things). The sha256 of the source and of
-the result are in the folder's `LICENSE.md`. The female stays the default because the template's captures, the pistol's
-seat and the clip checks were all made on her, and the two stand 1.8 m tall with the same feet; the male has longer
-collarbones and upper arms (0.22 m and 0.27 m against 0.19 m and 0.22 m; the forearms are the same), so a clip reaches
-a slightly different pose.
-Swapping is [the editor steps below](#replacing-the-model) with `mannequin_male.glb` (or the other way round).
+**The template's characters wear GDStudio's own prototype mannequins in the `form` look** (kit #1187, the look the
+maintainer chose on #1172): the player, the friendlies (ally, civilian) and the online puppets `form_female.glb`,
+held by `character_dressed.tscn`; the enemies (grunt, shooter) `form_male.glb`, set as `CharacterModel.variant` in
+their scenes. `CharacterBodies` (`gameplay/character/character_bodies.gd`) names the two paths once; the fixtures,
+benches and captures that pose "the template's body" read them there. The bodies are in `assets/characters/prototype/`
+(`<look>_<body>.glb` for the looks `form`, `joint` and `facet` and the bodies `male`, `female` and `chibi`), generated
+by `build_mannequins.py` on the library's 65 bones plus 17 leaves (twist bones, sockets, IK targets), so both
+libraries play on them with no conversion ([Prototype mannequins](../../../tools/blender/prototype-mannequins.md),
+[the rig](../../../tools/blender/mannequin-rig.md)). Their import script (`mannequin_import.gd`) sets the skeleton's
+`motion_scale` (0.545 on the chibi), adds the `MannequinTwist` modifier and shows the three levels of detail by
+distance. The `joint` and `facet` looks and the chibi stay in the folder as variants a game can swap in.
+
+What was measured on the Quaternius skins is measured again on the two `form` bodies:
+
+- **The pistol's hold is solved per body.** The prototype hands are a person's size and differ (0.181 m and 0.195 m
+  from wrist to fingertip against the library rig's 0.232 m), so one pose cannot close both; the solver works on one
+  body at a time (`solve_pistol_hold.py --body=female|male`). The female's hold is the hold scene's own (the five
+  `pistol_*_pose.tres`, the pistol's seat and markers in `pistol_held.tscn`, `support_way`); the male's is one
+  `HoldFit` file (`gameplay/weapon/hold/pistol_fit_male.tres`) listed in `WeaponHold.fits`, which the hold puts on
+  whenever the model is a `form_male.glb` ([the hold](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
+- **The hit zones** (`character_dressed.tscn`'s `HitZones`) are sized from `tools/mannequin/measure_segments.gd`: the
+  arms are longer and thinner than the Quaternius female's (upper arm 0.26 to 0.28 m long and 0.047 to 0.057 m
+  round, against 0.22 and 0.068) and the calves thinner, so the arm zones are longer and narrower, the thigh and pelvis
+  zones a little wider, the head sphere smaller and lower.
+- **The ragdoll's capsules** (`RagdollBodies`) were within both bodies' skin already; only the calves are thinner
+  (0.055 m). Its joints and limits read rotations from the clips, which the bodies share with the library rig, so
+  they stand ([Ragdoll](../ragdoll.md#template)).
+- **The pistol stays on `hand_r`**, not the rig's `socket_hand_r`: the hold is solved in the hand bone's space and
+  the Quaternius mannequins, which a game can still swap in, have no sockets.
+
+**The Quaternius mannequins stay** in `assets/characters/mannequin/`, CC0, on the same rig: `mannequin_female.glb`
+(the pack's `Mannequin_F.glb`, 1.4 MB) and `mannequin_male.glb` (0.6 MB). The clip checks that were made on them
+(vault, prone, limb overlap) still pose them. The pack has no model-only file for the male: he is the `Mannequin` mesh
+inside `UAL1_Standard.glb` and `UAL2_Standard.glb` (byte for byte the same mesh, skin and skeleton in both), so
+`mannequin_male.glb` is `UAL1_Standard.glb` with its 43 clips removed, by `tools/models/strip_glb_animations.py` (it
+copies the nodes, mesh, skin and materials as they are and drops only the animation data; no Blender round trip,
+which would have renamed and re-ordered things). The sha256 of the source and of the result are in the folder's
+`LICENSE.md`.
+
+**To use another body**, swap the model ([the editor steps below](#replacing-the-model)) in `character_dressed.tscn`
+(everyone) or set `variant` in a character's scene, point `CharacterBodies` at it, and solve the hold for it: dump
+the rig, run `solve_pistol_hold.py --body=<name> --search-seat --search-left` and `write_hold.gd -- <hold.json>
+<name>` (`tools/hold/`). A body with no fit keeps the hold scene's own, which closes a hand of another size badly.
+Then run `measure_segments.gd` and size the hit zones, and run the hold, ragdoll and hit zone suites.
+`tests/assets/test_prototype_mannequins.gd` proves the bodies and `tools/capture/mannequin_parade.tscn` films them on a
+0.25 m grid: `PARADE_LOOK` chooses the look, `PARADE_VIEW` the front, quarter, side or close view, `PARADE_CLIP` loops
+one clip and `PARADE_REFERENCE=1` adds the Quaternius male.
+
+**GDStudio's own prototype bodies** are beside them in `assets/characters/prototype/` (kit #1149): `<look>_<body>.glb`
+for the looks `form`, `joint` and `facet` and the bodies `male`, `female` and `chibi`, generated by
+`build_mannequins.py` on the same 65 bones plus 17 leaves (twist bones, sockets, IK targets), so both libraries play
+on them with no conversion ([Prototype mannequins](../../../tools/blender/prototype-mannequins.md),
+[the rig](../../../tools/blender/mannequin-rig.md)). Their import script (`mannequin_import.gd`) sets the skeleton's
+`motion_scale` (0.545 on the chibi, so the hips' keys fit its legs), adds the `MannequinTwist` modifier and shows the
+three levels of detail by distance. The Quaternius female stays the default until the maintainer has chosen a look:
+the pistol's solved hold, the ragdoll's joints and the hit zones are measured on the Quaternius skins and are solved
+again for the body that replaces them. `tests/assets/test_prototype_mannequins.gd` proves the bodies and
+`tools/capture/mannequin_parade.tscn` films them on a 0.25 m grid: `PARADE_LOOK` chooses the look, `PARADE_VIEW` the
+front, quarter, side or close view (the close one follows the hands through a hand roll, the pistol clips and a
+reach), `PARADE_CLIP` loops one clip for whole cycles and `PARADE_REFERENCE=1` adds the Quaternius male.
 
 - **Approach:** Take a model that a pack ships only inside its clip files by dropping the clips from the glb itself
   (parse the glTF chunks, remove `animations`, keep only the accessors and buffer views the meshes and skins use,
@@ -57,6 +96,14 @@ Swapping is [the editor steps below](#replacing-the-model) with `mannequin_male.
   `ui/player_rig/player_rig.tscn` (the path was right; toggling `use_external_skeleton` off and on later fixed it, doing
   so in `_seat_attachments` did not), while GdUnit's swap and a scene saved with the male glb were right: the test
   passed and the capture showed the pistol on the floor. **Seen:** gdstudio #843, 2026-11-09 (follow-up issue opened).
+
+- **Approach:** When the template's body changes, solve each body's hold on its own and give each body its own
+  `HoldFit` (chosen by the model's file), then run the whole template suite, not only the hold, ragdoll and hit
+  suites. **Watch out for:** the old solver asserted that the two skeletons match from the hands down; the reload's
+  carry swing put the gun 9 and 29 mm past the left hand's reach on the new bodies, which the solver's aim-only reach
+  table missed (the swing now fades with the reload); and three numbers measured on the old body sat in suites that
+  never name it: the node count, `Weapon.no_muzzle_offset` and the crawl's planted elbows (1.5 to 2.6 cm of slide on
+  the longer upper arms, gdstudio #1286). **Seen:** gdstudio #1187, 2026-11-11.
 
 ## Replacing the model {#replacing-the-model}
 
@@ -81,6 +128,12 @@ the tree again; `Footsteps` asks the slot for the skeleton; `CharacterModel` sea
 A model without `Armature/Skeleton3D` gets one configuration warning on `Animation` and no root at all (the engine logs
 one line for the player, not one for every bone of every clip). `tools/editor_swap/` does the steps above through the
 Scene dock and checks the result.
+
+**A second look without deleting** (kit #969): an inherited character scene cannot delete its base's model, so
+`CharacterModel.variant` takes another model of the same rig. When the game runs the slot frees the scene's model and
+puts the variant in its place at `_ready` (the seats and clips follow as for a swap); in the editor it draws the
+variant as an internal child and hides the scene's model through `RenderingServer` alone, so the scene saves nothing.
+The enemies of [the AI section](ai-characters.md#parts) set the male body (`form_male.glb`) on the female base this way.
 
 - **Approach:** Put a part that people replace (the model, a weapon) under a stable slot node and reference only the
   slot (an export); a `@tool` script on the slot finds the part and rewrites the paths that depend on it (the
@@ -114,6 +167,10 @@ Scene dock and checks the result.
   without an error. `bone_name = bone_name` also looks the bone up again by name: a model with another bone order is
   not bound to the old index, and an empty skeleton is not connected (it logged "Index p_bone = 34 is out of bounds").
   **Seen:** gdstudio #860, 2026-11-09.
+- **Approach:** Before seating an attachment, drop any `skeleton_updated` connection the skeleton still holds to it
+  (`CharacterModel._drop_connection`). **Watch out for:** a pooled character whose model was swapped at run time (a
+  `variant`) re-entered the tree, the attachment connected itself on entering, and the seat's setters then logged
+  "already connected" for each spawn. **Seen:** kit #969, 2026-11-11 (`test_ai_spawner.gd`, a spawn of a parked male).
 - **Approach:** Measure a seat against its bone, not the thing hung on it, to a few centimetres, in every frame of a
   crouch-walk after the swap, in the game scene as well as in the test arena, and check that the bone moved. **Watch out
   for:** the first test compared the pistol (0.13 m from its seat) with the hand 4 ticks after the swap against 0.35
@@ -152,8 +209,8 @@ Scene dock and checks the result.
   with one stream in two `SubViewport` worlds (one camera looking elsewhere, one none) and with a grep of the body's
   source for `Input.`, `get_camera_3d(` and `get_viewport(`. **Watch out for:** the body read `Input` in 14 places and
   the camera in 2, so a second `player.tscn` walked in step with the first and died on the same key, and a headless
-  server could not move one. **Seen:** gdstudio #901, 2026-11-10 (`test_two_characters.gd`; position, velocity and
-  state bit-equal on all 780 ticks of `test_command_stream.gd` in two Jolt spaces of one process).
+  server could not move one. **Seen:** gdstudio #901, 2026-11-10 (`test_two_characters.gd`, bit-equal in
+  `test_command_stream.gd`); gdstudio #1138, 2026-11-11 (the grep caught a camera-reading throttle put there).
 - **Approach:** Keep out of the step what only its owner or its picture knows: call `step` inside a physics frame with
   the physics step, show `facing` on the model through one null-safe method called in the tick, and on a fall out of
   the map say `fell` once and let the owner answer. **Watch out for:** `move_and_slide()` moves by the engine's own
@@ -223,7 +280,7 @@ Scene dock and checks the result.
   | Pushing a prop | `CharacterPush.push_props(body, before, delta)` (`character_push.gd`), static | the body's `_push_cap`, `_push_hold` |
   | Dying and getting up | `CharacterDeath` (`character_death.gd`), static: `die`, `revive`, the dead tick | none (death is an event) |
   | The capsule and the eye point | `CharacterCapsule` (`character_capsule.gd`), static: `height`, `fit`, the room to stand | none |
-  | An AI's lean tick (#1059) | `CharacterLean` (`character_lean.gd`), static, when `lean_step` is on | none |
+  | An AI's lean tick (#1059; the aim and the trigger since #1104) | `CharacterLean` (`character_lean.gd`), static, when `lean_step` is on | none |
   | Taking and putting back a snapshot | `CharacterState.take(body)`, `put_back(body)` (`character_state.gd`) | it is the step state |
   | Health, using things, steps | the `Health` child ([Health](../third-person-hits.md#health)), `Interactor` ([Interact](interact.md#interactable)), `StepClimber` | none |
 
@@ -236,7 +293,10 @@ Scene dock and checks the result.
   and a full body side by side and fails on the first tick their snapshots differ.
   Keep `character.gd` well under gdlint's 1000 lines
   ([project conventions](../project-conventions.md#rules)): #1041 moved the push, the death, the capsule and the
-  snapshot out when it reached 1000.
+  snapshot out when it reached 1000. It is also at gdlint's twenty public methods (19 on 2026-11-11), so a new public
+  function goes on a module, not on the body; and `test_ragdoll.gd`
+  (`test_the_character_the_player_and_the_ragdoll_pin_their_exports`) pins every export of `Character` and `Player`,
+  so a new export adds its line there in the same change (#1011, #1013).
 
 ## A second kind of controller {#second-controller}
 
@@ -357,6 +417,13 @@ differs, from run to run. What Chrome still pays is the WAV's own start.
 
 The desktop rows are three interleaved runs of each build (before, after, before, ...), the browser rows two, headless,
 on a machine other agents were using; a range is the lowest and the highest run.
+
+- **Approach:** Empty the `RagdollPool` (`clear()`) before counting a living character's nodes, so it makes the pool's
+  sets whatever ran first; leave out the controller the test added and hold the count equal. The count includes the
+  empty `PhysicalBoneSimulator3D` every `Skeleton3D` adds as an internal child on entering the tree (4.7.2's
+  `setup_simulator`): `find_children` lists it. **Watch out for:** handing a set to the pool left its `RagdollDrawing`
+  on the skeleton that made it: 57 nodes alone, 56 in the full run, where earlier suites had filled the pool;
+  `_release` now drops it. **Seen:** gdstudio #1210, 2026-11-11.
 
 ## Prone and the crawl {#prone}
 

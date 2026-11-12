@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from hook_support import patch
 
 from gds_tools import pr, sync
 
@@ -45,8 +46,9 @@ def looked(monkeypatch):
         asked.append((target, repo))
         return str(target) == "7"
 
-    monkeypatch.setattr(guards, "held", fake)
-    monkeypatch.setattr(guards, "behind", lambda target, repo, cwd: ({"behind_by": 0}, ""))  # the other guard's job
+    patch(monkeypatch, "held", fake)
+    patch(monkeypatch, "behind", lambda target, repo, cwd: ({"behind_by": 0}, ""))  # the other guard's job
+    patch(monkeypatch, "red_main", lambda target, repo, cwd: ({"open": [], "fixes": False}, ""))  # and the red-main one
     return asked
 
 

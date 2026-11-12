@@ -7,7 +7,7 @@ read in one look, and encode a clip. A sound needs a clip you can listen to ([So
 ```text
 gds capture frames --project <game>/game --scene res://x.tscn --seconds 6 --fps 10 --name hud
 gds capture sheet  <folder> --every 5 --columns 5
-gds capture clip   <folder> [--gif]
+gds capture clip   <folder> [--gif] [--max-seconds N]
 ```
 
 Run them with `uv run --project <workspace>/repos/gdstudio/python gds capture ...`.
@@ -70,6 +70,12 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   both runs showed two Carhops. **Seen:** Deadnight, 2026-11-03 (backdrop tour); Deadnight, 2026-11-02 (shoulder views)
   (fix: `[female] loadout character: ...` is printed by each run).
 
+- **Approach:** Record a capture of an online rig (a server and its clients in one process, `OnlineRig`) at
+  `--fps 60`, one physics tick a frame, and crop or slow the clip afterwards. **Watch out for:** at `--fps 10` Movie
+  Maker runs six ticks in each frame, and a client that judges its stalls by process frames (`StallGuard`) no longer
+  plays as it does at a game's frame rate, so the clip is not the game: the AI rewind's tour hit 1 of 3 at 10 frames
+  a second, 2 of 3 at 30 and 3 of 3 at 60, where the same scene run headless hit 3 of 3. **Seen:** gdstudio #1198,
+  2026-11-11 (`tools/capture/ai_rewind_tour.tscn`).
 - **Approach:** Count a capture scene's waits in physics ticks and size `--quit-after` (which counts rendered frames)
   as ticks / 6 at `--fixed-fps 10`; make effects in a captured scene live 0.2 to 0.3 s, look at single frames next to
   a shot (not only a sheet), and cross-check them against a headless log of the events. **Watch out for:** Movie Maker
@@ -77,6 +83,20 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   between two images: 150 `physics_frame` waits for a 2.5 s action ended after 25 frames, and a tracer or flash that
   lives 0.1 s fell between two frames and was in none. **Seen:** Deadnight, 2026-11-01 (fix: waits in ticks, effects
   that live 2 to 3 frames).
+- **Approach:** After a capture script moves its camera to the next view, let one frame draw before it saves (await
+  `RenderingServer.frame_post_draw` twice, or take the shot twice and keep the second). **Watch out for:** the first
+  image saved after the move still showed the view before it, so a close-up sheet had one stale tile per view.
+  **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.
+- **Approach:** When a tour's printed lines are part of the proof (each step's name, a measured number), have the
+  scene also write them to a file under the capture folder, or record with `gds godot -- --path <game> --write-movie
+  ...`, which keeps the game's output in the terminal (Godot's
+  `--log-file <path>` after `--` keeps it in a file). **Watch out for:** `gds capture frames` keeps Godot's output
+  to itself and shows only its `ERROR` lines, so a tour's `print` step lines never appear and its log cannot be read
+  beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11; #1037 (PR #1239), 11-11.
+- **Approach:** Run `gds capture frames` on a game made from the template (`gds template test <t> --keep` or `gds
+  template game <t>`), never on the template's own `game/` folder. **Watch out for:** a template's `game/` folder has no
+  GdUnit4 and is not a game one opens (a new game gets its addons and its import when it is made), so a capture pointed
+  at it does not film the game. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11.
 
 ## sheet {#sheet}
 
@@ -86,15 +106,132 @@ read it with the Read tool and fix what looks wrong.
 
 `sheet` and `clip` read any folder of frames, not only one `frames` wrote: a frame is a PNG named
 `<prefix><number>.png`, with one prefix and one number width for the whole folder, numbered in order from the first
-(`capture00000000.png`, `capture00000001.png`, ... as Movie Maker writes them; `shot001.png`, `shot002.png` also
-works). Frames recorded another way are renamed to that pattern first: a folder whose PNG files are named otherwise
-(`walk-front.png`) has no frames, and the error lists the files it skipped.
+(`capture00000000.png`, `capture00000001.png`, ... as Movie Maker writes them; `shot001.png`, `shot002.png` also works).
+The number is at most 8 digits, so a prefix may end in a digit (`run200000000.png` is `run2` and frame 0; it was read as
+one 9-digit number and ffmpeg found no frames, #1132). The first frame may have any number: `clip` tells ffmpeg where to
+start, which by itself looks for a first frame numbered 0 to 4 only (Blender's `legs20001.png` in a folder `legs2` is
+read as `legs` and frame 20001, and a folder starting at `16.png` is fine too; both failed before #1190). Frames
+recorded another way are renamed to that pattern first: a folder whose PNG files are named otherwise (`walk-front.png`)
+has no frames, and the error lists the files it skipped.
 
 ## clip {#clip}
 
-Encodes the folder's frames into `<name>.mp4` (H.264, `yuv420p`, no audio) or, with `--gif`, `<name>.gif` with a
-128-colour palette at up to 12 fps. The clip is cut at 30 s and has to stay under 9 MB (GitHub takes 10 MB for most
-attachments): it is encoded at 1280 px wide and, while too big, again at 960, 720 and 480 px, then the command fails.
+Encodes the folder's frames into `<name>.mp4` (H.264, `yuv420p`, no audio) or, with `--gif`, `<name>.gif`. Which
+of the two a clip should be is [GIF or MP4](#gif-or-mp4). The clip is cut at 30 s (`--max-seconds N` for another cut)
+and has to stay under 9 MB (GitHub takes 10 MB for most attachments): an MP4 is encoded at 1280 px wide and, while too
+big, again at 960, 720 and 480 px, then the command fails. When frames run past the cut, it prints a line with how many
+frames and seconds were left out (`clip cut at 30 s: 120 frames (12 s) of 420 left out`): read it before you attach
+the clip, since the part you meant to show may sit in what was cut (#1090 sent such a clip before the line
+existed, #1132). Raise `--max-seconds`, or capture a shorter run that starts nearer the moment.
+
+The frames play at the rate `gds capture frames` recorded in `capture.json`, or 10 fps for a folder without one;
+`--fps N` names the rate they were recorded at (frames from Blender or another tool at 24, 30 or 60 fps). `--slow N`
+plays them N times slower with every frame kept, to show a jitter or a fast pose change: `gds capture clip <folder>
+--slow 4` turns 2 s of 30 fps frames into an 8 s clip at 7.5 fps (N may be a fraction, `--slow 2.5`). The cut and a
+GIF's length and budget count the slowed clip, so a slowed GIF passes 10 s soon; a slowed clip is usually an
+[MP4](#gif-or-mp4). Before #1190 a slowed clip was made with ffmpeg by hand.
+
+A GIF has a budget of its own, measured for [GIF or MP4](#gif-or-mp4): 512 KB for each second of it, counted for at
+least 2 s and at most 10 s (1 to 5 MB). It is encoded with a 128-colour palette at 800 px wide (GitHub's description
+column is 814 px) and, while over the budget, again at 640 and 480 px. Its frame rate is 10 fps, or 20 fps from frames
+recorded at 20, 40 or 60 fps, because a GIF's delays are whole hundredths of a second; a slowed rate whose delay is
+already whole keeps every frame (10 fps with `--slow 3` plays at 10/3 fps, 30 hundredths a frame). Every encoding
+prints its size. A GIF longer than 10 s, or still over its budget at 480 px, is kept with a `warning:` line that names
+the MP4; one over 9 MB fails.
+
+A clip has no sound: `gds capture frames` writes the run's audio beside the frames as a `.wav` when the scene plays
+any, and a gameplay clip whose sound matters is muxed from the two with the pinned ffmpeg (`gds tool path ffmpeg`),
+scaled to the 1280 px `clip` uses:
+
+```text
+ffmpeg -framerate <fps> -i <folder>/<prefix>%08d.png -i <folder>/<name>.wav -vf scale=1280:-2 \
+  -c:v libx264 -pix_fmt yuv420p -crf 23 -c:a aac -b:a 192k -shortest -movflags +faststart <name>.mp4
+```
+
+Match `%08d` to the frame names' digits, and read [Sound](#sound-a-clip-you-can-listen-to) for a clip made to be
+listened to.
+
+- **Approach:** Give a failing `clip` run a new name, or copy the clip that works aside before encoding again into the
+  same folder. **Watch out for:** `clip` deletes `<folder>.mp4` or `<folder>.gif` before each encoding, so a run that
+  fails (ffmpeg's error, still too big at 480 px) leaves no clip at all where a good one was. **Seen:** gdstudio
+  #1190 (PR #1197), 2026-11-11.
+- **Approach:** For a GIF of several bodies side by side (a grid of variants), capture at 20 fps or more so the GIF
+  keeps 20 fps, and plan on 480 px: give each body the frame's full height and few pixels of empty floor, or make an
+  MP4 when the detail matters. **Watch out for:** `--gif` plays 60 fps frames at 20 fps (whole hundredths), and three
+  bodies on a grid fitted the GIF budget only at 480 px, where a hand or a foot is a few pixels. **Seen:** gdstudio
+  #1172, 2026-11-11.
+
+## GIF or MP4 {#gif-or-mp4}
+
+<!-- new section: clip said how to make a GIF and never when a clip should be one; agents chose by habit (#1153) -->
+
+Choose for every clip, on a pull request and on an issue. A GIF plays inline the moment the page opens, loops and
+needs no click, so the maintainer prefers it for simple things; an MP4 carries sound, length and detail.
+
+| The clip | Make | Write it in the body as |
+| --- | --- | --- |
+| Short (10 s or less), silent, showing one thing: a UI change, a pose, a short motion | a GIF: `gds capture clip <folder> --gif` | an image on the `Before:` or `After:` line: `![after](./<name>.gif)` |
+| Any sound (the [listening clip](#sound-a-clip-you-can-listen-to)) | an MP4 with its audio track | `![listen](./<name>.mp4)` alone on its line, which `--attach` turns into the bare upload address (a player) |
+| Longer than 10 s, or a change that unfolds over time | an MP4: `gds capture clip <folder>` | `![clip](./<name>.mp4)` alone on its line under `After:`, a still or [sheet](#sheet) on `After:` |
+| Detail a 128-colour palette loses (gradients, fog, light falloff, fine texture), fast or fine motion, slowed playback | an MP4 | the same |
+| A loop that helps the reader beside detail that needs the MP4 | both | the GIF on `After:`, the MP4's address below it |
+
+A GIF that `gds capture clip --gif` warns about is the wrong choice: make the MP4, or capture a shorter run that starts
+nearer the moment. [Attaching](#attaching) and [Images](pull-requests.md#attach) have how each is uploaded.
+
+What the budget rests on (gdstudio #1153, 2026-11-11): Chromium 1243 playing GIFs of a 3D Third Person capture with
+the download throttled, the picture's changes read from the compositor's screencast (a canvas cannot sample it: drawing
+an animated image draws its first frame).
+
+- **A GIF plays while it downloads**, frame by frame as the bytes arrive, so it stalls on its first play when its bytes
+  a second outrun the connection, and plays at its own rate once it has arrived, whatever its size: every GIF up to
+  1280 px kept its 100 ms frames (p95 under 135 ms) after loading. So the budget is a rate, not a size.
+- **Frame delays are whole hundredths of a second.** ffmpeg wrote 12 fps as delays of 8, 8 and 9 and 15 fps as 6, 7
+  and 7, an uneven step; 10 and 20 fps are even.
+- **GitHub's description column is 814 px** (signed out, windows from 1280 to 2560 px wide), and an image in a list
+  item (`- **After:**`) is drawn 758 px wide; a wider GIF only costs bytes.
+- **GitHub serves the upload as it is**: the address redirects to the stored file (`image/gif`, the same 4,055,821
+  bytes as the local one), so a GIF plays on a pull request as it played here. On gdstudio #1167 the `After:` GIF
+  showed 27 different frames in 3 s of the page.
+
+Stalls on the first play (a frame held over 150 ms while the file arrived) and the time until all of it had arrived,
+GIFs at 10 fps cut from one capture:
+
+| GIF | Size | Mbit/s | 3 Mbps | 5 Mbps | 10 Mbps | 25 Mbps |
+| --- | --- | --- | --- | --- | --- | --- |
+| 480 px, 10 s | 1.7 MB | 1.4 | | 0 (2.9 s) | 0 (1.5 s) | 0 (0.6 s) |
+| 640 px, 10 s | 2.6 MB | 2.2 | | 1 (4.5 s) | 0 (2.3 s) | 0 (0.9 s) |
+| 800 px, 5 s | 2.1 MB | 3.5 | 20 (6.0 s) | 0 (3.6 s) | 0 (1.8 s) | |
+| 800 px, 10 s | 3.8 MB | 3.2 | 36 (10.6 s) | 0 (6.4 s) | 0 (3.3 s) | |
+| 960 px, 10 s | 5.0 MB | 4.2 | 40 (14.0 s) | 9 (8.4 s) | 0 (4.3 s) | |
+| 1280 px, 5 s | 4.3 MB | 7.3 | | 23 (7.4 s) | 3 (3.7 s) | 0 (1.5 s) |
+| 1280 px, 10 s | 7.8 MB | 6.6 | | 40 (13.3 s) | 2 (6.7 s) | 0 (2.7 s) |
+
+So the budget is 512 KB a second (4.2 Mbit/s): every GIF up to 4.6 Mbit/s played its first loop without a stall at
+10 Mbps, and those of 5.7 Mbit/s and more stalled. On 5 Mbps the clean ones were 3.5 Mbit/s or less, so a GIF near
+the budget stalls a few times on its first play there and loops smoothly after. The 8 s capture of the pull request
+that added this was 7.9 MB at 1280 px from the old `--gif` (39 stalls at 5 Mbps, 4 at 10) and 3.9 MB at 800 px from
+the new one (2 and 0).
+
+- **Approach:** To measure how a GIF plays, read the changes of the picture from the compositor (CDP
+  `Page.startScreencast`, a hash of each frame), throttle with `Network.emulateNetworkConditions` in full Chromium, and
+  split a long sweep into runs under `gds quiet`'s 900 s (or pass `--timeout`). **Watch out for:** a canvas
+  `drawImage` of the GIF saw no frame change at all, since drawing an animated image draws its first frame, and
+  headless shell showed the same; a 68-run sweep was stopped at 900 s with its rows printed and its JSON never
+  written. **Seen:** gdstudio #1153, 2026-11-11.
+- **Approach:** For a loop of a gait, record whole cycles at 60 fps (the GIF is then an even 20 fps, and a cycle of
+  0.667 s ends on a frame), compare the last frame with the first, and frame the scene in Godot as the GIF should
+  show it. **Watch out for:** cropping the frames to win a wider GIF made every file larger at each width (2.2 MB
+  became 2.8 MB at 640 px), because the encoder scales what is left to the same width and the moving bodies cover
+  more of it: three bodies on a grid floor fit the budget at 480 px either way; and a jump clip that is in place
+  reads as a body standing on one leg until the scene lifts it as the game would. **Seen:** gdstudio #1149,
+  2026-11-11 (`tools/capture/mannequin_parade.gd` of 3D Third Person).
+- **Approach:** Give every file on an `--attach` its own `![name](./<file>)` reference inside `## Screenshots`, a
+  video as well as a picture, and write a video's reference in image form alone on its line. **Watch out for:** the
+  guard refuses an attached file the section does not refer to, and a bare `./clip.mp4` line or a plain-text name is
+  not a reference; written as `![clip](./clip.mp4)`, `--attach` turns it into the bare upload address that plays
+  inline, so the old advice to write the bare address yourself misled. **Seen:** gdstudio #1154 (PR #1195), #1190
+  (PR #1197) and #1203 (PR #1215), 2026-11-11 (the guard refused each, three times on #1215).
 
 ## Attaching {#attaching}
 
@@ -132,18 +269,26 @@ report only after reading the body back.
   reference by name only, so `![after](./gate-after.mp4)` beside `--attach ./gate-after.png` stays a local path and
   the upload goes to the end of the body. **Seen:** gdstudio #847, 2026-11-08 (its first body linked
   `./gate-after.mp4`; the one sent links `./gate-after.png`, the file attached).
-- **Approach:** Put an image on the `After:` line (a still, or a [contact sheet](#sheet) of the clip) and the clip's
-  bare upload address beside it, as for [sound](#sound-a-clip-you-can-listen-to); run `gds pr check-body` on the body
-  read back after `gh pr create --attach`, not on the body file. **Watch out for:** `![after](./x.mp4)` becomes a
-  plain link after the upload, which the screenshots rule does not count as a capture, and before the upload the rule
-  refuses every local `./file`, since only a `github.com/user-attachments/` address counts; a body with no image
-  reference got past the guard (`--repo`, run from scratch) to CI. **Seen:** gdstudio #847, 2026-11-08; gdstudio
-  #937, 2026-11-10 (the uploads moved onto `After:` with `gh pr edit --body-file`); gdstudio #880 and #886, 2026-11-10
-  (the guard of today refuses that `--repo` command with no reference: checked for gdstudio #1003).
+- **Approach:** For an MP4, put a still or a [sheet](#sheet) on the `After:` line and the clip as
+  `![clip](./<name>.mp4)` alone on the line below it (a GIF is the image itself: [GIF or MP4](#gif-or-mp4)); run
+  `gds pr check-body` with the same `--attach` files as `gh pr create`, from the same folder. **Watch out for:** the
+  uploaded video becomes a bare address, which the screenshots rule does not count as the `After:` picture, and before
+  the upload the rule refuses every local `./file` (only a `github.com/user-attachments/` address counts); a body with
+  no image reference got past the guard (`--repo`, run from scratch) to CI. **Seen:** gdstudio #847, 2026-11-08;
+  #937, #880 and #886, 2026-11-10 (the uploads moved onto `After:`; the guard now refuses that command, checked for
+  #1003).
 - **Approach:** Read the `## Screenshots` section of the body file back (`sed -n '/## Screenshots/,/## AI/p'`) after
   editing it and before the send. **Watch out for:** a scripted edit that was to add the image references matched
   nothing and said nothing, so the guard's "no reference" was true for three tries. **Seen:** gdstudio #1012,
   2026-11-10.
+- **Approach:** Write the body file in an earlier command and name it by its absolute path, spelled out (not a shell
+  variable), when the `gh` command starts with `cd <folder>`; run `gds pr check-body` by hand from that folder with
+  `--repo <worktree>` and the same `--attach ./<file>` arguments as `gh pr create` (kit #1188). **Watch out for:** the
+  hook reads `--body-file` as written, so a relative path is read from the folder after the `cd` ("does not exist
+  yet") and a `$BODY` it cannot expand is not read; without `--repo`, the hand check run from a captures folder finds
+  no checkout. **Seen:** gdstudio #1001, #1031, #1137 (PR #1170), #1203 (PR #1215) and #1035 (PR #1217),
+  2026-11-11; the hand check refused `Before:`/`After:` before it took `--attach` (#1011 to #1090, PRs #1165 to
+  #1175, 11-10 and 11-11).
 
 ## Sound: a clip you can listen to {#sound-a-clip-you-can-listen-to}
 
@@ -173,12 +318,20 @@ ffmpeg -i mix.wav -f concat -safe 0 -i cards.txt \
 `duration <seconds>` for each section (repeat the last `file` line). A 36 s clip of twelve sections is about 5 MB; keep
 it under the 9 MB of [clip](#clip).
 
-Attach it in two steps. `--attach` with `![listen](../<name>.mp4)` under `## Screenshots` uploads the file, but the
-reference becomes a plain link, not a player: **GitHub draws a player only for the bare upload address on its own
-line.** Read the body back, replace the link with the address alone, with a blank line on each side, and `gh pr edit
---body-file` again. Check it with `gh api
+Write it as `![listen](./<name>.mp4)` alone on its line under `## Screenshots`, with a blank line on each side, and
+attach it from its folder: **GitHub draws a player only for the bare upload address on its own line**, and `gh pr
+create|edit --attach` turns such a line into exactly that, so no second edit is needed (gdstudio #970 and #1190,
+2026-11-11; before them this page said to replace a plain link by hand). Check it with `gh api
 repos/<owner>/<repo>/pulls/<N> -H 'Accept: application/vnd.github.html+json' --jq .body_html`: the body holds a
 `<video` tag.
+
+- **Approach:** To let a listener hear a whole loop, or several versions of one bed, record them through the game's
+  own player: a probe scene loads each version in turn into that player (its bus and volume, the default settings)
+  for longer than one loop, Movie Maker writes the run's audio track, and a script cuts one section per version from
+  it at the times the probe logged. **Watch out for:** an asset file played alone skips the bus, the volume and the
+  loop point the player applies, so the clip compares files, not what the player hears; a run shorter than the loop
+  never reaches its seam. **Seen:** gdstudio #1101, 2026-11-11 (the wind beds: a probe swapped the stream on the Wind
+  player, Ambient bus, -20 dB, and the old bed and three candidates were cut from one Movie Maker track).
 
 ## What proves a feature {#feature-proof}
 
@@ -197,7 +350,9 @@ A `Before:` capture needs the code from before the change, and the task's worktr
 edit (`git stash` is refused by the hooks). Take them from `main` checked out beside the change: `git worktree add
 --detach <workspace>/scratch/<repo>/<task>/baseline origin/main`, `godot --headless --path game --import` once, and run
 the same tours and probes there with `--label=before` for every size the pull request shows (the desktop window, the
-phone's 844 by 390 and the web export), then `git worktree remove` it.
+phone's 844 by 390 and the web export), then `git worktree remove` it. An old sound or model alone is a Git LFS file:
+take it with `git checkout <rev> -- <file>` into a scratch checkout, never `git show`, which prints the pointer
+([Reverting and checking out](shell.md#checkout)).
 
 - **Approach:** Capture a feature's payoff (a machine's reveal, a prompt) from the player's camera at the spot the
   player stands on to use it, on desktop and phone, before it ships. **Watch out for:** the prize crane's reveal floated

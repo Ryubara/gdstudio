@@ -5,9 +5,10 @@ extends Node
 ## `CirclingController`, draws the other players (`RemotePlayers`) and writes what the client
 ## measured (`NetPlayReport`) to `window.gdnet` four times a second. A script that drives the page
 ## (`tools/web_smoke/net_play_smoke.py`) freezes the page's thread, sets `window.gdnet.stop` to
-## stand the body still, and judges the numbers. It does nothing off the web or without
-## `?netplay`, so a player's page pays for nothing; the player rig adds it at run time
-## (`attach`), so no scene ships it. Online play itself is a later feature: this is a probe.
+## stand the body still, and judges the numbers. It joins after the level's warm-up and its
+## frames settle (`JoinWait`), as the online game does. It does nothing off the
+## web or without `?netplay`, so a player's page pays for nothing; the player rig adds it at run
+## time (`attach`), so no scene ships it. Online play itself is a later feature: this is a probe.
 
 ## Seconds between two writes.
 const PERIOD := 0.25
@@ -20,6 +21,7 @@ const WALK_SECONDS := 600.0
 
 var client: NetClient
 var remote: RemotePlayers
+var ai: AiReplica
 var _object: JavaScriptObject
 var _walker: CirclingController
 var _steps := 0
@@ -67,11 +69,17 @@ func _ready() -> void:
 	remote = RemotePlayers.new()
 	remote.name = &"RemotePlayers"
 	scene.add_child.call_deferred(remote)
+	# The server's AI characters, drawn and timed (gdstudio #970).
+	ai = AiReplica.new()
+	ai.name = &"AiReplica"
+	ai.keep_times = true
+	scene.add_child.call_deferred(ai)
 	client = NetClient.new()
 	client.name = &"NetClient"
 	client.join_on_ready = false
 	client.player = player
 	client.remote_players = remote
+	client.ai_replica = ai
 	# The map node hashes the world, as the server's `world_root` (`main.tscn`'s `World`).
 	var map := scene.get_node_or_null(^"World")
 	client.world_root = map if map != null else scene
@@ -83,7 +91,16 @@ func _ready() -> void:
 	_join.call_deferred()
 
 
+# Joins once the level is ready (`JoinWait`): its warm-up's first draws (the reflection probes,
+# every material inside each) stall a software-drawn page for up to a second a frame, and a seat
+# taken meanwhile met two to four of them in its first three seconds (kit #1106).
 func _join() -> void:
+	var wait := JoinWait.new()
+	wait.stage_changed.connect(
+		func(_stage: JoinWait.Stage) -> void: _object.state = wait.stage_name()
+	)
+	await wait.run(self)
+	_object.settle_ms = wait.settle_ms
 	var address := WebSocketLink.server_url()
 	_object.url = address
 	if client.join(address) != OK:

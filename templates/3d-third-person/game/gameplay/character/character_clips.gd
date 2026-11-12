@@ -1,9 +1,15 @@
 class_name CharacterClips
 extends RefCounted
 ## The names of every clip the character can play: the Universal Animation Library 1 and 2
-## (Quaternius, CC0), both added to the player's `AnimationPlayer` as the libraries `ual1` and
-## `ual2`, so a clip is `ual1/Idle`. The library's looping clips lose their `_Loop` suffix on
-## import (`Idle_Loop` is `Idle`) and loop.
+## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
+## `ual2`, so a clip is `ual1/Idle`, the template's own prone and crawl clips (gdstudio
+## #1009, `assets/animation/prone/`), the library `prone`, and GDStudio's own clips that replace
+## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
+## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
+##
+## When a clip of our own replaces a library clip its constant moves (`IDLE` is `gds/Idle`) and
+## `STAND_INS` names the library clip it replaced, which stays in the game: set a clip export
+## of `CharacterAnimation` to `CharacterClips.stand_in(CharacterClips.IDLE)` to play it again.
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
 ## `player_animation.play_clip(CharacterClips.SWORD_ATTACK)`. The constants below are the clips
@@ -12,9 +18,12 @@ extends RefCounted
 
 const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
+const LIBRARY_PRONE := &"prone"
+const LIBRARY_OWN := &"gds"
+const LIBRARY_VAULT := &"vault"
 
 # Locomotion and the clips the player's states use.
-const IDLE := &"ual1/Idle"
+const IDLE := &"gds/Idle"
 const WALK := &"ual1/Walk"
 const RUN := &"ual1/Jog_Fwd"
 const SPRINT := &"ual1/Sprint"
@@ -43,17 +52,30 @@ const SWIM := &"ual1/Swim_Fwd"
 const DANCE := &"ual1/Dance"
 const OPEN_CHEST := &"ual2/Chest_Open"
 const CLIMB_UP := &"ual2/ClimbUp_1m"
-## Stands in for the vault until the template's own vault clips land (kit #1010): a jump take-off
-## that tucks the legs, played warped to the vault's time.
-const VAULT_PLACEHOLDER := &"ual2/NinjaJump_Start"
 const KNOCKBACK := &"ual2/Hit_Knockback"
 const SLIDE := &"ual2/Slide"
 const SLIDE_START := &"ual2/Slide_Start"
 const SLIDE_EXIT := &"ual2/Slide_Exit"
 const CARRY_WALK := &"ual2/Walk_Carry"
 const THROW := &"ual2/OverhandThrow"
+# Lying down and crawling: the template's own clips.
+const PRONE_IDLE := &"prone/Prone_Idle"
+const CRAWL := &"prone/Crawl_Fwd"
+const TO_PRONE := &"prone/Crouch_To_Prone"
+const TO_CROUCH := &"prone/Prone_To_Crouch"
+# Vaulting: the template's own clips (gdstudio #1010, `assets/animation/vault/`), the library
+# `vault`. What each was keyed on is a `VaultClip` (`gameplay/character/vault_low.tres`,
+# `vault_high.tres`).
+const VAULT_LOW := &"vault/Vault_Low"
+const VAULT_HIGH := &"vault/Vault_High"
+const VAULT_LAND := &"vault/Vault_Land"
 
-## Every clip of both libraries, with its library.
+## The library clip each clip of our own replaced, kept as a stand-in.
+const STAND_INS: Dictionary[StringName, StringName] = {
+	&"gds/Idle": &"ual1/Idle",
+}
+
+## Every clip of the four libraries, with its library.
 const ALL: Array[StringName] = [
 	&"ual1/A_TPose",
 	&"ual1/Crouch_Fwd",
@@ -141,4 +163,17 @@ const ALL: Array[StringName] = [
 	&"ual2/Zombie_Idle",
 	&"ual2/Zombie_Scratch",
 	&"ual2/Zombie_Walk_Fwd",
+	&"prone/Crawl_Fwd",
+	&"prone/Crouch_To_Prone",
+	&"prone/Prone_Idle",
+	&"prone/Prone_To_Crouch",
+	&"gds/Idle",
+	&"vault/Vault_High",
+	&"vault/Vault_Land",
+	&"vault/Vault_Low",
 ]
+
+
+## The library clip a clip of our own replaced, or the clip itself when it replaced none.
+static func stand_in(clip: StringName) -> StringName:
+	return STAND_INS.get(clip, clip)

@@ -141,8 +141,14 @@ const _FORWARDED: Array[StringName] = [
 ## A swap (`swap_shoulder()`, the `shoulder_swap` action) keeps the point under the crosshair
 ## where it is: the point is found when the swap starts and the view turns inward as it slides,
 ## so the point stays under the crosshair and a shot fired mid-swap goes there. Off slides the
-## view sideways and the point under the crosshair drifts (the old behaviour).
+## view sideways and the point under the crosshair drifts (the old behaviour). The point is kept
+## on a swap made while aiming (the aim or fire button held); `keep_aim_when_not_aiming` keeps it
+## on every swap.
 @export var keep_aim_on_swap := true
+## Keeps the point on a swap made while not aiming too. Off (the default), a swap while walking or
+## sprinting only slides the view: the view's turn, and so the way the character runs, stays as
+## it is. While aiming the point is always kept (with `keep_aim_on_swap` on).
+@export var keep_aim_when_not_aiming := false
 ## How much of the turn that keeps the point is made: 1 keeps it exactly, 0.5 lets it drift half
 ## as far as with the anchor off. The turn stays when the swap ends, so nothing turns back.
 @export_range(0.0, 1.0, 0.01) var swap_anchor_strength := 1.0
@@ -224,7 +230,8 @@ const _FORWARDED: Array[StringName] = [
 @export_range(0.5, 30.0, 0.1, "suffix:/s") var aim_out_speed := 6.0
 
 @export_group("Fire")
-## Firing without aiming zooms the view in. Off leaves the framing alone while firing.
+## Firing without aiming zooms the view in. Off leaves the framing alone while firing. The held
+## weapon can turn it off for itself (`WeaponDef.fire_zooms`, off for the fists).
 @export var zoom_when_firing := true
 ## How far behind the target the lens sits while the fire button is held.
 @export_range(0.5, 8.0, 0.05, "suffix:m") var fire_distance := 1.4:
@@ -480,7 +487,11 @@ func advance(delta: float) -> void:
 	# The zoom follows the buttons, not the arm: the character keeps its aim pose for a moment
 	# after a shot, and the camera must not wait for that.
 	var aiming := is_instance_valid(_player) and _player.aim_held
-	var firing := is_instance_valid(_player) and _player.fire_held and zoom_when_firing
+	var held := held_definition()
+	var fire_zooms := held == null or held.fire_zooms
+	var firing := (
+		is_instance_valid(_player) and _player.fire_held and zoom_when_firing and fire_zooms
+	)
 	_sprint_blend = move_toward(_sprint_blend, 1.0 if sprinting else 0.0, sprint_zoom_speed * delta)
 	_slide_blend = move_toward(_slide_blend, 1.0 if sliding else 0.0, slide_zoom_speed * delta)
 	var aim_speed := aim_in_speed if aiming else aim_out_speed
@@ -505,12 +516,13 @@ func advance(delta: float) -> void:
 
 ## Turns the view to the other shoulder (the left one from the right, and the right from the left
 ## or the center). The `shoulder_swap` action calls it. With `keep_aim_on_swap` the point under
-## the crosshair now stays under it through the swap; a swap pressed again before the last one
-## ended keeps the same point.
+## the crosshair now stays under it through a swap made while aiming (any swap with
+## `keep_aim_when_not_aiming`); a swap pressed again before the last one ended keeps the same
+## point.
 func swap_shoulder() -> void:
 	var from := _shoulder_view().x
 	shoulder = Shoulder.LEFT if shoulder == Shoulder.RIGHT else Shoulder.RIGHT
-	if keep_aim_on_swap and not _anchored and is_instance_valid(camera) and camera.is_inside_tree():
+	if _keeps_aim_now() and not _anchored and is_instance_valid(camera) and camera.is_inside_tree():
 		_anchor_point = crosshair_point()
 		_anchor_from = from
 		_anchor_turn = Vector2.ZERO
@@ -552,23 +564,29 @@ func anchor_point() -> Vector3:
 
 
 ## The distance behind the target now: `distance`, farther while sprinting, `fire_distance` while
-## firing, `aim_distance` while aiming.
+## firing, `aim_distance` while aiming (the held weapon's, when its `override_zoom` is on).
 func current_distance() -> float:
 	var sprint := distance + sprint_distance_change * _eased(_sprint_blend)
-	var fire := lerpf(sprint, fire_distance, _eased(_fire_blend))
-	return lerpf(fire, aim_distance, _eased(_aim_blend))
+	var zoom := _zoom_definition()
+	var fire_to := zoom.fire_distance if zoom != null else fire_distance
+	var aim_to := zoom.aim_distance if zoom != null else aim_distance
+	var fire := lerpf(sprint, fire_to, _eased(_fire_blend))
+	return lerpf(fire, aim_to, _eased(_aim_blend))
 
 
 ## The field of view now: `field_of_view`, wider while sprinting and sliding, `fire_fov` while
-## firing, `aim_fov` while aiming.
+## firing, `aim_fov` while aiming (the held weapon's, when its `override_zoom` is on).
 func current_fov() -> float:
 	var sprint := (
 		field_of_view
 		+ sprint_fov_change * _eased(_sprint_blend)
 		+ slide_fov_change * _eased(_slide_blend)
 	)
-	var fire := lerpf(sprint, fire_fov, _eased(_fire_blend))
-	return lerpf(fire, aim_fov, _eased(_aim_blend))
+	var zoom := _zoom_definition()
+	var fire_to := zoom.fire_fov if zoom != null else fire_fov
+	var aim_to := zoom.aim_fov if zoom != null else aim_fov
+	var fire := lerpf(sprint, fire_to, _eased(_fire_blend))
+	return lerpf(fire, aim_to, _eased(_aim_blend))
 
 
 ## Where the arm starts now: `offset`. Aiming and firing never move it.
@@ -598,6 +616,13 @@ func slide_blend() -> float:
 ## How far into the sprint view the camera is, 0 to 1.
 func sprint_blend() -> float:
 	return _sprint_blend
+
+
+## The definition of the weapon the followed character holds (its aim and zoom toggles), or null.
+func held_definition() -> WeaponDef:
+	if not is_instance_valid(_player) or _player.weapon == null:
+		return null
+	return _player.weapon.definition
 
 
 ## How far into the aim view the camera is, 0 to 1.
@@ -777,7 +802,28 @@ func _shoulder_view() -> Vector2:
 	if aim_shifts_shoulder:
 		width = lerpf(shoulder_offset, aim_shoulder, _eased(_aim_blend))
 	var side := 2.0 * smoothstep(0.0, 1.0, (_shoulder_pos + 1.0) * 0.5) - 1.0
-	return Vector2(side * width, vertical_offset)
+	var zoom := _zoom_definition()
+	var up := vertical_offset
+	if zoom != null and zoom.zoom_offset != Vector2.ZERO:
+		var zoomed := maxf(_eased(_aim_blend), _eased(_fire_blend))
+		width += zoom.zoom_offset.x * zoomed
+		up += zoom.zoom_offset.y * zoomed
+	return Vector2(side * width, up)
+
+
+# The held weapon's definition when it overrides the camera's aim and fire framing, else null.
+func _zoom_definition() -> WeaponDef:
+	var held := held_definition()
+	return held if held != null and held.override_zoom else null
+
+
+# A swap starting now keeps its aim point: the anchor is on, and the player is aiming (the aim or
+# fire button held, as for `aim_shoulder_time`) or `keep_aim_when_not_aiming` is on. A swap while
+# running and not aiming must not turn the view: the run follows the view's turn.
+func _keeps_aim_now() -> bool:
+	if not keep_aim_on_swap:
+		return false
+	return keep_aim_when_not_aiming or (is_instance_valid(_player) and _player.aiming)
 
 
 # Turns the view so the swap's aim point stays under the crosshair at the side offset the view

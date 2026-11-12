@@ -104,6 +104,7 @@ static func come_alive(body: Character) -> void:
 	body.velocity = Vector3.ZERO
 	body._fall_speed = 0.0
 	body._was_airborne = false
+	body.vault_motion.cancel(body)
 	body._camera_target.position = Vector3.ZERO
 	body._fit_body()
 	body.state = Character.State.IDLE

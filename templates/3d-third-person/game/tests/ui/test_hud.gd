@@ -52,12 +52,14 @@ func test_the_hud_scene_has_its_regions_and_widgets() -> void:
 	assert_object(_region(&"TopLeft").get_node("ItemCounter")).is_instanceof(ItemCounter)
 	assert_object(_region(&"BottomLeft").get_node("HudHealth")).is_instanceof(HudStat)
 	assert_object(_region(&"BottomRight").get_node("HudAmmo")).is_instanceof(HudStat)
+	assert_object(_region(&"BottomRight").get_node("HudWeaponSlots")).is_instanceof(HudWeaponSlots)
+	assert_object(_region(&"BottomCenter").get_node("HudHotbar")).is_instanceof(HudHotbar)
 	assert_object(_hud.minimap_slot.get_parent()).is_same(_region(&"TopRight"))
 	assert_array(_hud._get_configuration_warnings()).is_empty()
 
 
 func test_every_hud_control_ignores_the_mouse() -> void:
-	assert_int(_hud.widgets().size()).is_equal(4)
+	assert_int(_hud.widgets().size()).is_equal(6)
 	for node in _hud.root.find_children("*", "Control", true, false):
 		assert_int((node as Control).mouse_filter).is_equal(Control.MOUSE_FILTER_IGNORE)
 
@@ -204,7 +206,7 @@ func test_the_hud_survives_a_model_swap() -> void:
 	var old := slot.rig()
 	slot.remove_child(old)
 	old.free()
-	var male := load("res://assets/characters/mannequin/mannequin_male.glb") as PackedScene
+	var male := load(CharacterBodies.MALE) as PackedScene
 	var added := male.instantiate() as Node3D
 	added.name = "MannequinMale"
 	slot.add_child(added)

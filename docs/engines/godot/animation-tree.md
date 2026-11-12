@@ -44,7 +44,7 @@ cycle: a seek is a cut.
   `AnimationNodeBlendSpace1D.add_blend_point` wants a name in 4.7 (a warning per point otherwise), and a one-shot clip
   node is set to the new clip by writing its `animation` before the request, with an `AnimationNodeTimeScale` in front
   to fit the clip to the time the game holds the body (the 2 s Interact clip into 0.7 s). **Seen:** gdstudio #821,
-  2026-11-08 ([The 3D Third Person template](third-person-template.md#animation-libraries)).
+  2026-11-08 ([The 3D Third Person template](third-person/clips.md#animation-libraries)).
 - **Approach:** Keep a tree in code when agents develop the project, and make the editor show it too: `@tool` on the
   builder, `tree_root` and `anim_player` built in `_ready` for editor and game, `Engine.is_editor_hint()` guards on all
   driving, and setters on the clip exports that rebuild it in the editor. Take both off the node on
@@ -53,6 +53,12 @@ cycle: a seek is a cut.
   left the editor's AnimationTree empty, with a warning and no graph. A tree dragged together by hand is saved in the
   scene instead, never also built. **Seen:** gdstudio #830, 2026-11-08 (fix: `CharacterAnimation` is `@tool`;
   [screenshots](editor-screenshots.md#how)).
+
+- **Approach:** Play each gait of a ground blend space at the body's ground speed over the clip's own speed, with
+  the blend points at the clips' speeds, and measure a planted foot's slide in a test. **Watch out for:** the
+  template's blend space puts each gait at a tuned speed and plays it at its own pace, so no gait's feet hold the
+  floor ([the gaits, measured](../../tools/blender/own-animation.md#audit-gaits)). **Seen:** gdstudio #1150 (PR
+  #1165), 2026-11-11 (not fixed yet: gdstudio #1158 adds the speed matching).
 
 ## Stepping a tree by hand in tests {#stepping-a-tree-by-hand-in-tests}
 
@@ -67,6 +73,11 @@ cycle: a seek is a cut.
 - Measure a hand against the hips, not the skeleton: the locomotion's bob (the kit Run's Body moves 21 cm at kit
   scale) is in the skeleton's frame and swamps an arm's swing.
 
+- **Approach:** To read a clip's pose from a script, put the model and an `AnimationPlayer` in the tree, set the
+  manual callback mode, then `play(clip)`, `seek(time, true)` and `advance(0.0)` before `get_bone_global_pose`.
+  **Watch out for:** in a `SceneTree` script's `_init` (`--script`) the same calls left every bone where it was: a
+  probe printed one hand place for seven frames. **Seen:** gdstudio #1010, 2026-11-10 (`tools/capture/vault_study.gd`
+  and `tests/assets/test_vault_clips.gd` in the 3D Third Person template).
 - **Approach:** Hold the clip (`pause()`, or `speed_scale` 0) after sampling a pose, and repeat a measure that awaits
   a few times in one process before choosing a limit for it. **Watch out for:** `ClipFit.pose` left the clip playing,
   so readings made after two awaited physics frames came from a later pose (a knee moved up to 6 cm) and one pose gave
@@ -96,6 +107,13 @@ moved by its owner every few frames by the time it missed, and handed back later
   frozen, up to the whole catch-up) out of step with one that never was, and the capture near the camera differed from
   the unthrottled one on every frame. **Seen:** gdstudio #1046, 2026-11-11 (the AI tour compared frame by frame with
   the throttle on and off: identical to run-to-run noise once new characters waited 8 frames).
+
+- **Approach:** Let a throttle that gives every tree back on its way out (`_exit_tree`) ask nothing of a character or a
+  camera that is leaving the tree with it (`CharacterAnimationThrottle._hears`). **Watch out for:** a scene freed whole
+  takes its characters out before a throttle that is a later sibling, and the footsteps' range check read their
+  `global_position`: the puppet bench printed one `get_global_transform` error a character at exit (`!is_inside_tree()`),
+  an `ERROR` that a headless run must not print. **Seen:** gdstudio #1138, 2026-11-11 (`tools/bench/puppet_bench.tscn`
+  run headless).
 
 ## A clip on top of a pose a modifier fades out {#a-clip-on-top-of-a-pose-a-modifier-fades-out}
 
@@ -169,6 +187,14 @@ mode added later is measured too: #971 fixed the attack only, and the stagger (`
 0.85 m). A flinch is as long as the stagger the simulation holds (0.4 s: the clip is played from its start on every
 entry and is not scaled), and a fall is a clip that holds its last frame while the body lies.
 
+When the action has no clip of the low body's own and only its upper half matters (a flinch), the cheaper answer is the
+filter of the action layer: 3D Third Person's hit clip (`ual1/Hit_Chest`) is made standing, so `HitLayer`
+(`gameplay/character/hit_layer.gd`) turns the whole-body action one-shot's filter (the bones from `spine_01` down) on
+while a hit plays in `crouch`, `prone` or the slide states, and off for every other action and state; the filter is set
+again every frame, so a body that crouches or stands during the stun gets its new state's share. The crouched pelvis
+went from 0.47 m to 0.88 m for each hit before and stays within 6 cm after; lying, from 0.18 m to 0.88 m
+(`tests/gameplay/test_hit_stance.gd`, the capture `tools/capture/stance_hit_tour.tscn`; gdstudio #1292).
+
 - **Approach:** For every movement state (walk, run, sprint, crouch, air), list what each body layer plays and capture
   it from the player's camera; a layered rig never leaves a layer in a pose meant for another state. **Watch out for:**
   a sprint is a whole-body action, but the legs played `Run` while the upper layer kept looping `Aim_<Class>`, so arms
@@ -181,6 +207,12 @@ entry and is not scaled), and a fall is a clip that holds its last frame while t
   the standing `Punch` (the mesh from 0.85 to 1.84 m), with one reach and windup for every zombie. **Seen:**
   Deadnight #971, 2026-11-04 (fix: a crawl attack of its own, as above);
   Deadnight #1000, 2026-11-04 (fix: `Crawl_Stagger` and `Crawl_Death` too, and a test that loops over the mode enum).
+- **Approach:** In a layered tree, give every whole-body action a rule per body state (whole body, upper body only, or
+  a clip of its own) and test the hips' height through the action in each low stance, not only that the clip started.
+  **Watch out for:** the template's hit played its standing clip on the whole body in every state, so a crouched or
+  lying character stood up for the stun and popped down after it, bobbing under fire while its capsule and hit zones
+  stayed low; the existing test only checked that the hit clip was the one asked for. **Seen:** gdstudio #1292,
+  2026-11-11 (found filming the pistol's shot in #1280; fix: `HitLayer`, as above).
 
 ## Two clips half a turn apart on a bone {#two-clips-half-a-turn-apart-on-a-bone}
 
@@ -219,3 +251,15 @@ a body (measured as `Performance.OBJECT_COUNT` before and after `attach`), 3 onc
 climb states added to it were what took the late-round budget over its object limit (20 839 against 20 500 at the
 same run, 15 589 shared). The library (`AnimationLibrary`) was shared already; the machine is the same kind of thing.
 Release the static that holds it with the library.
+
+## Holding a clip on one frame {#hold-one-frame}
+
+<!-- new section: the page covered reading and seeking clips; nothing said how to keep one frame still inside a
+     blend space -->
+
+A clip held on one pose inside a blend space or a state machine keeps that pose whatever time the tree hands it (a sync
+between points, a state's seek to its start): an `AnimationNodeAnimation` with `use_custom_timeline` on,
+`timeline_length` 0, `stretch_time_scale` off, `loop_mode` none and `start_offset` the frame. A seek of the clip alone
+does not hold, since the sync and the state machine move it again. The still aim stance of 3D Third Person is built this
+way: the idle point is the idle playing and the same idle held on its steadiest frame, blended by the aim (in
+gdstudio #1206, PR #1256).

@@ -100,6 +100,12 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   machine. **Watch out for:** a "worst tick under 1.5 ms" passed alone and read 3 to 70 ms with other jobs running, and
   a 99th percentile failed too: bots think one tick in six, so it lands on preempted think ticks. **Seen:** Deadnight
   (bot server cost), 2026-11-02 (fix: the 95th judged, with the reason in the test's header).
+- **Approach:** Before putting a slower page on the machine's load, compare it with a control in the same page (a cell
+  the change cannot touch, measured in the same rounds) and with a run where the machine was quieter. **Watch out
+  for:** browser pages whose every skinned body read twice its cost were put down to 100 % processor load for an
+  hour; the same pages on a quieter machine still read twice, and the cause was a GL buffer state the bench set in
+  some pages and not others ([the buffer hint](web-export.md#skin-buffer-hint)). **Seen:** gdstudio #1260,
+  2026-11-11.
 
 ## A leak is read as a count at the same crowd, round after round {#leak-count}
 
@@ -129,6 +135,11 @@ timed section went with the frame at a slope of 1.0 and with the calibration at 
 calibration swung 2.1 times between runners that ran the same code (a false red, and a section twice as slow that
 passed). Hold such a section as a *share of the frame* the same rows took.
 
+- **Approach:** Test a loop held by a count and a time budget on the count it promises per frame, and wait for the
+  slowest pace the time budget allows (one item a frame), never for the pace the count alone gives. **Watch out for:**
+  `AiReplica` makes up to 4 puppets a frame and stops after 4 ms; the test waited 12 frames for 40 puppets, and a CI
+  runner where one dressed character takes 4 ms made one a frame, so main went red on unchanged code. **Seen:**
+  gdstudio #1230, 2026-11-11 (fix: the wait is one frame per puppet; `most_made` still checks the count).
 - **Approach:** Divide a section of a few microseconds by the frame the same rows took, not by the calibration loop:
   fit the log of the timing on the log of each candidate divisor over the last runs (slope near 1 cancels the host), put
   the limit between the highest share seen and twice the lowest, and test the checker on made-up reports of every kind

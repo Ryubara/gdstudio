@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from hook_support import patch
 
 KIT = Path(__file__).resolve().parents[2]
 HOOKS = KIT / ".claude" / "hooks"
@@ -46,7 +47,8 @@ def asked(monkeypatch):
             return None, "gh pr view failed: no network"
         return (info(0) if str(target) == "13" else info()), ""
 
-    monkeypatch.setattr(guards, "behind", fake)
+    patch(monkeypatch, "behind", fake)
+    patch(monkeypatch, "red_main", lambda target, repo, cwd: ({"open": [], "fixes": False}, ""))  # main is green
     guards.take_warnings()
     return seen
 
@@ -103,10 +105,10 @@ def test_nothing_else_asks_github(command, asked, tmp_path):
 
 def test_one_commit_is_singular_and_a_long_list_is_cut(monkeypatch, tmp_path):
     many = [f"{i:09x} commit {i}" for i in range(12)]
-    monkeypatch.setattr(guards, "behind", lambda *a: (info(12, many), ""))
+    patch(monkeypatch, "behind", lambda *a: (info(12, many), ""))
     text = refused("gh pr merge 12", tmp_path)
     assert "12 commits behind main" in text and "commit 4" in text and "commit 5" not in text and "7 more" in text
-    monkeypatch.setattr(guards, "behind", lambda *a: (info(1), ""))
+    patch(monkeypatch, "behind", lambda *a: (info(1), ""))
     assert "1 commit behind main" in refused("gh pr merge 12", tmp_path)
 
 
@@ -122,7 +124,7 @@ def test_the_current_branchs_pull_request_is_looked_up(asked, tmp_path):
 
 
 def test_the_refusal_reaches_a_session_beside_the_hold(asked, monkeypatch, tmp_path):
-    monkeypatch.setattr(guards, "held", lambda target, repo, cwd: True)
+    patch(monkeypatch, "held", lambda target, repo, cwd: True)
     payload = {"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": str(tmp_path)}
     payload["tool_input"] = {"command": "gh pr merge 12 --squash --auto"}
     out = dispatch.answer(payload, dispatch.load_config(None))
@@ -142,7 +144,7 @@ def test_a_failed_lookup_lets_the_call_through_with_a_warning(asked, tmp_path):
 
 
 def test_the_warning_reaches_a_session_and_nothing_is_denied(asked, monkeypatch, tmp_path):
-    monkeypatch.setattr(guards, "held", lambda target, repo, cwd: False)
+    patch(monkeypatch, "held", lambda target, repo, cwd: False)
     payload = {"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": str(tmp_path)}
     payload["tool_input"] = {"command": "gh pr merge 14 --squash"}
     out = dispatch.answer(payload, dispatch.load_config(None))
@@ -152,7 +154,7 @@ def test_the_warning_reaches_a_session_and_nothing_is_denied(asked, monkeypatch,
 
 
 def test_a_clean_call_has_no_answer(asked, monkeypatch, tmp_path):
-    monkeypatch.setattr(guards, "held", lambda target, repo, cwd: False)
+    patch(monkeypatch, "held", lambda target, repo, cwd: False)
     payload = {"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": str(tmp_path)}
     payload["tool_input"] = {"command": "gh pr merge 13 --squash"}
     assert dispatch.answer(payload, dispatch.load_config(None)) is None
@@ -221,7 +223,7 @@ def test_a_missing_commit_list_still_refuses_with_the_count(monkeypatch, tmp_pat
 
 
 def test_a_count_without_commits_is_still_a_refusal(monkeypatch, tmp_path):
-    monkeypatch.setattr(guards, "behind", lambda *a: (info(2, []), ""))
+    patch(monkeypatch, "behind", lambda *a: (info(2, []), ""))
     text = refused("gh pr merge 12", tmp_path)
     assert "2 commits behind main" in text and "missing:" not in text
 
@@ -287,9 +289,9 @@ def test_the_worktree_of_a_branch_is_found_from_any_checkout(tree):
 def test_the_refusal_names_the_worktree_and_the_kit_command(tree, tmp_path, monkeypatch):
     main, other = tree
     (tmp_path / guards.MARKER).write_text("")
-    monkeypatch.setattr(guards, "behind", lambda *a: (info(), ""))
+    patch(monkeypatch, "behind", lambda *a: (info(), ""))
     text = refused("gh pr merge 12 --squash", main)
     assert f"gds merge-main --path {other.resolve().as_posix()}" in text
     assert f"uv run --project {(tmp_path / 'repos' / 'gdstudio' / 'python').as_posix()} gds merge-main" in text
-    monkeypatch.setattr(guards, "behind", lambda *a: (info(branch="unknown"), ""))
+    patch(monkeypatch, "behind", lambda *a: (info(branch="unknown"), ""))
     assert "gds merge-main --path <worktree>" in refused("gh pr merge 12 --squash", main)

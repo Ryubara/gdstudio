@@ -41,7 +41,11 @@ player. The base, the profile and the director are on [AI characters](ai.md).
   perceived (`entity_lost`). A memory is searched for at `last_position` and never fired on.
 - **Hearing.** The noises made since the last think, each heard within its radius times the profile's
   `hearing_range` over the board's `reference_hearing`; the source's band filters it (an ally's footsteps are not
-  heard; a noise with no source is "something", Hostile). Past the board's `occlusion` share of the radius a clear line
+  heard; a noise with no source is "something", Hostile). The board files each noise under its maker's faction
+  (`AiNoise.by_faction`, `unowned` for none), so a listen reads one band a faction and walks only the noises of the
+  factions it cares about, in the order they were made; one that holds a grudge reads every noise (kit #1204). A
+  maker whose faction changes is filed by the faction it had when it made the noise, at most `keep_seconds` (1 s)
+  before. Past the board's `occlusion` share of the radius a clear line
   is needed (one ray from the same count), else the wall muffles it. A heard thing's awareness becomes at least
   `suspicious_at` plus `heard_gain` times how near it was, so two close shots alert.
 - **Touch.** A hit (`Character.took_hit`) with a source the character cares about is believed at once, with awareness 1,
@@ -58,8 +62,10 @@ player. The base, the profile and the director are on [AI characters](ai.md).
 ## The inspector {#inspector}
 
 - **`AiSenses`**: Senses `sight`, `hearing`, `touch`, `team` (all on); Targets `target_groups` (`player`,
-  `ai_characters`), `care_up_to` Unfriendly, `sight_mask` World and Props, `eye` (empty: 1.55 m above the feet),
-  `target_height_share` 0.85; Awareness `far_share` 0.3, `side_share` 0.5, `still_share` 0.7, `crouch_share` 0.6,
+  `ai_characters`), `care_up_to` Unfriendly, `startled_by` (empty; `shot` on the ally and the civilian: noises of those
+  kinds from past `care_up_to` emit `heard` but are never remembered, [the characters](ai-characters.md#parts)),
+  `sight_mask` World and Props, `eye` (empty: 1.55 m above the feet), `target_height_share` 0.85; Awareness `far_share`
+  0.3, `side_share` 0.5, `still_share` 0.7, `crouch_share` 0.6,
   `prone_share` 0.35, `unfriendly_share` 0.5, `glimpse_seconds` 3 s, `heard_gain` 0.5, `ray_fresh_seconds` 0.3 s;
   Network `authority_only` (on); Debug `show_view` (off), `view`. The ranges, angle, times and memory are the
   profile's Senses group ([AI characters: the inspector](ai.md#inspector)); `share_radius` and `share_delay` 0.5 s its
@@ -96,8 +102,10 @@ clock reads in steps of 100 µs, so a think there is read from the tick's total.
 | Chrome (12 at Full) | 1.09 ms | 1.35 ms | 0.27 ms | 2.8 / 2.9 ms |
 | Chrome 4x | 5.37 ms | 6.81 ms | 1.07 ms | 31 / 65 ms |
 
-- A think is 20 to 50 µs, most of it GDScript's cost per step (sight 11 µs natively with 4 targets in view, hearing
-  4, the rest 5); rays are about 2 µs each and capped at 8 a tick for all, so rays a second stay flat as the crowd grows.
+- A think is 20 to 50 µs in this calm crowd, most of it GDScript's cost per step (sight 11 µs natively with 4
+  targets in view, hearing 4, the rest 5); in a fight a think is 75 to 150 µs natively, with every sense busy and the
+  tasks reacting ([the behaviour's cost](ai-behaviour.md#cost), gdstudio #1104). Rays are about 2 µs each and capped
+  at 8 a tick for all, so rays a second stay flat as the crowd grows.
 - The senses add about a quarter of a millisecond a tick to 40 walkers in Chrome and a millisecond at 4x: the crowd was
   already at the AI budget (1 ms, 5 ms at 4x) without them, and at 4x the frame was past the tick (31 ms) before the
   senses, so the 4x frame rows are the catch-up spiral, not the senses' cost. Cutting the think further (a native
@@ -154,3 +162,8 @@ reach) and behind (heard, then noticed at arm's reach), with the footstep rings 
   for a count of the body's nodes (`NODES_ALIVE` in `test_parts_budget.gd`) and raise it with a line that says what the
   node costs. **Watch out for:** the `NoiseMaker` passed every AI suite and failed only the full run's parts budget
   (55 nodes against 54). **Seen:** gdstudio #966, 2026-11-10.
+- **Approach:** Keep a record that names a node (a noise's maker) safe to read after the node is freed: check it with
+  `is_instance_valid` (`AiNoiseRecord.maker_gone()`) before any listener touches it, and test it with the maker freed
+  while its noise is still on the board. **Watch out for:** a shot's noise outlived its shooter, and every listener's
+  `_noise_band` raised "previously freed" until the record expired; no suite freed a body mid-noise until #968's
+  scenarios did. **Seen:** gdstudio #968, 2026-11-11 (`test_a_noise_whose_maker_was_freed_is_skipped`).

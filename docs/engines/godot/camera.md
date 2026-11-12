@@ -159,6 +159,20 @@ turn, `keep_aim_on_swap` off is the old slide, and a time of 0 swaps at once and
 frame. The client's camera is local and never sent: what it sends is the shot under its crosshair, so the server's body
 fires at the kept point (0.04 degrees off in `test_net_swap_aim.gd`).
 
+**When the point is kept.** Only on a swap that starts while the player is aiming (the aim or fire button held, the same
+test that picks `aim_shoulder_time`). A swap while walking or sprinting without aiming only slides the view: the yaw and
+pitch stay as they are, and so does the way the character runs, because the run follows the view's yaw.
+`keep_aim_when_not_aiming` (off) keeps the point on every swap; `keep_aim_on_swap` off keeps it on none. A swap begun
+while aiming keeps its point to the end even if the aim is let go mid-swap.
+
+- **Approach:** Tie the aimed-point keeping to aiming: decide when the swap starts (`PlayerCamera._keeps_aim_now()`),
+  and offer keeping on every swap as an inspector option that is off by default. Test it with simulated input: a
+  sprint (W and Shift held) plus a swap keeps the view's yaw and the run's heading within 0.05 degrees, an aimed swap
+  still keeps the point, and the option on keeps it while sprinting (`test_camera_swap_aim.gd`).
+  **Watch out for:** a turn the camera makes on its own, with the player not aiming, also turns a moving player who
+  is not aiming; on the main branch a sprinting swap past a near pillar turned the run by about 11 degrees (the
+  `sprint_swap_tour` capture). **Seen:** gdstudio #1124, 2026-11-11 (the maintainer's review of #1094).
+
 - **Approach:** Keep an aimed point through a change of view offset by applying the difference of two exact solutions
   (the yaw and pitch through the point from the new offset, minus those from the starting offset, about the arm's
   pivot now) on top of the current turn, and test it on the real `Camera3D`'s crosshair on a near board, a far board
@@ -176,6 +190,21 @@ fires at the kept point (0.04 degrees off in `test_net_swap_aim.gd`).
   passes behind the head); the aim is unaffected, and a game that minds can raise `vertical_offset` or swap at once.
   **Watch out for:** reading that frame of a capture as the anchor failing. **Seen:** gdstudio #1087, 2026-11-11 (the
   capture's contact sheets).
+
+## Aim and fire framing {#aim-and-fire-framing}
+
+<!-- new section: the page held the shoulder view, walls and the swap; nothing said what aiming and firing do to the
+     framing or who may change it -->
+
+3D Third Person's `PlayerCamera` frames three ways besides the follow view: aiming (its Aim group: `aim_fov`,
+`aim_distance`, `aim_shifts_shoulder`), firing without aiming (its Fire group: `zoom_when_firing`, `fire_fov`,
+`fire_distance`) and sprinting or sliding (wider by `sprint_fov_change`). The zoom follows the buttons (`aim_held`,
+`fire_held`), with no hold after a shot. The held weapon may change it: `WeaponDef.fire_zooms` off leaves the framing
+alone on fire (the fists), and with `override_zoom` on, the weapon's `aim_fov`, `aim_distance`, `fire_fov`,
+`fire_distance` and `zoom_offset` replace the camera's. The camera reads the held definition every frame
+(`held_definition()`), on each machine, never sent. The rules and their tests: [Ammo, reloading and
+switching](third-person/shooting.md#weapons) (gdstudio #1255) and [Crouch, aim and
+shoot](third-person/shooting.md#crouch-aim-shoot) (gdstudio #856).
 
 ## Reading a rotation {#rotations}
 

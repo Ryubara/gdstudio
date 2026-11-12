@@ -37,6 +37,12 @@ screen that holds several choices, and the flow an online menu offers. How Godot
   4.5:1 toward its colour passed the contrast test for every card and seat colour, and the capture showed flat brown
   boxes: the card was gone, and so was the armband's colour. **Seen:** Deadnight #1070, 2026-11-04 (fix: a tab under the
   points and `HudLabel.halo_colour` under the small words).
+- **Approach:** In a corner's stack, put the part that always shows nearest the corner and the part that comes and goes
+  (a card hidden for a weapon with no ammunition) farther in, and test that a switch leaves the steady part's rectangle
+  where it was. **Watch out for:** the weapon slots stood over the ammo card as in the design studied, and when the
+  fists came up the card hid and the slots dropped to the corner, a jump at every switch. **Seen:** gdstudio #1148,
+  2026-11-11 (fix: the slots sit under the card and `test_hud_slots.gd` compares their place before and after a
+  switch).
 
 ## A screen of choices {#choices}
 

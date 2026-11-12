@@ -45,6 +45,9 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/capture/rifle_hold_study.tscn` holds the rifle on the mannequin five ways with the clips the template has
   (the pistol clip, left-hand IK, shouldered with both hands on IK, aimed up, low ready), prints how far each hand stops
   from its target and, with a window and `HOLD_OUT`, saves the renders (the header says how to run it).
+- `tools/capture/vault_study.tscn` plays the vault clips (`assets/animation/vault/`) on the mannequin over each clip's
+  reference box, with a sprint in and out, from four views; headless it prints how still the planted hand stays
+  (`MODEL=male`, `VIEWS`, `SLOW`, `LOW_HEIGHT` and `HIGH_HEIGHT` are in the header).
 - `tools/capture/prone_clips_tour.tscn` plays the prone and crawl clips (`assets/animation/prone/`) on the mannequin
   over a floor of 0.25 m squares, from the side, the front quarter and the game camera's place, crawling at the clip's
   speed (`MODEL=male` films the male mannequin; `PRONE_SHOTS=<folder>` saves side, front and top stills of each clip).
@@ -98,3 +101,13 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   number `tests/world/test_jump_reach.gd` pins).
 - `tools/capture/sections_tour.tscn` saves stills of the two map sections from the player's camera and from above
   (`--debug-navigation` draws the navigation meshes); the header says how to run it.
+- `tools/soak/ai_section_soak.tscn` fights round the AI section with its whole population for `AI_SOAK_SECONDS` (180)
+  and fails on a character stuck for 3 s, idle with a threat in view for 5 s, or an engine error (`SOAK {...}`); the
+  header says how to run it. `tools/soak/section_pilot.gd` is its autopilot.
+- `tools/capture/section_tour.tscn` films the AI section's population from the game camera (`SECTION_TOUR=fight`,
+  `cover`, `chase` or `civilians`).
+- `tools/capture/ai_section_online_tour.tscn` films the AI section's fight online from a client's screen: the game
+  server spawns the population for her body and her client draws every character as a puppet.
+- `tools/bench/ai_section_bench.tscn` times the AI director's step with the AI section's population, the player
+  watching and fighting (`AI_SECTION_BENCH {...}`); `ai_section_bench.py` runs it in Chrome
+  (`gds template bench-web 3d-third-person ai_section_bench --run`).

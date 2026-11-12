@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://gameplay/ai/navigation/ai_navigator.gd" id="5_navigator"]
 [ext_resource type="Script" path="res://gameplay/ai/senses/ai_senses.gd" id="6_senses"]
 [ext_resource type="Script" path="res://gameplay/ai/senses/ai_senses_view.gd" id="7_senses_view"]
+[ext_resource type="Script" path="res://gameplay/ai/behaviour/ai_brain.gd" id="8_brain"]
 
 [sub_resource type="TorusMesh" id="TorusMesh_band"]
 inner_radius = 0.42
@@ -21,7 +22,7 @@ resource_local_to_scene = true
 shading_mode = 0
 albedo_color = Color(0.85, 0.85, 0.8, 1)
 
-[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label", "task_runner", "navigator", "senses") instance=ExtResource("1_dressed")]
+[node name="AiCharacter" node_paths=PackedStringArray("controller", "debug_label", "task_runner", "navigator", "senses", "brain") instance=ExtResource("1_dressed")]
 script = ExtResource("2_ai")
 profile = ExtResource("4_grunt")
 debug_label = NodePath("DebugLabel")
@@ -29,6 +30,7 @@ task_runner = NodePath("AiTasks")
 senses = NodePath("Senses")
 controller = NodePath("AiController")
 navigator = NodePath("Navigator")
+brain = NodePath("Brain")
 
 [node name="AiController" type="Node" parent="."]
 script = ExtResource("3_controller")
@@ -53,7 +55,7 @@ script = ExtResource("5_tasks")
 label = NodePath("../TaskLabel")
 
 [node name="TaskLabel" type="Label3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
 visible = false
 cast_shadow = 0
 pixel_size = 0.004
@@ -85,3 +87,6 @@ view = NodePath("SensesView")
 visible = false
 cast_shadow = 0
 script = ExtResource("7_senses_view")
+
+[node name="Brain" type="Node" parent="."]
+script = ExtResource("8_brain")

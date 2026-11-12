@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AiProfile" format=3]
+
+[ext_resource type="Script" path="res://gameplay/ai/ai_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+display_name = "Shooter"
+engage_range = 24.0
+preferred_range = 16.0
+accuracy = 0.55
+courage = 0.6
+aggression = 0.3
+curiosity = 0.3
+careful_margin = 1.0
+faction = &"enemy"

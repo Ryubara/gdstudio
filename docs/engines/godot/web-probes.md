@@ -37,6 +37,14 @@ command is the same there (off Windows it starts the program normally).
   card), a new Playwright version needs its own browser build (`playwright install chromium-headless-shell`), and
   three or four pages at once stalled the third and fourth on software GL. **Seen:** Deadnight, 2026-11-01 (fix: a
   `--gpu` mode on `channel="chrome"` for the multi-page smokes).
+- **Approach:** In CI, install the probe's browser so that an unreachable Ubuntu mirror cannot fail the job: try
+  `playwright install --with-deps` once, then fall back to the browser alone (the runner image has Chromium's libraries;
+  `--with-deps` only adds fonts). Each call runs under `timeout -k 30 <seconds>` and the step has a `timeout-minutes`
+  far under the job's (12 of 40; a normal install takes about 20 s). **Watch out for:** a DNS outage of
+  `azure.archive.ubuntu.com` failed the `template` job for over an hour (apt retries about eight minutes); a fallback
+  only covers a call that returns, and apt's switch to `archive.ubuntu.com` went silent and held the step 39 minutes.
+  **Seen:** gdstudio #1224, 2026-11-11 (fix: #1226, the fallback in both `ci` files); gdstudio #1201's run
+  43062712944, 2026-11-11 (fix: #1235, the limits, pinned by `test_workflow_browser_install.py`).
 - **Approach:** When the browser tools find no connected browser, start Chrome with `--headless=new
   --remote-debugging-port=9333` and a throwaway profile and speak the DevTools protocol over Node's built-in
   `WebSocket`: `Page.captureScreenshot`, `Page.startScreencast` for a transition (about 30 frames a second),
@@ -44,6 +52,14 @@ command is the same there (off Windows it starts the program normally).
   Chrome of the same account, so a headless session answers "Browser extension is not connected"; a gamepad cannot be
   injected this way. **Seen:** Deadnight, 2026-11-01 (fix: direct protocol, no package downloaded; the GPU still
   works through ANGLE).
+- **Approach:** Before blaming the desktop for a GPU page that stalls in its first seconds, time its WebGL calls from
+  an init script (wrap each `WebGL2RenderingContext.prototype` method, keep the calls over 50 ms) and measure a warm
+  browser, one that played the game once. **Watch out for:** a cold Chrome on ANGLE's Direct3D 11 blocked the page
+  21 s in `getProgramParameter` (Godot reads each link at once; 171 programs) where SwiftShader took 0.3 s, and a probe
+  whose socket opened meanwhile was hung up for a missing hello, which read as the private desktop starving the page.
+  Fresh Playwright browsers are always cold: a GPU probe plays a warm-up page first (`online.py --warm-up`). The
+  headless shell with `--enable-gpu` does draw on the GPU. **Seen:** gdstudio #1117, 2026-11-11 (a player's cold
+  first join: #1137).
 
 ## The boot check every template runs {#boot-check}
 
@@ -219,3 +235,53 @@ calibrated on that spread, and what it cannot see needs a count that does not mo
   28 runs it was set from already had it, and the decode is about 4 s of 40 against a spread of 2.2 to 4.6, so a ratio
   absorbs the runner's speed, not a small real cost. **Seen:** Deadnight #873, 2026-11-03; Deadnight #828, 2026-11-03
   (fix: the gate catches about an 80 % growth; `test_load_cost.gd` caps seconds decoded behind the bar).
+
+## A bench's web export {#bench-web}
+
+<!-- new section: every bench under a template's tools/bench/ repeated in its header how to put it in a web build, and
+each bench author worked it out again (#963, #1059, #1062) -->
+
+A template's benches (`tools/bench/<name>.tscn`, most with a `<name>.py` that reads the result in Chrome) measure in
+the web build what the desktop numbers cannot. The web build starts the menu and leaves `tools/*` out of the pack, so a
+bench runs from a throwaway game, and one command makes it, from your worktree:
+
+```text
+uv run --project <your worktree>/python gds template bench-web 3d-third-person nav_cost_bench
+uv run --project <your worktree>/python gds template bench-web 3d-third-person nav_cost_bench --run --probe-args=4
+```
+
+It makes the game from the working tree's template in a workspace of its own (as `gds template game`, see [Proving a new
+game](new-game.md#proof)), sets `run/main_scene` in its `project.godot` to the bench, takes `tools/*` out of the Web
+preset's `exclude_filter` (the tests and addons stay out), exports with the pinned Godot (`--export-release Web`,
+failing on an `ERROR` line; an export whose only error is the at-exit leak runs once more, as CI does) and prints the
+build's folder, the game and the probe's command. The bench is named by its name, its `tools/bench/<name>.tscn` path or
+its `res://` path; any scene of the game works by its path (`tools/soak/ai_soak.tscn`), since only a bare name is looked
+up in `tools/bench/` and every `tools/*` folder goes into the pack. Without `--run` the game is kept (`gds template
+clean <path>` when done); with `--run` the bench's `<name>.py` reads the build under `gds quiet` (`--probe-args` after
+the build folder: 4 is the weak-machine throttle) and the game is removed unless `--keep`, the exit code the probe's.
+Nothing in the template changes. Its tests are `python/tests/test_bench_web.py` (the edits on the real template files, a
+fake Godot).
+
+Through it, the nav cost bench of 3D Third Person read 189, 267 and 562 µs a tick for 50, 100 and 200 navigators in
+headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdstudio #1130).
+
+- **Approach:** Count a web bench in physics ticks (`Engine.get_physics_frames()`), not in rendered frames, and run it
+  for 900 ticks or more when it reads a part's mean; to time a bench by part, add `Time.get_ticks_usec()` spans in the
+  kept game (`bench-web` without `--run`), export it again and read the means. **Watch out for:** a headless Chrome
+  page draws about three frames per physics tick at 1x, so a row of 300 frames held about 100 ticks; and the browser's
+  clock steps at 100 µs, so a span of 20 to 150 µs averages to a usable mean only over many hundreds of samples.
+  **Seen:** gdstudio #1104 (PR #1209), 2026-11-11.
+- **Approach:** For a before and after in Chrome, make two builds of the same bench: `bench-web` from your worktree
+  and from a checkout of `main` (`--project <main checkout>/python`; a bench new to the branch is copied into main's
+  kept game and exported again), then run the two probes in turns, A B A B, on a quiet machine. **Watch out for:** one
+  build measured at two times compares two machine loads, which moved rows 15 to 20 % between runs, more than most
+  changes save. **Seen:** gdstudio #1208 (PR #1219), 2026-11-11.
+- **Approach:** Give a bench's new script its `.uid` (`gds template uids <t>`) before the first `bench-web` run, and run
+  `gds template test <t>` before the push. **Watch out for:** `bench-web` exports without the layout check, so a bench
+  whose script had no `.uid` measured fine, and the missing file showed only when the full run's layout check stopped
+  it. **Seen:** gdstudio #1186 (PR #1268), 2026-11-11.
+- **Approach:** To measure a branch with a probe that exists only in another open pull request, merge both branches into
+  a throwaway worktree (under `worktrees/`, from `origin/main`), run `bench-web` from it, name the other pull request in
+  the body, and remove the worktree after. **Watch out for:** neither branch alone held both the change and the probe
+  that shows it, and nothing here said how to measure one with the other. **Seen:** gdstudio #1247 (PR #1250, with the
+  soak probe of PR #1248), 2026-11-11.

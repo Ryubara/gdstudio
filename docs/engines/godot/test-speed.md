@@ -143,6 +143,14 @@ two clocks, and a slow runner pulls them apart. Give the real-time part an injec
   stayed 1.12 to 1.17 m at every slowdown); Deadnight #1059, 2026-11-04 (`GameServer.clock`); gdstudio #903,
   2026-11-10 (a socket rig on the real clock: lingers never ended at `--fixed-fps 60`).
 
+- **Approach:** On a clock of ticks counted in seconds (frame count over tick rate), compare a deadline made by a sum
+  (`now + delay`) with a slack far under a tick (`LinkConditioner.DUE_SLACK`, 1 µs), and test it from several start
+  frames; to reproduce a full-run flake alone, add a base frame count to `SocketRig.frame_clock` and sweep it.
+  **Watch out for:** `frame / 60.0 + 0.15` lands a hair past `(frame + 9) / 60.0` at one frame count in five, so a
+  150 ms hold took 10 frames for some packets, chosen by how many frames the process had run: the AI rewind suite's
+  drawn guard slipped a tick (7 cm against 3.6 mm alone) and its shot missed at 4 of 128 swept bases. **Seen:**
+  gdstudio #1310, 2026-11-11 (`test_net_link_conditioner.gd`, the frame clock case; 128 of 128 bases alike after).
+
 - **Approach:** Switch off a node that eases or animates in `_process` (`set_process(false)`,
   `AnimationTree.callback_mode_process = MANUAL`) and step it by hand with a fixed delta in the test's tick helper;
   give a delta-driven animation its time by hand (`animation._process(seconds)`) and assert relative to the start;
@@ -191,3 +199,14 @@ answer depends on how long a frame took, which is the machine, the window and th
   green by chance; ten awaited `physics_frame` signals were nine or ten ticks of a pickup's spin. **Seen:**
   Deadnight #1296, 2026-11-05 (fix: Deadnight #1302, 0 of 12 runs failed); gdstudio #774, 2026-11-07 (the
   `pickup-feature` eval's own spin test).
+- **Approach:** Await two `physics_frame` signals before reading a value a node sets in its own `_physics_process`
+  (or wait for the value inside a bound). **Watch out for:** the signal comes before that tick's `_physics_process`
+  calls, so after one await the node had not run yet: the director's attack slot counts still read the old value.
+  **Seen:** gdstudio #1203, 2026-11-11.
+- **Approach:** To test what is drawn between physics ticks under `--fixed-fps 60`, lower
+  `Engine.physics_ticks_per_second` for the test (25 gives 2.4 frames a tick, as 144 frames over 60 ticks), set it
+  after `scene_runner()`, put it back in `after_test`, and print how many frames fell between ticks. **Watch out
+  for:** at 60 frames and 60 ticks every frame is a tick, so `get_physics_interpolation_fraction()` says nothing; and
+  GdUnit4's scene runner sets the project's tick rate when it is made, so a rate set before it was gone: the first
+  run drew one frame a tick and 0 of 60 between ticks. **Seen:** gdstudio #1126, 2026-11-11
+  (`test_ragdoll_drawing.gd`).

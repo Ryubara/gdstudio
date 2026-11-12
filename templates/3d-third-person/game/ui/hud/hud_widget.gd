@@ -54,6 +54,13 @@ func _ready() -> void:
 	rebind()
 
 
+func _enter_tree() -> void:
+	# Back in the tree after a move (the `Hud` moves a part to its `touch_region`): leaving let go
+	# of the player, so bind again.
+	if is_node_ready() and not Engine.is_editor_hint():
+		rebind()
+
+
 func _exit_tree() -> void:
 	if not Engine.is_editor_hint():
 		_let_go()

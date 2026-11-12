@@ -10,6 +10,12 @@
 [ext_resource type="Material" path="res://assets/materials/prototype/prototype_wall.tres" id="m_wall"]
 [ext_resource type="NavigationMesh" uid="uid://1xmwdpwya53w" path="res://world/prototype/ai_section/ai_section_navmesh.tres" id="navmesh"]
 [ext_resource type="PackedScene" path="res://gameplay/spawn_point/spawn_point.tscn" id="spawn"]
+[ext_resource type="Script" path="res://gameplay/ai/behaviour/ai_marker.gd" id="ai_marker"]
+[ext_resource type="Script" path="res://gameplay/ai/spawner/ai_spawner.gd" id="ai_spawner"]
+[ext_resource type="PackedScene" path="res://gameplay/ai/characters/enemy_grunt.tscn" id="grunt"]
+[ext_resource type="PackedScene" path="res://gameplay/ai/characters/enemy_shooter.tscn" id="shooter"]
+[ext_resource type="PackedScene" path="res://gameplay/ai/characters/ally.tscn" id="ally"]
+[ext_resource type="PackedScene" path="res://gameplay/ai/characters/civilian.tscn" id="civilian"]
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_sv0bj"]
 lightmap_size_hint = Vector2i(106, 134)
@@ -581,6 +587,151 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15.8, 0, -3)
 
 [node name="HiddenBehindScreen" type="Marker3D" parent="Perception" unique_id=1647617251]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31, 0, 0)
+
+[node name="AiMarkers" type="Node3D" parent="."]
+
+[node name="GuardLane" type="Node3D" parent="AiMarkers"]
+
+[node name="Stop1" type="Marker3D" parent="AiMarkers/GuardLane"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -29.0, 0, -12.5)
+script = ExtResource("ai_marker")
+route = &"guard_lane"
+wait_seconds = 2.0
+
+[node name="Stop2" type="Marker3D" parent="AiMarkers/GuardLane"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -15.0, 0, -12.5)
+script = ExtResource("ai_marker")
+route = &"guard_lane"
+wait_seconds = 2.0
+
+[node name="Stop3" type="Marker3D" parent="AiMarkers/GuardLane"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -13.0, 0, -0.5)
+script = ExtResource("ai_marker")
+route = &"guard_lane"
+wait_seconds = 2.0
+
+[node name="Stop4" type="Marker3D" parent="AiMarkers/GuardLane"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -24.0, 0, 1.5)
+script = ExtResource("ai_marker")
+route = &"guard_lane"
+wait_seconds = 2.0
+
+[node name="ShooterPosts" type="Node3D" parent="AiMarkers"]
+
+[node name="Post1" type="Marker3D" parent="AiMarkers/ShooterPosts"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -22.2, 0, -4.0)
+script = ExtResource("ai_marker")
+kind = 3
+
+[node name="Post2" type="Marker3D" parent="AiMarkers/ShooterPosts"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -22.2, 0, 11.0)
+script = ExtResource("ai_marker")
+kind = 3
+
+[node name="Cover" type="Node3D" parent="AiMarkers"]
+
+[node name="BehindLowWallA" type="Marker3D" parent="AiMarkers/Cover"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -22.2, 0, -4.0)
+script = ExtResource("ai_marker")
+kind = 1
+
+[node name="BehindLowWallB" type="Marker3D" parent="AiMarkers/Cover"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -22.2, 0, 11.0)
+script = ExtResource("ai_marker")
+kind = 1
+
+[node name="BehindTallCover" type="Marker3D" parent="AiMarkers/Cover"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -17.9, 0, -3.0)
+script = ExtResource("ai_marker")
+kind = 1
+
+[node name="BehindLowWallD" type="Marker3D" parent="AiMarkers/Cover"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -14.9, 0, -8.0)
+script = ExtResource("ai_marker")
+kind = 1
+
+[node name="BehindLowWallC" type="Marker3D" parent="AiMarkers/Cover"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -11.9, 0, 2.0)
+script = ExtResource("ai_marker")
+kind = 1
+
+[node name="EastOfLowWallC" type="Marker3D" parent="AiMarkers/Cover"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -10.1, 0, 2.0)
+script = ExtResource("ai_marker")
+kind = 1
+
+[node name="EastOfLowWallD" type="Marker3D" parent="AiMarkers/Cover"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -13.1, 0, -8.0)
+script = ExtResource("ai_marker")
+kind = 1
+
+[node name="EastOfColumnA" type="Marker3D" parent="AiMarkers/Cover"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -5.2, 0, 9.0)
+script = ExtResource("ai_marker")
+kind = 1
+
+[node name="CivilianHomes" type="Node3D" parent="AiMarkers"]
+
+[node name="Home1" type="Marker3D" parent="AiMarkers/CivilianHomes"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -18.5, 0, 5.5)
+script = ExtResource("ai_marker")
+kind = 3
+
+[node name="Home2" type="Marker3D" parent="AiMarkers/CivilianHomes"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -16.0, 0, 7.5)
+script = ExtResource("ai_marker")
+kind = 3
+
+[node name="Home3" type="Marker3D" parent="AiMarkers/CivilianHomes"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -18.5, 0, 7.5)
+script = ExtResource("ai_marker")
+kind = 3
+
+[node name="Population" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0, 0)
+
+[node name="Grunts" type="Node3D" parent="Population" node_paths=PackedStringArray("markers")]
+script = ExtResource("ai_spawner")
+scene = ExtResource("grunt")
+count = 3
+markers = [NodePath("../../Spawns/Enemy1"), NodePath("../../Spawns/Enemy2"), NodePath("../../Spawns/Enemy3")]
+respawn_delay = 15.0
+wake_range = 25.0
+patrol_route = &"guard_lane"
+max_corpses = 2
+on_server = true
+
+[node name="Shooters" type="Node3D" parent="Population" node_paths=PackedStringArray("markers")]
+script = ExtResource("ai_spawner")
+scene = ExtResource("shooter")
+count = 2
+markers = [NodePath("../../AiMarkers/ShooterPosts/Post1"), NodePath("../../AiMarkers/ShooterPosts/Post2")]
+respawn_delay = 20.0
+wake_range = 25.0
+patrol_route = &"hold"
+max_corpses = 2
+on_server = true
+
+[node name="Allies" type="Node3D" parent="Population" node_paths=PackedStringArray("markers")]
+script = ExtResource("ai_spawner")
+scene = ExtResource("ally")
+count = 2
+markers = [NodePath("../../Spawns/Friendly1"), NodePath("../../Spawns/Friendly2"), NodePath("../../Spawns/Friendly3"), NodePath("../../Spawns/Friendly4")]
+respawn_delay = 15.0
+wake_range = 25.0
+leader_group = &"player"
+max_corpses = 2
+on_server = true
+
+[node name="Civilians" type="Node3D" parent="Population" node_paths=PackedStringArray("markers")]
+script = ExtResource("ai_spawner")
+scene = ExtResource("civilian")
+count = 3
+markers = [NodePath("../../AiMarkers/CivilianHomes/Home1"), NodePath("../../AiMarkers/CivilianHomes/Home2"), NodePath("../../AiMarkers/CivilianHomes/Home3")]
+respawn_delay = 20.0
+wake_range = 25.0
+max_corpses = 2
+on_server = true
 
 [node name="LightmapGI" type="LightmapGI" parent="." unique_id=85991155]
 max_texture_size = 4096

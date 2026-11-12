@@ -15,6 +15,9 @@ extends RefCounted
 ## after several stalls of the client's thread with no answer between them (`resync`) the answer
 ## may be that many walk-ons of the server's body long, so it is lost past that many times. An
 ## error inside `DEAD_ZONE` is the wire's rounding (a TICK carries centimetres) and is left alone.
+## A part the world will not let the body take (it put the body inside a ledge it stands on:
+## `NetClient`) is followed by the rest at once (`take_rest`): taken in parts, each would be pushed
+## back out and the two bodies would never meet (gdstudio #1119).
 
 ## The share of the error left that one frame takes.
 const SHARE := 0.25
@@ -32,11 +35,17 @@ const KEEP := NetLimits.TICK_RATE * NetLimits.STALL_SECONDS
 var corrections := 0
 var snaps := 0
 var lost := 0
+## The error of each snap taken for its size (past `SNAP_DISTANCE`, not a resync's), metres, in
+## order: a report tells them from the join's and a stall's (`tools/net/bad_network.py`).
+var size_snaps := PackedFloat32Array()
+## Corrections taken whole because a part was pushed back by the world (`take_rest`).
+var stuck_snaps := 0
 ## The largest error an answer measured, metres.
 var worst_error := 0.0
 ## The error of the last answer, metres.
 var last_error := 0.0
-## Metres the body was moved by corrections in all (snaps not counted).
+## Metres the body was moved by corrections in all, the rests `take_rest` handed out included
+## (snaps for size and after a stall not counted).
 var corrected := 0.0
 ## The next answer is taken whole, whatever its size (after a stall: `StallGuard`).
 var snap_next := false
@@ -92,6 +101,8 @@ func answer(ack: int, server_point: Vector3) -> bool:
 		if last_error > LOST_DISTANCE * runs:
 			lost += 1
 		snaps += 1
+		if not snap_next:
+			size_snaps.append(last_error)
 		snap_next = false
 		_pending = Vector3.ZERO
 		_snapped += error
@@ -118,6 +129,21 @@ func take() -> Vector3:
 	corrected += part.length()
 	_shift(part)
 	return part
+
+
+## The correction not yet taken, whole (add it to the body's position): the part `take` handed out
+## put the body inside the world, so parts would be pushed back out each frame and never arrive
+## (a body on a ledge whose server body stands below it, gdstudio #1119). The remembered points
+## move with it, as with a part.
+func take_rest() -> Vector3:
+	var rest := _pending
+	if rest == Vector3.ZERO:
+		return rest
+	_pending = Vector3.ZERO
+	stuck_snaps += 1
+	corrected += rest.length()
+	_shift(rest)
+	return rest
 
 
 ## The correction not yet taken, metres.

@@ -1,0 +1,49 @@
+# The hold
+
+<!-- new section: moved from hooks.md#hold, which went over the 50 KB page limit (gdstudio #1202) -->
+
+## The hold {#hold}
+
+A pull request the maintainer must see first carries the label `S-hold`. GitHub enforces it, not this hook: the `hold`
+job of `.github/workflows/hold.yml` fails while the label is on, and the `Main` ruleset requires that job, so no route
+merges it. The rule is `merge.hold` in `.github/conventions.yml`. A failed `hold` is a decision, not a broken build: it
+stays out of `merge.required_checks`, so `pr-status` does not label it `S-ci-failing`.
+
+- **Set it** with `gds pr hold <owner/repo>#N`: it adds the label and returns once the check is red, because until then
+  the green run before it still counts (on a real pull request: 3 s to pending, 7 to 10 s to red). Or open it held:
+  `gh pr create --label S-hold`.
+- **Take it off** only on the maintainer's word: by hand on the pull request's page, or by the coordinator once the
+  maintainer approves that lift in the coordinator's own session (below). The check re-runs with no new commit.
+  Auto-merge that is on stays on through the hold, so the pull request merges the moment the label comes off.
+- **The guard** in `guards/merges.py` gives a session the reason, and it is the only thing that stops a session taking the
+  label off: every agent uses the maintainer's token, so GitHub cannot tell them apart. It reads shell commands, so it
+  does not see a script that calls the API itself.
+- **The approval** is the maintainer's message in the coordinator's session. The coordinator (no `agent_type` or
+  `agent_id`) may run `gh pr|issue edit <N> --remove-label S-hold` when the session's transcript (`transcript_path`)
+  holds, from the last 24 hours, a message the maintainer typed that names N with lift, remove, approve, land, merge
+  or yes in the same sentence, or a plain yes of at most 20 words, with no digit, to the coordinator's last message
+  when that message named N and the hold. Only a `user` entry whose `origin` kind is `human`, not `isMeta`, not a
+  sidechain and not a tool result counts: a prompt tether submits (origin kind `plugin`), agent reports and monitor
+  events (`task-notification`), peers, hook output and tool results do not. Pasted blocks (`<pasted_content>`), `>`
+  lines, fenced code and quoted text are dropped first; a question, a negation or a condition (if, once, after,
+  until) does not approve. Each approval lifts once: `scratch/hold-lifts.log` gets the pull request, the approving
+  message's timestamp (never its text) and the session, and a spent timestamp is refused. Name the number, not a
+  branch. Task agents, the API, `gh label` and merges stay refused. No session writes a transcript (`[protect]` for
+  Edit and Write; a redirect, `tee`, `sed -i`, `Set-Content` or a copy onto one) or spells an entry with a human
+  origin in a shell line or new file text. Code: `gds_tools/hold_approval.py`.
+- **While it waits**, its agent merges `main` only when the pull request is DIRTY at report time; the coordinator
+  refreshes it right before it lands ([Landing](landing.md#landing): an agent merged `main` four times into a held
+  pull request, each push restarting CI).
+- **A pull request opened before the check was required** has no run on its head and stays pending: run
+  `gh workflow run hold-sweep.yml` once. It reports the check through the Checks API and does not touch the pull
+  request. A new game runs it once when its ruleset starts requiring `hold`.
+
+Do not put an `if:` or a `paths:` filter on `hold`: a job skipped by `if:` reports success, so a filter on the label's
+name would let any other label replace a failed run. `python/tests/test_hold.py` has a test for each such reason.
+
+- **Approach:** Let the maintainer's approval in the coordinator's own session be what allows a lift, read from the
+  transcript entries the maintainer typed, and fail closed on anything else. **Watch out for:** the first version
+  made lifting wait on a switch the maintainer had to set by hand in `gdstudio.local.toml`, a step the maintainer had
+  not asked for; and tether submits prompts through the same path as typed ones, so only the entry's `origin` kind
+  tells them apart, never its text. **Seen:** gdstudio #1202 then #1244, 2026-11-11 (fix: the switch was removed and
+  `hold_approval.py` reads the transcript; `test_hook_hold_approval.py` covers each kind of text that does not count).

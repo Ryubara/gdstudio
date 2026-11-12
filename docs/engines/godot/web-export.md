@@ -273,6 +273,10 @@ canvas break what passed on a desktop window -->
 <!-- new section: the sections above are each one browser behaviour; nothing held the faults that show only in the
 exported page, not in the editor, a headless import or a desktop run -->
 
+What the exported page itself does before the engine boots, the WebGL context it makes with the attributes Godot asks
+for and the extensions Emscripten enables, and the shader list it links while the engine downloads, is on
+[First-use hitches: the page starts it](first-use-hitches.md#prelink-page) (gdstudio #1214).
+
 - **Approach:** Grep for `class_name <Name>` before choosing one, and export the web build before calling a new script
   class done. **Watch out for:** two scripts that say `class_name NeonSign` print `Parse Error: Class "NeonSign" hides
   a global script class` and the script fails to load only in the web export; the editor, a headless import and the
@@ -305,6 +309,46 @@ exported page, not in the editor, a headless import or a desktop run -->
   **Watch out for:** browsers mask the GPU adapter from the page, and Godot's web build sees only the masked string,
   which does not name the renderer. **Seen:** Deadnight #466, 2026-11-02 (fix: the live 3D menu drops to a still stage
   on a software renderer).
+
+## Skinned meshes on Direct3D 11: the buffer hint {#skin-buffer-hint}
+
+<!-- new section: the sections above are about the page, input and shaders; nothing said what the browser's GL
+backend does with the buffers the engine skins meshes into, which set a skinned body's draw cost (gdstudio #1260) -->
+
+The Compatibility renderer skins a mesh on the GPU, by transform feedback, into a vertex buffer of each skinned
+`MeshInstance3D`'s own, made empty with `GL_DYNAMIC_DRAW` (Godot's `drivers/gles3/storage/mesh_storage.cpp`,
+`_mesh_instance_add_surface`). Chrome, Edge and Firefox on Windows run WebGL on ANGLE's Direct3D 11 backend, which
+treats the hint as a promise ([ANGLE's `Buffer11::supportsDirectBinding`, `BufferD3D::promoteStaticUsage`](https://chromium.googlesource.com/angle/angle/+/refs/heads/main/src/libANGLE/renderer/d3d/BufferD3D.cpp)):
+
+- A buffer made with `DYNAMIC_DRAW` is never bound to a draw. Its attributes are copied into a streaming buffer at
+  every draw, from a copy in system memory, which for a buffer the GPU just wrote is a read back from the GPU.
+- After 3 times the buffer's size has been copied with no write in between, ANGLE turns it into a static buffer for
+  good and binds it directly. Every write (the skinning, each frame) resets the count, so a body that animates every
+  frame never gets there; a body drawn for 3 frames or more with its pose held (frozen, or its animation paused) does,
+  at once, and stays fast.
+
+So a skinned body's cost depends on its past. In `tools/bench/mannequin_draw_bench.tscn` (3D Third Person, an RTX 5080,
+16 walking bodies) a body cost 0.09 to 0.15 ms a frame with its buffer streamed and 0.05 to 0.09 bound, at 10 to 80 %
+processor load; under heavier load the streamed one read 0.2 to 0.45 ms, at random per buffer and page, since which
+buffers had once been held still differed from page to page
+([the bench's numbers](../../tools/blender/prototype-mannequins.md#browser-cost)). The Quaternius male of the same
+bench read 0.08 to 0.12 bound and 0.09 to 0.13 streamed, with worst rounds to 0.32.
+
+`SkinBuffers` (`addons/gds_game/skin_buffers/`) fixes it from the page: with the `gds_game` editor plugin on, a web
+export writes a script first in `index.html`'s head that makes an array buffer created empty with `DYNAMIC_DRAW` with
+`STATIC_DRAW` instead, on a Direct3D renderer only. The engine makes only its skinned and blend shape outputs and one
+small 2D buffer that way; the hint is a hint in GL, so the engine writes the buffer as before and ANGLE binds it.
+`window.gdsSkinBuffers` counts the buffers changed and `window.gdsSkinBuffersOff = true`, set before the engine boots,
+turns it off for a measurement (`mannequin_draw_bench.py --dynamic-skin`).
+
+- **Approach:** When a browser cost is bimodal (a cell reads its normal cost or two to four times it, and stays so for
+  whole rounds or the whole page), keep each round's numbers in order and look for a warm-up that flips once, then read
+  the GL backend's source for a usage counter (ANGLE's `D3DBufferUsage`, `mUnmodifiedDataUse`). **Watch out for:** the
+  slow pages were read as noise and then as the machine's load; a frozen-body cell earlier in the bench's round had
+  held every near body still, promoting those buffers, so only the far levels' own buffers (and the bench's
+  rebuilt bodies, never frozen) stayed streamed, and a page with no frozen cell read everything slower and looked like
+  a busy machine. **Seen:** gdstudio #1260, 2026-11-11 (fix: `SkinBuffers`; ten page loads of ten at 0.05 to 0.09 ms a
+  body at every level).
 
 ## The live build {#live-build}
 

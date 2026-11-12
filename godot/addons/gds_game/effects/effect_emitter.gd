@@ -77,14 +77,19 @@ const TOUR_FACINGS: Array[Vector3] = [
 ## the specks and the meshes of `warm_up_groups` inside it, and once more outside every probe, so
 ## walking into a room with its own probe and the first shot there build nothing (about 25 frames
 ## a probe; in the web build entering such a room was a 120 to 160 ms frame and its first shot 64
-## to 87 ms). Off: only what the camera sees at the start.
+## to 87 ms). Each other view of the world (`other_views`, a live minimap) is toured too. Off: only
+## what the camera sees at the start, and each other view once where the camera stands.
 @export var warm_up_every_probe := true
 ## Groups whose nodes' meshes the warm-up draws inside every probe, as specks of their materials
 ## (the characters, the weapons they carry): a body that walks under a probe is drawn with another
 ## program there.
 @export var warm_up_groups: Array[StringName] = []
 ## Effects to warm up besides those the level's weapons and impact surfaces register themselves.
-@export var warm_up: Array[EffectDef] = []
+## Held as `Resource` with the `EffectDef` hint (the inspector offers only `EffectDef`s): an
+## exported `Array[EffectDef]` in a script that also casts to its own class (`find`) left GdUnit4's
+## and the autoloads' scripts in use at exit under Godot 4.7.2
+## (docs/engines/godot/test-exit-leaks.md).
+@export_custom(PROPERTY_HINT_TYPE_STRING, "24/17:EffectDef") var warm_up: Array[Resource] = []
 ## Materials the warm-up draws once on a speck of a quad, besides those registered with
 ## `warm_material()` (the impacts' marks): anything a shot makes that is not an effect.
 @export var warm_up_materials: Array[Material] = []
@@ -134,8 +139,8 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	for def in warm_up:
-		if def != null:
-			warm(def)
+		if def is EffectDef:
+			warm(def as EffectDef)
 	for material in warm_up_materials:
 		warm_material(material)
 	_warm_routine()
@@ -332,8 +337,11 @@ func _warm_routine() -> void:
 		for _frame in _start_probes(camera, probes, begun):
 			await get_tree().process_frame
 		await _draw_warm(warm_slots, camera.global_transform)
+		# Without the probe tour the other views (a live minimap) are still drawn, where the camera is.
+		var toured: Array[ReflectionProbe] = []
 		if warm_up_every_probe:
-			await _tour_probes(warm_slots, probes, begun, _group_materials())
+			toured = probes
+		await _tour_probes(warm_slots, toured, begun, _group_materials(), camera)
 	_warm_queue.clear()
 	_warm_materials.clear()
 	_warming = false
@@ -376,45 +384,99 @@ func _draw_warm(
 # specks there, with one of each of `more` (the bodies that walk in). Even a probe the camera saw is
 # visited: what is drawn inside it is also under the probe around it (two probes are another
 # program). Without it walking into a room with its own probe built the character's programs, and
-# the first shot there the effects' and the mark's (kit #981).
+# the first shot there the effects' and the mark's (kit #981). It goes round once for the level's
+# camera and once more for each other view of the world (`other_views`, a live minimap): a view with
+# an environment of its own draws everything with other programs (no sky: no radiance map).
 func _tour_probes(
 	warm_slots: Array[EffectSlot],
 	probes: Array[ReflectionProbe],
 	begun: Array[ReflectionProbe],
-	more: Array[Material]
+	more: Array[Material],
+	camera: Camera3D
 ) -> void:
-	if probes.is_empty():
-		return
+	var looks: Array[Camera3D] = []
+	if not probes.is_empty():
+		looks.append(camera)
+	looks.append_array(other_views())
+	for look in looks:
+		var view := _tour_view(look)
+		var eye := view.get_child(0) as Camera3D
+		add_child(view)
+		eye.make_current()
+		var places: Array[Transform3D] = []
+		if look != camera:
+			# First where the level's camera stands, as the level's own warm-up drew: an effect away
+			# from every lamp, under the probe there (without it the minimap's first impact out in
+			# the open still linked its sparks, mark and flash, 2 to 3 programs).
+			places.append(camera.global_transform)
+		for probe in probes:
+			places.append(Transform3D(Basis(), probe.global_position))
+		for place in places:
+			eye.global_transform = Transform3D(Basis(), place.origin)
+			for _frame in _start_probes(eye, probes, begun):
+				await get_tree().process_frame
+			# A look round first: the level's surfaces there are drawn with this view's programs,
+			# and a light of the draw before has gone when the effects are drawn without lights.
+			for facing in TOUR_FACINGS:
+				var up := Vector3.BACK if absf(facing.y) > 0.5 else Vector3.UP
+				eye.global_basis = Basis.looking_at(facing, up)
+				await get_tree().process_frame
+			eye.global_basis = place.basis
+			await _draw_warm(warm_slots, eye.global_transform, more)
+		# And once outside every probe, above them all: a part of the level no probe reaches draws its
+		# effects without one, and so, now and then, did a shot in the room (one 26 to 45 ms
+		# program).
+		if not probes.is_empty():
+			eye.global_transform = Transform3D(Basis(), _above_probes(probes))
+			await _draw_warm(warm_slots, eye.global_transform, more)
+		view.queue_free()
+
+
+## The cameras of the other views that draw this world (a live minimap's `SubViewport`) with an
+## environment, attributes or a viewport of their own: the warm-up draws everything once more as
+## each of them draws it, since the first shot shows there too (in the web build the minimap's
+## view of the first flash and impact linked 4 to 7 programs, 125 to 160 ms, gdstudio #1297).
+func other_views() -> Array[Camera3D]:
+	var cameras: Array[Camera3D] = []
+	var world := get_viewport().find_world_3d()
+	var main := get_viewport().get_camera_3d()
+	for node in get_tree().root.find_children("*", "SubViewport", true, false):
+		var view := node as SubViewport
+		if view.disable_3d or view.get_parent() == self or view.find_world_3d() != world:
+			continue
+		var look := view.get_camera_3d()
+		if look == null or look == main or not look.is_inside_tree():
+			continue
+		if view.render_target_update_mode == SubViewport.UPDATE_DISABLED:
+			continue
+		cameras.append(look)
+	return cameras
+
+
+# A small view of this world that nobody sees, drawn as `look`'s viewport draws (its anti-aliasing,
+# its shadow atlas, its debug draw) and with `look`'s environment, attributes and layers, and a
+# camera of its own as its first child.
+func _tour_view(look: Camera3D) -> SubViewport:
+	var source := look.get_viewport()
 	var view := SubViewport.new()
 	view.name = &"WarmTour"
 	view.size = TOUR_VIEW_SIZE
 	view.own_world_3d = false
-	view.msaa_3d = get_viewport().msaa_3d
-	view.positional_shadow_atlas_size = get_viewport().positional_shadow_atlas_size
+	view.world_3d = source.find_world_3d()
+	view.msaa_3d = source.msaa_3d
+	view.positional_shadow_atlas_size = source.positional_shadow_atlas_size
+	view.debug_draw = source.debug_draw
 	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	var eye := Camera3D.new()
 	eye.fov = TOUR_FOV
+	eye.environment = look.environment
+	eye.attributes = look.attributes
+	eye.cull_mask = look.cull_mask
 	# Moved by hand from place to place: an interpolated camera reports (and culls with) where it was
 	# the frame before, so it saw no probe at its first place.
 	eye.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	view.add_child(eye)
-	add_child(view)
-	eye.make_current()
-	for probe in probes:
-		eye.global_transform = Transform3D(Basis(), probe.global_position)
-		for _frame in _start_probes(eye, probes, begun):
-			await get_tree().process_frame
-		for facing in TOUR_FACINGS:
-			var up := Vector3.BACK if absf(facing.y) > 0.5 else Vector3.UP
-			eye.global_basis = Basis.looking_at(facing, up)
-			await get_tree().process_frame
-		eye.global_basis = Basis()
-		await _draw_warm(warm_slots, eye.global_transform, more)
-	# And once outside every probe, above them all: a part of the level no probe reaches draws its
-	# effects without one, and so, now and then, did a shot in the room (one 26 to 45 ms program).
-	eye.global_transform = Transform3D(Basis(), _above_probes(probes))
-	await _draw_warm(warm_slots, eye.global_transform, more)
-	view.queue_free()
+	return view
 
 
 # A place above every probe's box, in none of them.
