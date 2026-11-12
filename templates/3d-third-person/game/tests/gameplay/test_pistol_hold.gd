@@ -51,10 +51,11 @@ const LIVE_NEAR := 0.2
 ## measured (kit #1079).
 const TRIGGER_WAY_STEPS := 20
 ## How deep the trigger finger may graze the trigger guard between its two places, in metres: as it
-## swings in, the last bone's tip rubs the inner face of the guard's front strut, 1.4 mm on the
-## female body and 2.2 mm on the male (kit #1273; a way that clears it is kit #1272). At its two
-## places and against the left hand the limit is the usual one.
-const TRIGGER_GUARD_GRAZE := 0.003
+## swings in on the male body, the last bone's tip rubs the inner face of the guard's front strut,
+## 1.9 mm at the deepest hundredth of the way (kit #1273, on kit #1213's seat; the female body's
+## way no longer touches it; a way that clears it is kit #1272). At its two places and against the
+## left hand the limit is the usual one.
+const TRIGGER_GUARD_GRAZE := 0.0025
 ## The equal parts of the right thumb's way between the frame and the left thumb's root that are
 ## measured (kit #1084): the plan's `on` from `SupportHandPlan.ARM_UNTIL` to `WAY_FROM`.
 const THUMB_WAY_STEPS := 40

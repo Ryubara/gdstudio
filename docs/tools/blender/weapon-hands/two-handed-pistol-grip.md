@@ -60,13 +60,15 @@ own, and both hands, the rack's hand on the slide among them, were solved again 
 
 What the rig cannot do, and where it differs from the taught grip:
 
-- **The trigger finger grazes the inside of the guard's front strut as it swings in** (on the prototype bodies, swept
-  at every hundredth of its way: 1.4 mm on the female body and 2.2 mm on the male, the last bone's tip on the strut's
-  inner face near its lower corner, from 0.69 to 0.81 of the way; the rest of the way stays within 1.7 mm). Half-way the
-  last bone is drawn 34 mm out to the gun's right side, clear of the guard. On the earlier bodies the solved way crossed
-  the strut whole (3.7 mm, the most a point can read inside that 8 mm bar), and moving the strut 6, 12 and 18 mm
-  forward did not clear it (kit #1212); the guard is unchanged. It no longer touches the left hand (10 mm at the
-  nearest, female; 18 mm, male).
+- **On the male body the trigger finger grazes the inside of the guard's front strut as it swings in** (on kit
+  #1213's seat, swept at every hundredth of its way: 1.9 mm deep at 0.68, over 1 mm from 0.66 to 0.80, the last
+  bone's tip on the strut's inner face near its lower corner). On the female body the way no longer touches the
+  guard (0.1 mm at most; 0.75 mm on the trigger itself, at the way's end). Half-way the finger is drawn out to the
+  gun's right side, its middle bone 7 mm (female) and 16 mm (male) off the frame. Against the left hand it is never
+  more than 0.4 mm in (male, at the frame end of the way). On kit #1001's seat the graze was 1.4 mm (female) and
+  2.2 mm (male) from 0.69 to 0.81 of the way (kit #1273); on the earlier bodies the solved way crossed the strut whole
+  (3.7 mm, the most a point can read inside that 8 mm bar), and moving the strut 6, 12 and 18 mm forward did not
+  clear it (kit #1212); the guard is unchanged.
 
 **Poses set by hand** (kit #1084, on the prototype bodies of kit #1187). Where the solver's search ended in a pose
 that passed no test or did not read as a hand, the finger's angles are set by hand in
@@ -129,8 +131,8 @@ A solved pose is clear where it holds; the blend the game plays between two of t
   `HandPoseModifier.second_way`). The straight blend from along the frame to the trigger left the guard on the gun's
   far side: 7.3 mm through the left thumb's tip and 7.0 mm through the gun. The pose between (the finger lowered and
   drawn out to its own side, nearly straight) is solved as the nearest to both ends that keeps the finger out of the
-  left hand at every twentieth (10 mm at the nearest now) and as little in the gun as it can be (2.2 mm on the
-  strut's inner face, above).
+  left hand at every twentieth (0.4 mm in at the most now) and as little in the gun as it can be (1.9 mm on the
+  strut's inner face on the male body, above).
 - **The right thumb makes room while the left hand waits** (kit #1084, `SupportHandPlan.room`). The left thumb's
   root takes the right thumb's place on the frame, so the right thumb is lifted onto it; blended while the left hand
   came in, it was 16 mm inside that hand. The plan now has a step for it: the hold's arm takes the left hand to the
@@ -357,7 +359,8 @@ player's camera (`*_carry_*.png`).
   the trigger finger read 3.6 mm into the guard's 8 mm strut, taken for a finger too thick for the opening; with the
   strut 6 to 18 mm further forward it read the same, in the strut's middle. **Seen:** gdstudio #1079 and #1212,
   2026-11-11 (the guard left as it was; the way is kit #1272); gdstudio #1273, 2026-11-12 (the prototype bodies'
-  hold: 1.4 and 2.2 mm on the strut's inner face, a graze; the test's allowance cut to 3 mm).
+  hold: 1.4 and 2.2 mm on the strut's inner face, a graze; on kit #1213's seat 1.9 mm, male only; the test's
+  allowance cut to 2.5 mm).
 - **Approach:** Measure the other arm's reach on each mannequin's own skeleton, in the reload clip's first pose as
   well as the aim poses, after moving a hand's place. **Watch out for:** the solver's merged rig is the female
   skeleton with both skins, so the male arm was never measured: the canted place, 4 cm higher, was 6.5 mm out of
