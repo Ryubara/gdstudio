@@ -146,7 +146,9 @@ class Solver:
                 bend_dir = axis_angle(aim_u, sign * arm.get("twist", 0.0)) @ square_to(base @ Z, aim_u, base @ Y)
                 bend = math.radians(arm.get("bend", 0.0))
                 aim_f = math.cos(bend) * aim_u + math.sin(bend) * bend_dir
-                neutral = square_to(bend_dir, aim_f, fallback=-aim_u)
+                # The thumb's way with no pronation: square to the forearm in the arm's own plane. Written out,
+                # not `square_to(bend_dir, aim_f)`, which turns round as the elbow passes a right angle.
+                neutral = math.cos(bend) * bend_dir - math.sin(bend) * aim_u
                 pronate = arm.get("pronate", 0.0)
                 thumb_f = axis_angle(aim_f, sign * 0.5 * pronate) @ neutral
                 thumb = axis_angle(aim_f, sign * pronate) @ neutral

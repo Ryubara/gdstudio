@@ -18,11 +18,22 @@
 ## `CharacterAnimation` export the variants are played through (default `idle_clip`).
 ## `OWN_ONLY=<clip>` (`Idle_A`, or `Library`) films part 2 for that one clip and nothing else:
 ## nine seconds, short enough for a GIF.
+## A gait is filmed moving (kit #1155): `OWN_HOLD=<action>` is held with `move_forward` (`walk`
+## for the walk, `sprint` for the sprint, nothing for the jog) and `OWN_MOVE=<seconds>` is how
+## long it moves for (default 1.5; the walk wants 4; a run reaches the far wall, so the jog
+## takes 2.2 and the sprint 1.4 from 5 m ahead), so the loop is seen over the ground at the
+## game's speed, with its start and its stop either side. `OWN_AHEAD=<metres>` starts each turn
+## that far ahead of the spawn point: the spawn pad ends 4.6 m ahead, and a body that steps off
+## it plays its fall, which is not the clip under review.
+## `OWN_BODY=male` puts the enemies' body in the row of part 1 (default `female`, the player's:
+## `CharacterBodies.BY_NAME`); part 2 is always the player.
+## `OWN_BEFORE=<a review file's path on this machine>` adds an older build's variants to the row
+## as `before/<clip>`, and `OWN_ROW=<clip>,<clip>` keeps only the named clips in the row, in that
+## order (`before/Walk_B,Walk_B,Library`): a change to a clip beside what it was and the library's.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
 const REVIEW := "res://assets/animation/own/review/%s.glb"
-const MODEL := "res://assets/characters/mannequin/mannequin_female.glb"
 ## Metres between two bodies of the row, and where the row's camera stands from its middle (the
 ## bodies face +Z; the game's camera looks at a character from behind and above).
 const SPACING := 1.1
@@ -37,8 +48,14 @@ const FRONT := 2.5
 var _clips: Array[StringName] = []
 var _library: AnimationLibrary
 var _slot := &"idle_clip"
+var _hold := &""
+var _move := WALK
+var _ahead := 0.0
+var _way := Vector3.ZERO
+var _from := Vector3.ZERO
 var _row: Node3D
 var _row_camera: Camera3D
+var _body := CharacterBodies.FEMALE
 var _label: Label
 var _clock := 0.0
 var _part := 0
@@ -51,6 +68,11 @@ func _ready() -> void:
 	var type := OS.get_environment("OWN_TYPE")
 	var slot := OS.get_environment("OWN_SLOT")
 	_slot = StringName(slot) if slot != "" else _slot
+	_hold = StringName(OS.get_environment("OWN_HOLD"))
+	var move := OS.get_environment("OWN_MOVE")
+	_move = move.to_float() if move != "" else _move
+	_ahead = OS.get_environment("OWN_AHEAD").to_float()
+	_body = CharacterBodies.BY_NAME.get(OS.get_environment("OWN_BODY"), _body)
 	_library = _read_review(REVIEW % (type if type != "" else "idle"))
 	for clip in _library.get_animation_list():
 		_clips.append(StringName("review/" + clip))
@@ -58,6 +80,7 @@ func _ready() -> void:
 	var replaced: StringName = _rig.player.get_node("Animation").get(_slot)
 	_clips.append(CharacterClips.stand_in(replaced))
 	_rig.player.get_node("AnimationPlayer").add_animation_library(&"review", _library)
+	_pick_row(OS.get_environment("OWN_BEFORE"), OS.get_environment("OWN_ROW"))
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	_label = Label.new()
@@ -104,23 +127,33 @@ func _film_row() -> void:
 
 # Part 2: the real player, one variant at a time, the same input for each.
 func _film_player() -> void:
-	var length := STAND + WALK + SETTLE + FRONT
+	var length := STAND + _move + SETTLE + FRONT
 	var turn := int(_clock / length)
 	if turn >= _clips.size():
 		_finish()
 		return
 	if turn != _turn:
 		_turn = turn
-		if turn > 0:
-			_rig.player.respawn()
+		# Every turn starts on one place, facing one way, read once: `respawn()` picks a spawn
+		# point and a spot on it at random, and later turns begin with the camera in front.
+		if _way == Vector3.ZERO:
+			var way := -_rig.camera_rig.camera.global_basis.z
+			_way = Vector3(way.x, 0.0, way.z).normalized()
+			_from = _rig.player.global_position + _way * _ahead
+		if turn > 0 or _ahead > 0.0:
+			_rig.player.teleport(_from, atan2(_way.x, _way.z))
 		_rig.player.get_node("Animation").set(_slot, _clips[turn])
 		_label.text = _name_of(_clips[turn])
 	var at := fmod(_clock, length)
-	if at >= STAND and at < STAND + WALK:
-		Input.action_press(&"move_forward")
-	else:
-		Input.action_release(&"move_forward")
-	_face(180.0 if at >= STAND + WALK + SETTLE else 0.0)
+	var moving := at >= STAND and at < STAND + _move
+	for action: StringName in [&"move_forward", _hold]:
+		if action == &"":
+			continue
+		if moving:
+			Input.action_press(action)
+		else:
+			Input.action_release(action)
+	_face(180.0 if at >= STAND + _move + SETTLE else 0.0)
 
 
 func _build_row() -> void:
@@ -129,7 +162,7 @@ func _build_row() -> void:
 	add_child(_row)
 	_row.global_transform = _rig.player.global_transform
 	for i in _clips.size():
-		var body: Node3D = (load(MODEL) as PackedScene).instantiate()
+		var body: Node3D = (load(_body) as PackedScene).instantiate()
 		_row.add_child(body)
 		body.position = Vector3((i - 0.5 * (_clips.size() - 1)) * -SPACING, 0, 0)
 		var player := AnimationPlayer.new()
@@ -142,7 +175,7 @@ func _build_row() -> void:
 		var name_plate := Label3D.new()
 		name_plate.text = _name_of(_clips[i])
 		name_plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		name_plate.font_size = 48
+		name_plate.font_size = 48 if _clips.size() > 3 else 34
 		name_plate.pixel_size = 0.004
 		name_plate.no_depth_test = true
 		name_plate.position = body.position + Vector3(0, 2.0, 0)
@@ -154,8 +187,29 @@ func _build_row() -> void:
 	_clock = 0.0
 
 
+# Adds an older review file's clips as `before/<clip>` and keeps the row to the clips asked for.
+func _pick_row(before: String, row: String) -> void:
+	if before != "":
+		var old := _read_review(before)
+		_rig.player.get_node("AnimationPlayer").add_animation_library(&"before", old)
+		for clip in old.get_animation_list():
+			_clips.append(StringName("before/" + clip))
+	if row == "":
+		return
+	var library := _clips[-1] if before == "" else _clips[_library.get_animation_list().size()]
+	var picked: Array[StringName] = []
+	for wanted in row.split(","):
+		var clip := StringName(wanted if wanted.begins_with("before/") else "review/" + wanted)
+		clip = library if wanted == "Library" else clip
+		assert(_clips.has(clip), "no clip %s for the row" % wanted)
+		picked.append(clip)
+	_clips = picked
+
+
 func _name_of(clip: StringName) -> String:
 	var text := String(clip)
+	if text.begins_with("before/"):
+		return "before: %s" % text.trim_prefix("before/")
 	return text.trim_prefix("review/") if text.begins_with("review/") else "library %s" % text
 
 
@@ -191,6 +245,8 @@ func _face(yaw: float) -> void:
 func _finish() -> void:
 	set_physics_process(false)
 	Input.action_release(&"move_forward")
+	if _hold != &"":
+		Input.action_release(_hold)
 	AudioSettings.stop_players(get_tree().root)
 	for _frame in 8:
 		await get_tree().process_frame

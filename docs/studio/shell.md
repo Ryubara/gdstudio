@@ -173,4 +173,5 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   the 130-byte pointer, and Godot keeps a failed import (`valid=false`) after the real file is back until the cache
   is cleared. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound); Deadnight #1282, 2026-11-05 (a model;
   [Build scripts](../tools/blender/build-scripts.md#rebuilding)); gdstudio #1191, 2026-11-11 (a clip file in a probe
-  game) and 2026-11-12 (two aim files in a copied game, cache kept: the body fell back and the `Before:` was dropped).
+  game) and 2026-11-12 (two aim files in a copied game, cache kept: the body fell back and the `Before:` was dropped);
+  gdstudio #1275, 2026-11-11 (a merge's clip files; `git checkout --ours -- <file>` writes the file).

@@ -55,7 +55,7 @@ What the table says:
   speed ([replacing](own-animation.md#replacing)).
 - **The jog and the sprint are bounds, not runs.** The jog is in the air for 64 % of its cycle with the pelvis
   going 245 mm up and down, at 129 steps a minute; a walking person's centre of mass rises 5 cm
-  ([research](own-animation.md#research-weight)). The sprint steps faster, but its foot lands still
+  ([research](animation-research.md#research-weight)). The sprint steps faster, but its foot lands still
   travelling forward and then sweeps at 8.9 m/s.
 - **The run's arm swing is the chest turning.** The shoulders turn 76 degrees in the jog while the upper arm moves
   26 degrees in its socket and the wrist not at all, and the neck and the head turn it all back: the head's facing
