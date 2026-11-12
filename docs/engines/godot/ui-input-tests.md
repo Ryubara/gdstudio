@@ -38,6 +38,13 @@ covered it -->
   lands between ticks on two consecutive ticks, and pairing it with an `_unhandled_input` flag counted the same press
   again, so one key press gave two shoulder swaps. **Seen:** Deadnight, 2026-11-01 (fix: the player's own edge, the
   same code headless, where GdUnit4 carries actions but no mouse motion).
+- **Approach:** Count a press from the held level the body already steps (`fire` down now, up on the last step's
+  command, `Character.fire_press`), and take the controller's press flag only for a press let go between two commands;
+  test a one-frame click and a tap under the shot interval with `InputSim`, counting shots. **Watch out for:** with
+  `InputSim` events and `PlayerInput.sample()`, `is_action_pressed(&"fire")` was true a tick before
+  `is_action_just_pressed(&"fire")`, so an automatic weapon fired on the held level and its late press flag buffered a
+  second shot: one click, two shots. **Seen:** gdstudio #1335, 2026-11-12 (tests `test_fire_count.gd`,
+  `test_net_fire_count.gd`).
 - **Approach:** Read each edge source once per tick of a test loop, on every tick, and run a new edge action's row
   through two bindings in a row before trusting it. **Watch out for:** the controller keeps the last state of each
   button (`_edge`, `_was_down`), so a test that called `command()` a second time to learn the facing took the press

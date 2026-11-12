@@ -130,7 +130,9 @@ the spread's place for `restore()`.
 - **Approach:** In a test that makes the player shoot through its input, hold `aim` until the arm is up (about 20
   ticks) and then press `fire`. **Watch out for:** a shot needs `aim_amount` to reach `shot_aim_amount` within
   `fire_buffer_time` of the press, so a tap of fire from a standing player fired nothing and the section's "one shot
-  is heard" test saw no noise. **Seen:** kit #969, 2026-11-11 (`test_ai_section.gd`).
+  is heard" test saw no noise. **Seen:** kit #969, 2026-11-11 (`test_ai_section.gd`); since gdstudio #1335
+  (2026-11-12) a buffered press keeps the arm rising, so a one-frame tap from a standing player fires once
+  (`test_fire_count.gd`), and holding `aim` first is still the quicker test.
 - **Approach:** In a test that steps commands by hand, clear a press (`fire_pressed = false`) before the same command
   is run again, assert that the body still stands on the floor before the part that matters, and compare a shot's
   direction with a tolerance. **Watch out for:** `CommandDriver.run` clears the presses of its own copy, so the next
