@@ -27,8 +27,9 @@ func _init(on: Skeleton3D, parts: Array[StringName]) -> void:
 	var found: Dictionary[StringName, Dictionary] = {}
 	for part in parts:
 		found[part] = {"points": [], "bones": [], "weights": []}
-	for node in skeleton.find_children("*", "MeshInstance3D", true, false):
-		var instance := node as MeshInstance3D
+	# the meshes drawn up close: a prototype body's farther levels of detail lie inside the nearest
+	# one, and their hand is a mitten whose thumb no clip moves
+	for instance in CharacterBodies.near_meshes(skeleton):
 		if instance.skin == null or instance.mesh == null:
 			continue
 		var bone_of := _bind_bones(instance.skin)

@@ -66,11 +66,12 @@ const LIMITS_BONE_FLOOR := {
 const LIMITS_WRIST := {"form_female": 0.11, "form_male": 0.11, "female": 0.10, "male": 0.10}
 ## The skin against the floor while lying and crawling (kit #1286, measured on each body's own
 ## skinned mesh by `BodyMeasure`): the deepest any part may go under it (m; the belly presses a
-## few millimetres into it, the Quaternius female's shoulder 1.4 cm in the crawl), and the parts
+## few millimetres into it, the Quaternius female's shoulder 1.4 cm in the crawl and the
+## Quaternius male's toes 7 mm, which kit #1090 did not hold), and the parts
 ## that carry the body, which come down to within `SKIN_ON` of it: the forearms, the knees (the
 ## calves' skin) and the feet lying still, the forearms and the feet crawling (the crawl pushes
 ## on the foot, never the knee).
-const SKIN_UNDER := {"form_female": 0.006, "form_male": 0.006, "female": 0.015, "male": 0.006}
+const SKIN_UNDER := {"form_female": 0.006, "form_male": 0.006, "female": 0.015, "male": 0.01}
 const SKIN_ON := 0.01
 const CARRIERS := {
 	&"prone/Prone_Idle": ["lowerarm_l", "lowerarm_r", "calf_l", "calf_r", "foot_l", "foot_r"],
