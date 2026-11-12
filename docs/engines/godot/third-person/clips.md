@@ -42,6 +42,14 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   widest on the landing frame, which is true of a walk and not of a run; a footstep count asserted for the
   library's walk (90 steps a minute) is wrong for ours (138). **Seen:** gdstudio #1155,
   2026-11-11 (`tests/gameplay/test_own_clips.gd`, `test_footsteps.gd`).
+- **Approach:** After a gait changes, run every suite that measures a pose over the gait, not only the gait's
+  own: an action that fades in over it (the vault, `test_vault_contacts.gd`), the carried weapon
+  (`test_pistol_clearance.gd`) and a shot at a running body (`test_net_ai_rewind.gd`). **Watch out for:** the
+  ground blend space plays its loops out of step (`sync` advances them by the same time, not the same phase), so
+  between the walk's and the jog's speeds a foot is a mix of two strides: with our own gaits the ball of a foot
+  was 20 mm under the floor as a vault began and 43 mm under half way into its 0.1 s fade, where the library's
+  shorter strides stayed inside the test's 20 mm. The vault's floor check counts from the end of the fade; the
+  phases are kit #1158's. **Seen:** gdstudio #1155, 2026-11-11.
 - **Approach:** When a `CharacterClips` constant moves to another library, grep for every table that lists libraries
   by name (`grep -rn LIBRARIES`, `universal/ual1`: `tests/fixtures/hold_stage.gd`, `pistol_clearance.gd`,
   `tools/ragdoll/measure_joints.gd`) and add the library, then run the weapon and hold suites (`test_weapon*.gd`,
