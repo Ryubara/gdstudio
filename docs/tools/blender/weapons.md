@@ -243,8 +243,11 @@ shooting page once that work lands).
   the right hand's bone is where the seat carries the pistol along the look and the left hand's bone on its marker,
   and `WeaponHold` closes the fingers as it does standing; the left arm keeps the clip's elbow
   (`support_keep_elbow`, from `CharacterAnimation.prone_hold_share()`). Within the 2 mm and 5 mm on both
-  mannequins in the three clips (`tests/gameplay/test_prone_aim_hold.gd`). After a change of the seat or the
-  marker, run the dump and `assets/animation/prone/build_prone_aim_clips.py` again.
+  mannequins in the three clips (`tests/gameplay/test_prone_aim_hold.gd`). The clips are solved a body, each
+  with its own `HoldFit` (`prone_aim.glb` on `form_female`, `prone_aim_male.glb` on `form_male`): at most 1.1 and
+  1.2 mm in and 2.8 and 1.7 mm off, the left hand 0.0 mm from its marker and each hand's skin over the floor.
+  After a change of the seat, the marker or a hand pose, run the dump and
+  `assets/animation/prone/build_prone_aim_clips.py` again, once a body.
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
   search over its place and turn, scored by the closed fingers and a thumb root high under the tang), then each finger
   on a grid of joint angles followed by a local search (contact of its three parts, no more than the allowed depth, and

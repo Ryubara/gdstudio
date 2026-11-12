@@ -9,8 +9,9 @@
 ## the weapon). `PRONE_AIM_MODEL=male` swaps the mannequin, and `PRONE_AIM_STANDING_VIEW=1` aims
 ## with the camera's standing aim view (`PlayerCamera.prone_aim_view` off), to compare.
 ## `PRONE_AIM_TOUR=reload` plays a shot and a reload lying down instead, and `PRONE_AIM_TOUR=looks`
-## only the looks, held: level, up to the limit and down (with `PRONE_AIM_FULL_UP=1` the look-up
-## limit is opened to the up clip's own 20 degrees, to see that clip whole).
+## only the looks, held: level, up to the limit and down to the limit (with
+## `PRONE_AIM_FULL_UP=1` the look-up limit is opened to the up clip's own 20 degrees, to see
+## that clip whole).
 ##
 ## `gds capture frames --project game --scene res://tools/capture/prone_aim_tour.tscn --seconds 14`
 ## It prints a `STEP` line as each step starts, with the frame, to find a moment's frame. It
@@ -83,7 +84,7 @@ const LOOKS_TOUR: Array[Dictionary] = [
 	{"do": "wait", "actions": [&"aim"], "seconds": 1.2},
 	{"do": "look", "yaw": 0.0, "pitch": -20.0, "actions": [&"aim"]},
 	{"do": "wait", "actions": [&"aim"], "seconds": 0.8},
-	{"do": "look", "yaw": 0.0, "pitch": 25.0, "actions": [&"aim"]},
+	{"do": "look", "yaw": 0.0, "pitch": 40.0, "actions": [&"aim"]},
 	{"do": "wait", "actions": [&"aim"], "seconds": 0.8},
 	{"do": "look", "yaw": 0.0, "pitch": 0.0, "actions": [&"aim"]},
 	{"do": "wait", "actions": [&"aim"], "seconds": 0.5},

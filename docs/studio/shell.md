@@ -166,4 +166,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size before using it.
   **Watch out for:** `git show <rev>:<file>` prints the LFS pointer, about 130 bytes of text, so a "before" sound
   decoded as nothing and a model imported as a broken file. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound
-  clip); Deadnight #1282, 2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding)).
+  clip); Deadnight #1282, 2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding));
+  gdstudio #1111 (PR #1191), 2026-11-11 (a clip file put in a probe game: the failed import also wrote
+  `valid=false` into the game's `.import`, so the right file failed to load too until the `.import` was copied
+  back).

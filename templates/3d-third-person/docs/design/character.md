@@ -324,7 +324,11 @@ Aiming lying down plays the held weapon's prone aim clips inside the prone state
 clips are made for (25 and 20 degrees; past them the pose stays on the clip). While the body lies, the standing grip
 and aim layers below have no weight. A shot lying down plays no shot clip: it kicks the look the pose is on by the
 Animation's `prone_shot_kick` (7 degrees), which settles over `prone_shot_kick_time` (0.22 s). A weapon whose
-`prone_aim_clip` is empty aims lying down with its standing clips. A reload lying down keeps the prone aim (the
+`prone_aim_clip` is empty aims lying down with its standing clips. Each body plays the aim clips solved on its own
+arms and hands: the scene's `prone_aim` library is `form_female`'s, and the Animation's `prone_aim_libraries` gives
+`form_male` its own file, as `prone_libraries` does for the prone clips. The aim layer stops at the down clip's 25
+degrees lying down (`ProneTuning.aim_limits`), so the pistol never turns into the floor. A reload lying down keeps
+the prone aim (the
 standing reload clip is not played on a lying body; a prone reload clip is kit #1185). The camera frames it with its
 Prone aim group
 (`PlayerCamera`: `prone_aim_view`, `prone_aim_distance` 1.8 m, `prone_aim_ahead` 0.55 m, `prone_aim_rise` 0 m,
@@ -419,7 +423,8 @@ a library (`vault`) and play `vault/Vault_Low`. `tools/capture/vault_study.tscn`
 
 `assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
 `Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above.
-The dressed character's `AnimationPlayer` holds the library as `prone`, and `prone_aim.glb` beside it as `prone_aim`:
+The dressed character's `AnimationPlayer` holds the library as `prone`, and `prone_aim.glb` beside it as `prone_aim`
+(solved on `form_female`; `prone_aim_male.glb` is `form_male`'s):
 three clips that aim the pistol lying down (`Prone_Aim_Neutral`, `Prone_Aim_Up` at 20 degrees, `Prone_Aim_Down` at 25),
 flat behind the pistol with both arms stretched ahead and both hands on it. The crawl covers 0.618 m/s at its own rate
 with its elbows and feet planted, the body lies 1.07 m ahead of

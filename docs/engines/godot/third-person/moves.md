@@ -71,7 +71,12 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   `look_down_limit`: a body flat on the ground cannot point a pistol further down. There is no prone shot clip: a
   shot kicks the look the pose is on (`prone_shot_kick` 7 degrees, settling over `prone_shot_kick_time` 0.22 s), so
   the muzzle jumps at any look. The hold closes the hands as it does standing; its left arm keeps the elbow the clip
-  gives it (`HoldArm.keep_elbow`). A weapon with no prone aim clip aims lying down with its standing clips, as before.
+  gives it (`HoldArm.keep_elbow`). The clips are solved a body, on its own arms and with its own hold:
+  `prone_aim.glb` on `form_female` (the scene's library) and `prone_aim_male.glb` on `form_male`, which
+  `CharacterAnimation.prone_aim_libraries` (the model's scene file to a library with the same clip names) swaps in
+  as `prone_libraries` does for the prone clips. The aim layer stops where the down clip does
+  (`ProneTuning.aim_limits`: `pitch_down` 25), so the look and the shot go on to `look_down_limit` and the pistol
+  stays over the floor. A weapon with no prone aim clip aims lying down with its standing clips, as before.
   A reload lying down keeps the prone aim: the standing reload clip is not played on a lying body (it folded the
   arms under the chest), so until there is a prone reload clip (gdstudio #1185) only the time and the sounds say
   that the magazine is changed.
@@ -119,6 +124,12 @@ of the stance is sent but the command's bit; the clips are cosmetic and played i
   at every camera offset tried; pointing 25 degrees down from planted elbows bent the wrists 94 to 98 degrees.
   With the arms stretched the pistol is 0.3 m past the head and shows beside it. **Seen:** gdstudio #1111,
   2026-11-11 (three poses captured from the player's camera).
+- **Approach:** Give a lying body's aim layer the down limit of its pose (the look the down clip is made for), and
+  measure the muzzle and the grip's foot over the floor at every look to both look limits on the live player.
+  **Watch out for:** with the aim layer's default 45 degrees down, the spine turned the stretched arms on to the 40
+  degree look-down limit and put the muzzle 207 mm and the magazine 183 mm under the floor; the test looked at 0,
+  12 and 25 degrees only, so it passed. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11 (fix: `pitch_down` 25 in
+  `ProneTuning.aim_limits`, and the look-down limit in `test_prone_aim.gd`).
 - **Approach:** Test a framing against what it must show and what it must not sit under: project the shoulders, the
   hands, the head and the muzzle into a 16:9 picture from the camera's own transform and field of view, hold them
   above the HUD's bottom row, and run the same test with the new view switched off to see it fail. **Watch out

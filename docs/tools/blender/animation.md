@@ -282,6 +282,21 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   (`import build_prone_clips`) reuses its rig, solver, keying and export, and a subclass adds what differs; the
   importer's key tolerance moves a pistol at the end of two stretched arms 2 to 4 mm through a breath the build
   holds to 0.5 mm. **Seen:** gdstudio #1111, 2026-11-11 (`build_prone_aim_clips.py`, `test_prone_aim_hold.gd`).
+- **Approach:** Solve a clip that holds a weapon once for every body that plays it, one file a body, with that
+  body's own hold, and measure in the build what the game shows: the hold's wrist turn and finger poses on (dumped
+  from Godot with every bone's rest; fail when Blender's rests differ), the twist bones turned as the game turns
+  them, the lower body read from the clip file the game plays under it. **Watch out for:** one set solved on the
+  Quaternius female left the prototype bodies' left hand 3 to 27 mm off its marker with fingers 3 to 17 mm in the
+  pistol, the elbow moved 58 to 100 mm and the magazine 8 to 26 mm under the floor; the build's skin had open
+  fingers, so its floor numbers were not the game's. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11 (fix:
+  `--body` and `--idle` in `build_prone_aim_clips.py`; 1.2 mm in at most, Godot's skin within 0.1 mm of the build's).
+- **Approach:** When a held pose gets its two sides' own numbers, turn the support side ahead (the shoulder of the
+  hand that reaches round the other), keep the firing arm the straighter one, and read both arms' stretch after
+  every change of the trunk. **Watch out for:** the first uneven prone aim pushed the firing shoulder ahead, which
+  took the support shoulder 4 cm back: the left arm was at 1.09 of its length and the hand 45 mm off the pistol;
+  from above the first try (the pistol 12 mm off the middle, the chest turned 5 degrees) still read as a mirror
+  until the pistol was 35 mm off and the chest turned 8. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11 (the
+  build fails under 30 mm between the left elbow and the right one's reflection).
 - **Approach:** Keep the poses of one blend near each other and a reaching arm short of straight, and test the
   blend between them in the game, not only each clip. **Watch out for:** the game blends bone rotations, not hand
   places: with the up pose 14 cm higher than the level one and the left arm at 0.99 of its length, the blend at 12
