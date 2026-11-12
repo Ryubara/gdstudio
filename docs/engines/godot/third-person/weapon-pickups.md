@@ -101,7 +101,7 @@ are named as such.
   body's own torso triangles on the rest pose, one a `skin_spacing` (3 cm) cell and each ridden by its nearest
   corner's main bone, so the butt comes to the skin of whichever body holds it (kit #1177). The chest stands turned
   `chest_turn` (-30 degrees) from the model's front: `two_hand_stance.gd` takes the clip's own turn of the chest off
-  first, so a walk or a run that swings the shoulders keeps the left shoulder forward, and turns the neck back by
+  first, so a walk or a run that swings the shoulders keeps the left shoulder forward, and turns the head back by
   what it turned the chest, so the head keeps the facing the locomotion clip gives it (kit #1333); while the gun is
   up a chest
   leaning more than `aim_lean_limit` (25 degrees, a crouch's hunch) is raised toward it, so the head is over the
@@ -261,12 +261,14 @@ model). Captures: `tools/capture/rifle_stock.tscn` (both bodies from the right a
   and a slide in that time kept the idle's chest, which read as a pose the switch from the pistol had broken and a
   shot repaired; a mean over a window that is not whole strides moved the pistol's hand 30 mm between two readings.
   **Seen:** gdstudio #1333, 2026-11-12 (fix: no shot clip, no one-shot; readings equal to 0.1 degrees and 1 mm).
-- **Approach:** When a modifier takes a clip's turn off one bone (the chest's swing in a run), give the bones above
-  it the turn back, and measure the head's turn through a whole stride with the weapon against the same stride with
-  empty hands. **Watch out for:** a run counters the shoulders' swing in the neck, so with the chest held at
-  `chest_turn` the head alone swung 109 degrees from side to side at every stride of the rifle run (95 in the
-  sprint) and stood 30 degrees off the view at rest; from straight behind it read as a head craned about. **Seen:**
-  gdstudio #1333, 2026-11-12 (fix: `two_hand_stance.gd` turns `neck_01` back; 0.4 degrees, as unarmed).
+- **Approach:** When a modifier takes a clip's turn off one bone (the chest's swing in a run), give the turn back
+  above it on a bone whose skin is clear of the weapon (the head), measure the head's turn through a whole stride
+  against the same stride with empty hands, and run the hold's own suite after any change to a bone near it.
+  **Watch out for:** a run counters the shoulders' swing in the neck, so with the chest held at `chest_turn` the head
+  swung 109 degrees from side to side at every stride of the rifle run and stood 30 degrees off the view at rest;
+  the first fix turned `neck_01` back, whose skin at the collar then went 12 to 24 mm into the stock in the crouch,
+  and it was pushed with only the new suite run. **Seen:** gdstudio #1333, 2026-11-12 (fix: `two_hand_stance.gd`
+  turns `Head` back; 0.4 degrees, as unarmed; `test_rifle_hold.gd` green).
 - **Approach:** Sample a skin for a run-time contact over its triangles at the spacing you thin to, not at its
   vertices alone, take only the nearest level of detail (`CharacterBodies.near_meshes`), and measure again on every
   body the template wears when the bodies change. **Watch out for:** the push to the skin was built on the
