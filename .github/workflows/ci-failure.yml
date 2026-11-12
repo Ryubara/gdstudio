@@ -1,6 +1,8 @@
 # A red run on the default branch is everyone's problem at once: it opens one P-critical issue naming the workflow and
 # the run, or comments on the open one for that workflow, so a broken default branch is never only a red dot.
 # List the workflows to watch under `workflows:`; they must be the `name:` of each workflow file.
+# A new issue dispatches main-green-sweep.yml, which turns every open pull request's `main-green` check red but the fix
+# forward's (docs/studio/ci.md#main-runs): an issue filed with this GITHUB_TOKEN starts no `issues` workflow.
 name: ci-failure
 
 on:
@@ -9,6 +11,7 @@ on:
     types: [completed]
 
 permissions:
+  actions: write
   issues: write
 
 jobs:
@@ -26,6 +29,7 @@ jobs:
           WORKFLOW: ${{ github.event.workflow_run.name }}
           RUN_URL: ${{ github.event.workflow_run.html_url }}
           SHA: ${{ github.event.workflow_run.head_sha }}
+          BASE: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           title="CI failing on the default branch: $WORKFLOW"
@@ -37,4 +41,5 @@ jobs:
           else
             gh issue create --title "$title" --label task --label P-critical --label S-ready-to-start \
               --body "$text. Fix it forward before anything else merges; close this issue when the workflow is green."
+            gh workflow run main-green-sweep.yml --ref "$BASE"
           fi
