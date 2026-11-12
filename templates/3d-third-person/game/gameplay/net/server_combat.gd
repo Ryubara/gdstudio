@@ -115,7 +115,7 @@ static func reason_for(body: Character, command: PlayerCommand, slack: float) ->
 	var eye := body.global_position + Vector3.UP * body.tuning.camera_height
 	if command.origin.distance_to(eye) > slack:
 		return Reason.ORIGIN
-	if command.fire_pressed and body.weapon != null and body.weapon.is_cooling_down():
+	if body.fire_press(command) and body.weapon != null and body.weapon.is_cooling_down():
 		return Reason.COOLDOWN
 	return 0
 

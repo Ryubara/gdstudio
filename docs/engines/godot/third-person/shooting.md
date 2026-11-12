@@ -288,6 +288,9 @@ by the overshoot; a refusing weapon keeps the body and fires nothing until the a
 limits are the move's; a zero limit holds the aim along the body). The capture is `tools/capture/slide_aim_tour.tscn`
 (`AIM_LAYER_OFF=1` shows the clips alone, `CLOSE=1` and `CLOSE_SIDE=left` film the hands).
 
+**The head** (gdstudio #1334): an `AimHeadModifier` after the spine's turn holds the head level and looking along the
+aim on a straight neck while any weapon aims, whatever head the clips carry ([the aiming head](aim-head.md#head-on-aim)).
+
 - **Approach:** Solve an aim offset as a pitch about the body's side axis first, then a yaw about up, and hold the
   *aimed direction* within the limits, not the turn. **Watch out for:** a yaw about up first, then a pitch, with the
   turn clamped, is ill-conditioned when the clip points the muzzle near vertical (the slide: the heading of a direction
