@@ -4,7 +4,9 @@ extends RefCounted
 ## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
 ## `ual2`, so a clip is `ual1/Idle`, and the template's own prone and crawl clips (gdstudio
 ## #1009, `assets/animation/prone/`), the library `prone`. The looping clips lose their `_Loop`
-## suffix on import (`Idle_Loop` is `Idle`) and loop.
+## suffix on import (`Idle_Loop` is `Idle`) and loop. The library `fixed` holds the few library
+## clips that put a limb through another on the template's bodies, with that limb swung clear
+## (gdstudio #1295, `assets/animation/fixed/`).
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
 ## `player_animation.play_clip(CharacterClips.SWORD_ATTACK)`. The constants below are the clips
@@ -15,6 +17,7 @@ const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
 const LIBRARY_VAULT := &"vault"
+const LIBRARY_FIXED := &"fixed"
 
 # Locomotion and the clips the player's states use.
 const IDLE := &"ual1/Idle"
@@ -23,7 +26,9 @@ const RUN := &"ual1/Jog_Fwd"
 const SPRINT := &"ual1/Sprint"
 const JUMP_START := &"ual1/Jump_Start"
 const AIR := &"ual1/Jump"
-const LAND := &"ual1/Jump_Land"
+# The library's landing with the left arm swung clear of the shin (gdstudio #1295,
+# `assets/animation/fixed/`); `STAND_INS` names the library's own.
+const LAND := &"fixed/Jump_Land"
 const PUSH := &"ual1/Push"
 const INTERACT := &"ual1/Interact"
 const HIT := &"ual1/Hit_Chest"
@@ -49,7 +54,8 @@ const CLIMB_UP := &"ual2/ClimbUp_1m"
 const KNOCKBACK := &"ual2/Hit_Knockback"
 const SLIDE := &"ual2/Slide"
 const SLIDE_START := &"ual2/Slide_Start"
-const SLIDE_EXIT := &"ual2/Slide_Exit"
+# The library's clip with the right arm swung clear of the shin (gdstudio #1295).
+const SLIDE_EXIT := &"fixed/Slide_Exit"
 const CARRY_WALK := &"ual2/Walk_Carry"
 const THROW := &"ual2/OverhandThrow"
 # Lying down and crawling: the template's own clips.
@@ -64,7 +70,7 @@ const VAULT_LOW := &"vault/Vault_Low"
 const VAULT_HIGH := &"vault/Vault_High"
 const VAULT_LAND := &"vault/Vault_Land"
 
-## Every clip of the four libraries, with its library.
+## Every clip of the five libraries, with its library.
 const ALL: Array[StringName] = [
 	&"ual1/A_TPose",
 	&"ual1/Crouch_Fwd",
@@ -159,4 +165,15 @@ const ALL: Array[StringName] = [
 	&"vault/Vault_High",
 	&"vault/Vault_Land",
 	&"vault/Vault_Low",
+	&"fixed/Jump_Land",
+	&"fixed/NinjaJump_Land",
+	&"fixed/Slide_Exit",
 ]
+
+## The library clip each fixed clip was made from: the same clip, as Quaternius keyed it. A game
+## whose bodies it suits puts it back in the inspector (`CharacterAnimation.land_clip`).
+const STAND_INS: Dictionary[StringName, StringName] = {
+	&"fixed/Jump_Land": &"ual1/Jump_Land",
+	&"fixed/NinjaJump_Land": &"ual2/NinjaJump_Land",
+	&"fixed/Slide_Exit": &"ual2/Slide_Exit",
+}
