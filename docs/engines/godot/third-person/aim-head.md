@@ -18,7 +18,10 @@ it); the rifle and the fists, whose aim is not a clip, look straight ahead aimin
 floor. The layer makes an `AimHeadModifier` right after the spine's: it works out the turn that takes the head from
 where the chest leaves it (the neck and head at their rest turns on the chest) to looking at the aim point level (no
 roll against the world's up), holds it within `head_max_turn` (90 degrees) of that line, and gives the neck
-`head_neck_share` (0.4) of it and the head the rest about the same axis, so they never bend against each other. It
+`head_neck_share` (0.4) of it and the head the rest about the same axis, so they never bend against each other
+(lying with a prone aim, `head_prone_neck_share`, 0.5, blended in by `CharacterAnimation.prone_hold_share()`: the
+pistol's prone aim clips leave the chest rolled, and with 0.4 the head rolled 8.9 degrees on the neck to level it,
+gdstudio #1191; at 0.5 it is 6.1 and the neck 6.1). It
 writes each bone once (so `influence` fades it, as for the spine) and is on by the aim (the pistol's aim weight, or the
 character's `aim_amount` eased) less a reload, for every weapon, on a puppet too (it reads the same aim ray). Where the
 chest is bent too far for the neck (the crouch and prone clips aiming 20 degrees up), the head turns its whole reach
