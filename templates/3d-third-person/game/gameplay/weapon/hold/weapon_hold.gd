@@ -149,6 +149,9 @@ var _magazine: Node3D
 var _left := SupportHandPlan.new()
 # The left hand let go for an action that reaches with it.
 var _free := FreeHand.new()
+# The weapon whose view was looked up last, and the node found (null: not made yet).
+var _view_of: WeaponDef
+var _view: Node
 # The scene's own hold as a fit, kept the first time a model is built, for a model with no fit.
 var _own: HoldFit
 
@@ -182,11 +185,14 @@ func free_hand_for_interact() -> void:
 ## Puts the weights on the modifiers now (the frame's own `_process` does it too).
 func refresh() -> void:
 	if animation != null and animation.tree != null:
-		var weights := animation.pistol_weights()
+		# The weapon layer's weights are this hold's only with its own weapon in the hands.
+		var mine := _holds_it()
+		var weights := animation.pistol_weights() if mine else Vector2.ZERO
 		held_weight = weights.x
 		# A dead character's tree is off and the ragdoll holds the arms.
 		aim_weight = weights.y if animation.tree.active else 0.0
-		var reload := animation.reload_progress() if animation.tree.active else Vector2.ZERO
+		var playing := mine and animation.tree.active
+		var reload := animation.reload_progress() if playing else Vector2.ZERO
 		reload_weight = reload.x
 		reload_share = reload.y
 		free_weight = _free.amount() if animation.tree.active else 0.0
@@ -260,6 +266,20 @@ func _plan_left() -> void:
 	var on := lerpf(1.0, SupportHandPlan.WAY_FROM, FreeHand.off(free_weight)) * (1.0 - gone)
 	var reload := reload_weight * (1.0 - gone) if _magazine != null else 0.0
 	_left.update(minf(aim_weight, on), reload, reload_share)
+
+
+# False while the weapon in the hands has a view of its own that is not on this hold's seat (the
+# rifle's `TwoHandHold`): its clips weigh the same weapon layer (kit #1082), and this hold's grip
+# and left arm would close on a weapon that is not there, under the other hold's and through it
+# whenever that one lets a hand go (kit #1336). A weapon with no view keeps this hold.
+func _holds_it() -> bool:
+	var definition := animation.held_definition()
+	if definition == null or definition.view.is_empty() or model == null:
+		return true
+	if definition != _view_of or not is_instance_valid(_view):
+		_view_of = definition
+		_view = model.get_node_or_null(definition.view)
+	return _view == null or _view == seat
 
 
 ## The modifiers this node made on the skeleton now: the grip, then the left arm and fingers.

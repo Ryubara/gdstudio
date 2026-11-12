@@ -75,6 +75,10 @@ reaches with it (a use animation, a pickup) by calling the hold's `free_hand(sec
   interact locks the action, which takes the aim down for its time, so the left hand already left along its way as
   the aim fell, and the reach showed. The hold takes the lesser of the aim and the free hand, so an interact looks
   as it did, and an action that leaves the aim up still lets the hand go.
+- **One hold at a time.** `WeaponHold` is on every character and reads the weapon layer's weights
+  (`pistol_weights()`), which the rifle's own clips weigh too (gdstudio #1082). It takes them only while the weapon
+  in the hands is the one on its seat (`_holds_it()`: the definition's `view` is the seat, or it has none); with the
+  rifle held its grip and left arm are off, so no second arm solve runs under the rifle's.
 - **Empty hands** have no hold and the clip plays as it is.
 - **Measured** (`tests/gameplay/test_interact_held.gd`). Before, with the rifle, the left hand was 294 mm from where
   the clip puts it; now it is within 15 mm of the empty-handed reach on every update from 0.18 s to 0.42 s, with
@@ -99,6 +103,13 @@ reaches with it (a use animation, a pickup) by calling the hold's `free_hand(sec
   from the hand guard took the fingers 32 mm through the rifle, and so did the hold's chest turn, which swings the
   clip's reaching arm across the gun (ease it off with the hand). **Seen:** gdstudio #1336, 2026-11-12
   (`test_interact_held.gd`).
+- **Approach:** A hold weighs its modifiers by a shared layer's weights only while its own weapon is in the hands,
+  and a test lists every skeleton modifier with its `active` and `influence` on the update that looks wrong.
+  **Watch out for:** once the rifle had grip and aim clips, the pistol's hold ran its grip and its left arm with the
+  rifle aimed; the rifle's arms, later in the order at influence 1, hid it, until the rifle's left arm faded for an
+  interact and the hand went 24 cm across to the pistol's place by the right hand (16 mm through the rifle, the
+  forearm 31 mm in the torso, two updates). Both changes were green alone; only the suite run on the merge showed it.
+  **Seen:** gdstudio #1336 merged with #1267, 2026-11-12 (`test_the_pistols_hold_leaves_the_rifle_to_its_own_hold`).
 - **Approach:** Pose a staged test of an action the way the action layer blends it (the pose under it, the clip over
   it by the layer's fade in and out), and measure a live one on every update. **Watch out for:** the interact clip
   posed whole from its first tick put the aimed pistol at the thigh with the left hand still reaching for it; and a

@@ -12,6 +12,7 @@ extends GdUnitTestSuite
 
 const WEAPONS := "res://gameplay/weapon/"
 const RIFLE := "res://gameplay/weapon/rifle.tres"
+const PISTOL := "res://gameplay/weapon/pistol.tres"
 const MODELS: Array[String] = ["female", "male"]
 ## The updates after the press over which the clip's arm has the hand whole, whatever is held
 ## (every hold has let go by 0.16 s and none comes back before 0.44 s of the 0.7 s).
@@ -264,6 +265,30 @@ func test_a_reload_keeps_the_rifles_left_hand() -> void:
 		assert_float(entry.freed).is_equal(0.0)
 	assert_float(hold.free_amount()).is_equal(0.0)
 	_end_arena()
+
+
+# The pistol's hold is on every character and reads the weapon layer that the rifle's clips weigh
+# too: with the rifle in the hands its grip and left arm stay off (they showed as soon as the
+# rifle's hold let the left hand go: the hand went to the pistol's place by the right hand, 16 mm
+# through the rifle, kit #1336), and with the pistol they are on.
+func test_the_pistols_hold_leaves_the_rifle_to_its_own_hold() -> void:
+	for path: String in [RIFLE, PISTOL]:
+		await _player_holding(load(path) as WeaponDef)
+		InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
+		await InputSim.ticks(get_tree(), 40)
+		var animation := _player.get_node("Animation") as CharacterAnimation
+		assert_float(animation.pistol_weights().x).is_greater(0.9)
+		assert_float(animation.pistol_weights().y).is_greater(0.9)
+		var pistol_hold := _player.get_node("WeaponHold") as WeaponHold
+		assert_int(pistol_hold.modifiers().size()).is_equal(3)
+		for modifier in pistol_hold.modifiers():
+			(
+				assert_bool(modifier.active)
+				. override_failure_message("%s: %s is %s" % [path, modifier.name, modifier.active])
+				. is_equal(path == PISTOL)
+			)
+		assert_float(pistol_hold.support_weights().x).is_equal(1.0 if path == PISTOL else 0.0)
+		_end_arena()
 
 
 # Every `WeaponDef` in the weapons' folder, the empty hands first (the reach the others are held
