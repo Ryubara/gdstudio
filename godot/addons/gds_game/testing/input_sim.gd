@@ -4,12 +4,17 @@ extends RefCounted
 ## input path (`Input.parse_input_event`), so the project's `InputMap` decides what each one
 ## does. Part of the synced `gds_game` addon: used by tests only, never by shipped code.
 
+# The keys, pad buttons and mouse buttons that are down by this class, so `release_all` lets go of
+# each one whatever it is: a key left down stays down for every suite that runs after.
+static var _down := {"key": {}, "pad": {}, "mouse": {}}
+
 
 static func key(code: Key, pressed: bool) -> void:
 	var event := InputEventKey.new()
 	event.keycode = code
 	event.physical_keycode = code
 	event.pressed = pressed
+	_note("key", code, pressed)
 	Input.parse_input_event(event)
 	Input.flush_buffered_events()
 
@@ -19,6 +24,7 @@ static func pad_button(index: JoyButton, pressed: bool) -> void:
 	event.device = 3  # Never device 0: pads are numbered as they connect.
 	event.button_index = index
 	event.pressed = pressed
+	_note("pad", index, pressed)
 	Input.parse_input_event(event)
 	Input.flush_buffered_events()
 
@@ -37,12 +43,20 @@ static func mouse_button(index: MouseButton, pressed: bool) -> void:
 	event.button_index = index
 	event.pressed = pressed
 	event.button_mask = (1 << (index - 1)) if pressed else 0
+	_note("mouse", index, pressed)
 	Input.parse_input_event(event)
 	Input.flush_buffered_events()
 
 
-## Lets go of everything a test pressed.
+## Lets go of everything a test pressed: what this class pressed, whatever the key or button, and
+## the usual keys, sticks and buttons besides (a suite may have sent its own events).
 static func release_all() -> void:
+	for code: Key in _down.key.keys():
+		key(code, false)
+	for index: JoyButton in _down.pad.keys():
+		pad_button(index, false)
+	for index: MouseButton in _down.mouse.keys():
+		mouse_button(index, false)
 	for code: Key in [
 		KEY_W, KEY_A, KEY_S, KEY_D, KEY_SPACE, KEY_SHIFT, KEY_X, KEY_E, KEY_C, KEY_CTRL
 	]:
@@ -64,6 +78,13 @@ static func release_all() -> void:
 	for action: StringName in InputMap.get_actions():
 		Input.action_release(action)
 	Input.flush_buffered_events()
+
+
+static func _note(kind: String, code: int, pressed: bool) -> void:
+	if pressed:
+		_down[kind][code] = true
+	else:
+		_down[kind].erase(code)
 
 
 ## Waits `count` physics frames.
