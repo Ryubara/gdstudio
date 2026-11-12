@@ -1547,7 +1547,7 @@ def carry_open(scene, hand, then=None):
             np.round(carry[finger], 1),
             "to",
             np.round(angles[finger], 1),
-            "passes %.1f mm, ends %.1f mm off" % (-deepest * 1000.0, clear * 1000.0),
+            f"passes {-deepest * 1000.0:.1f} mm, ends {clear * 1000.0:.1f} mm off",
             flush=True,
         )
     for finger in FINGERS:
