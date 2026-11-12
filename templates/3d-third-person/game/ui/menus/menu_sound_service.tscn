@@ -1,0 +1,136 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/menus/menu_sound_service.gd" id="1_sounds"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_hint_1.ogg" id="hint_1"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_hint_2.ogg" id="hint_2"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_hint_3.ogg" id="hint_3"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_press_1.ogg" id="press_1"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_press_2.ogg" id="press_2"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_press_3.ogg" id="press_3"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_confirm_1.ogg" id="confirm_1"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_confirm_2.ogg" id="confirm_2"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_move_1.ogg" id="move_1"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_move_2.ogg" id="move_2"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_toggle_1.ogg" id="toggle_1"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_toggle_2.ogg" id="toggle_2"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_swish_1.ogg" id="swish_1"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui/ui_swish_2.ogg" id="swish_2"]
+
+[sub_resource type="AudioStreamRandomizer" id="hint"]
+random_pitch = 1.03
+random_volume_offset_db = 1.0
+streams_count = 3
+stream_0/stream = ExtResource("hint_1")
+stream_1/stream = ExtResource("hint_2")
+stream_2/stream = ExtResource("hint_3")
+
+[sub_resource type="AudioStreamRandomizer" id="press"]
+random_pitch = 1.03
+random_volume_offset_db = 1.0
+streams_count = 3
+stream_0/stream = ExtResource("press_1")
+stream_1/stream = ExtResource("press_2")
+stream_2/stream = ExtResource("press_3")
+
+[sub_resource type="AudioStreamRandomizer" id="confirm"]
+random_pitch = 1.02
+random_volume_offset_db = 0.5
+streams_count = 2
+stream_0/stream = ExtResource("confirm_1")
+stream_1/stream = ExtResource("confirm_2")
+
+[sub_resource type="AudioStreamRandomizer" id="move"]
+random_pitch = 1.03
+random_volume_offset_db = 1.0
+streams_count = 2
+stream_0/stream = ExtResource("move_1")
+stream_1/stream = ExtResource("move_2")
+
+[sub_resource type="AudioStreamRandomizer" id="toggle"]
+random_pitch = 1.02
+random_volume_offset_db = 0.5
+streams_count = 2
+stream_0/stream = ExtResource("toggle_1")
+stream_1/stream = ExtResource("toggle_2")
+
+[sub_resource type="AudioStreamRandomizer" id="swish"]
+random_pitch = 1.04
+random_volume_offset_db = 1.0
+streams_count = 2
+stream_0/stream = ExtResource("swish_1")
+stream_1/stream = ExtResource("swish_2")
+
+[node name="MenuSounds" type="Node"]
+process_mode = 3
+script = ExtResource("1_sounds")
+
+[node name="Hint" type="AudioStreamPlayer" parent="."]
+stream = SubResource("hint")
+volume_db = -15.0
+bus = &"UI"
+
+[node name="Press" type="AudioStreamPlayer" parent="."]
+stream = SubResource("press")
+volume_db = -7.0
+max_polyphony = 2
+bus = &"UI"
+
+[node name="Confirm" type="AudioStreamPlayer" parent="."]
+stream = SubResource("confirm")
+volume_db = -10.0
+max_polyphony = 2
+bus = &"UI"
+
+[node name="Back" type="AudioStreamPlayer" parent="."]
+stream = SubResource("press")
+volume_db = -9.0
+pitch_scale = 0.8
+max_polyphony = 2
+bus = &"UI"
+
+[node name="Refuse" type="AudioStreamPlayer" parent="."]
+stream = SubResource("press")
+volume_db = -9.0
+pitch_scale = 0.67
+bus = &"UI"
+
+[node name="Tab" type="AudioStreamPlayer" parent="."]
+stream = SubResource("move")
+volume_db = -13.0
+max_polyphony = 2
+bus = &"UI"
+
+[node name="Select" type="AudioStreamPlayer" parent="."]
+stream = SubResource("move")
+volume_db = -13.0
+pitch_scale = 1.12
+max_polyphony = 2
+bus = &"UI"
+
+[node name="ToggleOn" type="AudioStreamPlayer" parent="."]
+stream = SubResource("toggle")
+volume_db = -13.0
+pitch_scale = 1.12
+bus = &"UI"
+
+[node name="ToggleOff" type="AudioStreamPlayer" parent="."]
+stream = SubResource("toggle")
+volume_db = -13.0
+pitch_scale = 0.89
+bus = &"UI"
+
+[node name="Tick" type="AudioStreamPlayer" parent="."]
+stream = SubResource("hint")
+volume_db = -17.0
+bus = &"UI"
+
+[node name="Open" type="AudioStreamPlayer" parent="."]
+stream = SubResource("swish")
+volume_db = -7.0
+bus = &"UI"
+
+[node name="Close" type="AudioStreamPlayer" parent="."]
+stream = SubResource("swish")
+volume_db = -9.0
+pitch_scale = 0.85
+bus = &"UI"

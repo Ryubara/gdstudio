@@ -71,18 +71,21 @@ unique_name_in_owner = true
 script = ExtResource("5_button")
 text = "Video"
 variant = 0
+metadata/ui_sound_role = &"tab"
 
 [node name="AudioTab" type="Button" parent="Fit/Margin/Center/Card/Column/Tabs"]
 unique_name_in_owner = true
 script = ExtResource("5_button")
 text = "Audio"
 variant = 2
+metadata/ui_sound_role = &"tab"
 
 [node name="ControlsTab" type="Button" parent="Fit/Margin/Center/Card/Column/Tabs"]
 unique_name_in_owner = true
 script = ExtResource("5_button")
 text = "Controls"
 variant = 2
+metadata/ui_sound_role = &"tab"
 
 [node name="Scroll" type="ScrollContainer" parent="Fit/Margin/Center/Card/Column"]
 unique_name_in_owner = true
@@ -266,3 +269,4 @@ unique_name_in_owner = true
 script = ExtResource("5_button")
 text = "Back"
 variant = 0
+metadata/ui_sound_role = &"back"
