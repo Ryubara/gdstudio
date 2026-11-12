@@ -1,0 +1,44 @@
+{
+ "clips_file": "vault_quaternius.glb",
+ "sha256": "4a3c236d942750454a3deca8677fda5b1e4c066fb5f3274c502cdaa62d6909f2",
+ "fps": 24,
+ "limit_mm": 5.0,
+ "clips": {
+  "Vault_High": {
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "mannequin_male": {
+    "deepest_mm": 3.1,
+    "frame": 19,
+    "pair": "foot_l in foot_r"
+   }
+  },
+  "Vault_Land": {
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
+  "Vault_Low": {
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  }
+ }
+}

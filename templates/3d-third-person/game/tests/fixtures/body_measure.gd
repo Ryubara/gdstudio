@@ -39,6 +39,25 @@ const NEIGHBOURS := [
 	["thigh_l", "calf_l"],
 	["thigh_r", "calf_r"],
 ]
+## The part of the body each bone's skin belongs to, as `limb_overlap.py` cuts the mesh (kit
+## #1286): a bone not named takes its parent's part (a twist bone its limb's, a finger its hand's).
+const PARTS := {
+	"pelvis": "pelvis",
+	"spine_02": "chest",
+	"neck_01": "head",
+	"upperarm_l": "upperarm_l",
+	"lowerarm_l": "lowerarm_l",
+	"hand_l": "hand_l",
+	"thigh_l": "thigh_l",
+	"calf_l": "calf_l",
+	"foot_l": "foot_l",
+	"upperarm_r": "upperarm_r",
+	"lowerarm_r": "lowerarm_r",
+	"hand_r": "hand_r",
+	"thigh_r": "thigh_r",
+	"calf_r": "calf_r",
+	"foot_r": "foot_r",
+}
 
 var model: Node3D
 var skeleton: Skeleton3D
@@ -53,6 +72,7 @@ var _heaviest := PackedInt32Array()
 var _radius := {}
 var _rest_overlap := {}
 var _foot_vertices := {"l": PackedInt32Array(), "r": PackedInt32Array()}
+var _part_of_vertex := PackedStringArray()
 
 
 ## Put `model_path` under `parent` with an `AnimationPlayer` holding `libraries` (name to path).
@@ -130,6 +150,11 @@ func _read_mesh() -> void:
 		for i in _vertices.size():
 			if _heaviest[i] in bones:
 				_foot_vertices[side].append(i)
+	for i in _vertices.size():
+		var bone := _heaviest[i]
+		while bone >= 0 and not PARTS.has(skeleton.get_bone_name(bone)):
+			bone = skeleton.get_bone_parent(bone)
+		_part_of_vertex.append(PARTS[skeleton.get_bone_name(bone)] if bone >= 0 else "pelvis")
 	skeleton.reset_bone_poses()
 	_rest_overlap = _overlaps()
 
@@ -160,6 +185,17 @@ func feet_lowest() -> Dictionary:
 	for side: String in lowest:
 		for point in skinned(_foot_vertices[side]):
 			lowest[side] = minf(lowest[side], point.y)
+	return lowest
+
+
+## The height of the lowest skinned vertex of each part of the body (`PARTS`) in the pose held,
+## in the model's space: {"hand_l": m, ...}.
+func lowest_by_part() -> Dictionary:
+	var lowest := {}
+	var points := skinned()
+	for i in points.size():
+		var part := _part_of_vertex[i]
+		lowest[part] = minf(lowest.get(part, INF), points[i].y)
 	return lowest
 
 

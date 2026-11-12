@@ -96,8 +96,8 @@ BODIES = {
     },
     "quaternius_female": {
         "file": ASSETS / "characters" / "mannequin" / "mannequin_female.glb",
-        "out": "vault_quaternius_female.glb",
-        "sidecar": "vault_quaternius_female_clips.json",
+        "out": "vault_quaternius.glb",
+        "sidecar": "vault_quaternius_clips.json",
         "palm": 0.036,
         "strike": 0.964,
         "low_takeoff": 1.073,
@@ -241,15 +241,6 @@ def aligned(quat, last):
     return quat
 
 
-def roll_about(turn, axis):
-    """The part of `turn` that is a roll about `axis` (a unit vector): the swing-twist split."""
-    along = Vector((turn.x, turn.y, turn.z)).dot(axis)
-    roll = Quaternion((turn.w, *(axis * along)))
-    if roll.magnitude < 1e-6:
-        return Quaternion()
-    return roll.normalized()
-
-
 def fall(height, speed, seconds):
     """Where a body in the air is after `seconds`: it left `height` going up at `speed`, and only gravity acts."""
     return height + speed * seconds - 0.5 * GRAVITY * seconds * seconds
@@ -380,19 +371,8 @@ class Rig:
         # bones), which no clip drives and another body does not have.
         theirs = {b.name for b in self.library_arm.data.bones}
         self.keyed = [n for n in self.order if n in theirs]
-        # The twist bones of a prototype body, which the game turns from the limbs' pose (`MannequinTwist`,
-        # `assets/characters/prototype/mannequin_twist.gd`): [twist bone, the limb it follows, that limb's length
-        # axis in the limb's (or, for a hand, the forearm's) own frame, take the roll out (True) or copy it].
-        self.twists = []
-        for side in "lr":
-            for limb, child in (("upperarm", "lowerarm"), ("thigh", "calf")):
-                twist, source = f"{limb}_twist_01_{side}", f"{limb}_{side}"
-                if twist in self.rest:
-                    axis = self.rest_rel[f"{child}_{side}"].translation.normalized()
-                    self.twists.append((twist, source, axis, True))
-            twist = f"lowerarm_twist_01_{side}"
-            if twist in self.rest:
-                self.twists.append((twist, f"hand_{side}", self.rest_rel[f"hand_{side}"].translation.normalized(), False))
+        # The twist bones of a prototype body, which no clip keys and the game turns (`limb_overlap.twist_bones`).
+        self.twists = limb_overlap.twist_bones(self.rest_rel)
         # An open hand is the rest pose with the thumb lifted into the palm's plane (it rests pointing down).
         self.open = {}
         for side in "lr":
@@ -431,15 +411,13 @@ class Rig:
         """Put the twist bones where the game's modifier turns them for the pose in `mats`, so the skin the
         checks measure is the skin a player sees: the shoulder's and the hip's take the limb's roll about its own
         length back out, the wrist's takes the hand's roll."""
+        import limb_overlap
+
         for twist, source, axis, counter in self.twists:
             parent = self.parent[source]
             rel = (mats[parent].inverted() @ mats[source]).to_quaternion()
-            if counter:
-                roll = roll_about(self.rest_rel[source].to_quaternion().inverted() @ rel, axis).inverted()
-                base = mats[source]
-            else:
-                roll = roll_about(rel @ self.rest_rel[source].to_quaternion().inverted(), axis)
-                base = mats[parent]
+            roll = limb_overlap.twist_roll(self.rest_rel, source, rel, axis, counter)
+            base = mats[source] if counter else mats[parent]
             rest = self.rest_rel[twist]
             mats[twist] = (
                 base @ Matrix.Translation(rest.translation) @ roll.to_matrix().to_4x4() @ rest.to_3x3().to_4x4()
@@ -1612,7 +1590,7 @@ def check(rig, clip, action, worst):
             problems.append(f"the planted palm is {report['palm_gap_mm']} mm from the top")
     report["lowest"] = round(report["lowest"], 4)
     report["deepest_in_box"] = round(report["deepest_in_box"], 4)
-    # Limbs through each other, on both mannequins' skinned meshes, on every frame.
+    # Limbs through each other, on the skinned mesh of the body the file is for, on every frame.
     import limb_overlap
 
     report["overlap_mm"] = {}

@@ -110,11 +110,20 @@ contact times. Forward 0 is the obstacle's front face.
   keyed on the female, the template's default. On the male the planted wrist moves 35 mm in `Vault_Low` and 71 mm in
   `Vault_High` while it should be still, and sits up to 49 mm low. The vault code puts the hand on the edge by IK if
   that shows; the clip cannot be right for both.
+- **On the template's bodies** (the prototype `form` pair, `CharacterBodies`, since kit #1187; measured in kit #1286
+  by `tests/assets/test_vault_clips.gd`, which poses all four bodies): the planted wrist slides 18 and 72 mm on
+  `form_female` (low and high vault) and 35 and 82 mm on `form_male`, and rides 29 to 67 mm off its height over the
+  top (on `form_male` up to 31 mm into the box); `Vault_High` puts the thighs 34.0 mm (`form_female`) and 23.6 mm
+  (`form_male`) into each other where the legs come over together. The feet, the joins to the sprint and to
+  `Vault_Land`, the free arm, the push and the legs' spread pass on every body. The suite holds those numbers as the
+  bodies' limits (`PER_BODY`, `KNOWN_OVERLAP_MM`) until kit #1294 solves them.
 - **No limb passes through another**, on either mannequin: the build measures every frame of every clip on both
   skinned meshes (`assets/animation/limb_overlap.py`, the approach under
   [Keyframes](../../../tools/blender/animation.md#keyframes)) and fails over 5 mm; the clips read 0.5 mm at most
   (0.0 mm since the rework of 2026-11-11). `vault_clips.json` carries the numbers and the hash of the
-  file they were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off.
+  file they were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off. The template's bodies
+  are measured beside them in `vault/bodies_overlap.json` (`limb_overlap.py --brief`,
+  [Limbs inside limbs](../../../tools/blender/body-crossings.md#library-clips)), read by the same suite.
 - **The legs clear the box between the keys too.** A game draws the clip 60 times a second and more, with the 24
   keys a second joined by straight lines, so the build reads the pose 240 times a second, joined the same way, with
   the root moved at the clip's speed: no leg joint of either mannequin more than 5 mm inside the box (0.0 in both
