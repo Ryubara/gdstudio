@@ -4,7 +4,10 @@
 # (`PuppetVault`), with nothing more sent, and plays the clip the stepping body plays. Ada vaults
 # the course's 0.9 m wall in a game served over a loopback link; Bo's puppet of her is checked
 # against the server's own plan. An AI replica (a dressed character with no collision of its own)
-# plans from its drawn rows the same way.
+# plans from its drawn rows the same way. With the vault clips (kit #1037, #1228) the puppet's model
+# is held on the clip's root of its own plan, so its planted hand rests on the wall's top on Bo's
+# screen as on the stepping body: checked for Ada's puppet and for an AI the server runs over the
+# wall, with the limits `test_vault_contacts.gd` holds the stepping body to.
 extends GdUnitTestSuite
 
 const LEVEL := "res://world/prototype/prototype_level.tscn"
@@ -19,6 +22,19 @@ const MAX_PLAN_GAP := 0.12
 ## Seconds the puppet's crossing may be longer or shorter than the server's (its speed is read
 ## from where it was drawn).
 const MAX_TIME_GAP := 0.08
+
+## The stepping body's suite: the planted wrist's limits are read from it, so a puppet is held to
+## exactly what the body that steps is held to (`WRIST_UP`, `WRIST_ALONG`, `WRIST_DRIFT`).
+const CONTACTS := "res://tests/gameplay/test_vault_contacts.gd"
+## The two mannequins a puppet is drawn with here, by the name of their limits: Ada's puppet wears
+## the female, the server's first AI look (a grunt) the male (`AiReplica.variant_scenes`). The
+## limits were measured on the Quaternius pair the vault clips were keyed on, so the suite draws
+## the puppets with those (`_draw_with`); the template's prototype bodies have longer upper arms
+## and their planted wrists sit lower (kit #1187; gdstudio #1286 measures the clips on them).
+const MANNEQUINS := {
+	CharacterBodies.QUATERNIUS_FEMALE: "female",
+	CharacterBodies.QUATERNIUS_MALE: "male",
+}
 
 var _rig: OnlineRig
 var _ada: NetClient
@@ -46,6 +62,7 @@ func test_a_puppet_plays_the_vault_clip_on_the_plan_the_server_ran() -> void:
 	await _rig.wait(30)
 	var puppet := _bo.remote_players.puppet_at(_ada.slot)
 	assert_object(puppet).is_not_null()
+	await _draw_with(puppet, CharacterBodies.QUATERNIUS_FEMALE)
 	var server_plans: Array[VaultPlan] = []
 	_rig.server_body(_ada).vault_motion.started.connect(
 		func(plan: VaultPlan) -> void: server_plans.append(plan)
@@ -55,6 +72,9 @@ func test_a_puppet_plays_the_vault_clip_on_the_plan_the_server_ran() -> void:
 	var animation := puppet.get_node("Animation") as CharacterAnimation
 	var clips: Array[StringName] = []
 	animation.action_started.connect(func(clip: StringName) -> void: clips.append(clip))
+	var samples: Array[Dictionary] = []
+	var take := _record.bind(puppet, samples)
+	puppet.model.skeleton().skeleton_updated.connect(take)
 
 	var run := PlayerCommand.new()
 	run.set_from_world(Vector3.RIGHT)
@@ -94,9 +114,15 @@ func test_a_puppet_plays_the_vault_clip_on_the_plan_the_server_ran() -> void:
 	assert_float(drawn.points[0].distance_to(served.points[0])).is_less(MAX_PLAN_GAP)
 	assert_float(drawn.end_point().distance_to(served.end_point())).is_less(MAX_PLAN_GAP)
 	assert_float(absf(drawn.duration - served.duration)).is_less(MAX_TIME_GAP)
-	# The clip the stepping body plays for this crossing, over the whole body while it lasts.
-	var clip := animation.traversal_clip(drawn)
-	assert_array(clips).contains([clip])
+	# The clip the stepping body plays for this crossing (joined to the step out of its landing),
+	# over the whole body while it lasts.
+	var clip := str(animation.traversal_clip(drawn)).get_file()
+	assert_int(clips.size()).is_greater(0)
+	assert_str(str(clips[0])).contains(clip)
+	# The planted hand is on the wall's top on this screen too: the puppet's model is held on the
+	# clip's root of its own plan (kit #1037).
+	puppet.model.skeleton().skeleton_updated.disconnect(take)
+	_check_planted(puppet, drawn, samples, "Ada's puppet")
 	assert_int(acting_frames).is_greater_equal(vault_frames - 2)
 	# Its time ran with the frames and the crossing ended with the drawn state.
 	assert_bool(puppet.vault_motion.is_active()).is_false()
@@ -140,6 +166,198 @@ func test_an_ai_replica_with_no_collision_plans_its_vault_from_its_rows() -> voi
 	puppet.state = Character.State.IDLE
 	_draw(puppet, puppet.global_position, Vector3.ZERO, tick)
 	assert_bool(puppet.vault_motion.plan.is_valid()).is_false()
+
+
+func test_an_ai_puppets_planted_hand_rests_on_the_top_on_bos_screen() -> void:
+	_rig = auto_free(OnlineRig.new(true))
+	add_child(_rig)
+	assert_bool(_rig.start()).is_true()
+	_ada = await _rig.join("Ada")
+	_bo = await _rig.join("Bo")
+	assert_object(_ada).is_not_null()
+	assert_object(_bo).is_not_null()
+	await _rig.wait(20)
+	var west := WALL.x - WALL_DEPTH / 2.0
+	_put(_ada, Vector3(WALL.x, 0.0, WALL.z - 6.0), 0.0)
+	_put(_bo, Vector3(WALL.x, 0.0, WALL.z + 5.0), PI)
+	# The server's AI: a body that runs where it is told (no senses, brain or navigator), standing
+	# 1.3 m west of the wall (clear of the 0.5 m wall before it) until Bo draws it.
+	var runner := AiNetStage.walker(Vector3(west - 1.3, 0.0, WALL.z))
+	runner.facing = EAST
+	AiNetStage.server_map(_rig.server).add_child(runner)
+	var shown := func() -> bool:
+		var seen := _bo.ai_replica.puppet_of(_ai_id(runner))
+		return seen != null and seen.visible
+	assert_bool(await _rig.until(shown, 120)).is_true()
+	await _rig.wait(10)
+	var puppet := _bo.ai_replica.puppet_of(_ai_id(runner))
+	assert_object(puppet).is_not_null()
+	if puppet == null:
+		return
+	await _draw_with(puppet, CharacterBodies.QUATERNIUS_MALE)
+	var server_plans: Array[VaultPlan] = []
+	runner.vault_motion.started.connect(func(plan: VaultPlan) -> void: server_plans.append(plan))
+	var puppet_plans: Array[VaultPlan] = []
+	puppet.vault_motion.started.connect(func(plan: VaultPlan) -> void: puppet_plans.append(plan))
+	var samples: Array[Dictionary] = []
+	var take := _record.bind(puppet, samples)
+	puppet.model.skeleton().skeleton_updated.connect(take)
+
+	AiNetStage.walk(runner, Vector3.RIGHT)
+	var controller := runner.controller as AiController
+	var radius := runner.tuning.radius
+	for _frame in 120:
+		await get_tree().physics_frame
+		if runner.global_position.x >= west - radius - 0.6:
+			break
+	controller.jump = true
+	var vault_frames := 0
+	for frame in 120:
+		await get_tree().physics_frame
+		if frame == 4:
+			controller.jump = false
+		if puppet.state == Character.State.VAULT:
+			vault_frames += 1
+		elif vault_frames > 0:
+			break
+	puppet.model.skeleton().skeleton_updated.disconnect(take)
+	AiNetStage.walk(runner, Vector3.ZERO)
+
+	assert_int(server_plans.size()).is_equal(1)
+	assert_int(vault_frames).is_greater(5)
+	(
+		assert_int(puppet_plans.size())
+		. override_failure_message("the AI's puppet planned no vault")
+		. is_equal(1)
+	)
+	if server_plans.is_empty() or puppet_plans.is_empty():
+		return
+	assert_int(server_plans[0].kind).is_equal(VaultPlan.Kind.VAULT)
+	var drawn := puppet_plans[0]
+	assert_float(absf(drawn.top - server_plans[0].top)).is_less(0.01)
+	_check_planted(puppet, drawn, samples, "the AI's puppet")
+
+
+# One sample of `puppet`'s crossing as it is drawn this frame, taken when its skeleton has its pose:
+# the clip time and each wrist in the world. The skeleton may say it updated more than once in a
+# frame: the last one is the pose that is drawn (as `test_vault_contacts.gd` samples).
+func _record(puppet: Character, into: Array[Dictionary]) -> void:
+	if not puppet.vault_motion.is_active():
+		return
+	var skeleton := puppet.model.skeleton()
+	var animation := puppet.get_node("Animation") as CharacterAnimation
+	var sample := {
+		"time": float(animation.tree.get(&"parameters/ActionClip/current_position")),
+		"frame": Engine.get_process_frames(),
+	}
+	for hand: StringName in [&"hand_l", &"hand_r"]:
+		var pose := skeleton.get_bone_global_pose(skeleton.find_bone(hand))
+		sample[hand] = (skeleton.global_transform * pose).origin
+	if not into.is_empty() and into[-1].frame == sample.frame:
+		into[-1] = sample
+		return
+	into.append(sample)
+
+
+# Puts the body `path` on the puppet, as a character's scene does with `variant`, and lets the slot
+# and the clips follow it.
+func _draw_with(puppet: Character, path: String) -> void:
+	puppet.model.variant = load(path) as PackedScene
+	await _rig.wait(2)
+
+
+# Each hand the clip of `plan` plants is on the wall's top where the clip puts it, on every drawn
+# frame from its plant to its release, and stays there: the limits of the stepping body
+# (`test_vault_contacts.gd`). The crossing goes east, so in from the front edge is +X and the
+# body's left is -Z of its line.
+func _check_planted(
+	puppet: Character, plan: VaultPlan, samples: Array[Dictionary], who: String
+) -> void:
+	# The limits are those of the mannequin the puppet is drawn with.
+	var drawn_with := puppet.model.rig().scene_file_path
+	(
+		assert_bool(MANNEQUINS.has(drawn_with))
+		. override_failure_message("%s is drawn with %s" % [who, drawn_with])
+		. is_true()
+	)
+	var model: String = MANNEQUINS.get(drawn_with, "female")
+	# The course's 0.9 m wall, not the 0.5 m one west of it.
+	(
+		assert_float(plan.top)
+		. override_failure_message("%s crossed another wall" % who)
+		. is_equal_approx(WALL.y * 2.0, 0.01)
+	)
+	var limits := (load(CONTACTS) as GDScript).get_script_constant_map()
+	var up: float = limits["WRIST_UP"][model]
+	var along: float = limits["WRIST_ALONG"][model]
+	var drift: float = limits["WRIST_DRIFT"][model]
+	var west := WALL.x - WALL_DEPTH / 2.0
+	var line := plan.points[0].z
+	var timing := puppet.vault_settings.clip_for(plan.high)
+	var planted := 0
+	var worst := Vector4.ZERO
+	for hand: StringName in timing.planted_hands:
+		var place: Vector3 = timing.planted_hands[hand]
+		var first := Vector3.INF
+		for sample in samples:
+			var time: float = sample.time
+			if time < timing.planted_from(plan.height) or time > timing.hand_release[hand]:
+				continue
+			planted += 1
+			var wrist: Vector3 = sample[hand]
+			var label := "%s's %s at %.3f s" % [who, hand, time]
+			(
+				assert_float(wrist.y - plan.top)
+				. override_failure_message(
+					"%s is %.3f m over the top" % [label, wrist.y - plan.top]
+				)
+				. is_equal_approx(place.y, up)
+			)
+			(
+				assert_float(wrist.x - west)
+				. override_failure_message(
+					"%s is %.3f m in from the edge" % [label, wrist.x - west]
+				)
+				. is_equal_approx(place.z, along)
+			)
+			(
+				assert_float(line - wrist.z)
+				. override_failure_message("%s is %.3f m left" % [label, line - wrist.z])
+				. is_equal_approx(place.x, along)
+			)
+			if first == Vector3.INF:
+				first = wrist
+			var gaps := Vector4(
+				absf(wrist.y - plan.top - place.y),
+				absf(wrist.x - west - place.z),
+				absf(line - wrist.z - place.x),
+				wrist.distance_to(first)
+			)
+			worst = Vector4(
+				maxf(worst.x, gaps.x),
+				maxf(worst.y, gaps.y),
+				maxf(worst.z, gaps.z),
+				maxf(worst.w, gaps.w)
+			)
+			(
+				assert_float(wrist.distance_to(first))
+				. override_failure_message("%s moved %.3f m" % [label, wrist.distance_to(first)])
+				. is_less(drift)
+			)
+	print(
+		(
+			(
+				"puppet vault: %s (%s) planted on %d frames, worst up %.4f, along %.4f, across %.4f,"
+				+ " moved %.4f m"
+			)
+			% [who, model, planted, worst.x, worst.y, worst.z, worst.w]
+		)
+	)
+	assert_int(planted).override_failure_message("%s: no planted frame" % who).is_greater(3)
+
+
+static func _ai_id(body: AiCharacter) -> int:
+	return int(body.get_meta(NetHits.AI_META, -1))
 
 
 # As `AiReplica._place` draws a puppet: its place and velocity, then the vault.

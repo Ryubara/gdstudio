@@ -81,8 +81,7 @@ func _skin(skeleton: Skeleton3D) -> Dictionary:
 	var weights := []
 	var triangles := []
 	var binds := {}
-	for node in skeleton.find_children("*", "MeshInstance3D", true, false):
-		var instance := node as MeshInstance3D
+	for instance in CharacterBodies.near_meshes(skeleton):
 		var skin := instance.skin
 		var bind_bones := PackedInt32Array()
 		for bind in skin.get_bind_count():

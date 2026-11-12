@@ -34,8 +34,10 @@ func prewarm(size: int, out: int, parent: Node, at_most := 0) -> bool:
 		if character == null:
 			return false
 		if parent != null and parent.is_inside_tree():
+			character.warming = true
 			parent.add_child(character)
 			parent.remove_child(character)
+			character.warming = false
 		_parked.append(character)
 		made_now += 1
 	return false

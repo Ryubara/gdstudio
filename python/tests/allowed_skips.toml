@@ -90,3 +90,18 @@ reason = "it runs the pinned Godot, which only the Windows runner of the test jo
 test = "test_capture.py::test_real_ffmpeg_encodes_a_digit_ending_folder_slowed"
 platforms = ["linux", "darwin"]
 reason = "it runs the pinned ffmpeg, which has a build for Windows only (tools.toml); the Windows runner of the test job fetches it"
+
+[[skip]]
+test = "test_main_green.py::test_the_check_step"
+platforms = ["win32", "darwin"]
+reason = "the main-green steps run under bash 4 on an ubuntu runner (macOS has bash 3.2); they run on the Linux job"
+
+[[skip]]
+test = "test_main_green.py::test_a_red_main_nobody_could_read_stays_red"
+platforms = ["win32", "darwin"]
+reason = "the main-green steps run under bash 4 on an ubuntu runner (macOS has bash 3.2); they run on the Linux job"
+
+[[skip]]
+test = "test_main_green.py::test_the_sweep_holds_every_pull_request_but_the_fix_then_frees_them"
+platforms = ["win32", "darwin"]
+reason = "the main-green steps run under bash 4 on an ubuntu runner (macOS has bash 3.2); they run on the Linux job"

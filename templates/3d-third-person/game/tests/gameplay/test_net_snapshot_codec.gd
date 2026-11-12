@@ -16,6 +16,7 @@ func _player(slot: int) -> PlayerEntry:
 	player.rising = slot == 4
 	player.dead = slot == 7
 	player.pitch = -0.6 + slot * 0.15
+	player.aim_yaw = (-1.2 + slot * 0.4) if player.aim else 0.0
 	player.player_name = "P%d" % slot
 	return player
 
@@ -66,6 +67,8 @@ func _assert_player(actual: PlayerEntry, expected: PlayerEntry) -> void:
 	assert_float(actual.yaw).is_equal(snap.yaw)
 	assert_float(actual.pitch).is_equal(snap.pitch)
 	assert_float(actual.pitch).is_equal_approx(expected.pitch, 0.0125)
+	assert_float(actual.aim_yaw).is_equal(snap.aim_yaw)
+	assert_float(actual.aim_yaw).is_equal_approx(expected.aim_yaw, 0.0125)
 	assert_int(actual.state).is_equal(expected.state)
 	for field in ["crouch", "aim", "sprint", "air", "rising", "dead"]:
 		assert_bool(actual.get(field)).override_failure_message(field).is_equal(expected.get(field))
@@ -93,13 +96,55 @@ func test_a_player_entry_is_12_bytes() -> void:
 	assert_int(SnapshotCodec.PLAYER_SIZE).is_less_equal(12)
 
 
-func test_a_tick_with_8_players_is_at_most_109_bytes() -> void:
-	var packet := SnapshotCodec.tick(10, 9, [] as Array[NetEvent], _players(8))
+func test_an_aiming_player_s_entry_carries_one_byte_of_aim_yaw() -> void:
+	# The aim's heading off the body (kit #1277): one signed byte, only while aiming.
+	var player := _player(4)
+	player.aim_yaw = 0.9
+	var out := StreamPeerBuffer.new()
+	SnapshotCodec.write_player(out, player)
+	assert_int(out.data_array.size()).is_equal(12)
+	assert_float(SnapshotCodec.snap_player(player).aim_yaw).is_equal(0.0)
+	player.aim = true
+	out = StreamPeerBuffer.new()
+	SnapshotCodec.write_player(out, player)
+	assert_int(out.data_array.size()).is_equal(13)
+	assert_int(SnapshotCodec.player_size(player)).is_equal(13)
+	assert_float(SnapshotCodec.snap_player(player).aim_yaw).is_equal_approx(0.9, 0.0125)
+	# A half turn either way, in steps of about 1.4 degrees.
+	for turn: float in [PI, -PI, 3.0, -3.0, 0.5 * PI, -0.01]:
+		player.aim_yaw = turn
+		var back := SnapshotCodec.snap_player(player).aim_yaw
+		assert_float(absf(angle_difference(back, turn))).is_less_equal(SnapshotCodec.AIM_YAW_STEP)
+	assert_float(rad_to_deg(SnapshotCodec.AIM_YAW_STEP)).is_less(1.5)
+	player.aim_yaw = INF
+	assert_str(SnapshotCodec.write_player(StreamPeerBuffer.new(), player)).is_equal(
+		NetDrops.NOT_FINITE
+	)
+
+
+func test_an_aiming_entry_cut_before_its_aim_byte_is_dropped() -> void:
+	var packet := SnapshotCodec.tick(5, 4, [] as Array[NetEvent], _players(1))
+	# The one player aims: its 13th byte is the last before the tail; cut it and the tail.
+	var cut := packet.slice(0, NetWire.TICK_HEADER + SnapshotCodec.PLAYER_SIZE)
+	var drops := NetDrops.new()
+	assert_object(SnapshotCodec.read_tick(cut, drops)).is_null()
+	assert_int(drops.total()).is_equal(1)
+
+
+func test_a_tick_with_8_players_is_at_most_109_bytes_and_one_more_for_each_aim() -> void:
+	var players := _players(8)
+	for player in players:
+		player.aim = false
+	var packet := SnapshotCodec.tick(10, 9, [] as Array[NetEvent], players)
 	# 108 and the AI block's mode byte (gdstudio #970).
 	assert_int(packet.size()).is_less_equal(109)
 	assert_int(packet.size()).is_equal(
 		NetWire.TICK_HEADER + 8 * SnapshotCodec.PLAYER_SIZE + NetWire.TICK_TAIL
 	)
+	for player in players:
+		player.aim = true
+	packet = SnapshotCodec.tick(10, 9, [] as Array[NetEvent], players)
+	assert_int(packet.size()).is_equal(117)
 
 
 func test_tick_round_trip_with_every_player_and_every_event() -> void:
@@ -186,7 +231,8 @@ func test_the_message_sizes_against_the_research_estimates() -> void:
 	print("net sizes: ", " ".join(lines))
 	assert_int(sizes["command"]).is_equal(15)
 	assert_int(sizes["command_with_shot"]).is_equal(27)
-	assert_int(sizes["tick_8_players"]).is_equal(109)
+	# Three of the eight aim (slots 0, 3 and 6): a byte each (kit #1277).
+	assert_int(sizes["tick_8_players"]).is_equal(112)
 	assert_int(sizes["refused"]).is_equal(3)
 	assert_int(sizes["ping"]).is_equal(7)
 	assert_int(sizes["pong"]).is_equal(11)
@@ -202,6 +248,8 @@ func test_the_longest_welcome_fits_its_limit_and_round_trips() -> void:
 	var players := _players(NetLimits.MAX_PLAYERS)
 	for player in players:
 		player.player_name = "n".repeat(NetLimits.NAME_BYTES)
+		# The longest: every player aims, so every entry carries its aim byte.
+		player.aim = true
 	var packet := SnapshotCodec.welcome(7, 555, 0xABCDEF01, entities, players)
 	assert_int(packet.size()).is_equal(SnapshotCodec.MAX_WELCOME)
 	var welcome := SnapshotCodec.read_welcome(packet)
@@ -288,7 +336,7 @@ func test_hostile_ticks_are_dropped_with_a_reason() -> void:
 	var player_slot := SnapshotCodec.tick(5, 4, [] as Array[NetEvent], _players(1))
 	player_slot[NetWire.TICK_HEADER] = 9
 	var twice := SnapshotCodec.tick(5, 4, [] as Array[NetEvent], _players(2))
-	twice[NetWire.TICK_HEADER + SnapshotCodec.PLAYER_SIZE] = 0
+	twice[NetWire.TICK_HEADER + SnapshotCodec.player_size(_player(0))] = 0
 	var long_name := SnapshotCodec.tick(
 		5, 4, _one_event(NetEvent.joined(1, "a")), [] as Array[PlayerEntry]
 	)
