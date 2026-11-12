@@ -131,6 +131,13 @@ func _ready() -> void:
 	add_child(_late)
 
 
+func _notification(what: int) -> void:
+	# A scene instanced and freed out of the tree never adds the late node: free it, or it is an
+	# orphan (`test_physics_layers.gd` instances every scene).
+	if what == NOTIFICATION_PREDELETE and is_instance_valid(_late) and _late.get_parent() == null:
+		_late.free()
+
+
 func _after_senses() -> void:
 	var target: AiCharacter = targets.get(Fault.IDLE)
 	if target == null or not is_instance_valid(target) or not target.is_inside_tree():
