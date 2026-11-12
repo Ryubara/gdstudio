@@ -281,7 +281,7 @@ headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdst
   model paths still name them before you compare numbers. **Watch out for:** the hold bench kept loading the
   Quaternius mannequin after the template moved to its own bodies (#1299) and the rifle's hold gained per-body fits
   (#1040), so a before and after measured a body no character wears and never the male's fit. **Seen:** gdstudio
-  #1178 (PR #1258), 2026-11-12.
+  #1178 (PR #1258), 2026-11-11.
 - **Approach:** Give a bench's new script its `.uid` (`gds template uids <t>`) before the first `bench-web` run, and run
   `gds template test <t>` before the push. **Watch out for:** `bench-web` exports without the layout check, so a bench
   whose script had no `.uid` measured fine, and the missing file showed only when the full run's layout check stopped
