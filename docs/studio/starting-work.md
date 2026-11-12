@@ -227,6 +227,17 @@ relative path with `git -C` resolves inside the repository.
   2026-11-02 (fix: `gds issue start`, a pre-push hook that runs CI's message functions on the stored commits, and `gds
   merge-main` ([Writing checks](writing-checks.md#same-input))).
 
+### A branch stacked on another {#stacked}
+
+<!-- new section: nothing said what a pull request built on an open branch carries (kit #1303) -->
+
+Work that builds on a branch not landed yet starts from that branch, and its pull request against `main` carries the
+base branch's commits as well as its own. Its `Model:` line names the model of every co-author trailer on those
+commits, and its `Read first:` line the sections the base's author read. `gds pr check-body` runs the CI `commits`
+check on the branch's commits since `origin/main` and refuses a `Model:` line that misses one ([the body
+guard](pull-requests.md#pr-body)); run it before `gh pr create`. The base's commits stay on the list after the base
+lands (a squash merge makes a new commit on `main`), so the line keeps naming their models.
+
 ### The worktree is removed when the work is finished {#sweep}
 
 Nobody removes a worktree by hand: `gds worktree sweep` does it once the pull request merged or the issue closed (and

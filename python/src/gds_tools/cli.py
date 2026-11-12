@@ -573,6 +573,7 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
             + result.reasons,
         )
     docs = pr.check_docs(repo, body, kit=kit)
+    commits = pr.check_commits(repo, body, kit=kit)
     if result.ok:
         print("description: ok")
     else:
@@ -587,7 +588,15 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
         print("docs: refused", file=sys.stderr)
         for reason in docs.reasons:
             print(f"  - {reason}", file=sys.stderr)
-    return 0 if result.ok and docs.ok else 1
+    if commits.unknown:  # not an "ok": the rule depends on the branch's commits
+        print(f"commits: cannot tell, {commits.unknown}; pr-rules will judge them after the push")
+    elif commits.ok:
+        print("commits: ok")
+    else:
+        print("commits: refused (the branch's commits since origin/main, as pr-rules reads them)", file=sys.stderr)
+        for reason in commits.reasons:
+            print(f"  - {reason}", file=sys.stderr)
+    return 0 if result.ok and docs.ok and commits.ok else 1
 
 
 def _cmd_learn(args: argparse.Namespace) -> int:
