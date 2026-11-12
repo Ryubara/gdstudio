@@ -81,6 +81,14 @@ pages: three fingers round the grip's front with the thumb round its far side, t
 guard with four fingers up its right side and the thumb up its left, the firing hand on the grip through the reload
 and the old magazine taken out by hand (the model's magazine is one node, so it leaves and comes back).
 
+Since kit #1187 the template's characters wear the prototype bodies, whose hands are a person's size (0.18 m and
+0.195 m from wrist to fingertip, against the Quaternius mannequins' 0.23 m), and the hold is solved on each body by
+itself: the female's places and poses are the scene's own (`rifle_held.tscn`, `rifle_*_pose.tres`) and the male's are
+a `HoldFit` (`gameplay/weapon/hold/rifle_fit_male.tres`) that `TwoHandHold.fits` lists and puts on when the model is
+his file, as the pistol's `WeaponHold.fits` does (`HoldFit.chosen()`; a rifle fit's `seat` is the inverse of
+`RightHandTarget`). The numbers below are the prototype bodies'; those of the Quaternius pair, which one hold fitted,
+are named as such.
+
 - **The stance.** The butt sits in the right shoulder's pocket, a place from `spine_03` in the clip (`low_pocket`,
   `low_pitch` 35, `low_yaw` 20 at rest; `aim_pocket` along `view_pitch` when the character aims or for
   `shot_hold_time` after a shot; `raise_time` 0.15 s, `pitch_limit` 60), so a crouch carries the gun. The chest stands
@@ -98,8 +106,17 @@ and the old magazine taken out by hand (the model's magazine is one node, so it 
   over it as the gun comes up (`raised_amount()`: the finger is on the trigger only while aiming or firing, and off it
   through a reload), `rifle_support_pose` (the palm under the hand guard, four fingers up its right side, the thumb up
   its left), `rifle_open_pose` and `rifle_magazine_pose` for the reload. The places and the poses are written by
-  `tools/hold/solve_rifle_hold.py` from the rifle's own triangles and both mannequins' skins (`dump_hold_rig.gd`, then
-  `write_hold.gd -- <file> rifle`), so no number of them is typed.
+  `tools/hold/solve_rifle_hold.py --body=<body>` from the rifle's own triangles and that body's skin
+  (`dump_hold_rig.gd`, which also writes each body's shoulders and elbows in the rifle's space, then
+  `write_hold.gd -- <file> rifle <body>`), so no number of them is typed. The whole solve of a body takes 20 s.
+- **Where the grip hand sits** is the solver's `MOVES` for the body, found by looking and then measured: the web
+  under the receiver's tail behind the grip, the back of the hand over the grip's right panel, the knuckles across
+  the grip at a slant of 30 degrees (the index knuckle highest), the heel of the palm 10 degrees out to the right,
+  where the forearm comes from. The slant is what a hand does on a raked grip: the straight index finger then points
+  up at the receiver's side and lies on it, 55 mm (female) and 59 mm (male) from `Trigger`, and the wrist bends 7 to
+  12 degrees. The thumb's last two bones stay under the receiver (`THUMB_TOP`), on the grip's left panel, and the
+  support thumb's tip ends on the hand guard's left side between 5 mm under and 20 mm over its middle
+  (`SUPPORT_THUMB_UNDER`, `SUPPORT_THUMB_OVER`, `SUPPORT_THUMB_Z`).
 - **A switch** is one sequence on the loadout's own times. Going away, the gun goes down to its stow place
   (`stow_pocket`, `stow_pitch`, `stow_yaw`) with both hands on it through the `holster_time`, is hidden in the tick
   the next weapon appears in the right hand, and the arms go from the gun's places to that weapon's pose while it
@@ -111,30 +128,36 @@ and the old magazine taken out by hand (the model's magazine is one node, so it 
   (`reload_leave`), closes on the magazine, takes it straight down out of the well (`magazine_well`) and to the belt
   at the left hip (`reload_belt`, a place on the body; `reload_out`), where the magazine is out of sight and changed,
   comes back up and straight in (`reload_in`), and goes back under the hand guard the way it came (`reload_return`).
-  The `magazine` node rides the hand.
+  The `magazine` node rides the hand. The thumb goes from the hand guard's side to its place behind the magazine
+  while the hand comes down off the hand guard (`_WAY_THUMB`), and on the magazine the four fingers close as one
+  (`HandPoseModifier.open_together`; off the hand guard they open knuckles first).
 
 Measured on the skinned mesh against the rifle (`HandContact`, the same in every clip, since the fingers are absolute
-and the arms reach their places):
+and the arms reach their places), on the prototype bodies:
 
-| Hand | Deepest in | Holding part farthest off |
-| --- | --- | --- |
-| Female, right | 1.3 mm (1.2 on the trigger) | the palm 4.4 mm, the fingers 2.4 |
-| Male, right | 1.4 mm (the palm) | a finger 4.6 mm, the thumb's tip 4.4 |
-| Female, left | 1.0 mm | 2.2 mm |
-| Male, left | 0.9 mm | 3.4 mm |
+| Hand | Deepest in | Holding part farthest off | Index tip to `Trigger`, low and aimed |
+| --- | --- | --- | --- |
+| Female, right | 1.2 mm (the middle finger) | none off: each is pressed 0.2 to 0.9 mm in | 54.7 mm, 5.4 mm |
+| Male, right | 1.2 mm (the tip on the trigger) | none off: 0.5 to 0.8 mm in | 58.9 mm, 6.5 mm |
+| Female, left | 1.2 mm | none off: 0.7 to 0.9 mm in | |
+| Male, left | 0.9 mm | none off: 0.6 to 0.8 mm in | |
 
-Before the rework the clip's fist stood 22 mm inside the grip with its fingers 8 to 17 mm in and the index finger off
-the trigger, the left hand 14 to 45 mm inside the hand guard, and the left arm 5 to 98 mm short of its place in the
-walk, jog and sprint clips. On the way between its places in the reload the left hand passes at most 4.4 mm
-through the hand guard (measured every half hundredth; the test caps it at 6 mm, as the pistol's).
+The web of the thumb is 12.8 mm (female) and 7.2 mm (male) off the grip's back; it is not a holding part. On the
+Quaternius pair one hold fitted both: at most 1.4 mm in, the female's palm 4.4 mm off. Before the rework the clip's
+fist stood 22 mm inside the grip with its fingers 8 to 17 mm in and the index finger off the trigger, the left hand
+14 to 45 mm inside the hand guard, and the left arm 5 to 98 mm short of its place in the walk, jog and sprint clips.
+On the way between its places in the reload the left hand passes at most 2.9 mm (female) and 2.3 mm (male) through
+the rifle, measured every half hundredth, which is the test's step too (it caps it at 6 mm, as the pistol's).
 
 Tests, `tests/gameplay/test_rifle_hold.gd` with `tests/fixtures/rifle_stage.gd` (a mannequin and the hold posed by
 hand): both hands within the 2 mm and 5 mm in six locomotion clips at the low ready and aimed, and with the view 30
-degrees up and down, on both mannequins, the right palm and thumb among the holding parts; the index finger within
-12 mm of `Trigger` only while the rifle is up; the reload every 2 hundredths; and on
+degrees up and down, on both bodies, the right palm and thumb among the holding parts; the index finger within
+12 mm of `Trigger` only while the rifle is up and more than 20 mm from it otherwise; the reload every half
+hundredth; and on
 the live player with simulated input, every update of idle, walk, sprint, aim, fire, crouch and crouched walk, the
 reload by its key, and a switch to the pistol and back (never two weapons, never none, the rifle never shown without
-both hands on it, the arms on its places before it shows and leaving after it hides).
+both hands on it, the arms on its places before it shows and leaving after it hides). `test_hold_fit.gd` has the
+male's fit put on and taken off with the model, and `test_hand_pose_modifier.gd` the order the fingers open in.
 
 Cost, headless on the desktop (`tools/bench/hold_cost.tscn -- rifle`, 40 mannequins, the least of five runs each on
 a machine other agents were loading): the rifle's hold 77 microseconds a character a frame against 35 for the
@@ -190,3 +213,25 @@ stock's end is in the chest. A shorter stock on the model or a support place fur
   visible in the tree, so a rifle still hidden by the loadout measured as no weapon at all (every part 30 mm off); a
   parse error in a modifier's script leaves the skeleton with nothing that dirties it, `skeleton_updated` never comes
   and `HoldStage.settle()` waits for ever with no error after the first line. **Seen:** gdstudio #889, 2026-11-11.
+- **Approach:** Find a hand's place on a grip for each hand size, and judge it by the web's distance from the
+  grip's back and the wrist's bend beside the contact; from the weapon's far side the back of the hand should cover
+  the grip. Slant the knuckles across a raked grip. **Watch out for:** the place found by eye for the Quaternius
+  hand (0.23 m) put the prototype hands (0.18 and 0.195 m) 4 cm too far back: the palm stood behind the grip with
+  only the fingers on it, the web 23 mm off, the wrist bent 68 degrees. The contact test passed all but the straight
+  finger, since the palm's nearest skin and the fingers did touch; a fix of the finger alone would have shipped it.
+  **Seen:** gdstudio #1040, 2026-11-11 (fix: `MOVES` a body; the wrist bends 7 to 12 degrees).
+- **Approach:** Carry a rule the solver holds as a distance (a finger off the trigger, a thumb on one side of a
+  part) over to a new hand size by measuring it there first, and give a thumb a height to stay under and a side to
+  stay on wherever it could lie more than one way. **Watch out for:** the first solve on the prototype bodies kept
+  the Quaternius hand's rules: the shorter straight finger lay 15 to 17 mm from the trigger (the test wants 20),
+  the female's thumb hooked round the magazine's far side and went 12 mm through it as the hand left, a thumb free
+  to lie anywhere on the grip's left stood up the receiver's side, and the support thumb lay flat under the hand
+  guard on one body and hooked over its top on the other (8 mm through it on the way off). **Seen:** gdstudio
+  #1040, 2026-11-11 (fix: `REGISTER_TRIGGER_CLEAR`, `THUMB_BACK_Z`, `THUMB_TOP`, the `SUPPORT_THUMB_*` bounds).
+- **Approach:** Make the test of a moving hand step as finely as the scan that found its faults (half a hundredth
+  of the reload here), and give each finger the order that suits the part: knuckles first off a part the fingers
+  are hooked over, all joints together onto a part they close round. **Watch out for:** at steps of 2 hundredths
+  the test passed while the female's little finger swung 8.1 mm through the magazine's front between two steps
+  (closing tips first, the order made for the hand guard), the male's thumb passed 5.4 mm, and a thumb still
+  standing up while the hand crossed under the magazine well passed 17 mm. **Seen:** gdstudio #1040, 2026-11-11
+  (fix: `open_together` on the magazine, `_WAY_THUMB`, `RELOAD_STEP` 0.005; 2.9 mm at most).

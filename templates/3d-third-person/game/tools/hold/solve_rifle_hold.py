@@ -22,9 +22,9 @@ at once), with the grid, limits and finger search of `solve_pistol_hold.py`:
 
 A place also costs what it bends the wrist: the forearm's line is worked out from where the shoulder is in the
 rifle's space at the shoulder and at the low ready (`SHOULDERS`, read from the game), and a wrist bent more than
-`WRIST_FREE` degrees costs. With no option it solves the fingers at the three places the template ships (`MOVES`,
-about 10 minutes). `--right=`, `--left=` and `--magazine=` give other places (a move from the start below: metres
-along the rifle's axes, then degrees about them), `--only=<name>` solves one hand and keeps the others as the
+`WRIST_FREE` degrees costs. With no option it solves the fingers at the three places the template ships for the body
+(`MOVES`, about 20 seconds). `--right=`, `--left=` and `--magazine=` give other places (a move from the start
+below: metres along the rifle's axes, then degrees about them), `--only=<name>` solves one hand and keeps the others as the
 output file has them, `--fast` solves once with the
 quick finger search (half a minute a hand, to look at a place), `--search` or `--search-<name>` searches the
 place from there (a coordinate search, an hour a hand), and `--draw=<file.png>` draws the hands on the rifle from
