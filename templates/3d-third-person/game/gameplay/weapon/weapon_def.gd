@@ -260,6 +260,28 @@ const FREE_ARM_BONE := &"clavicle_l"
 	set(value):
 		aim_down_clip = value
 		emit_changed()
+## Aiming while lying down, looking level: a whole upper body made for the ground (the pistol's
+## `prone_aim/Prone_Aim_Neutral`, both hands on it over planted elbows). It replaces the aim clips
+## above on a lying body. Empty: the lying body aims with the standing clips.
+@export var prone_aim_clip: StringName = &"":
+	set(value):
+		prone_aim_clip = value
+		emit_changed()
+## Aiming up and down while lying down.
+@export var prone_aim_up_clip: StringName = &"":
+	set(value):
+		prone_aim_up_clip = value
+		emit_changed()
+@export var prone_aim_down_clip: StringName = &"":
+	set(value):
+		prone_aim_down_clip = value
+		emit_changed()
+## The looks the prone down and up clips are made for, in degrees (x down, y up): the aim blends
+## between the three by the look and stays on the last one past it.
+@export var prone_aim_angles := Vector2(25.0, 20.0):
+	set(value):
+		prone_aim_angles = value
+		emit_changed()
 ## The clips of a shot (a recoil, a punch), played on the upper body, one after another shot by
 ## shot (a jab, then a cross). None: a shot plays no clip.
 @export var shoot_clips: Array[StringName] = []:

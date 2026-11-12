@@ -53,6 +53,10 @@ const _HEAD_MODIFIER := &"AimHead"
 @export_group("Head")
 ## The neck's share of the head's turn toward the aim (the head takes the rest).
 @export_range(0.0, 1.0, 0.01) var head_neck_share := 0.4
+## The neck's share lying with a prone aim (`CharacterAnimation.prone_hold_share()` blends to it):
+## the prone aim clips leave the chest rolled, and with the standing share the head took too much
+## of the turn that levels it.
+@export_range(0.0, 1.0, 0.01) var head_prone_neck_share := 0.5
 ## The most the head may turn off the line the chest gives it, in degrees.
 @export_range(0.0, 120.0, 0.5, "suffix:deg") var head_max_turn := 90.0
 ## On: the head keeps the clips' pose while aiming (as before kit #1334).
@@ -154,7 +158,7 @@ func _refresh_head() -> void:
 		looking.active = share > 0.0
 	if share <= 0.0:
 		return
-	looking.neck_share = head_neck_share
+	looking.neck_share = lerpf(head_neck_share, head_prone_neck_share, animation.prone_hold_share())
 	looking.max_turn = head_max_turn
 	looking.target = aim_point(Engine.get_physics_interpolation_fraction())
 	looking.eye = _sight_eye(looking)
