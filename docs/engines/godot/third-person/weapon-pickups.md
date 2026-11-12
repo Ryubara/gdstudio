@@ -378,3 +378,15 @@ model). Captures: `tools/capture/rifle_stock.tscn` (both bodies from the right a
   (closing tips first, the order made for the hand guard), the male's thumb passed 5.4 mm, and a thumb still
   standing up while the hand crossed under the magazine well passed 17 mm. **Seen:** gdstudio #1040, 2026-11-11
   (fix: `open_together` on the magazine, `_WAY_THUMB`, `RELOAD_STEP` 0.005; 2.9 mm at most).
+- **Approach:** Plan a finger's way round a part as a search over a grid of its poses (`tools/hold/plan_trigger_way.py`:
+  every node measured, the shortest walk through the nodes off the surface, then cut to the fewest poses whose
+  legs stay within the limit), leave each end by a finer grid of its own, and check the result with the game's own
+  measure before it is written. **Watch out for:** a tree grown from each end (RRT) never left them in 40,000
+  tries: an end sits wedged (the straight finger's tip and middle on two faces at once), so almost every step from it
+  goes deeper, and steps down the depth's slope turn back and forth between the points that hold it. With the
+  knuckle's roll held at 0 no walk passed under 5.5 mm; with up to 30 degrees one passes clear. **Seen:** gdstudio
+  #1283, 2026-11-12.
+- **Approach:** Make a solver's distance grid cover everywhere the searched poses reach (the corners of their grid
+  and many poses inside it), clipped to the weapon's own bounds. **Watch out for:** a grid round the straight way
+  alone read a point beyond it as the edge's distance plus the way there, so a way through the receiver above it
+  read 1.6 mm on the grid and 6 mm in the game. **Seen:** gdstudio #1283, 2026-11-12.
