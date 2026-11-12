@@ -63,3 +63,10 @@ reload (`templates/3d-third-person/game/assets/animation/prone/build_prone_aim_c
   places: with the up pose 14 cm higher than the level one and the left arm at 0.99 of its length, the blend at 12
   degrees left the hand 16 mm short of its marker and the barrel 4 degrees off; at 7 cm and 0.97 both are inside
   the limits. **Seen:** gdstudio #1111, 2026-11-11 (`test_prone_aim.gd`).
+- **Approach:** When the clip under a layered clip is rebuilt (the prone idle under the aim and the reload), build
+  every clip solved on it again in the order they join (the aim, then the reload), and compare a file read back with
+  a solved pose over the bones the file keys only. **Watch out for:** the merge of main's prone clips for the
+  `form` bodies left the aim and reload files solved on a pelvis 42 mm higher: the posed suites passed and only the
+  live reload read the left hand 14 mm and the magazine 28 mm under the floor; the base build had stopped keying
+  twist bones, so the reload's join check read 127 degrees between its turned twist bones and the file's rests.
+  **Seen:** gdstudio #1185 (PR #1265), 2026-11-12, after #1323 (`--idle prone_form_<body>.glb`, `rig.extra`).

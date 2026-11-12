@@ -29,9 +29,9 @@ index finger off the trigger and along the frame from the first frames to the la
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute, once a body:
 
     blender -b --factory-startup -P build_prone_reload_clip.py -- --body female --model <form_female.glb>
-        --hold <aim_seat.json> --idle <prone.glb> --aim <prone_aim.glb> --out <prone_reload.glb>
+        --hold <aim_seat.json> --idle <prone_form_female.glb> --aim <prone_aim.glb> --out <prone_reload.glb>
     blender -b --factory-startup -P build_prone_reload_clip.py -- --body male --model <form_male.glb>
-        --hold <aim_seat.json> --idle <prone.glb> --aim <prone_aim_male.glb> --out <prone_reload_male.glb>
+        --hold <aim_seat.json> --idle <prone_form_male.glb> --aim <prone_aim_male.glb> --out <prone_reload_male.glb>
 
 Blender exits 0 when a script raises, so read the output for `EXPORTED` and check the file's time.
 
@@ -551,7 +551,10 @@ def main():
     # The poses it joins: the aim as this build solves it, and the shipped file's first frame.
     for label, pose in (("first", frames[0]), ("last", frames[-1])):
         gap, apart = base.pose_gap(pose, reload.aim_pose)
-        file_gap, file_apart = base.pose_gap(pose, joined)
+        # The file holds the keyed bones only: the twist bones are turned for the pose, never keyed.
+        in_file = {n: m for n, m in pose["local"].items() if n in joined["local"]}
+        keyed = {"local": in_file, "pelvis": pose["pelvis"]}
+        file_gap, file_apart = base.pose_gap(keyed, joined)
         report[label + "_pose_off_degrees"] = [round(gap, 5), round(file_gap, 4)]
         if gap > 0.01 or apart > 1e-5:
             failures.append(f"the {label} pose is {gap:.3f} degrees off the prone aim's")
@@ -675,7 +678,9 @@ def main():
         if not args.preview:
             raise SystemExit(1)
     bpy.data.objects.remove(mesh)
-    base.export(arm, args.out)
+    # The twist bones, sockets and IK targets are not keyed (the game's `MannequinTwist` turns the twist bones
+    # after the clip), so the file holds the library's 65 bones, as the body's prone file does.
+    base.export(arm, args.out, rig.extra)
     print("EXPORTED", args.out)
 
 

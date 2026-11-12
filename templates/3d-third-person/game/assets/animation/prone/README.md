@@ -265,6 +265,11 @@ the Godot suite reads the same poses to 0.1 mm):
   (`--idle`): the game's filter from `spine_01` up lays these clips on that pelvis, so the chest and the hands are
   solved on it. **When a body's prone idle changes (kit #1293 solves the prone clips on the prototype bodies), build
   its aim clips again with the new file**, or the hands ride higher or lower by what the pelvis moved.
+  The files here are built on `prone_form_female.glb` and `prone_form_male.glb` (kit #1323 lowered the `form`
+  female's pelvis 42 mm; on the old aim and reload files the live reload then read the left hand 14 mm and the
+  magazine 28 mm under the floor), and the reload after the aim, since it joins the aim's first pose. They hold the
+  library's 65 bones: the twist bones are turned for every measure and never keyed (the game's `MannequinTwist`
+  turns them after the clip).
 - **Past 25 degrees down** the pose stays on the down clip and the aim layer stops there too
   (`ProneTuning.aim_limits`, `pitch_down` 25): turned on to the 40 degrees of the look-down limit, the spine put the
   muzzle 21 cm under the floor.
@@ -303,9 +308,9 @@ output for `EXPORTED` and check the file's time.
 ```text
 godot --headless --path game -s res://tools/hold/dump_aim_seat.gd -- <aim_seat.json>
 blender -b --factory-startup -P build_prone_aim_clips.py -- --body female --model <form_female.glb>
-    --hold <aim_seat.json> --idle <prone.glb> --out <prone_aim.glb>
+    --hold <aim_seat.json> --idle <prone_form_female.glb> --out <prone_aim.glb>
 blender -b --factory-startup -P build_prone_aim_clips.py -- --body male --model <form_male.glb>
-    --hold <aim_seat.json> --idle <prone.glb> --out <prone_aim_male.glb>
+    --hold <aim_seat.json> --idle <prone_form_male.glb> --out <prone_aim_male.glb>
 ```
 
 `tools/capture/prone_aim_tour.tscn` plays the aim in the game from the player's camera, or from the side, the front,
@@ -406,9 +411,9 @@ than 5 mm into another on any frame. Blender exits 0 when the script raises: rea
 ```text
 godot --headless --path game -s res://tools/hold/dump_aim_seat.gd -- <aim_seat.json>
 blender -b --factory-startup -P build_prone_reload_clip.py -- --body female --model <form_female.glb>
-    --hold <aim_seat.json> --idle <prone.glb> --aim <prone_aim.glb> --out <prone_reload.glb>
+    --hold <aim_seat.json> --idle <prone_form_female.glb> --aim <prone_aim.glb> --out <prone_reload.glb>
 blender -b --factory-startup -P build_prone_reload_clip.py -- --body male --model <form_male.glb>
-    --hold <aim_seat.json> --idle <prone.glb> --aim <prone_aim_male.glb> --out <prone_reload_male.glb>
+    --hold <aim_seat.json> --idle <prone_form_male.glb> --aim <prone_aim_male.glb> --out <prone_reload_male.glb>
 ```
 
 Run the dump and both builds again after the seat, a marker, a hand pose, the hold's way or a share of its Reload
