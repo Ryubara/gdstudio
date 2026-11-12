@@ -6,9 +6,11 @@ of every clip, on each mannequin's real skinned mesh, how deep any body part is 
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute:
 
     blender -b --factory-startup -P limb_overlap.py -- --clips <clips.glb> --model <mannequin.glb> [--model ...]
-        [--clip <name> ...] [--limit <mm>] [--fps <rate>] [--json <file>] [--self-test]
+        [--clip <name> ...] [--limit <mm>] [--fps <rate>] [--json <file>] [--brief] [--self-test]
 
-It exits 1 when a clip goes deeper than `--limit` (default `LIMIT_MM`). A build that keys clips imports this file
+It exits 1 when a clip goes deeper than `--limit` (default `LIMIT_MM`). With `--brief` the `--json` file holds only
+each clip's deepest crossing a body and the clip file's SHA-256, so a Godot test can read it and tell when the file
+it was measured on has changed (`prone/bodies_overlap.json`, `vault/bodies_overlap.json`, kit #1286). A build that keys clips imports this file
 and calls `measure()` on its baked actions before it exports (`vault/build_vault.py`).
 
 Which frames it measures: every key, at the clips' own frame rate. A glb stores key times in seconds and no frame
@@ -32,6 +34,7 @@ lengths, and the pelvis's place. So the male mannequin is measured with his long
 """
 
 import argparse
+import hashlib
 import json
 import struct
 import sys
@@ -45,6 +48,9 @@ from mathutils.bvhtree import BVHTree
 ## The deepest a part may be inside another (mm): skin touching skin and no more. The Universal Animation Library's
 ## own Sprint, Jog and Crouch clips read 0 on both mannequins, and none of its 43 clips crosses the legs.
 LIMIT_MM = 5.0
+## The most the rest pose may read (mm): the prototype male's thighs meet at the crotch by 1.9 mm at rest (kit #1286),
+## every other body reads 0. The clips' depths include it, under `LIMIT_MM`.
+REST_MM = 2.5
 ## The ways a sample looks to tell inside from outside (all but one must first meet the back of a face).
 ## The frame rates a clip file is tried at, lowest first (`clip_rate`).
 RATES = (24, 25, 30, 48, 50, 60, 120)
@@ -362,7 +368,7 @@ def self_test(body):
     thigh.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
     print(f"SELFTEST {body.name}: rest {rest * 1000:.1f} mm, a thigh swung through the other {deep * 1000:.1f} mm")
-    assert rest * 1000 < 1.0, f"{body.name}: the rest pose reads {rest * 1000:.1f} mm"
+    assert rest * 1000 < REST_MM, f"{body.name}: the rest pose reads {rest * 1000:.1f} mm"
     assert deep * 1000 > 20.0, f"{body.name}: crossed legs read only {deep * 1000:.1f} mm"
 
 
@@ -375,6 +381,7 @@ def main():
     parser.add_argument("--limit", type=float, default=LIMIT_MM)
     parser.add_argument("--fps", type=int, default=0)
     parser.add_argument("--json", default="")
+    parser.add_argument("--brief", action="store_true")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args(argv)
 
@@ -414,6 +421,17 @@ def main():
                 f"OVERLAP {action.name} {name}: {entry['deepest_mm']} mm at frame {at}{when} "
                 f"({entry['pair']}) {verdict} {json.dumps(entry['by_class'])}"
             )
+    if args.json and args.brief:
+        report = {
+            "clips_file": Path(args.clips).name,
+            "sha256": hashlib.sha256(Path(args.clips).read_bytes()).hexdigest(),
+            "fps": rate,
+            "limit_mm": args.limit,
+            "clips": {
+                clip: {name: {k: entry[k] for k in ("deepest_mm", "frame", "pair")} for name, entry in on.items()}
+                for clip, on in report.items()
+            },
+        }
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8", newline="\n")
     if failed:
