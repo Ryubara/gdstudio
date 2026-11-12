@@ -89,13 +89,23 @@ his file, as the pistol's `WeaponHold.fits` does (`HoldFit.chosen()`; a rifle fi
 `RightHandTarget`). The numbers below are the prototype bodies'; those of the Quaternius pair, which one hold fitted,
 are named as such.
 
-- **The stance.** The butt sits in the right shoulder's pocket, a place from `spine_03` in the clip (`low_pocket`,
-  `low_pitch` 35, `low_yaw` 20 at rest; `aim_pocket` along `view_pitch` when the character aims or for
-  `shot_hold_time` after a shot; `raise_time` 0.15 s, `pitch_limit` 60), so a crouch carries the gun. The chest stands
-  turned `chest_turn` (-30 degrees) from the model's front: `two_hand_stance.gd` takes the clip's own turn of the chest
-  off first, so a walk or a run that swings the shoulders keeps the left shoulder forward. When the hand guard is
-  still farther from the left shoulder than `arm_stretch` (0.97) of the arm, the gun comes back along its barrel until
-  the hand reaches (`pull_limit`).
+- **The stance.** The butt sits in the right shoulder's pocket, a place from `spine_03` in the chest's frame (turned
+  with the chest about the up axis, and by `pocket_lean`, half, of its lean: `low_pocket`, `low_pitch` 35, `low_yaw`
+  10 at rest; `aim_pocket` along `view_pitch` when the character aims or for `shot_hold_time` after a shot;
+  `raise_time` 0.15 s, `pitch_limit` 60), so a crouch carries the gun. The pockets are given a little inside the
+  chest: the gun then goes forward along its barrel until no point of the torso's skin is inside the butt
+  (`butt_pad` 6.2 by 14.5 cm, `butt_depth` 16 cm along the stock, `butt_margin` 1 cm), the skin being points over the
+  body's own torso triangles on the rest pose, one a `skin_spacing` (3 cm) cell and each ridden by its nearest
+  corner's main bone, so the butt comes to the skin of whichever body holds it (kit #1177). The chest stands turned
+  `chest_turn` (-30 degrees) from the model's front: `two_hand_stance.gd` takes the clip's own turn of the chest off
+  first, so a walk or a run that swings the shoulders keeps the left shoulder forward; while the gun is up a chest
+  leaning more than `aim_lean_limit` (25 degrees, a crouch's hunch) is raised toward it, so the head is over the
+  stock and not in it. When the hand guard is still farther from the left shoulder than `arm_stretch` (0.97) of the
+  arm, the left collarbone turns toward it (`reach_turn`, up to 55 degrees: the shoulder comes forward to the
+  fore-end), with the gun where the last frame's push had it; the butt is brought to the skin after it, since the
+  turn brings the chest's left side forward under the stock, and both again in the same frame only when the push
+  moved more than 3 mm. What is still short then brings the gun back along its barrel (`pull_limit`, 0 now:
+  nothing is short).
 - **The arms** are a `HoldArm` each (the pistol's own reach, given the hand's place in the skeleton's space by the
   stance in the same update), toward `RightHandTarget` and `LeftHandTarget` on the rifle, the elbows toward
   `RightPole` and `LeftPole`. Both are on their places in every update of every state (0.0 mm in 110 poses of both
@@ -163,7 +173,8 @@ the rifle, measured every half hundredth, which is the test's step too (it caps 
 
 Tests, `tests/gameplay/test_rifle_hold.gd` with `tests/fixtures/rifle_stage.gd` (a mannequin and the hold posed by
 hand): both hands within the 2 mm and 5 mm in six locomotion clips at the low ready and aimed, and with the view 30
-degrees up and down, on both bodies, the right palm and thumb among the holding parts; the index finger within
+degrees up and down, on both bodies, the right palm and thumb among the holding parts; in the same poses no point of
+the rifle more than 10 mm in the torso (`test_the_stock_stays_out_of_the_chest`); the index finger within
 12 mm of `Trigger` only while the rifle is up and more than 20 mm from it otherwise; the reload every half
 hundredth; and on
 the live player with simulated input, every update of idle, walk, sprint, aim, fire, crouch and crouched walk, the
@@ -195,10 +206,59 @@ into arrays, and past `fingers_far_distance` (set by `CharacterAnimationThrottle
 distance; the hold reads no camera) leaves the fingers on the clip's fist. Every bone came out the same on both
 bodies in twelve poses (aimed, low, the reload at four shares), the pivot and the magazine within 2e-7 m.
 
-Open: the mannequin's arm is short for this rifle's stock. For the left hand to reach the hand guard the butt sits
-5 to 9 cm inside the front of the shoulder (the stock's deepest point against the torso's skin, both mannequins, low,
-aimed and stowed; `pull_limit` takes it further in a sprint). From the game camera it is hidden; from the side the
-stock's end is in the chest. A shorter stock on the model or a support place further back would cure it.
+Bringing the butt to the skin (kit #1177) adds to that, same bench, one round a body in Chrome against the hold
+before it in the same session (microseconds a character a frame, female / male): the rifle at the ready 60 / 62
+against 39 / 38, low 55 / 63 against 32 / 37, reloading 66 / 71 against 46 / 50, past `fingers_far_distance` 37 / 52
+against 32 / 29 (the male's far figure was 40 in an earlier round); the bench's frame for the rifle 3.1 / 3.2 ms
+against 2.3 / 2.2. It was 86 / 83 at the ready as first ported (two passes over every skin point, each bone's pose
+asked of the engine, the reach found by halving). What cut it: the skin's 191 (female) or 194 (male) points lie in
+groups of an 8 cm cell under each bone with a box round each group and each bone, so a frame tests about 18 points;
+the shoulder reaches for the gun where the last frame's push had it and the push is measured once after it, again
+only when it moved more than 3 mm (a new pose); the reach's angle is worked out in closed form; every pose comes
+from the local ones; past `fingers_far_distance` the last near push is kept.
+
+The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
+body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
+out), the deepest in the six locomotion clips at the low ready and aimed and aimed 30 degrees up and down, on the
+prototype bodies:
+
+| | Before (kit #1040) | After |
+| --- | --- | --- |
+| Female | 79.1 mm; 24 to 47 standing | 0.0 mm, the butt 14 mm off the skin at the median, 20 at most |
+| Male | 93.4 mm; 49 to 70 standing | 0.0 mm, 11 mm off at the median, 18 at most |
+| Either hand short of its place | 0 mm (the butt in the chest bought it) | 0 mm |
+
+Three things were needed together. The stock is collapsed 5 cm on the model (`build_rifle.py`'s `STOCK_IN`, an M4's
+stock on its first positions; the butt 0.257 m behind the grip): with the full stock and the butt on the skin the
+left arm was 4 to 10 cm short. The pocket is lateral, at the deltoid's edge (`x` -0.16 from the spine): at -0.10 the
+stock lay across the sternum and the left collarbone's skin came forward into it as that shoulder reached. The low
+ready points 10 degrees across the body, not 20: with the chest turned, a gun yawed further lies along the chest
+and no push along its barrel clears it. From the game camera the rifle covers no less of the screen than before
+(`tools/capture/rifle_tour.tscn -- pixels`, of 2.07 million: 108 pixels at the low ready against 60, 3,276 aimed
+against 2,420, 4,964 crouched and aimed against 3,412; behind the body at rest, as
+[a held weapon from the shoulder camera](../measuring-effects-on-screen.md#a-held-weapon-from-the-shoulder-camera)
+expects). The hands' places on the rifle and the finger poses are as solved (the stock alone changed on the
+model). Captures: `tools/capture/rifle_stock.tscn` (both bodies from the right and the front, `-- stand` or
+`-- move`).
+
+- **Approach:** Measure a held weapon against the body it is held by (a parity test on the closed skinned mesh, the
+  arms and legs left out), in every clip, before trusting a stance, and bring the body's contact about at run time
+  from the model's own skin when two models share one stance. **Watch out for:** the first stance placed the butt by
+  offsets from `spine_03` in the model's space, chosen so the short arm reached; the butt then sat 2 to 9 cm inside
+  the chest, hidden from the game camera, and fixed offsets tuned on one body left the other 4 to 7 cm off its chest.
+  **Seen:** gdstudio #1177, 2026-11-11 (fix: the butt pushed to the skin, the stock collapsed, the collarbone's
+  reach; 0 mm in).
+- **Approach:** Sample a skin for a run-time contact over its triangles at the spacing you thin to, not at its
+  vertices alone, take only the nearest level of detail (`CharacterBodies.near_meshes`), and measure again on every
+  body the template wears when the bodies change. **Watch out for:** the push to the skin was built on the
+  Quaternius skins, whose vertices are dense; on the prototype male, with few large triangles, a stock clear of
+  every vertex stood 10 to 19 mm inside a face at the low ready, and no margin or pad size cured it. **Seen:**
+  gdstudio #1291, 2026-11-12 (fix: points over each triangle; 0 mm on both bodies).
+- **Approach:** Time the parts of a per-frame step inside the bench that runs the crowd (a counter round each
+  part, printed every few thousand calls) before cutting any of them, and give a point test a box per group so
+  most points are never visited. **Watch out for:** a probe that called the push 2,000 times on one idle figure
+  read 5.6 microseconds and the bench 13; grouping the points alone moved nothing, since the loop over 45 groups
+  cost what the points had, until a box per bone went over the groups. **Seen:** gdstudio #1291, 2026-11-12.
 
 - **Approach:** Judge a hold from both sides of each hand, from above and from the game camera, in every state the
   weapon has, and test each thing a person would call wrong: a palm off the grip, a finger beside the trigger, a
@@ -242,7 +302,9 @@ stock's end is in the chest. A shorter stock on the model or a support place fur
   `--check-only` before a probe or a stage awaits it. **Watch out for:** `set_weapon()` skips meshes that are not
   visible in the tree, so a rifle still hidden by the loadout measured as no weapon at all (every part 30 mm off); a
   parse error in a modifier's script leaves the skeleton with nothing that dirties it, `skeleton_updated` never comes
-  and `HoldStage.settle()` waits for ever with no error after the first line. **Seen:** gdstudio #889, 2026-11-11.
+  and `HoldStage.settle()` waits for ever with no error after the first line. **Seen:** gdstudio #889, 2026-11-11;
+  gdstudio #1177, 2026-11-11 (a loop variable named `_step` shadowed the hold's `_step()`, a warning treated as an
+  error, and a probe sat ten minutes on its first pose).
 - **Approach:** Find a hand's place on a grip for each hand size, and judge it by the web's distance from the
   grip's back and the wrist's bend beside the contact; from the weapon's far side the back of the hand should cover
   the grip. Slant the knuckles across a raked grip. **Watch out for:** the place found by eye for the Quaternius

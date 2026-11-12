@@ -386,3 +386,40 @@ free fall's arc are tested on made-up motion only. A body whose legs differ from
 
 The `clip-walk` eval ([Agent evals](../../studio/agent-evals.md)) animates a walk on a given rig and measures the loop
 seam, the in-place hips, the bob, the leg and arm swings and their phases, the arms' hang and the feet on the floor.
+
+## Correcting a library clip for another body {#corrected-clips}
+
+<!-- new section: the page covered clips derived from a kit clip and clips solved from nothing; nothing said how to
+change a library clip only where it fails on a body it was not keyed on (the 3D Third Person fixed clips, #1295) -->
+
+A library clip that puts a limb a few millimetres into another on a body with thicker limbs is corrected, not
+replaced (`templates/3d-third-person/game/assets/animation/fixed/build_fixed_clips.py`): the build reads the
+library's action, and on each frame turns one bone about the axis through its own joint that moves the limb's end
+one way (out from the body's middle), a degree at a time, until `limb_overlap.py` reads no crossing of that limb on
+the bodies it has to be clear on. The angles get a margin (2 degrees), a hold of two frames either side and a
+raised-cosine ease nine frames wide, and are written over the library's keys of that one bone. The build then
+measures every body again, fails over 5 mm on the bodies it fixes and on anything deeper than before on the bodies
+the clip was keyed on, checks the first and last pose are still the library's, and exports only the corrected clips
+with a one-triangle skin. On the three clips of kit #1295 the swing peaks at 4 to 11 degrees and nothing else moves.
+
+- A correction has a ceiling (30 degrees there). `Sword_Dash` and `Sword_Heavy_Combo` cross their thighs by 17 to 29
+  mm while the body turns a quarter in two frames, 30 degrees of thigh does not clear them, and a swung thigh moves
+  a planted foot: that is a pose to key again, and those clips were left as the library's.
+- The corrected file is a changed copy of a third-party clip: it gets its own licence entry naming the source, and
+  the pull request is held for the maintainer.
+
+- **Approach:** Name the armature you export `Armature` in the export function, and assert it. **Watch out for:** a
+  build that imports four bodies and then the library exports the library's armature as `Armature.004`, so every
+  track path was `Armature_004/Skeleton3D:<bone>` and no track found a node in the game; the Blender measure, which
+  reads the file back by bone name, passed. **Seen:** gdstudio #1295, 2026-11-11 (caught by
+  `test_character_clips.gd`'s walk of every track; fix: the rename and its assert in `export()`).
+- **Approach:** Compare a rebuilt clip's rotations with the source clip's in Godot with a limit over 0.1 degrees, or
+  compare the quaternions' components. **Watch out for:** `Quaternion.angle_to` of two single-precision quaternions
+  that are equal to the last bit or two reads 0.03 to 0.09 degrees, so a 0.05 degree limit failed 251 times on keys
+  that were the same. **Seen:** gdstudio #1295, 2026-11-11 (`tests/assets/test_fixed_clips.gd`, limit 0.2).
+- **Approach:** Before filming a clip from the game camera, check that the stage you film plays it: read the state
+  the character is in on those frames, and film a stage made for the clip. **Watch out for:** the slide tour's jump
+  is a jump out of a slide with crouch held, which lands crouched and never plays the landing clip, so the first
+  before-and-after sheet of the landing compared two captures of another clip; and a clip the game blends out early
+  (the landing gets 0.3 s of its 1.27) never shows its later frames at all. **Seen:** gdstudio #1295, 2026-11-11
+  (fix: `tools/capture/fixed_clips_tour.tscn`, a jump on the spot seen from the swung arm's side).
