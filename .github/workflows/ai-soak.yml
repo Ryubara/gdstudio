@@ -1,0 +1,120 @@
+# 3D Third Person's AI over many seeds, too long for the `template` job of ci.yml: a game made from the template, then
+# its AI soak (game/tools/soak/ai_soak.tscn: the AI section's population fighting the player's autopilot and civilians
+# going about the pathing section, at --fixed-fps 60) for 50 seeds of 120 game seconds in five shards, each writing a
+# line of JSON a character (stuck and idle-with-threat seconds, think p50 and p99, path queries, tasks failed by
+# reason), and one run with every fault injected that must fail. Kit docs: docs/gamedev/bots.md#ai-soak. It runs
+# nightly, by hand, and on a pull request that changes the soak or this file; a failed nightly opens (or updates) one
+# issue. Not a required check: the pull-request gate is the soak's suite (tests/gameplay/test_ai_soak.gd).
+name: ai-soak
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - templates/3d-third-person/game/tools/soak/**
+      - .github/workflows/ai-soak.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  soak:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: repos/gdstudio
+          persist-credentials: false
+          lfs: true
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: cache/downloads
+          key: tools-soak-${{ runner.os }}-${{ hashFiles('repos/gdstudio/tools.toml') }}
+      - name: Make the workspace and fetch the pinned Godot
+        run: uv run --project repos/gdstudio/python --frozen gds workspace init --workspace . --no-clone --no-mcp --fetch godot,gdunit4
+      - name: Make a game from the template
+        env:
+          GIT_AUTHOR_NAME: template-check
+          GIT_AUTHOR_EMAIL: template-check@example.invalid
+          GIT_COMMITTER_NAME: template-check
+          GIT_COMMITTER_EMAIL: template-check@example.invalid
+        run: uv run --project repos/gdstudio/python --frozen gds new game template-check --template 3d-third-person --local --workspace .
+      - name: Import the project
+        run: |
+          set -o pipefail
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          "$godot" --headless --path repos/template-check/game --import 2>&1 | tee import.log
+          ! grep -E "^(SCRIPT )?ERROR" import.log
+      - name: Ten seeds of 120 game seconds
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          mkdir -p ai_soak
+          failed=0
+          for index in $(seq 0 9); do
+            seed=$((SHARD * 10 + index + 1))
+            if ! "$godot" --headless --path repos/template-check/game --fixed-fps 60 res://tools/soak/ai_soak.tscn \
+              -- --seconds 120 --seed "$seed" --lines > "ai_soak/seed_$seed.log" 2>&1; then
+              failed=$((failed + 1))
+              echo "Seed $seed broke a gate:"
+              grep "^AI_SOAK_GATE" "ai_soak/seed_$seed.log" | cut -c1-600 || tail -20 "ai_soak/seed_$seed.log"
+            fi
+            grep "^AI_SOAK_CHARACTER " "ai_soak/seed_$seed.log" | sed 's/^AI_SOAK_CHARACTER //' >> "ai_soak/characters_$SHARD.jsonl"
+            grep "^AI_SOAK {" "ai_soak/seed_$seed.log" | sed "s/^AI_SOAK /Seed $seed: /" | cut -c1-400 >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo "Shard $SHARD: $failed of 10 seeds broke a gate" >> "$GITHUB_STEP_SUMMARY"
+          exit $((failed > 0))
+      - name: The soak's teeth (every fault injected; it must fail)
+        if: matrix.shard == 0
+        run: |
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          if "$godot" --headless --path repos/template-check/game --fixed-fps 60 res://tools/soak/ai_soak.tscn \
+            -- --seconds 60 --scale 2 --faults all --round 20 --rescue 10 > ai_soak/teeth.log 2>&1; then
+            echo "TEETH FAILED: the soak passed with every fault injected"; exit 1
+          fi
+          grep "^AI_SOAK {" ai_soak/teeth.log | cut -c1-600
+      - name: Upload the logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ai-soak-${{ matrix.shard }}
+          path: ai_soak
+          if-no-files-found: ignore
+          retention-days: 7
+
+  report:
+    needs: [soak]
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="The nightly AI soak failed"
+          number=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
+            --jq "map(select(.title == \"$title\")) | .[0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "It failed again: $RUN_URL"
+          else
+            gh issue create --title "$title" --label task --label A-godot \
+              --body "From: the ai-soak workflow. A seed of 3D Third Person's AI soak broke a gate: $RUN_URL"
+          fi

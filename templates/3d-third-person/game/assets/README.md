@@ -14,6 +14,9 @@
   Library 1 and 2 (CC0, each with a `LICENSE.md`): the clip checks' bodies and the character's 86 clips.
 - `assets/animation/rifle/` is GDStudio's own rifle clips (`Rifle_Idle`, three aims, `Rifle_Shoot`, `Rifle_Reload`;
   MIT, keyed from scratch by `build_rifle_clips.py` round the two-handed hold; its `README.md` has the numbers).
+- `assets/animation/pistol/` is GDStudio's own pistol slide-rack clip (`Pistol_Rack`; MIT, keyed from scratch by
+  `build_pistol_rack.py` on the player's body's rig, with a `LICENSE.md`), an `AnimationLibrary` like the two packs; its
+  README has the beats, the numbers and why it is an overhand rack.
 - `assets/animation/vault/` is GDStudio's own vault clips (`Vault_Low`, `Vault_High`, `Vault_Land`; MIT, keyed from
   scratch by `build_vault.py` on the mannequin's rig, with a `LICENSE.md`), an `AnimationLibrary` like the two packs,
   and `vault_clips.json`, each clip's reference obstacle and contact times.
