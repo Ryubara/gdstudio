@@ -77,6 +77,7 @@ func sample(at: float, into: PlayerEntry) -> Vector3:
 	into.position = a.position.lerp(b.position, share)
 	into.yaw = lerp_angle(a.yaw, b.yaw, share)
 	into.pitch = lerpf(a.pitch, b.pitch, share)
+	into.aim_yaw = lerp_angle(a.aim_yaw, b.aim_yaw, share)
 	return _velocity(index)
 
 
@@ -107,3 +108,4 @@ static func _copy(from: PlayerEntry, into: PlayerEntry) -> void:
 	into.rising = from.rising
 	into.dead = from.dead
 	into.pitch = from.pitch
+	into.aim_yaw = from.aim_yaw
