@@ -219,8 +219,9 @@ shooting page once that work lands).
   The left hand is laid over the right one as a two-handed grip is taught, goes on and off the gun one way, and the
   trigger finger has a solved way to the trigger: [The two-handed pistol grip](weapon-hands/two-handed-pistol-grip.md).
 - **Or one hand** (kit #1085): with the definition's `one_handed` the right hand's grip is the same pose on the
-  same seat (its thumb on the frame, the index finger on the trigger while aiming) and the left hand is off the gun
-  but for the reload; the arm, the chest and the kick are [One-handed](../../engines/godot/third-person/one-handed.md#one-handed).
+  same seat, the index finger on the trigger while aiming and the thumb forward along the frame where the left
+  thumb's root would be (`one_hand_pose`, set by hand for the female body), and the left hand is off the gun but for
+  the reload; the arm, the chest and the kick are [One-handed](../../engines/godot/third-person/one-handed.md#one-handed).
 - **The slide is racked by a clip of our own** (kit #1081, `assets/animation/pistol/`). `Pistol_Rack` (0.93 s, 28
   frames) is an overhand rack: the left hand over the top of the slide just in front of the rear sight, the palm on
   the top, four fingers down the right side with the index finger's pad on the serrations and the thumb's pad on the

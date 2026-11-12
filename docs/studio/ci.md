@@ -169,7 +169,8 @@ they are rerun, replayed or read from another branch -->
   --allow-escape-sequences repos/<o>/<r>/actions/jobs/<id>/logs`, since `--log-failed` waits for the whole run. **Watch
   out for:** a report blamed one job's time limit for the whole run while a second job was red on a count 2,610 over
   2,600, and it reached the coordinator as a surprise on the next push. **Seen:** Deadnight #1086, 2026-11-04 (fix: the
-  list of jobs read before any explanation).
+  list of jobs read before any explanation); gdstudio #1274, 2026-11-11 (a red `build-ok` handed over unread: the
+  template job's `gdlint` on a suite the branch never touched, red on `main`, fixed there by #1282).
 - **Approach:** Before auto-merge on a branch that is behind, `gds merge-main`, then run the tests that other merges
   added or changed since the branch's base (`git diff --name-only <base>..origin/main -- 'game/tests/**/test_*.gd'`)
   beside the branch's own; the pull request that moves data rewrites a list of known failures keyed by it; reproduce a

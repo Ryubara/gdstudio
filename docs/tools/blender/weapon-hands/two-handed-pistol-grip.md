@@ -82,6 +82,7 @@ by hand:
 | female | `grip` | right little | Spread 2.25 degrees down the grip toward the left little finger (6 degrees put it 2.4 mm into the left hand under the magazine) | 0.3 mm in the left ring finger, 1.6 mm in the hand under the magazine |
 | female | `open` | left middle, ring, little | The same fingers opened from the new pose: the knuckles 10 to 12 degrees less bent, the spreads part of the way back | at most 1.3 mm in on the way |
 | female | `thumb` | right thumb | The solved thumb hooked down behind the left palm, 15.4 mm from the left thumb's root. It now goes round under the tang, lies forward along the gun's left and rests its tip on the root of the left thumb | 4.7 mm from the root, 0.9 mm in |
+| female | `one_hand` | right thumb | Aimed in one hand (kit #1085) the solved grip's thumb is folded down the grip panel, 71 degrees off the barrel. It lies forward along the frame under the slide, as the male body's solved thumb does; searched from the `thumb` pose's angles for the tip on the frame and along the barrel, then looked at from five sides | 1.0 mm off the frame, 23 degrees off the barrel, at most 2 mm in on its way through `thumb_way` |
 | female, male | `thumb_way` | right thumb | The pose between its two places ([below](#between-the-poses)) | 1.0 and 1.2 mm in at most on the way |
 
 ## Between the poses {#between-the-poses}
