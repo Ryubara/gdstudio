@@ -2,7 +2,7 @@ class_name HoldFit
 extends Resource
 ## A weapon's hold solved on one body (kit #1187): where the weapon sits in that body's right hand,
 ## where its left hand holds and pushes the magazine, the line its opened hand leaves along, and
-## the five hand poses. Hands of other sizes need other finger poses and another seat, so each
+## the eight hand poses. Hands of other sizes need other finger poses and another seat, so each
 ## body the template ships has its own, written by `tools/hold/write_hold.gd` from the solver's
 ## output (no number here is typed). `WeaponHold.fits` (the pistol) and `TwoHandHold.fits` (the
 ## rifle) hold them; the one whose `body` is the model's file is used (`chosen`), and a model with
@@ -21,6 +21,9 @@ extends Resource
 @export var support_way := Vector3(0.0, 0.0, 0.06)
 @export var grip_pose: HandPose
 @export var trigger_pose: HandPose
+@export var trigger_way_pose: HandPose
+@export var thumb_pose: HandPose
+@export var thumb_way_pose: HandPose
 @export var support_pose: HandPose
 @export var magazine_pose: HandPose
 @export var open_pose: HandPose

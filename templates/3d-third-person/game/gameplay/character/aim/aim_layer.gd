@@ -16,8 +16,16 @@ extends Node
 ## is on by as much as the weapon is aimed (`CharacterAnimation.pistol_weights()`), less a
 ## reload. It is a pose on each machine from what the body already has (the view's yaw and
 ## pitch): cosmetic, never sent. A weapon with no muzzle (the fists) turns nothing.
+##
+## It makes an `AimHeadModifier` after it too (kit #1334): with any weapon, the fists among them,
+## the head looks along the aim, level, with the neck on its line, whatever head the clips carry.
+## It is on by the aim (the pistol's aim pose, or the character's `aim_amount` eased), less a
+## reload. A weapon whose definition says `AimHead.SIGHT` (the rifle) has the head brought to its
+## sights instead, the eye toward the definition's `aim_eye` marker; the head's modifier then
+## runs after the stance of the hold that places that weapon.
 
 const _MODIFIER := &"AimOffset"
+const _HEAD_MODIFIER := &"AimHead"
 
 @export_group("Nodes")
 ## The character whose aim the weapon follows.
@@ -42,7 +50,19 @@ const _MODIFIER := &"AimOffset"
 ## On: no turn (the clips alone aim the weapon, as before the layer).
 @export var disabled := false
 
+@export_group("Head")
+## The neck's share of the head's turn toward the aim (the head takes the rest).
+@export_range(0.0, 1.0, 0.01) var head_neck_share := 0.4
+## The most the head may turn off the line the chest gives it, in degrees.
+@export_range(0.0, 120.0, 0.5, "suffix:deg") var head_max_turn := 90.0
+## On: the head keeps the clips' pose while aiming (as before kit #1334).
+@export var head_disabled := false
+
 var _modifier: AimOffsetModifier
+var _head: AimHeadModifier
+# The weapon whose `aim_eye` was looked up last, and the marker found (null: a level head).
+var _eye_of: WeaponDef
+var _eye: Node3D
 var _ray_before := PackedVector3Array()
 var _ray_now := PackedVector3Array()
 
@@ -73,6 +93,22 @@ func modifier() -> AimOffsetModifier:
 	return _modifier if _modifier != null and is_instance_valid(_modifier) else null
 
 
+## The head modifier this node made on the skeleton, or null.
+func head_modifier() -> AimHeadModifier:
+	return _head if _head != null and is_instance_valid(_head) else null
+
+
+## The share the head looks along the aim by now (0 the clips' head, 1 all the way): the aim,
+## from the aim pose's weight or the character's `aim_amount` eased, less a reload.
+func head_weight() -> float:
+	if head_disabled or character == null or animation == null or animation.tree == null:
+		return 0.0
+	if not animation.tree.active or character.aim_limits == null:
+		return 0.0
+	var aimed := maxf(animation.pistol_weights().y, smoothstep(0.0, 1.0, character.aim_amount))
+	return aimed * (1.0 - animation.reload_progress().x)
+
+
 ## The share the layer is on by now (0 off, 1 the whole turn): the aim's weight, less a reload,
 ## and 0 in a move whose limits are off.
 func weight() -> float:
@@ -87,8 +123,9 @@ func weight() -> float:
 	return animation.pistol_weights().y * (1.0 - reload)
 
 
-## Puts the aim on the modifier now (the frame's own `_process` does it too).
+## Puts the aim on the modifiers now (the frame's own `_process` does it too).
 func refresh() -> void:
+	_refresh_head()
 	var aim := modifier()
 	if aim == null:
 		return
@@ -106,6 +143,44 @@ func refresh() -> void:
 	aim.release_time = release_time
 
 
+func _refresh_head() -> void:
+	var looking := head_modifier()
+	if looking == null:
+		return
+	var share := head_weight()
+	if not is_equal_approx(looking.influence, share):
+		looking.influence = share
+	if looking.active != (share > 0.0):
+		looking.active = share > 0.0
+	if share <= 0.0:
+		return
+	looking.neck_share = head_neck_share
+	looking.max_turn = head_max_turn
+	looking.target = aim_point(Engine.get_physics_interpolation_fraction())
+	looking.eye = _sight_eye(looking)
+
+
+# The marker the head's eye goes to with the weapon in the hands, or null for a level head. The
+# weapon is placed by its hold's stance in the same update, so the head's modifier is moved after
+# it.
+func _sight_eye(looking: AimHeadModifier) -> Node3D:
+	var definition := character.weapon.definition if character.weapon != null else null
+	if definition != _eye_of or (_eye != null and not is_instance_valid(_eye)):
+		_eye_of = definition
+		_eye = null
+		if definition != null and definition.aim_head == WeaponDef.AimHead.SIGHT and model != null:
+			_eye = model.get_node_or_null(definition.aim_eye) as Node3D
+	if _eye == null:
+		return null
+	var skeleton := looking.get_parent()
+	for index in range(looking.get_index() + 1, skeleton.get_child_count()):
+		var after := skeleton.get_child(index)
+		if after is SkeletonModifier3D and after.get_script() == TwoHandHold.STANCE_SCRIPT:
+			skeleton.move_child(looking, index)
+			break
+	return _eye
+
+
 ## The point the muzzle is turned toward, `fraction` of the way from the step before the last to
 ## the last one: `converge_distance` along the aim ray.
 func aim_point(fraction: float) -> Vector3:
@@ -119,13 +194,17 @@ func aim_point(fraction: float) -> Vector3:
 	return start + along * converge_distance
 
 
-# Makes the modifier on the model's skeleton, after freeing the one made on the last model, right
-# after the hold's grip (or first, with no hold).
+# Makes the modifiers on the model's skeleton, after freeing the ones made on the last model: the
+# spine's right after the hold's grip (or first, with no hold), the head's right after it.
 func _build() -> void:
-	if _modifier != null and is_instance_valid(_modifier):
-		_modifier.get_parent().remove_child(_modifier)
-		_modifier.queue_free()
+	for made: Node in [_modifier, _head]:
+		if made != null and is_instance_valid(made):
+			made.get_parent().remove_child(made)
+			made.queue_free()
 	_modifier = null
+	_head = null
+	_eye_of = null
+	_eye = null
 	var skeleton := model.skeleton() if model != null else null
 	if skeleton == null:
 		return
@@ -137,6 +216,12 @@ func _build() -> void:
 	_modifier.influence = 0.0
 	skeleton.add_child(_modifier)
 	_place(skeleton)
+	_head = AimHeadModifier.new()
+	_head.name = _HEAD_MODIFIER
+	_head.active = false
+	_head.influence = 0.0
+	skeleton.add_child(_head)
+	skeleton.move_child(_head, _modifier.get_index() + 1)
 	refresh()
 
 

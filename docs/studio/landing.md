@@ -188,7 +188,8 @@ force push, which is the maintainer's decision: open the same change from a new 
   title (`ui: Merge main into x`) is refused (`Merge` is not a verb on the list); `--continue` commits through
   pre-commit, where a 155-character licence line met the 120 limit, a merge staged for hours met `gdlint` at 1,016
   lines, and two `Seen:` lists joined in a conflict passed the 900-character rule limit. **Seen:** Deadnight #539,
-  #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (merged with `--no-edit`); gdstudio #1256, 2026-11-11.
+  #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (merged with `--no-edit`); gdstudio #1256, 2026-11-11;
+  gdstudio #1323, 2026-11-12 (plain `git merge --no-edit`: no trailer).
 - **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
   after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
   HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply

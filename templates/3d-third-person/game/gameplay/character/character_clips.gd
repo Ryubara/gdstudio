@@ -3,7 +3,8 @@ extends RefCounted
 ## The names of every clip the character can play: the Universal Animation Library 1 and 2
 ## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
 ## `ual2`, so a clip is `ual1/Idle`, the template's own prone and crawl clips (gdstudio
-## #1009, `assets/animation/prone/`), the library `prone`, and GDStudio's own clips that replace
+## #1009, `assets/animation/prone/`), the library `prone`, its own rifle clips (gdstudio #1082,
+## `assets/animation/rifle/`), the library `rifle`, and GDStudio's own clips that replace
 ## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
 ## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
 ## The library `fixed` holds the few library clips that put a limb through another on the
@@ -25,6 +26,7 @@ const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
 const LIBRARY_OWN := &"gds"
 const LIBRARY_VAULT := &"vault"
+const LIBRARY_RIFLE := &"rifle"
 const LIBRARY_FIXED := &"fixed"
 
 # Locomotion and the clips the player's states use.
@@ -90,7 +92,15 @@ const STAND_INS: Dictionary[StringName, StringName] = {
 	&"fixed/Sword_Heavy_Combo": &"ual2/Sword_Heavy_Combo",
 }
 
-## Every clip of the six libraries, with its library.
+# The rifle, held in both hands: the template's own clips.
+const RIFLE_IDLE := &"rifle/Rifle_Idle"
+const RIFLE_AIM := &"rifle/Rifle_Aim_Neutral"
+const RIFLE_AIM_UP := &"rifle/Rifle_Aim_Up"
+const RIFLE_AIM_DOWN := &"rifle/Rifle_Aim_Down"
+const RIFLE_SHOOT := &"rifle/Rifle_Shoot"
+const RIFLE_RELOAD := &"rifle/Rifle_Reload"
+
+## Every clip of the seven libraries, with its library.
 const ALL: Array[StringName] = [
 	&"ual1/A_TPose",
 	&"ual1/Crouch_Fwd",
@@ -186,6 +196,12 @@ const ALL: Array[StringName] = [
 	&"vault/Vault_High",
 	&"vault/Vault_Land",
 	&"vault/Vault_Low",
+	&"rifle/Rifle_Aim_Down",
+	&"rifle/Rifle_Aim_Neutral",
+	&"rifle/Rifle_Aim_Up",
+	&"rifle/Rifle_Idle",
+	&"rifle/Rifle_Reload",
+	&"rifle/Rifle_Shoot",
 	&"fixed/Jump_Land",
 	&"fixed/NinjaJump_Land",
 	&"fixed/Slide_Exit",

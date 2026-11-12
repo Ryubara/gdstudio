@@ -17,7 +17,10 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   own fist).
 - `tools/hold/` solves the pistol hold: `dump_hold_rig.gd` writes the rig as Godot plays it,
   `solve_pistol_hold.py` (numpy and scipy; `hold_rig.py`, `hold_field.py` and `hold_hand.py` are its parts) closes
-  both hands on the pistol for both mannequins, and `write_hold.gd` writes the seat and the three `HandPose` files.
+  both hands on the pistol for both mannequins, and `write_hold.gd` writes the seat and the `HandPose` files, with the
+  finger poses set by hand
+  (`pistol_authored.json`, read by `authored_pose.gd`) laid over them; `pose_bench.gd` measures such a file on the
+  tests' stage before it is written (`PARTS=1`, `JOINTS=`, `OBJ=`).
 - `tools/capture/rack_closeups.tscn` poses a body on every frame of the pistol's slide-rack clip
   (`assets/animation/pistol/`) with the hold's hands, the left hand reached to the slide and the body's own fingers
   (`tests/fixtures/rack_stage.gd`): headless it prints how each hand meets the pistol (lines starting `RACK`) and,
@@ -54,6 +57,10 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/capture/rifle_hold_study.tscn` holds the rifle on the mannequin five ways with the clips the template has
   (the pistol clip, left-hand IK, shouldered with both hands on IK, aimed up, low ready), prints how far each hand stops
   from its target and, with a window and `HOLD_OUT`, saves the renders (the header says how to run it).
+- `tools/capture/rifle_clip_closeups.tscn` pictures the rifle clips (`assets/animation/rifle/`) pose by pose on both
+  bodies, eight views at once (the body from the right, above, the front and the player's camera; the grip hand
+  and the support hand from both their sides, from cameras that ride the rifle), with the hold told what the game
+  tells it (`CLOSEUPS_OUT=<folder>`); it prints each hand's gap and depth.
 - `tools/capture/vault_study.tscn` plays the vault clips (`assets/animation/vault/`) on the mannequin over each clip's
   reference box, with a sprint in and out, from four views; headless it prints how still the planted hand stays
   (`MODEL=male`, `VIEWS`, `SLOW`, `LOW_HEIGHT` and `HIGH_HEIGHT` are in the header).

@@ -42,6 +42,20 @@ static func stow_share(body: Character) -> float:
 	return smoothstep(0.0, 1.0, body.prone_amount) * (1.0 - body.aim_amount)
 
 
+## How much of a weapon's clips a body plays for how far it lies (1 all, 0 none): less than 1 only
+## for a weapon whose clips stand the trunk from the pelvis (`WeaponDef.clips_upright`, the
+## rifle's). Lying, the prone clips keep the body and the weapon's hold alone carries it.
+static func upright_share(body: Character, hold: WeaponDef) -> float:
+	if hold == null or not hold.clips_upright or body == null:
+		return 1.0
+	return 1.0 - smoothstep(0.0, 1.0, body.prone_amount)
+
+
+## True when `body` lies too far for `hold`'s clips to play (a reload plays no clip then).
+static func lies_past_clips(body: Character, hold: WeaponDef) -> bool:
+	return upright_share(body, hold) < 0.5
+
+
 ## Hides the model of the weapon in the hands (`hold.view` under `model`) while `away`, and shows
 ## it again after; the loadout shows the model of a weapon switched to while lying, so it is
 ## hidden again.
@@ -56,15 +70,28 @@ func stow_view(model: Node3D, hold: WeaponDef, away: bool) -> void:
 ## Gives `player` the prone library `libraries` names for `rig`'s scene file, or the scene's
 ## shared one. Only in the game: a library swapped in the editor would be saved with the scene.
 func use_model_clips(player: AnimationPlayer, rig: Node3D, libraries: Dictionary) -> void:
+	_shared = swap_library(player, rig, CharacterClips.LIBRARY_PRONE, libraries, _shared)
+
+
+## Gives `player` the library named `library` that `libraries` holds for `rig`'s scene file, or
+## `shared`, the one the scene came with. Returns that shared library (found on the first call,
+## when `shared` is null), for the caller to keep and pass again.
+static func swap_library(
+	player: AnimationPlayer,
+	rig: Node3D,
+	library: StringName,
+	libraries: Dictionary,
+	shared: AnimationLibrary
+) -> AnimationLibrary:
 	if Engine.is_editor_hint() or player == null or rig == null:
-		return
-	var library := CharacterClips.LIBRARY_PRONE
+		return shared
 	var has := player.has_animation_library(library)
-	if _shared == null and has:
-		_shared = player.get_animation_library(library)
-	var wanted: AnimationLibrary = libraries.get(rig.scene_file_path, _shared)
+	if shared == null and has:
+		shared = player.get_animation_library(library)
+	var wanted: AnimationLibrary = libraries.get(rig.scene_file_path, shared)
 	if wanted == null or (has and player.get_animation_library(library) == wanted):
-		return
+		return shared
 	if has:
 		player.remove_animation_library(library)
 	player.add_animation_library(library, wanted)
+	return shared

@@ -288,6 +288,9 @@ by the overshoot; a refusing weapon keeps the body and fires nothing until the a
 limits are the move's; a zero limit holds the aim along the body). The capture is `tools/capture/slide_aim_tour.tscn`
 (`AIM_LAYER_OFF=1` shows the clips alone, `CLOSE=1` and `CLOSE_SIDE=left` film the hands).
 
+**The head** (gdstudio #1334): an `AimHeadModifier` after the spine's turn holds the head level and looking along the
+aim on a straight neck while any weapon aims, whatever head the clips carry ([the aiming head](aim-head.md#head-on-aim)).
+
 - **Approach:** Solve an aim offset as a pitch about the body's side axis first, then a yaw about up, and hold the
   *aimed direction* within the limits, not the turn. **Watch out for:** a yaw about up first, then a pitch, with the
   turn clamped, is ill-conditioned when the clip points the muzzle near vertical (the slide: the heading of a direction
@@ -481,6 +484,8 @@ and off the gun one way (its fingers open where it holds, then the opened hand l
 `WeaponHold.support_way`), and `SupportHandPlan` (`gameplay/weapon/hold/support_hand_plan.gd`) names the reload's
 phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD`, `LET_GO`, `AWAY`, `REACH`,
 `INSERT`, `SEATED` or `RETURN`. It is cosmetic: the rounds go in at the end of `reload_time` whatever the hands do.
+How the two hands hold the pistol together, the trigger finger's way to the trigger and the hand's retreat when the
+arm is short are on [The two-handed pistol grip](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses).
 
 The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (`assets/animation/pistol/`, kit #1081): it
 starts and ends on the pose the reload ends on, and its `SlideRack` resource

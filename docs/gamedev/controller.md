@@ -93,6 +93,13 @@ each one, rather than finding them one by one in play.
   reload began only when the server refused a shot at an empty gun, and touch auto-fire stops pulling the trigger at 0
   rounds, so on a phone nothing asked and the gun stayed dry. **Seen:** Deadnight #1278, 2026-11-05 (fix:
   `NightServer._reload_if_dry` starts it from the state).
+- **Approach:** Let only a press fill a fire buffer; a held automatic trigger pulls on the ticks it is held and no
+  longer, and the cooldown keeps the part of a tick past its end so a held trigger fires the weapon's rate. Test a held
+  press for `duration x rate` shots (within one) and none after the release. **Watch out for:** the held trigger
+  refilled the buffer every tick, so a click held past its shot left one more shot buffered; and the cooldown was set
+  to the interval after a tick that had run past it, while 0.1 s counted down by 1/60 s left a rounding error above
+  zero, so the 10-a-second rifle fired 9. **Seen:** gdstudio #1335, 2026-11-12 (`Character._use_weapon`,
+  `Weapon._next_cooldown`).
 
 ## Feel {#feel}
 
