@@ -73,8 +73,9 @@ A clip is a GIF or an MP4 by the rule on [GIF or MP4](capture.md#gif-or-mp4), an
   `--attach` swaps in the upload address and GitHub draws it as an image that plays inline and loops. It counts as the
   capture on its line.
 - **An MP4 is its bare upload address on its own line**, with a blank line on each side: only then does GitHub draw a
-  player. `![x](./<name>.mp4)` becomes a plain link after the upload, so attach with that reference, then replace the
-  link with the address alone and `gh pr edit --body-file` again
+  player. `![x](./<name>.mp4)` becomes a plain link after the upload (or, written alone on its own line, the bare
+  address already: `gh` 2.102 on gdstudio #1172, so read the body back first), so attach with that reference, then
+  replace any link left with the address alone and `gh pr edit --body-file` again
   ([Sound](capture.md#sound-a-clip-you-can-listen-to)); put a still or a sheet on the `After:` line beside it.
 
 - **Approach:** Make the reference and the `--attach` path one file: `cd` into the images' folder and write `--attach

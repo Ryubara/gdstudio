@@ -214,6 +214,13 @@ the new one (2 and 0).
   `drawImage` of the GIF saw no frame change at all, since drawing an animated image draws its first frame, and
   headless shell showed the same; a 68-run sweep was stopped at 900 s with its rows printed and its JSON never
   written. **Seen:** gdstudio #1153, 2026-11-11.
+- **Approach:** For a loop of a gait, record whole cycles at 60 fps (the GIF is then an even 20 fps, and a cycle of
+  0.667 s ends on a frame), compare the last frame with the first, and frame the scene in Godot as the GIF should
+  show it. **Watch out for:** cropping the frames to win a wider GIF made every file larger at each width (2.2 MB
+  became 2.8 MB at 640 px), because the encoder scales what is left to the same width and the moving bodies cover
+  more of it: three bodies on a grid floor fit the budget at 480 px either way; and a jump clip that is in place
+  reads as a body standing on one leg until the scene lifts it as the game would. **Seen:** gdstudio #1149,
+  2026-11-11 (`tools/capture/mannequin_parade.gd` of 3D Third Person).
 - **Approach:** Give every file on an `--attach` its own `![name](./<file>)` reference inside `## Screenshots`, a
   video as well as a picture, and write a video's reference in image form alone on its line. **Watch out for:** the
   guard refuses an attached file the section does not refer to, and a bare `./clip.mp4` line or a plain-text name is
