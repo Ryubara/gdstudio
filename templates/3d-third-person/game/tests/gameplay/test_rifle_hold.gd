@@ -195,6 +195,62 @@ func test_the_left_hand_takes_the_magazine_out_and_in_through_the_reload() -> vo
 		stage.free()
 
 
+# The hold puts the left hand's place and the magazine back only when a reload ends (kit #1178:
+# it no longer writes them every frame), so a reload cut off with the magazine out of the rifle
+# still leaves both where they rest and the left hand on the hand guard.
+func test_a_reload_cut_off_puts_the_magazine_and_the_left_hand_back() -> void:
+	var stage := RifleStage.make_rifle(_holder, "female")
+	var hold := stage.hold as TwoHandHold
+	var magazine := hold.get_node(hold.magazine) as Node3D
+	var target := stage.rifle.get_node(^"LeftHandTarget") as Node3D
+	stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0)
+	await stage.settle()
+	var magazine_rest := magazine.transform
+	var target_rest := target.transform
+	stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0, 0.0, 0.35)
+	await stage.settle()
+	assert_bool(magazine.transform.is_equal_approx(magazine_rest)).is_false()
+	stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0)
+	await stage.settle()
+	assert_bool(magazine.transform.is_equal_approx(magazine_rest)).is_true()
+	assert_bool(magazine.visible).is_true()
+	assert_bool(target.transform.is_equal_approx(target_rest)).is_true()
+	_assert_hand(stage, "l", "after a reload cut off")
+	stage.free()
+
+
+# Told the camera is past `fingers_far_distance` (`fingers_far`, from the animation throttle), the
+# fingers keep the clip (their modifiers are off: kit #1178) and both arms still hold the rifle;
+# told it is near again, the fingers close on it.
+func test_far_from_the_camera_the_fingers_rest_and_the_arms_still_hold() -> void:
+	var stage := RifleStage.make_rifle(_holder, "female")
+	var hold := stage.hold as TwoHandHold
+	for far: bool in [true, false, true]:
+		var distance := hold.fingers_far_distance + (5.0 if far else -7.0)
+		hold.fingers_far = far
+		stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0)
+		await stage.settle()
+		for modifier in hold.modifiers():
+			var posed := modifier is not HandPoseModifier or not far
+			(
+				assert_bool(modifier.active)
+				. override_failure_message(
+					"%s at %.0f m: active %s" % [modifier.name, distance, modifier.active]
+				)
+				. is_equal(posed)
+			)
+		for side: String in ["r", "l"]:
+			var gap := stage.hand_gap(side)
+			(
+				assert_float(gap)
+				. override_failure_message(
+					"at %.0f m hand_%s is %.1f mm off" % [distance, side, gap * 1e3]
+				)
+				. is_less(REACH)
+			)
+	stage.free()
+
+
 # The player's own scene: with the rifle out, both hands are on it on every update while the
 # character stands, walks, sprints, aims, fires, crouches and walks crouched, and through the
 # changes between them (a hand that trailed the rifle by a frame would show here).

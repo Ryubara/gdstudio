@@ -9,7 +9,10 @@ extends Node
 ## - `STUCK`: a hostile walking somewhere is held where it stands, and sent on again whenever its
 ##   navigator gives up (a body that cannot move while its mind keeps asking);
 ## - `IDLE`: a hostile that sees a hostile of its own has its tasks paused and its navigator and
-##   controller let go, and keeps believing it sees the player (refreshed after its senses);
+##   controller let go, and keeps believing it sees the player (refreshed after its senses); it
+##   cannot die until it has stood so for the watch's `idle_seconds` and `IDLE_HOLD_SLACK`, so the
+##   pilot's shots (it shoots every hostile in its sight, and a still one is easy) cannot end the
+##   stretch before the gate sees it, then it can;
 ## - `TASK_OVERDUE`: a hostile is given a task that never ends, with a hard timeout of
 ##   `overdue_timeout`, at the top layer, and its active task's clock is held at 0, so the timeout
 ##   never ends it;
@@ -44,6 +47,8 @@ const GATE_OF := {
 	Fault.POCKET: &"round",
 	Fault.BELIEF: &"belief",
 }
+## Seconds past the watch's `idle_seconds` an `IDLE` target is kept alive.
+const IDLE_HOLD_SLACK := 1.0
 ## The names the command line takes (`--faults stuck,idle`).
 const NAMES := {
 	"error": Fault.ERROR,
@@ -69,6 +74,9 @@ var faults := 0
 @export var player: Player
 ## A node of the level a `BELIEF` target believes in (a wall).
 @export var wall: Node3D
+## The watch whose gates the faults break (its `idle_seconds` sets how long `IDLE` holds its
+## target alive).
+@export var watch: AiSoakWatch
 
 ## Each fault's target, once taken.
 var targets: Dictionary[int, AiCharacter] = {}
@@ -77,6 +85,8 @@ var _clock := 0.0
 var _error_told := false
 var _pinned := Vector3.ZERO
 var _stuck_turn := 0
+## Seconds the `IDLE` target has stood broken and alive (its hold ends past the gate's window).
+var _idle_held := 0.0
 var _late := Late.new()
 
 
@@ -172,7 +182,7 @@ func _physics_process(delta: float) -> void:
 				continue
 		# A dead target, or one back in the pool, is broken again once it is spawned again.
 		if target.is_inside_tree() and not target.is_dead():
-			_break(fault, target)
+			_break(fault, target, delta)
 
 
 func _take_target(fault: int) -> AiCharacter:
@@ -212,11 +222,14 @@ func _start(fault: int, character: AiCharacter) -> void:
 			_pinned = character.global_position
 		Fault.SLOW_THINK:
 			character.thought.connect(_slow_think)
+		Fault.IDLE:
+			_idle_held = 0.0
+			Health.of(character).invulnerable = true
 		Fault.POCKET:
 			Health.of(character).invulnerable = true
 
 
-func _break(fault: int, character: AiCharacter) -> void:
+func _break(fault: int, character: AiCharacter, delta: float) -> void:
 	match fault:
 		Fault.STUCK:
 			character.global_position = _pinned
@@ -235,6 +248,7 @@ func _break(fault: int, character: AiCharacter) -> void:
 				navigator.stop()
 			if character.ai_controller() != null:
 				character.ai_controller().release()
+			_hold_idle(character, delta)
 		Fault.TASK_OVERDUE:
 			var runner := (character.task_runner as AiTasks).runner
 			if not runner.active is HoldTask:
@@ -260,6 +274,18 @@ func _break(fault: int, character: AiCharacter) -> void:
 				belief.time = senses.beliefs.clock
 				belief.awareness = 1.0
 				belief.noticed = true
+
+
+# Keeps the `IDLE` target alive until the idle gate has had its window and a little more, then
+# lets it die as any hostile does: a target the pilot shot first ended the stretch it had to show.
+func _hold_idle(character: AiCharacter, delta: float) -> void:
+	var health := Health.of(character)
+	if health == null or not health.invulnerable:
+		return
+	_idle_held += delta
+	var window := watch.idle_seconds if watch != null else 0.0
+	if _idle_held > window + IDLE_HOLD_SLACK:
+		health.invulnerable = false
 
 
 func _slow_think(_seconds: float) -> void:
