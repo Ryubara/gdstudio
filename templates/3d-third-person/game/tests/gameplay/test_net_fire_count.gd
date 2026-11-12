@@ -3,7 +3,8 @@
 # one tick, taps it for less than the shot interval and holds it two seconds, as a player's input
 # would; the client's body fires what it predicts at once and the server's body fires the same
 # commands. For every weapon, one shot a press and automatic, the two counts are the same shot for
-# shot, and each press gave what it gives offline (`test_fire_count.gd`).
+# shot, and each press gave what it gives offline (`test_fire_count.gd`). The fists' press is a blow
+# (gdstudio #1254), counted as a shot: one a press, held or not, automatic or not.
 extends GdUnitTestSuite
 
 const WEAPONS: Array[String] = [
@@ -51,6 +52,8 @@ func test_the_client_predicts_the_shots_the_server_fires() -> void:
 	var server_body := _rig.server_body(_client)
 	_client.player.weapon.fired.connect(func(_s: Projectile) -> void: client_shots[0] += 1)
 	server_body.weapon.fired.connect(func(_s: Projectile) -> void: server_shots[0] += 1)
+	_client.player.weapon.melee_started.connect(func(_b: int) -> void: client_shots[0] += 1)
+	server_body.weapon.melee_started.connect(func(_b: int) -> void: server_shots[0] += 1)
 	var seen: Array[String] = []
 	for automatic: bool in [false, true]:
 		for path in WEAPONS:
@@ -76,7 +79,7 @@ func test_the_client_predicts_the_shots_the_server_fires() -> void:
 				await _rig.wait(AIM_TICKS + press + SETTLE_TICKS)
 				var expected := 1.0
 				var slack := 0.0
-				if press == hold and automatic:
+				if press == hold and automatic and definition.kind != WeaponDef.Kind.MELEE:
 					expected = HOLD_SECONDS * definition.fire_rate
 					slack = 1.0
 				seen.append(

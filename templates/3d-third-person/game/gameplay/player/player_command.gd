@@ -40,6 +40,9 @@ var reload_pressed := false
 var next_weapon_pressed := false
 var previous_weapon_pressed := false
 var unarmed_pressed := false
+## The melee button, pressed since the last command (gdstudio #1254): the weapon in the hands
+## throws its category's blow (`Weapon.melee`).
+var melee_pressed := false
 
 # The shot block.
 ## A shot may leave the muzzle this tick (the fire button was pressed or is buffered and the weapon
@@ -97,6 +100,7 @@ func copy_from(other: PlayerCommand) -> PlayerCommand:
 	next_weapon_pressed = other.next_weapon_pressed
 	previous_weapon_pressed = other.previous_weapon_pressed
 	unarmed_pressed = other.unarmed_pressed
+	melee_pressed = other.melee_pressed
 	has_shot = other.has_shot
 	origin = other.origin
 	shot_yaw = other.shot_yaw
@@ -137,6 +141,7 @@ func clear_edges() -> void:
 	next_weapon_pressed = false
 	previous_weapon_pressed = false
 	unarmed_pressed = false
+	melee_pressed = false
 	has_shot = false
 	origin = Vector3.ZERO
 	shot_yaw = 0.0
@@ -156,6 +161,7 @@ func merge_edges_from(earlier: PlayerCommand) -> void:
 	next_weapon_pressed = next_weapon_pressed or earlier.next_weapon_pressed
 	previous_weapon_pressed = previous_weapon_pressed or earlier.previous_weapon_pressed
 	unarmed_pressed = unarmed_pressed or earlier.unarmed_pressed
+	melee_pressed = melee_pressed or earlier.melee_pressed
 	if earlier.has_shot and not has_shot:
 		has_shot = true
 		origin = earlier.origin

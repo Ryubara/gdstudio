@@ -179,7 +179,8 @@ Those are the times a learning makes a new page. The check names the page and it
   saw it; only the merge put `hooks.md` over 50 KB, and the branch could not land. **Seen:** gdstudio #1202, 2026-11-11
   (the hold section moved to `hooks-hold.md`, a pointer stays at `hooks.md#hold`; the check passed); gdstudio #1298,
   2026-11-11 (main had `own-animation.md` at 49.8 KB, so the branch's `#audit-bodies` table moved to
-  `body-crossings.md`).
+  `body-crossings.md`); gdstudio #1254 (PR #1315), 2026-11-12 (main's tracer and rifle entries left `shooting.md` at
+  50.5 KB, so the branch's melee section moved to `third-person/melee.md`).
 
 ## Where the entry is named {#named}
 

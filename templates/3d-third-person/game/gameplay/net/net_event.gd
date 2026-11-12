@@ -18,7 +18,8 @@ extends RefCounted
 ## REJECTED  u32 seq (the client's command), u8 code (why)                      6
 ## AI        u16 id (the AI character's), u8 code (`AiCode`), s16 point x/y/z
 ##           (cm: where a shot left; cm/s: a death's velocity), u16 yaw, s16
-##           pitch (a shot's way)                                               14
+##           pitch (a shot's way, a blow's)                                     14
+## MELEE     u8 slot, u16 seq (its low 16 bits): a player threw a melee blow    4
 ##
 ## Cosmetics (a ragdoll, an impact, a sound) are never events of their own: each peer makes them
 ## from these.
@@ -34,6 +35,7 @@ enum Kind {
 	PICKUP = 8,
 	REJECTED = 9,
 	AI = 10,
+	MELEE = 11,
 }
 
 ## What happened to an AI character (an AI event's code): each client plays its own cosmetics
@@ -43,6 +45,7 @@ enum AiCode {
 	DIED = 2,  ## It died; the point is its velocity.
 	FIRED = 3,  ## Its weapon fired; the point is where the shot left, the direction its way.
 	REVIVED = 4,  ## It got up where its row says.
+	MELEE = 5,  ## It threw a melee blow; the point is where it started, the direction its way.
 }
 
 ## The id of a hit that struck no networked part.
@@ -93,6 +96,14 @@ static func shot(
 	event.amount = weapon
 	event.point = origin
 	event.direction = aim
+	return event
+
+
+## Player `player_slot` threw a melee blow on command `command_seq` (gdstudio #1254). What it met
+## is a HIT; which clip each screen plays is its own (cosmetic, never sent).
+static func melee(player_slot: int, command_seq: int) -> NetEvent:
+	var event := _of(Kind.MELEE, player_slot)
+	event.seq = command_seq
 	return event
 
 

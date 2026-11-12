@@ -33,6 +33,22 @@ static func can_take(body: Character) -> bool:
 		or command.next_weapon_pressed
 		or command.previous_weapon_pressed
 		or command.unarmed_pressed
+		or command.melee_pressed
+	):
+		return false
+	# A melee blow (gdstudio #1254), and the fire press of a melee weapon that throws one, take the
+	# full tick for as long as the blow runs.
+	var held := body.weapon
+	if (
+		held != null
+		and (
+			held.meleeing
+			or (
+				command.fire_pressed
+				and held.definition != null
+				and held.definition.kind == WeaponDef.Kind.MELEE
+			)
+		)
 	):
 		return false
 	if (

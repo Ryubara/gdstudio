@@ -66,6 +66,12 @@ pointer imported as a model leaves a broken `.import` behind ([Build scripts](bu
   Godot imports a new glb as a scene by default, so the clips sat in a scene nothing loads as a library and the
   player found no animation under the library's name. **Seen:** gdstudio #1090 (PR #1113), 2026-11-11
   ([the libraries](../../engines/godot/third-person/clips.md#animation-libraries)).
+- **Approach:** Commit the `.import` Godot wrote: change only its `importer` and `type` lines by hand, import once in
+  a kept game (`gds template test <template> --keep`), copy the file back, and check that `git status --porcelain`
+  in that game is empty. **Watch out for:** a `.import` written by hand has no `uid` line and a made-up name under
+  `path` and `dest_files`, so Godot rewrites it on the first import: every local suite passes (the kept game is a
+  copy) and CI's step that nothing the build made is left for git fails. **Seen:** gdstudio #1082 (PR #1267),
+  2026-11-12 (`rifle_clips.glb.import`; [the same step, missing files](../../engines/godot/new-game.md)).
 - **Approach:** When a build exports its clips from actions, use `export_animation_mode="ACTIONS"`, which names each
   glTF animation after its action, and check the names in Godot after the import. **Watch out for:**
   `ACTIVE_ACTIONS` writes the active actions as one animation named `Animation`, so the clip the game asks for by name

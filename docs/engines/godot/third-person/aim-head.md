@@ -31,6 +31,21 @@ and 20 degrees, the head within 3 degrees of level, 4 of the aim, its roll on th
 8, no zigzag, under 0.5 degrees between frames; with the head off, 1562 checks fail. `test_net_puppet_head.gd` checks a
 puppet with the pistol and the rifle; the capture is `tools/capture/aim_head_tour.tscn` (`AIM_HEAD=0` for before).
 
+A shouldered weapon wants the eye behind its sights, not a level head (gdstudio #1082). The head's goal is the
+weapon's: `WeaponDef.aim_head` is `LEVEL` (the default: the pistol, the fists) or `SIGHT` (the rifle), with
+`aim_eye` naming a marker on the weapon where the aiming eye belongs, its -Z along the sight line (the rifle's
+`AimEye`, behind the rear sight). With `SIGHT` the modifier takes the level look and turns it on by one more turn
+of at most `sight_tilt` (45 degrees), found each update by three steps of least squares from no turn: the eye
+(`eye_bone`, the rig's `socket_camera`, and `eye_offset`) off the sight line against what a nod, a turned face and
+a cant weigh (`sight_nod` 0.15, `sight_face` 0.3, `sight_cant` 0.125 metres a radian), so the cheek goes to the
+stock by a cant and the face stays near the aim. It is still one turn shared between the neck and the head, and
+it keeps nothing between frames. The layer moves the modifier after the `TwoHandHold`'s stance, which places the
+rifle in the same update. The rifle's cases of `test_aim_head.gd` hold the eye within 81 mm of the sight line and
+the face within 20 degrees of the aim in every stance (60 to 67 mm standing and walking, 77 to 79 crouched; a
+level head leaves it 147 to 167 mm off), with no counter-bend and under 0.5 degrees between frames (0.27 at most,
+walking). The rifle clips' build keys the same head from the same numbers
+([clips under a hold](../../../tools/blender/clips-under-a-hold.md#body-under-the-hold)).
+
 The body that swings round at the start and end of an aim is not the head: while the aim fades in, the spine's turn
 folded the chest back by up to 47 degrees on main (gdstudio #1318, [the aim layer](shooting.md#aim-layer)). The head
 modifier rides whatever chest that leaves.
@@ -41,3 +56,10 @@ modifier rides whatever chest that leaves.
   cheek leaned on the sights, a neck and head blended against each other between the up and down poses); measuring the
   head on its neck alone hides it, since most of the lean is the chest's: read the head's roll against the world's up
   and where it faces against the aim too. **Seen:** gdstudio #1334, 2026-11-12 (`test_aim_head.gd`).
+- **Approach:** Give the head's rule a goal per weapon, on the weapon's definition, and run every weapon's
+  clips and captures through a change to it. **Watch out for:** a level-head rule erases a shouldered weapon's
+  cheek weld: made for the pistol's crooked head, it stood the rifle's head upright, the eye 158 to 167 mm off the
+  sight line (61 with the cheek toward the stock), and its test passed, asking the rifle for a level head too. A
+  probe added before a weapon's hold makes its modifiers reads the pose before them: move it last. A least-squares
+  goal with one heavy term ends on its clamp (the head rolled 45 degrees): weigh each way of turning (nod, face,
+  cant). **Seen:** gdstudio #1267, 2026-11-12 (fix: `WeaponDef.aim_head`, `aim_eye`, the modifier's sight goal).
