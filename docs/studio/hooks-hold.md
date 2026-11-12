@@ -47,3 +47,8 @@ name would let any other label replace a failed run. `python/tests/test_hold.py`
   not asked for; and tether submits prompts through the same path as typed ones, so only the entry's `origin` kind
   tells them apart, never its text. **Seen:** gdstudio #1202 then #1244, 2026-11-11 (fix: the switch was removed and
   `hold_approval.py` reads the transcript; `test_hook_hold_approval.py` covers each kind of text that does not count).
+- **Approach:** Hold a pull request stacked on a held one (`gds pr hold`) and leave its auto-merge off: its branch
+  carries the held pull request's commits, so merging it lands them past the maintainer. Take the `owner/repo` for
+  `gds pr hold` from `gh repo view --json nameWithOwner`, never from memory. **Watch out for:** the body said the
+  base was "now on main" while it was still open and held, and the first hold named a guessed owner and failed.
+  **Seen:** gdstudio #1273 on #1171, 2026-11-12.
