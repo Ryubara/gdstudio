@@ -194,17 +194,33 @@ func use_model_clips(
 	libraries: Dictionary,
 	library := CharacterClips.LIBRARY_PRONE
 ) -> void:
+	var shared := swap_library(player, rig, library, libraries, _shared.get(library))
+	if shared != null:
+		_shared[library] = shared
+
+
+## Gives `player` the library named `library` that `libraries` holds for `rig`'s scene file, or
+## `shared`, the one the scene came with. Returns that shared library (found on the first call,
+## when `shared` is null), for the caller to keep and pass again.
+static func swap_library(
+	player: AnimationPlayer,
+	rig: Node3D,
+	library: StringName,
+	libraries: Dictionary,
+	shared: AnimationLibrary
+) -> AnimationLibrary:
 	if Engine.is_editor_hint() or player == null or rig == null:
-		return
+		return shared
 	var has := player.has_animation_library(library)
-	if not _shared.has(library) and has:
-		_shared[library] = player.get_animation_library(library)
-	var wanted: AnimationLibrary = libraries.get(rig.scene_file_path, _shared.get(library))
+	if shared == null and has:
+		shared = player.get_animation_library(library)
+	var wanted: AnimationLibrary = libraries.get(rig.scene_file_path, shared)
 	if wanted == null or (has and player.get_animation_library(library) == wanted):
-		return
+		return shared
 	if has:
 		player.remove_animation_library(library)
 	player.add_animation_library(library, wanted)
+	return shared
 
 
 static func _clip(clip: StringName) -> AnimationNodeAnimation:

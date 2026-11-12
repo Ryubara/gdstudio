@@ -5,9 +5,14 @@ Animation Library share it): `Vault_Low` (a one-handed speed vault), `Vault_High
 `Vault_Land` (the landing step back into the sprint). Nothing is copied from another clip but the first and last
 poses, which are the library's own `Sprint_Loop` so the clips join the run.
 
-Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute:
+The same keys are solved once for each body that plays them, into a file a body (`BODIES`, gdstudio #1294): a planted
+hand is on its place only on the arms it was solved for.
 
-    blender -b --factory-startup -P <this file> -- [--out <folder>] [--render <folder>] [--only <clip>]
+Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute, the default body first (the
+others are held to its numbers); `--python-exit-code 1` because Blender exits 0 when a script raises:
+
+    blender -b --factory-startup --python-exit-code 1 -P <this file> -- [--body <name>] [--out <folder>]
+        [--render <folder>] [--only <clip>] [--trace] [--no-fail]
 
 How a clip is made: every clip is a table of keys on a small set of controls (the pelvis, the spine, each wrist and
 ankle with the way its elbow or knee points, the hands and feet, the fingers' curl), written in the **world** of a
@@ -30,6 +35,7 @@ to the left.
 import argparse
 import json
 import math
+import os
 import struct
 import sys
 from pathlib import Path
@@ -39,8 +45,73 @@ from mathutils import Matrix, Quaternion, Vector
 
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE.parent.parent
-MANNEQUIN = ASSETS / "characters" / "mannequin" / "mannequin_female.glb"
-MANNEQUIN_MALE = ASSETS / "characters" / "mannequin" / "mannequin_male.glb"
+## The bodies a clip file is solved on (`--body`), one file a body: a planted hand is on its place only on the arms
+## it was solved for, and the legs go over clear of each other only on the thighs they were keyed around (gdstudio
+## #1294). `file` is the body, `out` the clip file and `sidecar` its numbers; the rest is what differs from body to
+## body, each measured on that body with `--trace`:
+## `palm` how far the wrist bone rides above a surface the palm lies on; `strike` the height of the centre of mass in
+## the sprint's foot strike (both vaults end there, `Vault_Land` starts there), `low_takeoff` the same on the frame
+## the speed vault leaves the ground, `high_crouch` the same in the low point of the side vault's last step (frame
+## 9), where its jump starts. The `low_*` and `high_*` numbers are the keys of `Vault_Low` and `Vault_High` that a
+## body's arms and thighs move; each is explained where the clip reads it, and a body that names none gets the keys
+## as they were made on the Quaternius female (her file is the same bytes as before the bodies were split).
+## `VAULT_TUNE` in the environment (a JSON object) overrides numbers of the chosen body for one run, to try them.
+BODIES = {
+    "form_female": {
+        "file": ASSETS / "characters" / "prototype" / "form_female.glb",
+        "out": "vault.glb",
+        "sidecar": "vault_clips.json",
+        "palm": 0.022,
+        "strike": 0.950,
+        "low_takeoff": 1.065,
+        "high_crouch": 0.915,
+        "high_lift": 0.02,
+        "high_spread": (0.075, 0.03),
+        "high_knees": (0.15, 0.2),
+        "high_edge": 1.5,
+        "high_late": 1.3,
+        "high_l14_foot": (-0.02, -0.30, -0.40),
+        "high_l14_pole": (-1.0, 0.4, 0.25),
+        "high_l16_foot": (-0.36, -0.27, -0.10),
+        "low_l7_pole": (-0.75, 0.6, -0.6),
+    },
+    "form_male": {
+        "file": ASSETS / "characters" / "prototype" / "form_male.glb",
+        "out": "vault_male.glb",
+        "sidecar": "vault_male_clips.json",
+        "palm": 0.028,
+        "strike": 0.962,
+        "low_takeoff": 1.078,
+        "high_crouch": 0.925,
+        "high_lift": 0.01,
+        "high_shrug": 10.0,
+        "high_spread": (0.10, 0.035),
+        "high_knees": (0.15, 0.2),
+        "high_knee_16": 0.6,
+        "high_late": 1.3,
+        "high_roll": 3.0,
+        "high_l14_foot": (-0.02, -0.30, -0.40),
+        "high_l14_pole": (-1.0, 0.4, 0.28),
+        "high_l16_foot": (-0.36, -0.27, -0.10),
+        "low_l7_pole": (-0.75, 0.6, -0.6),
+        "low_lift": 0.03,
+        "low_tilt": 0.15,
+        "low_shrug": 10.0,
+        "low_free": (0.05, 0.0, 0.03),
+    },
+    "quaternius_female": {
+        "file": ASSETS / "characters" / "mannequin" / "mannequin_female.glb",
+        "out": "vault_quaternius.glb",
+        "sidecar": "vault_quaternius_clips.json",
+        "palm": 0.036,
+        "strike": 0.964,
+        "low_takeoff": 1.073,
+        "high_crouch": 0.925,
+    },
+}
+## The body whose file every other body's is held to: the same lengths, speeds, contact times and hand places, so
+## the vault code has one set of numbers.
+DEFAULT_BODY = "form_female"
 LIBRARY = ASSETS / "animation" / "universal" / "ual1.glb"
 FPS = 24
 ## The clips this file carries, and nothing else (kit docs/tools/blender/build-scripts.md#rebuilding).
@@ -53,10 +124,23 @@ BOX_LIMIT = 0.012
 PALM_LIMIT = 0.015
 ## How far a planted wrist or ankle may move in the world while it is planted (m).
 PLANT_LIMIT = 0.005
-## The wrist bone rides this far above a surface the palm lies on.
-PALM = 0.036
 ## A planted arm is never straighter than this share of its length.
 ARM_REACH = 0.94
+
+## A game draws the clip between its keys (60 frames a second and more, where the clip has 24): the build measures
+## this many times a frame (240 a second), with the keys joined by straight lines as a player joins them. Between
+## the keys no leg joint's middle may be deeper in the box than this (m), on either mannequin, and the skin keeps
+## `BOX_LIMIT`: two keys that are both clear of the box say nothing of the path between them.
+BETWEEN = 10
+JOINT_LIMIT = 0.005
+LEG_JOINTS = ["thigh_l", "thigh_r", "calf_l", "calf_r", "foot_l", "foot_r", "ball_l", "ball_r"]
+## A planted hand or foot is held by a chain of joints, and joints joined by straight lines do not hold its end
+## still: between two keys the palm presses into the top and the sole into the floor, under the contact where it
+## does not show. The skin of a hand from the frame before its plant to the frame after its release, and the
+## lowest skin over the floor, get these limits between the keys (m; the clips read 16.3 mm and 20.8 mm).
+PRESS_LIMIT = 0.02
+FLOOR_PRESS_LIMIT = 0.025
+HAND_PARTS = ("hand", "thumb", "index", "middle", "ring", "pinky")
 
 ## The most a planted hand may move the body off its keyed path from one frame to the next (m).
 PULL_STEP = 0.02
@@ -257,12 +341,18 @@ class Channel:
 class Rig:
     """The mannequin's armature, its rest pose, and poses read from the library's clips."""
 
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
+        self.body = BODIES[name]
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.context.scene.render.fps = FPS
-        bpy.ops.import_scene.gltf(filepath=str(MANNEQUIN))
+        bpy.ops.import_scene.gltf(filepath=str(self.body["file"]))
         self.arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
-        self.mesh = next(o for o in bpy.data.objects if o.type == "MESH" and o.parent == self.arm)
+        # The nearest level of detail of a prototype body (the farther ones lie inside it).
+        self.mesh = max(
+            (o for o in bpy.data.objects if o.type == "MESH" and o.parent == self.arm),
+            key=lambda o: len(o.data.vertices),
+        )
         mine = set(bpy.data.objects)
         bpy.ops.import_scene.gltf(filepath=str(LIBRARY))
         self.library_objects = [o for o in bpy.data.objects if o not in mine]
@@ -270,12 +360,10 @@ class Rig:
         for track in self.library_arm.animation_data.nla_tracks:
             track.mute = True
         self.library_actions = list(bpy.data.actions)
-        # Both mannequins as the overlap check measures them: the clips play on the male with his own bone lengths.
+        # The body as the overlap check measures it: the file is this body's own.
         import limb_overlap
 
-        male = limb_overlap.load_body(MANNEQUIN_MALE, "male")
-        self.library_objects += male.objects
-        self.bodies = [limb_overlap.Body(self.arm, self.mesh, "female"), male]
+        self.bodies = [limb_overlap.Body(self.arm, self.mesh, name)]
         self.order = [b.name for b in self.arm.data.bones]  # parents before children
         self.parent = {b.name: (b.parent.name if b.parent else None) for b in self.arm.data.bones}
         self.rest = {b.name: b.matrix_local.copy() for b in self.arm.data.bones}
@@ -284,6 +372,12 @@ class Rig:
             for n in self.order
         }
         self.rest_rot = {n: self.rest[n].to_3x3() for n in self.order}
+        # The bones a clip keys: the library's own. A body may have more (the prototype bodies' twist and IK
+        # bones), which no clip drives and another body does not have.
+        theirs = {b.name for b in self.library_arm.data.bones}
+        self.keyed = [n for n in self.order if n in theirs]
+        # The twist bones of a prototype body, which no clip keys and the game turns (`limb_overlap.twist_bones`).
+        self.twists = limb_overlap.twist_bones(self.rest_rel)
         # An open hand is the rest pose with the thumb lifted into the palm's plane (it rests pointing down).
         self.open = {}
         for side in "lr":
@@ -310,10 +404,29 @@ class Rig:
             if parent is None:
                 out[name] = self.rest[name].copy()
                 continue
+            if name not in bones:
+                out[name] = out[parent] @ self.rest_rel[name]
+                continue
             rel = bones[parent].matrix.inverted() @ bones[name].matrix
             offset = rel.translation if name == "pelvis" else self.rest_rel[name].translation
             out[name] = out[parent] @ Matrix.LocRotScale(offset, rel.to_quaternion(), None)
         return out
+
+    def twist(self, mats):
+        """Put the twist bones where the game's modifier turns them for the pose in `mats`, so the skin the
+        checks measure is the skin a player sees: the shoulder's and the hip's take the limb's roll about its own
+        length back out, the wrist's takes the hand's roll."""
+        import limb_overlap
+
+        for twist, source, axis, counter in self.twists:
+            parent = self.parent[source]
+            rel = (mats[parent].inverted() @ mats[source]).to_quaternion()
+            roll = limb_overlap.twist_roll(self.rest_rel, source, rel, axis, counter)
+            base = mats[source] if counter else mats[parent]
+            rest = self.rest_rel[twist]
+            mats[twist] = (
+                base @ Matrix.Translation(rest.translation) @ roll.to_matrix().to_4x4() @ rest.to_3x3().to_4x4()
+            )
 
     def basis(self, name, mats):
         """A bone's pose-space rotation (what Blender keys) from armature-space matrices."""
@@ -558,6 +671,7 @@ class Clip:
         for name in rig.order:
             if name not in done:
                 mats[name] = mats[rig.parent[name]] @ rig.rest_rel[name]
+        rig.twist(mats)
         return mats, reach_error, pull
 
 
@@ -565,12 +679,6 @@ class Clip:
 # The clips
 # ---------------------------------------------------------------------------------------------------------------
 SPRINT = "Sprint_Loop"  # 16 frames at 24: the left foot lands at 0, the right at 8
-## The height of the centre of mass in the sprint foot strike (both vaults end there, Vault_Land starts there),
-## and on the frame the speed vault leaves the ground: measured (--trace) and checked by the build.
-STRIKE = 0.964
-LOW_TAKEOFF = 1.073
-## The same in the low point of the side vault's last step (frame 9), where its jump starts.
-HIGH_CROUCH = 0.925
 ## The speed the body is falling at when `Vault_Land` starts (m/s): between the two vaults' (2.7 and 3.7).
 LAND_SPEED = 3.3
 
@@ -581,6 +689,7 @@ def vault_low(rig, offsets=None):
     elbow gives), then pushes, and the push is what lifts the body off the top and gives it its time in the air.
     The right hand never comes near the obstacle, so it can hold a pistol."""
     c = Clip(rig, "Vault_Low", frames=19, speed=4.0, start=1.3, box_height=0.8, box_depth=0.4, offsets=offsets)
+    own = rig.body
     top = c.box_height
     last = c.frames
     # In and out of the sprint: its poses a little before and after give the curves the run's own speed.
@@ -596,10 +705,10 @@ def vault_low(rig, offsets=None):
     # weight and gives, then the push sends the body off the top faster than it came on, and that speed is all
     # the time in the air it gets.
     takeoff, plant, release = 4, 6, 10
-    off_foot = (LOW_TAKEOFF, 1.657)
+    off_foot = (own["low_takeoff"], 1.657)
     on_hand = (fall(*off_foot, (plant - takeoff) / FPS), off_foot[1] - GRAVITY * (plant - takeoff) / FPS)
     air = (last - release) / FPS
-    off_hand = (1.32, (STRIKE - 1.32 + 0.5 * GRAVITY * air * air) / air)
+    off_hand = (1.32, (own["strike"] - 1.32 + 0.5 * GRAVITY * air * air) / air)
     centre = {}
     for frame in range(takeoff + 1, last):
         if frame <= plant:
@@ -624,7 +733,7 @@ def vault_low(rig, offsets=None):
     c.push = ("hand_l", plant, release)
     c.reach = ("foot_r", last)
     c.released = [("hand_r", takeoff, last)]
-    c.arc = {"off_foot": off_foot, "on_hand": on_hand, "off_hand": off_hand, "land": STRIKE}
+    c.arc = {"off_foot": off_foot, "on_hand": on_hand, "off_hand": off_hand, "land": own["strike"]}
 
     # The body lies over to the left as it passes the hand and comes upright again on the way down.
     c.keys(
@@ -665,7 +774,7 @@ def vault_low(rig, offsets=None):
             5: c.spine("clavicle_l"),
             6: c.spine("clavicle_l", 0, 0, 8),
             8: c.spine("clavicle_l", 0, 0, 20),
-            10: c.spine("clavicle_l", 0, 0, 4),
+            10: c.spine("clavicle_l", 0, 0, 4 - own.get("low_shrug", 0.0)),
             13: c.spine("clavicle_l"),
         },
     )
@@ -673,7 +782,7 @@ def vault_low(rig, offsets=None):
     # The left hand: forward and down onto the top, 0.12 m in from the front edge. The wrist stays while the body
     # passes over it; then the heel of the hand lifts and the fingers leave last; then the arm trails behind and
     # low before it swings forward for the landing.
-    plant_at = P(0.27, 0.12, top + PALM)
+    plant_at = P(0.27, 0.12, top + own["palm"])
     c.keys(
         "hand_l_pos",
         {
@@ -681,7 +790,8 @@ def vault_low(rig, offsets=None):
             4: c.body(4, 0.34, 0.30, 1.05),
             6: plant_at,
             9: plant_at,
-            10: plant_at + P(0.01, 0.03, 0.035),
+            # `low_lift` and `low_tilt`: longer fingers tip less as the heel of the hand lifts, or they go into the top.
+            10: plant_at + P(0.01, 0.03, own.get("low_lift", 0.035)),
             12: c.body(12, 0.40, -0.42, 1.12),
             14: c.body(14, 0.42, -0.30, 1.10),
             17: c.body(17, 0.38, 0.02, 0.98),
@@ -698,6 +808,7 @@ def vault_low(rig, offsets=None):
             14: P(0.5, -1.0, 0.2),
         },
     )
+    low_tilt = own.get("low_tilt", 0.45)
     flat = c.palm("l", (0.3, 1.0, 0.0), (0.0, 0.0, -1.0))
     c.keys(
         "hand_l_rot",
@@ -705,7 +816,7 @@ def vault_low(rig, offsets=None):
             0: flat,
             6: flat,
             9: c.palm("l", (0.45, 1.0, 0.0), (0.0, 0.0, -1.0)),
-            10: c.palm("l", (0.4, 1.0, -0.45), (0.0, -0.45, -1.0)),
+            10: c.palm("l", (0.4, 1.0, -low_tilt), (0.0, -low_tilt, -1.0)),
             11: c.palm("l", (0.4, 1.0, -0.6), (0.0, -0.6, -1.0)),
             last: flat,
         },
@@ -717,13 +828,15 @@ def vault_low(rig, offsets=None):
     # upper side of the rolled body with the wrist no higher than the shoulder while the left arm carries the body
     # (a point up from the rolled hips put it 0.37 m over the shoulder, above the head, in two frames), then down
     # and back as the body comes upright, into the sprint's swing.
+    # A longer free arm lies further out from the hip (`low_free`: further right, forward, up).
+    free = own.get("low_free", (0.0, 0.0, 0.0))
     c.keys(
         "hand_r_pos",
         {
             4: c.body(4, -0.40, 0.06, 1.20),
-            6: c.shoulder(6, "r", -0.33, -0.30, -0.06),
-            8: c.shoulder(8, "r", -0.34, -0.30, 0.0),
-            10: c.shoulder(10, "r", -0.36, -0.26, -0.04),
+            6: c.shoulder(6, "r", -0.33 - free[0], -0.30 + free[1], -0.06 + free[2]),
+            8: c.shoulder(8, "r", -0.34 - free[0], -0.30 + free[1], 0.0 + free[2]),
+            10: c.shoulder(10, "r", -0.36 - free[0], -0.26 + free[1], -0.04 + free[2]),
             12: c.shoulder(12, "r", -0.40, -0.20, -0.10),
             14: c.shoulder(14, "r", -0.40, -0.16, -0.18),
             16: c.shoulder(16, "r", -0.24, -0.22, -0.36),
@@ -738,7 +851,10 @@ def vault_low(rig, offsets=None):
     # upper one and the left leg the lower, each on its own side of the hips (`hips`: left above 0 for the left
     # foot, below 0 for the right), knees a hip's width apart. They never cross.
     # The left leg pushes off, trails, tucks under the right leg with its knee forward, and stays behind on the
-    # way down as the trailing leg of the landing stride.
+    # way down as the trailing leg of the landing stride. On frame 7 its knee is out beside the rolled body (the
+    # thigh in line with the trunk, the shin folded back) and already over the top, a frame before it passes the
+    # front edge: with the ankle behind the hip and the knee pointed forward, the knee hung straight down under
+    # the top there and whipped forward through the edge between frames 7 and 8 (gdstudio #1221).
     stance = c.channels["foot_l_pos"].at(0)
     c.keys(
         "foot_l_pos",
@@ -747,7 +863,7 @@ def vault_low(rig, offsets=None):
             3: stance + P(0.0, 0.03, 0.05),
             4: stance + P(0.0, 0.08, 0.17),
             6: c.body(6, 0.08, -0.44, 0.78),
-            7: c.hips(7, 0.14, -0.20, -0.10),
+            7: c.body(7, -0.21, -0.15, top + 0.34),
             8: c.hips(8, 0.20, 0.10, -0.16),
             10: c.hips(10, 0.20, 0.14, -0.18),
             12: c.hips(12, 0.17, 0.08, -0.24),
@@ -773,6 +889,8 @@ def vault_low(rig, offsets=None):
         {
             4: P(0.0, 1.0, 0.0),
             6: c.hips_way(6, 0.15, 1.0, 0.2),
+            # Lower on thicker thighs, clear of the upper leg's thigh (5.0 mm into it on the prototype male).
+            7: P(*own.get("low_l7_pole", (-0.75, 0.6, -0.4))),
             8: c.hips_way(8, 0.15, 1.0, 0.25),
             10: c.hips_way(10, 0.15, 1.0, 0.25),
             15: c.hips_way(15, 0.2, 1.0, 0.1),
@@ -800,11 +918,15 @@ def vault_low(rig, offsets=None):
             18: c.under(18, -0.10, 0.31, 0.73),
         },
     )
+    # The lead foot is lifted and held back a little on frame 5, toes up (`foot_r_rot`), so the toes are over the
+    # top when they pass the front edge between frames 5 and 6 (they cut it by 40 mm; gdstudio #1221).
+    c.key("foot_r_pos", 5, c.channels["foot_r_pos"].at(5) + P(0.0, -0.03, 0.06))
     c.keys(
         "foot_r_rot",
         {
             4: c.turned("foot_r", -10, 20, 0),
-            6: c.hips_turned(6, "foot_r", 0, 10, 0),
+            5: c.hips_turned(5, "foot_r", 0, -15, 0),
+            6: c.hips_turned(6, "foot_r", 0, -5, 0),
             8: c.hips_turned(8, "foot_r", 0, 10, 0),
             12: c.hips_turned(12, "foot_r", 0, 10, 0),
             15: c.turned("foot_r", 0, 16, 0),
@@ -832,7 +954,7 @@ def vault_low(rig, offsets=None):
         "land": last,
     }
     c.notes = {
-        "hand_place": {"left": 0.27, "forward": 0.12, "wrist_above_top": PALM},
+        "hand_place": {"left": 0.27, "forward": 0.12, "wrist_above_top": own["palm"]},
         "hand": "left",
         "takeoff_foot": "left",
         "landing_foot": "right",
@@ -897,6 +1019,7 @@ def vault_high(rig, offsets=None):
     straighten as the hips rise over the hands, the left arm locks as the body passes over it and pushes off
     last, and the body is still rising when it leaves the hand."""
     c = Clip(rig, "Vault_High", frames=30, speed=3.0, start=1.86, box_height=1.2, box_depth=0.4, offsets=offsets)
+    own = rig.body
     top = c.box_height
     last = c.frames
     for frame in (-2, 0):
@@ -919,12 +1042,12 @@ def vault_high(rig, offsets=None):
     # throws it up, the arms carry part of it while a hand is on the top, and from the left hand's push it is on
     # the arc of a free fall, over the far edge still rising, to the height of the sprint's foot strike.
     crouch, takeoff, release = 9, 11, 17
-    in_crouch = (HIGH_CROUCH, 1.2)
+    in_crouch = (own["high_crouch"], 1.2)
     off_foot = (1.12, 3.0)
     air = (last - release) / FPS
     support = (release - takeoff) / FPS
     # The speed off the hand that lands the body on the last frame, with the arms' share of the weight even.
-    speed = (STRIKE + 0.5 * GRAVITY * air * air - off_foot[0] - 0.5 * off_foot[1] * support) / (air + 0.5 * support)
+    speed = (own["strike"] + 0.5 * GRAVITY * air * air - off_foot[0] - 0.5 * off_foot[1] * support) / (air + 0.5 * support)
     off_hand = (off_foot[0] + 0.5 * (off_foot[1] + speed) * support, speed)
     centre = {}
     for frame in range(crouch + 1, last):
@@ -954,8 +1077,11 @@ def vault_high(rig, offsets=None):
     c.reach = ("foot_r", last)
     c.released = [("hand_r", 12, last)]
     c.legs = (takeoff, 23)
-    c.arc = {"off_foot": off_foot, "off_hand": off_hand, "land": STRIKE}
+    c.arc = {"off_foot": off_foot, "off_hand": off_hand, "land": own["strike"]}
 
+    # Thicker thighs: the hips roll onto the arm a little sooner (`high_roll`, degrees more on frame 14), so the
+    # lower thigh does not swing across under the upper one at the front edge.
+    early = own.get("high_roll", 0.0)
     c.keys(
         "pelvis_rot",
         {
@@ -963,9 +1089,9 @@ def vault_high(rig, offsets=None):
             8: c.turned("pelvis", 0, 22, 0),
             10: c.turned("pelvis", 0, 25, 5),
             12: c.turned("pelvis", -3, 34, 10),
-            13: c.turned("pelvis", -6, 32, 26),
-            14: c.turned("pelvis", -10, 27, 44),
-            15: c.turned("pelvis", -12, 20, 58),
+            13: c.turned("pelvis", -6, 32, 26 + early * 0.6),
+            14: c.turned("pelvis", -10, 27, 44 + early),
+            15: c.turned("pelvis", -12, 20, 58 + early * 0.6),
             16: c.turned("pelvis", -14, 14, 68),
             17: c.turned("pelvis", -14, 10, 72),
             18: c.turned("pelvis", -13, 8, 70),
@@ -1015,8 +1141,8 @@ def vault_high(rig, offsets=None):
     # rising shoulder): from rest it gains speed evenly over four frames on a path in the world, ahead of the
     # right knee that swings over, until it travels with the body; then it rides out to the right a little under
     # the shoulder (`shoulder`), a balance arm, and comes down into the sprint's swing with the landing.
-    plant_l = P(0.24, 0.10, top + PALM)
-    plant_r = P(-0.24, 0.10, top + PALM)
+    plant_l = P(0.24, 0.10, top + own["palm"])
+    plant_r = P(-0.24, 0.10, top + own["palm"])
     c.keys(
         "hand_l_pos",
         {
@@ -1025,7 +1151,9 @@ def vault_high(rig, offsets=None):
             10: plant_l + P(0.0, -0.12, 0.10),
             11: plant_l,
             16: plant_l,
-            17: plant_l + P(0.01, 0.03, 0.05),
+            # A longer arm is still bent when the body has passed, so its wrist lifts less on the frame it pushes
+            # off (`high_lift`) and the arm is straight there (141 degrees on the prototype female otherwise).
+            17: plant_l + P(0.01, 0.03, own.get("high_lift", 0.05)),
             19: c.body(19, 0.40, -0.40, 1.52),
             23: c.body(23, 0.42, -0.30, 1.45),
             27: c.body(27, 0.38, 0.0, 1.08),
@@ -1076,6 +1204,8 @@ def vault_high(rig, offsets=None):
             27: P(-0.6, -1.0, -0.2),
         },
     )
+    # The heel of the left hand lifts about the fingers: the hand tips by what the wrist has risen.
+    tilt = 0.3 * own.get("high_lift", 0.05) / 0.05
     flat_l = c.palm("l", (0.2, 1.0, 0.0), (0.0, 0.0, -1.0))
     flat_r = c.palm("r", (-0.2, 1.0, 0.0), (0.0, 0.0, -1.0))
     c.keys(
@@ -1084,7 +1214,7 @@ def vault_high(rig, offsets=None):
             0: flat_l,
             11: flat_l,
             16: c.palm("l", (0.45, 1.0, 0.0), (0.0, 0.0, -1.0)),
-            17: c.palm("l", (0.4, 1.0, -0.3), (0.0, -0.3, -1.0)),
+            17: c.palm("l", (0.4, 1.0, -tilt), (0.0, -tilt, -1.0)),
             18: c.palm("l", (0.4, 1.0, -0.6), (0.0, -0.6, -1.0)),
             last: flat_l,
         },
@@ -1095,6 +1225,18 @@ def vault_high(rig, offsets=None):
     )
     c.keys("hand_l_world", {8: 0.0, 11: 1.0, 18: 1.0, 20: 0.0})
     c.keys("hand_r_world", {8: 0.0, 11: 1.0, 13: 1.0, 16: 0.0})
+    # A body with longer arms pushes the shoulder up off the hand as the arm straightens (the collarbone lifts).
+    shrug = own.get("high_shrug", 0.0)
+    if shrug:
+        c.keys(
+            "clavicle_l",
+            {
+                13: c.channels["clavicle_l"].at(13),
+                16: c.spine("clavicle_l", 0, 0, -shrug * 0.8),
+                17: c.spine("clavicle_l", 0, 0, -shrug),
+                21: c.channels["clavicle_l"].at(21),
+            },
+        )
 
     c.keys("curl_l", {8: 1.0, 10: 0.0, 18: 0.0, 22: 1.0})
     c.keys("curl_r", {8: 1.0, 10: 0.0, 12: 0.0, 18: 1.0})
@@ -1124,9 +1266,12 @@ def vault_high(rig, offsets=None):
             11: c.body(11, 0.08, 0.08, 0.42),
             12: side(12, 0.07, -0.02, -0.62),
             13: side(13, 0.02, -0.16, -0.54),
-            14: side(14, -0.08, -0.28, -0.36),
+            # On thicker thighs the lower foot is further back and down at the front edge, and its knee a little
+            # higher (`high_l14_pole`): the thigh lies less across under the upper one (11 mm into it otherwise).
+            14: side(14, *own.get("high_l14_foot", (-0.08, -0.28, -0.36))),
             15: side(15, -0.20, -0.32, -0.15),
-            16: side(16, -0.33, -0.28, -0.12),
+            # ... and carries on a little further a frame later, so the ankle keeps one speed (`LEGS_SPEED_CHANGE`).
+            16: side(16, *own.get("high_l16_foot", (-0.33, -0.28, -0.12))),
             17: side(17, -0.43, -0.21, -0.05),
             18: side(18, -0.48, -0.13, -0.02),
             19: side(19, -0.46, -0.05, -0.05),
@@ -1157,7 +1302,7 @@ def vault_high(rig, offsets=None):
             5: P(0.0, 1.0, 0.0),
             11: P(0.0, 1.0, 0.2),
             13: P(-0.5, 1.0, 0.0),
-            14: P(-1.0, 0.4, 0.0),
+            14: P(*own.get("high_l14_pole", (-1.0, 0.4, 0.0))),
             15: P(-0.3, 1.0, 0.0),
             16: P(-0.3, 1.0, 0.15),
             20: P(-0.3, 1.0, 0.15),
@@ -1241,6 +1386,44 @@ def vault_high(rig, offsets=None):
         },
     )
 
+    # Thicker thighs lie further apart: each foot is moved out to its own side of the hips by the body's own
+    # amount while the legs are over the top (gdstudio #1294: keyed for the Quaternius female's thighs, the legs
+    # went 28 mm into each other on the prototype female and 16 mm on the male).
+    out_l, out_r = own.get("high_spread", (0.0, 0.0))
+    if out_l or out_r:
+        share = {13: 0.4, 14: 0.8, 15: 1.0, 16: 1.0, 17: 1.0, 18: 1.0, 19: 1.0, 20: 1.0, 21: 0.8, 22: 0.4}
+        # At the front edge the lower leg cannot go down (the top is under its knee), so the upper one goes up:
+        # the lower foot waits, and the upper foot is lifted by `high_edge` times its share there.
+        wait = {13: 0.0, 14: 0.0, 15: 0.4}
+        # Past the far edge the lower leg has room under it and goes further out (`high_late` times its share).
+        late = own.get("high_late", 1.0)
+        wait.update({19: late, 20: late, 21: 0.8 * late})
+        edge = own.get("high_edge", 1.0)
+        lift = {13: 0.5 * edge, 14: edge, 15: 0.5 * (1.0 + edge)}
+        moved = {
+            frame: (
+                c.channels["foot_l_pos"].at(frame) + c.hips_way(frame, out_l * wait.get(frame, part), 0.0, 0.0),
+                c.channels["foot_r_pos"].at(frame) + c.hips_way(frame, -out_r * lift.get(frame, part), 0.0, 0.0),
+            )
+            for frame, part in share.items()
+        }
+        for frame, (left, right) in moved.items():
+            c.key("foot_l_pos", frame, left)
+            c.key("foot_r_pos", frame, right)
+    # And each knee points further out to its own side.
+    knee_l, knee_r = own.get("high_knees", (0.0, 0.0))
+    if knee_l or knee_r:
+        for limb, out in (("foot_l_pole", knee_l), ("foot_r_pole", -knee_r)):
+            poles = {frame: c.channels[limb].at(frame).normalized() for frame in range(14, 22)}
+            for frame, pole in poles.items():
+                # Less at the front edge, where the hips are still low over the top.
+                # The lower knee waits until it is past the front edge, where the hips are still low over the top.
+                if out > 0.0:
+                    part = {14: 0.0, 15: 0.3, 16: own.get("high_knee_16", 1.0)}.get(frame, 1.0)
+                else:
+                    part = {14: edge, 15: 0.5 * (1.0 + edge)}.get(frame, 1.0)
+                c.key(limb, frame, pole + c.hips_way(frame, out * part, 0.0, 0.0))
+
     c.events = {
         "takeoff": takeoff,
         "hand_plant": 11,
@@ -1251,7 +1434,7 @@ def vault_high(rig, offsets=None):
         "land": last,
     }
     c.notes = {
-        "hand_place": {"left": 0.24, "forward": 0.10, "wrist_above_top": PALM},
+        "hand_place": {"left": 0.24, "forward": 0.10, "wrist_above_top": own["palm"]},
         "hand": "both, the left stays longer",
         "takeoff_foot": "right",
         "landing_foot": "right",
@@ -1333,11 +1516,21 @@ def bake(rig, clip):
                 bone.location = (rig.rest_rel[name].inverted() @ rel).translation
                 bone.keyframe_insert("location", frame=frame)
     arm.animation_data.action_slot = action.slots[0]
+    # Keys are joined by straight lines, as Godot joins the exported keys: a pose read between two frames
+    # (`check_between`) is then the pose a game draws there. The export samples whole frames and is the same.
+    for curve in curves_of(action):
+        for point in curve.keyframe_points:
+            point.interpolation = "LINEAR"
     return action, worst
 
 
+def curves_of(action):
+    return [c for layer in action.layers for strip in layer.strips for bag in strip.channelbags for c in bag.fcurves]
+
+
 def skinned(rig, frame):
-    bpy.context.scene.frame_set(frame)
+    whole = math.floor(frame)
+    bpy.context.scene.frame_set(whole, subframe=frame - whole)
     graph = bpy.context.evaluated_depsgraph_get()
     obj = rig.mesh.evaluated_get(graph)
     mesh = obj.to_mesh()
@@ -1402,7 +1595,7 @@ def check(rig, clip, action, worst):
             problems.append(f"the planted palm is {report['palm_gap_mm']} mm from the top")
     report["lowest"] = round(report["lowest"], 4)
     report["deepest_in_box"] = round(report["deepest_in_box"], 4)
-    # Limbs through each other, on both mannequins' skinned meshes, on every frame.
+    # Limbs through each other, on the skinned mesh of the body the file is for, on every frame.
     import limb_overlap
 
     report["overlap_mm"] = {}
@@ -1415,15 +1608,115 @@ def check(rig, clip, action, worst):
             "by_class": {kind: value[0] for kind, value in sorted(entry["by_class"].items())},
         }
         print(f"OVERLAP {clip.name} {body}: per frame {entry['frames']} {entry['by_class']} {entry['pairs']}")
+        if entry["frame"] is not None:
+            at = clip.trace[entry["frame"]]
+            print(
+                f"OVERLAP {clip.name} {body}: deepest at {entry['place']}, hip joints "
+                f"{[round(v, 3) for v in at['thigh_l']]} {[round(v, 3) for v in at['thigh_r']]}, knees "
+                f"{[round(v, 3) for v in at['calf_l']]} {[round(v, 3) for v in at['calf_r']]}"
+            )
         if entry["deepest_mm"] > OVERLAP_LIMIT:
             problems.append(
                 f"{body}: {entry['pair']} by {entry['deepest_mm']} mm at frame {entry['frame']} "
                 f"(the limit is {OVERLAP_LIMIT} mm)"
             )
     clip.overlap = measured
+    between, report["between_keys"] = check_between(rig, clip, action)
     moving, motion = check_motion(clip)
     clip.motion = motion
-    return problems + moving, report
+    return problems + between + moving, report
+
+
+def in_box(clip, point, ahead):
+    """How deep a point of the body (in place, the root `ahead` of the front face) is inside the obstacle: under
+    its top and past both faces, 0 when it is outside."""
+    forward = -point.y + ahead
+    if not (0.0 < forward < clip.box_depth and abs(point.x) < BOX_HALF_WIDTH and point.z < clip.box_height):
+        return 0.0
+    return min(clip.box_height - point.z, forward, clip.box_depth - forward)
+
+
+def check_between(rig, clip, action):
+    """Fail on what the body does between two keys: `BETWEEN` times a frame, with the keys joined as a player
+    joins them and the root moved as the game moves it, each leg joint of both mannequins against the box, and
+    the keyed mannequin's skin against the box and the floor. Each worst reading comes with its time in seconds."""
+    arm = rig.arm
+    arm.animation_data.action = action
+    arm.animation_data.action_slot = action.slots[0]
+    curves = curves_of(action)
+    assert curves and all(k.interpolation == "LINEAR" for c in curves for k in c.keyframe_points), (
+        f"{clip.name}: the baked keys are not joined by straight lines, so a pose between frames is not a game's"
+    )
+    scene = bpy.context.scene
+    problems = []
+    report = {"samples_a_second": FPS * BETWEEN, "joint_limit_mm": JOINT_LIMIT * 1000.0}
+    joints = {body.name: [0.0, None, None] for body in rig.bodies}
+    skin, pressed, lowest = [0.0, None, None], [0.0, None, None], [9.0, None]
+    holding = {
+        limb[-1]: [(first - 1, final + 1) for name, first, final in clip.planted if name == limb]
+        for limb in ("hand_l", "hand_r")
+    }
+    rows = []  # one a sample, for `--trace`: frame, lowest skin, deepest skin in the box, deepest joint in the box
+    for step in range(clip.frames * BETWEEN + 1):
+        frame = step / BETWEEN
+        seconds = round(frame / FPS, 4)
+        ahead = clip.forward(frame)
+        points, groups = skinned(rig, frame)
+        low = min(p.z for p in points)
+        if low < lowest[0]:
+            lowest = [low, seconds]
+        row = [frame, low, 0.0, "", 0.0, "", {}]
+        rows.append(row)
+        for name in ("thigh_l", "calf_l", "foot_l", "thigh_r", "calf_r", "foot_r", "ball_r"):
+            place = arm.pose.bones[name].head
+            row[6][name] = (-place.y + ahead, place.z - clip.box_height)
+        if clip.box_height <= 0.0:
+            continue
+        for point, names in zip(points, groups):
+            depth = in_box(clip, point, ahead)
+            if depth <= 0.0:
+                continue
+            if depth > row[2]:
+                row[2:4] = depth, ",".join(names)
+            # A planted hand's own skin is the contact; everything else has no business in the box.
+            held = names and all(
+                n.startswith(HAND_PARTS) and any(a <= frame <= b for a, b in holding[n[-1]]) for n in names
+            )
+            worst = pressed if held else skin
+            if depth > worst[0]:
+                worst[:] = depth, ",".join(names), seconds
+        for body in rig.bodies:
+            body.pose_from(arm)
+            for name in LEG_JOINTS:
+                place = body.arm.matrix_world @ body.arm.pose.bones[name].head
+                depth = in_box(clip, place, ahead)
+                if depth > row[4]:
+                    row[4:6] = depth, f"{body.name} {name}"
+                if depth > joints[body.name][0]:
+                    joints[body.name] = [depth, name, seconds]
+    clip.between = rows
+    report["lowest"] = [round(lowest[0], 4), lowest[1]]
+    if lowest[0] < -FLOOR_PRESS_LIMIT:
+        problems.append(f"between the keys, at {lowest[1]} s: {-lowest[0] * 1000:.0f} mm under the floor")
+    if clip.box_height > 0.0:
+        report["skin_in_box_mm"] = [round(skin[0] * 1000, 1), skin[1], skin[2]]
+        report["planted_hand_in_box_mm"] = [round(pressed[0] * 1000, 1), pressed[1], pressed[2]]
+        if skin[0] > BOX_LIMIT:
+            problems.append(f"between the keys, at {skin[2]} s: {skin[0] * 1000:.0f} mm into the box ({skin[1]})")
+        if pressed[0] > PRESS_LIMIT:
+            problems.append(
+                f"between the keys, at {pressed[2]} s: the planted hand presses {pressed[0] * 1000:.0f} mm into the "
+                f"box ({pressed[1]})"
+            )
+        report["joint_in_box_mm"] = {}
+        for name, (depth, bone, seconds) in joints.items():
+            report["joint_in_box_mm"][name] = [round(depth * 1000, 1), bone, seconds]
+            if depth > JOINT_LIMIT:
+                problems.append(
+                    f"between the keys, at {seconds} s: {name}'s {bone} is {depth * 1000:.0f} mm inside the box "
+                    f"(the limit is {JOINT_LIMIT * 1000:.0f} mm)"
+                )
+    return problems, report
 
 
 def release_of(clip, limb, first, final):
@@ -1648,11 +1941,34 @@ def check_motion(clip):
     return problems, report
 
 
-def sidecar(clips, path):
+SAME = ("length", "frames", "speed", "travel", "events", "root_start", "root_at", "obstacle")
+
+
+def held_to_default(found, default):
+    """What a body's numbers differ in from the default body's, where the vault code needs one set: each clip's
+    length, speed, contact times and root places, and where the hands land (`SAME`; the wrist's height over the
+    top is the body's own, its palm being as thick as it is)."""
+    out = []
+    for name, entry in found["clips"].items():
+        theirs = default["clips"].get(name, {})
+        for key in SAME:
+            if entry.get(key) != theirs.get(key):
+                out.append(f"{name}: {key} is {entry.get(key)}, the default body's {theirs.get(key)}")
+        for key in ("left", "forward"):
+            mine, other = entry.get("hand_place", {}).get(key), theirs.get("hand_place", {}).get(key)
+            if mine != other:
+                out.append(f"{name}: the hand lands {key} {mine}, the default body's {other}")
+    return out
+
+
+def sidecar(rig, clips, path):
     import hashlib
 
     out = {
         "fps": FPS,
+        # The body the clips were solved on and are played by.
+        "body": rig.name,
+        "model": rig.body["file"].name,
         "units": "metres and seconds; forward 0 is the obstacle's front face",
         # The file the numbers below were measured on: a test fails when vault.glb is not this file any more.
         "measured": {
@@ -1707,7 +2023,7 @@ def export(rig, actions, out):
     for obj in (arm, proxy):
         obj.select_set(True)
     bpy.context.view_layer.objects.active = arm
-    path = out / "vault.glb"
+    path = out / rig.body["out"]
     bpy.ops.export_scene.gltf(
         filepath=str(path),
         export_format="GLB",
@@ -1723,7 +2039,7 @@ def export(rig, actions, out):
     return path
 
 
-def strip(path):
+def strip(path, keyed):
     """Keep only what a clip should drive: every bone's rotation and the pelvis's place. The exporter also writes
     each bone's rest translation and scale, which would press this rig's bone lengths onto the other mannequin."""
     data = path.read_bytes()
@@ -1735,6 +2051,8 @@ def strip(path):
         for channel in animation["channels"]:
             target = channel["target"]
             name = gltf["nodes"][target["node"]]["name"]
+            if name not in keyed:
+                continue
             if target["path"] == "rotation" or (target["path"] == "translation" and name == "pelvis"):
                 samplers.append(animation["samplers"][channel["sampler"]])
                 channels.append({"sampler": len(samplers) - 1, "target": target})
@@ -1770,6 +2088,7 @@ def main():
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=str(HERE))
+    parser.add_argument("--body", default=DEFAULT_BODY, choices=sorted(BODIES))
     parser.add_argument("--render", default="")
     parser.add_argument("--only", default="")
     parser.add_argument("--no-fail", action="store_true")
@@ -1778,7 +2097,8 @@ def main():
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    rig = Rig()
+    BODIES[args.body].update(json.loads(os.environ.get("VAULT_TUNE", "{}")))
+    rig = Rig(args.body)
     pose = rig.library_pose(SPRINT, 0)
     fist = {name: rig.basis(name, pose) for side in "lr" for name in rig.finger_bones(side)}
     names = [args.only] if args.only else FILE_CLIPS
@@ -1806,6 +2126,16 @@ def main():
         print(f"PULLED {clip.name}:", {f: v for f, v in clip.pulled.items() if v}, clip.pullers)
         if args.trace:
             print_trace(clip)
+            for frame, low, deep, where, joint, which, legs in clip.between:
+                if low < -0.004 or deep > 0.004 or joint > 0.0:
+                    print(
+                        f"BETWEEN {clip.name} {frame:5.1f} ({frame / FPS:.4f} s): lowest {low * 1000:+.1f} mm | skin "
+                        f"in the box {deep * 1000:.1f} mm {where} | joint in the box {joint * 1000:.1f} mm {which}"
+                    )
+                # Each leg joint near the box: forward of the front face and up from the top (m).
+                if clip.box_height > 0.0 and -0.5 < clip.forward(frame) < clip.box_depth + 0.3:
+                    places = " | ".join(f"{name} {at[0]:+.2f} {at[1]:+.2f}" for name, at in legs.items())
+                    print(f"LEGS {clip.name} {frame:5.1f}: {places}")
         for problem in problems:
             failed = True
             print(f"PROBLEM {clip.name}: {problem}")
@@ -1819,15 +2149,23 @@ def main():
     if args.only:
         return
     path = export(rig, actions, out)
-    strip(path)
+    strip(path, set(rig.keyed))
     found = read_back(path)
     assert sorted(found) == sorted(FILE_CLIPS), f"the file carries {sorted(found)}, not {FILE_CLIPS}"
     for clip in clips:
         assert abs(found[clip.name]["length"] - clip.frames / FPS) < 1e-3, (clip.name, found[clip.name])
         assert found[clip.name]["translation"] == ["pelvis"], found[clip.name]["translation"]
-        assert found[clip.name]["channels"] == len(rig.order) + 1, found[clip.name]["channels"]
-    text = json.dumps(sidecar(clips, path), indent=2) + "\n"
-    (out / "vault_clips.json").write_text(text, encoding="utf-8", newline="\n")
+        assert found[clip.name]["channels"] == len(rig.keyed) + 1, found[clip.name]["channels"]
+    numbers = sidecar(rig, clips, path)
+    if args.body != DEFAULT_BODY:
+        default = json.loads((HERE / BODIES[DEFAULT_BODY]["sidecar"]).read_text(encoding="utf-8"))
+        differs = held_to_default(numbers, default)
+        for line in differs:
+            print(f"PROBLEM {line}")
+        if differs and not args.no_fail:
+            sys.exit(f"{args.body}'s clips differ from {DEFAULT_BODY}'s in what the vault code reads")
+    text = json.dumps(numbers, indent=2) + "\n"
+    (out / rig.body["sidecar"]).write_text(text, encoding="utf-8", newline="\n")
     print("EXPORTED", path, json.dumps(found)[:400])
 
 
