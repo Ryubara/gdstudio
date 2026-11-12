@@ -20,17 +20,18 @@ stays out of `merge.required_checks`, so `pr-status` does not label it `S-ci-fai
   does not see a script that calls the API itself.
 - **The approval** is the maintainer's message in the coordinator's session. The coordinator (no `agent_type` or
   `agent_id`) may run `gh pr|issue edit <N> --remove-label S-hold` when the session's transcript (`transcript_path`)
-  holds, from the last 24 hours, a message the maintainer typed that names N with lift, remove, approve, land, merge
-  or yes in the same sentence, or a plain yes of at most 20 words, with no digit, to the coordinator's last message
-  when that message named N and the hold. Only a `user` entry whose `origin` kind is `human`, not `isMeta`, not a
-  sidechain and not a tool result counts: a prompt tether submits (origin kind `plugin`), agent reports and monitor
-  events (`task-notification`), peers, hook output and tool results do not. Pasted blocks (`<pasted_content>`), `>`
-  lines, fenced code and quoted text are dropped first; a question, a negation or a condition (if, once, after,
-  until) does not approve. Each approval lifts once: `scratch/hold-lifts.log` gets the pull request, the approving
-  message's timestamp (never its text) and the session, and a spent timestamp is refused. Name the number, not a
-  branch. Task agents, the API, `gh label` and merges stay refused. No session writes a transcript (`[protect]` for
-  Edit and Write; a redirect, `tee`, `sed -i`, `Set-Content` or a copy onto one) or spells an entry with a human
-  origin in a shell line or new file text. Code: `gds_tools/hold_approval.py`.
+  holds, from the last 24 hours, a message the maintainer typed that names N with lift, remove, approve, land, merge or
+  yes in the same sentence, or any sentence with no digit that approves or says yes, in any words and in a message of
+  any length, answering the coordinator's last message when that message named N and the hold or an approval; a sentence
+  naming N with a negation vetoes N for the whole message. There is no set wording to ask for. Only a `user` entry whose
+  `origin` kind is `human`, not `isMeta`, not a sidechain and not a tool result counts: a prompt tether submits (origin
+  kind `plugin`), agent reports and monitor events (`task-notification`), peers, hook output and tool results do not.
+  Pasted blocks (`<pasted_content>`), `>` lines, fenced code and quoted text are dropped first; a question, a negation
+  or a condition (if, once, after, until) does not approve. Each approval lifts once: `scratch/hold-lifts.log` gets the
+  pull request, the approving message's timestamp (never its text) and the session, and a spent timestamp is refused.
+  Name the number, not a branch. Task agents, the API, `gh label` and merges stay refused. No session writes a
+  transcript (`[protect]` for Edit and Write; a redirect, `tee`, `sed -i`, `Set-Content` or a copy onto one) or spells
+  an entry with a human origin in a shell line or new file text. Code: `gds_tools/hold_approval.py`.
 - **While it waits**, its agent merges `main` only when the pull request is DIRTY at report time; the coordinator
   refreshes it right before it lands ([Landing](landing.md#landing): an agent merged `main` four times into a held
   pull request, each push restarting CI).
@@ -47,3 +48,9 @@ name would let any other label replace a failed run. `python/tests/test_hold.py`
   not asked for; and tether submits prompts through the same path as typed ones, so only the entry's `origin` kind
   tells them apart, never its text. **Seen:** gdstudio #1202 then #1244, 2026-11-11 (fix: the switch was removed and
   `hold_approval.py` reads the transcript; `test_hook_hold_approval.py` covers each kind of text that does not count).
+- **Approach:** Read the maintainer's approval in whatever words they use, a blanket one for the held list included,
+  and never ask them to repeat it in a set form. **Watch out for:** the guard took only a sentence naming the number or
+  a bare yes of at most 20 words, so a longer message that approved every listed pull request among other remarks was
+  refused, and the coordinator asked for one approve line per number. **Seen:** gdstudio #1191-#1285 holds,
+  2026-11-12 (fix: a digitless approving sentence answers the list at any message length, and a negation naming a
+  number vetoes it; `test_hook_hold_approval.py`).
