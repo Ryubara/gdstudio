@@ -7,6 +7,7 @@ also the proof that the plan, the foot paths and the travel work before the gait
 """
 
 import copy
+import dataclasses
 import math
 
 import numpy as np
@@ -108,6 +109,25 @@ def hop_built(rig, solver, arc: bool):
     return built
 
 
+def tiptoe_built(rig, solver, settled: bool):
+    """A stand whose right foot stands on its ball, the heel 40 degrees up: set down by its own skin when `settled`,
+    and turned about the toes' hinge with nothing more when not, as a body whose toes lie flat on the floor would
+    be. On a body whose toes curl up off the floor at rest the second hangs over it."""
+    clip = stand_clip(rig)
+    clip.name = "Tiptoe_Test"
+    clip.plan.footfalls = [
+        dataclasses.replace(fall, heel=40.0) if fall.side == "r" else fall for fall in clip.plan.footfalls
+    ]
+    sole = rig.sole["r"]
+    toes = sole["tread_toes"]
+    if not settled:
+        sole["tread_toes"] = np.ones_like(toes)
+    try:
+        return build.build_clip(rig, solver, clip)
+    finally:
+        sole["tread_toes"] = toes
+
+
 def drop_built(rig, solver, taken: int):
     """A stand that plays once and whose pelvis goes down 0.2 m over `taken` frames on an even ease, the knees
     folding over feet that stay on the floor: over 12 frames it stays under gravity, over 7 it does not."""
@@ -170,6 +190,14 @@ def run(rig, solver, bodies) -> int:
     sunk = dense(stand)
     sunk.translation[:, pelvis] += rig.rest_rot[rig.parent["pelvis"]].T @ (-0.012 * maths.Y)
     case("the feet are under the floor", "floor", stand, sunk)
+    # floor: a foot on its ball that is not set down by its skin (only a body whose toes rest off the floor shows it).
+    if rig.sole["r"]["toes_up"] > checks.SOLE_BAND:
+        case(
+            "a foot on its ball hangs over the floor",
+            "floor",
+            tiptoe_built(rig, solver, True),
+            tiptoe_built(rig, solver, False),
+        )
     # planted: a planted foot slid; the speed in clips.json wrong.
     slid = dense(walk)
     slid.translation[:, pelvis] += np.outer(
