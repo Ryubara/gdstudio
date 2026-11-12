@@ -50,10 +50,7 @@ LIMIT_MM = 5.0
 ## The ways a sample looks to tell inside from outside (all but one must first meet the back of a face).
 ## The frame rates a clip file is tried at, lowest first (`clip_rate`).
 RATES = (24, 25, 30, 48, 50, 60, 120)
-RAYS = [
-    Vector(v)
-    for v in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))
-]
+RAYS = [Vector(v) for v in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))]
 
 ## The part of each bone of the universal rig; a bone not named takes its parent's part. The lowest spine bone
 ## goes with the pelvis: on the female mannequin it carries the hips' skin down to the top of the thighs.
@@ -92,11 +89,7 @@ ARM = ("upperarm", "lowerarm", "hand")
 TWISTS = [
     (f"{twist}_twist_01_{side}", f"{source}_{side}", counter)
     for side in ("l", "r")
-    for twist, source, counter in (
-        ("upperarm", "upperarm", True),
-        ("thigh", "thigh", True),
-        ("lowerarm", "hand", False),
-    )
+    for twist, source, counter in (("upperarm", "upperarm", True), ("thigh", "thigh", True), ("lowerarm", "hand", False))
 ]
 
 
@@ -106,20 +99,13 @@ def _kind(part):
 
 def _joined(a, b):
     ka, kb = _kind(a), _kind(b)
-    same_side = (
-        a[-2:] == b[-2:]
-        or ka in ("pelvis", "chest", "head")
-        or kb in ("pelvis", "chest", "head")
-    )
+    same_side = a[-2:] == b[-2:] or ka in ("pelvis", "chest", "head") or kb in ("pelvis", "chest", "head")
     return same_side and ((ka, kb) in JOINED or (kb, ka) in JOINED)
 
 
 def pair_class(a, b):
     """The kind of crossing a pair is: `leg/leg`, `arm/leg`, `arm/arm`, `leg/torso` or `arm/torso`."""
-    kinds = sorted(
-        "leg" if _kind(p) in LEG else "arm" if _kind(p) in ARM else "torso"
-        for p in (a, b)
-    )
+    kinds = sorted("leg" if _kind(p) in LEG else "arm" if _kind(p) in ARM else "torso" for p in (a, b))
     return "/".join(kinds)
 
 
@@ -138,15 +124,10 @@ def twist_turns(turn_of, rest_of):
     for twist, source, counter in TWISTS:
         if counter:
             # the limb's turn from its rest, in its own axes; its roll is taken back out at the shoulder or hip
-            out[twist] = (
-                rest_of(twist)
-                @ roll_about_y(rest_of(source).inverted() @ turn_of(source)).inverted()
-            )
+            out[twist] = rest_of(twist) @ roll_about_y(rest_of(source).inverted() @ turn_of(source)).inverted()
         else:
             # the hand's turn from its rest, in the forearm's axes; the wrist end of the forearm takes its roll
-            out[twist] = roll_about_y(
-                turn_of(source) @ rest_of(source).inverted()
-            ) @ rest_of(twist)
+            out[twist] = roll_about_y(turn_of(source) @ rest_of(source).inverted()) @ rest_of(twist)
     return out
 
 
@@ -159,9 +140,7 @@ def apply_twist(arm):
     for twist, source, _ in TWISTS:
         for name in (twist, source):
             bone = arm.data.bones[name]
-            rest[name] = (
-                bone.parent.matrix_local.inverted() @ bone.matrix_local
-            ).to_quaternion()
+            rest[name] = (bone.parent.matrix_local.inverted() @ bone.matrix_local).to_quaternion()
 
     def turn_of(name):
         return rest[name] @ bones[name].matrix_basis.to_quaternion()
@@ -182,28 +161,18 @@ class Body:
         self.parent = {b.name: (b.parent.name if b.parent else None) for b in bones}
         rest = {b.name: b.matrix_local.copy() for b in bones}
         self.rest_rel = {
-            n: (rest[self.parent[n]].inverted() @ rest[n])
-            if self.parent[n]
-            else rest[n].copy()
-            for n in self.order
+            n: (rest[self.parent[n]].inverted() @ rest[n]) if self.parent[n] else rest[n].copy() for n in self.order
         }
         part_of = {}
         for name_ in self.order:  # parents come before children
-            part_of[name_] = (
-                PARTS.get(name_) or part_of.get(self.parent[name_]) or "pelvis"
-            )
+            part_of[name_] = PARTS.get(name_) or part_of.get(self.parent[name_]) or "pelvis"
         self.part_names = sorted(set(part_of.values()))
         index = {p: i for i, p in enumerate(self.part_names)}
         data = mesh.data
         # Weld the vertices the file split at UV seams, so a part's open rims are only where it was cut.
         flat = np.empty(len(data.vertices) * 3)
         data.vertices.foreach_get("co", flat)
-        _, first, welded = np.unique(
-            np.round(flat.reshape(-1, 3), 5),
-            axis=0,
-            return_index=True,
-            return_inverse=True,
-        )
+        _, first, welded = np.unique(np.round(flat.reshape(-1, 3), 5), axis=0, return_index=True, return_inverse=True)
         welded = welded.reshape(-1)
         self.first = first
         weights = np.zeros((len(first), len(self.part_names)))
@@ -215,12 +184,8 @@ class Body:
                     weights[welded[vertex.index], index[part_of[bone]]] += g.weight
         vertex_part = weights.argmax(axis=1)
         data.calc_loop_triangles()
-        triangles = welded[
-            np.array([t.vertices[:] for t in data.loop_triangles], dtype=np.int64)
-        ].reshape(-1, 3)
-        flat_ones = (triangles[:, 0] == triangles[:, 1]) | (
-            triangles[:, 1] == triangles[:, 2]
-        )
+        triangles = welded[np.array([t.vertices[:] for t in data.loop_triangles], dtype=np.int64)].reshape(-1, 3)
+        flat_ones = (triangles[:, 0] == triangles[:, 1]) | (triangles[:, 1] == triangles[:, 2])
         triangles = triangles[~(flat_ones | (triangles[:, 2] == triangles[:, 0]))]
         whole = (vertex_part[triangles] == vertex_part[triangles][:, :1]).all(axis=1)
         self.parts = {}
@@ -230,12 +195,8 @@ class Body:
                 continue
             used = np.unique(tris)
             local = np.searchsorted(used, tris)
-            directed = np.concatenate(
-                [local[:, [0, 1]], local[:, [1, 2]], local[:, [2, 0]]]
-            )
-            edges, counts = np.unique(
-                np.sort(directed, axis=1), axis=0, return_counts=True
-            )
+            directed = np.concatenate([local[:, [0, 1]], local[:, [1, 2]], local[:, [2, 0]]])
+            edges, counts = np.unique(np.sort(directed, axis=1), axis=0, return_counts=True)
             # Close each open rim (where the part was cut from its neighbour) with a fan to the rim's middle, so
             # a point can be told inside from outside. The fans are only for that: depth is measured to the skin.
             open_edges = {tuple(e) for e in edges[counts == 1].tolist()}
@@ -279,9 +240,7 @@ class Body:
                 bone.matrix_basis = Matrix.Identity(4)
                 continue
             rel = bones[parent].matrix.inverted() @ bones[name].matrix
-            offset = (
-                rel.translation if name == "pelvis" else self.rest_rel[name].translation
-            )
+            offset = rel.translation if name == "pelvis" else self.rest_rel[name].translation
             local = Matrix.LocRotScale(offset, rel.to_quaternion(), None)
             bone.matrix_basis = self.rest_rel[name].inverted() @ local
         bpy.context.view_layer.update()
@@ -306,9 +265,7 @@ class Body:
         for part, info in self.parts.items():
             own = coords[info["verts"]]
             local = np.array(info["local"])
-            samples = np.concatenate(
-                [own, own[local].mean(axis=1), own[info["edges"]].mean(axis=1)]
-            )
+            samples = np.concatenate([own, own[local].mean(axis=1), own[info["edges"]].mean(axis=1)])
             built[part] = {
                 "low": own.min(axis=0),
                 "high": own.max(axis=0),
@@ -328,24 +285,14 @@ class Body:
                 deepest, place = 0.0, None
                 for inner, outer in ((pa, pb), (pb, pa)):
                     points = inner["samples"]
-                    near = points[
-                        ((points >= outer["low"]) & (points <= outer["high"])).all(
-                            axis=1
-                        )
-                    ]
+                    near = points[((points >= outer["low"]) & (points <= outer["high"])).all(axis=1)]
                     if not len(near):
                         continue
                     if "skin" not in outer:
                         own, info = outer["own"], outer["info"]
-                        outer["skin"] = BVHTree.FromPolygons(
-                            own.tolist(), info["local"]
-                        )
-                        middles = [
-                            own[cap].mean(axis=0).tolist() for cap in info["caps"]
-                        ]
-                        outer["solid"] = BVHTree.FromPolygons(
-                            own.tolist() + middles, info["closed"]
-                        )
+                        outer["skin"] = BVHTree.FromPolygons(own.tolist(), info["local"])
+                        middles = [own[cap].mean(axis=0).tolist() for cap in info["caps"]]
+                        outer["solid"] = BVHTree.FromPolygons(own.tolist() + middles, info["closed"])
                     find, cast = outer["skin"].find_nearest, outer["solid"].ray_cast
                     for point in near.tolist():
                         location, normal, _index, distance = find(point)
@@ -368,9 +315,7 @@ class Body:
 def key_times(path):
     """Every key time, in seconds, of every animation in a glb (read from the file, without Blender)."""
     data = Path(path).read_bytes()
-    magic, _version, _length, json_length, _json_type = struct.unpack_from(
-        "<5I", data, 0
-    )
+    magic, _version, _length, json_length, _json_type = struct.unpack_from("<5I", data, 0)
     assert magic == 0x46546C67, f"{path} is not a glb"
     doc = json.loads(data[20 : 20 + json_length])
     binary = 20 + json_length + 8
@@ -430,12 +375,7 @@ def measure(source, action, frames, bodies):
                 if mm > report["by_class"].get(kind, [0.0])[0]:
                     report["by_class"][kind] = [mm, frame, f"{a} in {b}"]
                 if mm > report["deepest_mm"]:
-                    report.update(
-                        deepest_mm=mm,
-                        frame=frame,
-                        pair=f"{a} in {b}",
-                        place=[round(x, 3) for x in place],
-                    )
+                    report.update(deepest_mm=mm, frame=frame, pair=f"{a} in {b}", place=[round(x, 3) for x in place])
             report["frames"].append(worst)
     return out
 
@@ -462,14 +402,8 @@ def self_test(body):
     bpy.context.view_layer.update()
     rest = max((d for d, _ in body.overlaps().values()), default=0.0)
     thigh = body.arm.pose.bones["thigh_l"]
-    side = (
-        body.arm.data.bones["thigh_r"].head_local
-        - body.arm.data.bones["thigh_l"].head_local
-    )
-    down = (
-        body.arm.data.bones["calf_l"].head_local
-        - body.arm.data.bones["thigh_l"].head_local
-    )
+    side = body.arm.data.bones["thigh_r"].head_local - body.arm.data.bones["thigh_l"].head_local
+    down = body.arm.data.bones["calf_l"].head_local - body.arm.data.bones["thigh_l"].head_local
     axis = down.cross(side).normalized()
     turn = Matrix.Rotation(0.5, 4, axis)
     rest_l = body.arm.data.bones["thigh_l"].matrix_local
@@ -477,19 +411,12 @@ def self_test(body):
     thigh.matrix = pivot @ turn @ pivot.inverted() @ rest_l
     bpy.context.view_layer.update()
     crossed = body.overlaps()
-    deep = max(
-        (d for (a, b), (d, _) in crossed.items() if pair_class(a, b) == "leg/leg"),
-        default=0.0,
-    )
+    deep = max((d for (a, b), (d, _) in crossed.items() if pair_class(a, b) == "leg/leg"), default=0.0)
     thigh.matrix_basis = Matrix.Identity(4)
     bpy.context.view_layer.update()
-    print(
-        f"SELFTEST {body.name}: rest {rest * 1000:.1f} mm, a thigh swung through the other {deep * 1000:.1f} mm"
-    )
+    print(f"SELFTEST {body.name}: rest {rest * 1000:.1f} mm, a thigh swung through the other {deep * 1000:.1f} mm")
     assert rest * 1000 < 1.0, f"{body.name}: the rest pose reads {rest * 1000:.1f} mm"
-    assert deep * 1000 > 20.0, (
-        f"{body.name}: crossed legs read only {deep * 1000:.1f} mm"
-    )
+    assert deep * 1000 > 20.0, f"{body.name}: crossed legs read only {deep * 1000:.1f} mm"
 
 
 def main():
@@ -508,22 +435,16 @@ def main():
     # Blender puts a key at its seconds times the scene's rate: the scene takes the file's rate before any import.
     rate = args.fps or clip_rate(args.clips)
     if not rate:
-        sys.exit(
-            f"the keys of {args.clips} are whole frames at none of {RATES} frames a second: name it with --fps"
-        )
+        sys.exit(f"the keys of {args.clips} are whole frames at none of {RATES} frames a second: name it with --fps")
     bpy.context.scene.render.fps = rate
-    print(
-        f"RATE {Path(args.clips).name}: {rate} frames a second ({'--fps' if args.fps else 'from its key times'})"
-    )
+    print(f"RATE {Path(args.clips).name}: {rate} frames a second ({'--fps' if args.fps else 'from its key times'})")
     bodies = [load_body(path) for path in args.model]
     if args.self_test:
         for body in bodies:
             self_test(body)
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=args.clips)
-    source = next(
-        o for o in bpy.data.objects if o not in before and o.type == "ARMATURE"
-    )
+    source = next(o for o in bpy.data.objects if o not in before and o.type == "ARMATURE")
     for track in source.animation_data.nla_tracks:
         track.mute = True
     own = [a for a in bpy.data.actions if not args.clip or a.name in args.clip]
@@ -533,9 +454,7 @@ def main():
     for action in sorted(own, key=lambda a: a.name):
         first, last = (round(f) for f in action.frame_range)
         off = max(abs(f - round(f)) for f in action.frame_range)
-        assert off < 0.01, (
-            f"{action.name} ends {off:.2f} of a frame off a key at {rate} frames a second"
-        )
+        assert off < 0.01, f"{action.name} ends {off:.2f} of a frame off a key at {rate} frames a second"
         result = measure(source, action, range(first, last + 1), bodies)
         report[action.name] = result
         for name, entry in result.items():
@@ -543,19 +462,13 @@ def main():
             verdict = "ok" if entry["deepest_mm"] <= args.limit else "CROSSES"
             failed = failed or verdict != "ok"
             at = entry["frame"]
-            when = (
-                ""
-                if at is None
-                else f" of {first} to {last} at {rate} fps, {at / rate:.3f} s"
-            )
+            when = "" if at is None else f" of {first} to {last} at {rate} fps, {at / rate:.3f} s"
             print(
                 f"OVERLAP {action.name} {name}: {entry['deepest_mm']} mm at frame {at}{when} "
                 f"({entry['pair']}) {verdict} {json.dumps(entry['by_class'])}"
             )
     if args.json:
-        Path(args.json).write_text(
-            json.dumps(report, indent=1) + "\n", encoding="utf-8", newline="\n"
-        )
+        Path(args.json).write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8", newline="\n")
     if failed:
         sys.exit(f"limbs pass through each other by more than {args.limit} mm")
 

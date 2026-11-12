@@ -149,6 +149,10 @@ FOOT_LIFT = 0.0  # metres more a lying foot lifts as it comes onto its toes to g
 # (degrees the foot points), `foot_roll` (degrees the foot is rolled back onto its instep) and `ankle_up` (metres the
 # ankle rests over `ANKLE_H`: a leg turned out lies on the inner edge of its foot). None lies both sides alike, as the Quaternius mannequins' files do.
 IDLE_SIDES = None
+IDLE_HEAD = (
+    0.0,
+    0.0,
+)  # degrees the lying head is turned to its left and tipped, about which it drifts
 LYING_KNEE = (
     1.0,
     -0.35,
@@ -240,6 +244,8 @@ BODIES = {
             "ring": (80.0, 98.0, 43.0),
             "pinky": (80.0, 105.0, 45.0),
         },
+        "IDLE_STAGGER": 0.04,
+        "IDLE_HEAD": (7.0, 3.0),
         "IDLE_ELBOW_OUT": 0.07,
         "IDLE_ELBOW_FWD": 0.09,
         "IDLE_SIDES": {
@@ -296,6 +302,8 @@ BODIES = {
             "ring": (80.0, 96.0, 42.0),
             "pinky": (80.0, 103.0, 43.0),
         },
+        "IDLE_STAGGER": 0.04,
+        "IDLE_HEAD": (7.0, 3.0),
         "IDLE_ELBOW_OUT": 0.07,
         "IDLE_ELBOW_FWD": 0.12,
         "IDLE_CLAV_PUSH": -4.0,
@@ -912,8 +920,9 @@ def idle_spec(rig, phase, pelvis_up, anchor, own=True):
     trunk["spine_01"] = (85.0 - 0.5 * breath, 0.0, 0.0)
     trunk["spine_02"] = (76.0 - 1.0 * breath, 0.6 * look, 0.0)
     trunk["spine_03"] = (66.0 - 1.4 * breath, 1.0 * look, 0.0)
-    trunk["neck_01"] = (46.0 - 1.2 * late, 2.0 * look, 0.0)
-    trunk["Head"] = (17.0 - 1.6 * late, 4.0 * look, 0.6 * look)
+    turned, tipped = IDLE_HEAD if own else (0.0, 0.0)
+    trunk["neck_01"] = (46.0 - 1.2 * late, 2.0 * look + 0.4 * turned, 0.0)
+    trunk["Head"] = (17.0 - 1.6 * late, 4.0 * look + turned, 0.6 * look + tipped)
     for s, sign in SIDES:
         spec["clav"][s] = (8.0 + 1.5 * breath, IDLE_CLAV_PUSH + 1.2 * breath)
         elbow = vec(
