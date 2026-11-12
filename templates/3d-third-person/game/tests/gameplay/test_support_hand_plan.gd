@@ -80,6 +80,14 @@ func test_each_phase_has_the_hand_where_it_says() -> void:
 	plan.update(1.0, 1.0, lerpf(plan.insert.y, plan.back.x, 0.5))
 	assert_array([plan.arm, plan.at_magazine, plan.down]).is_equal([1.0, 1.0, 0.0])
 	assert_float(plan.opened).is_equal(0.0)
+	# Down the way in is not the way back down: that part of `down` is 0 until the return, and
+	# all of it once the hand has come down off the seated magazine (kit #1052).
+	plan.update(1.0, 1.0, plan.reach.y)
+	assert_float(plan.down_back).is_equal(0.0)
+	var down_done := lerpf(plan.back.x, plan.back.y, SupportHandPlan.BACK_DOWN.y)
+	plan.update(1.0, 1.0, down_done)
+	assert_float(plan.down_back).is_equal_approx(SupportHandPlan.BACK_DOWN_SHARE, 0.0001)
+	assert_float(plan.down).is_equal_approx(plan.down_back, 0.0001)
 	# Half-way back the hand is off the magazine, at the way's far end, opened.
 	var across_done := lerpf(plan.back.x, plan.back.y, SupportHandPlan.BACK_ACROSS.y)
 	plan.update(1.0, 1.0, across_done)

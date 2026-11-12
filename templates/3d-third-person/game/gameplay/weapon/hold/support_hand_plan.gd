@@ -88,6 +88,9 @@ var off := 0.0
 ## How far down the magazine's approach line the hand is below its place under the magazine
 ## (1 the whole `magazine_approach`).
 var down := 0.0
+## The part of `down` that is the way back off the seated magazine (0 until the return): the hold
+## takes it along `WeaponHold.return_down`, the rest along the magazine's own way in.
+var down_back := 0.0
 ## How far the hand is across from the magazine to the way's far end (0 to 1 and it bows out by
 ## `WeaponHold.return_clearance` between).
 var across := 0.0
@@ -117,6 +120,7 @@ func update(aim: float, weight: float, share: float) -> void:
 	at_magazine = 0.0
 	magazine_fingers = 0.0
 	down = 0.0
+	down_back = 0.0
 	across = 0.0
 	magazine_in_gun = true
 	magazine_in_hand = false
@@ -147,9 +151,8 @@ func update(aim: float, weight: float, share: float) -> void:
 			magazine_arm = smoothstep(reach.x, reach.y, share) * weight
 			at_magazine = 1.0 - across
 			magazine_fingers = 1.0 if across < 1.0 else 0.0
-			down = (
-				1.0 - inserted + BACK_DOWN_SHARE * smoothstep(BACK_DOWN.x, BACK_DOWN.y, returned)
-			)
+			down_back = BACK_DOWN_SHARE * smoothstep(BACK_DOWN.x, BACK_DOWN.y, returned)
+			down = 1.0 - inserted + down_back
 			if across >= 1.0:
 				# At the way's far end: the other hand makes room, then in along the way.
 				on_reload = lerpf(ARM_UNTIL, 1.0, smoothstep(BACK_ACROSS.y, 1.0, returned))

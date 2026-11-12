@@ -19,8 +19,9 @@ each as far as it lifts off without passing through anything on the way, and the
 opened hand leaves, the clear one nearest the way to the belt; `--way-only` solves only that, on the output
 file of an earlier run (five minutes). The new magazine in the left hand (kit #1052) comes after it: the fingers
 closed on the magazine from the belt to the grip, and the shares of the way in over which they go from that pose
-to the one under the magazine; `--carry-only` solves only that, on the output file of an earlier run (a few
-minutes, more the first time its distance grids are made).
+to the one under the magazine; `--carry-only` solves only that, on the output file of an earlier run (three
+minutes a body, a quarter of an hour more the first time its distance grids are made; `--carry_trace` prints how far
+off each part of the hand is at every step of the way in, and into what).
 
 The seat is given as a move from `REFERENCE_SEAT` (metres along the pistol's own axes, then degrees about them),
 and the hand bone is turned back at the wrist by the same turn, so the barrel keeps the reference's line in the
@@ -1018,10 +1019,13 @@ def open_grid(finger, held):
     return np.clip(np.array(list(grid), float), limits[:, 0], limits[:, 1])
 
 
-def open_finger(scene, hand, finger):
+def open_finger(scene, hand, finger, then=None):
     """Opens one finger of a hand that holds: the pose nearest the held one that lifts it `OPEN_CLEAR` off
     every surface (or as far as it gets) with nothing deeper than `WAY_TOL` in every pose between, the bones
-    blended as the game blends them. Returns the angles, the deepest on the way and how far off it ends."""
+    blended as the game blends them. With `then` (a pose's angles the finger goes on to from the opened one, as the
+    carry's fingers go on to the pose under the magazine), the way from the opened pose to it is held to the same
+    depth: a pose clear of the way there only left the female body's index fingertip to cross 3.9 mm of the
+    magazine's corner on the way on. Returns the angles, the deepest on the way and how far off it ends."""
     held = hand.angles[finger].copy()
     grid = open_grid(finger, held)
     shares = np.linspace(0.0, 1.0, WAY_STEPS + 1)[1:]
@@ -1039,6 +1043,14 @@ def open_finger(scene, hand, finger):
         off = off.reshape(len(rows), len(shares), -1)
         deepest[first : first + 400] = off.min(axis=(1, 2))
         clear[first : first + 400] = off[:, -1].min(axis=1)
+        if then is not None:
+            onward = [
+                blended(a[0], b, 1.0 - shares)
+                for a, b in zip(local_rotations(finger, then), local_rotations(finger, rows), strict=True)
+            ]
+            off = scene.field(hand, hand.finger_points_turned(finger, onward), which)
+            passing = off.reshape(len(rows), -1).min(axis=1)
+            deepest[first : first + 400] = np.minimum(deepest[first : first + 400], passing)
     # A degree of change costs 0.03 mm, so the nearest pose that is clear enough wins.
     cost = 100.0 * relu(-deepest - WAY_TOL) + relu(OPEN_CLEAR - clear) + 3e-5 * np.abs(grid - held).sum(axis=1)
     best = cost.argmin()
@@ -1353,6 +1365,8 @@ def solve_carry(scene, out, started):
     approach = -CARRY_LENGTH * up / np.linalg.norm(up)
     in_gun = np.array(out["magazine_hand"], float)
     held = hand.angles_of({bone: np.array(q) for bone, q in out["magazine"].items()})
+    if "--carry_trace" in sys.argv:
+        print("held", {f: np.round(held[f], 1).tolist() for f in FINGERS}, flush=True)
     # The carry, against the magazine alone.
     kept = scene.gun, scene.frozen, scene.frozen_points
     scene.gun, scene.frozen, scene.frozen_points = mag_field, {}, {}
@@ -1363,7 +1377,7 @@ def solve_carry(scene, out, started):
         for finger in FINGERS:
             hand.set(finger, out["carry_angles"][finger])
     if "--carry-open-only" in sys.argv:
-        result = carry_open(scene, hand)
+        result = carry_open(scene, hand, held)
         scene.gun, scene.frozen, scene.frozen_points = kept
         return result
     if option("carry_spans", []):
@@ -1385,9 +1399,29 @@ def solve_carry(scene, out, started):
                 hand.set(finger, best)
         hand.finger_verts = own
         report(scene, hand, "carry")
+        opened = carry_open(scene, hand, held)
+        # A finger hooked round the magazine that cannot let go of it clear on the way to the pose under the
+        # magazine (the female prototype's index finger crossed 2.2 to 3.9 mm of the magazine's corner whatever
+        # pose it opened to) is closed again with its two end joints as that pose has them, so only its knuckle
+        # moves between the two and the curled finger swings off the magazine as one piece.
+        stuck = [f for f in FINGERS if f != "thumb" and opened["carry_open_passes"][f] > WAY_TOL]
+        for finger in stuck:
+            limits = LIMITS.get(finger, LIMITS["finger"])
+            rows = np.array(
+                [
+                    [lean, knuckle, held[finger][2], held[finger][3]]
+                    for lean in np.arange(limits[0, 0], limits[0, 1] + 0.1, 2.0)
+                    for knuckle in np.arange(limits[1, 0], limits[1, 1] + 0.1, 1.0)
+                ]
+            )
+            cost, _ = finger_cost(scene, hand, finger, rows, "carry")
+            hand.set(finger, rows[cost.argmin()])
+            print("carry", finger, "closed again from the knuckle:", np.round(hand.angles[finger], 1), flush=True)
+        if stuck:
+            report(scene, hand, "carry")
+            opened = carry_open(scene, hand, held)
         carry = {finger: hand.angles[finger].copy() for finger in FINGERS}
         quaternions = hand.quaternions()
-        opened = carry_open(scene, hand)
     scene.gun, scene.frozen, scene.frozen_points = kept
     if "--carry-pose-only" in sys.argv:
         return {"carry": quaternions, "magazine_approach": approach.tolist(), **opened}
@@ -1439,6 +1473,12 @@ def solve_carry(scene, out, started):
                 "right hand": scene.distances(hand, points)[1],
             }
             off = np.minimum.reduce(list(into.values()))
+            if "--carry_trace" in sys.argv:
+                row = []
+                for name in ("index_tip", "index_mid", "middle_tip", "ring_tip", "thumb_tip", "thumb_mid", "palm"):
+                    low = hand.part[name][off[hand.part[name]].argmin()]
+                    row.append(f"{name} {off[low] * 1e3:.1f} {min(into, key=lambda n, at=low: into[n][at])}")
+                print("trace", round(float(share), 3), "; ".join(row), flush=True)
             for index in range(len(worst)):
                 mine = np.where(model == index)[0]
                 low = mine[off[mine].argmin()]
@@ -1489,15 +1529,18 @@ def solve_carry(scene, out, started):
     }
 
 
-def carry_open(scene, hand):
+def carry_open(scene, hand, then=None):
     """The hand at the belt opened before it closes on the new magazine (the clip's fist there is closed
     tighter than the carry and would close through it): each finger the nearest pose to the carry that lifts it
-    off the magazine with nothing in it on the way, as the game blends it. The hand's fingers are the carry's
+    off the magazine with nothing in it on the way, as the game blends it, nor on the way on from it to `then`
+    (the pose under the magazine: the magazine is where it was in the hand). The hand's fingers are the carry's
     and the scene measures the magazine alone; they are put back afterwards."""
     carry = {finger: hand.angles[finger].copy() for finger in FINGERS}
     angles = {}
+    passes = {}
     for finger in FINGERS:
-        angles[finger], deepest, clear = open_finger(scene, hand, finger)
+        angles[finger], deepest, clear = open_finger(scene, hand, finger, None if then is None else then[finger])
+        passes[finger] = float(-deepest)
         print(
             "carry open",
             finger,
@@ -1512,7 +1555,8 @@ def carry_open(scene, hand):
     quaternions = hand.quaternions()
     for finger in FINGERS:
         hand.set(finger, carry[finger])
-    return {"carry_open": quaternions, "carry_open_angles": {f: angles[f].tolist() for f in FINGERS}}
+    opened = {"carry_open": quaternions, "carry_open_angles": {f: angles[f].tolist() for f in FINGERS}}
+    return {**opened, "carry_open_passes": passes}
 
 
 def carry_only(scene, started):

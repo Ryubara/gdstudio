@@ -110,6 +110,11 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 ## Where the left hand starts from under the magazine, from its place there, in the weapon's own
 ## space: the new magazine's length down the grip, since the magazine goes in ahead of the palm.
 @export var magazine_approach := Vector3(0.0, -0.1, 0.0)
+## Where the left hand goes down off the seated magazine before it crosses back, from its place
+## under it, in the weapon's own space (the plan takes it `SupportHandPlan.BACK_DOWN_SHARE` of
+## this far): straight down from the grip's foot. Back down the magazine's own way in, which
+## leans with the grip, the female body's curled index finger passed 2.2 to 2.5 mm deep.
+@export var return_down := Vector3(0.0, -0.1, 0.0)
 ## How far the left hand bows out, in the weapon's own space, half-way from under the magazine
 ## to the far end of `support_way` (it goes round the grip's foot, not through it).
 @export var return_clearance := Vector3(0.0, -0.04, 0.04)
@@ -258,7 +263,8 @@ func refresh() -> void:
 		place.origin += support_way * _left.off
 		if _magazine != null and _left.at_magazine > 0.0:
 			var under := _magazine.transform
-			under.origin += magazine_approach * _left.down
+			under.origin += magazine_approach * (_left.down - _left.down_back)
+			under.origin += return_down * _left.down_back
 			place = place.interpolate_with(under, _left.at_magazine)
 			place.origin += return_clearance * sin(PI * _left.across)
 		# In the bone's space: the weapon's seat times the place in the weapon.

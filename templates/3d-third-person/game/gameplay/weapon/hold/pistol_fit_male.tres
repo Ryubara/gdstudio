@@ -3,6 +3,46 @@
 [ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose.gd" id="1_mew4d"]
 [ext_resource type="Script" path="res://gameplay/weapon/hold/hold_fit.gd" id="2_u3yc4"]
 
+[sub_resource type="Resource" id="Resource_mew4d"]
+script = ExtResource("1_mew4d")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_l": Quaternion(0.33429, 0.47119, -0.52724, 0.62309),
+&"index_02_l": Quaternion(0.76863, 0, 0, 0.6397),
+&"index_03_l": Quaternion(0.42505, 0, 0, 0.90517),
+&"middle_01_l": Quaternion(0.46247, 0.55613, -0.43672, 0.5349),
+&"middle_02_l": Quaternion(0, 0, 0.00151, 1),
+&"middle_03_l": Quaternion(0, 0, -0.00113, 1),
+&"pinky_01_l": Quaternion(0.42632, 0.42633, -0.56414, 0.56413),
+&"pinky_02_l": Quaternion(0.74732, -0.00062, -0.00055, 0.66447),
+&"pinky_03_l": Quaternion(0.38661, 0.00024, 0.00056, 0.92224),
+&"ring_01_l": Quaternion(0.53451, 0.53451, -0.46293, 0.46292),
+&"ring_02_l": Quaternion(0.74022, 1e-05, 1e-05, 0.67237),
+&"ring_03_l": Quaternion(0.35837, -0.00038, -0.001, 0.93358),
+&"thumb_01_l": Quaternion(0.01934, 0.94493, 0.31096, -0.1002),
+&"thumb_02_l": Quaternion(0.45794, -0.06952, -0.13279, 0.87625),
+&"thumb_03_l": Quaternion(0.32809, -0.0001, -0.00053, 0.94464)
+})
+
+[sub_resource type="Resource" id="Resource_u3yc4"]
+script = ExtResource("1_mew4d")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_l": Quaternion(0.40639, 0.48811, -0.51162, 0.57866),
+&"index_02_l": Quaternion(0.62566, 0, 0, 0.7801),
+&"index_03_l": Quaternion(0.42505, 0, 0, 0.90517),
+&"middle_01_l": Quaternion(0.50733, 0.51595, -0.48353, 0.49256),
+&"middle_02_l": Quaternion(0, 0, 0.00151, 1),
+&"middle_03_l": Quaternion(0, 0, -0.00113, 1),
+&"pinky_01_l": Quaternion(0.45052, 0.40131, -0.5822, 0.545),
+&"pinky_02_l": Quaternion(0.74732, -0.00062, -0.00055, 0.66447),
+&"pinky_03_l": Quaternion(0.38661, 0.00024, 0.00056, 0.92224),
+&"ring_01_l": Quaternion(-0.51381, -0.46951, 0.52874, -0.4858),
+&"ring_02_l": Quaternion(0.74022, 1e-05, 1e-05, 0.67237),
+&"ring_03_l": Quaternion(0.51504, -0.00055, -0.00091, 0.85717),
+&"thumb_01_l": Quaternion(0.02955, 0.97484, 0.21727, -0.04021),
+&"thumb_02_l": Quaternion(0.53257, -0.08083, -0.12622, 0.83301),
+&"thumb_03_l": Quaternion(0.32809, -0.0001, -0.00053, 0.94464)
+})
+
 [sub_resource type="Resource" id="Resource_vcmdo"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
@@ -133,3 +173,7 @@ thumb_way_pose = SubResource("Resource_03e2b")
 support_pose = SubResource("Resource_obf3k")
 magazine_pose = SubResource("Resource_k0e3b")
 open_pose = SubResource("Resource_6s6wm")
+carry_pose = SubResource("Resource_u3yc4")
+carry_open_pose = SubResource("Resource_mew4d")
+magazine_approach = Vector3(0.03723, -0.11408, 0)
+carry_release = Vector2(0.2, 0.8)
