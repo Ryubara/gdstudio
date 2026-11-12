@@ -30,16 +30,17 @@ def test_no_length_outside_the_api_range_is_requested(data):
         sfx.request_cost(data, 31.0)
 
 
-def test_the_plan_of_the_set_is_1120_credits_and_inside_the_budget(data, tmp_path):
-    # The first set's 960 and the weapon pickup's four takes of 1 s (#889, on the paid plan).
+def test_the_plan_of_the_set_is_4768_credits_and_inside_the_budget(data, tmp_path):
+    # The effects (3900, #1083), the menu sounds (708, #1100) and the weapon pickup (160, #889), asked again from an
+    # empty cache.
     rows = sfx.plan_rows(data, tmp_path)
-    assert sum(r["credits"] for r in rows) == 1120
-    assert sfx.check_budget(data, tmp_path, rows) == (0, 1120)
-    assert data["budget"] <= 1200
+    assert sum(r["credits"] for r in rows) == 4768
+    assert sfx.check_budget(data, tmp_path, rows) == (0, 4768)
+    assert data["budget"] <= 5000
 
 
 def test_a_plan_over_the_budget_is_refused(data, tmp_path):
-    data["budget"] = 900
+    data["budget"] = 2000
     with pytest.raises(SystemExit, match="over budget"):
         sfx.check_budget(data, tmp_path, sfx.plan_rows(data, tmp_path))
 
@@ -54,7 +55,7 @@ def test_a_cached_take_costs_nothing_and_the_ledger_counts_what_was_billed(data,
 
 
 def test_the_ledger_falls_back_to_the_planned_cost(data, tmp_path):
-    (tmp_path / "wind_soft_t1.json").write_text(json.dumps({"credits": 480}))
+    (tmp_path / "wind_corner_t1.json").write_text(json.dumps({"credits": 480}))
     assert sfx.spent_in_cache(data, tmp_path) == 480
 
 
@@ -68,8 +69,14 @@ def test_the_data_file_keeps_the_issue_s_promises(data):
     assert sounds["coin_pickup"]["min_seconds"] == 0.3
     assert sounds["coin_pickup"]["max_seconds"] <= 0.4
     assert sounds["footstep_soft"]["min_files"] >= 4
-    assert 10 <= sounds["wind_soft"]["min_seconds"] <= sounds["wind_soft"]["max_seconds"] <= 12
-    assert sounds["wind_soft"]["loop"] is True
+    wind = sounds["wind_corner"]
+    assert wind["prefix"] == "wind_soft"  # the scenes play wind_soft_1.ogg
+    assert wind["loop"] is True
+    assert 20 <= wind["min_seconds"] <= wind["max_seconds"] <= 30  # long enough not to be heard repeating
+    # a wind is its gusts (sound-effects.md#wind): never flattened, its level must move, and it whistles in them
+    assert "flatten_seconds" not in wind and "max_spread_lu" not in wind
+    assert wind["min_spread_lu"] >= 3.0
+    assert wind["whistle"]["mix"] > 0
     for sound in sounds.values():  # a length is always given: auto length costs more
         assert sound["seconds"] >= data["min_seconds"]
         assert sound["takes"] >= 1
@@ -77,18 +84,32 @@ def test_the_data_file_keeps_the_issue_s_promises(data):
         assert (ROOT / sound["folder"]).parts[-4:-1] == ("game", "assets", "audio")
 
 
+def test_the_set_is_asked_of_the_newest_sound_effects_model(data):
+    assert data["model"] == "eleven_text_to_sound_v3"
+    assert all(sfx.model_of(data, s) == "eleven_text_to_sound_v3" for s in data["sounds"])
+
+
+def test_encode_cuts_only_the_picked_takes_and_names_fixed_files():
+    sound = {"name": "x", "takes": 4, "use_takes": [2, 4], "prefix": "x"}
+    assert sfx.used_takes(sound) == ["x_t2", "x_t4"]
+    assert sfx.used_takes({"name": "y", "takes": 2}) == ["y_t1", "y_t2"]
+    assert sfx.file_names({"prefix": "x"}, 2) == ["x_1.ogg", "x_2.ogg"]
+    assert sfx.file_names({"names": ["a.ogg", "b.ogg"], "prefix": "x"}, 1) == ["a.ogg"]
+    with pytest.raises(SystemExit):
+        sfx.file_names({"name": "z", "names": ["a.ogg"], "prefix": "x"}, 2)
+
+
+def test_a_changed_prompt_leaves_the_takes_made_with_the_old_one(data):
+    sound = {"prompt": "new", "take_prompts": {"1": "old"}}
+    assert sfx.prompt_of(sound, "impact_t1") == "old"
+    assert sfx.prompt_of(sound, "impact_t5") == "new"
+    for s in data["sounds"]:  # every picked take exists
+        assert all(1 <= n <= s["takes"] for n in s.get("use_takes", []))
+
+
 def test_the_licence_follows_the_plan_the_take_was_made_on(data):
-    free, paid = sfx.licence_of(data, "free"), sfx.licence_of(data, "starter")
-    assert "not licensed for commercial use" in free["text"]
-    assert "commercial use" in paid["text"] and "not licensed" not in paid["text"]
-    assert sfx.licence_of(data, "creator") == paid
-    assert "none required" in paid["attribution"]
-
-
-def test_a_sound_names_its_own_model_and_the_takes_it_keeps(data):
-    pickup = next(s for s in data["sounds"] if s["name"] == "weapon_pickup")
-    coin = next(s for s in data["sounds"] if s["name"] == "coin_pickup")
-    assert sfx.model_of(data, pickup) == "eleven_text_to_sound_v3"
-    assert sfx.model_of(data, coin) == data["model"]
-    assert sfx.kept_takes(pickup) == ["weapon_pickup_t4", "weapon_pickup_t1"]
-    assert sfx.kept_takes(coin) == sfx.take_names(coin)
+    licence, attribution = sfx.licence_of(data, "free")
+    assert "not licensed for commercial use" in licence and attribution
+    licence, attribution = sfx.licence_of(data, "starter")
+    assert "`starter`" in licence and "commercial use" in licence and attribution is None
+    assert "isolated audio files" in licence

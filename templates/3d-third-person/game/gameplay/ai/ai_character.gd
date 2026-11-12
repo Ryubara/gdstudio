@@ -59,6 +59,9 @@ const GROUP := &"ai_characters"
 var tier := 0
 ## The work all characters of the director share in a physics tick; null without a director.
 var budget: AiBudget
+## True while a pool readies it in the tree to park it (`AiPool.prewarm`): it joins no director
+## then, so a spare made at the population cap is not refused (kit #1247).
+var warming := false
 ## The director that manages it; null when it steps itself.
 var director: AiDirector
 ## What it believes is going on.
@@ -83,7 +86,7 @@ func _ready() -> void:
 	died.connect(situation.die)
 	revived.connect(situation.revive)
 	var found := AiDirector.find_for(self)
-	if found != null:
+	if found != null and not warming:
 		found.register(self)
 	_show_debug()
 

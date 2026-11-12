@@ -48,6 +48,9 @@ const _LET_GO_DROP := 0.006
 ## What a finger's first bone (the knuckle's) has in its name: those open first.
 const _KNUCKLE := "_01_"
 const _WAY_DOWN := 0.3
+## The shares of that way over which the thumb goes from its place on the hand guard to its place
+## behind the magazine.
+const _WAY_THUMB := Vector2(0.2, 0.5)
 const _WAY_BESIDE := 0.7
 const _WAY_ON := 0.88
 
@@ -141,6 +144,13 @@ const _WAY_ON := 0.88
 ## The far level's magazine, moved and hidden with it. Empty: none.
 @export var magazine_far: NodePath
 
+@export_group("Bodies")
+## Holds solved on other bodies than the one the scene's own hands' places and poses were solved
+## on (`HoldFit`, written by `tools/hold/write_hold.gd ... rifle <body>`): a model whose file is a
+## fit's `body` gets that fit's places (`seat` is the inverse of `RightHandTarget`) and poses; any
+## other model the scene's own.
+@export var fits: Array[HoldFit] = []
+
 @export_group("Bones")
 ## The bone whose place the pocket follows.
 @export var chest_bone: StringName = &"spine_03"
@@ -176,6 +186,8 @@ var _weapon: Weapon
 var _loadout: WeaponLoadout
 # The scene's parts, found once by name.
 var _found := {}
+# The scene's own hold as a fit, kept before a body's fit is first put on.
+var _own: HoldFit
 
 
 func _ready() -> void:
@@ -262,9 +274,13 @@ func refresh() -> void:
 	var reload := _reload_progress()
 	_fingers[0].second_weight = _raised if reload < 0.0 else 0.0
 	var to_magazine := _to_magazine(reload)
-	# The thumb goes to its place behind the magazine on the way across (the open pose leaves
-	# it be); the four fingers stay open until the hand is on the magazine, then close.
-	_fingers[1].second_weight = smoothstep(_WAY_DOWN, _WAY_BESIDE, to_magazine)
+	# The thumb goes from the hand guard's side to its place behind the magazine while the hand
+	# comes down off the hand guard (the open pose leaves it be): a thumb still standing up
+	# on the way across went 17 mm through the magazine well. The four fingers stay open until
+	# the hand is on the magazine, then close as one: closing tips first, as they open off the
+	# hand guard, swung the little finger 8 mm through the magazine's front.
+	_fingers[1].second_weight = smoothstep(_WAY_THUMB.x, _WAY_THUMB.y, to_magazine)
+	_fingers[1].open_together = to_magazine > _WAY_DOWN
 	_fingers[1].open_weight = (
 		smoothstep(0.0, _WAY_OPEN, to_magazine) * (1.0 - smoothstep(_WAY_ON, 1.0, to_magazine))
 	)
@@ -505,6 +521,7 @@ func _on_rig_changed() -> void:
 	_skeleton = slot.skeleton() if slot != null else null
 	if _skeleton == null:
 		return
+	_fit_body(slot)
 	_stance = STANCE_SCRIPT.new() as SkeletonModifier3D
 	_stance.set(&"hold", self)
 	_add_modifier(_stance, "Stance")
@@ -515,6 +532,45 @@ func _on_rig_changed() -> void:
 		_fingers[-1].second_way = trigger_way.poses
 	_add_fingers(support_pose, magazine_pose, open_pose, "LeftFingers")
 	refresh()
+
+
+## The fit in use: the one solved on the body the model slot holds, or the scene's own.
+func fit() -> HoldFit:
+	var found := HoldFit.chosen(fits, get_parent() as CharacterModel)
+	return found if found != null else _own
+
+
+# Puts the fit of the model's body on the hands' places and on the poses, keeping the scene's own
+# first.
+func _fit_body(slot: CharacterModel) -> void:
+	var right := _node(&"RightHandTarget")
+	var left := _node(&"LeftHandTarget")
+	var on_magazine := _node(&"MagazineHand")
+	if _own == null:
+		_own = HoldFit.new()
+		_own.seat = right.transform.affine_inverse() if right != null else Transform3D.IDENTITY
+		_own.support_hand = _left_rest
+		_own.magazine_hand = on_magazine.transform if on_magazine != null else Transform3D.IDENTITY
+		_own.grip_pose = grip_pose
+		_own.trigger_pose = trigger_pose
+		_own.support_pose = support_pose
+		_own.magazine_pose = magazine_pose
+		_own.open_pose = open_pose
+	var chosen := HoldFit.chosen(fits, slot)
+	if chosen == null:
+		chosen = _own
+	if right != null:
+		right.transform = chosen.seat.affine_inverse()
+	_left_rest = chosen.support_hand
+	if left != null:
+		left.transform = _left_rest
+	if on_magazine != null:
+		on_magazine.transform = chosen.magazine_hand
+	grip_pose = chosen.grip_pose
+	trigger_pose = chosen.trigger_pose
+	support_pose = chosen.support_pose
+	magazine_pose = chosen.magazine_pose
+	open_pose = chosen.open_pose
 
 
 func _add_arm(bones: Array[StringName], tag: String) -> void:

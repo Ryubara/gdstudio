@@ -1,12 +1,16 @@
 """Solves how the mannequin's hands hold the rifle (kit #889), from the dump `dump_hold_rig.gd` writes.
 
     <godot> --headless --path game -s res://tools/hold/dump_hold_rig.gd -- <abs>/rig.json
-    uv run --no-project --with numpy --with scipy python tools/hold/solve_rifle_hold.py <abs>/rig.json <abs>/rifle.json
-    <godot> --headless --path game -s res://tools/hold/write_hold.gd -- <abs>/rifle.json rifle
+    uv run --no-project --with numpy --with scipy python tools/hold/solve_rifle_hold.py <abs>/rig.json \
+        <abs>/rifle_female.json --body=female
+    <godot> --headless --path game -s res://tools/hold/write_hold.gd -- <abs>/rifle_female.json rifle female
 
 The rifle has no clip: both arms reach by IK for a place of the hand bone given in the rifle's own space, so the
-solver works there with the rifle at the origin. It finds three places and the fingers of each, on both
-mannequins' skins at once (as `solve_pistol_hold.py` does, with the same grid, limits and finger search):
+solver works there with the rifle at the origin. It finds three places and the fingers of each, on one body's skin
+(`--body=female` or `--body=male`, the template's two bodies, kit #1187: their hands differ in size, so each gets a
+hold of its own; `write_hold.gd` puts the default body's in the rifle's scene and pose files and another body's in
+a `HoldFit`, `rifle_fit_<body>.tres`; `--body=both` measures two bodies whose skeletons match from the hands down
+at once), with the grid, limits and finger search of `solve_pistol_hold.py`:
 
 - the right hand on the pistol grip: the palm on the grip's right panel, the web high under the receiver, three
   fingers round the grip's front, the thumb round its left side, the index finger straight along the receiver
@@ -18,9 +22,9 @@ mannequins' skins at once (as `solve_pistol_hold.py` does, with the same grid, l
 
 A place also costs what it bends the wrist: the forearm's line is worked out from where the shoulder is in the
 rifle's space at the shoulder and at the low ready (`SHOULDERS`, read from the game), and a wrist bent more than
-`WRIST_FREE` degrees costs. With no option it solves the fingers at the three places the template ships (`MOVES`,
-about 10 minutes). `--right=`, `--left=` and `--magazine=` give other places (a move from the start below: metres
-along the rifle's axes, then degrees about them), `--only=<name>` solves one hand and keeps the others as the
+`WRIST_FREE` degrees costs. With no option it solves the fingers at the three places the template ships for the body
+(`MOVES`, about 20 seconds). `--right=`, `--left=` and `--magazine=` give other places (a move from the start
+below: metres along the rifle's axes, then degrees about them), `--only=<name>` solves one hand and keeps the others as the
 output file has them, `--fast` solves once with the
 quick finger search (half a minute a hand, to look at a place), `--search` or `--search-<name>` searches the
 place from there (a coordinate search, an hour a hand), and `--draw=<file.png>` draws the hands on the rifle from
@@ -36,15 +40,16 @@ import hold_field
 import hold_rig as R
 import numpy as np
 from hold_hand import FINGERS, LIMITS, Hand
-from solve_pistol_hold import natural, option, relu, start_grid
+from solve_pistol_hold import body_option, model_names, natural, option, relu, start_grid
 
 BASE_POSE = "ual1/Pistol_Aim_Neutral@0.16"
 TARGET = -0.0008  # where the nearer skin of the two mannequins should sit off the surface, metres
 TOL = 0.0012  # how deep the solver lets skin go (the test allows 2 mm)
-# Where the nearer palm of the two sits off the surface. On the grip the two mannequins' palms differ by 5.4 mm
-# (the female's is the hollower), so the male's is pressed 1.4 mm in and the female's is then 4 mm off: both
-# within the test's 2 mm in and 5 mm off.
-PALM_TARGET = {"right": -0.0014, "left": TARGET, "magazine": TARGET}
+# Where the nearer palm sits off the surface. Measuring two bodies at once (`--body=both`), the Quaternius pair's
+# palms on the grip differed by 5.4 mm (the female's the hollower), so the male's was pressed 1.4 mm in and the
+# female's was then 4 mm off: both within the test's 2 mm in and 5 mm off. One body's palm sits at TARGET.
+PALM_TARGET = {"right": TARGET, "left": TARGET, "magazine": TARGET}
+PALM_TARGET_BOTH = -0.0014
 PALM_TOL = 0.0018
 X, Y, Z = np.eye(3)
 # The rifle: muzzle along -X, up +Y, its left side +Z. The distance grid covers where a hand can be.
@@ -56,6 +61,19 @@ TRIGGER_OFF = np.array([-0.005, -0.004, 0.0])
 # The index finger off the trigger lies straight along the rifle's right side, outside the trigger guard and no
 # lower than this, its tip on the magazine well's wall.
 REGISTER_Y = 0.02
+# How far over to the near (left) side of the rifle's middle the thumb behind the magazine stays.
+THUMB_BACK_Z = 0.0
+# How far the middle of the straight index finger's last bone lies from the trigger along the receiver (the test
+# wants the nearest skin 20 mm off; `--register-clear=` tries another).
+REGISTER_TRIGGER_CLEAR = option("register-clear", [0.034])[0]
+# How high the right thumb's last two bones may lie: under the receiver, whose underside is at 0.065.
+THUMB_TOP = 0.055
+# How far under the hand guard's middle the support hand's thumb tip may end.
+SUPPORT_THUMB_UNDER = 0.005
+# How far over the hand guard's middle the support hand's thumb tip may end (the side is flat to there).
+SUPPORT_THUMB_OVER = 0.02
+# How far to the left of the rifle's middle the support hand's thumb tip stays (the hand guard's side).
+SUPPORT_THUMB_Z = 0.03
 # How high the thumb's root sits on the grip (the web under the receiver's tail).
 WEB_Y = 0.03
 # The palm's middle in the hand bone's space (+Y along the fingers, +Z toward the thumb's side).
@@ -66,12 +84,9 @@ FOREARM_SHARE = 0.03
 WRIST_FREE = 20.0
 WRIST_COST = 3e-4
 # Each arm's shoulder joint in the rifle's space and where its elbow points, at the shoulder and at the low
-# ready (from the `ARMS` lines `tools/capture/rifle_hands.tscn` prints: the shoulder, and the way from the middle
-# of the shoulder and the hand to the elbow).
-SHOULDERS = {
-    "r": [([0.418, 0.10, -0.006], [0.45, -0.87, -0.17]), ([0.453, 0.069, 0.04], [0.40, -0.89, -0.23])],
-    "l": [([0.221, 0.092, 0.273], [0.37, -0.87, 0.32]), ([0.202, 0.177, 0.246], [0.35, -0.79, 0.51])],
-}
+# ready: the body's `shoulders` in the dump (`dump_hold_rig.gd` poses the rifle's hold in the idle clip; the
+# shoulder, and the way from the middle of the shoulder and the hand to the elbow). Set by `main`.
+SHOULDERS = {}
 # Where each search starts: the hand bone's axes in the rifle (columns: across the palm, along the fingers,
 # toward the thumb's side), where the palm's middle is, and the way the hand is pushed onto the surface.
 STARTS = {
@@ -82,13 +97,31 @@ STARTS = {
     # The palm faces the magazine's left face; the fingers go round its front, the thumb's side is up.
     "magazine": ([[0, 0, -1], [-1, 0, 0], [0, 1, 0]], [-0.115, -0.07, 0.06], -Z),
 }
-# The moves from the starts that the template ships (metres along the rifle's axes, then degrees about them).
-# The right hand sits 4 cm back and 2 cm up from the start (its index knuckle level with the trigger), turned 20 degrees about the rifle's up axis so the
-# palm bears on the grip's right rear and the web is behind it.
+# The moves from the starts that the template ships, a body (metres along the rifle's axes, then degrees about
+# them). A prototype body's right hand (0.18 and 0.195 m from wrist to fingertip) sits 2 cm forward (the male's longer
+# palm 1.5 cm: at 2 its index knuckle is against the trigger guard and the finger cannot lie straight) and 3 cm up
+# from the start, its web under the receiver's tail behind the grip, turned 10 degrees about the rifle's up axis
+# (the heel of the palm out to the right, where the forearm comes from) and 30 about its left axis: the knuckles
+# cross the grip at a slant, the index finger points up at the receiver's side and the wrist bends 7 to 10
+# degrees. `both` is the Quaternius pair's (0.23 m): 4 cm back and 2 cm up, turned 20 degrees the other way
+# about the up axis; on a prototype hand that place left the palm behind the grip with only the fingers on it
+# and the web 23 mm off, and bent the wrist 68 degrees.
 MOVES = {
-    "right": [0.04, 0.02, 0.0, 0.0, -20.0, 0.0],
-    "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-    "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "female": {
+        "right": [-0.02, 0.03, 0.0, 0.0, 10.0, -30.0],
+        "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    },
+    "male": {
+        "right": [-0.015, 0.03, 0.0, 0.0, 10.0, -30.0],
+        "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    },
+    "both": {
+        "right": [0.04, 0.02, 0.0, 0.0, -20.0, 0.0],
+        "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    },
 }
 ROUNDS = [(0.008, 4.0), (0.004, 2.0), (0.002, 1.0)]
 # How far the opened left hand's fingers are from their place under the hand guard to their rest (straight).
@@ -245,15 +278,33 @@ def finger_cost(placed, finger, angles, mode):
         cost += touch[2] + touch[1] + 2e-4 * (a[:, 2] + a[:, 3])
         cost += relu(tip_at[:, 2] + 0.014) + relu(mid_at[:, 2] + 0.014)
         cost += relu(REGISTER_Y - tip_at[:, 1]) + 0.5 * relu(REGISTER_Y - 0.01 - mid_at[:, 1])
+        # Off the trigger by the test's 20 mm at its nearest skin: a prototype body's shorter finger lay 15 to
+        # 17 mm from it along the receiver (kit #1187), as the pistol's along the frame did.
+        trigger = placed.sockets["Trigger"][:3, 3]
+        cost += relu(REGISTER_TRIGGER_CLEAR - np.linalg.norm(tip_at - trigger, axis=1))
     elif mode == "thumb":
         # Round the far side (the rifle's left, +Z), lying forward, nearly straight.
         lie = tip_at - mid_at
         cost += 2.0 * touch[2] + 0.7 * touch[1] + 0.3 * touch[0]
         cost += relu(0.012 - tip_at[:, 2]) + relu(lie[:, 0] + 0.005)
+        if placed.name == "left":
+            # Up the hand guard's left side as far as its middle (`Support`): a small hand's thumb lay flat
+            # along the lower edge, and from the left nothing held the hand guard (kit #1187).
+            # And on that side, not hooked over the top: a thumb over the top went 8 mm through the hand
+            # guard as the hand left it for the reload.
+            cost += relu(placed.sockets["Support"][1, 3] - SUPPORT_THUMB_UNDER - tip_at[:, 1])
+            cost += relu(SUPPORT_THUMB_Z - tip_at[:, 2])
+            cost += relu(tip_at[:, 1] - placed.sockets["Support"][1, 3] - SUPPORT_THUMB_OVER)
+        if placed.name == "right":
+            # On the grip's left panel, under the receiver: a small hand high on the grip laid its thumb up the
+            # receiver's side, its tip 4 cm above the grip (kit #1187).
+            cost += relu(tip_at[:, 1] - THUMB_TOP) + relu(mid_at[:, 1] - THUMB_TOP)
         cost += 2e-4 * relu(a[:, 5] - 45.0)
     elif mode == "thumb_back":
-        # Behind the magazine: on whatever it reaches, nearly straight.
+        # Behind the magazine: on whatever it reaches, nearly straight, and on the near (left, +Z) half: a thumb
+        # round the magazine's far side was dragged 12 mm through it as the hand left to the left (kit #1187).
         cost += touch[2] + 0.7 * touch[1] + 2e-4 * relu(a[:, 5] - 45.0)
+        cost += relu(THUMB_BACK_Z - tip_at[:, 2]) + relu(THUMB_BACK_Z - mid_at[:, 2])
     return cost
 
 
@@ -389,7 +440,7 @@ def report(placed, tag):
     hand = placed.hand
     sd = placed.field(hand.points())
     model = placed.rig.model[hand.ids]
-    for which, name in enumerate(("female", "male")):
+    for which, name in enumerate(model_names()):
         line = [f"{part} {sd[idx[model[idx] == which]].min() * 1000.0:.1f}" for part, idx in hand.part.items()]
         own = placed.palm[model[placed.palm] == which]
         line.append(f"palm's own {sd[own].min() * 1000.0:.1f}")
@@ -435,7 +486,11 @@ def main():
     with open(sys.argv[1], "rb") as file:
         data = json.load(file)
     rigs = {name: R.Rig(model) for name, model in data["models"].items()}
-    rig = R.merged(rigs["female"], rigs["male"])
+    body = body_option()
+    rig = R.merged(rigs["female"], rigs["male"]) if body == "both" else rigs[body]
+    if body == "both":
+        PALM_TARGET["right"] = PALM_TARGET_BOTH
+    SHOULDERS.update(data["shoulders"]["female" if body == "both" else body])
     rifle = data["rifle"]
     tris = np.array(rifle["triangles"]).reshape(-1, 3, 3)
     started = time.time()
@@ -457,7 +512,7 @@ def main():
         if any(argument.startswith("--only=") and argument[7:] != name for argument in sys.argv):
             continue
         placed = Placed(rig, side, gun, sockets, name)
-        params = np.array(option(name, MOVES[name]), float)
+        params = np.array(option(name, MOVES[body][name]), float)
         if "--trigger-only" in sys.argv:
             # Only the finger on the trigger again, on the grip the output file has (its `right_angles`).
             if name != "right":
