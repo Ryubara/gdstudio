@@ -490,14 +490,10 @@ It is cosmetic: the rounds go in at the end of `reload_time`.
 How the two hands hold the pistol together, the trigger finger's way to the trigger and the hand's retreat when the
 arm is short are on [The two-handed pistol grip](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses).
 
-The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (kit #1081); its `SlideRack` resource
-(`pistol_slide_rack.tres`; `SlideRack.fit()` gives the model's body's) holds the left hand's place and fingers on
-the slide, the slide's travel and the shares of its grip, pull and release. The reload does not play it yet
-(kit #1337): the hold releases the slide at the last sound and writes the `Slide` node only on a change, so a rack can
-move it. `test_pistol_rack.gd` and the `rack_closeups` capture play it on a stage whose `reload_weight` is
-`SlideRack.support_weight(share)`, which also takes off the carry arm's swing: there the pistol swings 7 cm out
-and back, and the game's player keeps the arm in
-([the clip and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
+A reload of an empty pistol ends with the template's own rack of the slide, `pistol/Pistol_Rack` (kit #1081 and
+kit #1337): the `RackLayer` plays it, the `WeaponHold` puts the body's `SlideRack` hand on the slide, locked back until
+then ([the rack in the game](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#the-slide-rack),
+[the clip](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
 
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
   the action going down between two commands, or an event seen while the action is up again, never both: keep the

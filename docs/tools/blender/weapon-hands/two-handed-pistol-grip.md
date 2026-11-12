@@ -251,14 +251,14 @@ sent; the rounds still go in at the end of `reload_time`.
   `SupportHandPlan.down_back` is that part of `down`.
 - **A reload cut short leaves the pistol whole**: with no reload weight the plan has the pistol's magazine in its grip
   and none in the hand, whatever share the clip was at (`SupportHandPlan.magazine_in_gun`, `magazine_in_hand`).
-- **The slide: moved by the hold, not by a hand.** The clip has no rack and the library no other pistol reload; the rack
-  clip of the template's own (kit #1081) is not played by the reload yet (kit #1337). Of the two ways open until it is,
-  a release by the right thumb does not fit this model: its slide stop lever is on the gun's right side, under the right
-  hand's fingers, and the right thumb lies high on the left side (on the left thumb's root while both hands hold). So
-  the `Slide` node stands back 4 cm (`slide_travel`) while the pistol is empty, as a pistol's slide locks open on its
-  last round, and runs forward when the reload's last sound plays (0.85, the slide's sound): the slide released. With
-  rounds left it stays forward and only the sound plays. The hold writes the node only when its lock changes, so the
-  rack clip can drive the same node (`slide_part`) with the left hand between.
+- **The slide: locked back while the pistol is empty, racked by the left hand.** The `Slide` node stands back 4 cm
+  (`slide_travel`) while the pistol is empty, as a pistol's slide locks open on its last round. The reload of an empty
+  pistol keeps it there and ends with the rack clip, whose hand closes on it where it stands and lets it run home
+  ([the rack](#the-slide-rack), kit #1337). A weapon with no rack (`WeaponDef.rack_clip` empty) has the slide run
+  forward when the reload's last sound plays (0.85, the slide's sound), as the pistol did before the rack: a release by
+  the right thumb does not fit this model, its slide stop lever is on the gun's right side under the right hand's
+  fingers. With rounds left the slide stays forward and only the sound plays. The hold writes the node only when its
+  lock changes or the rack has it (`slide_part`).
 
 Tests: `tests/gameplay/test_reload_magazine.gd` (the magazine's place, the fingers on it and the magazine against the
 gun at every hundredth of the reload on both mannequins; the drop, the cut-short reload and the slide on the live
@@ -313,6 +313,55 @@ player's camera (`*_carry_*.png`).
   slide stayed forward while the hand pulled: the fingertips read 20 to 59 mm from the serrations (11 failures in
   `test_pistol_rack.gd`, none in either branch alone). **Seen:** gdstudio #1052 merged with #1103, 2026-11-12 (fix:
   `WeaponHold` writes the slide when its lock changes).
+
+## The slide's rack after an empty reload {#the-slide-rack}
+
+<!-- new section: the rack clip (kit #1081) had a stage and no player; nothing said how the game plays it after the
+     reload, from a slide locked back, or what cuts it short (gdstudio #1337) -->
+
+A reload of an empty pistol ends with `pistol/Pistol_Rack` (`WeaponDef.rack_clip`), played by the character's
+`RackLayer` (`gameplay/character/rack_layer.gd`): a one-shot on the upper body over the reload's, at the clip's own
+speed (0.93 s). The clip starts on the reload's last frame, so the rack comes in over the reload's last 0.07 s
+(`FADE_IN` 0.03 s, `START_EARLY` 0.04 s) and the reload's one-shot is told not to fade out for that reload; with both
+fading, the arms sank a quarter of the way to the carry. A reload with rounds left, or lying down, has none. It is
+cosmetic: the rounds go in at the end of `reload_time` as before, and a shot, a blow, a switch or a new reload fades
+it out (0.2 s).
+
+`WeaponHold` follows it by `RackLayer.progress()` (`rack_weight`, `rack_share`, the caller's for a body posed by hand)
+with the body's own `SlideRack` (`rack`, `rack_fit()`): two more modifiers after the left hand's (`HoldRackArm` to the
+hand's place on the slide, `HoldRackFingers`), the left hand's plan at the reload's end by `SlideRack.support_weight()`
+(on its grip at the clip's ends), the carried arm kept in and the trigger finger off through it, as through the
+reload. The slide stays locked back until the rack: the rack starts with `rack_lock` (`slide_travel` over the rack's
+travel, 0.889), the hand closes on the slide 4 cm back, pulls it the last 5 mm and lets it go, and the slide's sound
+(the reload's last, held back for the rack: `Weapon.reload_steps_held`) plays there (`WeaponDef.rack_sound_at`, 0.482).
+`SlideRack.hand_place()` and `slide_pull()` take the lock: before the hand lets go its places are that far back, so
+the hand solved on a closed slide (`solve_rack_hand.py`) needed no new solve. `tests/fixtures/rack_stage.gd` drives the
+same hold, so the stage and the game use the same weights.
+
+Measured: on the stage, every frame and half frame on both bodies with the slide closed and locked (the left hand on
+the slide 1.3 mm in at most on the female body, 0.9 mm on the male, palm and every fingertip on it, the pads on the
+serrations; `test_pistol_rack.gd`); on the live player, every update of the rack on both bodies within the 2 mm and
+5 mm while it grips and nothing deeper than 6 mm on the way (`test_pistol_rack_live.gd`, with the slide's place, the
+sound's share, the rounds' time and the shot and the switch that cut it short). The cost, `tools/bench/hold_cost.tscn`
+run `racked` against `carried` (40 figures): 31.7 against 12.7 µs a character a frame in headless Chrome, for the rack's
+0.93 s. Close-ups: `tools/capture/rack_closeups.tscn` (`RACK_LOCK=0` for a closed slide) and the game itself,
+`tools/capture/rack_live.tscn` (`RACK_VIEW=game`, `close` or `side`, `RACK_MODEL=male`).
+
+- **Approach:** Have a hold read a layer's state that is true from the frame the layer asks the tree for its clip
+  (`RackLayer.is_racking()`: pending or asked for), not the clip's weight, which the tree gives a frame later.
+  **Watch out for:** the hold released the slide on the one frame between the rack being asked for and the tree
+  playing it, so the rack started from a closed slide and the slide jumped forward at the reload's end
+  (`test_an_empty_reload_ends_with_the_rack`). **Seen:** gdstudio #1337, 2026-11-12.
+- **Approach:** While one clip hands over to another that starts on its last frame, give the part that follows them
+  the second clip's whole weight at once (`rack_weight` is the rack's and the reload's weights together while both
+  play), and hold the first clip's share at its end while the second fades out. **Watch out for:** blended by the
+  rack's own fade-in, the left hand was half the reload's plan and half the rack's, and its fingers went 12.8 mm into
+  the slide; blended toward a share of 0 as the rack faded out, the plan went back through the reload's steps and
+  showed the new magazine in the hand for 3 frames. **Seen:** gdstudio #1337, 2026-11-12.
+- **Approach:** Give a `HandPoseModifier` its poses only when they change. **Watch out for:** each pose given marks
+  its layout dirty and lays every bone out again on the next update; `SlideRack.set_fingers()` gave two poses on every
+  frame, and the rack cost about 46 µs a character a frame headless, 22 µs once it gave them only on a change.
+  **Seen:** gdstudio #1337, 2026-11-12.
 
 ## Solving two hands against each other {#solving-two-hands}
 
