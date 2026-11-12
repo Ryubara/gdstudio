@@ -1,12 +1,12 @@
 class_name HoldFit
 extends Resource
 ## A weapon's hold solved on one body (kit #1187): where the weapon sits in that body's right hand,
-## where its left hand holds and pushes the magazine, the line its opened hand leaves along, and
-## the five hand poses. Hands of other sizes need other finger poses and another seat, so each
-## body the template ships has its own, written by `tools/hold/write_hold.gd` from the solver's
-## output (no number here is typed). `WeaponHold.fits` (the pistol) and `TwoHandHold.fits` (the
-## rifle) hold them; the one whose `body` is the model's file is used (`chosen`), and a model with
-## none keeps the hold scene's own.
+## where its left hand holds and pushes the magazine, the line its opened hand leaves along, the
+## new magazine's way in, and the hand poses. Hands of other sizes need other finger poses and
+## another seat, so each body the template ships has its own, written by
+## `tools/hold/write_hold.gd` from the solver's output (no number here is typed).
+## `WeaponHold.fits` (the pistol) and `TwoHandHold.fits` (the rifle) hold them; the one whose
+## `body` is the model's file is used (`chosen`), and a model with none keeps the hold scene's own.
 
 ## The file name of the body's model it was solved on (`form_male.glb`).
 @export var body := ""
@@ -21,9 +21,20 @@ extends Resource
 @export var support_way := Vector3(0.0, 0.0, 0.06)
 @export var grip_pose: HandPose
 @export var trigger_pose: HandPose
+@export var trigger_way_pose: HandPose
+@export var thumb_pose: HandPose
+@export var thumb_way_pose: HandPose
 @export var support_pose: HandPose
 @export var magazine_pose: HandPose
 @export var open_pose: HandPose
+## The left hand's fingers closed on the new magazine and opened to take it (kit #1052:
+## `WeaponHold.carry_pose`, `carry_open_pose`), for this body.
+@export var carry_pose: HandPose
+@export var carry_open_pose: HandPose
+## `WeaponHold.magazine_approach`, `carry_release` and `carry_arrive` for this body.
+@export var magazine_approach := Vector3(0.0, -0.1, 0.0)
+@export var carry_release := Vector2(0.4, 0.6)
+@export var carry_arrive := Vector2(0.6, 1.0)
 ## The poses the trigger finger passes through between `grip_pose` and `trigger_pose` on this
 ## body (`TwoHandHold.trigger_way`, written by `tools/hold/solve_trigger_way.gd`). None: the
 ## straight way.

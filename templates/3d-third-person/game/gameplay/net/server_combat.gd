@@ -8,6 +8,9 @@ extends RefCounted
 ## - A shot block is refused (a REJECTED event to its sender, the shot and the fire presses taken
 ##   off the command, nothing fired) when its numbers are not finite, its origin is farther than
 ##   `origin_slack` from the body's eye, or it presses fire while the weapon still cools down.
+## - A melee blow (gdstudio #1254) is a MELEE event (slot, seq) to every other player; what it
+##   meets, on a tick of its window, is a HIT like a shot's. Its press carries the shot block, so
+##   it meets the AI where the attacker's screen drew it, moved on by the ticks since the press.
 ## - A shot that leaves is a SHOT event (slot, seq, weapon, where it left and the way it went) to
 ##   every other player; what it meets is a HIT (point, normal, kind, id, the health it left) to
 ##   everyone. The bodies' weapons are the real ones (`Weapon.authoritative`) with no flash, sound
@@ -46,6 +49,7 @@ var revive_at_spawn := false
 ## Shots refused, shots fired, hits sent and deaths, since the start.
 var rejected := 0
 var shots := 0
+var melees := 0
 var hits := 0
 var deaths := 0
 
@@ -80,6 +84,7 @@ func watch(slot: int, body: Character) -> void:
 		body.weapon.authoritative = true
 		body.weapon.seed_base = slot
 		body.weapon.fired.connect(_on_fired.bind(slot, body))
+		body.weapon.melee_started.connect(_on_melee.bind(slot, body))
 		body.weapon.hit_scanned.connect(_on_scanned)
 
 
@@ -103,6 +108,7 @@ func judge(slot: int, body: Character, command: PlayerCommand) -> int:
 	command.has_shot = false
 	command.fire_pressed = false
 	command.fire = false
+	command.melee_pressed = false
 	if tell.is_valid():
 		tell.call(slot, NetEvent.rejected(command.seq, reason))
 	return reason
@@ -115,7 +121,7 @@ static func reason_for(body: Character, command: PlayerCommand, slack: float) ->
 	var eye := body.global_position + Vector3.UP * body.tuning.camera_height
 	if command.origin.distance_to(eye) > slack:
 		return Reason.ORIGIN
-	if command.fire_pressed and body.weapon != null and body.weapon.is_cooling_down():
+	if body.fire_press(command) and body.weapon != null and body.weapon.is_cooling_down():
 		return Reason.COOLDOWN
 	return 0
 
@@ -153,6 +159,13 @@ func _on_fired(projectile: Projectile, slot: int, body: Character) -> void:
 		tell_others.call(slot, event)
 	if projectile != null and not projectile.impacted.is_connected(_on_impacted):
 		projectile.impacted.connect(_on_impacted)
+
+
+# The blow of `slot`'s body started (inside its step): a MELEE to the others.
+func _on_melee(_blow: int, slot: int, body: Character) -> void:
+	melees += 1
+	if tell_others.is_valid():
+		tell_others.call(slot, NetEvent.melee(slot, body.last_command.seq))
 
 
 func _on_impacted(collider: Node, point: Vector3, normal: Vector3) -> void:

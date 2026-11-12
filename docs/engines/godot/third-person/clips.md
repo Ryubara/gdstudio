@@ -80,11 +80,17 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   sha256 in the licence entry.
 - **Approach:** Keep the library glbs' import at the defaults (the optimizer and `remove_immutable_tracks` on) and
   read the costs before changing one: `ual1.glb` imports at 1,560 KB with the optimizer off, 752 KB at the defaults
-  and 275 KB with compression ([what the clips cost](../../../tools/blender/own-animation.md#audit-cost)). **Watch out
-  for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
+  and 275 KB with compression ([what the clips cost](../../../tools/blender/library-clip-audit.md#audit-cost)). **Watch
+  out for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
   drops those constant tracks on import, and a body of other proportions that plays them stretches its neck and limbs
   to the mannequin's. **Seen:** gdstudio #1150 (PR #1165), 2026-11-11 (the sizes); gdstudio #1149 and #1151,
   2026-11-11 (the position tracks).
+- **Approach:** When a new library joins the character's `AnimationPlayer` (`prone`, `melee`, `gds`), add a
+  `LIBRARY_*` constant, a constant per clip and every clip name to `CharacterClips.ALL` in the same commit, and raise
+  the count in `test_character_clips.gd`. **Watch out for:** `test_every_listed_clip_exists_and_every_clip_is_listed`
+  counts every clip of every library on the player, so a library added only to `character_dressed.tscn` passes every
+  targeted suite and fails only in the full run. **Seen:** kit #1254, the six melee clips (90 to 96, then 99
+  beside the three vault clips of #1239).
 
 ## The fixed clips {#fixed-clips}
 
@@ -93,10 +99,15 @@ and a shin on them (kit #1295); the corrected copies are a library of their own 
 
 `assets/animation/fixed/fixed.glb` is the `AnimationLibrary` `fixed`: `Jump_Land` (from `ual1`), `Slide_Exit` and
 `NinjaJump_Land` (from `ual2`) with one upper arm swung 4 to 11 degrees outward on the frames where its forearm was
-6.5 to 12.3 mm inside the shin on `form_female`, eased in and out; every other key is the library's
+6.6 to 12.2 mm inside the shin on `form_female`, eased in and out; every other key is the library's
 ([how it is built](../../../tools/blender/animation.md#corrected-clips)). `CharacterClips.LAND` and `SLIDE_EXIT` name
 the fixed clips, `CharacterClips.STAND_INS` maps each to the library clip it came from, and
-`tests/assets/test_fixed_clips.gd` holds the file to what the build measured and to the library's keys. A fixture
+`tests/assets/test_fixed_clips.gd` holds the file to what the build measured and to the library's keys. The file
+also holds, since kit #1320, `Sword_Dash` and `Sword_Heavy_Combo` (from `ual2`, played by nothing in the template), whose
+thighs passed through each other by 17 to 26 mm on both bodies: one leg is swivelled about the line from its hip to
+its ankle (41 and 22 degrees at most) and its foot keyed back to the library's turn, so each foot stays within 0.57 mm
+of the library's on every frame, which the same test checks in Godot's own pose on both bodies. The two clips add
+553 KB to the file (946 KB for five clips). A fixture
 that builds its own `AnimationPlayer` and plays `CharacterClips` constants adds the `fixed` library beside `ual1` and
 `ual2` (`tests/fixtures/pistol_clearance.gd`). `tools/capture/fixed_clips_tour.tscn` films both clips from the game
 camera, and with `LIBRARY_CLIPS=1` the library's.

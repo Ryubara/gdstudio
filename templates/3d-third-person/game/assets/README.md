@@ -12,14 +12,17 @@
 - `assets/characters/mannequin/` is Quaternius's two mannequins (`mannequin_female.glb` and
   `mannequin_male.glb`, on the same rig) and `assets/animation/universal/` the Universal Animation
   Library 1 and 2 (CC0, each with a `LICENSE.md`): the clip checks' bodies and the character's 86 clips.
+- `assets/animation/rifle/` is GDStudio's own rifle clips (`Rifle_Idle`, three aims, `Rifle_Shoot`, `Rifle_Reload`;
+  MIT, keyed from scratch by `build_rifle_clips.py` round the two-handed hold; its `README.md` has the numbers).
 - `assets/animation/pistol/` is GDStudio's own pistol slide-rack clip (`Pistol_Rack`; MIT, keyed from scratch by
   `build_pistol_rack.py` on the player's body's rig, with a `LICENSE.md`), an `AnimationLibrary` like the two packs; its
   README has the beats, the numbers and why it is an overhand rack.
 - `assets/animation/vault/` is GDStudio's own vault clips (`Vault_Low`, `Vault_High`, `Vault_Land`; MIT, keyed from
   scratch by `build_vault.py` on the mannequin's rig, with a `LICENSE.md`), an `AnimationLibrary` like the two packs,
   and `vault_clips.json`, each clip's reference obstacle and contact times.
-- `assets/animation/fixed/` is three library clips with one arm swung clear of the shin it passed through on the
-  prototype bodies (`Jump_Land`, `Slide_Exit`, `NinjaJump_Land`; CC0 as the library, changed by
+- `assets/animation/fixed/` is five library clips with a limb moved clear of the limb it passed through on the
+  prototype bodies (an arm in `Jump_Land`, `Slide_Exit` and `NinjaJump_Land`, a leg in `Sword_Dash` and
+  `Sword_Heavy_Combo`; CC0 as the library, changed by
   `build_fixed_clips.py`, with a `LICENSE.md` and a `README.md`), the `AnimationLibrary` `fixed`.
 - `assets/animation/limb_overlap.py` measures, with the pinned Blender, how deep any limb is inside another on every
   frame of a clip, on both mannequins' skinned meshes; a build that keys clips runs it before it exports. From the

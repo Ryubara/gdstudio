@@ -41,8 +41,8 @@ a branch fresh are in [Landing a pull request](landing.md#landing).
   `commits` check matches each commit's `Co-Authored-By` model against that line; a coordinator cherry-picking a Sonnet
   agent's commit, merging main to settle a conflict, or finishing a handed-over branch wrote only one model. A stacked
   pull request carries its base's commits, which `gds pr check-body` does not read (`groundwork.py check-commits` does).
-  **Seen:** gdstudio #207 and #208, 2026-11-02; Deadnight #553, 2026-11-02 (fix: every model listed, checked before
-  the push); gdstudio #1264, 2026-11-11 (stacked on #1239); gdstudio #1311, #1268 and #1323 (stacked), 2026-11-11.
+  **Seen:** gdstudio #207, #208 and Deadnight #553, 2026-11-02 (fix: every model listed, checked before the push);
+  gdstudio #1264 (stacked on #1239), #1311, #1268, #1323 and #1306 (stacked), #1254 (a helper's commit), 2026-11-11.
 - **Approach:** Name the model that wrote the commits on the `Model:` line and in each `Co-Authored-By` trailer (`Claude
   Opus 5.5`, `Claude Sonnet 5.5`), never the harness that ran the session or an alias. **Watch out for:** an
   attribution line that names a tool (`Claude Code`) is not a model name; when a machine maps an alias to another
@@ -166,6 +166,14 @@ read it prints `commits: cannot tell`, as the docs rule does (kit #1303). The gu
   passed a `Read first:` anchor only the branch had, because it judged the rule from no history (it never ran) and would
   have read the worktree's `docs/`, while `pr-rules` reads the base checkout and refused it after the push. **Seen:**
   gdstudio #1016 and #1123, 2026-11-11 (fix: #1131, `--docs-ref origin/main` and closes from `Fixes #N`; PR #1144).
+  Again on #1171, 2026-11-12: with `- Fixes #N` as list items the local check finds no closing line and skips
+  the rule; a page the branch adds goes in `Lessons:` only.
+- **Approach:** Read a body's closing lines the way GitHub does, list items included (`- Fixes #12`), and when a
+  body passes on the machine and fails in CI, find the input the two read differently before editing the body.
+  **Watch out for:** the local reader took only a bare `Fixes #N` line, so a body whose Summary is a list closed
+  nothing on the machine, the `Read first:` rule never ran, and a stacked pull request naming two sections of its
+  base branch passed `gds pr check-body` and failed `body` after the push. **Seen:** gdstudio #1325 on #1321,
+  2026-11-12 (fix: `body_closes` takes a list item; `Read first:` names only sections of `main`).
 
 - **Approach:** When a required check fails on a pull request's first commit, add `Lessons: <page.md#anchor>` to the
   body in the same push that fixes it, naming the topic section the fix is recorded in. **Watch out for:** the local

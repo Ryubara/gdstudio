@@ -157,7 +157,7 @@ blend is a modifier written in the Godot issue. All of it is cosmetic and never 
   ([data redesign](https://godotengine.org/article/animation-data-redesign-40),
   [Animation](https://docs.godotengine.org/en/stable/classes/class_animation.html)). Our measurement on the
   library: 2.7 times smaller than the default, 5.7 times smaller than unreduced
-  ([what the clips cost](own-animation.md#audit-cost)).
+  ([what the clips cost](library-clip-audit.md#audit-cost)).
 - Engines cap the bones that cost: Unreal's mobile path allows 75 bones a mesh section
   ([rendering
   paths](https://dev.epicgames.com/documentation/en-us/unreal-engine/skeletal-mesh-rendering-paths-in-unreal-engine)),

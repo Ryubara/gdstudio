@@ -58,14 +58,18 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
 - **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
   old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
   last good file in place, so the next step copied and rendered the old clips as if they were the new ones.
-  **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale file was committed).
+  A patch chained before a solve in one background command fails the same way: its assert stopped the patch, the
+  solve ran the old code for 13 minutes and gave the old pose to the last digit. Patch in the foreground, read its
+  result, then start the run. **Seen:** gdstudio #1009, 2026-11-10 (caught by the file's time; no stale file was
+  committed); gdstudio #1084, 2026-11-11 (fix: the patch run alone).
 - **Approach:** Lint and format a template's Python (its build scripts and benches under `templates/<t>/game/`)
   by hand before the push, with the settings a game made from it uses: `uvx ruff check --no-cache --config
   templates/repo/ruff.toml <files>` and the same with `ruff format` (120 columns). **Watch out for:** the kit's ruff
   pre-commit hooks cover only `python/` and `.claude/hooks/`, so a template script is never linted in the kit, and
   ruff run on it without `--config` finds no settings above it and wraps at 88. **Seen:** gdstudio #1150 (PR #1165),
-  2026-11-11; gdstudio #1293, 2026-11-11 (a bare `ruff format` rewrapped the 120-column `limb_overlap.py`, 150 lines
-  of noise in the commit, put back by hand; the prone build scripts are still wrapped at 88).
+  2026-11-11; gdstudio #1084, 2026-11-11 (a bare `ruff format` rewrapped the hold's solver; formatted again at 120);
+  gdstudio #1293, 2026-11-11 (a bare `ruff format` rewrapped the 120-column `limb_overlap.py`, 150 lines of noise in
+  the commit, put back by hand; the prone build scripts are still wrapped at 88); #1052, 11-12.
 
 ## Rebuilding a committed file {#rebuilding}
 
@@ -88,6 +92,13 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
   model is good: restore the `.import`, delete `.godot/imported/<file>.glb-*` and import again. **Seen:** Deadnight,
   2026-11-04; Deadnight #1282, 2026-11-05 (fix: the import files restored and the models imported again); gdstudio
   #1016, 2026-11-11 (an old glb read back with `git show`).
+- **Approach:** When a change touches a measure that builds solve against (`limb_overlap.py`), rebuild every file
+  whose build imports it in the same pull request and read the numbers again; a branch that merges such a change
+  rebuilds before it lands. **Watch out for:** the fixed clips' test holds `fixed.glb` to the hash its build wrote,
+  so it stays green while the measure under it changes: once the measure turned the `form` bodies' twist bones, a
+  rebuild keyed the dash's leg swivel at 34 degrees for 41 and the combo's at 28 for 22, and the library's own
+  numbers moved 0.1 mm. **Seen:** gdstudio #1325 after #1323, 2026-11-12 (fix: rebuilt after merging `main`; the
+  build does not yet record the measure's hash).
 
 ## Checks in the build {#checks}
 

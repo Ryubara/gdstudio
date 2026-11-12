@@ -80,6 +80,14 @@ func test_each_phase_has_the_hand_where_it_says() -> void:
 	plan.update(1.0, 1.0, lerpf(plan.insert.y, plan.back.x, 0.5))
 	assert_array([plan.arm, plan.at_magazine, plan.down]).is_equal([1.0, 1.0, 0.0])
 	assert_float(plan.opened).is_equal(0.0)
+	# Down the way in is not the way back down: that part of `down` is 0 until the return, and
+	# all of it once the hand has come down off the seated magazine (kit #1052).
+	plan.update(1.0, 1.0, plan.reach.y)
+	assert_float(plan.down_back).is_equal(0.0)
+	var down_done := lerpf(plan.back.x, plan.back.y, SupportHandPlan.BACK_DOWN.y)
+	plan.update(1.0, 1.0, down_done)
+	assert_float(plan.down_back).is_equal_approx(SupportHandPlan.BACK_DOWN_SHARE, 0.0001)
+	assert_float(plan.down).is_equal_approx(plan.down_back, 0.0001)
 	# Half-way back the hand is off the magazine, at the way's far end, opened.
 	var across_done := lerpf(plan.back.x, plan.back.y, SupportHandPlan.BACK_ACROSS.y)
 	plan.update(1.0, 1.0, across_done)
@@ -105,6 +113,10 @@ func test_nothing_jumps_between_two_shares_of_a_reload() -> void:
 			"closed on the magazine": plan.magazine_fingers * (1.0 - plan.opened) * plan.arm,
 			# The place: the marker switches while the clip's arm has the hand.
 			"at the magazine": plan.at_magazine * plan.arm,
+			# The fingers on the new magazine (kit #1052): the hold takes them from the clip
+			# (`fingers`), opened, and closes them on it.
+			"holding the magazine": plan.carry * (1.0 - plan.carry_open) * plan.fingers,
+			"opened for the magazine": plan.carry * plan.carry_open * plan.fingers,
 		}
 		for key: String in last:
 			var change := absf(now[key] - last[key])
@@ -116,6 +128,78 @@ func test_nothing_jumps_between_two_shares_of_a_reload() -> void:
 				. is_less(SMOOTH)
 			)
 		last = now
+
+
+# The magazines (kit #1052): the pistol's own is in the grip until the old one drops and again
+# once the new one is in; the new one is in the hand from the belt to the end of the way in, with
+# the fingers closed on it from the belt until the grip comes down over them; never both, and a
+# reload cut short (no weight) leaves the pistol whole.
+func test_the_magazines_follow_the_reload() -> void:
+	var plan := SupportHandPlan.new()
+	for step in roundi(1.0 / STEP) + 1:
+		var share := step * STEP
+		plan.update(0.0, 1.0, share)
+		var tag := "share %.3f" % share
+		(
+			assert_bool(plan.magazine_in_gun and plan.magazine_in_hand)
+			. override_failure_message("%s: a magazine in the grip and one in the hand" % tag)
+			. is_false()
+		)
+		assert_bool(plan.magazine_in_gun).override_failure_message(tag).is_equal(
+			share < plan.drop or share >= plan.insert.y
+		)
+		assert_bool(plan.magazine_in_hand).override_failure_message(tag).is_equal(
+			share >= plan.take and share < plan.insert.y
+		)
+		if share >= plan.take + SupportHandPlan.TAKE_CLOSE and share <= plan.insert.x:
+			(
+				assert_float(plan.carry * (1.0 - plan.carry_open))
+				. override_failure_message(
+					"%s: the fingers let the magazine go before the way in" % tag
+				)
+				. is_equal(1.0)
+			)
+		if not plan.magazine_in_hand:
+			(
+				assert_float(plan.carry * (1.0 - plan.carry_open))
+				. override_failure_message("%s: the fingers hold no magazine" % tag)
+				. is_equal(0.0)
+			)
+		plan.update(0.0, 0.0, share)
+		(
+			assert_bool(plan.magazine_in_gun and not plan.magazine_in_hand)
+			. override_failure_message(
+				"%s: a reload cut short leaves the pistol without its magazine" % tag
+			)
+			. is_true()
+		)
+		assert_float(plan.carry).is_equal(0.0)
+		assert_float(plan.fingers).is_equal(0.0)
+
+
+# On the way in the fingers open off the magazine over `carry_release` of it and only then go on
+# to the pose under the magazine, over `carry_arrive`: between the two they are the opened pose
+# alone, the one solved clear of the right hand's fingers they come up past.
+func test_the_fingers_stay_opened_between_the_release_and_the_arrival() -> void:
+	var plan := SupportHandPlan.new()
+	plan.carry_release = Vector2(0.1, 0.4)
+	plan.carry_arrive = Vector2(0.7, 1.0)
+	var opened_alone := 0
+	for step in roundi(1.0 / STEP) + 1:
+		var share := lerpf(plan.insert.x, plan.insert.y, step * STEP)
+		plan.update(0.0, 1.0, share)
+		var inserted := smoothstep(plan.insert.x, plan.insert.y, share)
+		var tag := "way in %.3f" % inserted
+		if inserted <= plan.carry_release.x:
+			assert_float(plan.carry_open).override_failure_message(tag).is_equal(0.0)
+		if inserted < plan.carry_arrive.x:
+			assert_float(plan.carry).override_failure_message(tag).is_equal(1.0)
+		if inserted >= plan.carry_release.y and inserted <= plan.carry_arrive.x:
+			assert_float(plan.carry_open).override_failure_message(tag).is_equal(1.0)
+			opened_alone += 1
+		if inserted > plan.carry_arrive.x and share < plan.insert.y:
+			assert_float(plan.carry).override_failure_message(tag).is_less(1.0)
+	assert_int(opened_alone).is_greater(3)
 
 
 # The one way: the hand is off its place only with the fingers opened, and the hold's arm gives

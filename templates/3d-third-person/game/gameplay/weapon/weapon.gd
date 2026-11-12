@@ -1,8 +1,8 @@
 @tool
 class_name Weapon
 extends Node3D
-## Fires the `WeaponDef` it holds (`definition`): a `Projectile` from a pool, one hitscan ray or a
-## melee blow, toward the point its user aims at, and counts the ammunition (a magazine, a
+## Fires the `WeaponDef` it holds (`definition`): a `Projectile` from a pool or one hitscan ray,
+## toward the point its user aims at, and counts the ammunition (a magazine, a
 ## reserve, a reload that puts the rounds in at its end, a click on an empty magazine). It knows
 ## nothing about the model that carries it, and it reads no camera and no input: point `muzzle` at
 ## a marker on any gun, and the character calls `pull(origin, direction)` with the ray it aims
@@ -17,6 +17,12 @@ extends Node3D
 ## with the streams of the definition, decoded once to PCM (`DecodedSounds`: an Ogg Vorbis start
 ## set its decoder up, about 250 µs a shot, a decoded one about 1 µs). A `WeaponLoadout` gives the
 ## weapon another definition when the character switches; the ammunition of each one is kept there.
+##
+## Every weapon also has a melee blow (gdstudio #1254, `melee()`): the numbers and clips of its
+## definition's `WeaponCategory`, a ray of the blow's reach from the chest cast on the ticks of its
+## hit window until it meets something (once), with no ammunition. While a blow runs or cools down
+## the weapon does not fire or reload; a blow cuts a reload short. Online a blow is a small event
+## and the server meets the AI where the attacker's screen drew it (`rewind`), as for a shot.
 
 ## A shot left: `projectile` is the body that flies (null for a hitscan shot or a blow).
 signal fired(projectile: Projectile)
@@ -36,6 +42,10 @@ signal reloaded
 signal reload_cancelled
 ## The weapon was given another definition.
 signal definition_changed(definition: WeaponDef)
+## A melee blow started (the `melee` button, or the fire button of a `Kind.MELEE` weapon):
+## `blow` counts the blows since the definition was given, so the animation plays the category's
+## clips one after another. What it meets is said by `hit_scanned` (with `melee` true).
+signal melee_started(blow: int)
 
 ## What a pull of the trigger did.
 enum Pull {
@@ -46,6 +56,10 @@ enum Pull {
 
 ## How many bodies the aim ray may pass between the parts of before it is taken as it is.
 const AIM_PASSES := 4
+## Seconds of cooldown left that count as none: a shot interval that is a whole number of ticks
+## (0.1 s at 60 ticks) counts down to a rounding error just above zero, which would hold each shot
+## one tick late (9 shots a second for 10).
+const COOLDOWN_SLACK := 1e-6
 
 @export_group("Weapon")
 ## What the weapon is: its numbers, its projectile, its sounds and how it is held. Changing it
@@ -67,7 +81,7 @@ const AIM_PASSES := 4
 ## beside the shooter, in the ray's own axes (x to its right, y up, z back toward the shooter,
 ## so a negative z is out in front). The default is where the pistol's muzzle is while the
 ## character aims standing on the template's idle (`AimStance` holds it still there).
-@export var no_muzzle_offset := Vector3(0.112, -0.104, -0.722)
+@export var no_muzzle_offset := Vector3(0.12, -0.103, -0.728)
 ## What the aim ray hits (physics layers): what a shot meets (`PhysicsLayers.SHOT_MASK`: the
 ## level, characters, props, ragdoll bones and hit zones), so the crosshair's point is on what the
 ## shot will hit.
@@ -105,6 +119,21 @@ var reserve: Variant:
 	get:
 		return _reserve if _uses_ammo() else null
 
+## True when `melee()` would throw a blow now: a definition, not put away, and no blow running or
+## cooling down (a shot's cooldown and a reload do not stop it). Read only.
+var melee_ready: bool:
+	get:
+		return definition != null and not lowered and not _blow.busy()
+## True while a blow runs or cools down: the weapon does not fire or reload meanwhile. Read only.
+var meleeing: bool:
+	get:
+		return _blow.busy()
+## Blows started since the weapon was given its definition: the clip of blow `n` is the category's
+## `melee_clips[n % size]`. Read only.
+var blows: int:
+	get:
+		return _blow.count
+
 ## The share of `spread` a shot gets now: the character that holds the weapon sets it each
 ## step (lying down is steadier, `ProneTuning.spread_share`); 1 alone.
 var spread_share := 1.0
@@ -139,6 +168,8 @@ var _rng := RandomNumberGenerator.new()
 var _live: Array[Projectile] = []
 var _spare: Array[Projectile] = []
 var _last_projectile: Projectile
+var _blow := MeleeBlow.new()
+var _scan_met := false  # Whether the last `_scan` met something (a blow ends on it).
 
 
 func _ready() -> void:
@@ -171,26 +202,33 @@ func _physics_process(delta: float) -> void:
 ## empty magazine with rounds in reserve starts a reload (`auto_reload`). Counted here and nowhere
 ## else (never from a clock), so it is the same on every machine that steps the same ticks.
 func tick(delta: float) -> void:
-	_cooldown = maxf(_cooldown - delta, 0.0)
+	# A cooldown that ends inside this tick keeps the part of the tick past its end (below zero),
+	# and the next shot's interval starts that much early, so a held trigger fires the rate however
+	# the interval falls between ticks; a tick that fires nothing forgets it.
+	_cooldown = _cooldown - delta if _cooldown > COOLDOWN_SLACK else 0.0
 	if _reload_left > 0.0:
 		_reload_left = maxf(_reload_left - delta, 0.0)
 		_play_reload_steps()
 		if _reload_left <= 0.0:
 			_finish_reload()
-	elif definition != null and definition.auto_reload and _magazine == 0 and _cooldown <= 0.0:
+	elif definition != null and definition.auto_reload and _magazine == 0 and not is_cooling_down():
 		reload()
+	if _blow.advance(delta) and definition != null:
+		_land_blow()
 
 
 ## True when a pull would fire now: somewhere to shoot from, not cooling down, reloading or put
 ## away, and a round in the magazine (or no magazine at all).
 func can_fire() -> bool:
-	if definition == null or lowered or _cooldown > 0.0 or _reload_left > 0.0:
+	if definition != null and definition.kind == WeaponDef.Kind.MELEE:
+		return melee_ready
+	if definition == null or lowered or is_cooling_down() or _reload_left > 0.0 or _blow.busy():
 		return false
 	if _uses_ammo() and _magazine <= 0:
 		return false
 	if definition.shot_kind() == WeaponDef.Kind.PROJECTILE and definition.projectile_scene == null:
 		return false
-	return muzzle != null or shooter != null or definition.shot_kind() == WeaponDef.Kind.MELEE
+	return muzzle != null or shooter != null
 
 
 ## Pulls the trigger once along the ray `origin`, `direction` (or out of the muzzle with no ray):
@@ -198,10 +236,12 @@ func can_fire() -> bool:
 ## cooling down, reloading or put away.
 func pull(origin := Vector3.INF, direction := Vector3.ZERO) -> Pull:
 	_last_projectile = null
-	if definition == null or lowered or _cooldown > 0.0 or _reload_left > 0.0:
+	if definition != null and definition.kind == WeaponDef.Kind.MELEE:
+		return melee(origin, direction)
+	if definition == null or lowered or is_cooling_down() or _reload_left > 0.0 or _blow.busy():
 		return Pull.BUSY
 	if _uses_ammo() and _magazine <= 0:
-		_cooldown = definition.shot_interval()
+		_cooldown = _next_cooldown()
 		_play(_player(&"EmptySound"), _muzzle_point())
 		dry_fired.emit()
 		return Pull.EMPTY
@@ -219,6 +259,9 @@ func pull(origin := Vector3.INF, direction := Vector3.ZERO) -> Pull:
 func fire(origin := Vector3.INF, direction := Vector3.ZERO) -> Projectile:
 	if not can_fire():
 		return null
+	if definition.kind == WeaponDef.Kind.MELEE:
+		melee(origin, direction)
+		return null
 	_shoot(origin, direction)
 	return _last_projectile
 
@@ -228,6 +271,7 @@ func fire(origin := Vector3.INF, direction := Vector3.ZERO) -> Projectile:
 func make_ready() -> void:
 	_cooldown = 0.0
 	_reload_left = 0.0
+	_blow.cooldown = 0.0
 	if _uses_ammo() and _magazine < definition.magazine_size:
 		_magazine = definition.magazine_size
 		ammo_changed.emit(_magazine)
@@ -250,6 +294,7 @@ func can_reload() -> bool:
 	return (
 		_uses_ammo()
 		and not lowered
+		and not _blow.busy()
 		and _reload_left <= 0.0
 		and _magazine < definition.magazine_size
 		and _reserve > 0
@@ -266,7 +311,54 @@ func cancel_reload() -> void:
 
 ## True while the weapon cools down after a shot (or a click): a pull now does nothing.
 func is_cooling_down() -> bool:
-	return _cooldown > 0.0
+	return _cooldown > COOLDOWN_SLACK
+
+
+## Throws the melee blow along the ray `origin`, `direction` (what the attacker aims along; with no
+## ray, straight ahead from the chest): the definition's `blow_*()` numbers, its category's. It
+## lands on the first tick of its hit window that its ray, `blow_reach()` long from the chest and
+## moving with the body, meets something: a character's hit zones, a `Health`, a pushed body; once.
+## A reload under way is cut short. `BUSY` when a blow runs or cools down or the weapon is put
+## away (`melee_ready`).
+##
+## With `cosmetic` (a puppet playing a blow the server threw, online) it plays the swing's sound
+## and says `melee_started` for the clip, and nothing else: no ray, no cooldown (the server keeps
+## those and sends what the blow met as a hit).
+func melee(origin := Vector3.INF, direction := Vector3.ZERO, cosmetic := false) -> Pull:
+	_last_projectile = null
+	if cosmetic:
+		_play_cosmetic_blow(origin)
+		return Pull.FIRED if definition != null else Pull.BUSY
+	if not melee_ready:
+		return Pull.BUSY
+	cancel_reload()
+	var aimed := _is_ray(origin, direction)
+	var along := direction.normalized() if aimed else _straight_ahead()
+	var start := _at_shooter_depth(origin, along) if aimed else _shooter_chest()
+	_blow.start(
+		definition.blow_cooldown(),
+		definition.blow_hit_start(),
+		definition.blow_hit_end(),
+		along,
+		start - _shooter_place()
+	)
+	if rewind != null and authoritative:
+		_blow.rewind = rewind.for_shot(start, along, definition.blow_reach())
+	last_origin = start
+	last_heading = along
+	_play(_player(&"MeleeSound"), start)
+	melee_started.emit(_blow.count - 1)
+	if _blow.advance(0.0):
+		_land_blow()
+	return Pull.FIRED
+
+
+func _play_cosmetic_blow(origin: Vector3) -> void:
+	if definition == null:
+		return
+	_play(_player(&"MeleeSound"), origin if origin.is_finite() else _muzzle_point())
+	_blow.count += 1
+	melee_started.emit(_blow.count - 1)
 
 
 ## Plays a shot the server fired for another player (a puppet's, online): a cosmetic projectile
@@ -279,6 +371,9 @@ func fire_cosmetic(origin: Vector3, heading: Vector3) -> Projectile:
 	_last_projectile = null
 	if definition == null or not heading.is_finite() or heading.length_squared() < 0.000001:
 		return null
+	if definition.kind == WeaponDef.Kind.MELEE:
+		melee(origin, heading, true)
+		return null
 	var start := muzzle.global_position if muzzle != null and muzzle.is_inside_tree() else origin
 	last_origin = start
 	last_heading = heading.normalized()
@@ -290,8 +385,7 @@ func fire_cosmetic(origin: Vector3, heading: Vector3) -> Projectile:
 	elif definition.shot_kind() == WeaponDef.Kind.HITSCAN and definition.tracer != null:
 		_trace(start, _ray_end(start, last_heading))
 	_play(_player(&"ShotSound"), start)
-	if definition.shot_kind() != WeaponDef.Kind.MELEE:
-		_flash()
+	_flash()
 	fired.emit(_last_projectile)
 	return _last_projectile
 
@@ -381,6 +475,8 @@ func save_step_state(kept: Array) -> void:
 	kept[2] = _magazine
 	kept[3] = _reserve
 	kept[4] = _reload_left
+	# The melee blow (gdstudio #1254): its time, cooldown, landing, count, way and start.
+	_blow.save(kept)
 
 
 ## Puts back what `save_step_state()` wrote: the next shot leaves on the same tick and, with a
@@ -396,6 +492,7 @@ func load_step_state(kept: Array) -> void:
 	_magazine = kept[2]
 	_reserve = kept[3]
 	_reload_left = kept[4]
+	_blow.load(kept, 5)
 	if changed:
 		ammo_changed.emit(_magazine)
 
@@ -406,33 +503,25 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 	var aimed := _is_ray(origin, direction)
 	var along := direction.normalized() if aimed else -marker.global_basis.z
 	var start := marker.global_position
-	var shot_kind := definition.shot_kind()
-	if shot_kind == WeaponDef.Kind.MELEE:
-		start = _at_shooter_depth(origin, along) if aimed else _shooter_chest()
-	elif aimed and muzzle == null:
+	if aimed and muzzle == null:
 		start = _bare_start(origin, along)
-	var heading := along
-	if shot_kind != WeaponDef.Kind.MELEE:
-		var toward := aim_point(origin, direction) - start
-		# A point beside or behind the gun (a wall at the character's back) would turn the shot
-		# around: shoot along the aim instead.
-		if toward.dot(along) <= 0.0 or toward.length() < 0.2:
-			toward = along
-		heading = _spread(toward.normalized())
+	var toward := aim_point(origin, direction) - start
+	# A point beside or behind the gun (a wall at the character's back) would turn the shot around:
+	# shoot along the aim instead.
+	if toward.dot(along) <= 0.0 or toward.length() < 0.2:
+		toward = along
+	var heading := _spread(toward.normalized())
 	last_origin = start
 	last_heading = heading
 	if _uses_ammo():
 		_magazine -= 1
-	_cooldown = definition.shot_interval()
-	if shot_kind == WeaponDef.Kind.PROJECTILE:
+	_cooldown = _next_cooldown()
+	if definition.shot_kind() == WeaponDef.Kind.PROJECTILE:
 		_launch(start, heading, _rewind_flight(start, heading))
 	else:
-		var end := _scan(start, heading, definition.ray_reach(), _rewind_ray(start, heading))
-		if shot_kind == WeaponDef.Kind.HITSCAN:
-			_trace(start, end)
+		_trace(start, _scan(start, heading, definition.ray_reach(), _rewind_ray(start, heading)))
 	_play(_player(&"ShotSound"), start)
-	if shot_kind != WeaponDef.Kind.MELEE:
-		_flash()
+	_flash()
 	if _uses_ammo():
 		ammo_changed.emit(_magazine)
 	fired.emit(_last_projectile)
@@ -464,11 +553,21 @@ func _rewind_flight(start: Vector3, heading: Vector3) -> ShotRewind:
 	)
 
 
-# The rewind of a ray (a hitscan shot or a blow) leaving now.
+# The rewind of a hitscan shot leaving now.
 func _rewind_ray(start: Vector3, heading: Vector3) -> ShotRewind:
 	if rewind == null or not authoritative:
 		return null
 	return rewind.for_shot(start, heading, definition.ray_reach())
+
+
+# The blow's ray on a tick of its window: from the chest (where it started, moved with the body)
+# along the way it started, met with the AI as drawn `age` ticks after the press.
+func _land_blow() -> void:
+	var start := _shooter_place() + _blow.offset
+	var age := roundi(maxf(_blow.age, 0.0) * NetLimits.TICK_RATE)
+	_scan(start, _blow.heading, definition.blow_reach(), _blow.rewind, true, age)
+	if _scan_met:
+		_blow.finish()
 
 
 func _launch(start: Vector3, heading: Vector3, shot_rewind: ShotRewind = null) -> void:
@@ -534,11 +633,20 @@ func _on_projectile_finished(shot: Projectile) -> void:
 # delivers to `take_hit`), anything else its `Health`; a ray that passes between the parts goes on
 # past the capsule, as a projectile does.
 # With `shot_rewind`, the AI characters near the ray are met where the shooter's screen drew them
-# (`ShotRewind.nearer`) and left out of the physics query. Answers where the ray ended: the point
-# it hit, or its reach.
+# (`ShotRewind.nearer`, `age` ticks after the drawn tick) and left out of the physics query.
+# A `blow` takes the definition's melee damage and push and leaves no mark. Answers where the ray
+# ended: the point it hit, or its reach; `_scan_met` says which.
 func _scan(
-	start: Vector3, heading: Vector3, reach: float, shot_rewind: ShotRewind = null
+	start: Vector3,
+	heading: Vector3,
+	reach: float,
+	shot_rewind: ShotRewind = null,
+	blow := false,
+	age := 0
 ) -> Vector3:
+	_scan_met = false
+	var damage := definition.blow_damage() if blow else definition.damage
+	var push := definition.blow_impulse() if blow else definition.impulse
 	var skip: Array[RID] = []
 	if shot_rewind != null:
 		skip = shot_rewind.excluded()
@@ -547,7 +655,7 @@ func _scan(
 	for _attempt in 3:
 		found = _cast(start, start + heading * reach, skip, definition.ray_mask(aim_mask))
 		if shot_rewind != null:
-			found = shot_rewind.nearer(start, start + heading * reach, found)
+			found = shot_rewind.nearer(start, start + heading * reach, found, age)
 		if found.is_empty():
 			return start + heading * reach
 		var zones := HitZones.of(found["collider"])
@@ -559,8 +667,8 @@ func _scan(
 			found["collider"],
 			found["position"],
 			heading,
-			definition.damage,
-			definition.impulse,
+			damage,
+			push,
 			shooter as Node3D,
 			found.get("centre", found["position"])
 		)
@@ -587,23 +695,23 @@ func _scan(
 					"from": start,
 					"damage": 0.0,
 					"record": null,
+					"melee": blow,
 				}
 			)
 		)
+		_scan_met = true
 		return point
 	if collider is RigidBody3D:
 		var body := collider as RigidBody3D
-		body.apply_impulse(heading * definition.impulse, point - body.global_position)
+		body.apply_impulse(heading * push, point - body.global_position)
 	# Not a character's hit zones: whatever carries a `Health` (a `Target`, a crate) takes the shot.
 	var health := Health.of(collider) if record == null else null
 	if health != null:
-		health.apply(
-			HitRecord.shot(
-				definition.damage, &"", &"", point, heading, definition.impulse, shooter as Node3D
-			)
-		)
+		health.apply(HitRecord.shot(damage, &"", &"", point, heading, push, shooter as Node3D))
 	var impacts := (
-		Impacts.find(self) if definition.impacts and effects and collider != null else null
+		Impacts.find(self)
+		if definition.impacts and effects and collider != null and not blow
+		else null
 	)
 	if impacts != null:
 		impacts.impact(collider, point, normal)
@@ -615,11 +723,13 @@ func _scan(
 				"position": point,
 				"normal": normal,
 				"from": start,
-				"damage": definition.damage,
+				"damage": damage,
 				"record": record,
+				"melee": blow,
 			}
 		)
 	)
+	_scan_met = true
 	return point
 
 
@@ -632,6 +742,11 @@ func _cast(start: Vector3, end: Vector3, skip: Array[RID] = [], mask := -1) -> D
 		excluded.append(shooter.get_rid())
 	query.exclude = excluded
 	return get_world_3d().direct_space_state.intersect_ray(query)
+
+
+# The interval to the next pull, less what the last tick ran past the end of the cooldown.
+func _next_cooldown() -> float:
+	return definition.shot_interval() + minf(_cooldown, 0.0)
 
 
 func _range() -> float:
@@ -652,6 +767,13 @@ func _apply_definition(refill: bool) -> void:
 		shot_sound.volume_db = definition.shot_volume_db
 	_set_stream(&"EmptySound", DecodedSounds.decoded(definition.empty_sound))
 	_set_stream(&"DrawSound", DecodedSounds.decoded(definition.draw_sound))
+	var swing := _player(&"MeleeSound")
+	if swing != null:
+		var category := definition.category
+		swing.stream = DecodedSounds.decoded(category.melee_sound if category != null else null)
+		if category != null:
+			swing.volume_db = category.melee_volume_db
+	_blow.reset()
 	# Decoded now, while the weapon is set up, not at the reload's first step.
 	DecodedSounds.decoded_all(definition.reload_sounds)
 	if definition.muzzle_flash != null:
@@ -714,6 +836,20 @@ func _at_shooter_depth(origin: Vector3, along: Vector3) -> Vector3:
 	if shooter == null:
 		return origin
 	return origin + along * maxf((shooter.global_position - origin).dot(along), 0.0)
+
+
+# Where the shooter stands (the blow's start rides it), or the weapon with no shooter.
+func _shooter_place() -> Vector3:
+	if shooter != null and shooter.is_inside_tree():
+		return shooter.global_position
+	return global_position if is_inside_tree() else Vector3.ZERO
+
+
+# Straight ahead of the shooter (a blow with no ray).
+func _straight_ahead() -> Vector3:
+	var marker: Node3D = shooter if shooter != null else self
+	var ahead := -marker.global_basis.z if marker.is_inside_tree() else Vector3.FORWARD
+	return ahead.normalized() if ahead.length_squared() > 0.0001 else Vector3.FORWARD
 
 
 # Where a blow with no ray starts: the shooter's chest, or the weapon itself.
