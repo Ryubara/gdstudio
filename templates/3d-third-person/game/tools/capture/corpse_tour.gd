@@ -1,6 +1,6 @@
 ## Films gdstudio #1339 from the game's own camera, driven by the actions a player presses: four
 ## dead grunts lie in a row across the open floor, the player sprints through them, turns, runs
-## back through them and stops on one. The capsule never meets a ragdoll bone, so the body keeps
+## back into them and stops among them. The capsule never meets a ragdoll bone, so the body keeps
 ## its speed and stance; the legs push the limbs aside (`CorpseNudge`). `NUDGE_OFF=1` films it
 ## with the nudge off (the template before #1339), for a before and after. Every physics frame it
 ## prints the part, the ground speed, the body state and the bones inside the capsule on a line
@@ -25,8 +25,8 @@ const PARTS: Array[Array] = [
 	["The dead settle", 2.0, [], 0.0],
 	["Sprint through the dead", 1.2, [&"move_forward", &"sprint"], 0.0],
 	["Turn round", 0.6, [], 180.0],
-	["Run back through them", 2.2, [&"move_forward"], 180.0],
-	["Stand on one", 2.0, [], 180.0],
+	["Run back into them", 0.5, [&"move_forward"], 180.0],
+	["Stand among them", 2.5, [], 180.0],
 ]
 
 var _part := -1
