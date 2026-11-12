@@ -192,8 +192,8 @@ A solved pose is clear where it holds; the blend the game plays between two of t
   turned sideways behind the gun and put its tip in that opening: the solver read it 0.7 mm off, the game's measure
   2.2 mm off in the level aim and 19.4 mm in once the aim turned the hands up (two of its three rays left through
   the hole). One fan for all the hand's open edges joins its pieces into one, where a point inside two counts as
-  outside. **Seen:** gdstudio #1084, 2026-11-11 (fix: `wrist_cap`, `HandContact._open_rings`; the test checks the
-  thumb's tip within 12 mm of the left thumb's root).
+  outside. **Seen:** gdstudio #1084, 2026-11-11 (fix: `hold_field.ring_caps`, `HandContact._open_rings`; the test
+  checks the thumb's tip within 12 mm of the left thumb's root).
 - **Approach:** Search a finger's pose from many starts (the grid, then some thousands of random ones, the best four
   refined each on its own), and aim it at a place a wide search proved it reaches. **Watch out for:** refined from the
   grid's best start alone, four different targets gave the same sideways thumb; a target the thumb could not reach
