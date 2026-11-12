@@ -37,6 +37,9 @@ const TRIGGER_FINGER: Array[String] = ["index_base", "index_mid", "index_tip"]
 ## How deep it may pass, in metres: the pistol's has no solved way round the guard as the rifle's
 ## has, and on the male it passes 7.0 mm on the straight way, in an interact as in every aim.
 const TRIGGER_PASSING := 0.008
+## The most updates of an interact in which the aimed pistol is out of the left arm's reach (9
+## as the aim falls and 9 as it rises, posed; 16 live).
+const OUT_OF_REACH := 20
 ## The left arm's points that are looked for in the torso: each bone's own place.
 const ARM_POINTS: Array[StringName] = [&"lowerarm_l", &"hand_l", &"middle_01_l", &"middle_03_l"]
 
@@ -231,7 +234,7 @@ func test_the_pistols_left_hand_lets_go_clean_on_both_bodies() -> void:
 				var left := stage.contact.measure("l", true)
 				deepest = maxf(deepest, _assert_passes(tag, left, "distance"))
 			timer.step(1.0 / 60.0)
-		assert_int(continue_ticks).is_less(14)
+		assert_int(continue_ticks).is_less(OUT_OF_REACH)
 		prints(
 			model,
 			"the left hand's deepest pass off the pistol: %.1f mm" % (deepest * 1e3),
@@ -505,8 +508,9 @@ func _assert_hands_hold(tag: String) -> void:
 			)
 			. is_less_equal(WEAPON_IN_BODY)
 		)
-		# The arm against the torso while the action plays: after it the aim's own rise has it.
-		if entry.acting:
+		# The arm against the torso while the action plays and the weapon is in the arm's reach:
+		# out of it the aim's own fall and rise have the arm (kit #1078, #1318).
+		if entry.acting and entry.short <= ON_PLACE:
 			(
 				assert_float(entry.arm_in)
 				. override_failure_message(
@@ -518,7 +522,7 @@ func _assert_hands_hold(tag: String) -> void:
 				. is_equal(0.0)
 			)
 	assert_int(measured).is_greater(50)
-	assert_int(out_of_reach).is_less(14)
+	assert_int(out_of_reach).is_less(OUT_OF_REACH)
 	var back: Array[String] = []
 	for part: String in last.left_parts:
 		if _held_parts.has("l " + part):

@@ -153,6 +153,11 @@ are named as such.
   The `magazine` node rides the hand. The thumb goes from the hand guard's side to its place behind the magazine
   while the hand comes down off the hand guard (`_WAY_THUMB`), and on the magazine the four fingers close as one
   (`HandPoseModifier.open_together`; off the hand guard they open knuckles first).
+- **An interact** takes the left hand too, for the interact clip's reach: off the hand guard the reload's way, out
+  to `free_clearance`, and to the clip's arm, while the right hand takes the gun down (`free_pitch`, `free_yaw`) and
+  the chest's turn eases off ([Using something with a weapon in the hands](interact.md#interact-held)). The torso's
+  skin the butt meets is a class of its own since then (`gameplay/weapon/hold/torso_skin.gd`, `TorsoSkin`), moved out
+  of `two_hand_hold.gd` at the 1000 lines a script may have.
 
 Measured on the skinned mesh against the rifle (`HandContact`, the same in every clip, since the fingers are absolute
 and the arms reach their places), on the prototype bodies:

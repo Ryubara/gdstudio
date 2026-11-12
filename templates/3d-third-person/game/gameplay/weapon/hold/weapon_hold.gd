@@ -87,10 +87,10 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 ## the weapon as the aim has it, 1 with the clip's arm); from the character's `interacted`, or
 ## the caller's for a character posed by hand.
 @export_range(0.0, 1.0, 0.01) var free_weight := 0.0
-## Seconds the left hand takes off the weapon for such an action, and back onto it at its end: the
-## action's clip takes the weapon's arm down and brings it back over its own blend time, and the
-## left hand leaves before the weapon is down and comes on as it is up again.
-@export_range(0.01, 1.0, 0.01, "suffix:s") var free_release_time := 0.1
+## Seconds the left hand takes off the weapon for such an action, and back onto it at its end.
+## An interact also takes the aim down for its time, which lets the hand go a little sooner (the
+## tuning's `aim_pose_time`); these are the times of an action that leaves the aim up.
+@export_range(0.01, 1.0, 0.01, "suffix:s") var free_release_time := 0.2
 @export_range(0.01, 1.0, 0.01, "suffix:s") var free_return_time := 0.12
 
 @export_group("Reload")
@@ -181,7 +181,7 @@ func refresh() -> void:
 		return
 	_weigh(_grip, held_weight)
 	# The finger leaves the trigger for the reload, and while an action's clip has the arm.
-	var aim := aim_weight * (1.0 - FreeHand.gone(free_weight))
+	var aim := minf(aim_weight, 1.0 - FreeHand.gone(free_weight))
 	_grip.second_weight = aim * (1.0 - reload_weight)
 	_grip.swing_bone = carry_arm
 	# The arm comes back in for a reload as for the aim: the reload clip holds the weapon in front of
@@ -232,12 +232,14 @@ func _plan_left() -> void:
 	_left.reach = reload_reach
 	_left.insert = reload_insert
 	_left.back = reload_return
-	# Let go for an action, the hand is as far on the weapon as the aim has it less its way off
-	# (the hold's arm has it to the way's far end, `WAY_FROM`) and less what the clip's arm has.
+	# Let go for an action, the hand is no further on the weapon than its way off has it (the
+	# hold's arm has it to the way's far end, `WAY_FROM`) less what the clip's arm has. The lesser
+	# of that and the aim: an action that also takes the aim down (an interact does) lets the
+	# hand go as the aim alone would, and one that leaves the aim up lets it go by itself.
 	var gone := FreeHand.gone(free_weight)
 	var on := lerpf(1.0, SupportHandPlan.WAY_FROM, FreeHand.off(free_weight)) * (1.0 - gone)
 	var reload := reload_weight * (1.0 - gone) if _magazine != null else 0.0
-	_left.update(aim_weight * on, reload, reload_share)
+	_left.update(minf(aim_weight, on), reload, reload_share)
 
 
 ## The modifiers this node made on the skeleton now: the grip, then the left arm and fingers.
