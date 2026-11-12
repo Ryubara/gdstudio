@@ -121,6 +121,11 @@ research and their numbers are in the template's `assets/animation/own/README.md
   style's are longer than the clip, and read the elbows' range after any change to an arm's overshoot.
   **Watch out for:** the loose style's springs (4 to 6 frames, 0.3 past) in a 7-frame take-off and a landing
   sent an elbow 9 to 44 degrees past straight. **Seen:** gdstudio #1161, 2026-11-12.
+- **Approach:** Test a pose for a mirror by how far one hand (or foot) is from the other's reflection across the
+  body's middle, in all three directions, not by one axis against a limit. **Watch out for:** the jump's test
+  asked the hands for 50 mm of height between them: it refused the apex (35 mm of height, 214 mm fore and aft) and
+  the hard landing's bottom (46 mm fore and aft, 90 up), which are far from mirrored. **Seen:** gdstudio #1161,
+  2026-11-12 (`_mirror_gap` in `test_own_jump_clips.gd`).
 
 ## What building the idle and the gaits taught {#taught}
 

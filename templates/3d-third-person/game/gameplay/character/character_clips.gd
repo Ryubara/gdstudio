@@ -45,8 +45,8 @@ const SPRINT := &"gds/Sprint"
 const JUMP_START := &"gds/Jump_Start"
 const AIR := &"gds/Jump_Fall"
 const LAND := &"gds/Land_Soft"
-## The rest of the jump, which no state plays yet (the tree that picks them: gdstudio #1161's
-## follow-up): the take-offs from the jog's left and right foot strikes, the rise and the top of
+## The rest of the jump, which no state plays yet (the tree that picks them: gdstudio #1371):
+## the take-offs from the jog's left and right foot strikes, the rise and the top of
 ## the jump for a blend by vertical speed, the landing from a long fall and the one into a run.
 const JUMP_START_RUN_L := &"gds/Jump_Start_Run_L"
 const JUMP_START_RUN_R := &"gds/Jump_Start_Run_R"

@@ -119,7 +119,7 @@ mass keeps its place against the capsule: it flies the arc the controller flies.
 | `FALL` | `air_clip` | `gds/Jump_Fall`: a 1.2 s loop, the soles at the capsule's bottom | `ual1/Jump` |
 | `LAND` (a fall of `land_clip_speed` or more, for `land_time`) | `land_clip` | `gds/Land_Soft`: control back at frame 9 (0.3 s), the settle after | `fixed/Jump_Land` |
 
-Six more are in the library and in `CharacterClips` for the tree that picks them (kit #TREE), and no state
+Six more are in the library and in `CharacterClips` for the tree that picks them (kit #1371), and no state
 plays them yet: `Jump_Start_Run_L` and `_R` (from the jog's left and right foot strikes, at its speed),
 `Jump_Rise` and `Jump_Apex` (with `Jump_Fall`, three poses to blend by vertical speed), `Land_Hard` (falls
 from 9 m/s) and `Land_To_Jog` (0.27 s, ends on the jog's right foot strike). `locomotion.json` says of each

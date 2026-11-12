@@ -354,7 +354,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | #1158 the tree (Godot) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost |
 | #1159 directions and lean | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`; `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` |
 | #1160 crouch (done) | `Crouch_Idle`, `Crouch_Walk`, `Stand_To_Crouch` (B, chosen), `Crouch_To_Stand` (A, chosen), solved on `form_female`; the prone transitions rebuilt on the new crouch |
-| #1161 jumps (built, A shipped for review) | `Jump_Start`, `Jump_Start_Run_L` and `_R` (the jog's two foot strikes), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog`, three variants each; `clips/jump.py` ([the jump clips](clip-toolkit.md#jump-rows)); the tree that picks the six no state plays is #TREE |
+| #1161 jumps (built, A shipped for review) | `Jump_Start`, `Jump_Start_Run_L` and `_R` (the jog's two foot strikes), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog`, three variants each; `clips/jump.py` ([the jump clips](clip-toolkit.md#jump-rows)); the tree that picks the six no state plays is #1371 |
 
 Later waves, filed when the first has landed and its toolkit has settled: the slide and the curved runs; combat
 and weapons (per weapon class, with the hold solver); traversal (the second mantle, the push, the crawl's other

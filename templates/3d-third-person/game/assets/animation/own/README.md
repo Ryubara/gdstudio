@@ -25,12 +25,14 @@ uv run --with numpy --with pillow python -B review_sheet.py <type> --blender <th
 ```
 
 A rebuild writes the same bytes (`--check` compares with the files on disk and writes nothing). The clip from the
-game's camera is `tools/capture/own_clips_review.tscn`; the Godot test is `tests/gameplay/test_own_clips.gd`.
+game's camera is `tools/capture/own_clips_review.tscn` (the jump's: `own_jump_review.tscn`); the Godot tests are
+`tests/gameplay/test_own_clips.gd` and `test_own_jump_clips.gd`.
 
-The clip types are `idle`, `walk`, `jog`, `sprint`, `crouch_idle`, `crouch_walk`, `stand_to_crouch` and
-`crouch_to_stand`. After `ship locomotion` changes `Crouch_Idle`, rebuild the prone clips too (`../prone/`): their
-two transitions join its first pose. `fluidity.py` reads the shipped gaits against the library clips they
-replaced (below, "How fluid the gaits are").
+The clip types are `idle`, `walk`, `jog`, `sprint`, `crouch_idle`, `crouch_walk`, `stand_to_crouch`, `crouch_to_stand`,
+and the jump's `jump_start`, `jump_start_run_l`, `jump_start_run_r`, `jump_rise`, `jump_apex`, `jump_fall`, `land_soft`,
+`land_hard` and `land_to_jog` (below, "The jump"). After `ship locomotion` changes `Crouch_Idle`, rebuild the prone
+clips too (`../prone/`): their two transitions join its first pose. `fluidity.py` reads the shipped gaits against the
+library clips they replaced (below, "How fluid the gaits are").
 
 ## The bodies
 
@@ -54,8 +56,13 @@ floor.
   settle off (`ContactPlan.tread`).
 - **The four `ik_` targets are keyed** (`ik_foot_l/r`, `ik_hand_l/r`), since the prototype rig has them: each
   clip has 52 bones' rotations, the pelvis's place and the targets' places and turns. The Quaternius skeleton has
-  no such bones and the tracks move nothing there. With all eight clips the shipped file is 356 KB and imports
-  to 130 KB for 24.8 s of clips (5.3 KB a second; the budget is 6).
+  no such bones and the tracks move nothing there. With the 17 clips the shipped file is 611 KB and imports to
+  183 KB for 31.3 s of clips (5.9 KB a second; the budget is 6), with Godot's compression pages at 32 KiB: at 8 a
+  long dense clip lost its pelvis's keys (`test_own_jump_clips.gd` compares the import with the file).
+- **The targets are set from the finished pose** (`build.retarget`, kit #1161) and checked on every frame
+  (`checks.check_targets`, 4 mm). Before, the overlap pass left a hand's target up to 53 mm off in a walk, and a
+  loop's first and last targets were a stride off (the shipped jog's `ik_foot_l` 2.46 m ahead); every clip was
+  rebuilt, and only the targets' keys moved.
 
 **Picking another variant:** set the letter in `picks.json`, run `ship locomotion`, run the test. The other styles
 stay here, so a game picks another vision by rebuilding, or writes a `style_d.json` of its own.
@@ -504,3 +511,75 @@ person's cadence at the game's speeds), so each frame is a larger share of the m
 floor at the game's speed has to swing faster than one that slides (the walk's joints change speed twice as hard as
 the library's, by the square of the pace). Keys at 60 a second would halve each step; that doubles the file's key
 bytes, over the 6 KB a second the import is held to, and is a budget decision, not a clip one.
+
+## The jump: take-offs, the air and landings
+
+Nine clip types, one description (`clips/jump.py`, kit #1161). `Jump_Start`, `Jump_Fall` and `Land_Soft` replace
+`ual1/Jump_Start`, `ual1/Jump` and the fixed `Jump_Land`, which stay as their stand-ins. The other six are new
+(the library has no take-off from a run, no rise or apex of their own, one landing depth and no landing into a run;
+the kit's `docs/tools/blender/own-animation.md#audit-clips`) and no state plays them yet: the tree that picks them
+is gdstudio #1371.
+
+### How bodies jump and land (the research)
+
+Read on 2026-11-12, before the landings were keyed; "opened" and "summary" as in the gaits' table.
+
+| What | Finding | Source | What the clips do with it |
+| --- | --- | --- | --- |
+| A drop landing's knee | From 30 cm: the knee 23 degrees bent at contact, 88 to 94 at its deepest, 208 ms from contact to the deepest knee, 2.9 body weights at the peak. | [Norcross et al., 2013](https://pmc.ncbi.nlm.nih.gov/articles/PMC3867085) (opened) | `Land_Soft`: the knees from the fall's 41 and 55 to 84 and 87 at the deepest, frame 3 (100 ms: the game's own jump lands at 7.3 m/s, faster than a 30 cm drop's 2.4, and gives control back at 0.3 s). |
+| Soft against stiff | From 40 cm: the knee 15 degrees at contact landing soft and 9.6 stiff, 55 and 37 degrees of travel, 1.63 and 2.60 body weights. | [Myers et al., 2011](https://pmc.ncbi.nlm.nih.gov/articles/PMC4167636) (opened) | The soft landing travels further than either (the fall is faster); the hard one goes deeper still and holds. |
+| A deep landing | Soft landings flex the knee about 117 degrees, stiff ones 77, from 59 cm. | DeVita and Skelly, 1992 (summary) | `Land_Hard`: the knees to 115 and 109 (A), the weight down 0.36 m, for falls from 9 m/s. |
+| The arms in a jump | An arm swing adds about 7 cm, or 12 to 38 %, to a jump's height. | Hara et al., 2008, and others (summary) | Every take-off swings the arms up (the left to 96 degrees forward, the right to 40, in A), each to its own height. |
+| A take-off's joints | Not found in a source we could open. | | The legs finish their stretch by frame 2.5 with the toes pointed 50 and 44 degrees: a declared choice. |
+| In the air | A body in the air is in free fall. | physics | The capsule carries the body on the controller's own arc; the clips hold the centre of mass at one place against the root (the build reads 0.1 to 9.6 mm off the arc). |
+
+### How the jump is built
+
+- **The game gives a take-off no frame on the floor.** The capsule leaves on the tick of the press at 6.25 m/s, so
+  no take-off crouches first: at 0.2 m a frame the feet would be 0.2 to 0.4 m under the capsule. A take-off is the
+  stretch, 5 to 7 frames of the rise's 12, ending on `Jump_Rise`'s first pose.
+- **The air is carried.** No footfall in its plan, the root's height over the floor declared per frame
+  (`declared["carried"]`, `jump.arc()`), the centre of mass held to the root. The rise, the apex and the fall are
+  loops of 36 to 40 frames that drift 2 to 4 degrees, for a blend by vertical speed.
+- **The fall stands on the capsule's bottom.** The first foot's ball is on it (`jump.FEET`), so a landing begins
+  with that foot on the floor; the knees are what the weight's height leaves (41 and 55 degrees, more bent than a
+  person's before a landing).
+- **A landing is a curve of the weight's height.** From the fall's speed, of which the body keeps 4 m/s (`keep`),
+  to the bottom (`dip`, `bottom`), then up on a push and a coast; `jump.standing_spec` lowers the pelvis where a
+  folded trunk would ask the legs past their length. The right foot lands a frame or two after the left, ahead, and
+  is drawn back while the knees are still bent.
+- **Joins.** `Jump_Start` begins on the idle; `Jump_Start_Run_L` and `_R` on the jog's frame 0 and frame 10 at
+  4 m/s; every landing on the picked fall; `Land_To_Jog` ends on the jog's frame 10 at the jog's speed. Variants of a
+  transition join the picked poses, as the stance changes do.
+
+### The jump's variants
+
+| Type | A, grounded (shipped) | B, loose | C, sharp |
+| --- | --- | --- | --- |
+| `Jump_Start` | 6 frames, the left arm up to 96 degrees, the right to 40 | 7 frames, the arms later and wider, the chest arched 10 back | 5 frames, the legs straight by frame 1.8 |
+| `Jump_Start_Run_L` | 6 frames, the struck leg sweeps 6 cm back, the right knee driven 5 cm up | 7 frames, 7 cm of drive, the arm pumped 20 degrees | 5 frames, 4 cm, the arm pumped 8 |
+| `Jump_Start_Run_R` | 6 frames, the struck leg drawn up into the rise's leading knee | 7 frames, 4 cm of drive and trail | 5 frames, 2 cm |
+| `Jump_Rise` | stretched, the right thigh 24 forward, the left hand at head height, the right at the chest | the left arm 112 up, the right out at 50, a 1.6 times wider drift | one line: the left arm 124 up, the right fist at the hip |
+| `Jump_Apex` | gathered, the thighs 30 and 58 forward, the knees 70 and 96 | a wider gather, the thighs 11 and 14 out | a tight tuck, the knees 88 and 112 |
+| `Jump_Fall` | the right foot 0.14 m ahead and 55 mm up, the arms out at 52 and 64 | the right foot 0.18 m ahead, turned out 20 | the feet 0.11 m apart, the elbows bent 48 and 66 |
+| `Land_Soft` | down 0.20 m in 3 frames, control at 9, 22 frames | down 0.24 m, 25 frames, the chest folds 38 | down 0.16 m in 2 frames, 19 frames |
+| `Land_Hard` | down 0.36 m in 5 frames, held 3, control at 20 of 38 | 42 frames, held 4, down 0.32 m | 33 frames, held 2, control at 17 |
+| `Land_To_Jog` | 8 frames, the left foot down for 4, then the jog's own flight | sinks 7 cm more, keeps 3.8 m/s | no extra sink, keeps 2.4 m/s |
+
+What each tried and could not do is in the style files' notes and on the review sheets.
+
+### Numbers for the code (the jump)
+
+| Clip | Frames | `clips.json` |
+| --- | --- | --- |
+| `Jump_Start` | 6 (0.2 s, under `jump_rise_time` 0.4) | `carried`, `made_for` (`jump_height` 1.25, `jump_rise_time` 0.4, `fall_gravity_scale` 1.35) |
+| `Jump_Start_Run_L`, `_R` | 6 | `speed` 4.0, `join_frames.first` 0 and 10, `carried`, `made_for` |
+| `Jump_Rise`, `Jump_Apex`, `Jump_Fall` | 36, loops | `carried`, no contacts |
+| `Land_Soft` | 22 | `fall_speed` 4.5 to 9 m/s, `control` 9 (0.3 s, the game's `land_time`), `lowest` at 3 |
+| `Land_Hard` | 38 | `fall_speed` from 9, `control` 20, `lowest` at 5 |
+| `Land_To_Jog` | 8 | `speed` 4.0, `fall_speed` 4.5 to 9, `join_frames.last` 10 |
+
+- **Cost (A, as shipped):** up to 61 tracks each (40 to 56 bones move, plus the 5 places); keys kept of every frame 64
+  to 92 % in the take-offs and `Land_To_Jog` (short and fast), 12 to 13 % in the air's loops, 25 and 34 % in the
+  landings; key bytes 5.9 to 7.5 KB for a take-off, 15 to 20 KB a loop, 17.1 and 24.9 KB for the landings. The nine
+  add 255 KB to the file and 53 KB to the import, which stays at 5.9 KB a second.
