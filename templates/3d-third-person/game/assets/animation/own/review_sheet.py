@@ -83,6 +83,9 @@ ROWS = [
 ]
 ## The rows that say nothing of a clip that stands.
 GAIT_ROWS = ("speed", "cadence", "duty")
+## The audit's rows that read a swing fore and aft of the way the body faces: they say nothing true of a clip that
+## travels another way (`heading` in its record), whose rows are the build's own, read in each limb's plane.
+FORWARD_ROWS = ("cadence", "lean", "thigh_swing", "arm_swing", "arm_leg", "mirror", "pelvis_sway_mm", "pelvis_travel_mm")
 REPORT_ROWS = [
     (("weight", "support_margin_mm"), "centre of mass inside the feet (mm)", "over 0"),
     (("weight", "fall_g"), "fastest drop of the centre of mass (of gravity)", f"at most {checks.FALL}"),
@@ -93,7 +96,11 @@ REPORT_ROWS = [
     (("floor", "mannequin_male", "sole_off_mm"), "the same, mannequin_male (mm)", "at most 9.3: its toes rest 7.3 lower"),
     (("planted", "form_female", "wander_mm"), "sole wanders in its declared contacts, form_female (mm)", "at most 5"),
     (("planted", "form_male", "wander_mm"), "the same, form_male (mm)", "at most 5"),
+    (("gait", "cadence"), "steps a minute, the build's", "the forward gait's"),
+    (("gait", "half_cycle_off"), "legs off half a cycle apart (frames)", f"at most {checks.HALF_CYCLE:.0f}"),
+    (("gait", "bob_mm"), "pelvis up and down, the build's (mm)", ""),
     (("gait", "arm_leg"), "arm with the other side's leg (correlation)", f"over {checks.ARM_LEG}"),
+    (("gait", "arm_leg_other"), "the other arm with its leg (correlation)", f"over {checks.ARM_LEG}"),
     (("overlap", "lags", "forearm"), "forearm trails the upper arm (frames)", ""),
     (("planted", "form_female", "planted_speed"), "planted sole speed, the build's (m/s)", "clips.json's, within 2 %"),
     (("weight", "arc_off_mm"), "in the air, off a free fall's arc (mm)", f"at most {checks.ARC * 1000:.0f}"),
@@ -259,9 +266,11 @@ def main() -> int:
         # ---- the numbers ----
         keys = names + (["Library"] if replaces else [])
         table = [["measure"] + columns + ["limit"]]
-        standing = records[names[0]]["kind"] == "stand"
+        standing = records[names[0]]["kind"] == "stand" or records[names[0]].get("pose", False)
         for key, label, limit in ROWS:
             if all(numbers[k].get(key) is None for k in keys) or (standing and key in GAIT_ROWS):
+                continue
+            if key in FORWARD_ROWS and "heading" in records[names[0]]:
                 continue
             table.append([label] + [fmt(numbers[k].get(key)) for k in keys] + [limit])
         for path, label, limit in REPORT_ROWS:

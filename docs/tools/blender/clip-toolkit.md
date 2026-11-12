@@ -62,6 +62,9 @@ numbers with a script of your own in scratch that calls `describe` and `build.bu
 | Make parts trail | `Clip.chains` from the style's `overlap` numbers (`overlap.chains_from`): each bone follows the part it hangs from with a lag in frames and an overshoot, closed round a loop. `overlap.follow` does the same to one number |
 | Make the other side | `build.mirrored(rig, built, name, half_cycle=...)` |
 | Join another clip | `declared["joins"]`: the pose and the speed a first or last frame must meet |
+| Go another way than the body faces | `clips/directed.py` (`Directed`, kit #1159): the gait travelling `heading` degrees to the left of ahead, with the pelvis turned (`face`), the feet and knees turned (`foot_turn`, `knee_turn`), each foot's lane (`lane`), a swing that goes round the planted foot (`pass_wide`) and a landing or a leaving on the ball or the heel per side. `Travel(forward, left)` carries the root, and `clips.json` gets `heading` and `in_step_with` |
+| Read a gait that does not swing fore and aft | `declared["legs_facing"]` and `declared["facing"]` (degrees to the left): the planes the gait checks read the legs' and the arms' swings in; `declared["legs_by_landing"]` reads the legs' phase where the soles land on the played skin |
+| Make a pose the tree adds | `clips/lean.py`: a held pose (two frames, `kind` `action`) and its reference, both from another clip's first frame (`Joined.start`), the centre of mass moved by `Clip.balance`; `declared["says"]` puts `pose`, `lean` and `reference` in `clips.json` |
 
 **What the build does** (`build.build_clip`, `build.build_file`): solves every frame in the world, runs the overlap
 pass, takes the root's travel out (the clip is in place, the travel is a curve in `clips.json`), reduces the keys and
@@ -72,7 +75,9 @@ their limits; `selftest.py` breaks a clip for each one.
 
 **What is proved and what is not.** `Idle`, `Walk`, `Jog` and `Sprint` went through all of it: the contact plan, the
 foot's roll, the travel, the gait checks and the free fall's arc (0 to 1.1 mm off it in the runs). The joins and the
-`ik_` targets are proved by the crouch clips ([their rows](stance-clips.md#toolkit-rows)). Mirroring and the placed
+`ik_` targets are proved by the crouch clips ([their rows](stance-clips.md#toolkit-rows)). A travel to the side and
+backward, and a pose added to another in Godot, are proved by the directions and the lean (kit #1159). Mirroring
+and the placed
 hand are written and not yet used by a shipped clip: the first issue that uses each proves it. The weight check's
 lean is tested on made-up motion only. A body whose legs differ from the reference body's is reported with
 `needs_ik` and not held to the floor and planted limits.
@@ -177,3 +182,26 @@ lean is tested on made-up motion only. A body whose legs differ from the referen
   ring of skin under the joint, which rises with the heel); the Quaternius sole kept the same frame inside the
   2 mm band, and the loose walk, whose contact ends between frames, passed. **Seen:** gdstudio #1155 (PR #1275),
   2026-11-11.
+- **Approach:** Read each limb of a gait in the plane it swings in before trusting a gait check on a clip that does
+  not go the way it faces: a strafe's legs along its travel, its arms across the way its turned hips face, and the
+  legs' phase where the soles land (`declared["legs_facing"]`, `facing`, `legs_by_landing`); leave the audit's
+  forward-plane rows off its review sheet. **Watch out for:** read fore and aft, a strafe's thighs swing 8 to 15
+  degrees on two shapes (an open step, a crossed one): the cadence read 415 steps a minute, the legs 7.7 frames off
+  half a cycle and an arm 0.24 with the other side's leg, on clips whose footfalls are half a cycle apart by
+  construction; the sheet printed -0.12 beside "over 0.7". **Seen:** gdstudio #1159, 2026-11-12 (the self-test
+  breaks the landing check with a sole that lands three frames late).
+- **Approach:** Make an additive pose as two clips, the pose and the reference it is a difference from, solved
+  from one spec with the pose's weight as the input (`Clip.balance`), and prove the sum in Godot:
+  `AnimationNodeSub2` (the pose less the reference) into `AnimationNodeAdd2` over the reference gives the pose
+  back (0.06 degrees a bone, the soles within 0.7 mm). **Watch out for:** with the arms' `clear` taken out so
+  both poses had one arm, the hands stood 9 to 75 mm inside the thighs; carried whole by a chest that bends
+  further than the body leans, a hand went 34 mm into a thigh. An arm hangs along the body's line (`carry` of one
+  over the chest's share), so its upper arm is part of the difference. A two-frame pose is 25 KB a second by the
+  cost check: declare it. **Seen:** gdstudio #1159, 2026-11-12 (`clips/lean.py`, `test_own_directions.gd`).
+- **Approach:** Import the shipped file in Godot as soon as a clip is added to it and read its bytes a second
+  before the review files are polished; key the fingers only in clips where they are seen to move.
+  **Watch out for:** six short loops and five held poses took the library from 5.3 to 6.35 KB a second (the test
+  holds 6): a short fast loop is 11 KB a second imported and a pose has no seconds at all. Thirty finger tracks
+  that opened 3 degrees were a quarter to a third of each loop's key bytes; held, the file is under 6, and the
+  share of keys a reducer keeps is then read on 26 bones and has to be declared (`keys_kept` 0.6).
+  **Seen:** gdstudio #1159, 2026-11-12 (`HELD_HANDS` in `clips/directed.py`).

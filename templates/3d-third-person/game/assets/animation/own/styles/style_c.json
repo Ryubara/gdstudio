@@ -230,6 +230,46 @@
   "sprint": [
    "Sharp: more lean (the trunk 12 degrees forward), a higher knee, the elbows held at a right angle, the hips turn 14 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
    "Not tried: 16 frames a cycle (225 steps a minute, over the range): a contact would be under four frames."
+  ],
+  "walk_left": [
+   "Sharp: 1.2 m/s on the forward walk's 26-frame cycle; the hips stay turned 22 degrees toward the step, the open step is 0.77 m and the crossing foot lands 0.27 m past the other, in a lane 0.24 m ahead of it; the chest leans 1 degrees into the step, the forearm trails 1 frames and the chest 1.",
+   "Could not be done: both knees a third toward the step. The leading knee points 46 degrees toward it and the crossing one 6: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0.5, 2.7, 0, 2.6 mm (form_male's thighs meet by 2 at rest). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
+  ],
+  "walk_right": [
+   "Sharp: 1.2 m/s on the forward walk's 26-frame cycle; the hips stay turned 19 degrees toward the step, the open step is 0.82 m and the crossing foot lands 0.22 m past the other, in a lane 0.25 m ahead of it; the chest leans 0.8 degrees into the step, the forearm trails 1 frames and the chest 1.",
+   "Could not be done: both knees a third toward the step. The leading knee points 47 degrees toward it and the crossing one 6: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0, 1.8, 0, 0 mm (form_male's thighs meet by 2 at rest). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
+  ],
+  "jog_left": [
+   "Sharp: 3 m/s on the forward jog's 20-frame cycle; the hips stay turned 26 degrees toward the step, the open step is 1.34 m and the crossing foot lands 0.66 m past the other, in a lane 0.27 m ahead of it; the chest leans 2.5 degrees into the step, the forearm trails 1 frames and the chest 1.",
+   "Could not be done: both knees a third toward the step. The leading knee points 58 degrees toward it and the crossing one 2: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0, 1.8, 0, 0 mm (form_male's thighs meet by 2 at rest). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
+  ],
+  "jog_right": [
+   "Sharp: 3 m/s on the forward jog's 20-frame cycle; the hips stay turned 22 degrees toward the step, the open step is 1.36 m and the crossing foot lands 0.64 m past the other, in a lane 0.27 m ahead of it; the chest leans 2 degrees into the step, the forearm trails 1 frames and the chest 1.",
+   "Could not be done: both knees a third toward the step. The leading knee points 57 degrees toward it and the crossing one 1: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0, 1.3, 0, 0 mm (form_male's thighs meet by 2 at rest). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
+  ],
+  "walk_back": [
+   "Sharp: 1.3 m/s on the forward walk's 26-frame cycle, 0.56 m steps, a foot down 62% of the cycle; the ball of the foot lands with the heel 22 degrees up and the sole is lifted whole; the trunk leans 1 degrees forward, the hips turn 4, the pelvis rises and falls 26 mm; the forearm trails 1 frames.",
+   "Could not be done: the heel leaving last with the toes up (a forward walk played backward). The ball of the foot rose 20 mm inside its declared contact, and no source we could open says which part of the foot leaves last. Limbs inside limbs on the four bodies: 0, 1.7, 0, 0 mm. The fingers hold their curl (a weapon in the hands)."
+  ],
+  "jog_back": [
+   "Sharp: 3 m/s on the forward jog's 20-frame cycle, 1.00 m steps, a foot down 35% of the cycle; the ball of the foot lands with the heel 20 degrees up and the foot leaves over its ball, the heel 22 degrees up; the trunk leans 7 degrees forward, the hips turn 5, the pelvis rises and falls 49.8 mm; the forearm trails 1 frames.",
+   "Not tried: the game's 4.0 m/s. People run backward on shorter strides at a quicker step (2.5 m strides at 5.1 m/s flat out), so the clip is 3.0 m/s on the forward jog's cycle and the tree plays it faster. Limbs inside limbs on the four bodies: 0, 1.5, 0, 0 mm. The fingers hold their curl."
+  ],
+  "lean_left": [
+   "Sharp: the centre of mass 10 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 9.5 degrees, the chest 10.0, the head 0.0, the ankles take what is left; the knees bend 22.8 and 7.0 degrees.",
+   "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 1.6, 0, 0 mm."
+  ],
+  "lean_right": [
+   "Sharp: the centre of mass 10 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 10.5 degrees, the chest 8.5, the head 1.5, the ankles take what is left; the knees bend 6.9 and 33.8 degrees.",
+   "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 1.8, 0, 0 mm."
+  ],
+  "lean_fwd": [
+   "Sharp: the centre of mass 12 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 12.0 degrees, the chest 12.6, the head 2.4, the ankles take what is left; the knees bend 8.3 and 15.9 degrees.",
+   "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 1.9, 0, 0 mm."
+  ],
+  "lean_back": [
+   "Sharp: the centre of mass 8 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 7.2 degrees, the chest 8.0, the head 0.0, the ankles take what is left; the knees bend 6.9 and 17.1 degrees.",
+   "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 2, 0, 0 mm."
   ]
  },
  "overlap_walk": {
@@ -672,9 +712,9 @@
   "hips_turn": 0.5
  },
  "lean_right": {
-  "hips": 1.0,
-  "chest": 0.95,
-  "head": 0.1,
+  "hips": 1.05,
+  "chest": 0.85,
+  "head": 0.15,
   "hips_turn": 0.0,
   "chest_turn": -1.0
  },

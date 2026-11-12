@@ -35,6 +35,14 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   asserted in a test (`ALL.size()`) moves with every clip added. **Seen:** gdstudio #1154, 2026-11-11
   (`tools/capture/own_clips_review.gd`); gdstudio #1160, 2026-11-11 (the crouch clips: `CROUCH_IDLE` and
   `CROUCH_WALK` moved to `gds/`, and the count test failed at 91 for 95, as this entry warns).
+- **Approach:** Add a pose over a gait as a difference of two clips of the library: `AnimationNodeSub2` (the lean
+  pose, less `gds/Lean_Ref`) into `AnimationNodeAdd2`, with the weight the lean wanted over the `degrees` the
+  pose's record gives (`lean` in `locomotion.json`); read a directed gait's `heading`, `speed` and `in_step_with`
+  from its record. **Watch out for:** nothing plays `gds/Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`,
+  `Jog_Left`, `Jog_Right` or the four lean poses yet (the tree is kit #1158); their speeds are their own (1.3, 1.2
+  and 3.0 m/s), not the tuned ones, and over a gait a lean's leg share moves the feet, which only foot placement
+  holds. **Seen:** gdstudio #1159, 2026-11-12 (`tests/gameplay/test_own_directions.gd`: the sum over the reference
+  is the pose within 0.06 degrees, the soles within 0.7 mm of the floor).
 - **Approach:** Test a gait of our own by what holds for a rolling foot and a run: the patch of the sole on the
   floor stays put along the travel curve (the toes' joint, after the first quarter of the contact, which is the
   roll onto it; the ankle travels), each arm goes with the other side's leg, the

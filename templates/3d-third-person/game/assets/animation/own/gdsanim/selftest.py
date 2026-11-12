@@ -39,14 +39,15 @@ def stand_clip(rig) -> Clip:
     return Clip("Stand_Test", 30, plan, spec, kind="stand")
 
 
-def walk_clip(rig, arms: float = 1.0, lags: dict | None = None) -> Clip:
-    """A plain walk from a contact plan: the left foot lands at 0, the right half a cycle later."""
+def walk_clip(rig, arms: float = 1.0, lags: dict | None = None, late: float = 0.0, landings: bool = False) -> Clip:
+    """A plain walk from a contact plan: the left foot lands at 0, the right half a cycle later (and `late`
+    frames after that). With `landings` its legs' phase is read where the soles land (`legs_by_landing`)."""
     n, speed = WALK_FRAMES, WALK_SPEED
     stance = WALK_DUTY * n
     reach = 0.5 * speed * stance / FPS
     falls = []
     for s, _sign in SIDES:
-        land = 0.0 if s == "l" else n / 2.0
+        land = 0.0 if s == "l" else n / 2.0 + late
         ball = rig.sole[s]["ball"]
         place = (ball[0], ball[2] + speed * land / FPS + reach - 0.05)
         # The heel rises 32 degrees: past that the prototype bodies' toes lift the lowest skin over the floor band
@@ -80,6 +81,8 @@ def walk_clip(rig, arms: float = 1.0, lags: dict | None = None) -> Clip:
     }
     if lags:
         declared["lags"] = {part: value[0] for part, value in lags.items()}
+    if landings:
+        declared["legs_by_landing"] = True
     return Clip("Walk_Test", n, plan, spec, chains=chains, kind="gait", declared=declared)
 
 
@@ -225,6 +228,13 @@ def run(rig, solver, bodies) -> int:
     slow = dense(walk)
     slow.clip.declared["ranges"] = {"cadence": (125.0, 140.0)}
     case("the cadence is outside its range", "gait", walk, slow)
+    # gait, read at the landings (a strafe, kit #1159): the right sole comes down three frames late.
+    case(
+        "the soles land off half a cycle apart",
+        "gait",
+        build.build_clip(rig, solver, walk_clip(rig, landings=True)),
+        build.build_clip(rig, solver, walk_clip(rig, late=3.0, landings=True)),
+    )
     # overlap: a declared lag the clip does not have; a pop on a landing frame.
     lagged = build.build_clip(rig, solver, walk_clip(rig, lags={"forearm": [2.0, 0.1]}))
     wrong = dense(lagged)
