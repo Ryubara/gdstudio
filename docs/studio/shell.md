@@ -149,7 +149,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   "before" capture or measurement from a separate checkout, never by swapping files under a running test. **Watch out
   for:** `git checkout <file>` restores the last commit, not the file before the last edit, so dropping a timing probe
   reverted the whole uncommitted rewrite; old weapon files put back for a capture were read by a suite that started
-  during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: the rewrite written again, the run repeated).
+  during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: the rewrite written again, the run repeated);
+  gdstudio #1177, 2026-11-11 (the old hold swapped into a kept game for the failing-first run and the "before"
+  captures, with the glb's LFS pointer written by `git show`: the import broke and the first run measured nothing).
 - **Approach:** To run another commit in a scratch checkout, give the commit's hash (`git rev-parse HEAD` taken in the
   branch's worktree), print `git -C <checkout> log --oneline -1` before the run, give each run a new output folder and
   stop the old run by its PID first. **Watch out for:** `git checkout --detach HEAD` in the other checkout stays on that

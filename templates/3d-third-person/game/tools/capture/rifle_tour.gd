@@ -12,6 +12,8 @@
 ## --write-movie`) films close-ups of the hands instead (a camera beside the right hand, above
 ## it, or in front of the character, drawn by a viewport of its own), for the weapons page's hand
 ## rules.
+## With `-- pixels` it counts the rifle's pixels on screen in the low ready, the aim and
+## the crouch (`PIXELS` lines).
 ## It prints a `STAGE` line as each stage starts and `HOLD` lines with how far each hand is from
 ## its target on the gun. It lives in tools/, which the export leaves out, and nothing in the game
 ## refers to it.
@@ -26,6 +28,8 @@ const PITCH := 6.0
 
 ## Each stage: `name`, `hold` the actions held, `seconds` how long, `taps`: actions pressed for 0.1
 ## s at each of the listed seconds into the stage, and `pitch`: the camera's pitch to go to.
+## The stages whose rifle is counted on screen with `-- pixels`.
+const PIXEL_STAGES: Array[String] = ["low ready", "aim", "crouch", "crouch, aim"]
 const STAGES: Array[Dictionary] = [
 	{"name": "floating", "hold": [], "seconds": 2.0},
 	{"name": "walk in", "hold": [&"move_forward"], "seconds": 0.95},
@@ -58,6 +62,7 @@ var _pitch := PITCH
 var _held: Array[StringName] = []
 var _view := _view_asked()
 var _close: Camera3D
+var _counting := OS.get_cmdline_user_args().has("pixels")
 var _hold: TwoHandHold
 
 @onready var _player: Player = $Main/PlayerRig/Player
@@ -136,6 +141,14 @@ func _physics_process(delta: float) -> void:
 	_hold_actions(actions)
 	if _clock < delta * 1.5 and _rifle_out():
 		_report.call_deferred()
+	var middle := float(stage["seconds"]) * 0.7
+	if (
+		_counting
+		and PIXEL_STAGES.has(stage["name"])
+		and _clock >= middle
+		and _clock < middle + delta
+	):
+		_count_pixels.call_deferred(stage["name"])
 
 
 func _process(_delta: float) -> void:
@@ -178,6 +191,34 @@ func _report() -> void:
 		% [_player.model.global_basis.z.round(), (-muzzle.global_basis.z).round()]
 	)
 	print(line)
+
+
+# How much of the screen the rifle covers from the game camera (`-- pixels`, kit #1177): the frame
+# is frozen, drawn with the rifle and without it, and the pixels that change (above 0.08 in any
+# channel, every other pixel each way, times four) are counted, as kit
+# `engines/godot/measuring-effects-on-screen.md#a-held-weapon-from-the-shoulder-camera` does. It
+# prints `PIXELS <stage> <count> of <total>`; the two frozen frames show in a recording.
+func _count_pixels(stage_name: String) -> void:
+	var pivot := _hold.get_node(^"Pivot") as Node3D
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().paused = true
+	for _frame in 2:
+		await RenderingServer.frame_post_draw
+	var shown := get_viewport().get_texture().get_image()
+	pivot.visible = false
+	for _frame in 2:
+		await RenderingServer.frame_post_draw
+	var hidden := get_viewport().get_texture().get_image()
+	pivot.visible = true
+	get_tree().paused = false
+	var changed := 0
+	for y in range(0, shown.get_height(), 2):
+		for x in range(0, shown.get_width(), 2):
+			var a := shown.get_pixel(x, y)
+			var b := hidden.get_pixel(x, y)
+			if maxf(absf(a.r - b.r), maxf(absf(a.g - b.g), absf(a.b - b.b))) > 0.08:
+				changed += 1
+	print("PIXELS %s %d of %d" % [stage_name, changed * 4, shown.get_width() * shown.get_height()])
 
 
 # Stops the sounds and gives the mixer a few frames to let go of them before the capture quits.

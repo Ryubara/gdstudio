@@ -31,5 +31,11 @@ and on the Quaternius pair (kit #1286, the deepest crossing a clip, mm; a pair n
 The `form` bodies' slimmer hips and hands clear the thighs and the head where the Quaternius female's do not; their
 thicker shins and forearms meet where a leg folds under an arm (`Jump_Land`, `Slide_Exit`, and `NinjaJump_Land` 12.3,
 not played): kit #1295. The prototype male's thighs meet by 1.9 mm at rest, so his walk, jog and sprint read 1.9.
+
+Those three are the library's numbers. Since kit #1295 the game plays corrected copies (`fixed/Jump_Land`,
+`fixed/Slide_Exit`; `fixed/NinjaJump_Land` beside them), which read 0.0 on `form_female`, 0.0, 1.0 and 0.0 on
+`form_male` and what the library's read on the Quaternius pair
+([correcting a library clip](animation.md#corrected-clips)). `Sword_Dash` (29.4 and 25.5 on the `form` pair) and
+`Sword_Heavy_Combo` (16.8 and 5.8) cross their thighs and were not corrected (kit #1320).
 Reproduce with `limb_overlap.py -- --clips universal/ual1.glb --model characters/prototype/form_female.glb --model
 characters/prototype/form_male.glb --json <file>` (about 10 minutes a file for two bodies).

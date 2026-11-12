@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/capture/rifle_fingers_view.gd" id="1_view"]
+[ext_resource type="PackedScene" path="res://main.tscn" id="2_main"]
+
+[node name="RifleFingersView" type="Node"]
+script = ExtResource("1_view")
+
+[node name="Main" parent="." instance=ExtResource("2_main")]
