@@ -261,6 +261,27 @@ func test_the_rifle_names_its_clips_and_the_player_plays_them() -> void:
 	await InputSim.ticks(get_tree(), 40)
 	assert_bool(animation.is_reloading()).is_true()
 	assert_float(animation.reload_progress().x).is_equal_approx(1.0, 0.01)
+	# Lying down: the clips stand the trunk from the pelvis, so the prone clips keep the body and
+	# the hold alone carries the rifle, aimed or not, and a reload plays no clip.
+	assert_bool(rifle.clips_upright).is_true()
+	InputSim.release_all()
+	await InputSim.ticks(get_tree(), 150)
+	InputSim.key(KEY_Z, true)
+	await InputSim.ticks(get_tree(), 2)
+	InputSim.key(KEY_Z, false)
+	await InputSim.ticks(get_tree(), 90)
+	assert_float(_player.prone_amount).is_equal_approx(1.0, 0.01)
+	assert_float(animation.pistol_weights().x).is_equal_approx(0.0, 0.01)
+	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
+	await InputSim.ticks(get_tree(), 40)
+	assert_float(animation.pistol_weights().length()).is_equal_approx(0.0, 0.01)
+	var holds := _player.model.find_children("*", "TwoHandHold", true, false)
+	assert_float((holds[0] as TwoHandHold).weight()).is_equal_approx(1.0, 0.01)
+	InputSim.key(KEY_R, true)
+	await InputSim.ticks(get_tree(), 2)
+	InputSim.key(KEY_R, false)
+	await InputSim.ticks(get_tree(), 20)
+	assert_bool(animation.is_reloading()).is_false()
 
 
 # Puts `legs` at `legs_time` (its first frame unless said) on the whole body, then the rifle clip at

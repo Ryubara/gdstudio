@@ -61,6 +61,7 @@ draw_time = 0.4
 view = NodePath("RifleHeld")
 view_scene = ExtResource("4_held")
 muzzle = NodePath("RifleHeld/Pivot/Rifle/Near/Rifle/Muzzle")
+clips_upright = true
 grip_clip = &"rifle/Rifle_Idle"
 grip_bones = Array[StringName]([&"spine_01"])
 aim_clip = &"rifle/Rifle_Aim_Neutral"

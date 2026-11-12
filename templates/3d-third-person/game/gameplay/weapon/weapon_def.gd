@@ -193,6 +193,11 @@ enum Kind {
 ## The marker the shots leave from, under the `Model` slot (the pistol's
 ## `PistolHeld/Pistol/Pistol/Muzzle`). Empty: no muzzle (shots leave from beside the shooter).
 @export var muzzle: NodePath
+## On: the weapon's clips (grip, aim, reload) are keyed for an upright trunk, the whole upper body
+## stood from the pelvis (the rifle's), so they do not play on a lying body: the prone clips keep
+## it and the weapon's hold alone carries the weapon there. Off: they play lying too (the pistol's,
+## which key the arms).
+@export var clips_upright := false
 ## The clip whose pose the gripping hand takes while the weapon is out. Empty: no grip pose
 ## (the arms follow the locomotion).
 @export var grip_clip: StringName = &"":
