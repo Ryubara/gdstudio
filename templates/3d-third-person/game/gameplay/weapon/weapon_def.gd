@@ -116,6 +116,10 @@ enum Kind {
 ## What a hitscan shot can hit (physics layers): by default what every shot meets
 ## (`PhysicsLayers.SHOT_MASK`: the level, characters, props, ragdoll bones and hit zones).
 @export_flags_3d_physics var hitscan_mask := PhysicsLayers.SHOT_MASK
+## The streak a hitscan shot draws from the muzzle to where its ray ended (a `TracerDef`, drawn
+## by the level's `TracerPool` on each screen, never sent). Empty: no tracer, the flash and the
+## impact are all there is.
+@export var tracer: TracerDef
 
 @export_group("Ammo")
 ## Rounds in a full magazine. Zero: the weapon needs no ammunition (fists, a blade) and shows no
@@ -309,5 +313,5 @@ func shot_interval() -> float:
 # reads them too).
 func _validate_property(property: Dictionary) -> void:
 	var field: String = property["name"]
-	if field in ["hitscan_range", "hitscan_mask"] and shot_kind() != Kind.HITSCAN:
+	if field in ["hitscan_range", "hitscan_mask", "tracer"] and shot_kind() != Kind.HITSCAN:
 		property["usage"] |= PROPERTY_USAGE_READ_ONLY

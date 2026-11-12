@@ -67,6 +67,12 @@ installed on the runner instead. A local run without `--allowed-skips` reports s
   with the tool the test runs and passes, so nothing local shows the skip that fails all three CI test jobs.
   **Seen:** gdstudio #1190, 2026-11-11 (the pinned-ffmpeg clip test; fix: ffmpeg fetched on windows-2025, linux and
   darwin allowed).
+- **Approach:** A test that runs a workflow's `run:` script skips on every platform but the runner's (`sys.platform !=
+  "linux"` for ubuntu), with an allowlist entry for win32 and darwin, and the file is run with `--allowed-skips` before
+  the push. **Watch out for:** macOS's `/bin/bash` is 3.2, so bash 4 syntax such as `${var,,}` fails there with `bad
+  substitution`; a skip copied from a win32-only test let the macOS job run the step and failed it, and the Windows job
+  failed on the skips the allowlist did not name. **Seen:** gdstudio #1302, 2026-11-11 (fix: `test_main_green.py`
+  runs its bash cases on Linux only, three allowlist entries).
 
 ## Speed {#speed}
 

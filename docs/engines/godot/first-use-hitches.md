@@ -382,6 +382,19 @@ it fails, record the list again with `--write <list> --merge` and commit it. A c
 touring the minimap's view (kit #1297) left the list 12 programs short, and recording it again (`--merge`, the page
 plain and with `?play`) took it from 157 to 169, after which the check missed 0 and 1.
 
+To record it on this machine: make a game from the branch (`gds template test <template> --suite <one suite> --keep`),
+export it with the pinned Godot (`--headless --path <game>/game --export-release Web`, which writes `build/web` with
+its `shader_programs.json`), then run `tools/web_smoke/shader_programs.py <build/web> <out> --write <the branch's
+list> --merge` under `gds quiet --`; copy the new list into the kept game, export again and run the `--list` check
+to see it pass.
+
+- **Approach:** A branch that adds a material or a shader records the list again in that branch, after merging main,
+  even while the check passes. **Watch out for:** the check allows 10 missed programs, so a new effect's few programs
+  pass unseen until another branch's programs push the count past 10, and the failure lands on whichever branch merges
+  main last: the tracer's branch never recorded its shader and failed with 11, then 13 against #1314's list of 169;
+  recorded with `--merge` it went to 180 and missed 1. **Seen:** gdstudio #1270, 2026-11-11 (PR #1301, after #1269
+  and #1314).
+
 ## Testing it {#testing-it}
 
 - **No program linked after the loading screen** in a browser run (the counter above) is the real test.

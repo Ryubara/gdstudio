@@ -245,6 +245,9 @@ const _RELOAD_FADE_OUT := 0.2
 	set(value):
 		upper_body_bone = value
 		_rebuild()
+## Holds the upper body's turn on the aim poses' stance while aiming on the ground state
+## (`AimBrace`); off, the weapon points where the pelvis of the legs' clip is turned.
+@export var aim_brace := true
 ## How far the character looks up or down for the full aim up or aim down pose.
 @export_range(5.0, 80.0, 0.5, "suffix:deg") var aim_pitch_range := 45.0:
 	set(value):
@@ -289,13 +292,12 @@ var _action_clip: StringName = &""
 var _action_was_active := false
 var _dead := false
 var _clip_death := false
-var _shot_hold := 0.0
-var _shot_arm := 0.0
 var _pitch_before := 0.0
 var _pitch_now := 0.0
 var _throttled := false
 var _skeleton_mode := Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_IDLE
 var _throttled_skeleton: Skeleton3D
+var _brace := AimBrace.Driver.new()
 
 
 func _ready() -> void:
@@ -578,6 +580,7 @@ func _build() -> void:
 	_watch_hold()
 	tree.anim_player = tree.get_path_to(animation_player)
 	tree.tree_root = _build_root()
+	_brace.build(self)
 
 
 # Builds the tree again when a clip of the held definition changes (tuned in the inspector).
@@ -649,17 +652,13 @@ func _drive_pistol(delta: float) -> void:
 	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, hidden)
 	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
-	var aim_time := character.tuning.aim_pose_time if character.tuning != null else 0.15
-	_shot_hold = maxf(_shot_hold - delta, 0.0)
-	_shot_arm = move_toward(
-		_shot_arm, 1.0 if _shot_hold > 0.0 else 0.0, delta / maxf(aim_time, 0.001)
-	)
-	var arm := maxf(character.aim_amount, _shot_arm)
+	var arm := _brace.arm(self, delta)
 	# Lying with a prone aim, its clips (in the prone state) stand in for the standing layers.
 	var lying := _prone_look.lying(character, hold)
 	_weights = Vector2(armed, arm * aims)
 	tree.set(_P_ARMED, minf(armed, 1.0 - lying))
 	tree.set(_P_AIM, arm * aims * (1.0 - lying))
+	_brace.drive(self, arm * aims * (1.0 - lying), delta)
 	tree.set(_P_SHOOT_SCALE, shoot_speed)
 	ShotLayer.drive(tree, _shot_added)
 	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
@@ -679,6 +678,7 @@ func _on_state_changed(state: Character.State) -> void:
 	if state == Character.State.DEAD:
 		# The ragdoll takes the skeleton over from the pose the tree left on it.
 		_dead = true
+		_brace.weigh(0.0)
 		stop_clip()
 		tree.active = false
 		set_throttled(false)
@@ -756,8 +756,7 @@ func traversal_clip(plan: VaultPlan) -> StringName:
 
 
 func _on_shot(_projectile: Projectile) -> void:
-	_shot_hold = shot_hold_time
-	_shot_arm = maxf(_shot_arm, character.aim_amount)
+	_brace.shot(self)
 	var hold := held_definition()
 	if hold != null and hold.shoot_clips.size() > 1 and _shoot_clip_node != null:
 		# One clip after another shot by shot (a jab, then a cross).

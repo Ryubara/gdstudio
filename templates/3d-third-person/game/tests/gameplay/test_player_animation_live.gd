@@ -76,6 +76,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"prone_shot_kick_time": 0.22,
 		&"carry": CharacterAnimation.Carry.HAND_ONLY,
 		&"upper_body_bone": &"spine_01",
+		&"aim_brace": true,
 		&"aim_pitch_range": 45.0,
 		&"shoot_speed": 1.6,
 		&"shot_hold_time": 0.2,
