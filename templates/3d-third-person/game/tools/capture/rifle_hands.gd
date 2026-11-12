@@ -10,6 +10,8 @@
 ## Record it with Movie Maker through the kit (the frames land where `--write-movie` says):
 ## `gds godot -- --path game --write-movie <folder>/f.png --fixed-fps 20 --quit-after 330
 ## res://tools/capture/rifle_hands.tscn`
+## `RIFLE_HANDS_BODY=male` (a name of `CharacterBodies.BY_NAME`) dresses the player in that body,
+## so its own fit of the hold is filmed (kit #1187); with none, the player's own (the female).
 ## At the middle of each stage it prints `HOLD` (how far each hand's bone is from its place on the
 ## rifle, and how far each arm fell short), `CONTACT` (the skin of each hand against the rifle:
 ## the deepest part and the holding part farthest off, `HandContact`) and `ARMS` (each arm's
@@ -90,6 +92,9 @@ func _ready() -> void:
 	var target := (load("res://gameplay/target/target.tscn") as PackedScene).instantiate()
 	target.position = TARGET_AT
 	add_child(target)
+	var body := OS.get_environment("RIFLE_HANDS_BODY")
+	if CharacterBodies.BY_NAME.has(body):
+		_player.model.variant = load(CharacterBodies.BY_NAME[body]) as PackedScene
 	_player.teleport(START, PI)
 	_player.loadout.give(load(RIFLE) as WeaponDef, 90)
 	process_priority = 1000

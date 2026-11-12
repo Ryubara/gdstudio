@@ -17,22 +17,74 @@ Moved to [The character's clips](clips.md#animation-libraries).
 
 Moved to [The character's clips](clips.md#vault-clips).
 
-## The two mannequins {#mannequins}
+## The bodies {#mannequins}
 
 <!-- new section: the template shipped one mannequin under a neutral name; #843 added the other and named both -->
 
-The template ships both Quaternius mannequins, CC0, on the one universal rig (65 bones, the same names and parents), so
-every clip of both libraries plays on either: `mannequin_female.glb` (the pack's `Mannequin_F.glb`, 1.4 MB, the
-default in `player.tscn`) and `mannequin_male.glb` (0.6 MB). The pack has no model-only file for the male: he is the
-`Mannequin` mesh inside `UAL1_Standard.glb` and `UAL2_Standard.glb` (byte for byte the same mesh, skin and skeleton in
-both), so `mannequin_male.glb` is `UAL1_Standard.glb` with its 43 clips removed, by
-`tools/models/strip_glb_animations.py` (it copies the nodes, mesh, skin and materials as they are and drops only the
-animation data; no Blender round trip, which would have renamed and re-ordered things). The sha256 of the source and of
-the result are in the folder's `LICENSE.md`. The female stays the default because the template's captures, the pistol's
-seat and the clip checks were all made on her, and the two stand 1.8 m tall with the same feet; the male has longer
-collarbones and upper arms (0.22 m and 0.27 m against 0.19 m and 0.22 m; the forearms are the same), so a clip reaches
-a slightly different pose.
-Swapping is [the editor steps below](#replacing-the-model) with `mannequin_male.glb` (or the other way round).
+**The template's characters wear GDStudio's own prototype mannequins in the `form` look** (kit #1187, the look the
+maintainer chose on #1172): the player, the friendlies (ally, civilian) and the online puppets `form_female.glb`,
+held by `character_dressed.tscn`; the enemies (grunt, shooter) `form_male.glb`, set as `CharacterModel.variant` in
+their scenes. `CharacterBodies` (`gameplay/character/character_bodies.gd`) names the two paths once; the fixtures,
+benches and captures that pose "the template's body" read them there. The bodies are in `assets/characters/prototype/`
+(`<look>_<body>.glb` for the looks `form`, `joint` and `facet` and the bodies `male`, `female` and `chibi`), generated
+by `build_mannequins.py` on the library's 65 bones plus 17 leaves (twist bones, sockets, IK targets), so both
+libraries play on them with no conversion ([Prototype mannequins](../../../tools/blender/prototype-mannequins.md),
+[the rig](../../../tools/blender/mannequin-rig.md)). Their import script (`mannequin_import.gd`) sets the skeleton's
+`motion_scale` (0.545 on the chibi), adds the `MannequinTwist` modifier and shows the three levels of detail by
+distance. The `joint` and `facet` looks and the chibi stay in the folder as variants a game can swap in.
+
+What was measured on the Quaternius skins is measured again on the two `form` bodies:
+
+- **The pistol's hold is solved per body.** The prototype hands are a person's size and differ (0.181 m and 0.195 m
+  from wrist to fingertip against the library rig's 0.232 m), so one pose cannot close both; the solver works on one
+  body at a time (`solve_pistol_hold.py --body=female|male`). The female's hold is the hold scene's own (the five
+  `pistol_*_pose.tres`, the pistol's seat and markers in `pistol_held.tscn`, `support_way`); the male's is one
+  `HoldFit` file (`gameplay/weapon/hold/pistol_fit_male.tres`) listed in `WeaponHold.fits`, which the hold puts on
+  whenever the model is a `form_male.glb` ([the hold](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
+- **The rifle's hold is solved per body too** (kit #1040): `solve_rifle_hold.py --body=female|male`, the female's in
+  `rifle_held.tscn` and the five `rifle_*_pose.tres`, the male's in `rifle_fit_male.tres`, listed in
+  `TwoHandHold.fits`. The smaller hands also needed a place of their own on the grip
+  ([the rifle in both hands](weapon-pickups.md#rifle-hands)).
+- **The hit zones** (`character_dressed.tscn`'s `HitZones`) are sized from `tools/mannequin/measure_segments.gd`: the
+  arms are longer and thinner than the Quaternius female's (upper arm 0.26 to 0.28 m long and 0.047 to 0.057 m
+  round, against 0.22 and 0.068) and the calves thinner, so the arm zones are longer and narrower, the thigh and pelvis
+  zones a little wider, the head sphere smaller and lower.
+- **The ragdoll's capsules** (`RagdollBodies`) were within both bodies' skin already; only the calves are thinner
+  (0.055 m). Its joints and limits read rotations from the clips, which the bodies share with the library rig, so
+  they stand ([Ragdoll](../ragdoll.md#template)).
+- **The pistol stays on `hand_r`**, not the rig's `socket_hand_r`: the hold is solved in the hand bone's space and
+  the Quaternius mannequins, which a game can still swap in, have no sockets.
+
+**The Quaternius mannequins stay** in `assets/characters/mannequin/`, CC0, on the same rig: `mannequin_female.glb`
+(the pack's `Mannequin_F.glb`, 1.4 MB) and `mannequin_male.glb` (0.6 MB). The clip checks that were made on them
+(vault, prone, limb overlap) still pose them. The pack has no model-only file for the male: he is the `Mannequin` mesh
+inside `UAL1_Standard.glb` and `UAL2_Standard.glb` (byte for byte the same mesh, skin and skeleton in both), so
+`mannequin_male.glb` is `UAL1_Standard.glb` with its 43 clips removed, by `tools/models/strip_glb_animations.py` (it
+copies the nodes, mesh, skin and materials as they are and drops only the animation data; no Blender round trip,
+which would have renamed and re-ordered things). The sha256 of the source and of the result are in the folder's
+`LICENSE.md`.
+
+**To use another body**, swap the model ([the editor steps below](#replacing-the-model)) in `character_dressed.tscn`
+(everyone) or set `variant` in a character's scene, point `CharacterBodies` at it, and solve the hold for it: dump
+the rig, run `solve_pistol_hold.py --body=<name> --search-seat --search-left` and `write_hold.gd -- <hold.json>
+<name>` (`tools/hold/`). A body with no fit keeps the hold scene's own, which closes a hand of another size badly.
+Then run `measure_segments.gd` and size the hit zones, and run the hold, ragdoll and hit zone suites.
+`tests/assets/test_prototype_mannequins.gd` proves the bodies and `tools/capture/mannequin_parade.tscn` films them on a
+0.25 m grid: `PARADE_LOOK` chooses the look, `PARADE_VIEW` the front, quarter, side or close view, `PARADE_CLIP` loops
+one clip and `PARADE_REFERENCE=1` adds the Quaternius male.
+
+**GDStudio's own prototype bodies** are beside them in `assets/characters/prototype/` (kit #1149): `<look>_<body>.glb`
+for the looks `form`, `joint` and `facet` and the bodies `male`, `female` and `chibi`, generated by
+`build_mannequins.py` on the same 65 bones plus 17 leaves (twist bones, sockets, IK targets), so both libraries play
+on them with no conversion ([Prototype mannequins](../../../tools/blender/prototype-mannequins.md),
+[the rig](../../../tools/blender/mannequin-rig.md)). Their import script (`mannequin_import.gd`) sets the skeleton's
+`motion_scale` (0.545 on the chibi, so the hips' keys fit its legs), adds the `MannequinTwist` modifier and shows the
+three levels of detail by distance. The Quaternius female stays the default until the maintainer has chosen a look:
+the pistol's solved hold, the ragdoll's joints and the hit zones are measured on the Quaternius skins and are solved
+again for the body that replaces them. `tests/assets/test_prototype_mannequins.gd` proves the bodies and
+`tools/capture/mannequin_parade.tscn` films them on a 0.25 m grid: `PARADE_LOOK` chooses the look, `PARADE_VIEW` the
+front, quarter, side or close view (the close one follows the hands through a hand roll, the pistol clips and a
+reach), `PARADE_CLIP` loops one clip for whole cycles and `PARADE_REFERENCE=1` adds the Quaternius male.
 
 - **Approach:** Take a model that a pack ships only inside its clip files by dropping the clips from the glb itself
   (parse the glTF chunks, remove `animations`, keep only the accessors and buffer views the meshes and skins use,
@@ -48,6 +100,14 @@ Swapping is [the editor steps below](#replacing-the-model) with `mannequin_male.
   `ui/player_rig/player_rig.tscn` (the path was right; toggling `use_external_skeleton` off and on later fixed it, doing
   so in `_seat_attachments` did not), while GdUnit's swap and a scene saved with the male glb were right: the test
   passed and the capture showed the pistol on the floor. **Seen:** gdstudio #843, 2026-11-09 (follow-up issue opened).
+
+- **Approach:** When the template's body changes, solve each body's hold on its own and give each body its own
+  `HoldFit` (chosen by the model's file), then run the whole template suite, not only the hold, ragdoll and hit
+  suites. **Watch out for:** the old solver asserted that the two skeletons match from the hands down; the reload's
+  carry swing put the gun 9 and 29 mm past the left hand's reach on the new bodies, which the solver's aim-only reach
+  table missed (the swing now fades with the reload); and three numbers measured on the old body sat in suites that
+  never name it: the node count, `Weapon.no_muzzle_offset` and the crawl's planted elbows (1.5 to 2.6 cm of slide on
+  the longer upper arms, gdstudio #1286). **Seen:** gdstudio #1187, 2026-11-11.
 
 ## Replacing the model {#replacing-the-model}
 
@@ -77,7 +137,7 @@ Scene dock and checks the result.
 `CharacterModel.variant` takes another model of the same rig. When the game runs the slot frees the scene's model and
 puts the variant in its place at `_ready` (the seats and clips follow as for a swap); in the editor it draws the
 variant as an internal child and hides the scene's model through `RenderingServer` alone, so the scene saves nothing.
-The enemies of [the AI section](ai-characters.md#parts) set the male mannequin on the female base this way.
+The enemies of [the AI section](ai-characters.md#parts) set the male body (`form_male.glb`) on the female base this way.
 
 - **Approach:** Put a part that people replace (the model, a weapon) under a stable slot node and reference only the
   slot (an export); a `@tool` script on the slot finds the part and rewrites the paths that depend on it (the

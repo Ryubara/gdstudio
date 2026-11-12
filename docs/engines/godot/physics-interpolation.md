@@ -72,3 +72,10 @@ draw the blend of the last two ticks.
   steady movement against the straight line between neighbouring frames at their own times (unevenness). Chrome with
   the GPU and `--disable-gpu-vsync --disable-frame-rate-limit` for an unpaced run (Deadnight `tools/web_smoke/judder.py`).
   Wrap `requestAnimationFrame` to `drawImage` the canvas right after the game's frame for real pixels.
+- **Approach:** To place a child of a physics-interpolated body on every drawn frame (a model held level while its body
+  rises), take it out of interpolation for the move (`top_level`, `physics_interpolation_mode` off), place it from the
+  drawn time (the last tick less `1 - Engine.get_physics_interpolation_fraction()` of a tick), give it back with
+  `reset_physics_interpolation()`, and have a test read that node's own transform. **Watch out for:** in a headless test
+  `get_global_transform_interpolated()` did not show the per-frame placement, and the fraction is 0 through a short
+  `--fixed-fps` run and near 1 after minutes of suites, so a result that depends on it differs between a suite run alone
+  and the full run. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11 (the vault's held model).

@@ -48,6 +48,9 @@ const _LET_GO_DROP := 0.006
 ## What a finger's first bone (the knuckle's) has in its name: those open first.
 const _KNUCKLE := "_01_"
 const _WAY_DOWN := 0.3
+## The shares of that way over which the thumb goes from its place on the hand guard to its place
+## behind the magazine.
+const _WAY_THUMB := Vector2(0.2, 0.5)
 const _WAY_BESIDE := 0.7
 const _WAY_ON := 0.88
 ## How many times the butt is brought to the skin and the left shoulder to the hand guard in turn.
@@ -161,6 +164,13 @@ const _SKIN_REGION := AABB(Vector3(-0.32, -0.2, 0.0), Vector3(0.47, 0.5, 0.3))
 ## The far level's magazine, moved and hidden with it. Empty: none.
 @export var magazine_far: NodePath
 
+@export_group("Bodies")
+## Holds solved on other bodies than the one the scene's own hands' places and poses were solved
+## on (`HoldFit`, written by `tools/hold/write_hold.gd ... rifle <body>`): a model whose file is a
+## fit's `body` gets that fit's places (`seat` is the inverse of `RightHandTarget`) and poses; any
+## other model the scene's own.
+@export var fits: Array[HoldFit] = []
+
 @export_group("Bones")
 ## The bone whose place the pockets are given from, and the reload's belt.
 @export var chest_bone: StringName = &"spine_03"
@@ -212,6 +222,8 @@ var _weapon: Weapon
 var _loadout: WeaponLoadout
 # The scene's parts, found once by name.
 var _found := {}
+# The scene's own hold as a fit, kept before a body's fit is first put on.
+var _own: HoldFit
 
 
 func _ready() -> void:
@@ -298,9 +310,13 @@ func refresh() -> void:
 	var reload := _reload_progress()
 	_fingers[0].second_weight = _raised if reload < 0.0 else 0.0
 	var to_magazine := _to_magazine(reload)
-	# The thumb goes to its place behind the magazine on the way across (the open pose leaves
-	# it be); the four fingers stay open until the hand is on the magazine, then close.
-	_fingers[1].second_weight = smoothstep(_WAY_DOWN, _WAY_BESIDE, to_magazine)
+	# The thumb goes from the hand guard's side to its place behind the magazine while the hand
+	# comes down off the hand guard (the open pose leaves it be): a thumb still standing up
+	# on the way across went 17 mm through the magazine well. The four fingers stay open until
+	# the hand is on the magazine, then close as one: closing tips first, as they open off the
+	# hand guard, swung the little finger 8 mm through the magazine's front.
+	_fingers[1].second_weight = smoothstep(_WAY_THUMB.x, _WAY_THUMB.y, to_magazine)
+	_fingers[1].open_together = to_magazine > _WAY_DOWN
 	_fingers[1].open_weight = (
 		smoothstep(0.0, _WAY_OPEN, to_magazine) * (1.0 - smoothstep(_WAY_ON, 1.0, to_magazine))
 	)
@@ -385,8 +401,8 @@ func _measure_chest(skeleton: Skeleton3D) -> void:
 		if bone >= 0:
 			torso[bone] = true
 	var cells := {}
-	for node in skeleton.find_children("*", "MeshInstance3D", true, false):
-		var instance := node as MeshInstance3D
+	# The nearest level of detail only: the farther ones are the same skin with fewer points.
+	for instance in CharacterBodies.near_meshes(skeleton):
 		if instance.skin == null or instance.mesh == null:
 			continue
 		var to_skeleton := skeleton.global_transform.affine_inverse() * instance.global_transform
@@ -406,31 +422,51 @@ func _measure_chest(skeleton: Skeleton3D) -> void:
 			if vertices.is_empty() or bones.is_empty():
 				continue
 			var per := bones.size() / vertices.size()
+			# Each vertex on the rest pose, in the skeleton's space, and the bone it follows most.
+			var rests := PackedVector3Array()
+			var mains := PackedInt32Array()
 			for vertex in vertices.size():
 				var main := 0
-				for slot in per:
-					if weights[vertex * per + slot] > weights[vertex * per + main]:
-						main = slot
-				var bone := bind_bones[bones[vertex * per + main]]
-				if not torso.has(bone):
-					continue
 				var rest := Vector3.ZERO
 				for slot in per:
 					var share := weights[vertex * per + slot]
+					if share > weights[vertex * per + main]:
+						main = slot
 					if share > 0.0:
 						rest += share * (binds[bones[vertex * per + slot]] * vertices[vertex])
-				rest = to_skeleton * rest
-				var ahead := rest - origin
-				var cell := Vector3i((ahead / maxf(skin_spacing, 0.001)).floor())
-				# The front half only, round the right shoulder and across to the sternum's left,
-				# the frontmost point of each cell.
-				if ahead.z <= 0.0 or not _SKIN_REGION.has_point(ahead):
+				rests.append(to_skeleton * rest)
+				mains.append(bind_bones[bones[vertex * per + main]])
+			# Points over each triangle, a `skin_spacing` apart: a body of few, large triangles has
+			# skin far from any vertex, and a stock pushed clear of the vertices alone stood up
+			# to 19 mm inside a face (the prototype male, kit #1177).
+			var indices := PackedInt32Array()
+			if arrays[Mesh.ARRAY_INDEX] != null:
+				indices = arrays[Mesh.ARRAY_INDEX]
+			var corners := indices.size() if not indices.is_empty() else vertices.size()
+			for triangle in corners / 3:
+				var at: Array[int] = []
+				for corner in 3:
+					var index := triangle * 3 + corner
+					at.append(indices[index] if not indices.is_empty() else index)
+				if not (
+					torso.has(mains[at[0]]) or torso.has(mains[at[1]]) or torso.has(mains[at[2]])
+				):
 					continue
-				if cells.has(cell) and ((cells[cell] as Array)[2] as Vector3).z >= ahead.z:
-					continue
-				cells[cell] = [
-					bone, skeleton.get_bone_global_rest(bone).affine_inverse() * rest, ahead
-				]
+				var a := rests[at[0]]
+				var b := rests[at[1]]
+				var c := rests[at[2]]
+				var longest := maxf(a.distance_to(b), maxf(b.distance_to(c), c.distance_to(a)))
+				var steps := clampi(ceili(longest / maxf(skin_spacing, 0.001)), 1, 12)
+				for u in steps + 1:
+					for v in steps + 1 - u:
+						var w := steps - u - v
+						# The point follows the bone of the corner it is nearest.
+						var near := at[0] if u >= v and u >= w else (at[1] if v >= w else at[2])
+						var bone := mains[near]
+						if not torso.has(bone):
+							continue
+						var rest := (a * u + b * v + c * w) / steps
+						_keep_skin(cells, skeleton, bone, rest, rest - origin)
 	# Grouped by bone, so a push takes each bone's pose once.
 	var by_bone := {}
 	for cell in cells:
@@ -444,6 +480,20 @@ func _measure_chest(skeleton: Skeleton3D) -> void:
 		for at: Vector3 in by_bone[bone]:
 			_skin_points.append(at)
 	_skin_starts.append(_skin_points.size())
+
+
+# Keeps `rest` (a point of the skin on the rest pose, `ahead` of the chest bone) as its cell's
+# point when it is in the region the stock can meet and the frontmost there.
+func _keep_skin(
+	cells: Dictionary, skeleton: Skeleton3D, bone: int, rest: Vector3, ahead: Vector3
+) -> void:
+	# The front half only, round the right shoulder and across to the sternum's left.
+	if ahead.z <= 0.0 or not _SKIN_REGION.has_point(ahead):
+		return
+	var cell := Vector3i((ahead / maxf(skin_spacing, 0.001)).floor())
+	if cells.has(cell) and ((cells[cell] as Array)[2] as Vector3).z >= ahead.z:
+		return
+	cells[cell] = [bone, skeleton.get_bone_global_rest(bone).affine_inverse() * rest, ahead]
 
 
 # The frame the pockets are given in: the chest's turn about the up axis, and `pocket_lean` of
@@ -720,6 +770,7 @@ func _on_rig_changed() -> void:
 	_skeleton = slot.skeleton() if slot != null else null
 	if _skeleton == null:
 		return
+	_fit_body(slot)
 	_measure_chest(_skeleton)
 	_stance = STANCE_SCRIPT.new() as SkeletonModifier3D
 	_stance.set(&"hold", self)
@@ -729,6 +780,45 @@ func _on_rig_changed() -> void:
 	_add_fingers(grip_pose, trigger_pose, null, "RightFingers")
 	_add_fingers(support_pose, magazine_pose, open_pose, "LeftFingers")
 	refresh()
+
+
+## The fit in use: the one solved on the body the model slot holds, or the scene's own.
+func fit() -> HoldFit:
+	var found := HoldFit.chosen(fits, get_parent() as CharacterModel)
+	return found if found != null else _own
+
+
+# Puts the fit of the model's body on the hands' places and on the poses, keeping the scene's own
+# first.
+func _fit_body(slot: CharacterModel) -> void:
+	var right := _node(&"RightHandTarget")
+	var left := _node(&"LeftHandTarget")
+	var on_magazine := _node(&"MagazineHand")
+	if _own == null:
+		_own = HoldFit.new()
+		_own.seat = right.transform.affine_inverse() if right != null else Transform3D.IDENTITY
+		_own.support_hand = _left_rest
+		_own.magazine_hand = on_magazine.transform if on_magazine != null else Transform3D.IDENTITY
+		_own.grip_pose = grip_pose
+		_own.trigger_pose = trigger_pose
+		_own.support_pose = support_pose
+		_own.magazine_pose = magazine_pose
+		_own.open_pose = open_pose
+	var chosen := HoldFit.chosen(fits, slot)
+	if chosen == null:
+		chosen = _own
+	if right != null:
+		right.transform = chosen.seat.affine_inverse()
+	_left_rest = chosen.support_hand
+	if left != null:
+		left.transform = _left_rest
+	if on_magazine != null:
+		on_magazine.transform = chosen.magazine_hand
+	grip_pose = chosen.grip_pose
+	trigger_pose = chosen.trigger_pose
+	support_pose = chosen.support_pose
+	magazine_pose = chosen.magazine_pose
+	open_pose = chosen.open_pose
 
 
 func _add_arm(bones: Array[StringName], tag: String) -> void:

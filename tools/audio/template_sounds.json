@@ -1,37 +1,36 @@
 {
   "endpoint": "https://api.elevenlabs.io/v1/sound-generation",
-  "model": "eleven_text_to_sound_v2",
+  "model": "eleven_text_to_sound_v3",
   "output_format": "mp3_44100_128",
   "credits_per_second": 40,
   "min_seconds": 0.5,
   "max_seconds": 30.0,
-  "budget": 1200,
-  "licences": {
-    "free": {
-      "text": "Generated on ElevenLabs' free tier: attribution required, not licensed for commercial use. Replace or\n  relicense before any commercial release.",
-      "attribution": "Sounds generated with ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>).\n  A game's Credits screen names ElevenLabs."
-    },
-    "paid": {
-      "text": "Generated on a paid ElevenLabs plan, which grants commercial use of the output. No attribution is\n  required and nothing needs replacing before a commercial release.",
-      "attribution": "none required; a game's Credits screen may name ElevenLabs."
-    }
-  },
+  "budget": 5000,
+  "attribution": "Sounds generated with ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>).",
+  "licence_free": "Generated on ElevenLabs' free tier: attribution required, not licensed for commercial use. Replace or\n  relicense before any commercial release.",
+  "licence_paid": "Generated on ElevenLabs' paid `{tier}` plan, which allows commercial use under ElevenLabs' Sound\n  Effects terms (<https://elevenlabs.io/sound-effects-terms>, Exhibit 4): the sounds may be used in a game, combined\n  with other material; they may not be sold, licensed or shared on their own as isolated audio files or samples, or\n  put in a sound, sample or effects library.",
   "sounds": [
     {
       "name": "coin_pickup",
       "kind": "hit",
       "folder": "templates/3d-third-person/game/assets/audio/coin",
       "prefix": "coin_pickup",
-      "takes": 4,
+      "takes": 6,
       "seconds": 0.5,
       "influence": 0.6,
-      "prompt": "A quick shake of a few coins in a hand, then a single subtle soft bubblegum pop. Short, playful, dry, close, no music, no voice.",
+      "prompt": "A bright, satisfying coin pickup in a video game: one small gold coin landing in a purse with a clear, warm metallic chime and a soft sparkle on top, short and clean, dry and close.",
       "min_seconds": 0.3,
       "max_seconds": 0.39,
       "min_files": 3,
       "measure": "momentary",
-      "target_lufs": -20.0,
-      "tail_db": -34.0
+      "target_lufs": -19.0,
+      "tail_db": -34.0,
+      "use_takes": [
+        1,
+        2,
+        3,
+        5
+      ]
     },
     {
       "name": "weapon_pickup",
@@ -49,44 +48,407 @@
       "target_lufs": -23.5,
       "tail_db": -34.0,
       "model": "eleven_text_to_sound_v3",
-      "keep": [4, 1]
+      "use_takes": [
+        4,
+        1
+      ]
     },
     {
       "name": "footstep_soft",
       "kind": "steps",
       "folder": "templates/3d-third-person/game/assets/audio/footsteps",
       "prefix": "footstep_soft",
-      "takes": 2,
+      "takes": 3,
       "seconds": 5.0,
       "influence": 0.6,
-      "prompt": "Eight quiet footfalls on a padded floor, one every 0.6 seconds, each a short low soft thud with a gentle round body and almost no click, dry and close, with silence between them.",
+      "prompt": "One person walking at a steady relaxed pace in soft rubber-soled sneakers on a hard stone path outdoors: eight separate steps, one every 0.6 seconds, each a short, soft, rounded thud with a faint gritty scuff, dry and close, quiet between the steps.",
       "min_seconds": 0.08,
       "max_seconds": 0.3,
       "min_files": 4,
-      "max_files": 8,
+      "max_files": 4,
       "highpass_hz": 110.0,
       "tail_db": -30.0,
       "measure": "momentary",
-      "target_lufs": -33.0
+      "target_lufs": -31.8
     },
     {
-      "name": "wind_soft",
+      "name": "wind_corner",
+      "prefix": "wind_soft",
       "kind": "loop",
       "folder": "templates/3d-blank/game/assets/audio/wind",
-      "prefix": "wind_soft",
-      "takes": 1,
-      "seconds": 12.0,
+      "takes": 2,
+      "seconds": 30.0,
       "influence": 0.5,
       "loop": true,
-      "prompt": "Soft steady outdoor wind in an open field, a gentle even airy breeze in the background, constant level, no gusts, no howling, no birds, no voices, no music, seamless loop.",
-      "min_seconds": 10.0,
-      "max_seconds": 12.0,
+      "min_seconds": 20.0,
+      "max_seconds": 30.0,
       "min_files": 1,
       "measure": "integrated",
       "target_lufs": -33.0,
-      "crossfade": 1.5,
-      "max_spread_lu": 3.0,
-      "flatten_seconds": 0.25
+      "crossfade": 2.0,
+      "prompt": "Gusty wind blowing around the corners of a stone building and through long grass: a deep soft body of moving air, swirling gusts that swell and die away, and now and then a faint high whistle through the edges, natural and organic, as a seamless loop.",
+      "use_takes": [
+        1
+      ],
+      "whistle": {
+        "hz": 560.0,
+        "q": 45.0,
+        "mix": 0.5,
+        "seed": 3
+      },
+      "min_spread_lu": 4.0
+    },
+    {
+      "name": "fist_swing",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/fists",
+      "prefix": "fist_swing",
+      "takes": 4,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A single fast punch swinging through the air: a short, sharp whoosh of a fist and a sleeve cutting the air, quick and clean, dry and close.",
+      "min_seconds": 0.15,
+      "max_seconds": 0.3,
+      "min_files": 3,
+      "measure": "momentary",
+      "target_lufs": -21.3,
+      "tail_db": -34.0,
+      "use_takes": [
+        1,
+        2,
+        4
+      ],
+      "highpass_hz": 120.0
+    },
+    {
+      "name": "impact_default",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/impacts",
+      "prefix": "impact_default",
+      "takes": 6,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A bullet striking a concrete wall: one sharp, dry crack with a puff of grit and small chips of stone, short, close.",
+      "min_seconds": 0.15,
+      "max_seconds": 0.4,
+      "min_files": 3,
+      "measure": "momentary",
+      "target_lufs": -30.2,
+      "tail_db": -34.0,
+      "use_takes": [
+        3,
+        4,
+        6
+      ]
+    },
+    {
+      "name": "impact_wood",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/impacts",
+      "prefix": "impact_wood",
+      "takes": 8,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A single bullet slamming into a thick wooden plank: an instant, sharp, dry wooden crack and knock, very short, close.",
+      "min_seconds": 0.15,
+      "max_seconds": 0.4,
+      "min_files": 3,
+      "measure": "momentary",
+      "target_lufs": -33.7,
+      "tail_db": -34.0,
+      "take_prompts": {
+        "1": "A bullet hitting a wooden crate: one hard, hollow wooden knock with a splintering crack, short, dry, close.",
+        "2": "A bullet hitting a wooden crate: one hard, hollow wooden knock with a splintering crack, short, dry, close.",
+        "3": "A bullet hitting a wooden crate: one hard, hollow wooden knock with a splintering crack, short, dry, close.",
+        "4": "A bullet hitting a wooden crate: one hard, hollow wooden knock with a splintering crack, short, dry, close."
+      },
+      "use_takes": [
+        5,
+        6,
+        8
+      ]
+    },
+    {
+      "name": "impact_metal",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/impacts",
+      "prefix": "impact_metal",
+      "takes": 8,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A single bullet ricochet off a steel plate: an instant, loud, bright metallic ping with a sharp attack and a short ring, close.",
+      "min_seconds": 0.2,
+      "max_seconds": 0.5,
+      "min_files": 3,
+      "measure": "momentary",
+      "target_lufs": -26.7,
+      "tail_db": -30.0,
+      "take_prompts": {
+        "1": "A bullet hitting a sheet of steel: one sharp metallic clang with a short bright ringing ping, close.",
+        "2": "A bullet hitting a sheet of steel: one sharp metallic clang with a short bright ringing ping, close.",
+        "3": "A bullet hitting a sheet of steel: one sharp metallic clang with a short bright ringing ping, close.",
+        "4": "A bullet hitting a sheet of steel: one sharp metallic clang with a short bright ringing ping, close."
+      },
+      "use_takes": [
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "name": "pistol_empty",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/pistol",
+      "prefix": "pistol_empty",
+      "takes": 3,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "The dry fire of an empty handgun: one crisp, small metallic click of the trigger and the hammer, very short, dry, close.",
+      "min_seconds": 0.03,
+      "max_seconds": 0.15,
+      "min_files": 2,
+      "measure": "momentary",
+      "target_lufs": -42.1,
+      "tail_db": -34.0,
+      "names": [
+        "pistol_empty_1.ogg",
+        "pistol_empty_2.ogg"
+      ],
+      "use_takes": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "pistol_mag_out",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/pistol",
+      "prefix": "pistol_reload_mag_out",
+      "takes": 2,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A handgun's empty magazine released and sliding out of the grip: a quick metallic click and a short slide, dry, close.",
+      "min_seconds": 0.1,
+      "max_seconds": 0.35,
+      "min_files": 1,
+      "measure": "momentary",
+      "target_lufs": -27.2,
+      "tail_db": -34.0,
+      "names": [
+        "pistol_reload_mag_out.ogg"
+      ],
+      "use_takes": [
+        1
+      ]
+    },
+    {
+      "name": "pistol_mag_in",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/pistol",
+      "prefix": "pistol_reload_mag_in",
+      "takes": 4,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A pistol magazine slammed home into the grip: one sharp, loud metallic click-clack the instant it seats, dry, close.",
+      "min_seconds": 0.1,
+      "max_seconds": 0.35,
+      "min_files": 1,
+      "measure": "momentary",
+      "target_lufs": -30.4,
+      "tail_db": -34.0,
+      "names": [
+        "pistol_reload_mag_in.ogg"
+      ],
+      "take_prompts": {
+        "1": "A full magazine pushed into a handgun's grip and seated with one firm, solid metallic click, short, dry, close.",
+        "2": "A full magazine pushed into a handgun's grip and seated with one firm, solid metallic click, short, dry, close."
+      },
+      "use_takes": [
+        3
+      ]
+    },
+    {
+      "name": "pistol_slide",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/pistol",
+      "prefix": "pistol_reload_slide",
+      "takes": 2,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A handgun's slide pulled back and released to snap forward: a quick, crisp metallic double clack, short, dry, close.",
+      "min_seconds": 0.1,
+      "max_seconds": 0.35,
+      "min_files": 1,
+      "measure": "momentary",
+      "target_lufs": -28.8,
+      "tail_db": -34.0,
+      "names": [
+        "pistol_reload_slide.ogg"
+      ],
+      "use_takes": [
+        1
+      ]
+    },
+    {
+      "name": "pistol_draw",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/pistol",
+      "prefix": "pistol_draw",
+      "takes": 2,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A handgun drawn quickly from a leather holster: a short leather rustle ending in a soft metallic click, dry, close.",
+      "min_seconds": 0.1,
+      "max_seconds": 0.35,
+      "min_files": 1,
+      "measure": "momentary",
+      "target_lufs": -32.7,
+      "tail_db": -34.0,
+      "names": [
+        "pistol_draw.ogg"
+      ],
+      "use_takes": [
+        1
+      ]
+    },
+    {
+      "name": "ui_hint",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_hint",
+      "takes": 8,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "One soft, low, muted wooden tock of a menu cursor moving in a video game: a single gentle tap on a small wooden block, rounded and warm, very short, dry and close.",
+      "min_seconds": 0.03,
+      "max_seconds": 0.08,
+      "min_files": 3,
+      "measure": "momentary",
+      "target_lufs": -30.0,
+      "tail_db": -30.0,
+      "highpass_hz": 150.0,
+      "take_prompts": {
+        "1": "A single very soft, tiny tick of a menu cursor in a video game: one gentle muted tap of a fingertip on a small plastic key, rounded, warm and low, very short, dry and close.",
+        "2": "A single very soft, tiny tick of a menu cursor in a video game: one gentle muted tap of a fingertip on a small plastic key, rounded, warm and low, very short, dry and close.",
+        "3": "A single very soft, tiny tick of a menu cursor in a video game: one gentle muted tap of a fingertip on a small plastic key, rounded, warm and low, very short, dry and close.",
+        "4": "A single very soft, tiny tick of a menu cursor in a video game: one gentle muted tap of a fingertip on a small plastic key, rounded, warm and low, very short, dry and close.",
+        "5": "A single very soft, tiny tick of a menu cursor in a video game: one gentle muted tap of a fingertip on a small plastic key, rounded, warm and low, very short, dry and close."
+      },
+      "use_takes": [
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "name": "ui_press",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_press",
+      "takes": 5,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A clean, satisfying button click in a video game menu: one crisp press of a small plastic switch with a short, soft wooden body, very short, dry and close.",
+      "min_seconds": 0.06,
+      "max_seconds": 0.2,
+      "min_files": 3,
+      "measure": "momentary",
+      "target_lufs": -30.0,
+      "tail_db": -32.0,
+      "highpass_hz": 150.0,
+      "use_takes": [
+        1,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "ui_confirm",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_confirm",
+      "takes": 4,
+      "seconds": 0.8,
+      "influence": 0.6,
+      "prompt": "A confident confirm sound for the start button of a video game menu: a firm soft click followed at once by a warm, rounded two-note marimba chime that rises and resolves, short, dry and close.",
+      "min_seconds": 0.15,
+      "max_seconds": 0.45,
+      "min_files": 2,
+      "measure": "momentary",
+      "target_lufs": -23.0,
+      "tail_db": -34.0,
+      "highpass_hz": 150.0,
+      "use_takes": [
+        2,
+        3
+      ]
+    },
+    {
+      "name": "ui_move",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_move",
+      "takes": 4,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A soft mechanical slide-and-click of a small wooden tab moving into place in a video game menu, gentle and rounded, very short, dry and close.",
+      "min_seconds": 0.06,
+      "max_seconds": 0.16,
+      "min_files": 2,
+      "measure": "momentary",
+      "target_lufs": -28.0,
+      "tail_db": -32.0,
+      "highpass_hz": 150.0,
+      "use_takes": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "ui_toggle",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_toggle",
+      "takes": 4,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "One small, neat switch flipping in a video game settings menu: a tight, clean plastic snap with a tiny bright tick on top, very short, dry and close.",
+      "min_seconds": 0.05,
+      "max_seconds": 0.16,
+      "min_files": 2,
+      "measure": "momentary",
+      "target_lufs": -28.0,
+      "tail_db": -32.0,
+      "highpass_hz": 150.0,
+      "use_takes": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "ui_swish",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_swish",
+      "takes": 4,
+      "seconds": 1.0,
+      "influence": 0.6,
+      "prompt": "A soft, short airy swish of a menu panel sliding in across a screen in a video game: a smooth gentle breath of air that rises and fades quickly, close and dry.",
+      "min_seconds": 0.2,
+      "max_seconds": 0.45,
+      "min_files": 2,
+      "measure": "momentary",
+      "target_lufs": -34.0,
+      "tail_db": -30.0,
+      "highpass_hz": 200.0,
+      "use_takes": [
+        2,
+        4
+      ]
     }
-  ]
+  ],
+  "folder_notes": {
+    "templates/3d-third-person/game/assets/audio/pistol": "## The shots: GDStudio's own work, MIT\n\nThe five shots are not ElevenLabs output and stay as they were: GDStudio's own work, synthesised by code, nothing\nsampled and nothing third-party. They are the five variants of the House Pistol's shot from Deadnight\n(`game/assets/audio/guns/shot_house_pistol_1..5.ogg`), made by Deadnight's `tools/audio/gun_recipes_2.py` (a seeded\nreport of a click, a crack, a roar, a bark and a low thump), copied here unchanged under the names below, and covered by\nthe MIT licence of the kit and of Deadnight (Copyright (c) 2026 GDStudio contributors). No attribution is required.\n\n| File | Deadnight file | Seconds |\n| --- | --- | ---: |\n| `pistol_shot_1.ogg` | `shot_house_pistol_1.ogg` | 0.10 |\n| `pistol_shot_2.ogg` | `shot_house_pistol_2.ogg` | 0.11 |\n| `pistol_shot_3.ogg` | `shot_house_pistol_3.ogg` | 0.11 |\n| `pistol_shot_4.ogg` | `shot_house_pistol_4.ogg` | 0.10 |\n| `pistol_shot_5.ogg` | `shot_house_pistol_5.ogg` | 0.11 |\n",
+    "templates/3d-blank/game/assets/audio/wind": "## The whistle in the wind: GDStudio's own work, MIT\n\n`wind_soft_1.ogg` is the ElevenLabs take above with a soft whistle layered over its gusts by `tools/audio/sfx.py`\n(`whistle()`: seeded noise through a resonant band-pass whose pitch follows the take's own level). The layer is\nsynthesised by code, nothing sampled and nothing third-party, and is covered by the MIT licence of the kit\n(Copyright (c) 2026 GDStudio contributors); the file as a whole is used under the ElevenLabs terms above.\n"
+  }
 }

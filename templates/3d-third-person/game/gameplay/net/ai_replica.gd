@@ -28,6 +28,10 @@ signal event_played(event: NetEvent, puppet: Character)
 
 const SNAP_SECONDS := 0.3
 const CLOCK_PULL := 0.1
+## The dressed character of the male body and of the female, with no AI part: the default
+## looks (`variant_scenes`).
+const MALE := preload("res://gameplay/character/character_dressed_male.tscn")
+const FEMALE := preload("res://gameplay/character/character_dressed.tscn")
 
 @export_group("Drawing")
 ## Seconds behind the newest TICK the rows are drawn: about three sends at 30 a second, so a late
@@ -43,10 +47,9 @@ const CLOCK_PULL := 0.1
 @export var section_origin := Vector3.ZERO
 ## The scene each look is drawn with: index n draws the characters of the server's
 ## `ai_variants[n]`. A dressed character with no AI part (`character_dressed.tscn` or one made
-## from it); a look past the end draws the first.
-@export var variant_scenes: Array[PackedScene] = [
-	preload("res://gameplay/character/character_dressed.tscn")
-]
+## from it); a look past the end draws the first. As offline, enemies wear the male mannequin and
+## friendlies the female: the grunt, the ally, the civilian and the shooter.
+@export var variant_scenes: Array[PackedScene] = [MALE, FEMALE, FEMALE, MALE]
 
 @export_group("Making puppets")
 ## The most puppets made in one physics step: one costs about 1.5 ms on a desktop and in Chrome,

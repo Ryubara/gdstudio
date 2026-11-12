@@ -48,6 +48,7 @@ def looked(monkeypatch):
 
     patch(monkeypatch, "held", fake)
     patch(monkeypatch, "behind", lambda target, repo, cwd: ({"behind_by": 0}, ""))  # the other guard's job
+    patch(monkeypatch, "red_main", lambda target, repo, cwd: ({"open": [], "fixes": False}, ""))  # and the red-main one
     return asked
 
 
@@ -293,7 +294,7 @@ def test_a_ruleset_without_the_pin_is_drift():
 
 
 def test_a_game_with_no_hold_yet_keeps_its_ruleset():
-    merge = {k: v for k, v in CONVENTIONS["merge"].items() if k != "hold"}
+    merge = {k: v for k, v in CONVENTIONS["merge"].items() if k not in ("hold", "red_main")}
     assert required_checks({"merge": merge}) == [{"context": c} for c in merge["required_checks"]]
 
 

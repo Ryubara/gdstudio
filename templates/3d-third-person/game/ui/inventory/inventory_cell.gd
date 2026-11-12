@@ -38,6 +38,15 @@ func _ready() -> void:
 	focus_exited.connect(shown.emit.bind(false))
 	mouse_entered.connect(shown.emit.bind(true))
 	mouse_exited.connect(shown.emit.bind(false))
+	# The menus' sounds (`UIAudio`): a cell is a choice from a set.
+	focus_entered.connect(UIAudio.play.bind(&"focus", self))
+	mouse_entered.connect(UIAudio.play.bind(&"hover", self))
+	pressed.connect(UIAudio.play.bind(&"select", self))
+
+
+## The kind of control this is for the menus' sounds (`UIAudio`).
+func ui_sound_role() -> StringName:
+	return &"cell"
 
 
 ## Shows a picture (or `title` on a plate of `tint` when there is none) and `count_label`.

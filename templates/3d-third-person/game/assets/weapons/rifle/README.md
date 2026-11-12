@@ -46,9 +46,11 @@ positions; kit #1177): with the full stock and the butt on the shoulder's skin t
 The game holds it with C and E below (kit #889): `gameplay/weapon/rifle_held.tscn`, a `TwoHandHold` under the
 character's `Model` slot, and `gameplay/pickup/rifle_pickup.tscn` gives it. Both hands are closed on it: the right
 on the grip with the index finger along the receiver (on the trigger while the rifle is up), the left cupped under the
-hand guard, from places and finger poses that `tools/hold/solve_rifle_hold.py` solves on both mannequins' skins and
-`tests/gameplay/test_rifle_hold.gd` measures (the kit docs, `engines/godot/third-person/shooting.md#rifle-hands`). The
-study below is how the stance was chosen; its hands' targets and the engine's IK nodes are no longer what the game uses.
+hand guard, from places and finger poses that `tools/hold/solve_rifle_hold.py` solves on each body's skin (the
+female's in the scene and the `rifle_*_pose.tres` files, the male's in `gameplay/weapon/hold/rifle_fit_male.tres`,
+which the hold puts on when the model is his) and `tests/gameplay/test_rifle_hold.gd` measures (the kit docs,
+`engines/godot/third-person/weapon-pickups.md#rifle-hands`). The study below is how the stance was chosen; its hands'
+targets and the engine's IK nodes are no longer what the game uses.
 
 ### The proposal
 

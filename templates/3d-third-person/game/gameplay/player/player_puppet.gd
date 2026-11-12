@@ -10,11 +10,11 @@ extends RefCounted
 ## is in no group a HUD, minimap or camera zone looks for, and no other body meets it (collision
 ## layer 0; the mask keeps the world, for the floor test below). Its parts that draw read what
 ## `place` writes, exactly what they read from a stepped body: `state` (the clip), `velocity`
-## (`ground_speed()`, the locomotion blend and the footsteps), `aim_amount` and `view_pitch` (the
-## aim pose and the barrel's pitch), `crouching`, `is_sprinting()`, the prone amount, and the
-## engine's floor contact, which only a move finds, so each placing ends with a short move down
-## onto the floor (or up off it while the entry says it is in the air) and puts the body back on
-## the entry's point.
+## (`ground_speed()`, the locomotion blend and the footsteps), `aim_amount`, `view_pitch` and
+## `view_yaw` (the aim pose, the barrel's pitch and the aim layer's turn off the body),
+## `crouching`, `is_sprinting()`, the prone amount, and the engine's floor contact, which only a
+## move finds, so each placing ends with a short move down onto the floor (or up off it while the
+## entry says it is in the air) and puts the body back on the entry's point.
 
 ## Metres the floor test starts above the point and moves down through it (the point is in whole
 ## centimetres, up to half of one inside the floor).
@@ -54,7 +54,9 @@ static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: fl
 	puppet.global_position = entry.position
 	puppet.velocity = moving
 	puppet.facing = entry.yaw
-	puppet.view_yaw = entry.yaw - PI
+	# The view along the body, turned by the aim's heading off it while aiming (0 otherwise), so
+	# the aim layer turns the puppet's upper body as it turns the stepped one.
+	puppet.view_yaw = entry.yaw - PI + entry.aim_yaw
 	puppet.view_pitch = entry.pitch
 	puppet._present_facing()
 	puppet._sprinting = entry.sprint
