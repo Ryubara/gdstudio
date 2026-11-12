@@ -68,8 +68,8 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   pre-commit hooks cover only `python/` and `.claude/hooks/`, so a template script is never linted in the kit, and
   ruff run on it without `--config` finds no settings above it and wraps at 88. **Seen:** gdstudio #1150 (PR #1165),
   2026-11-11; gdstudio #1084, 2026-11-11 (a bare `ruff format` rewrapped the hold's solver; formatted again at 120);
-  gdstudio #1293, 2026-11-11 (the 120-column `limb_overlap.py`, 150 lines of noise, put back by hand; the prone build
-  scripts are still wrapped at 88); gdstudio #1052, 11-12 (the hold's solver again).
+  gdstudio #1293, 2026-11-11 (a bare `ruff format` rewrapped the 120-column `limb_overlap.py`, 150 lines of noise in
+  the commit, put back by hand; the prone build scripts are still wrapped at 88); #1052, 11-12).
 
 ## Rebuilding a committed file {#rebuilding}
 
