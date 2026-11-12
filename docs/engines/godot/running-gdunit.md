@@ -107,6 +107,13 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   run starts from the working tree again. **Seen:** gdstudio #1252 (PR #1269), #1085 (PR #1274), #1100 (PR #1261),
   2026-11-11.
 
+- **Approach:** To score a change on a few suites in a kept game, give each suite its own `-a` on the one command
+  line, remove `reports/` first, and read the failures from the `<failure>` entries of
+  `reports/report_1/results.xml`; make a new kept game after `gds merge-main`. **Watch out for:** the console log
+  of five suites is 20 KB with the failure lines cut short, and a kept game three merges old ran tests that the
+  merged branch no longer has in that form. **Seen:** gdstudio #1084 (PR #1171), 2026-11-11 and 11-12 (five hold
+  suites scored each solve in 4 minutes).
+
 - **Approach:** When a run ends with no failure and no tests, read the top of the log for a `Parse Error` first, fix
   the one script, and check that the executed-suite count matches the folder; before moving constants into a resource,
   grep the tests for `^const .*<MovedClass>\.`. **Watch out for:** one test script that does not parse stops the scan

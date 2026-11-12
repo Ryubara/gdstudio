@@ -368,9 +368,13 @@ It makes three modifiers under the model's `Skeleton3D` and makes them again whe
 pistol layer's weights (`CharacterAnimation.pistol_weights()`) and where the reload clip is (`reload_progress()`), so
 it follows the carry, the aim, a reload and a death with no wiring of its own. Through a reload the left hand is on
 the pistol, away with the clip's arm for the new magazine, under the magazine while it goes in, and on the pistol
-again; the pistol's `Magazine` does not move yet. The left hand goes on and off the pistol one way, for the aim and
+again; the pistol's `Magazine` does not move yet. The two hands hold the pistol together as a two-handed grip is
+taught: the left hand canted, its fingers over the right hand's and round the front of the grip, its index finger
+under the trigger guard, its thumb forward along the frame, and the right thumb on the root of the left one. The left
+hand goes on and off the pistol one way, for the aim and
 the reload alike: its fingers open where it holds, the opened hand leaves along a line that passes through nothing,
-and only at the line's far end does the clip's arm take it. `SupportHandPlan`
+and only at the line's far end does the clip's arm take it; it waits there while the right thumb makes room, and an
+arm too short for the hand's place (the aim coming up) backs the hand off along that line. `SupportHandPlan`
 (`gameplay/weapon/hold/support_hand_plan.gd`) works that out and names the reload's phases (`HELD`, `LET_GO`,
 `AWAY`, `REACH`, `INSERT`, `SEATED`, `RETURN`); read `WeaponHold.left_hand()` for whatever should move with the
 hand. Everything is tuned in its inspector while the game runs:
@@ -378,11 +382,14 @@ hand. Everything is tuned in its inspector while the game runs:
 | Property | Default | What it does |
 | --- | --- | --- |
 | `grip_pose`, `trigger_pose` | `pistol_grip_pose.tres`, `pistol_trigger_pose.tres` | The right hand on the grip with the index finger along the frame, and the index finger on the trigger, blended in as the character aims. |
-| `support_pose` | `pistol_support_pose.tres` | The left hand's fingers over the right hand, used while aiming or firing. |
+| `trigger_way_pose` | `pistol_trigger_way_pose.tres` | Where the index finger is half-way between the frame and the trigger: it goes round by this pose, clear of the left thumb, never straight. |
+| `thumb_pose` | `pistol_thumb_pose.tres` | The right thumb while the left hand is on the pistol: on the root of the left thumb, which takes its place on the frame. |
+| `thumb_way_pose` | `pistol_thumb_way_pose.tres` | Where the right thumb is half-way between the frame and the left thumb's root: lifted clear of the frame's rear edge, which the straight blend passed through. Set by hand. |
+| `support_pose` | `pistol_support_pose.tres` | The left hand on the pistol and over the right hand, used while aiming or firing. |
 | `support_marker` | `SupportHand` | The weapon's child the left hand's bone is brought to; move the marker in `pistol_held.tscn` and the hand follows. |
 | `support_arm`, `support_elbow` | the left arm's three bones, (0.6, 0.6, 0.2) | The bones that reach, and where the elbow points in the model's space. |
-| `carry_arm`, `carry_arm_out` | `upperarm_r`, 8 deg | The weapon's arm and how far it is held out from the body while the weapon is carried, so the grip's foot clears the thigh; it goes back as the character aims. |
-| `open_pose`, `support_way` | `pistol_open_pose.tres`, (0.018, -0.03, 0.049) | The left hand's way off the pistol and back onto it: its fingers opened where it holds, and the line the opened hand leaves along, in the weapon's space, to where the clip's arm takes it. Both are solved together. |
+| `carry_arm`, `carry_arm_out` | `upperarm_r`, 8 deg | The weapon's arm and how far it is held out from the body while the weapon is carried, so the grip's foot clears the thigh; it goes back as the character aims or reloads. |
+| `open_pose`, `support_way` | `pistol_open_pose.tres`, (0.008, -0.03, 0.051) | The left hand's way off the pistol and back onto it: its fingers opened where it holds, and the line the opened hand leaves along, in the weapon's space, to where the clip's arm takes it. Both are solved together. |
 | `free_release_time`, `free_return_time` | 0.2 s, 0.12 s | How long the left hand takes off the weapon, and back onto it, for an action that reaches with it and leaves the aim up (`free_hand(seconds)`). Using a door or a lever takes the aim down for its time, which lets the hand go by itself; the rifle's hold (`TwoHandHold`, Free hand group) lets its left hand go for the same reach and takes the gun down in the right hand (`free_pitch` 50 deg, `free_yaw` 0, `free_clearance`, 0.16 s and 0.26 s). |
 | `magazine_pose` | `pistol_magazine_pose.tres` | The left hand's fingers while the heel of its palm pushes the magazine in. |
 | `magazine_marker` | `MagazineHand` | The weapon's child the left hand's bone is brought to while the magazine goes in. |
@@ -390,8 +397,10 @@ hand. Everything is tuned in its inspector while the game runs:
 | `reload_leave`, `reload_reach`, `reload_insert`, `reload_return` | (0.02, 0.1), (0.3, 0.4), (0.4, 0.54), (0.71, 0.88) | The shares of the reload clip between which the left hand lets go (opens, leaves along its way, goes to the clip's arm), comes under the magazine, pushes it in and goes back to the pistol: the times of `Pistol_Reload`, to change with the clip. |
 | `held_weight`, `aim_weight`, `reload_weight`, `reload_share` | from the animation | How far the hold, its aim and a reload are on, and the share of the reload clip played, for a character posed by hand (no `animation` set). |
 
-The five poses, the two markers, the way and the pistol's seat are solved, never typed: the pistol folder's
-`README.md` says how to run the solver again for another model. `tests/gameplay/test_pistol_hold.gd` holds every clip
+The eight poses, the two markers, the way and the pistol's seat are solved, and where the solver's pose did not read
+as a hand a finger is set by hand in `tools/hold/pistol_authored.json` (angles, laid over the solved hold when it is
+written); no number is typed into a pose file. The pistol folder's `README.md` says how to run the solver again for
+another model. `tests/gameplay/test_pistol_hold.gd` holds every clip
 to 2 mm in and 5 mm off on both mannequins (through the reload the left hand is never more than 2 mm in, at every
 hundredth of the clip while it moves and on every update of the live player reloading while it aims), and
 `tools/capture/pistol_hold_study.tscn` prints the numbers and films the close-ups. The hold is a pose

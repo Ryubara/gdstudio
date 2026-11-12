@@ -32,13 +32,21 @@ extends SkeletonModifier3D
 			_watch(null, new)
 		_dirty = true
 ## A pose blended over both on the bones it names, by `open_weight`: the hand opened, as it lets
-## go of the weapon or comes back to it.
+## go of the weapon or comes back to it, or a thumb moved over to make room for the other hand.
 @export var open: HandPose:
 	set(value):
 		_watch(open, value)
 		open = value
 		_dirty = true
 @export_range(0.0, 1.0, 0.01) var open_weight := 0.0
+## A pose the bones it names pass through half-way to `open` (kit #1084): the right thumb lifts
+## clear of the weapon's frame before it swings over to the other hand's thumb, where the
+## straight blend took its middle bone through the frame's edge.
+@export var open_via: HandPose:
+	set(value):
+		_watch(open_via, value)
+		open_via = value
+		_dirty = true
 ## The bones of `open` that open first, over the first `open_first_share` of `open_weight`, with
 ## the others opening over the rest (and closing before them): fingers hooked over a part let go
 ## at the knuckles before they straighten. Empty: every bone opens together.
@@ -68,6 +76,9 @@ var _has_second := PackedByteArray()
 var _ways: Array[Quaternion] = []
 var _opens: Array[Quaternion] = []
 var _opening := PackedByteArray()
+# Each bone's rotation in `open_via`, where it names the bone.
+var _open_vias: Array[Quaternion] = []
+var _has_open_via := PackedByteArray()
 var _turned := PackedInt32Array()
 var _turns: Array[Quaternion] = []
 
@@ -105,7 +116,13 @@ func _process_modification_with_delta(_delta: float) -> void:
 		if blend and _has_second[index] == 1:
 			turned = _on_the_way(index, turned)
 		if opened and _opening[index] < 3:
-			turned = turned.slerp(_opens[index], shares[_opening[index]])
+			var share: float = shares[_opening[index]]
+			if _has_open_via[index] == 0:
+				turned = turned.slerp(_opens[index], share)
+			elif share < 0.5:
+				turned = turned.slerp(_open_vias[index], share * 2.0)
+			else:
+				turned = _open_vias[index].slerp(_opens[index], share * 2.0 - 1.0)
 		skeleton.set_bone_pose_rotation(_indexes[index], turned)
 
 
@@ -131,6 +148,8 @@ func _lay_out(skeleton: Skeleton3D) -> void:
 	_ways.clear()
 	_opens.clear()
 	_opening.clear()
+	_open_vias.clear()
+	_has_open_via.clear()
 	_turned.clear()
 	_turns.clear()
 	var first := {}
@@ -154,6 +173,9 @@ func _lay_out(skeleton: Skeleton3D) -> void:
 			_ways.append(before)
 		var in_open := open != null and open.rotations.has(bone_name)
 		_opens.append(open.rotations[bone_name] if in_open else own)
+		var via_open := in_open and open_via != null and open_via.rotations.has(bone_name)
+		_has_open_via.append(1 if via_open else 0)
+		_open_vias.append(open_via.rotations[bone_name] if via_open else own)
 		var opening := 3
 		if in_open:
 			opening = 0 if open_first.is_empty() else (1 if first.has(bone_name) else 2)

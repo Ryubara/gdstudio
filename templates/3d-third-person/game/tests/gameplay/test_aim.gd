@@ -146,7 +146,9 @@ func test_holding_fire_shoots_over_and_over_when_the_weapon_is_automatic() -> vo
 	_weapon().fired.connect(func(shot: Projectile) -> void: shots.append(shot))
 	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
 	await InputSim.ticks(get_tree(), 60)
-	assert_int(shots.size()).is_between(5, 8)
+	# A second at 10 a second, less the few ticks the arm takes to come half up (gdstudio #1335:
+	# the shots kept the rate, where a rounding error in the cooldown had made it 7 ticks apart).
+	assert_int(shots.size()).is_between(8, 10)
 
 
 func test_the_fire_rate_spaces_the_shots() -> void:
