@@ -15,6 +15,7 @@ const MODELS: Dictionary[String, String] = {
 const LIBRARIES: Dictionary[String, String] = {
 	"ual1": "res://assets/animation/universal/ual1.glb",
 	"ual2": "res://assets/animation/universal/ual2.glb",
+	"pistol": "res://assets/animation/pistol/pistol_rack.glb",
 	"gds": "res://assets/animation/own/locomotion.glb",
 }
 
