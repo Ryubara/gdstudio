@@ -27,6 +27,9 @@
 ## it plays its fall, which is not the clip under review.
 ## `OWN_BODY=male` puts the enemies' body in the row of part 1 (default `female`, the player's:
 ## `CharacterBodies.BY_NAME`); part 2 is always the player.
+## `OWN_BEFORE=<a review file's path on this machine>` adds an older build's variants to the row
+## as `before/<clip>`, and `OWN_ROW=<clip>,<clip>` keeps only the named clips in the row, in that
+## order (`before/Walk_B,Walk_B,Library`): a change to a clip beside what it was and the library's.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -77,6 +80,7 @@ func _ready() -> void:
 	var replaced: StringName = _rig.player.get_node("Animation").get(_slot)
 	_clips.append(CharacterClips.stand_in(replaced))
 	_rig.player.get_node("AnimationPlayer").add_animation_library(&"review", _library)
+	_pick_row(OS.get_environment("OWN_BEFORE"), OS.get_environment("OWN_ROW"))
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	_label = Label.new()
@@ -171,7 +175,7 @@ func _build_row() -> void:
 		var name_plate := Label3D.new()
 		name_plate.text = _name_of(_clips[i])
 		name_plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		name_plate.font_size = 48
+		name_plate.font_size = 48 if _clips.size() > 3 else 34
 		name_plate.pixel_size = 0.004
 		name_plate.no_depth_test = true
 		name_plate.position = body.position + Vector3(0, 2.0, 0)
@@ -183,8 +187,29 @@ func _build_row() -> void:
 	_clock = 0.0
 
 
+# Adds an older review file's clips as `before/<clip>` and keeps the row to the clips asked for.
+func _pick_row(before: String, row: String) -> void:
+	if before != "":
+		var old := _read_review(before)
+		_rig.player.get_node("AnimationPlayer").add_animation_library(&"before", old)
+		for clip in old.get_animation_list():
+			_clips.append(StringName("before/" + clip))
+	if row == "":
+		return
+	var library := _clips[-1] if before == "" else _clips[_library.get_animation_list().size()]
+	var picked: Array[StringName] = []
+	for wanted in row.split(","):
+		var clip := StringName(wanted if wanted.begins_with("before/") else "review/" + wanted)
+		clip = library if wanted == "Library" else clip
+		assert(_clips.has(clip), "no clip %s for the row" % wanted)
+		picked.append(clip)
+	_clips = picked
+
+
 func _name_of(clip: StringName) -> String:
 	var text := String(clip)
+	if text.begins_with("before/"):
+		return "before: %s" % text.trim_prefix("before/")
 	return text.trim_prefix("review/") if text.begins_with("review/") else "library %s" % text
 
 

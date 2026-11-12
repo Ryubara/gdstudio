@@ -310,7 +310,13 @@ uv run --with numpy python -B build_own.py self-test                      every 
 uv run --with numpy python -B build_own.py review <type> --blender <b>    the variants, into review/<type>.glb
 uv run --with numpy python -B build_own.py ship <group> --blender <b>     the shipped file, from picks.json
 uv run --with numpy --with pillow python -B review_sheet.py <type> --blender <b> --out <folder>
+uv run --with numpy python -B fluidity.py --bones                         the shipped gaits beside the library's
 ```
+
+`fluidity.py` reads how smooth a loop is ([the feel](own-animation.md#feel)): `--pair <file>:<Clip>=ual1/<Clip>`
+for a review file's variant. A gait's `pelvis_waves` is how many waves a cycle the pelvis may answer the limbs
+with (0: it is moved every frame until the centre of mass is exactly on its path, which passes a foot's flick up to
+the head), and `swing_ease` 1 with `swing_early` 0 makes a foot leave the floor from rest.
 
 **A new clip type** is three things:
 

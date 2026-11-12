@@ -1,7 +1,7 @@
 {
  "picks": {
   "Idle": "A",
-  "Walk": "A",
+  "Walk": "B",
   "Jog": "A",
   "Sprint": "A"
  }

@@ -63,11 +63,16 @@ COMMON = {
     "land_frames": 2.0,  # frames it comes down from it over as it lands, at one speed
     "kick_pitch": 55.0,  # degrees the toes point down at the top of the kick
     "swing_early": 0.3,  # 0: the foot leaves the floor from rest; toward 1 it is flicked off and is quick at once
+    "swing_ease": 0.0,  # 0: the swing gathers speed at once; 1: its acceleration grows from nothing and ends in nothing
     "land_speed": 0.0,  # the share of the ground's speed the foot still has over the floor as it lands (0: none)
     "stretch": 0.997,  # the share of its full length the furthest stretched leg is at, anywhere in the cycle
     "bob": 0.036,  # metres the centre of mass goes up and down
     "takeoff_rise": 0.0,  # runs: metres the centre of mass is higher as the foot leaves than as it lands
     "sway": 0.016,  # metres the centre of mass goes toward the carrying foot, each side
+    # The pelvis rides the centre of mass's path and answers the limbs' swing with this many waves a cycle at
+    # most; what the legs do faster than that (a foot leaving the floor) it does not pass on to the trunk and
+    # the head. 0: the pelvis is moved on every frame until the centre of mass is exactly on its path.
+    "pelvis_waves": 0,
     "hip_turn": 4.0,  # degrees the pelvis turns each way about the vertical
     "hip_turn_at": 0.5,  # the share of the cycle where the right hip is furthest forward
     "hip_tip": 3.0,  # degrees the hip of the swinging leg drops
@@ -330,6 +335,8 @@ class Gait:
         ## Metres each ankle is raised on each whole frame so that the skin of the sole, as each body's mesh
         ## really bends, is on the floor while planted and over it in the swing (`settle_height`).
         self._set_down = {}
+        ## True once the pelvis's path is its own (`pelvis_waves`): the build then takes it as written.
+        self.fixed = False
         falls = []
         for s, sign in SIDES:
             land = 0.0 if s == "l" else self.frames / 2.0
@@ -386,7 +393,8 @@ class Gait:
         b = self._stance(s, sign, cycle + 1, 0.0)
         more = 1.0 + (UNEVEN_LIFT * n["uneven"] if s == "r" else 0.0)
         kick, carry = self.own(s, "kick"), self.own(s, "carry_height")
-        go = (1.0 - n["swing_early"]) * maths.smooth(u) + n["swing_early"] * (1.0 - (1.0 - u) ** 2)
+        eased = (1.0 - n["swing_ease"]) * maths.smooth(u) + n["swing_ease"] * maths.smoother(u)
+        go = (1.0 - n["swing_early"]) * eased + n["swing_early"] * (1.0 - (1.0 - u) ** 2)
         # A foot brought to rest over the floor before it lands has to reach far past its landing place first
         # (the body goes on under it): a runner's still has some of its speed, and the landing takes it.
         still = n["land_speed"] * (self.stride - self.covered) / max(float(b["ankle"][2] - a["ankle"][2]), 1e-6)
@@ -559,16 +567,35 @@ class Gait:
     def settle_height(self) -> None:
         """Set `base`, the middle of the centre of mass's rise and fall, as high as the legs allow: the leg that
         is stretched furthest, on any frame, is `stretch` of its full length."""
+        solver = Solver(self.rig)
+        self.base = self.rig.rest_pos["pelvis"][1] + 0.02
+        self._settle(solver)
+        waves = int(self.n["pelvis_waves"])
+        if waves > 0:
+            # What the pelvis does about the limbs, as a few waves a cycle: the centre of mass keeps its path
+            # but for the fast part of what the legs do, which a body's hips do not answer frame by frame.
+            centre = np.array([self.centre(float(f)) for f in range(self.frames)])
+            answer = np.array([self._pelvis[float(f)] for f in range(self.frames)]) - centre
+            spectrum = np.fft.rfft(answer, axis=0)
+            spectrum[waves + 1 :] = 0.0
+            answer = np.fft.irfft(spectrum, n=self.frames, axis=0)
+            for f in range(self.frames):
+                self._pelvis[float(f)] = centre[f] + answer[f]
+            self.fixed = True
+            self._settle(solver)
+
+    def _settle(self, solver: Solver) -> None:
         rig, n = self.rig, self.n
-        solver = Solver(rig)
-        self.base = rig.rest_pos["pelvis"][1] + 0.02
         for _ in range(10):
             drop, moved = -math.inf, 0.0
             fixes = dict(self._set_down)
             for f in range(self.frames):
                 spec = self.spec(float(f))
-                pose = weight.settle(solver, spec, self.centre(float(f)), rounds=6)
-                self._pelvis[float(f)] = pose["pelvis"].copy()
+                if self.fixed:
+                    pose = solver.solve(spec)
+                else:
+                    pose = weight.settle(solver, spec, self.centre(float(f)), rounds=6)
+                    self._pelvis[float(f)] = pose["pelvis"].copy()
                 turn = rig.rest_rot[rig.parent["pelvis"]] @ pose["local"]["pelvis"] @ rig.rest_rot["pelvis"].T
                 for s, _ in SIDES:
                     hip = pose["pelvis"] + turn @ (rig.rest_pos["thigh_" + s] - rig.rest_pos["pelvis"])
@@ -606,7 +633,7 @@ def describe(kind: str, rig, style, name: str) -> Clip:
         frames=gait.frames,
         plan=gait.plan,
         spec=lambda f: gait.spec(float(f)),
-        balance=lambda f, at: gait.centre(float(f)),
+        balance=None if gait.fixed else (lambda f, at: gait.centre(float(f))),
         chains=overlap.chains_from(lags, PARTS),
         kind="gait",
         declared={

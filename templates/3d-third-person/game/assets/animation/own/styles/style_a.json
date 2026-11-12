@@ -93,11 +93,11 @@
  },
  "overlap_jog": {
   "chest": [
-   1.0,
+   1.5,
    0.0
   ],
   "head": [
-   1.5,
+   2.0,
    0.05
   ],
   "upperarm": [
@@ -105,11 +105,11 @@
    0.1
   ],
   "forearm": [
-   1.0,
+   1.6,
    0.1
   ],
   "hand": [
-   1.0,
+   1.6,
    0.15
   ]
  },
@@ -140,15 +140,19 @@
   "chest_tip_rest": 1.5,
   "head_turn_rest": 1.5,
   "head_tip_rest": 1.0,
-  "swing_early": 0.28
+  "swing_early": 0.0,
+  "pelvis_waves": 3,
+  "swing_ease": 1.0,
+  "lean_live": 2.0,
+  "speed_limit": 36.0
  },
  "overlap_sprint": {
   "chest": [
-   1.0,
+   1.5,
    0.0
   ],
   "head": [
-   1.5,
+   2.0,
    0.05
   ],
   "upperarm": [
@@ -156,11 +160,11 @@
    0.1
   ],
   "forearm": [
-   1.0,
+   1.3,
    0.1
   ],
   "hand": [
-   1.0,
+   1.4,
    0.15
   ]
  },
@@ -189,7 +193,12 @@
   "chest_turn_rest": -2.0,
   "chest_tip_rest": 1.5,
   "head_turn_rest": 1.0,
-  "head_tip_rest": 1.0
+  "head_tip_rest": 1.0,
+  "pelvis_waves": 3,
+  "swing_early": 0.0,
+  "swing_ease": 1.0,
+  "lean_live": 2.0,
+  "speed_limit": 45.0
  },
  "notes": {
   "idle": [
@@ -197,7 +206,7 @@
    "Tried: arms hanging closer (the wrist 135 mm from the thigh's line): the female's curled fingers were 47 mm inside the thigh; they keep 127 mm, and read 0 mm on both bodies."
   ],
   "walk": [
-   "A person's numbers at 1.7 m/s: 138 steps a minute (people take 134), a foot down 58 % of the cycle, the hips 8 degrees against the shoulders' 8, the left arm through 49 and the right through less. Shipped as gds/Walk (the recommendation). Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
+   "A person's numbers at 1.7 m/s: 138 steps a minute (people take 134), a foot down 58 % of the cycle, the hips 8 degrees against the shoulders' 8, the left arm through 49 and the right through less. Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
    "Could not be done: a knee as straight as a person's when the heel lands (ours is 23 degrees bent, a person's about 5). The step is 0.74 m on 0.83 m legs and the body is held to 37 mm of rise, so both legs cannot be straight while both feet are down."
   ],
   "jog": [

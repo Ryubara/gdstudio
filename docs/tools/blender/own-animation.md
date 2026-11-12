@@ -189,6 +189,14 @@ one clip symmetric about its own middle.
   **Watch out for:** the melee clips had the guard and the striking fist level at frames 4 and 12 to 14, between keys,
   so the key-frame sheet looked uneven while the move passed through a mirror pose; a flipped tuple mirrors the sides by
   construction. **Seen:** gdstudio #1254, 2026-11-11.
+- **Approach:** Before a loop goes to review, run `fluidity.py` (the clips' `own/` folder) on it beside the library
+  clip it replaces, on one body: the joints', pelvis's and head's effective harmonic (1 is one smooth wave a cycle)
+  and the largest change of a joint's speed in a frame. Fix what it shows in the description (a path with fewer
+  waves, an ease, a longer trail), never by filtering keys, and film old, new and library in one row (`OWN_BEFORE`,
+  `OWN_ROW`). **Watch out for:** our walk passed every check with its pelvis and head jolting 14 mm fore and aft in
+  two frames as each foot left the floor (harmonic 3.7, the library's 1.9): the pelvis was solved from the centre of
+  mass on every frame and the foot was flicked off at speed; the import was not the cause. **Seen:** gdstudio
+  #1155 (PR #1275), 2026-11-12, the maintainer's review (fix: `pelvis_waves`, `swing_ease`, longer trails).
 - **Approach:** Give a loop's sides their own timing as well as their own poses: when each heel comes up, when
   each foot is highest in its swing, when each arm is furthest forward (`roll_out`, `kick_at`, `arm_at` under a
   style's `left` or `right`); keep the footfalls half a cycle apart, since the blend between gaits needs them
@@ -433,7 +441,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | Issue | Clips |
 | --- | --- |
 | #1154 the clip toolkit and the review sheet (done) | `Idle`, three variants, A shipped as `gds/Idle`; the shared build, the checks and their self-test, `review_sheet.py`, the first swap ([the toolkit](animation.md#toolkit)) |
-| #1155 the loops (done) | `Walk`, `Jog`, `Sprint`, three variants, A shipped; one description, `clips/gait.py` ([adding a gait](animation.md#toolkit)) |
+| #1155 the loops (done) | `Walk`, `Jog`, `Sprint`, three variants, `Walk` B and `Jog` and `Sprint` A shipped; one description, `clips/gait.py` ([adding a gait](animation.md#toolkit)) |
 | #1156 starts and stops | `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`; `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`; left and right |
 | #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |
 | #1158 the tree (Godot) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost |

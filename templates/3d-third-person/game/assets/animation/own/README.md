@@ -25,6 +25,8 @@ uv run --with numpy --with pillow python -B review_sheet.py idle --blender <the 
 A rebuild writes the same bytes (`--check` compares with the files on disk and writes nothing). The clip from the
 game's camera is `tools/capture/own_clips_review.tscn`; the Godot test is `tests/gameplay/test_own_clips.gd`.
 
+`fluidity.py` reads the shipped gaits against the library clips they replaced (below, "How fluid the gaits are").
+
 **Picking another variant:** set the letter in `picks.json`, run `ship locomotion`, run the test. The other styles
 stay here, so a game picks another vision by rebuilding, or writes a `style_d.json` of its own.
 
@@ -198,8 +200,9 @@ build's own numbers for `form_male` (the enemies'); the review sheets print the 
 | Limbs inside limbs, female and male | 0.0 and 1.6 mm | 0.0 and 2.7 | 0.0 and 1.6 | not measured |
 | Key bytes a second | 23.9 KB | 24.1 | 27.0 | |
 
-**A is the one shipped for all three** (`picks.json`), as the recommendation: its numbers are a person's at the
-game's speeds. B is the vision for a loose, long-limbed character; C for a small or stylised body seen from far.
+**Shipped** (`picks.json`, the maintainer's picks on PR #1275): `Walk` is B, `Jog` and `Sprint` are A (the jog
+reads better with the pistol held). A's numbers are a person's at the game's speeds; B is the vision for a loose,
+long-limbed character; C for a small or stylised body seen from far.
 The grounded and the sharp runs trail by the same frames; what tells them apart is the trunk (hips, shoulders,
 lean) and the knee lift; the "halves differ" row follows the thighs only, and the sides differ most in the
 arms, the feet's turn and the shoulders' set. The key bytes are a fifth more than on the Quaternius rig: the
@@ -250,3 +253,52 @@ placement, and each gait declares its own limit (`kb_a_second`: 24, 25 and 27 KB
 - **Footsteps** come from the feet's height as before (`Footsteps`), now seven a three seconds in a walk.
 - **The pistol's hold** was solved on the library's gaits; `tests/gameplay/test_pistol_hold.gd` and
   `test_pistol_clearance.gd` pass on ours without a change.
+
+## How fluid the gaits are
+
+The first review found the loops less fluid than the library's. `fluidity.py` measures it on the player's body, each
+clip as its file plays (`uv run --with numpy python -B fluidity.py --bones`). The shipped picks before and after
+the pass, and the library clip each replaced:
+
+| | Walk (B) before | after | `ual1/Walk` | Jog (A) before | after | `ual1/Jog_Fwd` | Sprint (A) before | after | `ual1/Sprint` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Frames a cycle | 28 | 28 | 40 | 20 | 20 | 28 | 18 | 18 | 20 |
+| Joints' effective harmonic (1 is one smooth wave a cycle) | 3.41 | 2.78 | 4.17 | 2.82 | 2.37 | 4.05 | 2.60 | 2.24 | 3.36 |
+| Largest change of a joint's speed in one frame (degrees) | 36.7 | 21.5 | 18.0 | 53.8 | 32.1 | 73.6 | 72.6 | 40.5 | 67.9 |
+| Joints' change of speed, RMS (degrees/s2) | 3108 | 2806 | 1494 | 6020 | 4842 | 7054 | 8762 | 7086 | 10522 |
+| Pelvis's path: effective harmonic | 3.69 | 1.89 | 1.88 | 2.86 | 2.05 | 2.61 | 2.84 | 2.13 | 2.59 |
+| Head's path: effective harmonic | 3.70 | 1.91 | 1.92 | 2.84 | 2.04 | 2.66 | 2.84 | 2.12 | 2.72 |
+| Pelvis's acceleration, RMS (m/s2) | 4.91 | 4.02 | 1.72 | 12.5 | 9.0 | 18.3 | 18.1 | 10.7 | 20.8 |
+| Hand's acceleration, RMS (m/s2, left) | 13.3 | 12.7 | 3.5 | 28.2 | 27.6 | 30.3 | 57.5 | 54.9 | 33.3 |
+| Forearm and hand trail by (frames) | 2.1, 2.0 | 2.1, 2.0 | 0.2, 2.2 | 0.8, 0.9 | 1.4, 1.6 | 1.6, none | 0.9, 0.9 | 1.2, 1.4 | 0.3, 0.1 |
+
+By these numbers the walk was rougher than the library's where an eye rests (the pelvis and the head), and the runs
+were not rougher than the library's runs before the pass; the pass took the same faults out of all three. The rows
+of the tables above this section were measured before it for `Walk` B, `Jog` A and `Sprint` A.
+
+What was choppy, and what changed (all in `clips/gait.py` and the picks' style sections; the other variants build
+to the same bytes as before):
+
+- **The trunk and the head jolted as each foot left the floor.** The pelvis was moved on every frame until the
+  centre of mass was exactly on its path, so a foot flicked off the floor threw the hips the other way: the walk's
+  pelvis went 14 mm forward and back in two frames, twice a cycle, and the head with it (the library's pelvis does
+  not move fore and aft at all). `pelvis_waves` (3) lets the pelvis answer the limbs with three waves a cycle at
+  most: the centre of mass keeps its path (a run's free fall is off its arc by 1.5 mm at most) and the fast part of
+  what the legs do is no longer passed up the spine.
+- **The foot was flicked off the floor.** `swing_early` gave the foot a share of its speed on its first frame in
+  the air (79 mm a frame from nothing in the walk; the calf's speed changed 37 degrees in that frame, 73 in the
+  sprint). The picks leave the floor from rest and their acceleration grows from nothing and ends in nothing
+  (`swing_ease` 1, `swing_early` 0); each declares a tighter `speed_limit` (24, 36 and 45 degrees) so a rebuild
+  cannot bring the flick back.
+- **The runs' arms and head moved nearly with the trunk** (forearm and hand under a frame late, where the feel asks
+  for one to two). The jog's and the sprint's chest, head, forearm and hand trail further (`overlap_jog`,
+  `overlap_sprint`), and the trunk gives 2 degrees as each foot takes the weight (`lean_live`). The sprint's forearm
+  stops at 1.3 frames: at 1.6 the left hand was 4.4 mm inside the chest on the female.
+- **Not the import.** The imported clips are within 0.013 degrees of the file's keys on every joint (compressed, 61
+  tracks), and Godot plays straight lines between 30 keys a second for ours and for the library's alike.
+
+What is left, and why: our cycles are shorter than the library's (28, 20 and 18 frames against 40, 28 and 20: a
+person's cadence at the game's speeds), so each frame is a larger share of the motion, and a foot that holds the
+floor at the game's speed has to swing faster than one that slides (the walk's joints change speed twice as hard as
+the library's, by the square of the pace). Keys at 60 a second would halve each step; that doubles the file's key
+bytes, over the 6 KB a second the import is held to, and is a budget decision, not a clip one.
