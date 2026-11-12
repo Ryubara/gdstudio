@@ -37,7 +37,9 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `took_hit` and `health_changed`, and when the health reaches zero dies (`die(record)`), goes limp and then says
   `hit_received(record)` with `killed` set. `health` and `max_health` on the character read the `Health` node's `value`
   and `max_value` (read only: a game sets the `Health` node). `hit(amount, source)` is still there: a blow with no point
-  that also stops and throws the character (`hit_stun_time`, `knockback_speed`), as before. A dead character takes no
+  that also stops and throws the character (`hit_stun_time`, `knockback_speed`), as before. The hit clip plays over the
+  whole body standing and over the upper body only crouched, lying or sliding (`HitLayer`), so a low body stays down
+  ([one action state for every body](animation-tree.md#one-action-state-for-every-body)). A dead character takes no
   damage, but its `hit_received` still fires (the lying-body push). Getting up gives the health back, and `die()` with
   no record sets it to 0. The HUD's health part reads `health` and `max_health` and shows them.
 - **The reaction.** `HitReaction` listens to `hit_received`. A record that killed pushes the hit bone at the hit point
@@ -91,7 +93,9 @@ death, a shot between the parts flying on, zones met by nothing but the second t
 pins), `test_hit_reaction.gd` (the headshot and body-shot pushes, the flinch and its return in its time, a death during
 a flinch, a shot on a lying body pushing its bone and leaving a mark that rides it and goes on getting up),
 `test_physics_layers_meet.gd` (a living body has no bone in the world). The fixture is `tests/fixtures/hit_range.gd`.
-`tools/capture/hit_tour.tscn` films it from the player's camera (`HIT_MODEL=male` for the other mannequin):
+The zones' shapes are sized on the template's two prototype bodies (kit #1187, `tools/mannequin/measure_segments.gd`;
+[the bodies](third-person/character.md#mannequins)). `tools/capture/hit_tour.tscn` films it from the player's camera
+(`HIT_MODEL=male` for the male body):
 `gds capture frames --project game --scene res://tools/capture/hit_tour.tscn --seconds 26`.
 
 - **Approach:** Run a shot's second test along the projectile's own line (its centre at the touch), not from the

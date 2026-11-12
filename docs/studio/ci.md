@@ -24,8 +24,10 @@ default branch -->
   than main, merge main in when main has changed a file the pull request also changes, even where the merge is clean,
   and push once. **Watch out for:** #1250 added two cases to `test_ai_spawner.gd` and landed; #1243's green head,
   built before that, added one more and auto-merged 24 minutes later, so the suite reached 21 public methods and
-  main's gdlint failed though neither pull request had. **Seen:** gdstudio #1279, 2026-11-11 (fix: the suite split in
-  two).
+  main's gdlint failed though neither pull request had. Auto-merge never merges main in, so a pull request with it on
+  needs the same refresh by hand when main changes one of its files. **Seen:** gdstudio #1279, 2026-11-11 (fix: the
+  suite split in two); gdstudio #1312, 2026-11-11: #1296 auto-merged on a head built before #1239 and
+  `character_animation.gd` reached 1001 lines (fix: a comment reflowed; the split is #1287).
 - **Approach:** When a job can skip itself, work out how often it skips at the real run time and merge rate and give a
   recurring skip a signal; deploy any green commit newer than the live one, and read the live commit after a merge
   someone waits on. **Watch out for:** deploy jobs skipped unless their commit was still main's head; CI took 10 to 25
@@ -107,6 +109,9 @@ they are rerun, replayed or read from another branch -->
   **Watch out for:** a rerun keeps the original run's `created_at`, so a sweep of "queued since before 20:40" cancelled
   two live reruns (#1040's test job 14 minutes in, and #1239's capture rerun) and could not touch the seven stuck runs
   it was meant for. **Seen:** gdstudio #1040, #1239 and #1245, 2026-11-11.
+- **Approach:** When a run fails uploading an artifact while GitHub reports an Actions incident, wait until its status
+  page shows Actions operational, then rerun once. **Watch out for:** a rerun during the outage failed at the same
+  upload step, spending a run and the branch's slot for nothing. **Seen:** gdstudio #1040, 2026-11-11.
 
 ## Time limits and shards {#shards}
 

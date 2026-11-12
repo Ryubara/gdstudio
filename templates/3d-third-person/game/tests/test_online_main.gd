@@ -37,7 +37,9 @@ func _open(url: String) -> OnlineMain:
 	return online
 
 
-func _until(condition: Callable, frames := 240) -> bool:
+# A client joins after the level's warm-up (`JoinWait`), which tours every reflection probe and
+# then the minimap's view of the world as well (kit #1297): give a join room for both.
+func _until(condition: Callable, frames := 600) -> bool:
 	for _i in frames:
 		if condition.call():
 			return true

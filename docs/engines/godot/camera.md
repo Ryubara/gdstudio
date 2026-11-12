@@ -191,6 +191,21 @@ while aiming keeps its point to the end even if the aim is let go mid-swap.
   **Watch out for:** reading that frame of a capture as the anchor failing. **Seen:** gdstudio #1087, 2026-11-11 (the
   capture's contact sheets).
 
+## Aim and fire framing {#aim-and-fire-framing}
+
+<!-- new section: the page held the shoulder view, walls and the swap; nothing said what aiming and firing do to the
+     framing or who may change it -->
+
+3D Third Person's `PlayerCamera` frames three ways besides the follow view: aiming (its Aim group: `aim_fov`,
+`aim_distance`, `aim_shifts_shoulder`), firing without aiming (its Fire group: `zoom_when_firing`, `fire_fov`,
+`fire_distance`) and sprinting or sliding (wider by `sprint_fov_change`). The zoom follows the buttons (`aim_held`,
+`fire_held`), with no hold after a shot. The held weapon may change it: `WeaponDef.fire_zooms` off leaves the framing
+alone on fire (the fists), and with `override_zoom` on, the weapon's `aim_fov`, `aim_distance`, `fire_fov`,
+`fire_distance` and `zoom_offset` replace the camera's. The camera reads the held definition every frame
+(`held_definition()`), on each machine, never sent. The rules and their tests: [Ammo, reloading and
+switching](third-person/shooting.md#weapons) (gdstudio #1255) and [Crouch, aim and
+shoot](third-person/shooting.md#crouch-aim-shoot) (gdstudio #856).
+
 ## Reading a rotation {#rotations}
 
 <!-- new section: the page held smoothing, walls and projection but nothing on reading a turn back from a transform -->
