@@ -70,7 +70,7 @@ func _collect(node: Node) -> void:
 func _on_added(node: Node) -> void:
 	if node is Character and not node.hit_received.is_connected(_on_hit):
 		node.hit_received.connect(_on_hit.bind(node))
-	if node is HitReaction:
+	if node is HitReaction and not node.flinched.is_connected(_on_flinched):
 		node.flinched.connect(_on_flinched.bind(node))
 		node.flinch_ended.connect(_on_flinch_ended.bind(node))
 	if node is Node3D and not _seen.has(node.get_instance_id()):
