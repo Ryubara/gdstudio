@@ -168,9 +168,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   was refused by the permission settings; fix: `git archive HEAD` unpacked in the scratch folder with the new tests
   copied in).
 - **Approach:** Take an old copy of a Git LFS file (a sound, a model, a lightmap) with `git checkout <rev> -- <file>`
-  in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size before using it; when
-  a game must play the old file, clear the file's `.godot/imported/<name>-*` cache before `--import`. **Watch out
-  for:** `git show <rev>:<file>` prints the LFS pointer, about 130 bytes of text, so a "before" sound decoded as
-  nothing and a model imported as a broken file, and Godot kept that verdict (`valid=false`) after the real file was
-  back until the cache was cleared. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound clip); Deadnight #1282,
-  2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding)).
+  in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size; for a game to play
+  it, clear its `.godot/imported/<name>-*` cache before `--import`. **Watch out for:** `git show <rev>:<file>` gives
+  the 130-byte pointer, and Godot keeps a failed import (`valid=false`) after the real file is back until the cache
+  is cleared. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound); Deadnight #1282, 2026-11-05 (a model;
+  [Build scripts](../tools/blender/build-scripts.md#rebuilding)); gdstudio #1191, 2026-11-11 (a clip file in a probe
+  game) and 2026-11-12 (two aim files in a copied game, cache kept: the body fell back and the `Before:` was dropped).

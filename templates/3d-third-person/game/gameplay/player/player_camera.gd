@@ -229,6 +229,41 @@ const _FORWARDED: Array[StringName] = [
 ## How fast the view goes back out.
 @export_range(0.5, 30.0, 0.1, "suffix:/s") var aim_out_speed := 6.0
 
+@export_group("Prone aim")
+## Aiming or firing while lying down has a view of its own: the lying body's middle is its hips,
+## so the standing aim view, close behind that point, shows neither the shoulders nor the weapon.
+## Off: the lying body aims with the Aim group's view.
+@export var prone_aim_view := true
+## The distance behind the target while aiming lying down.
+@export_range(0.5, 8.0, 0.05, "suffix:m") var prone_aim_distance := 1.8:
+	set(value):
+		prone_aim_distance = value
+		_forward_blend()
+## How far the point the camera turns about moves from the body's middle toward the head and the
+## weapon while aiming lying down, along the way the camera looks (level).
+@export_range(0.0, 2.0, 0.01, "suffix:m") var prone_aim_ahead := 0.55:
+	set(value):
+		prone_aim_ahead = value
+		_forward_blend()
+## How far that point rises while aiming lying down, so the view looks over the shoulders. The
+## lens stays `prone_aim_distance` times the sine of the prone look-up limit under it.
+@export_range(-0.5, 1.5, 0.01, "suffix:m") var prone_aim_rise := 0.0:
+	set(value):
+		prone_aim_rise = value
+		_forward_blend()
+## How far the view sits to the shoulder's side while aiming lying down (`shoulder_offset`
+## standing): the pistol lies on the ground ahead of the head, and from a view this far to the side
+## it shows beside the head.
+@export_range(0.0, 2.0, 0.01, "suffix:m") var prone_aim_shoulder := 0.7:
+	set(value):
+		prone_aim_shoulder = value
+		_forward_blend()
+## The field of view while aiming lying down.
+@export_range(20.0, 110.0, 0.5, "suffix:deg") var prone_aim_fov := 50.0:
+	set(value):
+		prone_aim_fov = value
+		_forward_blend()
+
 @export_group("Fire")
 ## Firing without aiming zooms the view in. Off leaves the framing alone while firing. The held
 ## weapon can turn it off for itself (`WeaponDef.fire_zooms`, off for the fists).
@@ -571,7 +606,8 @@ func current_distance() -> float:
 	var fire_to := zoom.fire_distance if zoom != null else fire_distance
 	var aim_to := zoom.aim_distance if zoom != null else aim_distance
 	var fire := lerpf(sprint, fire_to, _eased(_fire_blend))
-	return lerpf(fire, aim_to, _eased(_aim_blend))
+	var aim := lerpf(fire, aim_to, _eased(_aim_blend))
+	return lerpf(aim, prone_aim_distance, prone_aim_blend())
 
 
 ## The field of view now: `field_of_view`, wider while sprinting and sliding, `fire_fov` while
@@ -586,12 +622,28 @@ func current_fov() -> float:
 	var fire_to := zoom.fire_fov if zoom != null else fire_fov
 	var aim_to := zoom.aim_fov if zoom != null else aim_fov
 	var fire := lerpf(sprint, fire_to, _eased(_fire_blend))
-	return lerpf(fire, aim_to, _eased(_aim_blend))
+	var aim := lerpf(fire, aim_to, _eased(_aim_blend))
+	return lerpf(aim, prone_aim_fov, prone_aim_blend())
 
 
-## Where the arm starts now: `offset`. Aiming and firing never move it.
+## Where the arm starts now, from the target: `offset`, and while aiming or firing lying down
+## `prone_aim_ahead` along the camera's heading and `prone_aim_rise` up on top of it. Standing,
+## aiming and firing never move it.
 func current_offset() -> Vector3:
-	return offset
+	var lying := prone_aim_blend()
+	if lying <= 0.0:
+		return offset
+	var heading := Basis(Vector3.UP, deg_to_rad(yaw)) * Vector3.FORWARD
+	return offset + (heading * prone_aim_ahead + Vector3.UP * prone_aim_rise) * lying
+
+
+## How far into the prone aim view the camera is, 0 to 1: how far the player lies, times how far
+## it aims or fires.
+func prone_aim_blend() -> float:
+	if not prone_aim_view or not is_instance_valid(_player):
+		return 0.0
+	var lying := smoothstep(0.0, 1.0, _player.prone_amount)
+	return lying * _eased(maxf(_aim_blend, _fire_blend))
 
 
 ## The Camera node's H Offset (x) and V Offset (y) now: the shoulder's side times
@@ -801,6 +853,7 @@ func _shoulder_view() -> Vector2:
 	var width := shoulder_offset
 	if aim_shifts_shoulder:
 		width = lerpf(shoulder_offset, aim_shoulder, _eased(_aim_blend))
+	width = lerpf(width, prone_aim_shoulder, prone_aim_blend())
 	var side := 2.0 * smoothstep(0.0, 1.0, (_shoulder_pos + 1.0) * 0.5) - 1.0
 	var zoom := _zoom_definition()
 	var up := vertical_offset

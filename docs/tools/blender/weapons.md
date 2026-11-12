@@ -225,6 +225,16 @@ shooting page once that work lands).
   Through the reload the old magazine drops, the new one rides the left hand up the grip's line in solved fingers, and
   the slide locked open on an empty pistol is released (kit #1052,
   [the magazine and the slide](weapon-hands/two-handed-pistol-grip.md#the-magazine-through-the-reload)).
+- **Lying down the same hold holds** (kit #1111). The prone aim clips are solved from this hold
+  (`tools/hold/dump_aim_seat.gd` writes the seat, the `SupportHand` marker and the wrist turn for the clip build), so
+  the right hand's bone is where the seat carries the pistol along the look and the left hand's bone on its marker,
+  and `WeaponHold` closes the fingers as it does standing; the left arm keeps the clip's elbow
+  (`support_keep_elbow`, from `CharacterAnimation.prone_hold_share()`). Within the 2 mm and 5 mm on both
+  mannequins in the three clips (`tests/gameplay/test_prone_aim_hold.gd`). The clips are solved a body, each
+  with its own `HoldFit` (`prone_aim.glb` on `form_female`, `prone_aim_male.glb` on `form_male`): at most 1.1 and
+  1.2 mm in and 2.8 and 1.7 mm off, the left hand 0.0 mm from its marker and each hand's skin over the floor.
+  After a change of the seat, the marker or a hand pose, run the dump and
+  `assets/animation/prone/build_prone_aim_clips.py` again, once a body.
 - **The slide is racked by a clip of our own** (kit #1081, `assets/animation/pistol/`). `Pistol_Rack` (0.93 s, 28
   frames) is an overhand rack: the left hand over the top of the slide just in front of the rear sight, the palm on
   the top, four fingers down the right side with the index finger's pad on the serrations and the thumb's pad on the
