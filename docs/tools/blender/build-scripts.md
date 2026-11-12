@@ -31,14 +31,19 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1150, 2026-11-11 (a page section
   written through a heredoc); gdstudio #1149, 2026-11-11 (a heredoc that wrote `styles.py` held "an artist's"; and a
   patch that matched whole lines stopped matching once `gdformat` had rewritten the file with CRLF: read the file
-  with its line ends folded to LF before matching); gdstudio #1154 and #1155, 2026-11-11 (the same again).
+  with its line ends folded to LF before matching); gdstudio #1151, #1154 and #1155, 2026-11-11 (the same).
+- **Approach:** Run every build stage with `--python-exit-code 1` and stop on a non-zero exit. **Watch out for:**
+  without it Blender exits 0 when the script raises, so a runner that reads the exit code printed `exit 0` above a
+  traceback and the next stage opened the last good file. **Seen:** gdstudio #1151, 2026-11-11 (fix: the flag in
+  `sandbox/realistic-character/build.py`).
 - **Approach:** Keep the probes and one-off scripts you write in your own scratch folder
   (`<workspace>/scratch/<repo>/<branch>/probes/`) and run them from there. **Watch out for:** Python puts the
   script's folder first on its import path, so a probe written to the machine's shared temp folder imported
   another agent's `inspect.py` in place of the standard library's, and numpy failed to load with
   `No module named 'bpy'`; a probe that imported a template's script left a `__pycache__` folder beside it, which
   the layout test refuses (run probes with `python -B`). **Seen:** gdstudio #1150, 2026-11-11 (fix: the probes
-  moved to the scratch folder; the cache folder was deleted before the push).
+  moved to the scratch folder; the cache folder was deleted before the push); gdstudio #1151, 2026-11-11 (the same
+  numpy failure from a script in the shared temp folder).
 - **Approach:** Keep a Python package inside a game free of `__init__.py` (a folder of modules imports as a
   namespace package) and start Blender with `PYTHONDONTWRITEBYTECODE=1` in its environment when its script imports
   a module of the game. **Watch out for:** the template's layout check refuses a file named `__init__.py` (not

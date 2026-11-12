@@ -7,16 +7,21 @@ How to make short effects and ambient beds with ElevenLabs Sound Effects (`POST 
 what it costs, how a long take is cut into single sounds or made into a loop, how the files are levelled and checked,
 and what the licence allows. The worked example is the first set of the templates (kit
 [#835](https://github.com/Ryubara/gdstudio/issues/835)): a coin pickup, footsteps and a wind loop; the steps were
-redone in [#857](https://github.com/Ryubara/gdstudio/issues/857) and the pistol shot added to it. The recipe is
+redone in [#857](https://github.com/Ryubara/gdstudio/issues/857) and the pistol shot added to it. Kit
+[#1083](https://github.com/Ryubara/gdstudio/issues/1083) regenerated the set on the paid starter plan with
+`eleven_text_to_sound_v3` and replaced the synthesised fists, impacts and pistol mechanics too. The recipe is
 [`tools/audio/sfx.py`][recipe] and everything about the sounds is in [`template_sounds.json`][data]; the files are in
 the templates' `assets/audio/` folders, each with a `LICENSE.md`.
 
-| Sound | Where | Request | Result |
+| Sound | Where | Request (#1083) | Result |
 | --- | --- | --- | --- |
-| Coin pickup | `3d-third-person` `assets/audio/coin/` | 4 takes of 0.5 s | 4 files of 0.35 to 0.36 s, a shake of coins into a soft pop |
-| Footsteps | `3d-third-person` `assets/audio/footsteps/` | 2 takes of 5 s | 4 single steps of 0.08 to 0.13 s, soft low thuds, kept from 4 cut (#857; #835's 10 boot steps are gone) |
-| Pistol shot | `3d-third-person` `assets/audio/pistol/` | none: Deadnight's House Pistol, synthesised | 5 shots of 0.10 s, MIT, no ElevenLabs licence (#857) |
-| Wind | `3d-blank` `assets/audio/wind/` | 1 take of 12 s, `loop` | one seamless loop of 10.5 s |
+| Coin pickup | `3d-third-person` `assets/audio/coin/` | 6 takes of 0.5 s | 4 files of 0.31 to 0.32 s, one coin's chime and sparkle, starting at once |
+| Footsteps | `3d-third-person` `assets/audio/footsteps/` | 3 takes of 5 s | 4 single steps of 0.10 to 0.24 s, soft sneakers on stone, from 9 to 17 steps a take |
+| Fists | `3d-third-person` `assets/audio/fists/` | 4 takes of 0.5 s | 3 punch whooshes of 0.15 to 0.17 s, high-passed at 120 Hz |
+| Impacts | `3d-third-person` `assets/audio/impacts/` | 6, 8 and 8 takes of 0.5 s | 3 files each for stone, wood and metal, 0.15 to 0.31 s |
+| Pistol mechanics | `3d-third-person` `assets/audio/pistol/` | 2 to 4 takes of 0.5 s each | 2 empty clicks, magazine out and in, the slide, the draw (0.06 to 0.30 s) |
+| Pistol shot | `3d-third-person` `assets/audio/pistol/` | none: Deadnight's House Pistol, synthesised | 5 shots of 0.10 s, MIT, kept (picked by ear in #857) |
+| Wind | `3d-blank` `assets/audio/wind/` | 2 takes of 30 s, `loop` (and 3 of a second prompt) | one seamless loop of 28 s: gusts every 7 s or so, with a soft whistle layered in them ([A wind that reads as wind](#wind)) |
 
 The wind is in the base because the base owns the `Ambient` bus (and has the sky it blows under); the coin and the
 steps belong to the character, so they are in the third-person template. Each is played by a scene of its own (kit
@@ -28,12 +33,20 @@ steps belong to the character, so they are in the third-person template. Each is
 
 ```text
 POST https://api.elevenlabs.io/v1/sound-generation?output_format=mp3_44100_128
-{"text": <prompt>, "duration_seconds": 0.5, "prompt_influence": 0.6, "model_id": "eleven_text_to_sound_v2", "loop": true}
+{"text": <prompt>, "duration_seconds": 0.5, "prompt_influence": 0.6, "model_id": "eleven_text_to_sound_v3", "loop": true}
 ```
 
 - **Model.** `GET /v1/models` lists the speech models only, so a sound-effects model is named from the API
-  documentation: `eleven_text_to_sound_v2` (the only one that takes `loop`) and `eleven_text_to_sound_v3`
-  ([zombies](voice-lines.md#5-the-zombies-are-different) try v3 and fall back). The templates' set is all v2.
+  reference and the changelog: `eleven_text_to_sound_v3` (SFX v3, every workspace since 2026-11-02, the default in the
+  app; it takes `loop`, follows prompts of several instructions more closely and clips less on bright sounds) and
+  `eleven_text_to_sound_v2`, deprecated and removed on 2027-03-01 ([API reference][api], [changelog][changelog]). The
+  data file names the model for the set (`model`) and a sound may name its own; the request file of every take records
+  the one it was made with. The templates' set is all v3 since #1083.
+- **Output.** `mp3_44100_128` works on every plan; WAV and PCM at 44.1 kHz need the Pro plan, MP3 at 192 kbps the
+  Creator plan. The recipe decodes the mp3 and encodes Ogg itself.
+- **Generated, not the library.** ElevenLabs' premade sound-effects library has no API to search or download from
+  (the API reference and changelog list none, 2026-11-11), so every sound here is generated; a library sound would be a
+  download by hand with its own terms to read.
 - **Length is always explicit**, 0.5 to 30 s. Never ask for automatic length: it costs more and you cannot plan it.
   A request shorter than the sound is what you want to cut from is fine: a coin shake is under half a second, and
   the shortest request is already 0.5 s.
@@ -49,7 +62,8 @@ POST https://api.elevenlabs.io/v1/sound-generation?output_format=mp3_44100_128
   said 5 credits for 0.5 s, 50 for 5 s and 120 for 12 s (10 a second) and the balance moved by exactly that, 240 for
   the set, a quarter of the plan; it read zero right after the coin takes and 20 a few seconds later. Planning at 40
   stays safe, but a budget counted from the plan would refuse retakes the account can afford, so the ledger counts
-  `billed`. **Seen:** gdstudio #835, 2026-11-08 (planned 960, charged 240).
+  `billed`. **Seen:** gdstudio #835, 2026-11-08 (planned 960, charged 240); #1083, 2026-11-11 (paid starter plan, v3:
+  the same 10 a second, 735 for 51 takes of 73.5 s).
 
 ## 2. Prompts and what came back {#prompts}
 
@@ -63,17 +77,17 @@ One sound a prompt, the room left out ("dry, close, no echo, no voice, no music"
 | (#857) eight quiet footfalls on a padded floor, one every 0.6 seconds, each a short low soft thud with a gentle round body and almost no click | two takes of 5 s held 2 hits each (4 steps in all) of 0.09 to 0.13 s; the model ignored the count and the spacing in every prompt (2 to 5 hits in 5 s; the "fingertip on a table" prompt gave 3 in one take and 11 in the next) |
 | (#857) a slow even series of gentle muffled thumps, one every half second, like a soft mallet on a thick rug | 5 hits in each take, with their energy at 20 to 35 Hz, below what a phone or a laptop plays |
 
-- **Approach:** Ask for the loop in the prompt and with `loop: true`, and expect to take the swells out afterwards.
-  **Watch out for:** "no gusts, constant level" in the prompt did not keep the take level: half-second readings ran
-  from -21 to -38 dB, a 17 dB swing that would call attention in a game. The recipe divides the take by its own level
-  over 0.25 s (held to 14 dB either way), after which half-second readings stay within 2 dB. **Seen:** gdstudio #835,
-  2026-11-08 (the first encode of the take measured 9.9 LU of spread; after flattening 2.8 LU; `check` fails a bed
-  over 3 LU).
-- **Approach:** Write the prompt as what the sound is (a soft, even hush of air over open grass, steady from start to
-  end), not what it is not, ask for two or more takes, and keep the one whose measured spread is smallest. **Watch out
-  for:** a negative does not steer the model and can name the very thing, so "no gusts, no howling" gave a take with
-  gusts in it; only measuring the takes shows what came back. **Seen:** gdstudio #835, 2026-11-08 (one take was asked
-  for, so the recipe had to flatten its swells).
+- **Approach:** Ask for the loop in the prompt and with `loop: true`, and keep a wind's swells: they are what make it
+  wind ([A wind that reads as wind](#wind)). Flatten (`flatten_seconds`) only a bed that must be even, such as a room
+  tone or a machine hum. **Watch out for:** #835 and #1083 asked for a constant wind and then divided the take by its
+  own level over 0.25 s; the level moved 0.7 dB in the end, and in #1101's review the maintainer heard white noise in
+  the background, not wind. `check` now fails a loop whose level moves less than its `min_spread_lu`. **Seen:**
+  gdstudio #835, 2026-11-08; #1101, 2026-11-11 (the gusty retake moves 9.3 dB).
+- **Approach:** Write the prompt as what the sound is (gusts that swell and die away, a soft whistle through the
+  edges, a deep body of moving air), not what it is not, ask for two or more takes, and pick by measuring them.
+  **Watch out for:** a negative does not steer the model and can name the very thing, so "no gusts, no howling" gave a
+  take with gusts in it; for the same reason #1101 left "no hiss" out of its prompts. **Seen:** gdstudio #835,
+  2026-11-08; #1101, 2026-11-11.
 
 - **Approach:** Describe a step by its weight and floor, not the shoe (a short, low, soft thud on a padded floor), ask
   for more steps than you need, and measure what came back before cutting: the spectrum (centroid, shares under 250 Hz
@@ -82,6 +96,22 @@ One sound a prompt, the room left out ("dry, close, no echo, no voice, no music"
   wind had its energy at 20 to 60 Hz (centroid 28 Hz), a rumble that reads as breath on a microphone; a take asked for
   eight steps held 2 to 5, so two takes gave the four steps of A3 that ship. **Seen:** gdstudio #857, 2026-11-09
   (the maintainer picked A3 steps, none of five winds, the Deadnight shots from a listening clip).
+
+- **Approach:** With v3, ask for a count and a spacing of steps in the prompt; it keeps them. **Watch out for:** the
+  same kind of prompt on v2 gave 2 to 5 hits in 5 s; on v3 the three takes held 9, 11 and 17 even steps, so one take is
+  enough for a set and the rest are spare. **Seen:** gdstudio #1083, 2026-11-11.
+- **Approach:** Ask for four or more takes of a short hit, measure each take's peak and onset before picking, and
+  re-prompt a weak sound as one loud, instant event (a single bullet slamming into a thick wooden plank: an instant,
+  sharp, dry crack). **Watch out for:** half the first impact takes came back near silent (stone peaks at -40 and
+  -16 dBFS, metal at -32, -20 and -20) or as a slow 0.3 s crunch with its peak 50 to 110 ms in; the recipe would level a
+  near-silent take up into noise. Pick with `use_takes`, and give a changed prompt only to new takes (`take_prompts`
+  keeps the old one for the takes made with it, so the `LICENSE.md` names each file's real prompt). **Seen:** gdstudio
+  #1083, 2026-11-11 (12 retakes, 60 credits; 3 good takes of each surface).
+- **Approach:** Read a coin or a chime's spectrum and accept that it lives over 5 kHz; ask for a clear onset instead
+  of warmth. **Watch out for:** "a clear, warm metallic chime" still gave 97 to 99% of the energy over 5 kHz (centroid
+  11 to 13 kHz), as #835's coin; what improved was the start (the peak 9 to 37 ms in, against 40 to 180 ms). The
+  distance filter of a 3D player takes more off a bright sound, so the coin is levelled by its reading in the game.
+  **Seen:** gdstudio #1083, 2026-11-11.
 
 ## 3. The recipe {#the-recipe}
 
@@ -100,7 +130,15 @@ credits ──> plan ──> generate ──> encode ──> check
   sends nothing and refuses over the budget. `generate` runs it first, requests only takes not in the cache, and prints
   the balance before and after.
 - `encode` cuts, levels and encodes (below) and writes each folder's `LICENSE.md` from the request files (model, plan,
-  date) and the prompts. `check` measures the committed files and exits 1 on a failure.
+  date, the prompt of each take) with the licence of that plan, then the folder's `folder_notes` (the pistol's
+  synthesised shots share its folder). `check` measures the committed files and exits 1 on a failure.
+- **The data file's keys for picking:** `takes` is how many are asked for and `use_takes` (numbers from 1) which are
+  cut, after listening and measuring; `take_prompts` holds an earlier prompt for the takes made with it; `names` gives
+  fixed file names (`pistol_draw.ogg`) instead of `<prefix>_<n>.ogg`; `highpass_hz` works on a hit as on steps;
+  `model` on a sound overrides the set's. A loop takes `flatten_seconds` (even it out; never for a wind),
+  `min_spread_lu` and `max_spread_lu` (the range its momentary level may move, checked) and `whistle` (`hz`, `q`,
+  `mix`, `seed`: a whistle layered over its gusts, [A wind that reads as wind](#wind)). `licence_free` and
+  `licence_paid` are the two licence texts, chosen by the plan the take was made on.
 
 **Where it lives.** It is a script in the kit's `tools/audio/`, laid out as Deadnight's voice recipe is (a script and
 a data file that holds every prompt, length and target), not a `gds` subcommand: it needs numpy for the cutting and
@@ -114,13 +152,16 @@ All of it is in the recipe, from the cached mp3, mono 44.1 kHz:
 
 1. **A single hit** (the coin): cut the lead-in to 4 ms before the first sample within 34 dB of the peak, the tail
    where the sound falls `tail_db` (-34) under its peak, never over the sound's `max_seconds` less 30 ms, fade 2 ms in
-   and 60 ms out.
+   and 60 ms out. A cut is at least `min_seconds` plus 10 ms: a hit cut at exactly 0.300 s decoded at 0.297 s, under
+   the check's 0.3 (#1083).
 2. **Single steps from a longer take:** find where each step starts (the 5 ms envelope crosses a quarter of the take's
    loud level, with a 0.28 s gap so a heel and toe are one step), cut from 4 ms before it to 20 ms before the next, at
    most 0.45 s, drop pieces far quieter than the take's median (a scuff), then keep the number the data file asks
    for, spread over both takes so the set is not all the first one.
-3. **A loop:** high-pass at 40 Hz, take the swells out, then cross-fade the last 1.5 s into the first 1.5 s with equal
-   power and drop them, so the file's end runs on into its start (12 s in, 10.5 s out). The check reads the step from
+3. **A loop:** high-pass at 40 Hz, take the swells out only when the sound asks for it (`flatten_seconds`), then
+   cross-fade the last `crossfade` seconds into the first with equal power and drop them, so the file's end runs on
+   into its start (the wind: 30 s in, a 2 s cross-fade, 28 s out), and layer a whistle over it when it asks for one
+   (`whistle`, worked round the loop so it wraps with it). The check reads the step from
    the last sample to the first against a typical step (0.8 times one) and the level of the last 400 ms against the
    first (0.5 dB).
 
@@ -133,7 +174,23 @@ Generated takes vary wildly in level and lead-in, so every file is levelled and 
 | --- | --- | --- | --- |
 | Coin pickup (4) | loudest momentary (400 ms, zero-padded) | -20 LUFS-M | -20.3 to -20.0, peak -3.8 to -2.1 dBFS |
 | Footsteps (4, #857) | loudest momentary | -33 LUFS-M | -33.0 to -32.9, peak -13.3 to -9.2 dBFS |
-| Wind (1) | integrated | -33 LUFS | -33.0, peak -16.1 dBFS |
+| Wind (1, #1101) | integrated | -33 LUFS | -33.1, peak -16.3 dBFS, its momentary level moving 9.3 LU |
+
+The #1083 set is levelled to hold the mix the maintainer set by ear: each set's target is the one that makes it read in
+the game as loud as the sound it replaced (`template_sounds.json` has them: coin -19, steps -31.8, wind -33, fists
+-21.3, impacts -30.2, -33.7 and -26.7, empty click -42.1, reload -27.2 to -30.4, draw -32.7 LUFS). Played in a game
+made from the template with the real input, the loudest 400 ms at the mix moved from the old files' (left) to the new
+(right): step -40.9 to -41.2, crouch step -46.0 to -46.5, landing -36.3 to -35.3, coin -37.0 to -39.2 (peak limited),
+punch -35.0 to -36.8 (peak limited), draw -29.8 to -29.9, impacts -47.3/-45.3/-41.8 to -43.8/-42.8/-41.1, wind -50.4
+to -50.0; the click (-45.2) and the reload (-29 to -46) were hard to hear or uneven and now sit at -40 and -35, under
+the shot at -29.
+
+- **Approach:** Set a short sound's file target from its reading in the game, not from the file it replaces: measure
+  both sets in a game made from the template (`gds template game`, a probe scene that presses the input and logs each
+  event, Movie Maker at 60 fps), then move each target by the difference. **Watch out for:** a 20 ms synthesised click
+  and a 60 ms generated one both read -34 LUFS-M as files and 13.6 LU apart in the game (-45.2 and -31.6), and the
+  bright magazine release lost 8 LU more than the file said: the first encode made the empty click as loud as a shot.
+  **Seen:** gdstudio #1083, 2026-11-11.
 
 The files are levelled to each other, not to what the game plays: a 3D player's `volume_db` then sets the rest. The
 steps (-33) sit 4 LU under the old hard ones (-29) because the soft thuds keep all their energy under 300 Hz, which the
@@ -159,12 +216,19 @@ full-scale files (peak about 0 dBFS), made to be played at a trim, and play here
 ## 6. Licence {#licence}
 
 The plan is read from the subscription (`tier`), never from the account page. On the **free tier** a sound needs
-attribution and is not licensed for commercial use; on a paid plan it is. The templates' set was made on the free
+attribution and is not licensed for commercial use; on a paid plan it is, and no attribution is asked. ElevenLabs'
+Sound Effects terms ([Exhibit 4, section 2][terms]) let the output be used, changed and distributed in films, games and
+apps **combined with other material**, and forbid selling, licensing or distributing it on its own, as isolated audio
+files or samples, or in a sound, sample or effects library. A template in a public repository ships the files as
+files, so whether that counts as combined with the game or as isolated files is a licence question for the maintainer
+(AGENTS.md): kit #1083 was opened on hold for it, and the same question stands for the free-tier files it replaces.
+The paid `LICENSE.md` says what the terms allow in those words. The templates' set was made on the free
 tier with the maintainer's yes (kit #835, 2026-11-08), marked temporary: each folder's `LICENSE.md` lists every file with
 its prompt and length, the generator, model, plan and the attribution, and says **Replace or relicense before any
-commercial release**; a game made from the template says the same on its assets page and design page, and its Credits
-screen names ElevenLabs. Regenerating under a paid plan is the same command (delete the cache and the files) and
-fixes the licence with no code change.
+commercial release**; a game made from the template said the same on its assets page and design page, and its
+Credits screen named ElevenLabs. #1083 regenerated the set under the paid starter plan (a new cache, the same
+commands): `encode` writes the paid licence from the plan in the request files, so a game made from the template now
+carries no replace note.
 
 The pistol shots in `assets/audio/pistol/` are not ElevenLabs output: they are Deadnight's House Pistol shots,
 synthesised by its own code (`tools/audio/gun_recipes_2.py`, nothing sampled) and covered by the same MIT licence as
@@ -179,7 +243,71 @@ copying it across repositories; only the folders its design page lists as synthe
   card a section, the sounds in order and then together, nothing normalised.
 - The credits before and after, the plan, and the sum of the requests against the budget.
 
-## 8. A fire sound that stays pleasant {#fire}
+- **Approach:** For a Before of sounds being replaced, copy the files from a checkout of `main` (the workspace's
+  `repos/gdstudio`) or `git checkout <rev> -- <file>`, and play both sets in two games made from the two checkouts with
+  one probe scene, so each event lands at the same second in both tracks. **Watch out for:** the audio is in Git LFS:
+  `git show HEAD:<file>.ogg` writes the 130-byte pointer, which ffmpeg refuses with an exit code and no message worth
+  reading. **Seen:** gdstudio #1083, 2026-11-11 (66 events, the same times to the millisecond in both passes).
+
+## 8. A wind that reads as wind {#wind}
+
+<!-- new section: the levelling section says how loud a bed is, and nothing said what makes a wind bed read as wind and
+     not as noise (gdstudio #1101's review) -->
+
+A wind is moving air, heard through what it moves and what it blows past. What makes it read as wind, from the sources
+and from measuring the winds the template shipped or was offered (kit #1101):
+
+- **Gusts several seconds long.** The speed of the air rises and falls slowly; Farnell's wind model drives everything
+  from one speed signal at about 0.1 Hz with gusts and squalls on top ([Farnell, practical 18][farnell]). The template's
+  wind rises 9 dB from a lull to a gust about every 7 s; the even hush it replaced moved 0.7 dB.
+- **The colour moves with the speed.** In a gust the band widens upward (more air in the leaves and edges) and in a
+  lull it narrows to a low body: band-passed noise whose centre and width wander, never one fixed filter. The hush held
+  a fixed spectrum with 29% of its energy over 4 kHz (a hiss) and a spectral flatness of 0.39; the winds offered hold
+  3% or less over 4 kHz and a flatness of 0.005 to 0.04.
+- **A whistle in the wind's own pitch.** Air past an edge or a wire sheds vortices at f = St v / d (St about 0.2), so
+  the tone rises with the speed ([Aeolian sound][aeolian], [Selfridge et al.][harp]); Farnell's howl is noise through a
+  resonant band-pass (Q 60) swept from about 600 to 1000 Hz by the speed. The recipe's `whistle` does the same over a
+  generated take: Q 45 noise from 0.7 to 1.6 times 560 Hz as the take's own level rises, faded in only in the gusts,
+  with a fainter partner 2.37 times higher.
+- **Layers.** A low body, a mid swirl and an occasional high whistle, each with its own level curve on the one speed,
+  as Farnell's complete scene layers buildings, doorways, wires and leaves; one file alone tends to sound flat
+  ([sfxengine][weather]).
+- **A long loop.** A pattern of gusts is heard repeating in a short loop, so a bed loops over 20 s or more; one long
+  file is the simple way ([CRIWARE][criware], [Splice][soundscape]). The template's is 28 s; in the designed candidate
+  every modulator has a whole number of cycles in 40 s, so it wraps with no cross-fade at all.
+
+| #1101 | Flatness (1 s) | Under 250 Hz | Over 4 kHz | Level moves (p5 to p95) | Gusts a minute | Whistle (p90) | Loop |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| The first wind (#835, a rumble) | 0.018 | 92% | 2% | 2.9 dB | 0 | 7.4 dB | 10.5 s |
+| The hush (#1083 until its review) | 0.394 | 12% | 29% | 0.7 dB | 0 | 5.3 dB | 10.5 s |
+| A: ElevenLabs, gusts over a hillside | 0.023 | 57% | 2% | 14.9 dB | 6.4 | 4.9 dB | 28 s |
+| **B: ElevenLabs round a building, whistle layered (ships)** | 0.042 | 56% | 3% | 9.3 dB | 8.6 | 8.9 dB | 28 s |
+| C: designed in code (body, swirl, whistle) | 0.005 | 54% | 1% | 14.9 dB | 7.5 | 9.0 dB | 40 s |
+
+Flatness is the Wiener entropy of 1 s average spectra from 60 Hz to 16 kHz (1 for white noise); a gust is a peak of
+the 1 s level that rose 3 dB or more from the lowest point of the 5 s before it; the whistle is the strongest narrow
+peak of 300 Hz to 4 kHz over the 30 bins around it in 1 s averages (noise alone reads 4 to 5 dB). All play at -50
+LUFS integrated in the game, as the hush did; the measuring script is kept with #1101's listening clip.
+
+- **Approach:** Ask for gusts and a whistle in the prompt (round the corners of a stone building and through long
+  grass, swirling gusts that swell and die away, now and then a faint high whistle through the edges), keep the swells,
+  measure the takes (flatness, level movement, gusts, the band shares) and layer the whistle the model leaves out.
+  **Watch out for:** v3 gave gusts but no measurable whistle in any of five takes (4.2 to 5.2 dB, the reading of
+  noise); one take of the hillside prompt was a single 12 s swell in 30 s, which reads more as a change of weather.
+  **Seen:** gdstudio #1101, 2026-11-11 (B ships; why it beat C is in the pull request).
+
+Sources: [Farnell, Designing Sound, practical 18 (wind)][farnell]; [Aeolian sound][aeolian]; [Selfridge, Moffat,
+Reiss and Avital, a real-time physical model of an Aeolian harp][harp]; [sfxengine, the sound of weather][weather];
+[CRIWARE, ambience design][criware]; [Splice, a soundscape for video games][soundscape].
+
+[farnell]: https://mitp-content-server.mit.edu/books/content/sectbyfn/books_pres_0/8375/designing_sound.zip/practical18.html
+[aeolian]: https://en.wikipedia.org/wiki/Aeolian_sound
+[harp]: https://www.ioa.org.uk/system/files/publications/R%20SELFRIDGE%20DJ%20MOFFAT%20JD%20REISS%20EJ%20AVITAL%20REAL-TIME%20PHYSICAL%20MODEL%20OF%20AN%20AEOLIAN%20HARP.pdf
+[weather]: https://sfxengine.com/blog/sound-of-weather
+[criware]: https://blog.criware.com/index.php/2020/12/14/ambience-design-in-atom-craft-part-1-2/
+[soundscape]: https://splice.com/blog/audio-soundscape-for-video-games
+
+## 9. A fire sound that stays pleasant {#fire}
 
 <!-- new section: the template's pistol had an empty ShotSound and nothing said what a basic fire sound should do so it
      does not tire the ear (gdstudio #857) -->
@@ -235,5 +363,8 @@ contour][eq]; Godot docs: [AudioStreamRandomizer][rand], [AudioStreamPlayer3D][p
 [p3d]: https://docs.godotengine.org/en/stable/classes/class_audiostreamplayer3d.html
 [dab]: https://thunderstore.io/c/h3vr/p/Sirdoggy/Dynamic_Audio_Balancing/
 
+[api]: https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert
+[changelog]: https://elevenlabs.io/docs/changelog
+[terms]: https://elevenlabs.io/sound-effects-terms
 [recipe]: https://github.com/Ryubara/gdstudio/blob/main/tools/audio/sfx.py
 [data]: https://github.com/Ryubara/gdstudio/blob/main/tools/audio/template_sounds.json
