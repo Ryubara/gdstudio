@@ -309,8 +309,8 @@ blend is a modifier written in the Godot issue. All of it is cosmetic and never 
   `motion_scale`, and can drop every position track but the root's and the hips'
   ([retargeting 3D skeletons](https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/retargeting_3d_skeletons.html)).
 - Not found in a source we could open: how games stop limbs entering a body with a large head or short arms, or
-  per-body correction poses. The clearance pose in [other proportions](#proportions) is our own design and is
-  proved on the chibi body before any clip depends on it.
+  per-body correction poses. The clearance pose in [other proportions](mannequin-rig.md#proportions) is our own
+  design and is proved on the chibi body before any clip depends on it.
 
 **What we take.** The rig's rules are these ([the rig](#rig)): rotations everywhere, positions on the pelvis, the
 root and the IK targets, one rest orientation for every body.
@@ -373,7 +373,7 @@ one clip symmetric about its own middle.
 
 R replaces a library clip the template plays; N is new (the library has none, or the template plays none). Body: I
 plays on any proportions with no new keys; C needs its contacts carried by the `ik_` targets
-([other proportions](#proportions)); B needs a pass per body, because limbs touch the body itself.
+([other proportions](mannequin-rig.md#proportions)); B needs a pass per body, because limbs touch the body itself.
 
 | Group | Clips | R or N | Body |
 | --- | --- | --- | --- |
@@ -456,7 +456,7 @@ In the build, on every frame and on every shipped body's skinned mesh, before th
 | Check | Limit |
 | --- | --- |
 | Loop seam | the last pose is the first to the bit; the change of speed across the seam is no more than the largest in the cycle |
-| Floor | a planted sole's lowest vertex within 2 mm of the floor; no vertex more than 5 mm under it on any frame; a crouched clip under its capsule's height (`ceiling`) |
+| Floor | a planted sole's lowest vertex within 2 mm of the floor; no vertex more than 5 mm under it on any frame; a crouched clip under its capsule's height (`ceiling`); wider by the difference on a body whose toes rest elsewhere than the reference's ([other proportions](mannequin-rig.md#proportions)) |
 | Planted feet | a planted sole wanders at most 5 mm in a contact at the clip's speed; the speed in `clips.json` is the measured one within 2 % |
 | Planted hands, forearms, knees | at most 1 mm of drift in the world while planted (as the vault clips, kit #1016) |
 | Limbs inside limbs | at most 5 mm on every body (`limb_overlap.py`) |
@@ -558,24 +558,8 @@ What the clips need from the rig, asked of #1149:
 - which bones a far level of detail drops, so a clip can ship without their tracks;
 - `ball_l/r` hinged flat to the floor at the ball of the foot, so a heel can lift over planted toes.
 
-### Other proportions {#proportions}
-
-<!-- new section: later games use chibi and realistic bodies; the plan must say what carries over and what does not -->
-
-A clip stores each bone's turn in its parent, so on a body with other bone lengths the joints turn the same and
-the ends of the limbs land elsewhere. What is done about each consequence:
-
-| What changes on another body | What carries it over |
-| --- | --- |
-| Step length, and so the ground a gait covers | `clips.json` speed times the body's leg length over the reference's; the game plays the clip at ground speed over that |
-| Pelvis height, bob and travel | `motion_scale` scales the position keys |
-| A planted foot's place | the `ik_foot` targets and a two-bone solve in the game, on while the clip's weight curve says planted |
-| A hand on a weapon or an obstacle | the socket and the hold solver, or the `ik_hand` targets |
-| Limbs meeting the body (a big head, short arms, wide hips) | a per-body clearance pose, made by the body's build from the overlap check: an additive offset on the collarbones and upper arms that the tree always adds |
-| Weight (a heavy or a tiny body) | the style file: a body type may take its own variant numbers through the same descriptions |
-
-Group I clips need nothing but the first two rows. The checks run on every shipped body, the chibi included, so a
-clip that only works on the reference fails its build.
+What carries a clip over to a body with other proportions, and what one clip file cannot do for two bodies, is
+[Clips on other proportions](mannequin-rig.md#proportions).
 
 ## The budget in the web build {#budget}
 
@@ -604,7 +588,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |
 | #1158 the tree (Godot) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost |
 | #1159 directions and lean | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`; `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` |
-| #1160 crouch (done) | `Crouch_Idle`, `Crouch_Walk`, `Stand_To_Crouch`, `Crouch_To_Stand`, A shipped; the prone transitions rebuilt on the new crouch |
+| #1160 crouch (done) | `Crouch_Idle`, `Crouch_Walk` (B, chosen), `Stand_To_Crouch`, `Crouch_To_Stand` (A until chosen), solved on `form_female`; the prone transitions rebuilt on the new crouch |
 | #1161 jumps | `Jump_Start` (standing, running), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog` |
 
 Later waves, filed when the first has landed and its toolkit has settled: the slide and the curved runs; combat

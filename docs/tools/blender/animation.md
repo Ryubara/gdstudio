@@ -331,7 +331,7 @@ uv run --with numpy --with pillow python -B review_sheet.py <type> --blender <b>
 | Make parts trail | `Clip.chains` from the style's `overlap` numbers (`overlap.chains_from`): each bone follows the part it hangs from with a lag in frames and an overshoot, closed round a loop. `overlap.follow` does the same to one number |
 | Make the other side | `build.mirrored(rig, built, name, half_cycle=...)` |
 | Join another clip | `clips/joined.py` (`Joined`: the picked variant of another clip, its first frame as a spec and its solved pose), `Clip.meet` (the exact end poses, with the frames the difference is let go over) and `declared["joins"]`: the pose and the speed a first or last frame must meet |
-| Hold or raise a heel | `Footfall.heel` for a foot that stands on its ball for a whole contact (the swing lands on it with the toes already bent), or `ContactPlan.raised(rig, side, frame, heel)` for a heel that moves; name the side in `declared["heel_up"]` so `clips.json`'s `flat` says no frame of it is flat |
+| Hold or raise a heel | `Footfall.heel` for a foot that stands on its ball for a whole contact (the swing lands on it with the toes already bent), or `ContactPlan.raised(rig, side, frame, heel)` for a heel that moves; name the side in `declared["heel_up"]` so `clips.json`'s `flat` says no frame of it is flat. The foot is set down by the lowest of its own skin (the rig's `tread`), so the ball's joint may go down a few millimetres as the heel rises |
 | Give each side its own pose | a pair `[left, right]` for every number of a description that a side could own (foot place and turn, heel, knee, each arm's numbers, each hand's curl), read with `AT[side]`; a description never shares one number between two limbs |
 | Lay a forearm on a thigh | the arm's `rest` (`{"on": side, "gap": metres, "hand": metres}`): the arm comes down until its forearm's line is `gap` from that thigh's and shin's on every body, measured at each body's own joints; leave that arm out of `Clip.chains` |
 | Step a foot inside a transition | two `Footfall`s of that side with the step between them (`clips/stance.py`, `stance_plan`): the plan swings the foot, and `toe_reach` clears the longest toes |
@@ -344,12 +344,19 @@ skinned mesh, and writes nothing when one fails (the last line of a good build i
 rotations and the pelvis's place, and the `ik_` targets on a rig that has them. The checks are in `checks.py` with
 their limits; `selftest.py` breaks a clip for each one.
 
+**The bodies.** Clips are solved on `form_female`, the body the template's player wears (`REFERENCE` in
+`build_own.py`), and checked on `form_male` and the Quaternius pair as well (`BODIES`). A shipped file's deepest
+limb crossing per clip and body is written beside it as `bodies_overlap.json` with the file's SHA-256, which
+`tests/gameplay/test_own_clips.gd` reads. What one file cannot do for two bodies is under
+[Clips on other proportions](mannequin-rig.md#proportions).
+
 **What is proved and what is not.** `Idle` went through all of it. The contact plan, the foot's roll, the travel and
 the gait checks are proved by the self-test's plain walk (planted soles within 5 mm at its speed on both mannequins),
 which is not a clip anyone has looked at for style. The joins are proved by the stance changes (kit #1160: both ends
-0.0 mm and 0.09 degrees from the idles' first poses), which also prove a step inside a transition, and the contact
-plan by `Crouch_Walk`; the crouch idle proves `rest` and a foot held on its ball. Mirroring, the placed hand
-and the `ik_` targets are written and not yet used by a shipped clip: the first issue that uses each proves it. The
+within 0.2 mm and 0.09 degrees of the idles' first poses), which also prove a step inside a transition, and the
+contact plan by `Crouch_Walk`; the crouch idle proves `rest` and a foot held on its ball. Mirroring and the placed
+hand are written and not yet used by a shipped clip: the first issue that uses each proves it. The `ik_` targets
+are keyed in every shipped clip since the reference body has them, and nothing in the game reads them yet. The
 weight check's lean and the free fall's arc are tested on made-up motion only. A body whose legs differ from the
 reference body's is reported with `needs_ik` and not held to the floor and planted limits.
 
@@ -439,6 +446,24 @@ reference body's is reported with `needs_ik` and not held to the floor and plant
   **Watch out for:** the template's own `game/` folder has no kit addons, so the capture scene did not parse
   (`AudioSettings` not declared) and Movie Maker still wrote 300 frames of an empty scene; an import there
   rewrote three `.exr.import` files. **Seen:** gdstudio #1160, 2026-11-11.
+- **Approach:** Measure a correction to a pivoted part from the pivot, never from the floor, and read the
+  swinging foot's height on every frame after any change to how a planted foot is placed. **Watch out for:** the
+  settle that puts a raised foot's lowest skin on the floor was first written as floor minus lowest, and the swing
+  reuses the planted foot's function with the ball lifted, so it snapped the swinging foot back down and through
+  the floor by 29 mm; the planted frames read perfect. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11 (fix: the
+  move is the lowest skin's change against the hinge, `plan._state`).
+- **Approach:** Read the audit's planted rows on a review sheet beside the build's own (`planted` in the report,
+  which uses the declared contacts), and say in the variant's notes when they differ and why. **Watch out for:**
+  `audit_clips.py` calls a foot planted while its lowest vertex is within a fifth of the swing's lift of the floor
+  (6.2 mm here); on the `form` body the frame before each landing is 6.0 mm up, so two variants read 38 and 41 mm of
+  wander and a planted speed 5 % low where the declared contacts wander 2.2 mm. **Seen:** gdstudio #1160
+  (PR #1285), 2026-11-11 (fix: the sheet's `sole wanders in its declared contacts` rows and a note per variant).
+- **Approach:** Hold an imported clip's planted joints in Godot to what the import gives on each body, measured
+  once and written beside the limit, and hold the skin against the floor with `BodyMeasure.feet_lowest`.
+  **Watch out for:** the file's own keys keep a planted joint within 0.2 mm, and compressed tracks add up to
+  1.1 mm at a foot under a pelvis that travels 73 mm (1.5 mm on a body whose hips or shins differ by a millimetre);
+  a 1 mm limit fitted to one build failed on the next with nothing wrong in the clip. **Seen:** gdstudio #1160
+  (PR #1285), 2026-11-11 (`PLANTED`, `BALL_SINKS` and the skin test in `test_own_clips.gd`).
 
 ## The clip eval {#eval}
 

@@ -6,6 +6,7 @@ Nothing here is copied from a library clip or from another game: a clip is a des
 
 | File | What it is |
 | --- | --- |
+| `bodies_overlap.json` | The shipped file's deepest limb crossing per clip and body, with the file's SHA-256; the build writes it and the Godot suite reads it, so a file that was rebuilt and not measured fails. |
 | `locomotion.glb`, `locomotion.json` | The shipped clips and what the game needs to know of each (`clips.json` of the plan): loop, length, speed, travel and turn curves, contact times per foot, the foot it starts and ends on, events. Godot imports the glb as an `AnimationLibrary`; the player's `AnimationPlayer` holds it as `gds`, so the clip is `gds/Idle`. |
 | `picks.json` | Which variant each shipped clip is built from (`"Idle": "A"`). |
 | `clips/<type>.py` | A clip type's description, with every number a style may set and what it means. |
@@ -30,6 +31,27 @@ The clip types are `idle`, `crouch_idle`, `crouch_walk`, `stand_to_crouch` and `
 locomotion` changes `Crouch_Idle`, rebuild the prone clips too (`../prone/`): their two transitions join its first
 pose.
 
+## The bodies
+
+The clips are solved on `form_female` (`build_own.REFERENCE`), the body the template's player wears
+(`CharacterBodies.FEMALE`), and every check runs on four bodies (`BODIES`): `form_female`, `form_male` (the
+enemies), and the Quaternius pair, which stays in the template as bodies a game can swap in. Until kit #1160 the
+reference was the Quaternius female; on the form bodies a foot standing on its ball then hung 5 to 6 mm over the
+floor.
+
+- **A foot on its ball is set down by its own skin** (`plan._state`, the rig's `tread`): the toes stay flat, the
+  rest of the foot turns over them, and the foot is moved by what that leaves lowest. The form bodies' toes curl
+  7.3 mm up off the floor at rest and the skin under the ball is shared between the foot and the toes; the Quaternius
+  mannequins' toes lie on the floor. The ball's joint therefore goes down up to 4.5 mm as a heel rises.
+- **One file cannot stand both foot shapes on their balls.** On the form bodies a planted sole is within 0.6 mm of
+  the floor in every clip. On the Quaternius pair a raised foot sinks 5.2 to 7.4 mm, and the checks widen that
+  body's floor and wander limits by the difference between its toes and the reference's (`checks.TOES_SAME`,
+  `toes_off_mm` in the numbers): 9.3 mm for a planted sole, 12.3 mm under the floor.
+- **The four `ik_` targets are keyed** (`ik_foot_l/r`, `ik_hand_l/r`), since the prototype rig has them: each
+  clip has 52 bones' rotations, the pelvis's place and the targets' places and turns. The Quaternius skeleton has
+  no such bones and the tracks move nothing there. The shipped file is 253 KB and imports to 99 KB for 19.9 s of
+  clips (5.0 KB a second; the budget is 6).
+
 **Picking another variant:** set the letter in `picks.json`, run `ship locomotion`, run the test. The other styles
 stay here, so a game picks another vision by rebuilding, or writes a `style_d.json` of its own.
 
@@ -37,7 +59,7 @@ stay here, so a game picks another vision by rebuilding, or writes a `style_d.js
 
 Replaces `ual1/Idle`, which stays in the game as its stand-in (`CharacterClips.STAND_INS`). The library's idle
 breathes and nothing else: 17 bones move, the pelvis 8.5 mm, no weight shift, no finger moves, its seam is 3 mm open
-and its hand is 17 mm inside the thigh on the female mannequin.
+and its hand is 17 mm inside the thigh on the Quaternius female mannequin.
 
 ### What a standing person does (the research)
 
@@ -64,14 +86,16 @@ clip's numbers are declared choices; where nothing was found it says so.
 - **The hips tip, the shoulders answer.** The free leg's hip drops, the pelvis turns toward it, the chest leans the
   other way by a share of the tip, the head stays level.
 - **The hands keep off the thighs.** The solver opens each arm from the body until the wrist, the knuckles and the
-  curled fingers' tips are 127 mm from the thigh's line on both mannequins: the female's hip is 100 mm wide of the
+  curled fingers' tips are 127 mm from the thigh's line on every body: the Quaternius female's hip is 100 mm wide of the
   joint, and curled fingers reach 45 mm inward of their knuckles.
 - **Overlap.** The chest, the head, the upper arms, the forearms and the hands each follow the part they hang from
   through a spring with the style's lag and overshoot, run round the loop until its seam closes.
 
 ### The three variants
 
-Measured by `../audit_clips.py` on the female mannequin (the review sheet prints the same table):
+Measured by `../audit_clips.py` on the Quaternius female mannequin, the reference body when the idle was made
+(since kit #1160 it is solved on `form_female`, where its soles are within 0.2 mm of the floor and no limb crosses
+another on any of the four bodies; the review sheet prints the table on that body):
 
 | | A, grounded | B, loose | C, sharp | `ual1/Idle` |
 | --- | --- | --- | --- | --- |
@@ -94,7 +118,8 @@ loose, lived-in character; C for a small or stylised body seen from far.
 
 - The idle is in place and does not travel (`speed` 0); both feet are down for the whole clip (`contacts`).
 - Imported with Godot's key optimizer off and track compression on: 39 KB for the 10 s clip (3.9 KB a second),
-  and a planted foot's joints stay within 1 mm (`tests/gameplay/test_own_clips.gd`).
+  and a planted foot's joints stay within 2 mm (`tests/gameplay/test_own_clips.gd`: 0.2 mm on the file's own
+  keys, 1.1 to 1.5 mm after the import's compression, under a pelvis that travels 73 mm).
 - It keys 52 bones' rotations and the pelvis's place; the root, the `_leaf` bones and (on the prototype rig) the
   twist bones and sockets are never keyed.
 
@@ -152,8 +177,8 @@ summary of the page named, so they are leads; where nothing was found it says so
 | A crouch held at rest | Not found in a study we could open: no source gave the angles of a person resting in a staggered crouch. | | The stance is read from how the library's crouch rests (the table above) and from our own bodies, then given our own numbers; they are declared choices. |
 | Running and walking on bent legs | Running with the knees bent lowers the body's vertical stiffness and costs up to 50 % more oxygen; walking on bent hips and knees has a nearly flat path of the centre of mass, lower peak forces, much more ankle bend and less hip extension, and the swinging leg turns further because the foot has less room under it. | [McMahon et al., 1987](https://doi.org/10.1152/jappl.1987.62.6.2326) and a review of bent-hip, bent-knee walking, in a search's summary | The crouch walk's pelvis dips 8 to 24 mm as each leg takes the weight (the library's rises and falls 61 mm), the foot lands flat and its heel rises from the landing on, and the swing clears the floor by 45 mm. |
 | Cadence and step of a crouched walk at 1.5 m/s | Not found in a source we could open. | | 150 to 180 steps a minute on steps of 0.50 to 0.60 m: a declared choice, set by the body. With the pelvis this low a longer step bends the ankle past its 55 degrees and brings the trailing knee toward the floor. |
-| How long a drop takes | No study with a time was found. Physics gives the floor: a body with a foot down cannot fall faster than gravity, and the centre of mass goes down 0.45 m, which a free fall takes 0.30 s over (9 frames) before any braking. | computed | 15 frames is the shortest drop here that stays under gravity (0.97 of it); the build fails one that does not (`checks.FALL`). The controller's `crouch_time` is 0.2 s (6 frames), which no drop of this depth fits. |
-| The capsule | `CharacterTuning.crouch_height` is 1.1 m for a body 1.80 m tall. | the template | Every frame of the crouch idle and walk is under 1.1 m on both mannequins (the taller reaches 1.092 and 1.0971 m; the library's walk reaches 1.127 m), which is what folds the trunk 78 degrees. |
+| How long a drop takes | No study with a time was found. Physics gives the floor: a body with a foot down cannot fall faster than gravity, and the centre of mass goes down 0.45 m, which a free fall takes 0.30 s over (9 frames) before any braking. | computed | 15 frames is the shortest drop here that stays under gravity (0.93 of it); the build fails one that does not (`checks.FALL`). The controller's `crouch_time` is 0.2 s (6 frames), which no drop of this depth fits. |
+| The capsule | `CharacterTuning.crouch_height` is 1.1 m for a body 1.80 m tall. | the template | Every frame of the crouch idle and walk is under 1.1 m on every body (`form_male` reaches 1.071 and 1.068 m, the Quaternius male, the tallest, 1.0996 and 1.0963 m; the library's walk reaches 1.127 m on the Quaternius female), which is what folds the trunk 78 degrees. |
 
 ### How they are built
 
@@ -167,10 +192,12 @@ summary of the page named, so they are leads; where nothing was found it says so
   folded to a share of its length. The pelvis is turned toward the rear leg and tipped so that leg's hip is lower;
   the chest turns and leans the other way.
 - **A forearm on a thigh.** The solver's `rest` lowers the left arm until its forearm's line is 115 mm from the left
-  thigh's and shin's on both mannequins, measured at each body's own joints, on every frame, so it stays there
+  thigh's and shin's on every body, measured at each body's own joints, on every frame, so it stays there
   while the chest breathes and the weight moves; that arm is left out of the overlap pass. The right arm hangs
   24 degrees out from the body and keeps its hand 100 mm from its thigh's line, which is what keeps a pistol held
-  in that hand out of the leg on both mannequins (`tests/gameplay/test_pistol_clearance.gd`).
+  in that hand out of the leg on both of the template's bodies (`tests/gameplay/test_pistol_clearance.gd`: the
+  pistol is 38 mm clear of `form_female` in the idle, 53 and 55 mm in the stance changes and over 100 mm in the
+  walk, and over 100 mm clear of `form_male` in all four).
 - **The walk is its footfalls** (`gdsanim.plan`): speed, cadence and planted share are inputs, and the two steps are
   the same length half a stride apart, as a steady gait's must be. Its carriage is read from the shipped crouch
   idle (pelvis height, the trunk's fold, half of the idle's turn and tilt, each arm's hang), and everything else
@@ -181,54 +208,61 @@ summary of the page named, so they are leads; where nothing was found it says so
   down the right foot leaves over its toes as the hips let go and lands on its ball as the body arrives over it;
   coming up it leaves from its ball once the legs have begun to push and lands flat. Every other control is mixed
   from the one idle's first frame to the other's on its own timing, each arm from its own numbers, and
-  `Clip.meet` makes the ends the idles' first poses to the bit (0.0 mm and 0.09 degrees in the build's check,
+  `Clip.meet` makes the ends the idles' first poses (within 0.2 mm and 0.09 degrees in the build's check,
   which reads 32-bit keys).
 
 ### The variants
 
-Three stances, not one stance at three tempos. Measured on the female mannequin at the first frame by the build and
-`../audit_clips.py` (the review sheets print the audit's tables).
+Three stances, not one stance at three tempos. Measured on `form_female` at the first frame by the build and
+`../audit_clips.py` (the review sheets print the audit's tables); the library's column is its clip on the same
+body.
 
 | `Crouch_Idle` | A, grounded | B, loose | C, sharp | `ual1/Crouch_Idle` |
 | --- | --- | --- | --- | --- |
-| The right foot behind the left, and the feet apart | 0.53 m, 0.28 m | 0.65 m, 0.33 m | 0.41 m, 0.26 m | 0.68 m, 0.39 m |
+| The right foot behind the left, and the feet apart | 0.53 m, 0.26 m | 0.65 m, 0.32 m | 0.41 m, 0.24 m | 0.68 m, 0.37 m |
 | The feet turned out, left and right | 9, 26 degrees | 9, 35 | 9, 18 | 3, 21 |
 | The right heel up | 46 degrees | 54 | 38 | 51 |
-| Knees off the floor, left and right | 0.50, 0.25 m | 0.51, 0.26 m | 0.50, 0.36 m | 0.53, 0.27 m |
+| Knees off the floor, left and right | 0.50, 0.25 m | 0.51, 0.25 m | 0.50, 0.34 m | 0.53, 0.28 m |
 | Hips turned, and the right hip lower by | 12, 5 degrees | 18, 8 | 7, 3 | 3, and the left lower by 13 |
 | Shoulders turned the other way | 11 degrees | 17 | 6 | 1 |
 | The trunk folds, the head looks down | 78, 22 degrees | 84, 26 | 76, 20 | 80, 39 |
-| The left arm | forearm on the left thigh, elbow 57 degrees, the hand drooping inside the knee | the same, the hand drooping further | the same, the fingers closed further | hangs outside the knee, elbow 47 |
-| The right arm | hangs 24 degrees out from the body, outside the low knee, elbow 17 degrees, wrist 0.39 m up | the hand lies on the low knee, elbow 45, wrist 0.39 m up | bent 63 degrees, the hand held outside the knee at 0.43 m | held ahead of the knee, elbow 75 |
+| The left arm | forearm on the left thigh, elbow 57 degrees, the hand drooping inside the knee | the same with the elbow at 73 (at 58 the forearm lay 15 mm inside the form female's knee), the hand drooping further | the same, elbow 65, the fingers closed further | hangs outside the knee, elbow 47 |
+| The right arm | hangs 24 degrees out from the body, outside the low knee, elbow 17 degrees, wrist 0.34 m up | the hand lies on the low knee, elbow 45, wrist 0.35 m up | bent 63 degrees, the hand held outside the knee at 0.39 m | held ahead of the knee, elbow 74 |
 | Length | 8 s | 10.7 s | 8 s | 2.9 s |
-| Pelvis side to side, hips turn, head turns | 33 mm, 3, 7 degrees | 34 mm, 6, 14 | 19 mm, 3, 29 (looks, holds, looks back) | 6 mm, 1, 4 |
-| Highest vertex, female and male | 1.068, 1.092 m | 1.065, 1.089 | 1.062, 1.086 | 1.045 on the female |
-| Limbs inside limbs, female and male | 0, 0 mm | 0, 3.9 | 0, 0 | none |
+| Pelvis side to side, hips turn, head turns | 31 mm, 3, 7 degrees | 33 mm, 6, 14 | 18 mm, 3, 29 (looks, holds, looks back) | 6 mm, 1, 4 |
+| Highest vertex, `form_female`, `form_male` and the Quaternius male | 1.035, 1.071, 1.0996 m | 1.034, 1.069, 1.098 | 1.030, 1.067, 1.095 | 1.045 on the Quaternius female |
+| A planted sole off the floor, `form_female` and `form_male` | 0.1, 0.4 mm | 0.1, 0.6 | 0.1, 0.3 | |
+| Limbs inside limbs, the four bodies | 0 mm | 0 on the template's two, 4.0 on the Quaternius male | 0 | none |
 
 | `Crouch_Walk` | A, grounded | B, loose | C, sharp | `ual1/Crouch_Fwd` |
 | --- | --- | --- | --- | --- |
 | Stride | 22 frames | 24 | 20 | 60 |
 | Steps a minute | 164 | 150 | 180 | 60 |
 | Planted sole speed | 1.51 m/s | 1.51 | 1.51 | 0.46 (0.04 to 0.96) |
-| A planted sole wanders (the build's measure) | 4.5 mm | 5.0 | 4.3 | 574 |
+| A planted sole wanders (the build's measure, `form_female` and `form_male`) | 2.3, 1.7 mm | 2.2, 1.2 | 2.2, 1.7 | 574 on the Quaternius female |
+| A planted sole off the floor, the same two | 0.2, 0.3 mm | 0.2, 0.5 | 0.0, 0.3 | |
 | Pelvis up and down | 16 mm | 24 | 8 | 61 |
 | The trunk's turn the walk keeps, hips and shoulders | 6, 4 degrees | 6, 4 | 6, 4 | 8, 10, held still |
 | The feet turned out, left and right; the right tracks wider by | 4, 11 degrees; 18 mm | the same | the same | 3, 3 at landing |
 | The arms swing, left and right | 10, 18 degrees | 13, 22 | 7, 13 | the arms hold still |
 | The elbows, left and right | 74, 36 degrees | the same | the same | 47, 75 |
-| Arm with the other side's leg | 0.80 and 0.84 | 0.79 and 0.85 | 0.79 and 0.83 | none |
-| Highest vertex on the male | 1.0970 m | 1.0963 | 1.0971 | 1.127 on the female |
-| Limbs inside limbs, both bodies | 0 mm | 0 | 0 | none |
+| The left arm carried out from the body | 18 degrees | 25 (at 18 the hand went 10 to 30 mm into the form female's calf) | 18 | |
+| Arm with the other side's leg | 0.82 and 0.86 | 0.81 and 0.86 | 0.82 and 0.85 | none |
+| Highest vertex, `form_male` and the Quaternius male | 1.068, 1.0970 m | 1.068, 1.0963 | 1.068, 1.0971 | 1.127 on the Quaternius female |
+| Limbs inside limbs, the four bodies | 0 mm | 0 | 0 | none |
 
 | Stance changes | A, grounded | B, loose | C, sharp |
 | --- | --- | --- | --- |
-| `Stand_To_Crouch` | 16 frames, 0.91 of gravity; the right foot in the air from frame 3 to 10 | 20 frames, 0.59; 4 to 13 | 15 frames, 0.97; 3 to 10 |
-| `Crouch_To_Stand` | 16 frames, stops at 0.96 of gravity; the right foot in the air from frame 6 to 14 | 20 frames, 0.54; 7 to 16 | 15 frames, 1.05; 4.5 to 12 |
-| First and last pose against the idles' | 0.0 mm, 0.09 degrees | the same | the same |
-| A planted sole wanders | 3.2 and 2.8 mm | 3.2 and 2.8 | 3.0 and 2.8 |
-| Limbs inside limbs, female and male | 3.1, 0 mm going down; 0 coming up | 3.4, 0; 0 | 0, 0; 0 |
+| `Stand_To_Crouch` | 16 frames, 0.88 of gravity; the right foot in the air from frame 3 to 10 | 20 frames, 0.57; 4 to 13 | 15 frames, 0.93; 3 to 10 |
+| `Crouch_To_Stand` | 16 frames, stops at 0.93 of gravity; the right foot in the air from frame 6 to 14 | 20 frames, 0.52; 7 to 16 | 15 frames, 1.00; 4.5 to 12 |
+| First and last pose against the idles' | 0.2 mm at most, 0.09 degrees | the same | the same |
+| A planted sole wanders, `form_female` | 1.1 and 0.3 mm | 1.2 and 0.0 | 1.2 and 0.0 |
+| A planted sole off the floor, `form_female` and `form_male` | 0.0, 0.3 mm | 0.1, 0.3 | 0.1, 0.3 |
+| Limbs inside limbs, the four bodies | 0 mm | 0 | 0 |
 
-**A is shipped for all four** (`picks.json`), as the recommendation. Every variant of a stance change joins the
+**B is shipped for `Crouch_Walk`** (`picks.json`): the maintainer's choice, 2026-11-11. **A is shipped for
+`Crouch_Idle`, `Stand_To_Crouch` and `Crouch_To_Stand`** as the recommendation until the maintainer picks; their B
+and C stay in the review files. Every variant of a stance change joins the
 shipped idles, so the letters can be picked apart: a `Crouch_Idle` of another letter rebuilds the stance changes
 and the prone transitions on its pose. In every variant the left foot keeps its standing place, so one step of the
 right foot makes the stance.
@@ -243,9 +277,10 @@ right foot makes the stance.
   first poses the ends are, and the event `crouched` (frame 15 of 16) or `rising` marks where the legs' fold ends
   or begins. They are 0.53 s long against a `crouch_time` of 0.2 s: going down, the capsule and the camera get
   there first; coming up, the capsule is full height before the body is. The tree that plays them is kit #1158.
-- The crouch stands behind the root: its pelvis is 0.38 m behind it and its rear heel 0.56 m (the library's are
+- The crouch stands behind the root: its pelvis is 0.36 m behind it and its rear heel 0.56 m (the library's are
   0.28 and 0.44 m), since the front foot keeps the standing idle's place.
-- Each clip keys 52 bones' rotations and the pelvis's place; the walk's fingers move with the arm swing, so it
-  carries their tracks. The cost per clip is in the pull request.
+- Each clip keys 52 bones' rotations, the pelvis's place and the four `ik_` targets; the walk's fingers move with
+  the arm swing, so it carries their tracks. The cost per clip is in the pull request.
 - The walk's sole wander is the heel's skin, which the shin shares: at an ankle bent this far it slides a few
-  millimetres over a foot whose joints do not move (the Godot test holds the joints to 1 mm).
+  millimetres over a foot whose joints do not move (the Godot test holds the joints to 2 mm on the floor, and lets
+  the ball's joint go down 6 mm as the heel rises).
