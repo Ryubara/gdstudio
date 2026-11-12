@@ -1,0 +1,82 @@
+# Main green: while a `CI failing on the default branch` issue is open (ci-failure.yml files it), no pull request merges
+# but the fix forward, by any route. This workflow's `main-green` job fails while such an issue is open, unless the pull
+# request's body closes one of them by a GitHub closing keyword (`Fixes #N`), and the `Main` ruleset requires it
+# (merge.red_main in .github/conventions.yml; docs/studio/ci.md#main-runs). The hook guard (red_default.py) sees
+# only a merge command a session runs; auto-merge turned on earlier lands the moment the checks go green, and only a
+# required check stops that (gdstudio #1302: #1276 auto-merged while #1279 was open).
+#
+# It runs on pull request events, so a red issue opening or closing changes nothing here: main-green-sweep.yml then
+# writes the check again on every open pull request. Each of these is a reason not to "simplify", as in hold.yml
+# (python/tests/test_main_green.py has a test for each):
+#   - `pull_request_target`, not `pull_request`: every pull request gets a run with no approval and no merge commit,
+#     and the file that runs is the default branch's, so a pull request cannot edit the check away. No `paths:` filter:
+#     a required check that does not run stays pending for ever.
+#   - `edited` re-runs it when the body gains or loses its `Fixes #N`, and when the base moves onto the default branch.
+#   - No `if:` on the job or the step: a job skipped by `if:` reports success.
+#   - The issues and the body are read from the API when the job runs, never from the event, and a read that fails
+#     fails the job: a red main nobody could read stays red until the run is retried.
+#   - No checkout and no `uv`: nothing from the pull request runs, and the job takes seconds.
+#   - `fixes_red` is the same text in main-green-sweep.yml, so both give one pull request one answer.
+name: main-green
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+
+# The newest event wins: an older run still going is cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  main-green:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Fail while the default branch is red, unless this pull request fixes it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          RED_TITLE: CI failing on the default branch
+        run: |
+          set -euo pipefail
+          # fixes_red BODY RED...: whether BODY closes one of the RED issues of $GH_REPO (`Fixes #N`, `Closes o/r#N`).
+          fixes_red() {
+            local body=$1 match ref repo number red
+            shift
+            while IFS= read -r match; do
+              [ -n "$match" ] || continue
+              ref=${match##*[[:space:]]}
+              repo=${ref%%#*}
+              number=${ref##*#}
+              if [ -n "$repo" ] && [ "${repo,,}" != "${GH_REPO,,}" ]; then continue; fi
+              for red in "$@"; do
+                if [ "$red" = "$number" ]; then return 0; fi
+              done
+            done < <(grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+([[:alnum:]_.-]+/[[:alnum:]_.-]+)?#[0-9]+\b' <<< "$body" || true)
+            return 1
+          }
+          [[ "$NUMBER" =~ ^[0-9]+$ ]] || { echo "unexpected pull request number" >&2; exit 1; }
+          red=$(gh issue list --state open --limit 1000 --json number,title \
+            --jq '.[] | select(.title == env.RED_TITLE or (.title | startswith(env.RED_TITLE + ":"))) | .number')
+          if [ -z "$red" ]; then
+            echo "No open \`$RED_TITLE\` issue: the default branch is green."
+            exit 0
+          fi
+          list=$(tr '\n' ' ' <<< "$red" | sed 's/ $//; s/\([0-9]\+\)/#\1/g')
+          body=$(gh api "repos/$GH_REPO/pulls/$NUMBER" --jq '.body // ""')
+          # shellcheck disable=SC2086  # one number per word
+          if fixes_red "$body" $red; then
+            echo "The default branch is red ($list) and #$NUMBER is its fix forward: it may land."
+            exit 0
+          fi
+          echo "::error::The default branch is red ($list): nothing lands but the fix forward, whose body says Fixes #N. This check passes again when the issue closes (docs/studio/ci.md#main-runs)."
+          exit 1
