@@ -267,6 +267,9 @@ the Godot suite reads the same poses to 0.1 mm):
   female's pelvis 42 mm; on the files built on `prone.glb` the live prone reload of gdstudio #1265 read the left
   hand 14 mm and the magazine 28 mm under the floor). They hold the library's 65 bones: the twist bones are turned
   for every measure and never keyed (the game's `MannequinTwist` turns them after the clip).
+  They were built again on the two-handed grip of gdstudio #1171 (the `SupportHand` marker moved and the right thumb
+  rests on the left thumb's root): on the old files the left elbow moved 18 mm (`form_female`) and 45 mm
+  (`form_male`) to reach the new marker.
 - **Past 25 degrees down** the pose stays on the down clip and the aim layer stops there too
   (`ProneTuning.aim_limits`, `pitch_down` 25): turned on to the 40 degrees of the look-down limit, the spine put the
   muzzle 21 cm under the floor.

@@ -80,7 +80,9 @@ func test_both_hands_hold_the_pistol_in_the_prone_aim_clips() -> void:
 				await _pose(stage, clip, time)
 				var tag := "%s %s at %.2f" % [model, clip, time]
 				for side: String in ["r", "l"]:
-					var parts := stage.contact.measure(side, side == "l")
+					# Each hand against the gun and the other hand: the right thumb rests on the left
+					# thumb's root (kit #1171), as standing.
+					var parts := stage.contact.measure(side, true)
 					var contacts := (
 						HoldStage.RIGHT_CONTACTS if side == "r" else HoldStage.LEFT_CONTACTS
 					)
