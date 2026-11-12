@@ -257,6 +257,35 @@ desktop and in a single-threaded web export (Chromium, SwiftShader; the browser 
   1.4 to 1.8 µs (web 4 to 5) a ragdoll a tick; under a tenth of the limp body's own physics. **Seen:** gdstudio
   #1126, 2026-11-11 (`tools/bench/ragdoll_drawing_bench`).
 
+## A flinch: some bones physical {#flinch}
+
+<!-- new section: the page covered a whole body going limp and getting up; nothing covered a few limbs simulated while
+     the clip runs the rest, which has faults of its own -->
+
+A flinch (`HitReaction`, [Hit zones](third-person-hits.md#component)) calls
+`physical_bones_start_simulation(bones)` with a few bodies while the clip keeps the rest of the skeleton. Turning the
+simulator `active` makes every body that is not simulated **kinematic**, and while it is off they are **static** and
+nothing moves them: they stay where the last flinch, death or get-up left them. Two engine facts matter (4.7.2,
+`modules/jolt_physics/objects/jolt_body_3d.cpp`, `scene/3d/physics/physical_bone_3d.cpp`): Jolt moves a kinematic body
+to a new transform over the next step (`MoveKinematic`, the whole distance in one tick), and setting a static
+`PhysicalBone3D`'s `global_transform` changes the node but not the body in the physics server.
+
+- **Approach:** Start a flinch with the simulator off, put every body (not only the flinch's) at its animated pose with
+  `PhysicsServer3D.body_set_state(rid, BODY_STATE_TRANSFORM, ...)` as well as the node, then turn the simulator on and
+  start the bones, and give the flinch's bodies the character's velocity. **Watch out for:** the flinch's top body
+  hangs by a joint from one that is not simulated (the chest from `spine_01`); after a death and a get-up that body
+  was 0.9 m away in the server, the next tick carried it back at 50 to 86 m/s and the joint pulled the arm along: an arm
+  drawn as a rod over the head for two to five frames, then flung. Setting the nodes alone changed nothing, and setting
+  the bodies after the simulator was on only moved the kinematic target. **Seen:** gdstudio #1338, 2026-11-12
+  (`test_hit_bone_lengths.gd`, both bodies, all ten cases failed on `main`).
+- **Approach:** Hold every simulated bone of a flinch, and of the get-up blend, at its rest distance from its parent
+  with a modifier right after the simulator (`RagdollLengths`: `set_bone_pose_position(bone, rest.origin)`), keeping
+  the turn the body gives it. **Watch out for:** the bones between two bodies that have no body of their own (the
+  clavicles, the neck) keep moving with the clip, and the joint holds the next body where the rest pose had it, so the
+  skin stretched 10 to 15 cm in a hit clip on a walking or crouched body; a body started inside its joint limits made
+  no difference. A whole limp body needs none of it: the clip stops and its joints alone keep the bones within 1 cm.
+  **Seen:** gdstudio #1338, 2026-11-12.
+
 ## Ragdoll in 3D Third Person {#template}
 
 <!-- new section: the template page reached its 50 KB limit, so the template's ragdoll moved here, beside the engine -->
@@ -381,3 +410,10 @@ into a game made from the template to run it (`scenario=`, `variants=`, `model=`
   failed a fresh death against itself; and a stage set up between frames rather than right after a tick started its
   walk a tick off and lay 0.3 m from the others. A joint made in the wrong pose lay 0.46 m off, well past the 3 cm
   allowed. **Seen:** gdstudio #1022, 2026-11-10 (`test_ragdoll_pool.gd`).
+- **Approach:** Measure what the skin gets with a modifier last on the skeleton (`BoneLengthProbe`): every bone's
+  distance from its parent against the rest's on each drawn frame, the rig's `ik_` bones and the pelvis left out, and
+  the fastest simulated body each tick; split a case into parts (run, hit, move, hit again, die) so a failure names
+  the part. **Watch out for:** `Skeleton3D.get_bone_global_pose` read from a test shows the clip, not the drawn pose
+  (the modifiers' pose is thrown away after the skin update), and a single fresh flinch on a standing body stretched
+  2 cm: the rods needed a body moved or revived since its bones were last simulated. **Seen:** gdstudio #1338,
+  2026-11-12 (`test_hit_bone_lengths.gd`).

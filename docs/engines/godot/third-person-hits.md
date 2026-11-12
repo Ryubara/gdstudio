@@ -47,8 +47,10 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   starts a flinch: the hit body and every body hanging from it go physical (`physical_bones_start_simulation` with that
   list, never a leg; a hit on the pelvis or a leg starts from `spine_01`), pushed by `flinch_push`, shown at
   `flinch_strength` through the simulator's `influence`, held for `flinch_hold` of `flinch_time` and blended back to
-  the clip, then the bones stop. A death during a flinch hands the whole skeleton to the ragdoll. The marks shots left
-  on the bones go when the body gets up (`Impacts.clear_marks_on(simulator)`).
+  the clip, then the bones stop. Every body is put at the animated pose first, in the physics server too, while the
+  simulator is off, and `RagdollLengths` keeps the flinch's bones at their rest lengths, so no limb stretches
+  ([A flinch](ragdoll.md#flinch), gdstudio #1338). A death during a flinch hands the whole skeleton to the ragdoll.
+  The marks shots left on the bones go when the body gets up (`Impacts.clear_marks_on(simulator)`).
 
 ### The inspector {#inspector}
 
