@@ -291,3 +291,44 @@ contact times. Forward 0 is the obstacle's front face.
   root goes level through the wall and nothing about the capsule, so it read as moving the body through the wall; the
   capsule has to stay where the physics world (and a server, stepping the same plan) can move it, so the model leaves it
   for the crossing. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11 (`VaultAnimation` holds the model).
+
+## The gait settings {#gait-settings}
+
+<!-- new section: the tree's gaits gained speed matching, transitions, a momentum blend and a lean (gdstudio #1158),
+each an inspector choice that a game and the clip issues that follow need to find -->
+
+`CharacterAnimation.gait_settings` (`GaitSettings`, the template's characters share
+`gameplay/character/gait_settings.tres`; empty, its defaults) fits the gaits to the body's real motion. How the tree
+does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is cosmetic: never sent.
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `speed_match` | on | the gait points at the clips' speeds (`clips.json` times the body's leg length over the reference's), each gait played at the ground speed over its own; off, the points at the tuning's speeds and every clip at its own pace |
+| `pace_range` | 0.4 to 2 | the slowest and fastest a gait is played |
+| `stretch` | 0.8 to 1.3 | how far a gait is slowed and sped up alone before the next blends in: the walk alone to 2.21 m/s, the walk and the jog blended to 3.2, the jog alone to 5.2 |
+| `slowest_pace` | 0.5 | the walk alone down to half its pace (0.85 m/s), fading into the idle below |
+| `transitions`, `transition_clips` | on, `GaitTransitionSet` | a start, a stop, a reversal, a pivot or a turn on the spot when the controller does one and its clip exists |
+| `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the controller's numbers that pick them |
+| `momentum_blend`, `momentum_half_life`, `momentum_speed_limit` | on, 0.05 s, 720 degrees a second | a change of body state shows at once and the difference from the drawn pose dies away (`MomentumBlend`), in place of the cross-fade over `blend_time` |
+| `lean`, `lean_clips`, `lean_full_at`, `lean_time` | on, `gds/Lean_Left` and the rest, 20 m/s², 0.12 s | the lean into the acceleration, built only when the four lean clips exist |
+
+**What a transition clip needs** (gdstudio #1156, #1157). A name in `GaitTransitionSet` is a base: the tree plays
+`<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start),
+the foot that lands next in the gait's phase (a stop, a reversal) or the way the body turns (a pivot, a turn on the
+spot). The defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`,
+`gds/Jog_Stop`, `gds/Sprint_Stop`, `gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`,
+`gds/Turn_In_Place_90` and `gds/Turn_In_Place_180`. From its record in `clips.json` the tree reads `travel` (a start
+or a stop is played at the time its travel has covered the ground the body really covered), `turn` (a reversal, a
+pivot or a turn: the time it has turned as far as the body), and `exit_phase` (the share of the gait's cycle it ends
+on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose body has finished its
+part plays on at its own pace; a body asked for something else leaves it at once. Until the clips exist nothing
+plays and the states change as before.
+
+**What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
+pose's difference from the idle's first frame.
+
+The cost, from `tools/bench/gait_cost.tscn` (`gds template bench-web 3d-third-person gait_cost --run`, headless
+Chrome on a workstation, the settings off and on in turns, players walking, blending, sprinting and stopping): 38 µs a
+frame for one character, 17 µs a character with 40 (4.28 ms off, 4.97 ms on); headless desktop, 12 µs a character
+with 40. The momentum blend reads 25 body bones a frame on each character and turns the ones that differ for 0.4 s
+after a change; the transitions ask nothing of the body while no transition clip is in the libraries.
