@@ -89,9 +89,14 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.
 - **Approach:** When a tour's printed lines are part of the proof (each step's name, a measured number), have the
   scene also write them to a file under the capture folder, or record with `gds godot -- --path <game> --write-movie
-  ...`, which keeps the game's output in the terminal. **Watch out for:** `gds capture frames` keeps Godot's output
+  ...`, which keeps the game's output in the terminal (Godot's
+  `--log-file <path>` after `--` keeps it in a file). **Watch out for:** `gds capture frames` keeps Godot's output
   to itself and shows only its `ERROR` lines, so a tour's `print` step lines never appear and its log cannot be read
-  beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11.
+  beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11; #1037 (PR #1239), 11-11.
+- **Approach:** Run `gds capture frames` on a game made from the template (`gds template test <t> --keep` or `gds
+  template game <t>`), never on the template's own `game/` folder. **Watch out for:** a template's `game/` folder has no
+  GdUnit4 and is not a game one opens (a new game gets its addons and its import when it is made), so a capture pointed
+  at it does not film the game. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11.
 
 ## sheet {#sheet}
 
