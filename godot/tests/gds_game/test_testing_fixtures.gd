@@ -52,6 +52,16 @@ func test_input_sim_release_all_lets_go_of_every_action() -> void:
 	assert_bool(still_down).is_false()
 
 
+func test_input_sim_release_all_lets_go_of_any_key_and_button_it_pressed() -> void:
+	# None of these is on the list of usual keys: left down, they stay down for the next suite.
+	InputSim.key(KEY_Y, true)
+	InputSim.pad_button(JOY_BUTTON_X, true)
+	InputSim.mouse_button(MOUSE_BUTTON_MIDDLE, true)
+	assert_bool(Input.is_anything_pressed()).is_true()
+	InputSim.release_all()
+	assert_bool(Input.is_anything_pressed()).is_false()
+
+
 func test_input_sim_waits_in_physics_ticks() -> void:
 	var start := Engine.get_physics_frames()
 	await InputSim.ticks(get_tree(), 3)
