@@ -30,7 +30,7 @@ category's blow.
   the blow is over. A window with nothing in reach is a miss. A blow spends no round and leaves no impact mark.
 - **Where it goes.** The character throws it from the chest (`Character.CHEST_SHARE` of its height) along the aim,
   not along the crosshair's ray, and turns to it as an aim does; a blow waits for no aim, and none is thrown lying
-  down, staggered or vaulting (`Character.can_melee()`).
+  down, staggered or vaulting (`Character._can_melee()`).
 - **The step state.** `MeleeBlow` (`gameplay/weapon/melee_blow.gd`) holds the blow's time, cooldown, landing, count,
   way and start, saved with the weapon's (`CharacterState.weapon`, 13 values), so a server and a predicting client
   land a blow on the same tick.

@@ -252,6 +252,10 @@ var _sprinting := false
 var _wants_crouch := false
 var _crouch_amount := 0.0
 var _fire_buffer := 0.0
+# The fire button as the last step's command held it, and whether a press was counted from the
+# button going down before its press flag came, so the flag is not a second press (`fire_press`).
+var _fire_was := false
+var _fire_echo := false
 var _stand_probe := CapsuleShape3D.new()
 # The prone stance; its step state is `CharacterState.prone`.
 var _prone := CharacterProne.new()
@@ -337,6 +341,7 @@ func step(command: PlayerCommand, delta: float) -> void:
 		loadout.tick(delta)
 	if weapon != null:
 		weapon.tick(delta)
+	_remember_fire(last_command)
 
 
 # One tick of a living body inside the map. A controller that asks for it (an AI's) gets the lean
@@ -391,8 +396,28 @@ func shot_wanted(command: PlayerCommand) -> bool:
 	var held := weapon.definition
 	if held != null and not held.fire_allowed(command.aim):
 		return false
-	var automatic := held != null and held.automatic
-	return _fire_buffer > 0.0 or command.fire_pressed or (automatic and command.fire)
+	return _fire_buffer > 0.0 or fire_press(command) or _trigger_held(command)
+
+
+## True when `command` is a new press of the fire button: its press flag, or the button down when
+## the last step's command did not hold it. A controller's press flag can come a tick after the
+## held button (Godot's `is_action_just_pressed` read in a physics tick did, gdstudio #1335): a
+## press already counted from the button makes its late flag no second press.
+func fire_press(command: PlayerCommand) -> bool:
+	if command.fire_pressed:
+		return not _fire_echo
+	return command.fire and not _fire_was
+
+
+## True when `command` holds the trigger of an automatic weapon: each tick it is held pulls once
+## more (spaced by the fire rate), with no buffer, so letting go stops the shots at once.
+func _trigger_held(command: PlayerCommand) -> bool:
+	return (
+		weapon != null
+		and weapon.definition != null
+		and weapon.definition.automatic
+		and command.fire
+	)
 
 
 ## The ray the character aims along, from the command of its last step: where it starts and its
@@ -701,9 +726,9 @@ func _prone_lets_fire() -> bool:
 	return not _prone.is_prone() or prone_tuning.fire_allowed
 
 
-## True when the character may throw a melee blow now: alive, not lying down, not staggered by a
-## hit, not vaulting, and its weapon ready for one (`Weapon.melee_ready`).
-func can_melee() -> bool:
+# True when the character may throw a melee blow now: alive, not lying down, not staggered by a
+# hit, not vaulting, and its weapon ready for one (`Weapon.melee_ready`).
+func _can_melee() -> bool:
 	return (
 		weapon != null
 		and state != State.DEAD
@@ -869,25 +894,42 @@ func _use_weapon(delta: float) -> void:
 		return
 	if last_command.reload_pressed:
 		weapon.reload()
-	var pulled := last_command.fire_pressed
-	if weapon.definition != null and weapon.definition.automatic and last_command.fire:
-		pulled = true
+	var pressed := fire_press(last_command)
+	var held := _trigger_held(last_command)
 	# The melee button throws the weapon's blow, as the fire button of a melee weapon (the empty
 	# hands) does, at once: a blow waits for no aim (gdstudio #1254).
 	var blow := last_command.melee_pressed
 	if weapon.definition != null and weapon.definition.kind == WeaponDef.Kind.MELEE:
-		blow = blow or pulled
-		pulled = false
-	if blow and can_melee():
+		blow = blow or pressed
+		pressed = false
+		held = false
+	if blow and _can_melee():
 		weapon.melee(_blow_origin(), _aim_direction())
 	if not _prone_lets_fire() or not _weapon_lets_fire(aim_held):
-		pulled = false
+		pressed = false
+		held = false
 	weapon.spread_share = prone_tuning.spread_share if _prone.is_prone() else 1.0
-	if pulled:
+	# Only a press fills the buffer: a held automatic trigger pulls on the ticks it is held and no
+	# longer, or a click held past its shot leaves a second one buffered (gdstudio #1335).
+	if pressed:
 		_fire_buffer = tuning.fire_buffer_time
-	if _fire_buffer > 0.0 and aiming and aim_amount >= tuning.shot_aim_amount and _within_reach():
+	var wanted := _fire_buffer > 0.0 or held
+	if wanted and aiming and aim_amount >= tuning.shot_aim_amount and _within_reach():
 		if weapon.pull(_aim_origin(), _aim_direction()) != Weapon.Pull.BUSY:
 			_fire_buffer = 0.0
+
+
+# What `fire_press` reads on the next step: the button as held now, and whether this step counted a
+# press from the button with no flag (its flag, when it comes, is no new press). A step with the
+# button up and no flag forgets a flag that never came.
+func _remember_fire(command: PlayerCommand) -> void:
+	if command.fire_pressed:
+		_fire_echo = false
+	elif command.fire and not _fire_was:
+		_fire_echo = true
+	elif not command.fire:
+		_fire_echo = false
+	_fire_was = command.fire
 
 
 # False while the weapon refuses a shot aimed past what the move lets the upper body reach.

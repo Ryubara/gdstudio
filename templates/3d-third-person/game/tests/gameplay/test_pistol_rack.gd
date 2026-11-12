@@ -201,8 +201,17 @@ func test_the_right_hand_holds_the_pistol_through_the_rack() -> void:
 			made.pose(share)
 			await made.stage.settle()
 			var tag := "%s rack frame %d r:" % [model, frame]
-			var parts := made.stage.contact.measure("r")
-			var fails := HandContact.failures(tag, parts, HoldStage.RIGHT_CONTACTS)
+			# Under the left hand on its support grip the right thumb lies on that hand's thumb
+			# root, not on the gun (kit #1084), so there the right hand is measured against the
+			# left one too; while the left hand leaves or comes back the thumb is on its way
+			# between the two and holds nothing, as in `test_pistol_hold.gd`.
+			var plan: SupportHandPlan = made.stage.hold.call(&"left_hand")
+			var under := plan.room >= 1.0 and plan.off <= 0.0 and plan.opened <= 0.0
+			var contacts := HoldStage.RIGHT_CONTACTS
+			if plan.room > 0.0 and not under:
+				contacts = contacts.filter(func(part: String) -> bool: return part != "thumb_tip")
+			var parts := made.stage.contact.measure("r", under)
+			var fails := HandContact.failures(tag, parts, contacts)
 			assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
 			var trigger := made.stage.pistol.find_child("Trigger", true, false) as Node3D
 			var off := made.stage.contact.part_distance_to(
@@ -299,25 +308,29 @@ func test_the_left_hand_passes_clear_between_frames_and_with_the_arm_in() -> voi
 				made.pose(share)
 				await made.stage.settle()
 				var limit := HandContact.MAX_DEPTH if rack.is_gripping(share) else PASSING_DEPTH
-				var parts := made.stage.contact.measure("l", true)
-				for part: String in parts:
-					var depth: float = -parts[part].distance
-					(
-						assert_float(depth)
-						. override_failure_message(
-							(
-								"%s %s frame %.1f: %s %.1f mm inside"
-								% [
-									model,
-									"carried" if carried else "arm in",
-									step / 2.0,
-									part,
-									depth * 1e3
-								]
+				# Both hands, each against the other: a right thumb that came down on the frame
+				# while the left hand was still under it showed only from the right hand's side.
+				for side: String in ["l", "r"]:
+					var parts := made.stage.contact.measure(side, true)
+					for part: String in parts:
+						var depth: float = -parts[part].distance
+						(
+							assert_float(depth)
+							. override_failure_message(
+								(
+									"%s %s frame %.1f: %s %s %.1f mm inside"
+									% [
+										model,
+										"carried" if carried else "arm in",
+										step / 2.0,
+										side,
+										part,
+										depth * 1e3
+									]
+								)
 							)
+							. is_less(limit)
 						)
-						. is_less(limit)
-					)
 			made.free_stage()
 
 

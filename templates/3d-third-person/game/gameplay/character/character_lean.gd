@@ -227,20 +227,18 @@ static func _after_move(body: Character, wish: Vector3) -> void:
 
 
 # `Character._use_weapon()` with no switch and no reload asked for and the body up: the fire buffer
-# counts, a pull (a press, or the trigger held on an automatic weapon) fills it, and the shot
-# leaves once the aim is up.
+# counts, a press fills it, and the shot leaves once the aim is up; the trigger held on an automatic
+# weapon pulls on the ticks it is held (`Character._trigger_held`).
 static func _trigger(body: Character, delta: float) -> void:
 	body._fire_buffer = maxf(body._fire_buffer - delta, 0.0)
 	var weapon := body.weapon
 	if weapon == null:
 		return
 	var command := body.last_command
-	var pulled := command.fire_pressed
-	if weapon.definition != null and weapon.definition.automatic and command.fire:
-		pulled = true
 	weapon.spread_share = 1.0
-	if pulled:
+	if body.fire_press(command):
 		body._fire_buffer = body.tuning.fire_buffer_time
-	if body._fire_buffer > 0.0 and body.aiming and body.aim_amount >= body.tuning.shot_aim_amount:
+	var wanted := body._fire_buffer > 0.0 or body._trigger_held(command)
+	if wanted and body.aiming and body.aim_amount >= body.tuning.shot_aim_amount:
 		if weapon.pull(body._aim_origin(), body._aim_direction()) != Weapon.Pull.BUSY:
 			body._fire_buffer = 0.0
