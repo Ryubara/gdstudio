@@ -228,6 +228,9 @@ func test_every_aim_limit_is_pinned() -> void:
 		&"converge_distance": 15.0,
 		&"release_time": 0.12,
 		&"disabled": false,
+		&"head_neck_share": 0.4,
+		&"head_max_turn": 90.0,
+		&"head_disabled": false,
 	}
 	assert_array(ExportPins.differences(_layer, layer)).is_empty()
 	assert_array(ExportPins.wrong_values(_layer, layer)).is_empty()
