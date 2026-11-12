@@ -251,3 +251,15 @@ a body (measured as `Performance.OBJECT_COUNT` before and after `attach`), 3 onc
 climb states added to it were what took the late-round budget over its object limit (20 839 against 20 500 at the
 same run, 15 589 shared). The library (`AnimationLibrary`) was shared already; the machine is the same kind of thing.
 Release the static that holds it with the library.
+
+## Holding a clip on one frame {#hold-one-frame}
+
+<!-- new section: the page covered reading and seeking clips; nothing said how to keep one frame still inside a
+     blend space -->
+
+A clip held on one pose inside a blend space or a state machine keeps that pose whatever time the tree hands it (a sync
+between points, a state's seek to its start): an `AnimationNodeAnimation` with `use_custom_timeline` on,
+`timeline_length` 0, `stretch_time_scale` off, `loop_mode` none and `start_offset` the frame. A seek of the clip alone
+does not hold, since the sync and the state machine move it again. The still aim stance of 3D Third Person is built this
+way: the idle point is the idle playing and the same idle held on its steadiest frame, blended by the aim (in
+gdstudio #1206, PR #1256).
