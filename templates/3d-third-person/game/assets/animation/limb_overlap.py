@@ -42,7 +42,7 @@ from pathlib import Path
 
 import bpy
 import numpy as np
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Quaternion, Vector
 from mathutils.bvhtree import BVHTree
 
 ## The deepest a part may be inside another (mm): skin touching skin and no more. The Universal Animation Library's
@@ -106,6 +106,40 @@ def pair_class(a, b):
     return "/".join(kinds)
 
 
+def roll_about(turn, axis):
+    """The part of `turn` that is a roll about `axis` (a unit vector): the swing-twist split."""
+    along = Vector((turn.x, turn.y, turn.z)).dot(axis)
+    roll = Quaternion((turn.w, *(axis * along)))
+    if roll.magnitude < 1e-6:
+        return Quaternion()
+    return roll.normalized()
+
+
+def twist_bones(rest_rel):
+    """The twist bones of a prototype body, which no clip keys and the game turns from the limbs' pose
+    (`assets/characters/prototype/mannequin_twist.gd`): `[twist bone, the limb it follows, that limb's length axis in
+    the limb's (for a hand, the forearm's) own frame, take the limb's roll out (True) or copy the hand's (False)]`.
+    Empty on a body without them."""
+    out = []
+    for side in "lr":
+        for limb, child in (("upperarm", "lowerarm"), ("thigh", "calf")):
+            if f"{limb}_twist_01_{side}" in rest_rel:
+                axis = rest_rel[f"{child}_{side}"].translation.normalized()
+                out.append((f"{limb}_twist_01_{side}", f"{limb}_{side}", axis, True))
+        if f"lowerarm_twist_01_{side}" in rest_rel:
+            axis = rest_rel[f"hand_{side}"].translation.normalized()
+            out.append((f"lowerarm_twist_01_{side}", f"hand_{side}", axis, False))
+    return out
+
+
+def twist_roll(rest_rel, source, rel, axis, counter):
+    """The roll a twist bone takes, in its limb's frame: `rel` is the followed bone's rotation from its parent."""
+    rest = rest_rel[source].to_quaternion()
+    if counter:
+        return roll_about(rest.inverted() @ rel, axis).inverted()
+    return roll_about(rel @ rest.inverted(), axis)
+
+
 class Body:
     """A mannequin: its armature, its skinned mesh, and the mesh cut into parts."""
 
@@ -118,6 +152,7 @@ class Body:
         self.rest_rel = {
             n: (rest[self.parent[n]].inverted() @ rest[n]) if self.parent[n] else rest[n].copy() for n in self.order
         }
+        self.twists = twist_bones(self.rest_rel)
         part_of = {}
         for name_ in self.order:  # parents come before children
             part_of[name_] = PARTS.get(name_) or part_of.get(self.parent[name_]) or "pelvis"
@@ -198,6 +233,15 @@ class Body:
             local = Matrix.LocRotScale(offset, rel.to_quaternion(), None)
             bone.matrix_basis = self.rest_rel[name].inverted() @ local
         bpy.context.view_layer.update()
+        # The twist bones as the game turns them near the camera, so the skin measured is the skin drawn.
+        own = self.arm.pose.bones
+        for twist, followed, axis, counter in self.twists:
+            rel = (own[self.parent[followed]].matrix.inverted() @ own[followed].matrix).to_quaternion()
+            roll = twist_roll(self.rest_rel, followed, rel, axis, counter)
+            rest = self.rest_rel[twist].to_quaternion()
+            own[twist].matrix_basis = (rest.inverted() @ roll @ rest).to_matrix().to_4x4()
+        if self.twists:
+            bpy.context.view_layer.update()
 
     def skinned(self):
         """Every welded vertex of the deformed mesh, in the world (an N x 3 array)."""
