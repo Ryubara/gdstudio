@@ -249,8 +249,8 @@ muzzle's own swing round the spine (1.3 to 1.8 degrees off with one pass, 0.1 to
 `WeaponHold`'s grip (whose wrist turn moves the muzzle) and before its support arm, which reaches for the weapon where
 the turn left it: the left hand, the fingers and the trigger finger stay on the gun with no change to the hold.
 `WeaponHold` says `built` when it makes its modifiers again, and the layer puts itself back after the grip. The layer is
-on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's, and keeps its turn through a
-reload ([why](moves.md#prone)); a weapon with no muzzle (the fists) turns nothing.
+on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's; a weapon with no muzzle (the fists)
+turns nothing.
 
 **Recoil.** While the shot's one-shot plays (`CharacterAnimation.is_shooting()`), the turn found before the shot is kept
 and moved only with the aim, so the recoil the clip shows is not turned away; after it the turn eases back over
@@ -423,8 +423,8 @@ about 3.5 µs a streak, and nothing while none shows. The web build linked 3 pro
   (`projectile_cap`, 24): a finished one parks hidden out of the physics and is fired again, and every projectile of
   a size shares one mesh and shape and every one of a colour one material, so a hundred shots make no resource. A
   hitscan shot is one ray and a hit record (`hit_scanned`: collider, position, normal, from, damage and, on a
-  character, the `HitRecord` its `HitZones` delivered, as a projectile's hit does); a blow is a ray of `melee_reach`
-  from the chest.
+  character, the `HitRecord` its `HitZones` delivered, as a projectile's hit does); a blow is the weapon's melee
+  ([Melee blows](melee.md#melee)).
 - **`WeaponLoadout`** (`Loadout`, a child of `character.tscn`, so a server's body has it too) holds the `slots` (`WeaponDef`s,
   typed `Array[Resource]` with a `WeaponDef` hint: [why](../test-exit-leaks.md#typed-array-export-and-self-cast)) and
   `unarmed`, gives the weapon the definition in the hands, keeps each slot's magazine and reserve while it is put
@@ -443,17 +443,16 @@ about 3.5 µs a streak, and nothing while none shows. The web build linked 3 pro
   `.loadout`), so a server and a predicting client reload and switch on the same tick. What is in the hands is
   gameplay; the clips, the sounds and the flash are cosmetic and never sent.
 - **The animation** builds its weapon layer from the held definition (`CharacterAnimation.held_definition()`): a clip
-  left empty has no weight, so the fists take no grip and no aim pose, and their two clips alternate (jab, cross). The
-  reload is a one-shot on the upper body stretched to `reload_time` (`reload_clip`, or `prone_reload_clip` on a
-  body that lies with a prone aim: [the prone reload](moves.md#prone)); a switch lowers the grip and the aim by
-  `WeaponLoadout.lowered_amount()`. A change to a definition's clip rebuilds the tree (`changed`).
+  left empty has no weight, so the fists take no grip and no aim pose; their blows are the melee layer's
+  ([melee](melee.md#melee)). The reload is a one-shot on the upper body stretched to `reload_time`; a switch lowers
+  the grip and the aim by `WeaponLoadout.lowered_amount()`. A change to a definition's clip rebuilds the tree (`changed`).
 - **What aim and fire do** is the weapon's too (`WeaponDef`'s Aim and zoom group, gdstudio #1255): `can_aim` (off:
   the aim button does nothing), `fire_needs_aim` (on: fire shoots only with the aim button held, and never with
   `can_aim` off; `WeaponDef.fire_allowed()`), `fire_zooms` (off: holding fire leaves the camera's framing alone; the
   camera's own `zoom_when_firing` must be on too) and `show_crosshair` (off: the `Crosshair` stays hidden). With
   `override_zoom` on, the weapon's `aim_fov`, `aim_distance`, `fire_fov`, `fire_distance` and `zoom_offset` (further to
   the chosen shoulder and up, blended in with the zoom) replace the camera's. The defaults keep the pistol as it was; the
-  fists have `fire_zooms` off, so a punch does not zoom. The character reads `can_aim` and `fire_needs_aim` every step
+  fists have `fire_zooms` off, so a blow does not zoom. The character reads `can_aim` and `fire_needs_aim` every step
   from the definition its server body holds too (gameplay); `PlayerCamera.held_definition()` and the `Crosshair` read
   the rest every frame (local, never sent), so every toggle applies while the game runs. Tests:
   `test_weapon_aim_toggles.gd`; capture: `tools/capture/fire_zoom_tour.tscn` (pistol fire zooms, fist fire does not).
@@ -471,28 +470,33 @@ Cost, measured headless on the desktop (`tools/bench/weapon_cost.tscn`, 1,000 sh
 µs of script without its sound, a weapon's and its loadout's tick 1.5 to 2 µs, and a thousand shots leave no new
 resource (the pool's 24 bodies, one mesh, one shape, one material). The weapons add 4 nodes to a living character (the
 `Loadout` and three idle sound players); `NODES_ALIVE` in `test_parts_budget.gd` holds the living character's budget
-(56 on 2026-11-11) and lists what each change added. The shot's sound is most of a shot: with the
-`ShotSound` playing, a projectile shot measured 400 µs, a hitscan shot 310 to 360 µs and a blow 290 to 350 µs, nearly
-all of it `AudioStreamPlayer3D.play()` on headless Godot's dummy audio driver; measure it on the web before taking the
-number as a budget.
+and lists what each change added. The shot's sound is
+most of a shot: with the `ShotSound` playing, a projectile shot measured 400 µs, a hitscan shot 310 to 360 µs and a blow
+290 to 350 µs, nearly all of it `AudioStreamPlayer3D.play()` on headless Godot's dummy audio driver; measure it on the
+web before taking the number as a budget.
 
 Hands on the pistol through the reload: the `WeaponHold` follows the reload clip by
-`CharacterAnimation.reload_progress()` (how much of the upper body the one-shot holds, and the share of the clip
-played, whatever `reload_time` is), so the left hand is on the gun, away for the new magazine, under the magazine while
-it goes in and on the gun again, and the trigger finger is off the trigger
+`CharacterAnimation.reload_progress()` (the one-shot's weight and the share of the clip played), so the left hand is
+on the gun, away for the new magazine, under it while it goes in and on the gun again, and
+the trigger finger is off the trigger
 ([the hold and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)). The hand goes on
 and off the gun one way (its fingers open where it holds, then the opened hand leaves along a solved clear line,
-`WeaponHold.support_way`), and `SupportHandPlan` (`gameplay/weapon/hold/support_hand_plan.gd`) names the reload's
+`WeaponHold.support_way`), and `SupportHandPlan` names the reload's
 phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD`, `LET_GO`, `AWAY`, `REACH`,
-`INSERT`, `SEATED` or `RETURN`. It is cosmetic: the rounds go in at the end of `reload_time` whatever the hands do.
+`INSERT`, `SEATED` or `RETURN`. The magazines follow it: the old one drops at the first sound, a new one rides the left
+hand in, and an empty pistol's slide runs forward at the last
+([the magazine and the slide](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#the-magazine-through-the-reload)).
+It is cosmetic: the rounds go in at the end of `reload_time`.
+How the two hands hold the pistol together, the trigger finger's way to the trigger and the hand's retreat when the
+arm is short are on [The two-handed pistol grip](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses).
 
-The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (`assets/animation/pistol/`, kit #1081): it
-starts and ends on the pose the reload ends on, and its `SlideRack` resource
-(`gameplay/weapon/hold/pistol_slide_rack.tres`, with the male body's `pistol_slide_rack_male.tres` in its `fits`:
-`SlideRack.fit()` gives the one solved on the model's body) gives the left hand's place on the slide, its fingers
-closed on the slide and opened over it, the slide's travel and the shares at which it is gripped, pulled and let
-go. The reload does not play it yet (kit #1052); the test
-`test_pistol_rack.gd` and the capture `tools/capture/rack_closeups.tscn` play it on a stage
+The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (kit #1081); its `SlideRack` resource
+(`pistol_slide_rack.tres`; `SlideRack.fit()` gives the model's body's) holds the left hand's place and fingers on
+the slide, the slide's travel and the shares of its grip, pull and release. The reload does not play it yet
+(kit #1337): the hold releases the slide at the last sound and writes the `Slide` node only on a change, so a rack can
+move it. `test_pistol_rack.gd` and the `rack_closeups` capture play it on a stage whose `reload_weight` is
+`SlideRack.support_weight(share)`, which also takes off the carry arm's swing: there the pistol swings 7 cm out
+and back, and the game's player keeps the arm in
 ([the clip and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
 
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as

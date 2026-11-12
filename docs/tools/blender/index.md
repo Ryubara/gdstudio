@@ -30,10 +30,12 @@ Each stage of making an asset has a page; the asset classes and the tooling have
 | The skeleton of GDStudio's own rig: bones, rest pose, twist bones, sockets, IK targets, clip rules | [The prototype mannequin rig](mannequin-rig.md) |
 | Cleaning Quaternius characters and exporting their clips for a shared animation library | [Rig sharing](rig-sharing.md) |
 | Locomotion clips from a kit's Run, at a known ground speed | [Gaits](gaits.md) |
+| The library clips the template plays, measured: the gaits, every clip, what they cost | [The library's clips, measured](library-clip-audit.md) |
 | The plan to own every clip: the library's clips measured, the research, the set, checks, variants and review | [Our own animation set](own-animation.md) |
 | Modular kit pieces, props, stairs and backdrops for a map | [Modular kits](modular-kits.md) |
 | Character variants, clothes and modular parts on one rig | [Variants](variants.md) |
 | Weapons in the kit's style: axes, sockets, hands, budgets | [Weapons](weapons.md) |
+| How hands hold a weapon, grip by grip: the two-handed pistol grip | [Hands on a weapon](weapon-hands/index.md) |
 | Rendering app icons and key art from the game's own models with Cycles | [Key art and icons](key-art.md) |
 | A realistic character: sculpt base, bakes, skin, eyes, hair cards, clothes, budgets, what fell short | [Realistic characters](realistic-characters.md) |
 

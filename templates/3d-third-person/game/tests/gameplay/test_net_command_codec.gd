@@ -105,11 +105,42 @@ func test_each_flag_travels_alone() -> void:
 		"next_weapon_pressed",
 		"previous_weapon_pressed",
 		"unarmed_pressed",
+		"melee_pressed",
 	]:
 		var command := PlayerCommand.new()
 		command.set(field, true)
 		var decoded := CommandCodec.decode(CommandCodec.encode(command))
 		_assert_same(decoded, command)
+
+
+func test_the_melee_press_takes_bit_0_of_byte_13_and_the_size_stays() -> void:
+	var command := PlayerCommand.new()
+	command.melee_pressed = true
+	var packet := CommandCodec.encode(command)
+	assert_int(packet.size()).is_equal(NetWire.COMMAND_SIZE)
+	assert_int(packet[CommandCodec.MORE_FLAGS_AT]).is_equal(CommandCodec.G_MELEE_PRESSED)
+	assert_int(packet.decode_u16(11)).is_equal(0)
+	assert_bool(CommandCodec.decode(packet).melee_pressed).is_true()
+	# With a shot block (a blow is aimed): the block still starts at byte 15.
+	command.has_shot = true
+	command.origin = Vector3(1.0, 2.0, 3.0)
+	command.view_tick = 4321
+	var aimed := CommandCodec.decode(CommandCodec.encode(command))
+	assert_bool(aimed.melee_pressed and aimed.has_shot).is_true()
+	assert_int(aimed.view_tick).is_equal(4321)
+	assert_vector(aimed.origin).is_equal_approx(command.origin, Vector3.ONE * 0.01)
+	# A bit of byte 13 this version does not know is refused, as an unknown flag is.
+	var drops := NetDrops.new()
+	packet[CommandCodec.MORE_FLAGS_AT] = 0x02
+	assert_object(CommandCodec.decode(packet, drops)).is_null()
+	assert_int(drops.total()).is_equal(1)
+	# Two commands in one tick keep the press; a repeat drops it.
+	var later := PlayerCommand.new()
+	later.merge_edges_from(command)
+	assert_bool(later.melee_pressed).is_true()
+	later.clear_edges()
+	assert_bool(later.melee_pressed).is_false()
+	assert_int(NetWire.VERSION).is_greater_equal(8)
 
 
 func test_the_weapon_presses_take_bits_11_to_14_beside_prone_on_bit_15() -> void:
@@ -253,6 +284,7 @@ func test_every_decoded_number_is_finite_whatever_the_bytes() -> void:
 			packet[at] = rng.randi_range(0, 255)
 		packet[0] = NetWire.Type.COMMAND
 		packet.encode_u16(11, packet.decode_u16(11) & 0x7FF | CommandCodec.F_SHOT)
+		packet[CommandCodec.MORE_FLAGS_AT] &= CommandCodec.G_MELEE_PRESSED
 		var decoded := CommandCodec.decode(packet, NetDrops.new())
 		assert_object(decoded).is_not_null()
 		assert_bool(decoded.all_finite()).is_true()

@@ -38,6 +38,15 @@ const F_UNARMED_PRESSED := 1 << 14
 const F_PRONE := 1 << 15
 ## Bits no build of this version sets: a command with one of them is refused (none are left).
 const F_UNUSED := 0xFFFF & ~((F_UNARMED_PRESSED << 1) - 1) & ~F_PRONE
+# The bits of the second flag byte (gdstudio #1254: the u16 above was full). It is byte 13, which
+# the 15-byte layout always carried as zero; byte 14 is still spare.
+## The melee button.
+const G_MELEE_PRESSED := 1 << 0
+## Bits of the second byte no build of this version sets: a command with one is refused.
+const G_UNUSED := 0xFF & ~((G_MELEE_PRESSED << 1) - 1)
+## Where the second flag byte and the shot block start.
+const MORE_FLAGS_AT := 13
+const SHOT_AT := 15
 
 # --- The command ---
 
@@ -58,13 +67,14 @@ static func encode(command: PlayerCommand, drops: NetDrops = null) -> PackedByte
 	out.encode_u16(7, yaw_step(command.yaw))
 	out.encode_s16(9, look_step(command.pitch))
 	out.encode_u16(11, _flags(command))
+	out[MORE_FLAGS_AT] = _more_flags(command)
 	if command.has_shot:
-		out.encode_s16(15, point_step(command.origin.x))
-		out.encode_s16(17, point_step(command.origin.y))
-		out.encode_s16(19, point_step(command.origin.z))
-		out.encode_u16(21, yaw_step(command.shot_yaw))
-		out.encode_s16(23, look_step(command.shot_pitch))
-		out.encode_u16(25, command.view_tick & 0xFFFF)
+		out.encode_s16(SHOT_AT, point_step(command.origin.x))
+		out.encode_s16(SHOT_AT + 2, point_step(command.origin.y))
+		out.encode_s16(SHOT_AT + 4, point_step(command.origin.z))
+		out.encode_u16(SHOT_AT + 6, yaw_step(command.shot_yaw))
+		out.encode_s16(SHOT_AT + 8, look_step(command.shot_pitch))
+		out.encode_u16(SHOT_AT + 10, command.view_tick & 0xFFFF)
 	return out
 
 
@@ -86,7 +96,8 @@ static func decode(data: PackedByteArray, drops: NetDrops = null) -> PlayerComma
 		NetDrops.note(drops, NetDrops.TOO_LONG)
 		return null
 	var flags := data.decode_u16(11)
-	if flags & F_UNUSED != 0:
+	var more := data[MORE_FLAGS_AT]
+	if flags & F_UNUSED != 0 or more & G_UNUSED != 0:
 		NetDrops.note(drops, NetDrops.BAD_VALUE)
 		return null
 	var shot := flags & F_SHOT != 0
@@ -113,16 +124,17 @@ static func decode(data: PackedByteArray, drops: NetDrops = null) -> PlayerComma
 	result.next_weapon_pressed = flags & F_NEXT_WEAPON_PRESSED != 0
 	result.previous_weapon_pressed = flags & F_PREVIOUS_WEAPON_PRESSED != 0
 	result.unarmed_pressed = flags & F_UNARMED_PRESSED != 0
+	result.melee_pressed = more & G_MELEE_PRESSED != 0
 	result.has_shot = shot
 	if shot:
 		result.origin = Vector3(
-			point_from_step(data.decode_s16(15)),
-			point_from_step(data.decode_s16(17)),
-			point_from_step(data.decode_s16(19))
+			point_from_step(data.decode_s16(SHOT_AT)),
+			point_from_step(data.decode_s16(SHOT_AT + 2)),
+			point_from_step(data.decode_s16(SHOT_AT + 4))
 		)
-		result.shot_yaw = yaw_from_step(data.decode_u16(21))
-		result.shot_pitch = look_from_step(data.decode_s16(23))
-		result.view_tick = data.decode_u16(25)
+		result.shot_yaw = yaw_from_step(data.decode_u16(SHOT_AT + 6))
+		result.shot_pitch = look_from_step(data.decode_s16(SHOT_AT + 8))
+		result.view_tick = data.decode_u16(SHOT_AT + 10)
 	return result
 
 
@@ -151,6 +163,10 @@ static func _flags(command: PlayerCommand) -> int:
 	flags |= F_PREVIOUS_WEAPON_PRESSED if command.previous_weapon_pressed else 0
 	flags |= F_UNARMED_PRESSED if command.unarmed_pressed else 0
 	return flags
+
+
+static func _more_flags(command: PlayerCommand) -> int:
+	return G_MELEE_PRESSED if command.melee_pressed else 0
 
 
 # --- Move ---

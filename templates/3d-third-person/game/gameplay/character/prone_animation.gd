@@ -120,10 +120,11 @@ func step_crawl_share(speed: float, blend_time: float, delta: float) -> float:
 
 ## The clip a reload of `hold` plays now: its prone reload on a body that lies with a prone aim
 ## (none when it has none: the standing clip folds the arms under a lying chest), else its
-## standing one. The choice is kept, so `reload_misplaced` can tell when the body has changed.
-func reload_clip(hold: WeaponDef) -> StringName:
+## standing one, and none where `body` lies too far for the weapon's clips (`lies_past_clips`).
+## The choice is kept, so `reload_misplaced` can tell when the body has changed.
+func reload_clip(body: Character, hold: WeaponDef) -> StringName:
 	_reload_lying = lies > 0.5
-	if hold == null:
+	if hold == null or lies_past_clips(body, hold):
 		return &""
 	return hold.prone_reload_clip if _reload_lying else hold.reload_clip
 
@@ -164,6 +165,20 @@ static func crawl_pace(body: Character, clip_speed: float) -> float:
 ## clip, by `reloading`, how much of the upper body it holds.
 static func stow_share(body: Character, reloading := 0.0) -> float:
 	return smoothstep(0.0, 1.0, body.prone_amount) * (1.0 - maxf(body.aim_amount, reloading))
+
+
+## How much of a weapon's clips a body plays for how far it lies (1 all, 0 none): less than 1 only
+## for a weapon whose clips stand the trunk from the pelvis (`WeaponDef.clips_upright`, the
+## rifle's). Lying, the prone clips keep the body and the weapon's hold alone carries it.
+static func upright_share(body: Character, hold: WeaponDef) -> float:
+	if hold == null or not hold.clips_upright or body == null:
+		return 1.0
+	return 1.0 - smoothstep(0.0, 1.0, body.prone_amount)
+
+
+## True when `body` lies too far for `hold`'s clips to play (a reload plays no clip then).
+static func lies_past_clips(body: Character, hold: WeaponDef) -> bool:
+	return upright_share(body, hold) < 0.5
 
 
 ## Hides the model of the weapon in the hands (`hold.view` under `model`) while `away`, and shows
