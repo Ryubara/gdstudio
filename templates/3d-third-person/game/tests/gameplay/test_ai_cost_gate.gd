@@ -1,5 +1,6 @@
-# On the clock: the gate times the AI's step and thinks, held as a ratio of a calibration loop
-# timed in the same process (`performance-budgets.md#reading-a-timing-on-a-shared-machine`).
+# On the clock: the gate times the AI's step and thinks, held as a ratio of the calibration loop
+# timed between the measured ticks, medians on both sides, so a busy machine slows both
+# (`performance-budgets.md#reading-a-timing-on-a-shared-machine`).
 #
 # The AI's cost gate (kit #971): 50, 100 and 200 civilians (the template's `civilian.tscn`) going
 # about a 28 m mesh round a visitor in the player's faction and a raider in the enemy's (seen,
@@ -9,9 +10,12 @@
 # rate, or casts more than `max_rays_per_think` (2) rays a think; the shared budget is never
 # overspent. Time second, loose: the director's step a character a tick, a think, and the server's
 # record of the AI's hit volumes (`AiHitHistory`, the `ai_history_us` of the server's `stats`
-# line) a character, each over the calibration loop's milliseconds, under limits set at about
-# twice the ratios measured (the docs table: `crowds.md#ai-characters`). A failure says the
-# number. The crowd must walk (a crowd whose paths all fail costs nothing: `crowds.md`).
+# line) a character, each a median: the step and a think over the median of the calibration
+# loop timed every `CALIBRATE_TICKS` ticks, the history (a section of a few microseconds that a
+# loop of arithmetic does not follow) over the step of the same ticks; limits sit between the
+# highest ratio seen with a second suite loading the machine and twice the lowest, so a step
+# twice as slow fails (the docs table: `third-person/ai-characters.md#cost-gate`). A failure
+# says the number. The crowd must walk (a crowd whose paths all fail costs nothing: `crowds.md`).
 extends GdUnitTestSuite
 
 const CIVILIAN := "res://gameplay/ai/characters/civilian.tscn"
@@ -20,12 +24,17 @@ const WARM_TICKS := 120
 const TICKS := 300
 ## Metres between two characters of the grid they start on.
 const SPACING := 1.6
-## The director's step a character a tick, microseconds a calibration millisecond, at most.
-const STEP_RATIO_LIMIT := 6.5
-## A think, microseconds a calibration millisecond, at most.
-const THINK_RATIO_LIMIT := 28.0
-## The hit history's record a character, microseconds a calibration millisecond, at most.
-const HISTORY_RATIO_LIMIT := 0.25
+## Ticks between two timings of the calibration loop in the measured window.
+const CALIBRATE_TICKS := 50
+## The director's step a character a tick (median), microseconds a calibration millisecond
+## (median), at most, by crowd size.
+const STEP_RATIO_LIMITS: Dictionary[int, float] = {50: 8.0, 100: 7.5, 200: 6.5}
+## A think (median), microseconds a calibration millisecond, at most, by crowd size (a think
+## grows with the crowd it reads).
+const THINK_RATIO_LIMITS: Dictionary[int, float] = {50: 13.0, 100: 14.0, 200: 18.0}
+## The hit history's record (median) over the director's step (median) of the same ticks, at
+## most, by crowd size.
+const HISTORY_RATIO_LIMITS: Dictionary[int, float] = {50: 0.055, 100: 0.06, 200: 0.09}
 ## The share of the time the crowd must spend walking, at least.
 const WALKING_SHARE_MIN := 0.2
 
@@ -70,11 +79,11 @@ func test_the_ai_holds_its_counts_and_its_cost() -> void:
 		assert_float(row.walking_share).override_failure_message("the crowd did not walk " + where)
 		assert_float(row.walking_share).is_greater_equal(WALKING_SHARE_MIN)
 		assert_float(row.step_ratio).override_failure_message("step over budget " + where)
-		assert_float(row.step_ratio).is_less_equal(STEP_RATIO_LIMIT)
+		assert_float(row.step_ratio).is_less_equal(STEP_RATIO_LIMITS[row.count])
 		assert_float(row.think_ratio).override_failure_message("think over budget " + where)
-		assert_float(row.think_ratio).is_less_equal(THINK_RATIO_LIMIT)
+		assert_float(row.think_ratio).is_less_equal(THINK_RATIO_LIMITS[row.count])
 		assert_float(row.history_ratio).override_failure_message("history over budget " + where)
-		assert_float(row.history_ratio).is_less_equal(HISTORY_RATIO_LIMIT)
+		assert_float(row.history_ratio).is_less_equal(HISTORY_RATIO_LIMITS[row.count])
 
 
 func _measure(count: int) -> Dictionary:
@@ -93,7 +102,7 @@ func _measure(count: int) -> Dictionary:
 		crowd.append(_arena.add_kind(CIVILIAN, spot, TAU * index / count))
 	for _i in WARM_TICKS:
 		await get_tree().physics_frame
-	var calibration := AiSoakWatch.calibrate()
+	var calibrations := PackedFloat64Array([AiSoakWatch.calibrate()])
 	var thinks := PackedInt32Array()
 	var queries := PackedInt32Array()
 	var rays := PackedInt32Array()
@@ -105,24 +114,23 @@ func _measure(count: int) -> Dictionary:
 	var ids: Dictionary[int, AiCharacter] = {}
 	for index in crowd.size():
 		ids[index + 1] = crowd[index]
-	var step_total := 0.0
-	var think_total := 0.0
-	var think_samples := 0
-	var history_total := 0.0
+	var steps := PackedFloat64Array()
+	var think_times := PackedFloat64Array()
+	var histories := PackedFloat64Array()
 	var walking := 0
 	var rays_over := 0
 	var budget_over := 0
 	var last_counts := thinks.duplicate()
 	for tick in TICKS:
 		await get_tree().physics_frame
-		step_total += director.last_step_usec
+		steps.append(float(director.last_step_usec) / count)
 		var budget := director.budget
 		if budget.paths > budget.paths_per_tick or budget.rays > budget.rays_per_tick:
 			budget_over += 1
 		if budget.thinks > budget.thinks_per_tick:
 			budget_over += 1
 		history.record(tick, ids)
-		history_total += history.last_record_us
+		histories.append(float(history.last_record_us) / count)
 		for index in crowd.size():
 			var character := crowd[index]
 			var navigator := character.navigator as AiNavigator
@@ -130,10 +138,11 @@ func _measure(count: int) -> Dictionary:
 				walking += 1
 			if character.think_count != last_counts[index]:
 				last_counts[index] = character.think_count
-				think_total += character.last_think_usec
-				think_samples += 1
+				think_times.append(character.last_think_usec)
 				if (character.senses as AiSenses).last_rays > character.profile.max_rays_per_think:
 					rays_over += 1
+		if (tick + 1) % CALIBRATE_TICKS == 0:
+			calibrations.append(AiSoakWatch.calibrate())
 	var seconds := float(TICKS) / Engine.physics_ticks_per_second
 	var storms := 0
 	var fast_thinkers := 0
@@ -152,9 +161,10 @@ func _measure(count: int) -> Dictionary:
 			storms += 1
 		if own_thinks > seconds * character.profile.think_rate + 1.0:
 			fast_thinkers += 1
-	var step_each := step_total / TICKS / count
-	var think_each := think_total / maxi(think_samples, 1)
-	var history_each := history_total / TICKS / count
+	var calibration := maxf(_median(calibrations), 0.001)
+	var step_each := _median(steps)
+	var think_each := _median(think_times)
+	var history_each := _median(histories)
 	return {
 		"count": count,
 		"calibration_ms": snappedf(calibration, 0.01),
@@ -163,7 +173,7 @@ func _measure(count: int) -> Dictionary:
 		"history_us_each": snappedf(history_each, 0.001),
 		"step_ratio": snappedf(step_each / calibration, 0.001),
 		"think_ratio": snappedf(think_each / calibration, 0.001),
-		"history_ratio": snappedf(history_each / calibration, 0.0001),
+		"history_ratio": snappedf(history_each / maxf(step_each, 0.001), 0.0001),
 		"walking_share": snappedf(float(walking) / (TICKS * count), 0.01),
 		"queries_per_s_each": snappedf(asked / seconds / count, 0.01),
 		"thinks_per_s_each": snappedf(thought / seconds / count, 0.01),
@@ -184,3 +194,11 @@ func _clear_crowd() -> void:
 		if target != null:
 			target.free()
 	AiSensePool.forget()
+
+
+static func _median(values: PackedFloat64Array) -> float:
+	if values.is_empty():
+		return 0.0
+	var sorted := values.duplicate()
+	sorted.sort()
+	return sorted[sorted.size() / 2]
