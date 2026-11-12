@@ -245,7 +245,7 @@
    "joins": {},
    "kind": "gait",
    "loop": true,
-   "reduced_to_deg": 0.025,
+   "reduced_to_deg": 0.05,
    "replaces": "ual1/Crouch_Fwd",
    "seconds": 0.8,
    "speed": 1.5,

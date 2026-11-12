@@ -89,7 +89,7 @@
    "joins": {},
    "kind": "stand",
    "loop": true,
-   "reduced_to_deg": 0.0125,
+   "reduced_to_deg": 0.025,
    "replaces": "ual1/Crouch_Idle",
    "seconds": 8.0,
    "speed": 0.0,
@@ -183,12 +183,26 @@
     "r": [
      [
       0.0,
+      5.76
+     ],
+     [
+      14.08,
       16.0
      ]
     ]
    },
-   "end_foot": "both",
+   "end_foot": "r",
    "events": [
+    {
+     "foot": "r",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 14.08,
+     "name": "footstep"
+    },
     {
      "frame": 1,
      "name": "rising"
@@ -205,6 +219,10 @@
      [
       0.0,
       0.0
+     ],
+     [
+      14.08,
+      14.08
      ]
     ]
    },
@@ -564,12 +582,26 @@
     "r": [
      [
       0.0,
+      3.2
+     ],
+     [
+      10.24,
       16.0
      ]
     ]
    },
-   "end_foot": "both",
+   "end_foot": "r",
    "events": [
+    {
+     "foot": "r",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 10.24,
+     "name": "footstep"
+    },
     {
      "frame": 15,
      "name": "crouched"
@@ -586,6 +618,10 @@
      [
       0.0,
       0.0
+     ],
+     [
+      10.24,
+      10.24
      ]
     ]
    },
@@ -596,7 +632,7 @@
    },
    "kind": "transition",
    "loop": false,
-   "reduced_to_deg": 0.025,
+   "reduced_to_deg": 0.05,
    "replaces": "",
    "seconds": 0.5333,
    "speed": 0.0,

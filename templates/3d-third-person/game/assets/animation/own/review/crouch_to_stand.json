@@ -65,12 +65,26 @@
     "r": [
      [
       0.0,
+      5.76
+     ],
+     [
+      14.08,
       16.0
      ]
     ]
    },
-   "end_foot": "both",
+   "end_foot": "r",
    "events": [
+    {
+     "foot": "r",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 14.08,
+     "name": "footstep"
+    },
     {
      "frame": 1,
      "name": "rising"
@@ -87,6 +101,10 @@
      [
       0.0,
       0.0
+     ],
+     [
+      14.08,
+      14.08
      ]
     ]
    },
@@ -191,12 +209,26 @@
     "r": [
      [
       0.0,
+      6.8
+     ],
+     [
+      16.0,
       20.0
      ]
     ]
    },
-   "end_foot": "both",
+   "end_foot": "r",
    "events": [
+    {
+     "foot": "r",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 16.0,
+     "name": "footstep"
+    },
     {
      "frame": 1,
      "name": "rising"
@@ -213,6 +245,10 @@
      [
       0.0,
       0.0
+     ],
+     [
+      16.0,
+      16.0
      ]
     ]
    },
@@ -311,18 +347,32 @@
     "l": [
      [
       0.0,
-      14.0
+      15.0
      ]
     ],
     "r": [
      [
       0.0,
-      14.0
+      4.5
+     ],
+     [
+      11.7,
+      15.0
      ]
     ]
    },
-   "end_foot": "both",
+   "end_foot": "r",
    "events": [
+    {
+     "foot": "r",
+     "frame": 0.0,
+     "name": "footstep"
+    },
+    {
+     "foot": "r",
+     "frame": 11.7,
+     "name": "footstep"
+    },
     {
      "frame": 0,
      "name": "rising"
@@ -332,17 +382,21 @@
     "l": [
      [
       0.0,
-      14.0
+      15.0
      ]
     ],
     "r": [
      [
       0.0,
       0.0
+     ],
+     [
+      11.7,
+      11.7
      ]
     ]
    },
-   "frames": 14,
+   "frames": 15,
    "joins": {
     "first": "Crouch_Idle",
     "last": "Idle"
@@ -351,7 +405,7 @@
    "loop": false,
    "reduced_to_deg": 0.025,
    "replaces": "",
-   "seconds": 0.4667,
+   "seconds": 0.5,
    "speed": 0.0,
    "start_foot": "both",
    "style": "C",
@@ -362,7 +416,7 @@
      0.0
     ],
     [
-     14,
+     15,
      0.0,
      0.0
     ]
@@ -373,7 +427,7 @@
      0.0
     ],
     [
-     14,
+     15,
      0.0
     ]
    ]
