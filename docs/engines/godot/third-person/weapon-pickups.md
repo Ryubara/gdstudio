@@ -253,6 +253,10 @@ stock's end is in the chest. A shorter stock on the model or a support place fur
   guard): try whole first ways (a roll, a bend, a turn) first. A way belongs to the poses it joins: once the grip
   place moved and each body had its own hold, it was solved again on each. **Seen:** gdstudio #1036, 2026-11-11
   (fix: `trigger_way` a body, `test_rifle_fingers.gd` sweeping the raise in 50 steps).
+- **Approach:** After merging main into a parked hold branch, run the whole template suite before the push, and pin
+  each export the branch adds in the suites main gained meanwhile. **Watch out for:** `test_rifle_hold_pins.gd`
+  landed with the rifle while this branch waited: the hold suites the branch touched passed, and only the full run
+  showed `trigger_way` and `second_way` unpinned. **Seen:** gdstudio #1289, 2026-11-12.
 - **Approach:** Film a hold from the game camera with the camera's own eye swung round the character at its own
   distance and height, and a long lens on each hand from both of its sides (`tools/capture/rifle_fingers_view.tscn`),
   and look at the views again whenever the hold's place changes. **Watch out for:** straight behind, where the game
