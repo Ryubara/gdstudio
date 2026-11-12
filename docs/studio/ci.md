@@ -20,6 +20,14 @@ default branch -->
   for `main` too: 4 of the last 30 runs on `main` were cancelled; fix: the group is the commit for a push, and
   `test_workflow_concurrency.py` fails any workflow that runs on `main` and can cancel there, unless a
   `# cancels-on-main:` comment gives the reason, as `docs.yml` does: a cancelled site build is replaced by the next).
+- **Approach:** Read a green head as checked against the main it was built on: before landing one whose base is older
+  than main, merge main in when main has changed a file the pull request also changes, even where the merge is clean,
+  and push once. **Watch out for:** #1250 added two cases to `test_ai_spawner.gd` and landed; #1243's green head,
+  built before that, added one more and auto-merged 24 minutes later, so the suite reached 21 public methods and
+  main's gdlint failed though neither pull request had. Auto-merge never merges main in, so a pull request with it on
+  needs the same refresh by hand when main changes one of its files. **Seen:** gdstudio #1279, 2026-11-11 (fix: the
+  suite split in two); gdstudio #1312, 2026-11-11: #1296 auto-merged on a head built before #1239 and
+  `character_animation.gd` reached 1001 lines (fix: a comment reflowed; the split is #1287).
 - **Approach:** When a job can skip itself, work out how often it skips at the real run time and merge rate and give a
   recurring skip a signal; deploy any green commit newer than the live one, and read the live commit after a merge
   someone waits on. **Watch out for:** deploy jobs skipped unless their commit was still main's head; CI took 10 to 25
@@ -95,6 +103,12 @@ they are rerun, replayed or read from another branch -->
   commit is the retry" came from one case. The site stays up on the last good deploy, so a red `docs` run costs stale
   pages, not an outage. **Seen:** gdstudio #758 and #763, Deadnight #1358 and #1364, 2026-11-06 (fix: none in code; the
   cause was not found).
+- **Approach:** To clear runs stuck in the queue after an Actions outage, pick each one by its own state and jobs
+  (`status` queued and no job started, from `actions/runs/<id>/jobs`), never by `created_at`; a run that the API calls
+  completed while it shows queued takes no cancel, so a new commit on its branch (a merge of `main`) is the retry.
+  **Watch out for:** a rerun keeps the original run's `created_at`, so a sweep of "queued since before 20:40" cancelled
+  two live reruns (#1040's test job 14 minutes in, and #1239's capture rerun) and could not touch the seven stuck runs
+  it was meant for. **Seen:** gdstudio #1040, #1239 and #1245, 2026-11-11.
 
 ## Time limits and shards {#shards}
 

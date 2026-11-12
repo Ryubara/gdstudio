@@ -20,6 +20,9 @@ const MAX_PLAN_GAP := 0.12
 ## from where it was drawn).
 const MAX_TIME_GAP := 0.08
 
+## How far the puppet's planted wrist may be from where the clip puts it on the wall's top.
+const MAX_WRIST_GAP := 0.04
+
 var _rig: OnlineRig
 var _ada: NetClient
 var _bo: NetClient
@@ -55,6 +58,16 @@ func test_a_puppet_plays_the_vault_clip_on_the_plan_the_server_ran() -> void:
 	var animation := puppet.get_node("Animation") as CharacterAnimation
 	var clips: Array[StringName] = []
 	animation.action_started.connect(func(clip: StringName) -> void: clips.append(clip))
+	# The puppet's left wrist as it is drawn, with the clip time of its pose (kit #1037).
+	var skeleton := puppet.model.skeleton()
+	var wrists: Array[Vector4] = []
+	var take := func() -> void:
+		if puppet.vault_motion.is_active():
+			var pose := skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_l"))
+			var at := (skeleton.global_transform * pose).origin
+			var time: float = animation.tree.get(&"parameters/ActionClip/current_position")
+			wrists.append(Vector4(at.x, at.y, at.z, time))
+	skeleton.skeleton_updated.connect(take)
 
 	var run := PlayerCommand.new()
 	run.set_from_world(Vector3.RIGHT)
@@ -94,9 +107,33 @@ func test_a_puppet_plays_the_vault_clip_on_the_plan_the_server_ran() -> void:
 	assert_float(drawn.points[0].distance_to(served.points[0])).is_less(MAX_PLAN_GAP)
 	assert_float(drawn.end_point().distance_to(served.end_point())).is_less(MAX_PLAN_GAP)
 	assert_float(absf(drawn.duration - served.duration)).is_less(MAX_TIME_GAP)
-	# The clip the stepping body plays for this crossing, over the whole body while it lasts.
-	var clip := animation.traversal_clip(drawn)
-	assert_array(clips).contains([clip])
+	# The clip the stepping body plays for this crossing (joined to the step out of its landing),
+	# over the whole body while it lasts.
+	var clip := str(animation.traversal_clip(drawn)).get_file()
+	assert_int(clips.size()).is_greater(0)
+	assert_str(str(clips[0])).contains(clip)
+	# The planted hand is on the wall's top on this screen too: the puppet's model is held on the
+	# clip's root of its own plan (kit #1037).
+	skeleton.skeleton_updated.disconnect(take)
+	var timing := puppet.vault_settings.clip_for(drawn.high)
+	var place: Vector3 = timing.planted_hands[&"hand_l"]
+	var planted := 0
+	for wrist in wrists:
+		if wrist.w < timing.planted_from(drawn.height) or wrist.w > timing.hand_release[&"hand_l"]:
+			continue
+		planted += 1
+		var label := "the puppet's wrist at %.3f s" % wrist.w
+		(
+			assert_float(wrist.y - drawn.top)
+			. override_failure_message("%s is %.3f m over the top" % [label, wrist.y - drawn.top])
+			. is_equal_approx(place.y, MAX_WRIST_GAP)
+		)
+		(
+			assert_float(wrist.x - west)
+			. override_failure_message("%s is %.3f m in from the edge" % [label, wrist.x - west])
+			. is_equal_approx(place.z, MAX_WRIST_GAP)
+		)
+	assert_int(planted).is_greater(3)
 	assert_int(acting_frames).is_greater_equal(vault_frames - 2)
 	# Its time ran with the frames and the crossing ended with the drawn state.
 	assert_bool(puppet.vault_motion.is_active()).is_false()

@@ -58,6 +58,7 @@ exempt = ["reviewer"]
 paths = [
   "**/.env", "**/.env.*", "**/*.pem", "**/*.key", "**/id_rsa*", "**/id_ed25519*",
   "**/gdstudio.local.toml", "**/.gdstudio-workspace",
+  "**/.claude/projects/**/*.jsonl",
   "**/.git/**", "**/.godot/**", "**/*.import",
   "**/tools/godot-*/**", "**/tools/blender-*/**",
 ]
