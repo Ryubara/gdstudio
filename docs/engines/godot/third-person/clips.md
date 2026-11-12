@@ -33,6 +33,21 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   to the mannequin's. **Seen:** gdstudio #1150 (PR #1165), 2026-11-11 (the sizes); gdstudio #1149 and #1151,
   2026-11-11 (the position tracks).
 
+## The fixed clips {#fixed-clips}
+
+<!-- new section: since kit #1187 the template wears the prototype bodies, and three library clips cross a forearm
+and a shin on them (kit #1295); the corrected copies are a library of their own -->
+
+`assets/animation/fixed/fixed.glb` is the `AnimationLibrary` `fixed`: `Jump_Land` (from `ual1`), `Slide_Exit` and
+`NinjaJump_Land` (from `ual2`) with one upper arm swung 4 to 11 degrees outward on the frames where its forearm was
+6.5 to 12.3 mm inside the shin on `form_female`, eased in and out; every other key is the library's
+([how it is built](../../../tools/blender/animation.md#corrected-clips)). `CharacterClips.LAND` and `SLIDE_EXIT` name
+the fixed clips, `CharacterClips.STAND_INS` maps each to the library clip it came from, and
+`tests/assets/test_fixed_clips.gd` holds the file to what the build measured and to the library's keys. A fixture
+that builds its own `AnimationPlayer` and plays `CharacterClips` constants adds the `fixed` library beside `ual1` and
+`ual2` (`tests/fixtures/pistol_clearance.gd`). `tools/capture/fixed_clips_tour.tscn` films both clips from the game
+camera, and with `LIBRARY_CLIPS=1` the library's.
+
 ## The vault clips {#vault-clips}
 
 <!-- new section: the Universal Animation Library has a climb (`ClimbUp_1m`) and no vault; kit #1010 made the template's

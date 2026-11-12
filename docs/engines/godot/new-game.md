@@ -311,6 +311,11 @@ What each template plays, and on which bus (the buses and the volume node are in
   frames once all landed in the shared `scratch/template-check/main/`); outside git, pass `--out`. **Seen:** gdstudio
   #838 and #847, 2026-11-08 (probes assembled by hand; `git init` checked in #849); #917 (the command); #992 (the
   shared folder); #1026 (about 30 kept games left in the temp folder).
+- **Approach:** Capture and import in a made game, never in the template's own `game/` folder, and read the capture's
+  error count before its frames. **Watch out for:** the template's folder lacks the synced addons, so `AudioSettings`
+  and the other shared classes do not parse there: a capture run in it wrote 255 frames of a scene whose script never
+  loaded (571 error lines), and an import there rewrote the lightmaps' `.import` files. **Seen:** gdstudio #1295,
+  2026-11-11 (fix: `gds template test --keep`, the tour copied into the kept game, `gds template clean` after).
 
 ## What every template is built and reviewed against {#template-checklist}
 
