@@ -23,7 +23,7 @@ magazine_far = NodePath("Pivot/Rifle/Far/Rifle/Magazine")
 fits = Array[ExtResource("8_fit")]([ExtResource("9_fit_male")])
 
 [node name="Rifle" parent="Pivot" instance=ExtResource("2_rifle")]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, -0.095, 0.307)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, -0.095, 0.257)
 
 [node name="RightHandTarget" type="Marker3D" parent="Pivot/Rifle"]
 transform = Transform3D(-0.17365, -0.95663, 0.2339, 0, 0.23751, 0.97138, -0.98481, 0.16868, -0.04124, 0.04696, 0.00837, -0.04782)
