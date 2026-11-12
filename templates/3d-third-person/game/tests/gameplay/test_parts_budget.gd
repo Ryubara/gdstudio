@@ -23,8 +23,9 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## the test adds. A character whose skeleton made the pool's sets (the first of a game) kept its
 ## `RagdollDrawing` after handing them over, one node more alone than in the full run (#1210).
 ## The prototype body (kit #1187) has 3 more than the Quaternius female it replaced: three meshes
-## (its levels of detail) where she had one, and the `MannequinTwist` modifier.
-const NODES_ALIVE := 60
+## (its levels of detail) where she had one, and the `MannequinTwist` modifier. The aim layer's
+## `AimHeadModifier` (kit #1334) is one more.
+const NODES_ALIVE := 61
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120
