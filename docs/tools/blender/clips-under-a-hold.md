@@ -70,7 +70,8 @@ are the body under that.
   `test_character_clips.gd` counts every clip of every library (90 became 96) and `test_weapon.gd` wants a pinned
   default for every `WeaponDef` export (`shoot_additive`). And a pull request stacked on another carries that one's
   commits: its `Model:` line names every model in their trailers. **Seen:** gdstudio #1267, 2026-11-11 (the
-  `template (3d-third-person)` and `commits` checks failed on the first push).
+  `template (3d-third-person)` and `commits` checks failed on the first push); #1266, 11-12 (four new
+  `TwoHandHold` exports unpinned in `test_rifle_hold_pins.gd`, seen in the full run).
 - **Approach:** When the idle under a clip or the bodies that play it change, rebuild the clip over the new idle on
   the new bodies and run the test that compares the clip's own hands with the hold's first. **Watch out for:** the
   clips were keyed over the library's `Idle` on the Quaternius female; the template then moved to its own idle and
