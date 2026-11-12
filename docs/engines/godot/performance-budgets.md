@@ -102,6 +102,12 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   (bot server cost), 2026-11-02 (fix: the 95th judged, with the reason in the test's header); gdstudio #1111,
   2026-11-11 (`test_net_server_cost.gd` read 10.3 ms against its 6 ms budget in a full template run while the same
   agent ran eight Movie Maker captures beside it, and passed alone: start captures after the full run ends).
+- **Approach:** Before putting a slower page on the machine's load, compare it with a control in the same page (a cell
+  the change cannot touch, measured in the same rounds) and with a run where the machine was quieter. **Watch out
+  for:** browser pages whose every skinned body read twice its cost were put down to 100 % processor load for an
+  hour; the same pages on a quieter machine still read twice, and the cause was a GL buffer state the bench set in
+  some pages and not others ([the buffer hint](web-export.md#skin-buffer-hint)). **Seen:** gdstudio #1260,
+  2026-11-11.
 
 ## A leak is read as a count at the same crowd, round after round {#leak-count}
 

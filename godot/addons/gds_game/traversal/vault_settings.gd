@@ -61,8 +61,14 @@ enum Trigger {
 @export_range(0.05, 3.0, 0.01, "suffix:m") var max_vault_depth := 0.9
 ## How far above the obstacle's top the feet pass while crossing.
 @export_range(0.0, 1.0, 0.01, "suffix:m") var foot_clearance := 0.12
-## How far past the far face (beyond the body's radius) the feet land.
+## How far past the far face (beyond the body's radius) the feet land. With a clip below, set it
+## to the clip's own landing (`VaultClip.keyed_landing()` less the body's radius), so the body
+## keeps the clip's speed through the air.
 @export_range(0.0, 2.0, 0.01, "suffix:m") var landing_margin := 0.3
+## The nearest landing a vault settles for when the one `landing_margin` asks for has no floor or
+## no room (a wall or another obstacle stands there): the farthest free one between the two is
+## taken. The same as `landing_margin` or more: only that landing is tried.
+@export_range(0.0, 2.0, 0.01, "suffix:m") var min_landing_margin := 0.3
 ## How far below the floor the character stands on the landing may be; a deeper drop (a cliff
 ## behind a parapet) is not vaulted.
 @export_range(0.0, 5.0, 0.05, "suffix:m") var max_drop := 1.2
@@ -75,8 +81,18 @@ enum Trigger {
 @export_range(0.1, 3.0, 0.01, "suffix:s") var max_vault_time := 0.9
 ## The share of the crossing speed kept on landing (1 runs on at that speed).
 @export_range(0.0, 1.0, 0.01) var exit_speed_share := 0.85
-## When the hand plants on the top, as a share of the vault's time: the clip's own contact time
-## over its length (the body is over the near edge then).
+## What the low vault's clip was keyed on. With it the vault is timed by the clip: it starts at
+## the frame that fits the distance, the hand lands where the clip put it and the body is lifted
+## by the difference in height. Empty: `plant_at` and `clear_at` time the vault.
+@export var low_clip: VaultClip
+## The same for the high vault's clip (from `high_vault_above` up).
+@export var high_clip: VaultClip
+## The slowest and fastest a vault's clip is played against its own pace: an entry faster than
+## the clip's own speed plays it faster, up to the second number. A clip's fall is a real one at
+## 1, so keep the range near it.
+@export var clip_rate_range := Vector2(1.0, 1.15)
+## With no clip above: when the hand plants on the top, as a share of the vault's time (the
+## clip's own contact time over its length; the body is over the near edge then).
 @export_range(0.05, 0.9, 0.01) var plant_at := 0.3
 ## When the feet are past the far edge, as a share of the vault's time.
 @export_range(0.1, 0.95, 0.01) var clear_at := 0.7
@@ -112,6 +128,11 @@ func detect_reach(speed: float) -> float:
 func vault_time(distance: float, speed: float) -> float:
 	var pace := maxf(speed, crossing_speed)
 	return clampf(distance / pace, min_vault_time, max_vault_time)
+
+
+## What the vault clip for an obstacle was keyed on: `high_clip` when `high`, else `low_clip`.
+func clip_for(high: bool) -> VaultClip:
+	return high_clip if high else low_clip
 
 
 ## How long a mantle onto an obstacle `height` metres high takes.

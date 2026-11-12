@@ -63,6 +63,7 @@ prone_aim_clip = &"prone_aim/Prone_Aim_Neutral"
 prone_aim_up_clip = &"prone_aim/Prone_Aim_Up"
 prone_aim_down_clip = &"prone_aim/Prone_Aim_Down"
 shoot_clips = Array[StringName]([&"ual1/Pistol_Shoot"])
+shoot_additive = true
 reload_clip = &"ual1/Pistol_Reload"
 shot_sound = SubResource("AudioStreamRandomizer_shot")
 empty_sound = SubResource("AudioStreamRandomizer_empty")

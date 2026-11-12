@@ -24,6 +24,10 @@ const INSIDE := 0.05
 const SKIN := 0.03
 ## The thickness of the boxes cast ahead and back.
 const SLAB := 0.06
+## How much higher the floor may be under the body's rim than under its middle at a landing.
+const LEVEL := 0.03
+## How many landings are tried, from the settings' `landing_margin` down to `min_landing_margin`.
+const LANDINGS := 4
 ## How many other bodies the depth cast leaves out before it gives up (a crowded far side).
 const OTHERS := 4
 
@@ -150,27 +154,84 @@ static func _plan_vault(
 	plant.y = lift
 	var clear := start + forward * (near + plan.depth + radius)
 	clear.y = lift
-	var land_at := start + forward * (near + plan.depth + radius + settings.landing_margin)
-	var ground := _cast_down(
-		space, land_at, plan.top + 0.1, start.y - settings.max_drop, radius - SKIN, mask, exclude
-	)
-	if ground.is_empty():
-		return VaultPlan.NO_LANDING
-	land_at.y = ground["y"]
-	var path := PackedVector3Array([start, plant, clear, land_at])
-	if not _path_clear(space, path, radius, height, mask, exclude):
-		return VaultPlan.NO_ROOM
+	# The landing the settings ask for, or the farthest shorter one that has a floor and room.
+	var path := PackedVector3Array()
+	var why := VaultPlan.NO_LANDING
+	var shortest := minf(settings.min_landing_margin, settings.landing_margin)
+	var tries := LANDINGS if settings.landing_margin > shortest else 1
+	for attempt in tries:
+		var margin := lerpf(settings.landing_margin, shortest, attempt / maxf(tries - 1.0, 1.0))
+		var land_at := start + forward * (near + plan.depth + radius + margin)
+		var ground := _cast_down(
+			space,
+			land_at,
+			plan.top + 0.1,
+			start.y - settings.max_drop,
+			radius - SKIN,
+			mask,
+			exclude
+		)
+		# A floor under the whole body: the wide sphere also stops on the edge of something
+		# standing beside the landing (the next wall), so the middle must be as high.
+		var middle := {}
+		if not ground.is_empty():
+			middle = _cast_down(
+				space,
+				land_at,
+				plan.top + 0.1,
+				start.y - settings.max_drop,
+				settings.top_probe_radius,
+				mask,
+				exclude
+			)
+		if middle.is_empty() or absf(float(middle["y"]) - float(ground["y"])) > LEVEL:
+			why = VaultPlan.NO_LANDING
+			continue
+		land_at.y = ground["y"]
+		var way := PackedVector3Array([start, plant, clear, land_at])
+		if _path_clear(space, way, radius, height, mask, exclude):
+			path = way
+			break
+		why = VaultPlan.NO_ROOM
+	if path.is_empty():
+		return why
 	plan.kind = VaultPlan.Kind.VAULT
 	plan.high = plan.height >= settings.high_vault_above
 	plan.points = path
-	plan.times = PackedFloat32Array(
-		[0.0, settings.plant_at, maxf(settings.clear_at, settings.plant_at), 1.0]
-	)
+	plan.near = near
 	plan.eases = PackedInt32Array(
 		[VaultPlan.Ease.EVEN, VaultPlan.Ease.OUT, VaultPlan.Ease.EVEN, VaultPlan.Ease.IN]
 	)
+	var clip := settings.clip_for(plan.high)
+	if clip != null and plan.vaultable.vault_clip == &"":
+		_time_by_clip(plan, clip, radius, speed, settings)
+		return &""
+	plan.times = PackedFloat32Array(
+		[0.0, settings.plant_at, maxf(settings.clear_at, settings.plant_at), 1.0]
+	)
 	plan.duration = settings.vault_time(_flat_length(path), speed)
 	return &""
+
+
+# Times a vault by its clip: it starts at the frame that fits the distance to the face, plays at
+# the entry speed over the clip's own (inside the settings' range and vault times), and the feet
+# are over the near edge and past the far one when the clip's root is.
+static func _time_by_clip(
+	plan: VaultPlan, clip: VaultClip, radius: float, speed: float, settings: VaultSettings
+) -> void:
+	var start := clip.start_time(plan.near)
+	var part := maxf(clip.land - start, 0.001)
+	var rates := settings.clip_rate_range
+	var rate := clampf(speed / clip.speed, minf(rates.x, rates.y), maxf(rates.x, rates.y))
+	plan.duration = clampf(part / rate, settings.min_vault_time, settings.max_vault_time)
+	plan.clip_start = start
+	plan.clip_rate = part / plan.duration
+	var landing := (plan.end_point() - plan.points[0]).dot(plan.forward) - plan.near
+	var over := clip.time_at(-radius, start, plan.near, landing)
+	var past := clip.time_at(plan.depth + radius, start, plan.near, landing)
+	var plant := clampf((over - start) / part, 0.1, 0.8)
+	var clear := clampf((past - start) / part, plant, 0.95)
+	plan.times = PackedFloat32Array([0.0, plant, clear, 1.0])
 
 
 # Fills `plan` as a mantle; false when it cannot be one.

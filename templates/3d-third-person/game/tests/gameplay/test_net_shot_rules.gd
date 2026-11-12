@@ -122,8 +122,9 @@ func test_a_death_is_a_nine_byte_event_and_the_body_gets_up_where_the_server_say
 	# room for a bone.
 	for index in range(first_tick, bo.ticks.size()):
 		var tick := bo.ticks[index]
-		var expected := NetWire.TICK_HEADER + tick.players.size() * SnapshotCodec.PLAYER_SIZE
-		expected += NetWire.TICK_TAIL
+		var expected := NetWire.TICK_HEADER + NetWire.TICK_TAIL
+		for player in tick.players:
+			expected += SnapshotCodec.player_size(player)
 		for row in tick.parts:
 			expected += NetWire.STREAM_ROW_HEADER + row.state.size()
 		for event in tick.events:
