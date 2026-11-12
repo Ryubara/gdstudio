@@ -122,17 +122,41 @@ its 0, until it is assigned again or cleared. An item sits in one place: assigni
   press seen as an event while the action is up again (a press and release in one frame), as the weapon presses do. With
   the player's `input_enabled` off (a screen is up) they are read and dropped; the inventory screen takes the hotbar
   keys itself to assign.
+- **A use that takes time** (gdstudio #1342): an `ItemDef` with a `use_time` (the bandage 1.6 s) is used through
+  the player's `ItemUse` (`gameplay/character/item_use.gd`, a child of `player.tscn`), which `PlayerInput` calls for a
+  hotbar press. It plays the item's `use_clip` over the upper body, stretched to the time (the bandage's is the
+  library's `ual2/Consume`: the left hand to the face while the right keeps the weapon's carry, `UseLayer`), lets the
+  left hand off the weapon (each hold's `free_hand`), plays its `use_sound` and shows the HUD's `HudUse` sign. At
+  `use_apply_share` (0.75) of the time it calls `Hotbar.use`, so the effect and the count change on one tick. While it
+  runs `Character.hands_busy` is on (no aim, no shot) and another press uses nothing. Cut short, with nothing used, by
+  sprinting, fire, a new aim press, jump, melee, reload, a weapon switch, lying down or getting up, a hit that takes
+  health, and death; each is a switch on `ItemUse` (Cut short by). An item with no `use_time` works at the press.
 - **Online:** the bag is not on the wire yet, so neither is the hotbar. `NetClient` turns `authoritative` off on its
   player's hotbar, and a use is refused there: the health it would change is the server's. The weapon places switch by
   ordinary weapon presses (`request_weapon`), so a server sees nothing new and the lit slot follows the predicted
-  loadout the server's word keeps.
+  loadout the server's word keeps. A timed use is refused on a client the same way; `ItemUse` counts its time in the
+  body's ticks and reads only the command, so on the wire it is one small event (the place and the tick it began,
+  then the server's heal), and each screen plays the clip, the sound and the sign itself.
 
 In the inspector: `Hotbar` Places (`place_count` 4, `start_items`), Nodes (`inventory`, empty: the first `Inventory`
-beside it; `user`, empty: the parent), Network (`authoritative` on); `ItemDef` Use (`use_effect`, `consumed_on_use` on);
+beside it; `user`, empty: the parent), Network (`authoritative` on); `ItemDef` Use (`use_effect`, `consumed_on_use` on,
+`use_time` 0, `use_apply_share` 0.75, `use_clip`, `use_sound`; the bandage 1.6 s, `ual2/Consume`,
+`gameplay/inventory/bandage_use.tres`); `ItemUse` Nodes (`character`, `hotbar`, `sound`: its `Sound` child at -14 dB
+on `SFX`) and Cut short by (`cancel_on_sprint`, `cancel_on_fire`, `cancel_on_aim`, `cancel_on_jump`,
+`cancel_on_weapon_press`, `cancel_on_prone`, `cancel_on_hit`, all on); `HudUse` Look (`applied_color`,
+`cancelled_color`, `linger_time` 0.35 s) and Nodes (`icon`, `name_label`, `bar`);
 `HealEffect` (`amount` 25, `only_when_hurt` on). The HUD's rows are on
 [The camera, the map and the screen](third-person/camera-and-ui.md#hud). Tests: `godot/tests/gds_game/test_hotbar_alone.gd`
 (10 cases, alone), the template's `tests/ui/test_hud_slots.gd` (12: keys, touch, switching, the lit slot, an online
-client) and `tests/ui/test_inventory_hotbar.gd` (assigning).
+client), `tests/ui/test_inventory_hotbar.gd` (assigning) and `tests/gameplay/test_item_use.gd` (11: the timed use
+by key, one press one bandage, the count and the health on one tick, the aim lowered, each cut, the sign, the sound).
+Capture: `tools/capture/heal_tour.tscn`.
+
+- **Approach:** Give an item that heals a use time and run it as a state with a start and an apply tick: a press during
+  it uses nothing, and the effect and the count change in the same call. **Watch out for:** used at the press, three
+  quick presses of key 3 healed 12 to 87 and took three bandages while the player kept aiming, with no clip, sound or
+  sign; a count that changed with no visible action read as two changes on different frames. **Seen:** gdstudio
+  #1342, 2026-11-12 (the maintainer's playtest recording; fixed by `ItemUse`).
 
 ## A live model in a menu {#live-model}
 
