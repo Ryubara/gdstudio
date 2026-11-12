@@ -174,6 +174,11 @@ enum Kind {
 ## pistol's `PistolHeld`); it is shown while the weapon is out and hidden otherwise. Empty: no
 ## model (fists).
 @export var view: NodePath
+## The scene of that model in the hand (the rifle's `rifle_held.tscn`), made under the `Model` slot
+## the first time a character carries the weapon, named as `view` says, when the slot has no such
+## node: a character that never picks the weapon up carries none of its nodes. Empty: the node is
+## part of the character's scene (the pistol's `PistolHeld`).
+@export var view_scene: PackedScene
 ## The marker the shots leave from, under the `Model` slot (the pistol's
 ## `PistolHeld/Pistol/Pistol/Muzzle`). Empty: no muzzle (shots leave from beside the shooter).
 @export var muzzle: NodePath

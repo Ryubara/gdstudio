@@ -1,9 +1,10 @@
 ## Measures what the weapon hold costs (kit #1001): 40 mannequins play the pistol's aim clip, each
-## with `pistol_held.tscn` on its hand, in one of three runs named by the user argument: `no_hold`
+## with `pistol_held.tscn` on its hand, in one of the runs named by the user argument: `no_hold`
 ## (no hold scene), `carried` (the grip's finger pose, the wrist's turn and the arm's swing) or
-## `aimed` (those and the left arm's reach and the left fingers). It prints the mean and the
-## slowest process time of a frame on a line starting `BENCH`; the hold's cost for one character
-## is a run's mean less `no_hold`'s, over 40.
+## `aimed` (those and the left arm's reach and the left fingers), or with `rifle_held.tscn`
+## in the model's space (`rifle`: the stance, both arms' reach and both hands' fingers). It prints
+## the mean and the slowest process time of a frame on a line starting `BENCH`; the hold's cost
+## for one character is a run's mean less `no_hold`'s, over 40.
 ##
 ## `<godot> --headless --path game res://tools/bench/hold_cost.tscn -- carried` (the modifiers are
 ## skeleton work on the CPU, so a headless run measures them). One run a process: a second set of
@@ -19,6 +20,7 @@ const RUNS: Dictionary[String, Dictionary] = {
 	"no_hold": {"hold": false, "aim": 0.0},
 	"carried": {"hold": true, "aim": 0.0},
 	"aimed": {"hold": true, "aim": 1.0},
+	"rifle": {"hold": true, "aim": 1.0, "rifle": true},
 }
 
 
@@ -35,7 +37,12 @@ func _bench() -> void:
 		return
 	var run := RUNS[run_name]
 	for index in FIGURES:
-		var stage := HoldStage.make(self, "female", run.hold, false)
+		var stage: HoldStage
+		if run.get("rifle", false):
+			stage = RifleStage.make_rifle(self, "female", false)
+			(stage.hold as TwoHandHold).posed_aim = run.aim
+		else:
+			stage = HoldStage.make(self, "female", run.hold, false)
 		stage.position = Vector3(index % 8 - 3.5, 0.0, floorf(index / 8.0) - 2.0) * 1.2
 		var player := AnimationPlayer.new()
 		stage.add_child(player)

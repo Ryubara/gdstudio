@@ -160,6 +160,12 @@ func restart() -> void:
 	_said_any = -INF
 
 
+## Takes `value` as the seed of its rolls from now on (a soak's seeded run; 0: the name's hash).
+func reseed(value: int) -> void:
+	random_seed = value
+	_rng.seed = random_seed if random_seed != 0 else hash(String(_character.name))
+
+
 ## The task runner it places tasks in, or null.
 func runner() -> AiTaskRunner:
 	var tasks := _character.task_runner as AiTasks if _character != null else null
