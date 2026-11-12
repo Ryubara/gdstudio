@@ -46,7 +46,8 @@ category's blow.
   `WeaponHold` reads is taken away, so the left hand leaves the pistol and the finger the trigger.
 - **The clips** are the template's own (`assets/animation/melee/`, the library `melee`, with its `README.md`):
   `Melee_Unarmed_Jab`, `_Cross` and `_Hook`, and `Melee_Pistol_Whip`, `_Backhand` and `_Jab`, made by script with
-  their checks. The rifle (a weapon of the template since kit #1040) names its category, so its blow has the
+  their checks, keyed on the prototype female and measured on both `form` bodies, the male with his own hold (kit
+  #1319). The rifle (a weapon of the template since kit #1040) names its category, so its blow has the
   category's reach, damage and window, but plays no clip until the category has its own (kit #1288).
 
 | Category | Reach | Damage | Cooldown | Hit window | Hits to kill: head, chest, arm, thigh |

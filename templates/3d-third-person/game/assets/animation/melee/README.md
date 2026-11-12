@@ -1,7 +1,8 @@
 # Melee clips
 
 Six clips of the template's own for the melee blow every weapon has (kit #1254): three of the fists and three of the
-pistol in the right hand, on the mannequins' rig. Godot imports `melee.glb` as an `AnimationLibrary`, like the two
+pistol in the right hand, keyed and measured on the bodies the template's characters wear (the prototype `form`
+pair, kit #1319) on the library's 65 bones. Godot imports `melee.glb` as an `AnimationLibrary`, like the two
 packs; added to an `AnimationPlayer` under the name `melee`, the clips are `melee/Melee_Unarmed_Jab` and so on.
 
 | File | What it is |
@@ -15,22 +16,25 @@ packs; added to an `AnimationPlayer` under the name `melee`, the clips are `mele
 ## The clips
 
 Times are seconds from the clip's start. Reach is how far the striking point is in front of the chest (the
-`spine_03` joint) at contact, on the female mannequin and on the male, whose arms are longer.
+`spine_03` joint) at contact, on the female body and on the male, whose arms are longer. Height is the female's;
+the male strikes 0.04 to 0.05 m higher.
 
 | Clip | Length | Contact | Hit window | Reach (f / m) | Height | What happens |
 | --- | --- | --- | --- | --- | --- | --- |
-| `Melee_Unarmed_Jab` | 0.533 | 0.167 | 0.139 to 0.231 | 0.69 / 0.74 | 1.51 | The left fist straight out and back, the right fist at the jaw |
-| `Melee_Unarmed_Cross` | 0.600 | 0.200 | 0.179 to 0.285 | 0.69 / 0.74 | 1.50 | The right fist through behind a 38 degree turn of the chest |
-| `Melee_Unarmed_Hook` | 0.600 | 0.200 | 0.179 to 0.220 | 0.67 / 0.72 | 1.50 | The left fist round in a level arc, the bent arm carried by the chest |
-| `Melee_Pistol_Whip` | 0.733 | 0.267 | 0.241 to 0.299 | 0.57 / 0.61 | 1.54 | The pistol up beside the head and down and forward, the butt leading |
-| `Melee_Pistol_Backhand` | 0.700 | 0.267 | 0.248 to 0.296 | 0.60 / 0.64 | 1.65 | The pistol across to the left shoulder and out to the right, the slide's flat leading |
-| `Melee_Pistol_Jab` | 0.633 | 0.233 | 0.195 to 0.340 | 0.61 / 0.65 | 1.40 | The pistol back to the ribs and driven forward and up, the butt leading |
+| `Melee_Unarmed_Jab` | 0.533 | 0.167 | 0.139 to 0.230 | 0.67 / 0.73 | 1.51 | The left fist straight out and back, the right fist at the jaw |
+| `Melee_Unarmed_Cross` | 0.600 | 0.200 | 0.179 to 0.285 | 0.67 / 0.73 | 1.50 | The right fist through behind a 38 degree turn of the chest |
+| `Melee_Unarmed_Hook` | 0.600 | 0.200 | 0.179 to 0.222 | 0.65 / 0.71 | 1.50 | The left fist round in a level arc, the bent arm carried by the chest |
+| `Melee_Pistol_Whip` | 0.733 | 0.267 | 0.241 to 0.300 | 0.58 / 0.62 | 1.58 | The pistol up beside the head and down and forward, the butt leading |
+| `Melee_Pistol_Backhand` | 0.700 | 0.267 | 0.249 to 0.296 | 0.59 / 0.63 | 1.66 | The pistol across to the left shoulder and out to the right, the slide's flat leading |
+| `Melee_Pistol_Jab` | 0.633 | 0.233 | 0.195 to 0.342 | 0.62 / 0.67 | 1.45 | The pistol back to the ribs and driven forward and up, the butt leading |
 
 The striking point is the middle finger's knuckle for the fists (`hand_l` for the jab and the hook, `hand_r` for the
 cross) and a point of the pistol for the pistol clips (`hand_r`; `gun_points` in the json, in the `Pistol` node's
 space: the middle of the grip's foot, or the slide's right flat). The hit window is the span the striking point is
 within 0.1 m of where it is at contact. The swings pass through that place and are short (the hook 0.04 s, the
-backhand 0.05 s); the straight blows stay near it longer. A game that wants a kinder window widens it.
+backhand 0.05 s); the straight blows stay near it longer. A game that wants a kinder window widens it. The
+weapon categories' windows (`gameplay/weapon/categories/`: the fists 0.14 to 0.30 s, the pistol 0.20 to 0.34 s) are
+each the span of its three clips' windows, to a hundredth.
 
 ## Using them
 
@@ -40,7 +44,7 @@ backhand 0.05 s); the straight blows stay near it longer. A game that wants a ki
   chest turns under it.
 - **What they join.** The fists' clips start and end on frame 0 of the library's `Idle_Loop`, the pistol's on frame 0
   of `Pistol_Idle_Loop` (both hands on the pistol). The first and last poses are those poses to the bit. A clip leaves
-  the pose at speed (the striking wrist moves at 2.0 to 4.5 m/s in the first frame) and comes back to rest on it: the
+  the pose at speed (the striking wrist moves at 2.5 to 5.4 m/s in the first frame) and comes back to rest on it: the
   fade in (about 0.05 s) is what eases the start.
 - **The fists are closed on every frame**, the first and the last too: the fingers are the only bones that differ from
   the idle there.
@@ -48,13 +52,16 @@ backhand 0.05 s); the straight blows stay near it longer. A game that wants a ki
   (`gameplay/weapon/hold/pistol_grip_pose.tres`) on every frame, so the hand holds a grip with or without
   `WeaponHold`. The hand bone is keyed for the game: `WeaponHold` turns the wrist under the grip after the clip (the
   `turns` of the grip pose), and with that turn the pistol sits as the sheets show it. Played without `WeaponHold`,
-  the pistol is 28 degrees off.
+  the pistol is 31 degrees off.
+- **Each body has its own hold.** The file is keyed with the female's grip and with her wrist's turn taken out.
+  On the male, `WeaponHold` puts his own turn, his own fingers and his own seat on after the clip
+  (`pistol_fit_male.tres`), and the build measures him that way: his pistol against his body, his striking point.
 - **The left hand is free in the pistol clips**: it leaves the pistol sideways in the first two frames, guards (the
   whip and the jab) or swings back beside the hip (the backhand), and returns sideways over the last four. Take the
   support hand's own solver off while a blow plays, and fade it back with the clip's end.
 - **The carried arm's swing.** `WeaponHold` holds the carrying arm 8 degrees out from the body (`carry_arm_out`). The
-  clips were measured without it; the pistol is never nearer the head or the trunk than 29 mm (the whip, frame 7), so
-  a swing away from the body has room.
+  clips were measured without it; the pistol is never nearer the head or the trunk than 34 mm (the jab, frame 5, on
+  the female), so a swing away from the body has room.
 
 ## What the build checks
 
@@ -63,31 +70,50 @@ backhand 0.05 s); the straight blows stay near it longer. A game that wants a ki
 
 | Check | Limit | Worst measured |
 | --- | --- | --- |
-| A body part inside another, both mannequins, every frame (`limb_overlap.py`) | 5 mm | 0.0 mm |
-| The pistol in the body or the body in the pistol, both mannequins, every frame (the holding hand aside) | 5 mm | 0.0 mm |
+| A body part inside another, both bodies, every frame (`limb_overlap.py`) | 5 mm | 0.0 mm |
+| The pistol in the body or the body in the pistol, both bodies, every frame (the holding hand aside) | 5 mm | 0.0 mm |
 | First and last pose against the pose it joins (16 main joints) | 10 mm | 0.00 mm |
-| A joint's velocity changing in one frame: wrists 6.5, elbows 6.0, shoulders 2.0, head 1.0, chest 1.0 m/s | by joint | 5.77 m/s (the hook's guard elbow), wrists 5.52 |
-| A fist open: a fingertip's distance from its wrist | 105 mm | 87.9 mm (an open hand: 200) |
-| An arm's length in the blow, as a share of straight (a locked elbow pops) | 0.975 | 0.972 (the backhand), the jab 0.936 |
-| The wrist's bend from the forearm's line, as the game shows it | 40 degrees | 29.2 degrees |
-| The striking point's reach at contact, both mannequins | 0.55 to 0.75 m | 0.573 to 0.741 m |
-| The striking point's height at contact | 1.25 to 1.75 m | 1.40 to 1.65 m |
-| The striking point faster into contact than after it | | 5.3 to 9.1 m/s into contact (the whip 6.1) |
+| A joint's velocity changing in one frame: wrists 6.5, elbows 6.0, shoulders 2.0, head 1.0, chest 1.0 m/s | by joint | 5.54 m/s (the cross's striking elbow), wrists 5.62 |
+| A fist open: a fingertip's distance from its wrist | 105 mm | 68.8 mm |
+| An arm's length in the blow, as a share of straight (a locked elbow pops) | 0.975 | 0.965 (the backhand), the jab 0.944 |
+| The wrist's bend from the forearm's line, as the game shows it | 40 degrees | 29.1 degrees |
+| The striking point's reach at contact, both bodies | 0.55 to 0.75 m | 0.576 to 0.729 m |
+| The striking point's height at contact | 1.25 to 1.75 m | 1.45 to 1.66 m |
+| The striking point faster into contact than after it | | 5.2 to 8.7 m/s into contact (the whip 6.1) |
 | The chest or the head tipped back of the joined pose before contact (in the character's forward and back) | 0.1 degrees | 0.0 degrees |
-| The head joint behind its joined place before contact | 5 mm | 0.4 mm (the pistol jab) |
+| The head joint behind its joined place before contact | 5 mm | 0.3 mm (the pistol jab) |
 | The exported file played back against the solved poses | 0.5 mm | 0.001 mm |
 
 Before the clips, the build tests the pistol check itself: the pistol as carried reads 0.0 mm, the holding hand on the
-grip 3.9 mm (female) and 6.9 mm (male), a pistol pushed into the head 70 and 80 mm, and both striking points lie on
-the pistol's surface.
+grip 4.3 mm (female) and 5.3 mm (male, in his own hold), a pistol pushed into the head 75 and 77 mm, and both
+striking points lie on the pistol's surface.
 
 **One thing the limits do not cover.** The library's `Pistol_Idle_Loop` wraps the left hand round the right one: on
-the meshes the left hand is 26 mm inside the right hand (24 mm on the male) and, on the male, 12 mm in the grip. Two
-hands that start inside each other cannot part without crossing. So for the clip's first two frames and last four
+the meshes the left hand is 14.4 mm inside the right hand (8.1 mm on the male) and, on the male, 7.8 mm in the grip.
+Two hands that start inside each other cannot part without crossing. So for the clip's first two frames and last four
 (the spans the game fades), the left arm against the right hand, forearm and pistol is held to the joined pose's own
-depth and 5 mm more, not to 5 mm. The deepest there is 28.8 mm (the male, the backhand's frame 20), against 24.4 mm in
-the joined pose itself. Every other pair, and these on every other frame, read 0.0 mm. In the game the left hand is
-held on the pistol by `WeaponHold` until the blow starts, not by this pose.
+depth and 5 mm more, not to 5 mm. The deepest there is 12.7 mm (the male, the backhand's frame 1), against 8.1 mm in
+his joined pose; the female never goes deeper than her joined pose's 14.4 mm. Every other pair, and these on every
+other frame, read 0.0 mm. In the game the left hand is held on the pistol by `WeaponHold` until the blow starts, not
+by this pose.
+
+## The move to the prototype bodies
+
+The clips were first keyed on Quaternius's mannequins. On the prototype bodies (kit #1319) the same keys play, and
+four numbers changed for what the build found there:
+
+- **The fist** is the one the prone build measured on the prototype hand (`FIST_CURL`: the fingers curl 5 to 27
+  degrees further a joint; the fingertips end 69 mm from the wrist, 74 with the old numbers).
+- **The backhand's contact**: the pistol sits more upright in the new hold, and the slide's flat was 0.52 m in
+  front of the chest, under the 0.55 m a blow needs. The wrist is bent 8 degrees toward the thumb there, not 20,
+  and 0.01 m further forward (0.59 m; the arm at 0.965 of its length).
+- **The hook's guard** comes up by frame 5, not 4: on these arms the guard's elbow changed speed by 6.5 m/s in a
+  frame (the limit is 6.0), now 4.2.
+- **The left hand leaves the pistol** 0.12 m to the left, 0.02 m forward and 0.02 m down (it was 0.10, 0.03 back
+  and 0.04 down): on the male the old way went 14.3 mm into the right hand on the way back, over the 13.1 mm his
+  joined pose allows.
+
+Contact times did not move, and no hit window moved by more than 2.3 ms, so the categories' windows stand.
 
 ## How they were made
 
@@ -142,8 +168,8 @@ Studied for the mechanics and the timing only; nothing was traced or copied.
   8.1 m/s in a cross and 8.9 to 11.2 m/s in a hook, and a blow runs from the pelvis through the trunk and the shoulder
   to the elbow and the wrist ([Biomechanical Analysis of the Cross, Hook, and Uppercut in Junior vs. Elite
   Boxers](https://www.frontiersin.org/journals/sports-and-active-living/articles/10.3389/fspor.2020.598861/full),
-  Frontiers in Sports and Active Living, 2020). Ours: the knuckle comes into contact at 8.2 m/s (jab), 9.1 m/s (cross)
-  and 7.0 m/s (hook) on the female, 9.3, 10.6 and 8.0 on the male. The chest's turn leads the arm in every clip.
+  Frontiers in Sports and Active Living, 2020). Ours: the knuckle comes into contact at 7.7 m/s (jab), 8.7 m/s (cross)
+  and 6.8 m/s (hook) on the female, 8.3, 9.5 and 7.5 on the male. The chest's turn leads the arm in every clip.
 - **Straight or round.** The same paper describes the cross as a blow that goes forward with the body and the hook as
   a turn of the whole body that carries the arm. So the cross is keyed as a straight line of the wrist behind a turn
   of the chest, and the hook as a bent arm (the elbow at 104 degrees, level with the shoulder) that the chest's
@@ -167,16 +193,13 @@ Studied for the mechanics and the timing only; nothing was traced or copied.
 
 ## What they do not do
 
-- **The build is still on the Quaternius mannequins, and stops since the template wears the prototype bodies**
-  (kit #1299, which solved the pistol's hold again for their hands): its self-test reads the old female's hand
-  14.8 mm in the grip and it writes nothing. `melee.glb` here was built just before that change, with every check
-  passing; it plays on the prototype bodies (the game's suites and captures), but the numbers on this page are the
-  old mannequins'. Moving the build to the prototype bodies is kit #1319.
 - **No step and no weight shift in the legs**: the game plays the upper body over its own legs. A blow thrown
   standing still would be stronger with a step, and that would be a full-body clip of its own.
 - **The pistol's left hand crosses the right while the clip fades** (above). A pose to join in which the hands do not
   overlap, or a game that blends the left hand off the pistol before the blow, would let the limit hold on every
   frame.
-- **One clip plays on both mannequins.** It was keyed on the female; the male's longer arms reach 0.04 to 0.05 m
+- **One clip plays on both bodies.** It was keyed on the female; the male's longer arms reach 0.04 to 0.06 m
   further and bend the same.
+- **They join the library's idles, not the template's own.** The standing body plays the template's own `gds/Idle`;
+  the fists' clips still start and end on the library's `Idle_Loop`, which the fades cover.
 - **No rifle clips**: the rifle has its own issue.

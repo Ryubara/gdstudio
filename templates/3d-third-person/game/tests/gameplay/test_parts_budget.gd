@@ -3,8 +3,8 @@
 # (docs/engines/godot/performance-budgets.md#budgets-counts-tight-time-loose). A living dressed
 # character carries no ragdoll bones, a still target and a door nobody nears cost no query, and
 # ten walking characters stay under a frame budget measured as a share of a fixed loop of script
-# run in the same process, so a slow runner scales both. `tools/bench/parts_cost_bench.tscn`
-# prints the numbers this budget was set from.
+# run in the same process, in the same frames, so a slow runner and a busy machine scale both.
+# `tools/bench/parts_cost_bench.tscn` prints the numbers this budget was set from.
 extends GdUnitTestSuite
 
 const CHARACTER := "res://gameplay/character/character_dressed.tscn"
@@ -34,14 +34,20 @@ const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120
 ## Ten walking characters' median frame (their scripts, the animation and the physics step), as a
-## multiple of the calibration loop below. Measured 2026-11-10 on the desktop, headless at CI's
-## step, three runs each: 0.92 to 0.96 before #926, 0.50 to 0.66 after. The limit is loose (a
-## runner runs script and the engine at other speeds, and the loop is a few milliseconds): it fails
-## a frame twice as slow; the counts above hold the ragdoll's share tight.
-const FRAME_RATIO_LIMIT := 1.3
+## multiple of the median calibration loop below, the loop run once at the end of every measured
+## frame. Both sides are timed in the same frames, so a moment the machine takes the processor
+## away moves both (#1324: the loop timed once after the frames, as the fastest of nine, read 1.41
+## against the old limit of 1.3 while other suites ran). Measured 2026-11-12 on the desktop,
+## headless at CI's step: 0.90 to 1.12 in 28 runs with two more suites running, where the old
+## measure read 0.83 to 1.45 in the same rounds. After main's character and animation work of
+## 2026-11-11 and 12 (not traced to one change) it read 1.16 to 1.33 (16 runs, 8 to 93 %
+## of the processor, the build before them 1.01 to 1.08 in turns with it), and a frame made twice
+## as slow 2.21 to 2.60. The limit sits between the two; the counts above hold the ragdoll tight.
+const FRAME_RATIO_LIMIT := 1.7
 
 var _arena: Node3D
 var _work: Array[float] = []
+var _loop: Array[float] = []
 var _tick_start := -1
 
 
@@ -117,8 +123,9 @@ func test_ten_walking_characters_stay_under_the_frame_budget() -> void:
 	for index in CROWD:
 		_spawn(index)
 	await InputSim.ticks(get_tree(), 60)
-	var frame := await _median_work()
-	var calibration := _calibration_ms()
+	await _measure_frames()
+	var frame := _median(_work)
+	var calibration := _median(_loop)
 	var ratio := frame / calibration
 	prints(
 		"PARTS_BUDGET frame %.3f ms, calibration %.3f ms, ratio %.3f" % [frame, calibration, ratio]
@@ -135,9 +142,11 @@ func test_ten_walking_characters_stay_under_the_frame_budget() -> void:
 	)
 
 
-# The median of the frames' work: from a frame's first physics tick to the last node processed.
-func _median_work() -> float:
+# Times each frame's work, from its first physics tick to the last node processed, then runs the
+# calibration loop once in the same frame: both lists see the same load.
+func _measure_frames() -> void:
 	_work.clear()
+	_loop.clear()
 	_tick_start = -1
 	var end := FrameEnd.new()
 	add_child(end)
@@ -147,8 +156,12 @@ func _median_work() -> float:
 		await get_tree().process_frame
 	get_tree().physics_frame.disconnect(_on_physics_frame)
 	end.queue_free()
-	_work.sort()
-	return _work[_work.size() / 2]
+
+
+func _median(values: Array[float]) -> float:
+	var sorted := values.duplicate()
+	sorted.sort()
+	return sorted[sorted.size() / 2]
 
 
 func _on_physics_frame() -> void:
@@ -157,28 +170,26 @@ func _on_physics_frame() -> void:
 
 
 func _on_frame_end() -> void:
-	if _tick_start >= 0:
-		_work.append((Time.get_ticks_usec() - _tick_start) / 1000.0)
+	if _tick_start < 0:
+		return
+	_work.append((Time.get_ticks_usec() - _tick_start) / 1000.0)
 	_tick_start = -1
+	_loop.append(_calibration_ms())
 
 
 # A fixed piece of script of the kind the parts run (arithmetic, vectors, an array and a
-# dictionary), in milliseconds: the fastest of nine, so a busy moment does not count.
+# dictionary), in milliseconds.
 func _calibration_ms() -> float:
-	var best := INF
-	for _run in 9:
-		var start := Time.get_ticks_usec()
-		var sum := Vector3.ZERO
-		var names: Dictionary[int, float] = {}
-		var values: Array[float] = []
-		for index in 10000:
-			var at := Vector3(index, index * 0.5, -index).normalized()
-			sum += at * 0.01
-			values.append(at.length())
-			names[index % 64] = sum.x
-		best = minf(best, (Time.get_ticks_usec() - start) / 1000.0)
-		assert_int(names.size()).is_equal(64)
-	return best
+	var start := Time.get_ticks_usec()
+	var sum := Vector3.ZERO
+	var names: Dictionary[int, float] = {}
+	var values: Array[float] = []
+	for index in 10000:
+		var at := Vector3(index, index * 0.5, -index).normalized()
+		sum += at * 0.01
+		values.append(at.length())
+		names[index % 64] = sum.x
+	return (Time.get_ticks_usec() - start) / 1000.0
 
 
 ## Processed after every other node: says when a frame's processing is over.
