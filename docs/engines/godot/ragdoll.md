@@ -333,6 +333,41 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   frames are from `tools/capture/ragdoll_tour.tscn`, run through `gds capture` as in
   [A route for a clip](third-person-template.md#walkthrough)). **Seen:** gdstudio #846, 2026-11-09.
 
+### The dead underfoot {#underfoot}
+
+<!-- new section: the template had no word on what a living body does with a corpse in its way -->
+
+No capsule meets a bone (`CHARACTER_MASK` leaves out `RAGDOLL`), so the player walks, sprints and slides through a pile
+at full speed: no push, no step-up, no vault, the view untouched (`test_corpses_underfoot.gd`). What the eye sees is the
+legs inside the dead, so the player's `CorpseNudge` (a node of `player.tscn`, `gameplay/character/corpse_nudge.gd`)
+pushes them out: once a tick, after the body moved, a capsule `reach` (0.25 m) wider than the body's and `height` (1 m)
+tall, `lead` (0.15 s of the walk) ahead, finds the limp bones (`RAGDOLL` only, at most `most_bones`, 12), and each gets
+an impulse sideways from the walk (straight out when the body stands) up to `push_speed` (1.6 m/s) or `speed_share`
+(0.4) of the body's speed, whichever is more, scaled by how deep the bone is. A body stood on is clear of the capsule in
+17 ticks. Running through four bodies in a row crosses about 30 percent fewer bones than with it off, not none, since
+the joints hold each limb to its body (bone centres inside the capsule over the run, summed over its ticks: 202 off,
+148 on at a run; 118 and 83 at a sprint), and the fastest bone stays under 2.5 m/s. It is cosmetic and runs on each
+machine outside `Character.step`, as the ragdoll does. The capture is `tools/capture/corpse_tour.tscn` (`NUDGE_OFF=1`
+for the template before it).
+
+Taking the bones into the contact instead (the ragdoll's mask with `CHARACTERS`) cleared the capsule completely but
+carried the body ahead of a sprint: the kinematic capsule pushes a bone in front of it at its own speed, and a corpse
+went 8 m with the player.
+
+- **Approach:** Before changing a layer for "the player collides with corpses", measure in a test whether the capsule
+  meets anything: its velocity, height, facing and state every tick through a pile, and the bones inside it. **Watch
+  out for:** the issue's guess was a collision, a step-up or a vault, and none happened: the capsule kept 6.5 m/s, its
+  height and its facing through four bodies; the crouched look and the turn in the recording were the legs crossing a
+  body while the view turned. **Seen:** kit #1339, 2026-11-12 (the probe in the arena, then
+  `test_a_sprint_through_the_dead_keeps_the_bodys_speed_stance_and_view`).
+- **Approach:** Put a simulating ragdoll's simulator and its `RagdollDrawing` back last on the skeleton whenever
+  modifiers are made on it (`WeaponHold._keep_ragdoll_last`, deferred past the aim layer's), not every tick: a test's
+  `DrawnPoseProbe` is meant to stay last. **Watch out for:** a skeleton modifier added after the death (the
+  `WeaponHold` makes its modifiers again on a weapon or stance change, and the aim layer follows on `built`) goes after
+  the simulator and poses the dead arm and hand over the ragdoll's, so the weapon stands off the hand. **Seen:** kit
+  #1339, 2026-11-12 (`test_a_weapon_hold_made_on_a_dead_body_leaves_the_weapon_in_the_dead_hand`; the gun moved 8 cm on
+  a corpse lying still).
+
 ## Testing a body that the engine throws {#testing}
 
 <!-- new section: a single death proves nothing and the animation clock is real time -->
