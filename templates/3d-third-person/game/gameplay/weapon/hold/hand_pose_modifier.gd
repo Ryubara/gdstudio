@@ -58,6 +58,22 @@ extends SkeletonModifier3D
 ## Every bone opens together though `open_first` names some: fingers closing round a part they
 ## are not hooked over (a magazine's front) curl as one.
 @export var open_together := false
+## A pose blended over all three on the bones it names, by `third_weight`: the hand closed on
+## something it carries (the left hand on the new magazine through a reload, kit #1052).
+@export var third: HandPose:
+	set(value):
+		_watch(third, value)
+		third = value
+		_dirty = true
+@export_range(0.0, 1.0, 0.01) var third_weight := 0.0
+## `third` opened, blended over it by `third_open_weight`: the hand opened to take the thing it
+## then closes on (the left hand's fingers before they close on the new magazine).
+@export var third_open: HandPose:
+	set(value):
+		_watch(third_open, value)
+		third_open = value
+		_dirty = true
+@export_range(0.0, 1.0, 0.01) var third_open_weight := 0.0
 ## An upper arm lifted away from the body before the pose is put on, and by how many degrees: the
 ## weapon's arm held out from the thigh while the weapon is carried (`swing_out()`).
 @export var swing_bone: StringName = &""
@@ -79,6 +95,10 @@ var _opening := PackedByteArray()
 # Each bone's rotation in `open_via`, where it names the bone.
 var _open_vias: Array[Quaternion] = []
 var _has_open_via := PackedByteArray()
+# Each bone's rotation in `third` and in `third_open` (`third`'s own where that leaves it out).
+var _thirds: Array[Quaternion] = []
+var _third_opens: Array[Quaternion] = []
+var _has_third := PackedByteArray()
 var _turned := PackedInt32Array()
 var _turns: Array[Quaternion] = []
 
@@ -100,7 +120,8 @@ func _process_modification_with_delta(_delta: float) -> void:
 		skeleton.set_bone_pose_rotation(bone, skeleton.get_bone_pose_rotation(bone) * _turns[index])
 	var blend := second != null and second_weight > 0.0
 	var opened := open != null and open_weight > 0.0
-	if not blend and not opened:
+	var carried := third != null and third_weight > 0.0
+	if not blend and not opened and not carried:
 		for index in _indexes.size():
 			skeleton.set_bone_pose_rotation(_indexes[index], _rotations[index])
 		return
@@ -123,6 +144,11 @@ func _process_modification_with_delta(_delta: float) -> void:
 				turned = turned.slerp(_open_vias[index], share * 2.0)
 			else:
 				turned = _open_vias[index].slerp(_opens[index], share * 2.0 - 1.0)
+		if carried and _has_third[index] == 1:
+			var held := _thirds[index]
+			if third_open_weight > 0.0:
+				held = held.slerp(_third_opens[index], third_open_weight)
+			turned = turned.slerp(held, third_weight)
 		skeleton.set_bone_pose_rotation(_indexes[index], turned)
 
 
@@ -150,6 +176,9 @@ func _lay_out(skeleton: Skeleton3D) -> void:
 	_opening.clear()
 	_open_vias.clear()
 	_has_open_via.clear()
+	_thirds.clear()
+	_third_opens.clear()
+	_has_third.clear()
 	_turned.clear()
 	_turns.clear()
 	var first := {}
@@ -180,6 +209,11 @@ func _lay_out(skeleton: Skeleton3D) -> void:
 		if in_open:
 			opening = 0 if open_first.is_empty() else (1 if first.has(bone_name) else 2)
 		_opening.append(opening)
+		var in_third := third != null and third.rotations.has(bone_name)
+		_has_third.append(1 if in_third else 0)
+		_thirds.append(third.rotations[bone_name] if in_third else own)
+		var in_third_open := in_third and third_open != null and third_open.rotations.has(bone_name)
+		_third_opens.append(third_open.rotations[bone_name] if in_third_open else _thirds[-1])
 	for bone_name in pose.turns:
 		var bone := skeleton.find_bone(bone_name)
 		if bone >= 0:
