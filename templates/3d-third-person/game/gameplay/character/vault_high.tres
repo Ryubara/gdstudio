@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="VaultClip" format=3]
+
+[ext_resource type="Script" path="res://addons/gds_game/traversal/vault_clip.gd" id="1_clip"]
+
+[resource]
+script = ExtResource("1_clip")
+obstacle_height = 1.2
+speed = 3.0
+root_start = -1.86
+takeoff = 0.4583
+hand_plant = 0.4583
+push_off = 0.7083
+land = 1.25
+lower_from = 0.4583
+lower_by = 0.4883
+planted_hands = Dictionary[StringName, Vector3]({
+&"hand_l": Vector3(0.24, 0.036, 0.1),
+&"hand_r": Vector3(-0.24, 0.036, 0.1)
+})
+hand_release = Dictionary[StringName, float]({
+&"hand_l": 0.6667,
+&"hand_r": 0.5
+})
+puts_weapon_away = true
