@@ -56,15 +56,28 @@ func stow_view(model: Node3D, hold: WeaponDef, away: bool) -> void:
 ## Gives `player` the prone library `libraries` names for `rig`'s scene file, or the scene's
 ## shared one. Only in the game: a library swapped in the editor would be saved with the scene.
 func use_model_clips(player: AnimationPlayer, rig: Node3D, libraries: Dictionary) -> void:
+	_shared = swap_library(player, rig, CharacterClips.LIBRARY_PRONE, libraries, _shared)
+
+
+## Gives `player` the library named `library` that `libraries` holds for `rig`'s scene file, or
+## `shared`, the one the scene came with. Returns that shared library (found on the first call,
+## when `shared` is null), for the caller to keep and pass again.
+static func swap_library(
+	player: AnimationPlayer,
+	rig: Node3D,
+	library: StringName,
+	libraries: Dictionary,
+	shared: AnimationLibrary
+) -> AnimationLibrary:
 	if Engine.is_editor_hint() or player == null or rig == null:
-		return
-	var library := CharacterClips.LIBRARY_PRONE
+		return shared
 	var has := player.has_animation_library(library)
-	if _shared == null and has:
-		_shared = player.get_animation_library(library)
-	var wanted: AnimationLibrary = libraries.get(rig.scene_file_path, _shared)
+	if shared == null and has:
+		shared = player.get_animation_library(library)
+	var wanted: AnimationLibrary = libraries.get(rig.scene_file_path, shared)
 	if wanted == null or (has and player.get_animation_library(library) == wanted):
-		return
+		return shared
 	if has:
 		player.remove_animation_library(library)
 	player.add_animation_library(library, wanted)
+	return shared
