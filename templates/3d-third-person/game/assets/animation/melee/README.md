@@ -150,7 +150,7 @@ Studied for the mechanics and the timing only; nothing was traced or copied.
   turn, from 14 degrees left to 34 right at contact and on to 46, swings across the front. The jab is the quick one:
   the least turn (10 degrees) and the shortest clip.
 - **What the library's own punches do.** The kit's audit of the Universal Animation Library
-  (`docs/tools/blender/own-animation.md#audit-clips`) measured `Punch_Jab` and `Punch_Cross`: the chest drives the
+  (`docs/tools/blender/library-clip-audit.md#audit-clips`) measured `Punch_Jab` and `Punch_Cross`: the chest drives the
   blow (43 and 57 degrees), the hand lands in two frames, and they end 0.63 m from the idle with the hand 19 to 28 mm
   inside the head on the female. Ours end on the idle and read 0.0 mm.
 - **Where a pistol is held close in.** Handgun retention training holds the pistol with the wrist high against the

@@ -27,8 +27,8 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   sha256 in the licence entry.
 - **Approach:** Keep the library glbs' import at the defaults (the optimizer and `remove_immutable_tracks` on) and
   read the costs before changing one: `ual1.glb` imports at 1,560 KB with the optimizer off, 752 KB at the defaults
-  and 275 KB with compression ([what the clips cost](../../../tools/blender/own-animation.md#audit-cost)). **Watch out
-  for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
+  and 275 KB with compression ([what the clips cost](../../../tools/blender/library-clip-audit.md#audit-cost)). **Watch
+  out for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
   drops those constant tracks on import, and a body of other proportions that plays them stretches its neck and limbs
   to the mannequin's. **Seen:** gdstudio #1150 (PR #1165), 2026-11-11 (the sizes); gdstudio #1149 and #1151,
   2026-11-11 (the position tracks).
