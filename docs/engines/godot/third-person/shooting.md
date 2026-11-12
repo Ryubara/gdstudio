@@ -42,6 +42,13 @@ the spread's place for `restore()`.
   aim; the pistol clips are whole-body poses, so without
   the filter the legs stop walking. **Seen:** gdstudio #836, 2026-11-08; gdstudio #877, 2026-11-10 (found by the
   maintainer).
+- **Approach:** Add a shot's recoil to the aim pose: the one-shot in `MIX_MODE_ADD` with the clip less its own first
+  frame (`ShotLayer`, `WeaponDef.shoot_additive`), proved by the muzzle's pitch through a shot at every aim pitch from
+  45 down to 45 up, standing and crouched (`test_shot_kick.gd`). **Watch out for:** a recoil clip made at the level
+  aim replaced the aim pose, so every shot swung the pistol to about 16 degrees above level: 100 degrees up from a look
+  45 down (the gun at the sky between shots at a crouched target), 80 down from a look 45 up. A dozen shots in a row
+  empty the magazine and a reload plays over the last (`Weapon.make_ready()` first). **Seen:** gdstudio #1280,
+  2026-11-11 (from the maintainer's play-test in #1251).
 - **Approach:** Prove a carry by reading, per bone, the blend amount of the layer that filters it (0 on the arm and
   spine walking, jogging, sprinting, crouch walking and jumping, 1 on the hand) and the pistol's clearance on the
   skinned body in every clip on both mannequins (`test_pistol_carry.gd`, `test_pistol_clearance.gd`); keep the arm up
@@ -223,7 +230,8 @@ turns nothing.
 
 **Recoil.** While the shot's one-shot plays (`CharacterAnimation.is_shooting()`), the turn found before the shot is kept
 and moved only with the aim, so the recoil the clip shows is not turned away; after it the turn eases back over
-`release_time` (0.12 s). In the close-ups the pistol's recoil tips the gun about 30 degrees up for a few frames.
+`release_time` (0.12 s). The pistol's shot clip is added to the aim (`WeaponDef.shoot_additive`, `ShotLayer`), so the kick
+is about 16 degrees up from whatever pitch the aim has (`test_shot_kick.gd`, gdstudio #1280).
 
 **Moves and limits.** Each move's tuning holds an `AimLimits` (on or off, the most left and right of the way the body
 faces, the most up and down): `CharacterTuning.aim_limits` standing and `crouch_aim_limits` crouched (70, 70, 45, 45),
@@ -235,9 +243,10 @@ is within the side limits; past them it turns just enough to bring the aim back 
 (`AimLimits.REACH_MARGIN`, 2 degrees, keeps the edge from flickering). The facing and the refusal are in the step, so a
 server and a predicting client agree; nothing new is sent.
 
-**Online.** The layer is a pose on each machine. A puppet is placed with `facing` and `view_pitch` from the snapshot and
-its `view_yaw` is its facing, so on another screen a sliding player's pistol follows the aim's pitch but points along
-the body's facing, not to its side: the aim's yaw off the body is not in the snapshot (gdstudio #1277).
+**Online.** The layer is a pose on each machine. A puppet is placed with `facing` and `view_pitch` from the snapshot
+and, while aiming, the aim's heading off the body (one signed byte in the player entry, gdstudio #1277), so on another
+screen a sliding player's upper body turns and the pistol points to the side as on the player's own screen
+([puppets](online-client.md#puppets)).
 
 **How it goes with the other aim work.** A steadier stance under the aim (#1206) and a one-handed pistol hold (#1085)
 change the clips and the hold that the layer reads; the layer measures the muzzle on whatever pose they leave, so they
