@@ -139,4 +139,5 @@ them is under [Prone and the crawl](../../engines/godot/third-person/moves.md#pr
   hands onto the weapon whatever the clip does, so the posed suites barely notice; a changed marker shows as an elbow
   pulled off the place the clip planted, and a new finger rule as a contact test written for the old one.
   **Seen:** gdstudio #1191, 2026-11-12 (after #1171's grip the left elbow moved 18 and 45 mm and the right thumb read
-  7.5 and 10.1 mm off the gun, where it now rests on the left hand; rebuilt, 0.5 mm).
+  7.5 and 10.1 mm off the gun, where it now rests on the left hand; rebuilt, 0.5 mm); again after #1262's seat (a
+  little finger 6.4 to 9.0 mm under the floor and the left elbow off; rebuilt, `test_prone_aim_hold.gd` green).
