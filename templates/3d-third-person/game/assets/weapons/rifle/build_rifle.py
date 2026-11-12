@@ -67,6 +67,10 @@ PALETTE = {
 }
 GRID = 4
 SWATCH_PX = 8
+# How far the stock is slid in on its buffer tube from Deadnight's drawing (an M4's stock collapsed by its first
+# positions): the mannequin's left arm reaches the hand guard with the butt on the shoulder's skin only with the
+# stock this short (kit #1177; the hold's numbers are on the folder's README).
+STOCK_IN = 0.05
 
 
 def hex_rgb(h):
@@ -275,11 +279,13 @@ def body(b):
     )
     b.bar([(-0.036, -0.018), (-0.038, -0.07), (-0.018, -0.087), (0.006, -0.081), (0.012, -0.04)], 0.018, 0.012, K)
     b.bar([(-0.01, -0.02), (-0.014, -0.044), (-0.006, -0.056)], 0.01, 0.01, D)
-    # The buffer tube and the Tan stock on it: a flat top, the bottom dropping to the butt; a Black pad. The bottom's
-    # front stays high (z 0.02 at x 0.22), clear of the wrist of a shouldered hold.
-    b.cyl((0.06, 0, 0.055), (0.25, 0, 0.055), 0.022, K, segs=10, bevel=0)
-    b.prism([(0.15, 0.035), (0.22, 0.02), (0.322, -0.06), (0.33, 0.08), (0.15, 0.08)], -0.028, 0.028, T, bevel=0.01)
-    b.box((0.336, 0, 0.01), (0.014, 0.062, 0.145), K, bevel=0.004)  # butt pad
+    # The buffer tube and the Tan stock on it, collapsed (`STOCK_IN`): a flat top, the bottom dropping to the butt; a
+    # Black pad. The bottom's front stays high (z 0.02 at x 0.17), clear of the wrist of a shouldered hold.
+    s = STOCK_IN
+    b.cyl((0.06, 0, 0.055), (0.25 - s, 0, 0.055), 0.022, K, segs=10, bevel=0)
+    stock = [(0.15, 0.035), (0.22, 0.02), (0.322, -0.06), (0.33, 0.08), (0.15, 0.08)]
+    b.prism([(x - s, z) for x, z in stock], -0.028, 0.028, T, bevel=0.01)
+    b.box((0.336 - s, 0, 0.01), (0.014, 0.062, 0.145), K, bevel=0.004)  # butt pad
 
 
 def magazine(b):
@@ -306,7 +312,7 @@ TRIGGER = (-0.018, 0.0, -0.038)
 # The left hand's handle: under the hand guard, 4 cm behind Deadnight's -0.25 so that the mannequin's arm (0.49 m from
 # shoulder to wrist) reaches it with the chest turned 30 degrees (kit #886, the hold study in the folder's README).
 SUPPORT = ((-0.21, 0.0, 0.03), (-1.0, 0.0, 0.0), (0.0, 1.0, 0.6))
-BUTT = (0.343, 0.0, 0.01)  # the butt pad's rear face: where the stock meets the shoulder
+BUTT = (0.343 - STOCK_IN, 0.0, 0.01)  # the butt pad's rear face: where the stock meets the shoulder
 
 
 # ---- the template's files ----------------------------------------------------------------------------------------
