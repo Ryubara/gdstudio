@@ -186,11 +186,13 @@ shooting page once that work lands).
   every clip. Over 40 characters the carried hold costs 5.6 microseconds a character a frame and the aimed one 12.6
   (headless, desktop; `tools/bench/hold_cost.tscn`). It is cosmetic and never sent over a network.
 - **The seat needs a wrist turn.** With the barrel on the clips' line a real-sized palm lies flat beside the grip, the
-  knuckles 2 cm off the panel. The seat is turned about the grip (13 degrees) and tipped (23), and the hand bone is
-  turned back by the same turn (`HandPose.turns`), so the barrel keeps the old line in the forearm in every clip and
-  only the wrist bends (26 degrees). The seat puts the right middle finger's first bone under the trigger guard
-  (kit #1213; the solver's `UNDER_GUARD_Y`, checked by `test_pistol_hold.gd`). That moves the pistol about 10 cm
-  (`Weapon.no_muzzle_offset` follows the muzzle).
+  knuckles 2 cm off the panel. Each body's seat is turned and tipped (about the pistol's axes 3, -8.5 and -29
+  degrees on the female, -6, -12 and -28 on the male), and the hand bone is turned back by the same turn
+  (`HandPose.turns`), so the barrel keeps the old line in the forearm in every clip and only the wrist bends (31
+  and 30 degrees). The seat puts the middle of the right middle finger's first bone under the trigger guard, 5.5
+  and 5.3 mm up the gun with the thumb's root still 62 and 63 mm up it (kit #1213; the solver's `UNDER_GUARD_Y`,
+  `test_pistol_hold.gd`; [the seat under the guard](weapon-hands/two-handed-pistol-grip.md#the-seat-under-the-guard)).
+  That moves the pistol about 10 cm (`Weapon.no_muzzle_offset` follows the muzzle).
 - **A closed hand is wider than the clips' open one: hold the arm out while it is carried.** With the grip in the
   palm and the arm hanging as the locomotion clips have it, the grip's foot was 51 to 60 mm inside the female's thigh
   in `Idle` and `Walk`. `WeaponHold.carry_arm_out` lifts the upper arm 8 degrees toward its own side while the pistol
