@@ -14,6 +14,7 @@ on the page of its subject, with an `{#anchor}`. A page is split at about 40 KB,
 - [Crouch, aim and shoot](shooting.md): the weapon, the bullet impacts and the effects.
 - [One-handed shooting](one-handed.md): a weapon held in the right hand alone, its stance, its kick and its proof.
 - [Weapon pickups and the rifle](weapon-pickups.md): the floating pickup, `give()`, and the rifle in both hands.
+- [Melee blows](melee.md): the blow every weapon and the empty hands throw, its category and its `MELEE` event.
 - [The camera, the map and the screen](camera-and-ui.md): the follow camera, the map components, the minimap and the HUD.
 - [AI characters](ai.md): the `AiCharacter` base, its `AiProfile`, the `AiDirector`'s thinks, tiers and budget, and
   the situation machine.

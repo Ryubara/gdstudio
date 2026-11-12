@@ -7,7 +7,8 @@ extends CharacterController
 ##
 ## It reads these actions (all devices): `move_left`, `move_right`, `move_forward`, `move_back`,
 ## `jump`, `sprint`, `walk`, `interact`, `crouch`, `prone`, `aim`, `fire`, the weapon presses
-## `reload`, `next_weapon`, `previous_weapon` and `toggle_unarmed`, and `ragdoll` (made at run time,
+## `reload`, `next_weapon`, `previous_weapon` and `toggle_unarmed`, the melee button `melee`, and
+## `ragdoll` (made at run time,
 ## holding the player's `ragdoll_key`). A weapon chosen on a screen (`request_weapon`) is sent as
 ## those same weapon presses, one a tick, so a screen adds nothing to the command. The number keys
 ## of the HUD's places (`QuickKeys`: `weapon_1`, `weapon_2`, `hotbar_1`...) request the place's
@@ -22,9 +23,10 @@ extends CharacterController
 
 ## The input action that kills and revives the character (the player's `ragdoll_key` is on it).
 const RAGDOLL_ACTION := &"ragdoll"
-## The weapon presses, in the order of the command's fields.
+## The weapon presses, in the order of the command's fields (the melee button last, gdstudio
+## #1254).
 const WEAPON_ACTIONS: Array[StringName] = [
-	&"reload", &"next_weapon", &"previous_weapon", &"toggle_unarmed"
+	&"reload", &"next_weapon", &"previous_weapon", &"toggle_unarmed", &"melee"
 ]
 
 ## No weapon asked for by `request_weapon` (-1 is the empty hands).
@@ -47,9 +49,9 @@ var camera_rig: PlayerCamera
 var _crouch_latch := false
 # A weapon press seen as an event since the last command (a mouse wheel's press and release
 # arrive in one frame, which `is_action_just_pressed` may not see from a physics tick).
-var _weapon_latches: Array[bool] = [false, false, false, false]
+var _weapon_latches: Array[bool] = [false, false, false, false, false]
 # Each weapon action was down at the last command.
-var _weapon_down: Array[bool] = [false, false, false, false]
+var _weapon_down: Array[bool] = [false, false, false, false, false]
 var _prone_latch := false
 # Seconds crouch has been held (for `HOLD_CROUCH`), and whether this press was used already.
 var _crouch_held := 0.0
@@ -169,6 +171,7 @@ func sample() -> PlayerCommand:
 	command.next_weapon_pressed = presses[1]
 	command.previous_weapon_pressed = presses[2]
 	command.unarmed_pressed = presses[3]
+	command.melee_pressed = presses[4]
 	_press_places()
 	_press_requested(command)
 	if camera != null and player != null and player.shot_wanted(command):

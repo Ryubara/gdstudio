@@ -186,9 +186,13 @@ shooting page once that work lands).
   every clip. Over 40 characters the carried hold costs 5.6 microseconds a character a frame and the aimed one 12.6
   (headless, desktop; `tools/bench/hold_cost.tscn`). It is cosmetic and never sent over a network.
 - **The seat needs a wrist turn.** With the barrel on the clips' line a real-sized palm lies flat beside the grip, the
-  knuckles 2 cm off the panel. The seat is turned about the grip (24 degrees) and tipped (15), and the hand bone is
-  turned back by the same turn (`HandPose.turns`), so the barrel keeps the old line in the forearm in every clip and
-  only the wrist bends (28 degrees). That moves the pistol about 10 cm (`Weapon.no_muzzle_offset` follows the muzzle).
+  knuckles 2 cm off the panel. Each body's seat is turned and tipped (about the pistol's axes 3, -8.5 and -29
+  degrees on the female, -6, -12 and -28 on the male), and the hand bone is turned back by the same turn
+  (`HandPose.turns`), so the barrel keeps the old line in the forearm in every clip and only the wrist bends (31
+  and 30 degrees). The seat puts the middle of the right middle finger's first bone under the trigger guard, 5.5
+  and 5.3 mm up the gun with the thumb's root still 62 and 63 mm up it (kit #1213; the solver's `UNDER_GUARD_Y`,
+  `test_pistol_hold.gd`; [the seat under the guard](weapon-hands/two-handed-pistol-grip.md#the-seat-under-the-guard)).
+  That moves the pistol about 10 cm (`Weapon.no_muzzle_offset` follows the muzzle).
 - **A closed hand is wider than the clips' open one: hold the arm out while it is carried.** With the grip in the
   palm and the arm hanging as the locomotion clips have it, the grip's foot was 51 to 60 mm inside the female's thigh
   in `Idle` and `Walk`. `WeaponHold.carry_arm_out` lifts the upper arm 8 degrees toward its own side while the pistol
@@ -218,6 +222,9 @@ shooting page once that work lands).
 - **The two hands hold it together, and the left hand follows the reload** (kit #1084, #1031, #1051, #1078, #1079).
   The left hand is laid over the right one as a two-handed grip is taught, goes on and off the gun one way, and the
   trigger finger has a solved way to the trigger: [The two-handed pistol grip](weapon-hands/two-handed-pistol-grip.md).
+  Through the reload the old magazine drops, the new one rides the left hand up the grip's line in solved fingers, and
+  the slide locked open on an empty pistol is released (kit #1052,
+  [the magazine and the slide](weapon-hands/two-handed-pistol-grip.md#the-magazine-through-the-reload)).
 - **Or one hand** (kit #1085): with the definition's `one_handed` the right hand's grip is the same pose on the
   same seat, the index finger on the trigger while aiming and the thumb forward along the frame where the left
   thumb's root would be (`one_hand_pose`, set by hand for the female body), and the left hand is off the gun but for
@@ -238,12 +245,12 @@ shooting page once that work lands).
   hand bone's place in the pistol's space on every frame it is near the slide, the fingers closed on the slide and
   opened over it, the slide's travel and the beats. What plays the clip reaches the left hand there with a `HoldArm`,
   puts the fingers on with a `HandPoseModifier` (`SlideRack.set_fingers()`) and moves the `Slide` node. Measured on
-  every frame on both bodies: the right hand 1.2 mm in and 1.0 mm off at most, the left hand on the slide 1.0 mm in
+  every frame on both bodies: the right hand 1.2 mm in and 3.1 mm off at most, the left hand on the slide 1.4 mm in
   with the palm and every fingertip on the surface, 0.0 mm from its place, at most 2.3 mm in on its way at any half
-  frame with the pistol carried and 4.8 mm with the pistol where the clip has it, and no limb in another where the
-  rack moves the hand (on the two-handed grip of kit #1084, for which the clip was built again: its own left hand
-  is at the far end of the hold's way where the hold lets it go,
-  [solving two hands](weapon-hands/two-handed-pistol-grip.md#solving-two-hands)). Before the per-body solve (the
+  frame, the pistol carried or where the clip has it, and no limb more than 1.7 mm in another where the rack moves
+  the hand (on the two-handed grip of kit #1084 and the seat of kit #1213, for each of which the hand on the slide
+  was solved and the clip built again: its own left hand is at the far end of the hold's way where the hold lets
+  it go, [solving two hands](weapon-hands/two-handed-pistol-grip.md#solving-two-hands)). Before the per-body solve (the
   Quaternius hands' place and curls on these
   bodies) the palms were 12.3 to 13.9 mm off the slide and the index fingertips 13.1 to 18.9 mm inside it.
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
@@ -422,7 +429,11 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   seating on the skin the hand bone alone moves pushed the hand 17 mm into the gun; backing the whole hand off until
   nothing was deeper than 0.3 mm took it 8 mm off for a thumb that touched sideways; a bisection of the push over
   the whole way failed, since past the gun the palm is clear again (step to the first touch, then bisect).
-  **Seen:** gdstudio #1031, 2026-11-10.
+  **Seen:** gdstudio #1031, 2026-11-10; gdstudio #1052, 2026-11-11 (the palm by a closing thumb, 3.5 mm).
+- **Approach:** Measure the palm in the solver as the game's test does, at points all over its faces
+  (`HoldHand.palm_points`). **Watch out for:** the palm is a few faces up to 5 cm across, so its vertices miss a corner
+  of the grip between them: a seat searched on the vertices read the male palm 1.0 mm in where the test read 4.9 mm.
+  **Seen:** gdstudio #1213, 2026-11-11 (the seat searched again on the faces).
 - **Approach:** After closing a hand on a grip, measure the weapon against the body in the locomotion clips again, and
   bench a change of modifiers one configuration a process. **Watch out for:** the seat that put the grip in the palm
   moved the pistol 6 cm toward the body, into the thigh in `Idle` and `Walk`, which only the clearance test showed

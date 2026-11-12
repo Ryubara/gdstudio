@@ -80,7 +80,6 @@ const _P_ARMED := StringName("parameters/%s/blend_amount" % _ARMED)
 const _P_AIM := StringName("parameters/%s/blend_amount" % _AIM)
 const _P_AIM_POSE := StringName("parameters/%s/blend_position" % _AIM_POSE)
 const _P_SHOOT_SCALE := StringName("parameters/%s/scale" % _SHOOT_SCALE)
-const _P_SHOOT_REQUEST := StringName("parameters/%s/request" % _SHOOT)
 const _P_SHOOT_ACTIVE := StringName("parameters/%s/active" % _SHOOT)
 const _P_PRONE_MOVE := StringName("parameters/%s/" % _MACHINE + "%s/Move/blend_amount" % PRONE)
 const _P_CRAWL_PACE := StringName("parameters/%s/" % _MACHINE + "%s/CrawlPace/scale" % PRONE)
@@ -272,6 +271,7 @@ const _RELOAD_FADE_OUT := 0.2
 		action_blend_time = value
 		_rebuild()
 
+var melee := MeleeLayer.new()  # The melee blow's one-shot (gdstudio #1254).
 var _machine: AnimationNodeStateMachine
 var _ground: AnimationNodeBlendSpace1D
 var _crouch: AnimationNodeBlendSpace1D
@@ -462,12 +462,9 @@ func play_clip(clip: StringName, duration: float = 0.0) -> void:
 	action_started.emit(clip)
 
 
-## How much of the upper body the pistol holds (0 none, 1 all of it): the holding pose, then the
-## aim over it.
+## The pistol's share of the upper body (pose, aim; 0 to 1), less during a melee blow.
 func pistol_weights() -> Vector2:
-	if tree == null:
-		return Vector2.ZERO
-	return Vector2(tree.get(_P_ARMED), tree.get(_P_AIM))
+	return melee.weigh(tree, _P_ARMED, _P_AIM) if tree != null else Vector2.ZERO
 
 
 ## Where the aim pose is on its pitch axis, in degrees (negative looks down).
@@ -638,9 +635,9 @@ func _sync_ground_speeds() -> void:
 # tap of the fire button shows the arm up and never pops.
 func _drive_pistol(delta: float) -> void:
 	var hold := held_definition()
-	var up_share := 1.0
+	var up_share := ProneAnimation.upright_share(character, hold)
 	if character.loadout != null:
-		up_share = 1.0 - character.loadout.lowered_amount()
+		up_share *= 1.0 - character.loadout.lowered_amount()
 	var lying := ProneAnimation.stow_share(character)
 	var stow := maxf(lying, _vault_look.hands)
 	var hidden := lying > 0.5 or _vault_look.away
@@ -760,17 +757,18 @@ func _on_shot(_projectile: Projectile) -> void:
 		# One clip after another shot by shot (a jab, then a cross).
 		_shoot_clip_node.animation = hold.shoot_clips[_shots % hold.shoot_clips.size()]
 	_shots += 1
-	tree.set(_P_SHOOT_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	ShotLayer.fire(tree, hold)
 
 
 func _on_definition_changed(_definition: WeaponDef) -> void:
 	_shots = 0
 	_rebuild()
+	ShotLayer.stop(tree)
 
 
 func _on_reload_started(seconds: float) -> void:
 	var hold := held_definition()
-	if hold == null or hold.reload_clip == &"":
+	if hold == null or hold.reload_clip == &"" or ProneAnimation.lies_past_clips(character, hold):
 		return
 	if not animation_player.has_animation(hold.reload_clip):
 		return
@@ -801,7 +799,7 @@ func _build_root() -> AnimationNodeBlendTree:
 	HitLayer.prepare(action, _bone_paths([upper_body_bone]))
 	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
-	root.connect_node(_ACTION, 0, _RELOAD)
+	root.connect_node(_ACTION, 0, MeleeLayer.NODE)
 	root.connect_node(_ACTION, 1, _ACTION_SCALE)
 	root.connect_node(&"output", 0, _ACTION)
 	return root
@@ -868,6 +866,7 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	root.connect_node(_RELOAD_SCALE, 0, _RELOAD_CLIP)
 	root.connect_node(_RELOAD, 0, _SHOOT)
 	root.connect_node(_RELOAD, 1, _RELOAD_SCALE)
+	melee.add_to(self, root, _RELOAD, upper, _clip(_or_idle(MeleeLayer.first_clip(hold))))
 
 
 # The clip node of the hold's `property` (`aim_clip`), or of the idle clip when the hold leaves it

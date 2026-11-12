@@ -138,12 +138,13 @@ func meet(from: Vector3, to: Vector3, age := 0, widen := 0.0) -> Dictionary:
 
 ## `found` (a ray's hit along `start`-`end`, or empty) or the character this shot meets first on
 ## that ray, whichever is nearer, as a ray's result (`collider`, `position`, `normal`, and
-## `centre` for a character).
-func nearer(start: Vector3, end: Vector3, found: Dictionary) -> Dictionary:
+## `centre` for a character). `age`: ticks after the shot left (a melee blow lands a few ticks
+## after its press, met with the AI as drawn then).
+func nearer(start: Vector3, end: Vector3, found: Dictionary, age := 0) -> Dictionary:
 	var reach := end
 	if not found.is_empty():
 		reach = found["position"]
-	var met := meet(start, reach)
+	var met := meet(start, reach, age)
 	return met if not met.is_empty() else found
 
 

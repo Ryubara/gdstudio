@@ -3,8 +3,8 @@
 One clip of GDStudio's own for the pistol, made from nothing (kit #1081) because the Universal Animation Library's
 `Pistol_Reload` has no rack of the slide. It is in `pistol_rack.glb`, which Godot imports as an `AnimationLibrary` the
 same way as `assets/animation/universal/`: add it to an `AnimationPlayer` as the library `pistol` and the clip is
-`pistol/Pistol_Rack`. The player scene does not hold the library yet: the reload that plays it (kit #1052) adds it
-with the code that moves the slide.
+`pistol/Pistol_Rack`. The player scene does not hold the library yet: the reload that plays it (kit #1337) adds it
+with the code that moves the slide (until then the hold releases the slide at the reload's last sound, kit #1052).
 
 | Clip | Length | Loops | What it is |
 | --- | --- | --- | --- |
@@ -63,19 +63,22 @@ Measured in Godot on the skinned meshes of the two bodies the template's charact
 
 | | `form_female` | `form_male` |
 | --- | --- | --- |
-| Right hand on the grip, every frame | 1.0 mm in, 0.8 mm off | 1.2 mm in, 1.0 mm off |
-| Left hand on the slide (frames 9 to 13): deepest part | 1.0 mm in (the thumb's tip) | 0.9 mm in |
-| Left hand on the slide: the palm, the four fingertips and the thumb's tip | all on the surface (0.6 to 1.0 mm in) | all on the surface (0.7 to 0.9 mm in) |
+| Right hand on the grip, every frame | 1.0 mm in, 3.1 mm off (the thumb's tip) | 1.2 mm in, all on the surface |
+| Left hand on the slide (frames 9 to 13): deepest part | 1.4 mm in (the thumb, frame 12) | 0.9 mm in |
+| Left hand on the slide: the palm, the four fingertips and the thumb's tip | all on the surface (0.6 to 1.1 mm in) | all on the surface (0.7 to 0.9 mm in) |
 | Index finger's pad and thumb's pad from the middle of the serrations (limit 20 mm) | within it | within it |
-| Left hand on its support grip (the ends) | 1.3 mm in, 1.9 mm off | 0.9 mm in, 2.2 mm off |
-| Either hand on the way, every half frame, the pistol carried (deepest in the gun or the other hand) | 1.0 mm | 2.3 mm (as it lets go, frame 13.5) |
-| The same with the pistol where the clip has it (the arm in, as when aiming) | 4.8 mm (frame 4.5, the left index fingertip off the support grip) | 2.3 mm (frame 13.5) |
+| Left hand on its support grip (the ends) | 1.5 mm in, 2.2 mm off | 1.6 mm in, 1.8 mm off |
+| Either hand on the way, every half frame, the pistol carried (deepest in the gun or the other hand) | 1.5 mm (closing on the support grip, frame 27) | 2.3 mm (as it lets go, frame 13.5) |
+| The same with the pistol where the clip has it (the arm in, as when aiming) | 1.5 mm (frame 27) | 2.3 mm (frame 13.5) |
 | Left hand's bone from its place on the slide | 0.0 mm | 0.0 mm |
-| Limbs through each other where the rack moves the hand (`../limb_overlap.py`, the build; limit 5 mm) | 0.0 mm | 0.0 mm |
+| Limbs through each other where the rack moves the hand (`../limb_overlap.py`, the build; limit 5 mm) | 1.7 mm (frame 12) | 0.0 mm |
 
 These are on the two-handed grip of kit #1084 (the support hand canted over the shooting hand, the right thumb on
-the left thumb's root while that hand holds). On the clip's ends the right thumb is therefore 7.5 mm (female) and
-10.1 mm (male) off the gun, on the left hand, and the test measures the right hand against the left one there.
+the left thumb's root while that hand holds) and the seat of kit #1213 (the right middle finger under the trigger
+guard), for which each body's hand on the slide was solved and the clip built again: on that seat the clip built
+for the seat before had the female's left thumb 4.0 mm in her right thumb while the slide was pulled (frames 12 to
+13). On the clip's ends the right thumb lies on the left hand (the male's 15.4 mm off the gun), and the test
+measures the right hand against the left one there.
 
 Before each body had its own hand (the place and the fingers solved on the Quaternius mannequins' hands, 0.232 m,
 played on these bodies): the female's palm was 13.9 mm off the slide, her index fingertip 18.9 mm inside it and her
@@ -83,10 +86,11 @@ thumb's tip 6.0 mm off; the male's palm 12.3 mm off, his index fingertip 13.1 mm
 off.
 
 The limb check does not judge the frames on which the hold has the left hand on its support grip (0, 1, 27 and 28):
-there the hands touch by the hold's own solve, which the check reads as 6.7 mm (female) and 5.9 mm (male) and the
-hold's test as 1.8 and 1.3 mm. The left wrist bends 32 to 36 degrees from the forearm's line while it grips (the
+there the hands touch by the hold's own solve, which the check reads as 4.2 mm (female) and 1.6 mm (male) and the
+hold's test as 1.5 and 1.6 mm; while the slide is pulled the check reads the female's left hand 1.7 mm in her right
+one (frame 12). The left wrist bends 36 to 40 degrees from the forearm's line while it grips (the
 build fails over 45) and is held to 40 over the slide; on the frames it leaves the support grip along the hold's
-clear line, turned as it held, it bends 71 to 94 degrees (frames 2 to 4; 83 at most on the way back). The canted
+clear line, turned as it held, it bends 69 to 93 degrees (frames 2 to 4; 82 at most on the way back). The canted
 support hand of kit #1084 costs that: on the grip before it the same frames bent 66 to 71 degrees. Easing the
 wrist from the way's far end instead of from the clear line's end brought it to 81 and put the left fingertips
 18 mm into the right hand, so it is not done.
@@ -137,8 +141,8 @@ than 1.2 mm while it closes. With no option it closes the fingers at the body's 
 the two distance grids it keeps beside the dump); `--search` searches the place from there. The search knows the
 contact and little of the arm, and walked the wrist up the barrel until the arm stopped short, so a place it finds
 is taken only after the build's wrist and reach numbers and the test agree. Its result, `rack_hand.json` (one entry
-a body), is committed, so the clip builds without it. Run it again, for each body, after the hold's right hand or
-the pistol changes.
+a body), is committed, so the clip builds without it. Run it again, for each body, after the hold's right hand
+(its seat or any pose of it) or the pistol changes, then build the clip again.
 
 `build_pistol_rack.py` keys the clip in the pinned Blender on `form_female`'s skeleton from a few targets (the
 pistol's way, the left hand's way in the pistol's space, where the elbows point, the beats above) and solves both

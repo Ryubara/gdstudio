@@ -78,6 +78,9 @@ enum State {
 	MANTLE,  ## Climbing up onto an obstacle.
 }
 
+## How high up the body a melee blow leaves from, as a share of its height (the chest).
+const CHEST_SHARE := 0.72
+
 @export_group("Character")
 ## The character's numbers: speeds, jump, steps, pushing. A copy of the file gives another feel.
 ## Changing a number while the game runs works at once.
@@ -380,10 +383,15 @@ func _move(delta: float) -> void:
 
 
 ## True when a shot may leave on the tick `command` is stepped: the fire button was just pressed
-## or is still buffered (or held, with an automatic weapon) and the weapon is ready. A controller
-## asks it to know whether the command needs the crosshair's ray (`PlayerCommand.has_shot`).
+## or is still buffered (or held, with an automatic weapon) and the weapon is ready, or the melee
+## button was pressed and a blow can start (it is aimed the same way). A controller asks it to
+## know whether the command needs the crosshair's ray (`PlayerCommand.has_shot`).
 func shot_wanted(command: PlayerCommand) -> bool:
-	if weapon == null or state == State.DEAD or not weapon.can_fire():
+	if weapon == null or state == State.DEAD:
+		return false
+	if command.melee_pressed and weapon.melee_ready:
+		return true
+	if not weapon.can_fire():
 		return false
 	var held := weapon.definition
 	if held != null and not held.fire_allowed(command.aim):
@@ -588,6 +596,12 @@ func _aim_origin() -> Vector3:
 	return last_command.origin if last_command.has_shot else _camera_target.global_position
 
 
+# A blow leaves the chest along the aim, not the crosshair's ray: an over-the-shoulder camera's
+# ray passes half a metre beside the body, so a blow along it missed whoever stood in front.
+func _blow_origin() -> Vector3:
+	return global_position + Vector3.UP * body_height() * CHEST_SHARE
+
+
 func _aim_direction() -> Vector3:
 	if last_command.has_shot:
 		return CommandCodec.direction_from_angles(
@@ -663,7 +677,8 @@ func _update_aim(delta: float) -> void:
 		var held := weapon.definition
 		aim_held = last_command.aim and (held == null or held.can_aim)
 		fire_held = last_command.fire and _prone_lets_fire() and _weapon_lets_fire(aim_held)
-		wants = aim_held or fire_held
+		# A melee blow turns the body to the way it goes, as an aim does (gdstudio #1254).
+		wants = aim_held or fire_held or weapon.meleeing
 		if _slide.active and not slide_tuning.can_shoot:
 			aim_held = false
 			fire_held = false
@@ -709,6 +724,19 @@ func _prone_lets_aim() -> bool:
 
 func _prone_lets_fire() -> bool:
 	return not _prone.is_prone() or prone_tuning.fire_allowed
+
+
+# True when the character may throw a melee blow now: alive, not lying down, not staggered by a
+# hit, not vaulting, and its weapon ready for one (`Weapon.melee_ready`).
+func _can_melee() -> bool:
+	return (
+		weapon != null
+		and state != State.DEAD
+		and not _prone.is_prone()
+		and _action_lock <= 0.0
+		and not vault_motion.is_active()
+		and weapon.melee_ready
+	)
 
 
 # The weapon in the hands lets the fire button shoot (`WeaponDef.fire_needs_aim`).
@@ -868,6 +896,15 @@ func _use_weapon(delta: float) -> void:
 		weapon.reload()
 	var pressed := fire_press(last_command)
 	var held := _trigger_held(last_command)
+	# The melee button throws the weapon's blow, as the fire button of a melee weapon (the empty
+	# hands) does, at once: a blow waits for no aim (gdstudio #1254).
+	var blow := last_command.melee_pressed
+	if weapon.definition != null and weapon.definition.kind == WeaponDef.Kind.MELEE:
+		blow = blow or pressed
+		pressed = false
+		held = false
+	if blow and _can_melee():
+		weapon.melee(_blow_origin(), _aim_direction())
 	if not _prone_lets_fire() or not _weapon_lets_fire(aim_held):
 		pressed = false
 		held = false

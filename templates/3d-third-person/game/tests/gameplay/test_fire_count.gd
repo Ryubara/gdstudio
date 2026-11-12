@@ -5,7 +5,8 @@
 # weapon's shot interval fires exactly one, from the arm down or with the aim up; a held press
 # fires the weapon's rate for as long as it is held (within one shot), with nothing after the
 # release. A one-frame press from the arm down fires nothing: the arm drops as the button is let
-# go, before it is half up (`test_aim_release.gd`).
+# go, before it is half up (`test_aim_release.gd`). The fists' press is a blow (gdstudio #1254),
+# counted as a shot: one a press, aimed or not, held or not, automatic or not.
 extends GdUnitTestSuite
 
 const WEAPONS: Array[String] = [
@@ -35,6 +36,7 @@ func before_test() -> void:
 	_arena.add_child(camera)
 	camera.make_current()
 	_player.weapon.fired.connect(func(_shot: Projectile) -> void: _shots += 1)
+	_player.weapon.melee_started.connect(func(_blow: int) -> void: _shots += 1)
 	await InputSim.ticks(get_tree(), 4)
 
 
@@ -48,7 +50,7 @@ func test_a_one_frame_press_from_the_arm_down_fires_nothing() -> void:
 		for path in WEAPONS:
 			await _arm(path, automatic)
 			await _tap(1)
-			_expect(0, path, automatic, "one frame, arm down")
+			_expect(1 if _is_blow(path) else 0, path, automatic, "one frame, arm down")
 
 
 func test_a_one_frame_press_fires_one_shot_with_the_aim_up() -> void:
@@ -86,7 +88,7 @@ func test_a_held_press_fires_the_rate_while_held_and_nothing_after() -> void:
 			InputSim.mouse_button(MOUSE_BUTTON_LEFT, false)
 			await InputSim.ticks(get_tree(), SETTLE_TICKS)
 			var label := "%s automatic %s" % [path.get_file(), automatic]
-			if automatic:
+			if automatic and not _is_blow(path):
 				var expected := HOLD_SECONDS * definition.fire_rate
 				(
 					assert_float(float(held))
@@ -122,6 +124,11 @@ func _arm(path: String, automatic: bool) -> WeaponDef:
 	await InputSim.ticks(get_tree(), 4)
 	_shots = 0
 	return definition
+
+
+# True for a weapon whose press is a melee blow (the fists).
+func _is_blow(path: String) -> bool:
+	return (load(path) as WeaponDef).kind == WeaponDef.Kind.MELEE
 
 
 func _aim_up() -> void:
