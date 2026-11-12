@@ -8,7 +8,10 @@
 ## `hands_front` (close on the pistol from its right, its left, above and ahead, for the hands on
 ## the weapon). `PRONE_AIM_MODEL=male` swaps the mannequin, and `PRONE_AIM_STANDING_VIEW=1` aims
 ## with the camera's standing aim view (`PlayerCamera.prone_aim_view` off), to compare.
-## `PRONE_AIM_TOUR=reload` plays a shot and a reload lying down instead.
+## `PRONE_AIM_TOUR=reload` plays a shot and a reload lying down instead, and `PRONE_AIM_TOUR=looks`
+## only the looks, held: level, up to the limit and down to the limit (with
+## `PRONE_AIM_FULL_UP=1` the look-up limit is opened to the up clip's own 20 degrees, to see
+## that clip whole).
 ##
 ## `gds capture frames --project game --scene res://tools/capture/prone_aim_tour.tscn --seconds 14`
 ## It prints a `STEP` line as each step starts, with the frame, to find a moment's frame. It
@@ -73,6 +76,20 @@ const RELOAD_TOUR: Array[Dictionary] = [
 	{"do": "wait", "actions": [&"aim"], "seconds": 2.2},
 ]
 
+## The looks alone, each held (`PRONE_AIM_TOUR=looks`): level, up as far as it goes, down.
+const LOOKS_TOUR: Array[Dictionary] = [
+	{"do": "look", "yaw": 0.0, "pitch": 0.0, "actions": []},
+	{"do": "tap", "action": &"prone"},
+	{"do": "wait", "actions": [], "seconds": 0.9},
+	{"do": "wait", "actions": [&"aim"], "seconds": 1.2},
+	{"do": "look", "yaw": 0.0, "pitch": -20.0, "actions": [&"aim"]},
+	{"do": "wait", "actions": [&"aim"], "seconds": 0.8},
+	{"do": "look", "yaw": 0.0, "pitch": 40.0, "actions": [&"aim"]},
+	{"do": "wait", "actions": [&"aim"], "seconds": 0.8},
+	{"do": "look", "yaw": 0.0, "pitch": 0.0, "actions": [&"aim"]},
+	{"do": "wait", "actions": [&"aim"], "seconds": 0.5},
+]
+
 var _index := 0
 var _clock := 0.0
 var _frame := 0
@@ -93,12 +110,17 @@ func _ready() -> void:
 	_on_pistol = OS.get_environment("PRONE_AIM_VIEW").begins_with("hands")
 	if OS.get_environment("PRONE_AIM_TOUR") == "reload":
 		_tour = RELOAD_TOUR
+	if OS.get_environment("PRONE_AIM_TOUR") == "looks":
+		_tour = LOOKS_TOUR
+	if not OS.get_environment("PRONE_AIM_FULL_UP").is_empty():
+		_player.prone_tuning = _player.prone_tuning.duplicate()
+		_player.prone_tuning.look_up_limit = 20.0
 	if OS.get_environment("PRONE_AIM_MODEL") == "male":
 		var slot := _player.model
 		var old := slot.rig()
 		slot.remove_child(old)
 		old.free()
-		var male := load("res://assets/characters/mannequin/mannequin_male.glb") as PackedScene
+		var male := load(CharacterBodies.MALE) as PackedScene
 		slot.add_child(male.instantiate())
 	if not _view.is_empty():
 		_add_view()

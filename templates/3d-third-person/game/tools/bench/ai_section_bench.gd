@@ -7,7 +7,7 @@ extends Node
 ## Two rows, each in a fresh `main.tscn`: `watch`, the player (invulnerable) stands in the doorway
 ## looking in and never fires, so the enemies engage, the allies follow and the civilians go about
 ## their homes; `fight`, `SectionPilot` walks the player round the section and shoots whatever is
-## hostile in its sight, as the soak does (`tools/soak/ai_section_soak.tscn`): deaths, respawns,
+## hostile in its sight, as the soak does (`tools/soak/ai_soak.tscn`): deaths, respawns,
 ## civilians fleeing from shots. A row starts once every spawner has put out its count, warms up
 ## for `WARM_TICKS` and measures `TICKS`.
 ##

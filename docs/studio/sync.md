@@ -60,7 +60,8 @@ impacts (`Impacts`, `ImpactSurface`, `ImpactMark`), `SpawnPoint`, the camera sha
 `DecodedSounds` (short sounds decoded once, gdstudio #1023), `ShaderPrelink` (a web build's GL programs linked at once
 from a recorded list, gdstudio #1164), `ScreenHost` (which needs `gds_ui`'s `UIRouter`, synced
 beside it), the suites' `ExportPins` and `InputSim` (gdstudio #952 moved the second group), the traversal parts
-(`Vaultable`, `VaultSettings`, `VaultProbe`, `VaultPlan`; gdstudio #1013), `Health` and `HitRecord` (`hits/`) and
+(`Vaultable`, `VaultSettings`, `VaultClip`, `VaultProbe`, `VaultPlan`; gdstudio #1013, #1037), `Health` and
+`HitRecord` (`hits/`) and
 `Interactable` (`interact/`; gdstudio #925, with `HitRecord` moved from 3D Third Person's `gameplay/hit_zones/`). It is
 scripts, no autoload and no scene, with one editor part: `plugin.cfg` adds `ShaderPrelinkExport`, which has a web
 export start its program list from the page (gdstudio #1183); the templates turn it on, and a game made before turns it

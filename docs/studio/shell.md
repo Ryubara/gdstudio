@@ -41,10 +41,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   `read_text(encoding="utf-8")` and `write_bytes(text.encode("utf-8"))`), keep an `assert old in text`, or use the Edit
   tool; after the script, or a `gdformat` run, `sed -i 's/\r$//' <files>` and `file <path>` (`ASCII text`, not `with
   CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n`, whatever the file had, and reading
-  in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
-  and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
+  in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds
+  nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
   #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
-  #1127 (a tool's `write_text`, 16 pages), #1138, #1190 and #1218 (four files), 11-11.
+  #1127 (a tool's `write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154, #1260 and #1270, 11-11.
 
 ## Scripted edits {#scripted-edits}
 
@@ -55,7 +55,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   vanished from a regex, and a `sed` replacement split a line over three; a parser that accepts the wrong text says
   nothing. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-03; Deadnight, 2026-11-04 (fix: the tests and `ruff` run
   straight after the edit, not at the end); gdstudio #770, 2026-11-07 (two heredoc scripts never ran: Write tool);
-  gdstudio #1005, #1120, #1183, #1188, 2026-11-10 and 11 (the Edit tool).
+  gdstudio #889, #1005, #1120, #1183, #1188, 2026-11-10 and 11.
 - **Approach:** A script that changes several places of one file works from the end upward, or finds its place again
   after each edit, and cuts "to the next top-level `func` or `class`", never to the end of the file; then it imports the
   project and runs `godot --headless --check-only -s <script>` on every edited script that no suite loads. **Watch out
@@ -84,7 +84,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   the kit's main checkout, and committed there. **Seen:** Deadnight, 2026-11-01 (a worktree inside the repository);
   gdstudio, 2026-11-03 (a commit on the kit's `main`, moved to a branch before any push); gdstudio #1073, 2026-11-11
   (`cp ... && cd <worktree> && check; git add -A; git commit`: the `cp` failed, the `cd` was skipped and `git commit`
-  ran on the main checkout, which was clean).
+  ran on the main checkout, which was clean); #1154 (refused).
 - **Approach:** Give a Windows program (Python, a hook, `gh --body-file`) a path with its drive letter,
   `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts and PR text in `scratch/<repo>/<branch>/`
   (the session scratchpad and the temp folder are shared), and pass the worktree as an argument. **Watch out for:**
@@ -113,7 +113,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   name does not say whose it is; `taskkill /IM` and a `GdUnitCmdTool` pattern ended other agents' suites and a
   pre-commit run; stopping a background task ends the shell, not the `timeout` and Godot under it, which kept writing to
   the same log beside the new run. **Seen:** Deadnight, 2026-11-01; Deadnight #1086, 2026-11-04; gdstudio, 2026-11-06
-  (fix: the hooks refuse a kill by name ([Hooks](hooks.md)); a short `timeout` on every run).
+  (fix: the hooks refuse a kill by name ([Hooks](hooks.md)); a short `timeout` on every run); gdstudio #1149,
+  2026-11-11 (a stopped task's `bash record.sh` started its next capture: end that bash first).
 - **Approach:** Leave a shell script alone while a background run executes it: edit the source, and copy it over the
   running copy only after the run ends (or run a copy made for that run). **Watch out for:** bash reads a script as
   it goes, by byte offset, so a `cp` over `check.sh` during a 10 minute bot run made bash resume inside the new text:
@@ -139,7 +140,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
   lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went); gdstudio #963,
-  2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red).
+  2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red); #1154.
 
 ## Reverting and checking out {#checkout}
 
@@ -162,7 +163,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   was refused by the permission settings; fix: `git archive HEAD` unpacked in the scratch folder with the new tests
   copied in).
 - **Approach:** Take an old copy of a Git LFS file (a sound, a model, a lightmap) with `git checkout <rev> -- <file>`
-  in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size before using it.
-  **Watch out for:** `git show <rev>:<file>` prints the LFS pointer, about 130 bytes of text, so a "before" sound
-  decoded as nothing and a model imported as a broken file. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound
-  clip); Deadnight #1282, 2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding)).
+  in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size before using it; when
+  a game must play the old file, clear the file's `.godot/imported/<name>-*` cache before `--import`. **Watch out
+  for:** `git show <rev>:<file>` prints the LFS pointer, about 130 bytes of text, so a "before" sound decoded as
+  nothing and a model imported as a broken file, and Godot kept that verdict (`valid=false`) after the real file was
+  back until the cache was cleared. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound clip); Deadnight #1282,
+  2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding)); gdstudio #1111 (PR #1191),
+  2026-11-11 (a clip file in a probe game; copying the `.import` file back also cleared it).

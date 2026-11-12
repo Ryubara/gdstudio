@@ -48,6 +48,15 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the
   pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`), cosmetic and
   never sent.
+- **On the template's bodies.** The clips were solved on the Quaternius female, and the `form` bodies the template
+  wears since kit #1187 play the same file, lower: `tests/gameplay/test_prone_clips.gd` (all four bodies, kit #1286)
+  reads the forearms' skin 33 and 38 mm under the floor on `form_female` (lying and crawling) and 48 and 55 mm on
+  `form_male`, the thighs, knees and feet 15 to 22 mm under lying still, the planted elbows rolling 19 and 32 mm a
+  stride (the feet hold to 2 mm), and the two transitions putting the left shin 17 to 18 mm into the left arm on
+  `form_female` (`prone/bodies_overlap.json`). The arms' angles, the fists and the joins pass on every body. The
+  suite holds those numbers as the `form` bodies' limits until kit #1293 solves the clips on them (as kit #1090
+  does for the Quaternius male); `tools/capture/prone_clips_tour.tscn` films any of the four (`MODEL`, read by
+  `tools/capture/study_body.gd`), and its `PRONE_FISTS` sheet has a row of the legs at the floor.
 - **The prone reload** (gdstudio #1185). A reload on a body that lies with a prone aim plays the held weapon's
   `prone_reload_clip` (`WeaponDef`; the pistol's is `prone_reload/Prone_Reload_Pistol`, the library `prone_reload`,
   `assets/animation/prone/prone_reload.glb`) on the same reload layer as the standing clip, from `spine_01` up and
@@ -75,7 +84,12 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   `look_down_limit`: a body flat on the ground cannot point a pistol further down. There is no prone shot clip: a
   shot kicks the look the pose is on (`prone_shot_kick` 7 degrees, settling over `prone_shot_kick_time` 0.22 s), so
   the muzzle jumps at any look. The hold closes the hands as it does standing; its left arm keeps the elbow the clip
-  gives it (`HoldArm.keep_elbow`). A weapon with no prone aim clip aims lying down with its standing clips, as before.
+  gives it (`HoldArm.keep_elbow`). The clips are solved a body, on its own arms and with its own hold:
+  `prone_aim.glb` on `form_female` (the scene's library) and `prone_aim_male.glb` on `form_male`, which
+  `CharacterAnimation.prone_aim_libraries` (the model's scene file to a library with the same clip names) swaps in
+  as `prone_libraries` does for the prone clips. The aim layer stops where the down clip does
+  (`ProneTuning.aim_limits`: `pitch_down` 25), so the look and the shot go on to `look_down_limit` and the pistol
+  stays over the floor. A weapon with no prone aim clip aims lying down with its standing clips, as before.
   A reload lying down keeps the prone aim: the standing reload clip is not played on a lying body (it folded the
   arms under the chest), so until there is a prone reload clip (gdstudio #1185) only the time and the sounds say
   that the magazine is changed.
@@ -123,6 +137,12 @@ of the stance is sent but the command's bit; the clips are cosmetic and played i
   at every camera offset tried; pointing 25 degrees down from planted elbows bent the wrists 94 to 98 degrees.
   With the arms stretched the pistol is 0.3 m past the head and shows beside it. **Seen:** gdstudio #1111,
   2026-11-11 (three poses captured from the player's camera).
+- **Approach:** Give a lying body's aim layer the down limit of its pose (the look the down clip is made for), and
+  measure the muzzle and the grip's foot over the floor at every look to both look limits on the live player.
+  **Watch out for:** with the aim layer's default 45 degrees down, the spine turned the stretched arms on to the 40
+  degree look-down limit and put the muzzle 207 mm and the magazine 183 mm under the floor; the test looked at 0,
+  12 and 25 degrees only, so it passed. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11 (fix: `pitch_down` 25 in
+  `ProneTuning.aim_limits`, and the look-down limit in `test_prone_aim.gd`).
 - **Approach:** Test a framing against what it must show and what it must not sit under: project the shoulders, the
   hands, the head and the muzzle into a 16:9 picture from the camera's own transform and field of view, hold them
   above the HUD's bottom row, and run the same test with the new view switched off to see it fail. **Watch out
@@ -186,7 +206,7 @@ What shipped games do, and the template's default for each:
 | Slide jump | Titanfall 2: `slideJumpHeight` 50 against a jump of 60 (0.83), speed held to `slideMaxJumpSpeed` 350 u/s (8.9 m/s) [2]; Apex: a jump out of a slide keeps momentum longer than one out of a sprint [8]; Deadlock: air drag after a slide jump [5] | `jump_height_scale` 0.85, `jump_max_speed` 9.0 m/s, the carried speed fading by `jump_air_drag` 1 m/s² |
 | Steering | Titanfall: harder to stop or turn than a walk [3]; Deadlock: a turn speed [5] | `turn_rate` 1.2 rad/s (about 70 degrees a second) |
 | Capsule and camera | Titanfall 2: crouch hull 47 of 72 u (65 percent), eye 38 of 60; a crouch that starts a slide takes 0.2 s, not 0.4; `slideFOVScale` 1.1 over 0.25 s in and out [1][2] | `height` 0.9 m (half the 1.8 m capsule, under the 1.1 m crouch), `drop_time` 0.12 s, `camera_height` 0.75 m; `PlayerCamera.slide_fov_change` 5 degrees at `slide_zoom_speed` 4 a second, on top of the sprint view |
-| Shooting | Deadlock reduces recoil while sliding (`SlidingRecoilReduction`) [5]; Apex, Call of Duty and Titanfall fire while sliding | `can_shoot` on: aim and fire work, and the body turns to the view |
+| Shooting | Deadlock reduces recoil while sliding (`SlidingRecoilReduction`) [5]; Apex, Call of Duty and Titanfall fire while sliding | `can_shoot` on: aim and fire work; the body keeps along the slide and the [aim layer](shooting.md#aim-layer) turns the upper body to the aim within `aim_limits` (75 degrees each side), and past them the body turns (or the weapon refuses the shot) |
 | Spam | Titanfall's boost cooldown [2]; Call of Duty MW III cut the sprint delay after a slide by 53 percent [9] | `cooldown` 0.3 s between slides, and the boost's own 2 s |
 
 Sources: [1] Titanfall 2's `pilot_mp.set` and `pilot_base.set` (data files, mirrored at

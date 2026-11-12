@@ -206,6 +206,12 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
 - **The build's checks** are the clip's own: loops close, planted joints stay within a millimetre at the clip's speed,
   the lowest vertex by body part, a transition's first and last pose against the poses it joins, and the frozen clip
   list. A rebuild writes the same bytes, so `cmp` proves a script change did not move a clip.
+- **A check that names its bodies poses every body the game wears.** The clip checks were made on the Quaternius
+  pair; since kit #1286 each poses `CharacterBodies.FEMALE` and `MALE` (the prototype `form` bodies) as well, and
+  `limb_overlap.py --brief --json <clips>/bodies_overlap.json` writes each clip's deepest crossing a body with the
+  clip file's SHA-256, which the Godot suites read (`tests/fixtures/bodies_overlap.gd`), so a rebuilt file that was not
+  measured again fails. `test_limb_overlap.py` runs on the `form` bodies by default (`--model` for others). The
+  prototype male's thighs meet by 1.9 mm at rest, which the self-test allows (`REST_MM`, 2.5).
 - **A check that reads a clip file measures every key at the file's own rate.** A glb has key times in seconds and
   no frame rate. `limb_overlap.py`'s command line reads the rate from the key times (`clip_rate()`: the lowest of 24,
   25, 30, 48, 50, 60 and 120 at which every key is a whole frame; `--fps` for a file that fits none), sets the scene
@@ -276,6 +282,21 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   (`import build_prone_clips`) reuses its rig, solver, keying and export, and a subclass adds what differs; the
   importer's key tolerance moves a pistol at the end of two stretched arms 2 to 4 mm through a breath the build
   holds to 0.5 mm. **Seen:** gdstudio #1111, 2026-11-11 (`build_prone_aim_clips.py`, `test_prone_aim_hold.gd`).
+- **Approach:** Solve a clip that holds a weapon once for every body that plays it, one file a body, with that
+  body's own hold, and measure in the build what the game shows: the hold's wrist turn and finger poses on (dumped
+  from Godot with every bone's rest; fail when Blender's rests differ), the twist bones turned as the game turns
+  them, the lower body read from the clip file the game plays under it. **Watch out for:** one set solved on the
+  Quaternius female left the prototype bodies' left hand 3 to 27 mm off its marker with fingers 3 to 17 mm in the
+  pistol, the elbow moved 58 to 100 mm and the magazine 8 to 26 mm under the floor; the build's skin had open
+  fingers, so its floor numbers were not the game's. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11 (fix:
+  `--body` and `--idle` in `build_prone_aim_clips.py`; 1.2 mm in at most, Godot's skin within 0.1 mm of the build's).
+- **Approach:** When a held pose gets its two sides' own numbers, turn the support side ahead (the shoulder of the
+  hand that reaches round the other), keep the firing arm the straighter one, and read both arms' stretch after
+  every change of the trunk. **Watch out for:** the first uneven prone aim pushed the firing shoulder ahead, which
+  took the support shoulder 4 cm back: the left arm was at 1.09 of its length and the hand 45 mm off the pistol;
+  from above the first try (the pistol 12 mm off the middle, the chest turned 5 degrees) still read as a mirror
+  until the pistol was 35 mm off and the chest turned 8. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11 (the
+  build fails under 30 mm between the left elbow and the right one's reflection).
 - **Approach:** Solve a clip that shares a hand with a game modifier from the modifier's own plan (ported, its
   numbers dumped from Godot): the bone on the modifier's place where its weight is 1, and a pose right by itself
   where the weight is between, since the game blends the two there. **Watch out for:** the clip kept a fist until
@@ -304,12 +325,108 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   the prone idle's hands 2.5 cm forward put the going-down clip's hands 8 mm out of reach on the frame they land,
   since the transition takes its hand places from the idle. **Seen:** gdstudio #1009, 2026-11-10 (the build's miss
   check caught it; the dive was moved forward).
+- **Approach:** When the bodies a game wears change, run every clip check on the new bodies the same day, on their
+  skinned meshes as well as their bones, and give each failure its own issue with the numbers and a capture.
+  **Watch out for:** the template moved to the prototype bodies (kit #1187) with its prone, vault and limb checks
+  still posing the Quaternius mannequins; on the new bodies the prone forearms lie 3.3 to 5.5 cm in the floor, the
+  vault's planted hand slides 7 to 8 cm and two clips cross 17 to 34 mm, all unseen; the bones-only floor test read
+  -3 cm where the skin was -5.5, and counted the new rig's unanimated sockets and IK bones (1.4 m up) until it kept to
+  the bones the clip keys. **Seen:** gdstudio #1286, 2026-11-11 (fix: the four-body suites, `bodies_overlap.json`;
+  kit #1293, #1294, #1295 for the clips).
 - **Approach:** Judge two hands that touch with both measures and know how they differ: `limb_overlap.py` (Blender,
   every pair of parts both ways, depth to the other part's nearest skin) and the game's `HandContact.measure(side,
   true)` (the hand of `side` against the weapon and the other hand, one way only); measure each side when the hands
   meet. **Watch out for:** on the same pose the limb check read touching hands 3 to 4 mm deeper than `HandContact`,
   and `measure("l", true)` reads the left hand into the right, never the right into the left. **Seen:** gdstudio
   #1081 (PR #1103), 2026-11-11.
+
+## The clip toolkit {#toolkit}
+
+<!-- new section: clips had been solved one build script at a time (prone, vault); the toolkit every clip of our own
+is built with had no page (kit #1154) -->
+
+GDStudio's own clips ([the plan](own-animation.md)) are made with one toolkit,
+`templates/3d-third-person/game/assets/animation/own/gdsanim/`, so a clip's own file holds only what is particular to
+it. It is numpy only and reads and writes glb files itself (no Blender round trip, the same bytes on a rebuild);
+Blender is used for the review sheet's pictures and for limbs inside limbs. Axes are glTF's and Godot's (+Y up, +Z the
+way the character faces, +X its left), angles are degrees, time is frames at 30 a second.
+
+```sh
+uv run --with numpy python -B build_own.py self-test                      every check against a clip built to break it
+uv run --with numpy python -B build_own.py review <type> --blender <b>    the variants, into review/<type>.glb
+uv run --with numpy python -B build_own.py ship <group> --blender <b>     the shipped file, from picks.json
+uv run --with numpy --with pillow python -B review_sheet.py <type> --blender <b> --out <folder>
+```
+
+**A new clip type** is three things:
+
+1. **A description**, `clips/<type>.py`: a `DEFAULTS` table (every number a style may set, with what it means) and
+   `describe(rig, style, name)`, which returns a `gdsanim.build.Clip`: the clip's frames, its contact plan, a function
+   from a frame to the solver's spec, the overlap pass's bones, its kind (`stand`, `gait`, `transition`, `action`) and
+   what it declares for the checks (`lags`, `ranges`, `joins`, `plants`, `distance`, `turn`).
+2. **A section in each style file**, `styles/style_<letter>.json`: that variant's numbers for the type, and its two
+   lines for the review sheet under `notes`. A number the description does not declare fails the build.
+3. **A line in `build_own.py`**: the type in `TYPES`, its name in its group's frozen list in `GROUPS`, and its letter
+   in `picks.json` once chosen.
+
+| To do this | Use |
+| --- | --- |
+| Say where the feet are | `plan.ContactPlan` of `Footfall`s (which foot, the frames it lands and leaves, where the ball of the foot stands in the world, heel strike and toe-off) over a `Travel` (the root's path; `Travel.steady(speed)` for a loop). `plan.standing()` for both feet down. A leg the spec leaves out is the plan's. Contact times, speed, footstep events and the start and end foot of `clips.json` come from the plan |
+| Pose the body | the spec of `solve.py`: the pelvis's place and turn, the chest's and the head's turn, a hanging arm (`swing`, `out`, `bend`, `pronate`, `clear`) or a placed hand (`wrist_at`, `pole`, `palm`), finger curls. Turns are pitch, yaw and lean from the standing rest, never a bone's own axes |
+| Put the weight somewhere | `Clip.balance` (the floor point the centre of mass is over; `weight.support_point` for a share between the feet) and `Clip.stretch` (how straight the straighter leg is): the pelvis is solved from them. `weight.free_fall` and `weight.lean_for` for the air and for a change of speed |
+| Make parts trail | `Clip.chains` from the style's `overlap` numbers (`overlap.chains_from`): each bone follows the part it hangs from with a lag in frames and an overshoot, closed round a loop. `overlap.follow` does the same to one number |
+| Make the other side | `build.mirrored(rig, built, name, half_cycle=...)` |
+| Join another clip | `declared["joins"]`: the pose and the speed a first or last frame must meet |
+
+**What the build does** (`build.build_clip`, `build.build_file`): solves every frame in the world, runs the overlap
+pass, takes the root's travel out (the clip is in place, the travel is a curve in `clips.json`), reduces the keys and
+checks the reduced clip against the full one on the body, runs [every check](own-animation.md#checks) on every body's
+skinned mesh, and writes nothing when one fails (the last line of a good build is `BUILT <file>`). A clip keys
+rotations and the pelvis's place, and the `ik_` targets on a rig that has them. The checks are in `checks.py` with
+their limits; `selftest.py` breaks a clip for each one.
+
+**What is proved and what is not.** `Idle` went through all of it. The contact plan, the foot's roll, the travel and
+the gait checks are proved by the self-test's plain walk (planted soles within 5 mm at its speed on both mannequins),
+which is not a clip anyone has looked at for style. Mirroring, the placed hand, the joins and the `ik_` targets are
+written and not yet used by a shipped clip: the first issue that uses each proves it. The weight check's lean and the
+free fall's arc are tested on made-up motion only. A body whose legs differ from the reference body's is reported with
+`needs_ik` and not held to the floor and planted limits.
+
+- **Approach:** Give a description the body's weight and contacts, not its pose: the share of weight on each foot,
+  how straight the carrying leg is, how far a hand keeps from the thigh, and let the solver find the pelvis and the
+  arm. **Watch out for:** the first idle gave the pelvis a height and the arms an angle from the body; a deeper shift
+  put an ankle 4 mm out of reach, and every variant had its curled fingers 27 to 56 mm inside a thigh (the fault the
+  library's idle has), because the pelvis travels 8 to 14 cm toward the hand, the female mannequin's hip is 100 mm
+  wide of its joint, curled fingertips reach 45 mm inward of their knuckles and the rest pose's thumb points 47
+  degrees under the palm. **Seen:** gdstudio #1154, 2026-11-11 (fix: `Clip.stretch`, the arm's `clear`, measured to
+  the fingertips on every body, and `thumb_out`).
+- **Approach:** Turn a planted foot whose heel rises about the toes' hinge (the `ball` joint), and set a heel that
+  lands down by the lowest of its blended skin; read each foot's lowest vertex on every frame of a first gait.
+  **Watch out for:** turning about the floor point under the hinge moved the hinge itself, so the toes sank 3 mm and
+  slid 9 mm at toe-off; a heel point taken from the sole's bounding box is not on the rounded heel (10 mm off the
+  floor), and the heel's skin is shared with the shin, so a rigid guess was 2 to 11 mm wrong; toes left hanging
+  under a pitched foot went 12 mm into the floor early in the swing. **Seen:** gdstudio #1154, 2026-11-11 (the
+  self-test's walk; fix: `plan._state` and the lift in `plan._swing`).
+- **Approach:** Measure the angle between two stored quaternions from the chord between them
+  (`4 asin(|a - b| / 2)`), and index a `[frame, bone, 4, 4]` array in two steps (`world[:, bones][:, :, :3, 3]`).
+  **Watch out for:** the arc cosine of the dot product loses a twentieth of a degree once keys have been rounded
+  to 32-bit, so a reducer at any finer tolerance dropped keys at random and the reduced clip never got within
+  0.3 mm; `world[:, bones, :3, 3]` puts the bones first, not the frames, so a check read the hands' error as the
+  planted feet's. **Seen:** gdstudio #1154, 2026-11-11 (`maths.quat_angle`, `checks.check_reduction`).
+- **Approach:** Prove each check with a clip built to break it before trusting a build that passes
+  (`build_own.py self-test`), and break it the way the fault would really happen. **Watch out for:** a pop was first
+  measured as the mean of a frame's turn in and out, which a one-frame jump cancels (3 degrees in, 3 back), and then
+  as their difference alone, which fails every swing where it reverses; a test body moved sideways took its feet
+  along, so the centre of mass was never outside them. **Seen:** gdstudio #1154, 2026-11-11 (fix: `checks._kick`
+  compares a frame with the frames beside it; the weight case lifts a foot out of the plan).
+- **Approach:** Read a frame number a Blender tool reports at the frame rate that tool set, look at a named fault
+  from the side it is on, and have a build that hands a file with reduced keys to a tool name the rate
+  (`build_own.py` passes `--fps`). **Watch out for:** `limb_overlap.py` set the scene to 24 frames a second until
+  kit #1035, so its "frame 115" of a 30 a second clip was frame 144; close-ups of frame 115 from the front showed
+  a clean hand, and the crossing (curled fingers in the thigh) was found only once the pose it measured was
+  printed. Sparse keys can be whole frames at a lower rate too, so a rate guessed from them can be wrong.
+  **Seen:** gdstudio #1154, 2026-11-11 (measured again at 30 after #1035: our idles still 0, 1.3 and 0 mm; the
+  library's walk 11 to 12 mm, `Death01` 41 mm on the male, `ClimbUp_1m` 23 to 26 mm).
 
 ## The clip eval {#eval}
 

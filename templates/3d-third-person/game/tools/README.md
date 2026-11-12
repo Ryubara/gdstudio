@@ -18,6 +18,15 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/hold/` solves the pistol hold: `dump_hold_rig.gd` writes the rig as Godot plays it,
   `solve_pistol_hold.py` (numpy and scipy; `hold_rig.py`, `hold_field.py` and `hold_hand.py` are its parts) closes
   both hands on the pistol for both mannequins, and `write_hold.gd` writes the seat and the three `HandPose` files.
+- `tools/capture/rack_closeups.tscn` poses a body on every frame of the pistol's slide-rack clip
+  (`assets/animation/pistol/`) with the hold's hands, the left hand reached to the slide and the body's own fingers
+  (`tests/fixtures/rack_stage.gd`): headless it prints how each hand meets the pistol (lines starting `RACK`) and,
+  with a window and `RACK_OUT`, saves close-ups of the reach, the grip, the pull, the release and the follow-through
+  from six sides (the gun's right, its left, above, the front, the player's camera close up and the game camera), on
+  the female body or the male (`MODEL=male`); `RACK_CARRY=0` holds the pistol where the clip has it and
+  `RACK_FINGERS=0` leaves the clip's own fingers. `tools/hold/write_slide_rack.gd` writes each body's `SlideRack`
+  file from the clip build's data, and `tools/hold/hold_files.py` reads a body's hold out of the project's files
+  for the rack's solver and build.
 - `tools/bench/hold_cost.tscn` times 40 mannequins with no hold, the carried hold or the aimed one (the run is its
   user argument, one run a process).
 - `tools/capture/walkthrough.tscn` plays the character through the map by pressing the input actions, for a clip.
@@ -101,11 +110,20 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   number `tests/world/test_jump_reach.gd` pins).
 - `tools/capture/sections_tour.tscn` saves stills of the two map sections from the player's camera and from above
   (`--debug-navigation` draws the navigation meshes); the header says how to run it.
-- `tools/soak/ai_section_soak.tscn` fights round the AI section with its whole population for `AI_SOAK_SECONDS` (180)
-  and fails on a character stuck for 3 s, idle with a threat in view for 5 s, or an engine error (`SOAK {...}`); the
-  header says how to run it. `tools/soak/section_pilot.gd` is its autopilot.
+- `tools/soak/ai_soak.tscn` is the AI soak: the AI section's population (times `--scale`) fighting the player's
+  autopilot (`tools/soak/section_pilot.gd`) and civilians in the pathing section, seeded, at the fixed step; the gates
+  of `ai_soak_watch.gd` (an engine error, a stuck episode, stuck time, idle with a threat in view, a task past its hard
+  timeout, a path-query storm, think p99, a belief naming a wall, a round that never ends) print what the character
+  held, did and decided (`AI_SOAK_GATE {...}`); `ai_soak_faults.gd` breaks a character for each gate
+  (`--faults all`). `--lines` prints a line of numbers a character. The header says how to run it; the nightly
+  `ai-soak.yml` runs 50 seeds, `tests/gameplay/test_ai_soak.gd` the pull-request seed and the faults.
+- `tools/web_smoke/ai.py` runs the soak's web export (`gds template bench-web 3d-third-person
+  tools/soak/ai_soak.tscn`) in Chrome at each population and CPU throttle and prints the frame's work, the AI step
+  and ticks a frame.
 - `tools/capture/section_tour.tscn` films the AI section's population from the game camera (`SECTION_TOUR=fight`,
   `cover`, `chase` or `civilians`).
+- `tools/capture/ai_section_online_tour.tscn` films the AI section's fight online from a client's screen: the game
+  server spawns the population for her body and her client draws every character as a puppet.
 - `tools/bench/ai_section_bench.tscn` times the AI director's step with the AI section's population, the player
   watching and fighting (`AI_SECTION_BENCH {...}`); `ai_section_bench.py` runs it in Chrome
   (`gds template bench-web 3d-third-person ai_section_bench --run`).

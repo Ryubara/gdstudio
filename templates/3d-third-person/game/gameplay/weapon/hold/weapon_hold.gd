@@ -24,6 +24,15 @@ extends Node
 ## `pistol_held.tscn` and the left hand follows, in the running game too. Everything is a pose
 ## worked out on each machine from the aim amount the game already has: it is cosmetic and never
 ## sent over a network. With no `animation` set, `held_weight` and `aim_weight` are the caller's.
+##
+## Each body has its own hold (kit #1187): hands of other sizes close on the grip with other
+## finger poses and hold the weapon at another seat. The scene's own poses, `support_way` and the
+## weapon's seat and markers are the default body's (`CharacterBodies.FEMALE`); `fits` holds the
+## others, and the one whose body is the model's file is put on when the model is (re)built.
+
+## The modifiers were made again on the model's skeleton (the `AimLayer` places its own after the
+## grip).
+signal built
 
 const _GRIP := &"HoldGrip"
 const _SUPPORT_ARM := &"HoldSupportArm"
@@ -48,7 +57,7 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 ## The arm that carries the weapon, and how many degrees it is held out from the body while the
 ## weapon is carried: a hand closed on a grip is wider than the clips' open hand, and with the arm
 ## hanging as the clips have it the grip's foot would be in the thigh. It goes back as the
-## character aims (the aim clips hold the weapon clear of the body).
+## character aims or reloads (those clips hold the weapon clear of the body).
 @export var carry_arm: StringName = &"upperarm_r"
 @export_range(0.0, 30.0, 0.5) var carry_arm_out := 8.0
 
@@ -102,6 +111,12 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 @export_range(0.0, 1.0, 0.01) var reload_weight := 0.0
 @export_range(0.0, 1.0, 0.01) var reload_share := 0.0
 
+@export_group("Bodies")
+## Holds solved on other bodies than the one the scene's own poses and the weapon's seat and
+## markers were solved on (`HoldFit`, written by `tools/hold/write_hold.gd`): a model whose file
+## is a fit's `body` gets that fit's seat, markers, way and poses; any other model the scene's own.
+@export var fits: Array[HoldFit] = []
+
 var _skeleton: Skeleton3D
 var _grip: HandPoseModifier
 var _arm: HoldArm
@@ -110,6 +125,8 @@ var _marker: Node3D
 var _magazine: Node3D
 # Where the left hand is now: on its way on or off the weapon, at the magazine, with the clip.
 var _left := SupportHandPlan.new()
+# The scene's own hold as a fit, kept the first time a model is built, for a model with no fit.
+var _own: HoldFit
 
 
 func _ready() -> void:
@@ -139,7 +156,10 @@ func refresh() -> void:
 	# The finger leaves the trigger for the reload.
 	_grip.second_weight = aim_weight * (1.0 - reload_weight)
 	_grip.swing_bone = carry_arm
-	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight)
+	# The arm comes back in for a reload as for the aim: the reload clip holds the weapon in front of
+	# the body, and swung out the weapon was past the left hand's reach on the prototype bodies at
+	# the clip's start and end (kit #1187: the arm 9 to 29 mm short).
+	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight) * (1.0 - reload_weight)
 	if _arm == null:
 		return
 	_plan_left()
@@ -222,7 +242,9 @@ func _build() -> void:
 	_fingers = null
 	_skeleton = model.skeleton() if model != null else null
 	if _skeleton == null or seat == null or seat.get_child_count() == 0:
+		built.emit()
 		return
+	_fit_body()
 	_grip = HandPoseModifier.new()
 	_grip.name = _GRIP
 	_grip.pose = grip_pose
@@ -243,3 +265,41 @@ func _build() -> void:
 		_magazine = seat.get_child(0).get_node_or_null(magazine_marker) as Node3D
 		_skeleton.add_child(_fingers)
 	refresh()
+	built.emit()
+
+
+## The fit in use now: the one whose `body` is the model's file, or the scene's own.
+func fit() -> HoldFit:
+	var found := HoldFit.chosen(fits, model)
+	return found if found != null else _own
+
+
+# Puts the fit of the model's body on the weapon's seat and markers and on this node's poses and
+# way, keeping the scene's own first.
+func _fit_body() -> void:
+	var weapon := seat.get_child(0) as Node3D
+	var support := weapon.get_node_or_null(support_marker) as Node3D
+	var magazine := weapon.get_node_or_null(magazine_marker) as Node3D
+	if _own == null:
+		_own = HoldFit.new()
+		_own.seat = weapon.transform
+		_own.support_hand = support.transform if support != null else Transform3D.IDENTITY
+		_own.magazine_hand = magazine.transform if magazine != null else Transform3D.IDENTITY
+		_own.support_way = support_way
+		_own.grip_pose = grip_pose
+		_own.trigger_pose = trigger_pose
+		_own.support_pose = support_pose
+		_own.magazine_pose = magazine_pose
+		_own.open_pose = open_pose
+	var chosen := fit()
+	weapon.transform = chosen.seat
+	if support != null:
+		support.transform = chosen.support_hand
+	if magazine != null:
+		magazine.transform = chosen.magazine_hand
+	support_way = chosen.support_way
+	grip_pose = chosen.grip_pose
+	trigger_pose = chosen.trigger_pose
+	support_pose = chosen.support_pose
+	magazine_pose = chosen.magazine_pose
+	open_pose = chosen.open_pose

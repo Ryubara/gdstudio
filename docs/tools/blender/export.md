@@ -55,6 +55,12 @@ vertex buffers and triangle set, never by bytes, since the exporter does not kee
 ([Build scripts](build-scripts.md#rebuilding)). Models are Git LFS files: `git show` of one prints its pointer, and a
 pointer imported as a model leaves a broken `.import` behind ([Build scripts](build-scripts.md#rebuilding)).
 
+- **Approach:** Commit a new file's `.import` as Godot wrote it: import the game once, copy the `.import` back from
+  that game, and run `git status` in a game made from the branch after an import before the push. **Watch out
+  for:** a `.import` made by hand from a sibling's (no `uid`, a made-up name under `.godot/imported/`) loaded and
+  passed every suite locally, and CI failed its last step because the import rewrote the file; the copy back from
+  the probe game sat in a command the commit hook refused before it ran. **Seen:** gdstudio #1111 (PR #1191),
+  2026-11-11 (`prone_aim_male.glb.import`; the path's suffix is the MD5 of the `res://` path).
 - **Approach:** Give a new glb that holds only clips `importer="animation_library"` in its `.import` (the Import dock's
   "Import As: Animation Library") before the commit, as the template's other clip files have. **Watch out for:**
   Godot imports a new glb as a scene by default, so the clips sat in a scene nothing loads as a library and the

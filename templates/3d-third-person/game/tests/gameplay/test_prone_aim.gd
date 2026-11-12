@@ -135,12 +135,14 @@ func test_the_prone_aim_follows_the_look_and_the_barrel_with_it() -> void:
 		# Past the look the down clip is made for, the pose stays on that clip.
 		var wanted := clampf(look, -angles.x, angles.y)
 		assert_float(posed).is_equal_approx(wanted, 0.5)
+		# The aim layer turns the spine for the rest, within the prone `aim_limits` (kit #1253).
+		var aimed := rad_to_deg(_player.prone_tuning.aim_limits.clamp_pitch(deg_to_rad(look)))
 		var barrel := -_muzzle().global_basis.z.normalized()
 		var up := rad_to_deg(asin(barrel.y))
 		(
 			assert_float(up)
 			. override_failure_message("looking %.0f: the barrel points %.1f up" % [look, up])
-			. is_equal_approx(wanted, 2.5)
+			. is_equal_approx(aimed, 2.5)
 		)
 		# Along the way the body faces.
 		var ahead := Vector3(sin(_player.facing), 0.0, cos(_player.facing))
@@ -217,7 +219,9 @@ func test_both_hands_are_on_the_pistol_in_the_running_game() -> void:
 	var marker := _player.get_node("Model/PistolHeld/Pistol/SupportHand") as Node3D
 	await _lie_down()
 	await _aim(70)
-	for look: float in [0.0, 12.0, -25.0]:
+	# Level, the look-up limit, the down clip's look and the look-down limit, where the pose stays
+	# on the down clip (a spine turned on to 40 degrees put the muzzle 20 cm under the floor).
+	for look: float in [0.0, 12.0, -25.0, -40.0]:
 		await _look(-look)
 		assert_float(hold.support_shortfall()).is_less(0.005)
 		var gap := [1.0]
@@ -235,6 +239,26 @@ func test_both_hands_are_on_the_pistol_in_the_running_game() -> void:
 		var floor_y := _player.global_position.y
 		assert_float(_bone(&"hand_l").y).is_greater(floor_y + 0.02)
 		assert_float(_muzzle().global_position.y).is_greater(floor_y)
+
+
+func test_each_body_plays_the_prone_aim_solved_on_it() -> void:
+	var player: AnimationPlayer = _player.get_node("AnimationPlayer")
+	var model := _player.get_node("Model") as CharacterModel
+	var library := CharacterClips.LIBRARY_PRONE_AIM
+	# The scene's own library is the default body's; the other body has its own file.
+	assert_str(model.rig().scene_file_path).is_equal(CharacterBodies.FEMALE)
+	var shared := player.get_animation_library(library)
+	assert_str(shared.resource_path).ends_with("prone_aim.glb")
+	var male := _animation.prone_aim_libraries[CharacterBodies.MALE]
+	assert_str(male.resource_path).ends_with("prone_aim_male.glb")
+	model.variant = load(CharacterBodies.MALE)
+	await InputSim.ticks(get_tree(), 4)
+	assert_str(model.rig().scene_file_path).is_equal(CharacterBodies.MALE)
+	assert_object(player.get_animation_library(library)).is_same(male)
+	assert_bool(player.has_animation(CharacterClips.PRONE_AIM_UP)).is_true()
+	model.variant = load(CharacterBodies.FEMALE)
+	await InputSim.ticks(get_tree(), 4)
+	assert_object(player.get_animation_library(library)).is_same(shared)
 
 
 func test_a_weapon_with_no_prone_aim_keeps_the_standing_layer() -> void:

@@ -48,6 +48,7 @@ def asked(monkeypatch):
         return (info(0) if str(target) == "13" else info()), ""
 
     patch(monkeypatch, "behind", fake)
+    patch(monkeypatch, "red_main", lambda target, repo, cwd: ({"open": [], "fixes": False}, ""))  # main is green
     guards.take_warnings()
     return seen
 

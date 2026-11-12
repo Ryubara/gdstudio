@@ -265,7 +265,8 @@ const _FORWARDED: Array[StringName] = [
 		_forward_blend()
 
 @export_group("Fire")
-## Firing without aiming zooms the view in. Off leaves the framing alone while firing.
+## Firing without aiming zooms the view in. Off leaves the framing alone while firing. The held
+## weapon can turn it off for itself (`WeaponDef.fire_zooms`, off for the fists).
 @export var zoom_when_firing := true
 ## How far behind the target the lens sits while the fire button is held.
 @export_range(0.5, 8.0, 0.05, "suffix:m") var fire_distance := 1.4:
@@ -521,7 +522,11 @@ func advance(delta: float) -> void:
 	# The zoom follows the buttons, not the arm: the character keeps its aim pose for a moment
 	# after a shot, and the camera must not wait for that.
 	var aiming := is_instance_valid(_player) and _player.aim_held
-	var firing := is_instance_valid(_player) and _player.fire_held and zoom_when_firing
+	var held := held_definition()
+	var fire_zooms := held == null or held.fire_zooms
+	var firing := (
+		is_instance_valid(_player) and _player.fire_held and zoom_when_firing and fire_zooms
+	)
 	_sprint_blend = move_toward(_sprint_blend, 1.0 if sprinting else 0.0, sprint_zoom_speed * delta)
 	_slide_blend = move_toward(_slide_blend, 1.0 if sliding else 0.0, slide_zoom_speed * delta)
 	var aim_speed := aim_in_speed if aiming else aim_out_speed
@@ -594,24 +599,30 @@ func anchor_point() -> Vector3:
 
 
 ## The distance behind the target now: `distance`, farther while sprinting, `fire_distance` while
-## firing, `aim_distance` while aiming.
+## firing, `aim_distance` while aiming (the held weapon's, when its `override_zoom` is on).
 func current_distance() -> float:
 	var sprint := distance + sprint_distance_change * _eased(_sprint_blend)
-	var fire := lerpf(sprint, fire_distance, _eased(_fire_blend))
-	var aim := lerpf(fire, aim_distance, _eased(_aim_blend))
+	var zoom := _zoom_definition()
+	var fire_to := zoom.fire_distance if zoom != null else fire_distance
+	var aim_to := zoom.aim_distance if zoom != null else aim_distance
+	var fire := lerpf(sprint, fire_to, _eased(_fire_blend))
+	var aim := lerpf(fire, aim_to, _eased(_aim_blend))
 	return lerpf(aim, prone_aim_distance, prone_aim_blend())
 
 
 ## The field of view now: `field_of_view`, wider while sprinting and sliding, `fire_fov` while
-## firing, `aim_fov` while aiming.
+## firing, `aim_fov` while aiming (the held weapon's, when its `override_zoom` is on).
 func current_fov() -> float:
 	var sprint := (
 		field_of_view
 		+ sprint_fov_change * _eased(_sprint_blend)
 		+ slide_fov_change * _eased(_slide_blend)
 	)
-	var fire := lerpf(sprint, fire_fov, _eased(_fire_blend))
-	var aim := lerpf(fire, aim_fov, _eased(_aim_blend))
+	var zoom := _zoom_definition()
+	var fire_to := zoom.fire_fov if zoom != null else fire_fov
+	var aim_to := zoom.aim_fov if zoom != null else aim_fov
+	var fire := lerpf(sprint, fire_to, _eased(_fire_blend))
+	var aim := lerpf(fire, aim_to, _eased(_aim_blend))
 	return lerpf(aim, prone_aim_fov, prone_aim_blend())
 
 
@@ -657,6 +668,13 @@ func slide_blend() -> float:
 ## How far into the sprint view the camera is, 0 to 1.
 func sprint_blend() -> float:
 	return _sprint_blend
+
+
+## The definition of the weapon the followed character holds (its aim and zoom toggles), or null.
+func held_definition() -> WeaponDef:
+	if not is_instance_valid(_player) or _player.weapon == null:
+		return null
+	return _player.weapon.definition
 
 
 ## How far into the aim view the camera is, 0 to 1.
@@ -837,7 +855,19 @@ func _shoulder_view() -> Vector2:
 		width = lerpf(shoulder_offset, aim_shoulder, _eased(_aim_blend))
 	width = lerpf(width, prone_aim_shoulder, prone_aim_blend())
 	var side := 2.0 * smoothstep(0.0, 1.0, (_shoulder_pos + 1.0) * 0.5) - 1.0
-	return Vector2(side * width, vertical_offset)
+	var zoom := _zoom_definition()
+	var up := vertical_offset
+	if zoom != null and zoom.zoom_offset != Vector2.ZERO:
+		var zoomed := maxf(_eased(_aim_blend), _eased(_fire_blend))
+		width += zoom.zoom_offset.x * zoomed
+		up += zoom.zoom_offset.y * zoomed
+	return Vector2(side * width, up)
+
+
+# The held weapon's definition when it overrides the camera's aim and fire framing, else null.
+func _zoom_definition() -> WeaponDef:
+	var held := held_definition()
+	return held if held != null and held.override_zoom else null
 
 
 # A swap starting now keeps its aim point: the anchor is on, and the player is aiming (the aim or

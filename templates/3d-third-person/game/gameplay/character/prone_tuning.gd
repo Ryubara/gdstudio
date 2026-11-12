@@ -85,6 +85,13 @@ enum InputMode {
 @export_range(0.0, 89.0, 0.5, "suffix:deg") var look_up_limit := 12.0
 ## The lowest the character looks (and the camera turns) lying down.
 @export_range(0.0, 89.0, 0.5, "suffix:deg") var look_down_limit := 40.0
+## How far the aim layer turns the upper body lying down to put the weapon on the aim
+## (`AimLayer`); the lying body turns to the view while aiming, so this covers the turn's lag.
+## Down it stops at the 25 degrees the prone down clips are made for (`WeaponDef.prone_aim_angles`):
+## a body flat on the ground cannot point a weapon in its stretched arms further down, and a spine
+## turned on to the 40 degrees of `look_down_limit` put the pistol 20 cm under the floor. The
+## look and the shot go on to the limit.
+@export var aim_limits := _prone_aim_limits()
 
 @export_group("Input")
 ## How the human's controls ask for prone.
@@ -95,3 +102,9 @@ enum InputMode {
 @export var jump_gets_up := true
 ## On: a sprint press while prone gets up.
 @export var sprint_gets_up := true
+
+
+static func _prone_aim_limits() -> AimLimits:
+	var limits := AimLimits.new()
+	limits.pitch_down = 25.0
+	return limits

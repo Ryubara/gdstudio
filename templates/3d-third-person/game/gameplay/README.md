@@ -25,7 +25,12 @@ The template has a character and the map's components:
   magazine and reserve, reload, clips and sounds); a `Weapon` fires the one it holds (pooled `Projectile` spheres, a
   hitscan ray or a blow) toward the crosshair and counts its ammunition, a `WeaponLoadout` switches between the slots
   and the empty hands, and a `Target` falls over when its `Health` runs out. They work with any model: a definition
-  names the model node it shows and its muzzle marker under the character's `Model` slot.
+  names the model node it shows and its muzzle marker under the character's `Model` slot. `rifle.tres` is the
+  automatic hitscan rifle; `TwoHandHold` (`two_hand_hold.tscn`, the rifle's `rifle_held.tscn`) holds a long gun with
+  both hands where the clips have no pose for it: a stance, an arm reach and solved fingers per hand (solved for each
+  body: `fits` holds a `HoldFit` for a body other than the scene's own, as the pistol's hold does), a reload for
+  the left hand and a switch that never shows the gun without the hands on it. `WeaponLoadout.give()` adds a weapon
+  at run time.
 - `hit_zones/`: `HitZones` (a body on the Hit Zones layer holding the `HitZone` shapes, eleven body parts that follow
   the skeleton when a shot needs them). A `Projectile` that meets a character's capsule asks its `HitZones` which part
   is on its line and gets a `HitRecord`; the character's `take_hit()` gives it to its `Health` and its `HitReaction`
@@ -52,3 +57,5 @@ The template has a character and the map's components:
   editor too. Connect their signals in the editor's Node dock (a trigger's `activated` to a door's `open`). A door,
   a platform and a pickup are online by their `NetEntity` child; a trigger zone whose state is a rule (the pressure
   pad) gets `trigger_zone/trigger_zone_net.tscn` as a child in the map, one a single screen uses (a camera zone's) none.
+- `pickup/weapon_pickup.tscn`: a `Pickup` that gives a weapon (or its rounds) through the character's loadout, floating
+  over a glowing ring; `rifle_pickup.tscn` inherits it with the rifle under `Visual`.

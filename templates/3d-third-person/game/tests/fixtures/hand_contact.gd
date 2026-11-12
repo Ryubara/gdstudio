@@ -126,8 +126,7 @@ class HandSkin:
 
 func _init(skeleton: Skeleton3D) -> void:
 	_skeleton = skeleton
-	for node in skeleton.find_children("*", "MeshInstance3D", true, false):
-		var instance := node as MeshInstance3D
+	for instance in CharacterBodies.near_meshes(skeleton):
 		if instance.skin == null or instance.mesh == null:
 			continue
 		for surface in instance.mesh.get_surface_count():
@@ -202,6 +201,18 @@ func part_distance_to(side: String, part: String, point: Vector3) -> float:
 	var least := INF
 	for index in list.size() / 2:
 		least = minf(least, at.distance_to(_skinned(list[index * 2], list[index * 2 + 1], cache)))
+	return least
+
+
+## How high the lowest point of the skin of the hand of `side` is, in metres, in the skeleton's
+## space (a model standing at the origin: over the floor), in the pose `snapshot()` copied.
+func lowest(side: String) -> float:
+	var cache := {}
+	var least := INF
+	for part: String in _parts[side]:
+		var list: Array = _parts[side][part]
+		for index in list.size() / 2:
+			least = minf(least, _skinned(list[index * 2], list[index * 2 + 1], cache).y)
 	return least
 
 
@@ -316,15 +327,24 @@ func _add_surface(instance: MeshInstance3D, surface: int) -> void:
 		var bone := _skeleton.find_bone(skin.get_bind_name(bind))
 		bind_bones.append(bone if bone >= 0 else skin.get_bind_bone(bind))
 		bind_poses.append(skin.get_bind_pose(bind))
+	var owners := _owners()
 	var main := PackedInt32Array()
 	var share := PackedFloat32Array()
 	for vertex in vertices.size():
 		var best := -1
 		var best_weight := 0.0
 		for slot in per:
-			if weights[vertex * per + slot] > best_weight:
-				best_weight = weights[vertex * per + slot]
-				best = bind_bones[bones[vertex * per + slot]]
+			var weight := weights[vertex * per + slot]
+			if weight <= 0.0:
+				continue
+			var owner := owners[bind_bones[bones[vertex * per + slot]]]
+			# The weights of the other slots with the same owner (a fingertip's bone and its leaf).
+			for other in slot:
+				if owners[bind_bones[bones[vertex * per + other]]] == owner:
+					weight += weights[vertex * per + other]
+			if weight > best_weight:
+				best_weight = weight
+				best = owner
 		main.append(best)
 		share.append(best_weight)
 	var index := _surfaces.size()
@@ -339,6 +359,21 @@ func _add_surface(instance: MeshInstance3D, surface: int) -> void:
 	_surfaces.append(entry)
 	for side: String in ["r", "l"]:
 		_collect_side(side, index, main, share, indices)
+
+
+# The bone each bone's skin counts for: itself, or for a bone with no children that hangs under
+# a part's bone (the leaf at a fingertip, which one mannequin's skin is weighted to) that bone.
+func _owners() -> PackedInt32Array:
+	var part_bones := {}
+	for side: String in ["r", "l"]:
+		for part: String in PARTS:
+			part_bones[_skeleton.find_bone(PARTS[part] % side)] = true
+	var owners := PackedInt32Array()
+	for bone in _skeleton.get_bone_count():
+		var parent := _skeleton.get_bone_parent(bone)
+		var leaf := _skeleton.get_bone_children(bone).is_empty() and not part_bones.has(bone)
+		owners.append(parent if leaf and part_bones.has(parent) else bone)
+	return owners
 
 
 func _collect_side(
