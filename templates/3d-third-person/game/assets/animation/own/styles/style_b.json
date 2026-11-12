@@ -247,20 +247,20 @@
    "Could not be done: the deepest shift still reads 1.3 mm of hand in thigh on the female (the limit is 5); the free foot stays flat, a heel that lifts was not tried."
   ],
   "crouch_idle": [
-   "A deep, wide kneel: the right foot 0.65 m behind and 0.10 m wider, turned out 35 degrees with its heel up 54; the hips turned 18 degrees and the shoulders 17 the other way, the head looking over the left knee; the right hand lies on the low right knee and the left forearm on the left thigh.",
-   "Could not be done: the left arm hanging free outside the high knee or between the knees: its forearm went 20 to 55 mm into the thigh; and the weight shifting as far as the first loose crouch did (0.14 of the share): the rear knee bent 150 degrees (the limit is 140), so the shift is 0.04. A pistol in the right hand is not cleared of the knee in this variant: it is measured on the shipped one only. The left elbow bends 74 degrees (58 in A): at 58 the forearm lay 15 mm inside the form female's knee."
+   "Shipped as gds/Crouch_Idle (the maintainer's choice, 2026-11-12). A deep, wide kneel: the right foot 0.65 m behind and 0.10 m wider, turned out 35 degrees with its heel up 54; the hips turned 18 degrees and the shoulders 17 the other way, the head looking over the left knee; the right hand is held over the low right thigh and the left forearm on the left thigh.",
+   "Could not be done: the left arm hanging free outside the high knee or between the knees: its forearm went 20 to 55 mm into the thigh; and the weight shifting as far as the first loose crouch did (0.14 of the share): the rear knee bent 150 degrees (the limit is 140), so the shift is 0.04. The right hand lying on the knee: the pistol it holds sat 32 mm inside the form female's thigh, so the hand is held 0.06 m higher and the pistol is 11 mm clear of her and 26 mm of the form male. The left elbow bends 74 degrees (58 in A): at 58 the forearm lay 15 mm inside the form female's knee."
   ],
   "crouch_walk": [
    "Shipped as gds/Crouch_Walk (the maintainer's choice, 2026-11-11). Loose: 150 steps a minute, the pelvis dipping 24 mm and turning 11 degrees, the left arm swinging 13 degrees and the right 22.",
-   "Fixed on the form bodies: the left arm is carried 25 degrees out (18 in A and C). At 18 the left hand went 10 to 30 mm into the form female's calf as the knee came up to it at the end of the stride; it reads 0 mm on the four bodies now.",
+   "Fixed on the form bodies: the left arm is carried 25 degrees out. At 18 the left hand went 10 to 30 mm into the form female's calf as the knee came up to it at the end of the stride; it reads 0 mm on the four bodies now.",
    "The audit's planted rows count the frame before each landing as planted (the sole 6 mm up, inside its band of a fifth of the lift) and read 37.9 mm of wander; in the declared contacts the sole wanders 2.2 mm on the form female."
   ],
   "stand_to_crouch": [
-   "Loose: 20 frames, the step back taken slowly, the arms opening 20 and 18 degrees round the thighs; 0.57 of gravity.",
+   "Shipped as gds/Stand_To_Crouch (the maintainer's choice, 2026-11-12). Loose: 20 frames, the step back taken slowly, the arms opening 20 and 18 degrees round the thighs; 0.54 of gravity.",
    "Tried: the loose hand overlap (3 frames, 0.35 past): the left hand trailed 21 mm into the thigh that rose under it; the forearm and the hand trail 1.5 frames here."
   ],
   "crouch_to_stand": [
-   "Loose: 20 frames, the right foot landing at frame 16, the trunk unfolding last; the rise stops at 0.52 of gravity.",
+   "Shipped as gds/Crouch_To_Stand (the maintainer's choice, 2026-11-12). Loose: 20 frames, the right foot landing at frame 16, the trunk unfolding last; the rise stops at 0.50 of gravity.",
    "Tried: the foot landing at frame 18: the head and the left forearm kicked 0.8 and 1.1 degrees on the landing frame as the ends were let go; it lands at 16 and the ends are let go over 4 frames."
   ]
  },

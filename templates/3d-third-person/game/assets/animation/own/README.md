@@ -276,11 +276,11 @@ its standing place, so one step of the right foot makes the stance.
   entry's first frame to the end of its contact the ball of the foot stays on its place while the heel may rise.
 - The stance changes do not travel. The left foot is down for the whole clip; the right has two contacts with its
   step between them (`contacts`), and a `footstep` event where it lands. `joins` names the shipped clips whose
-  first poses the ends are, and the event `crouched` (frame 15 of 16) or `rising` marks where the legs' fold ends
-  or begins. They are 0.53 s long against a `crouch_time` of 0.2 s: going down, the capsule and the camera get
+  first poses the ends are, and the event `crouched` (frame 19 of 20) or `rising` marks where the legs' fold ends
+  or begins. They are 0.67 s long against a `crouch_time` of 0.2 s: going down, the capsule and the camera get
   there first; coming up, the capsule is full height before the body is. The tree that plays them is kit #1158.
-- The crouch stands behind the root: its pelvis is 0.36 m behind it and its rear heel 0.56 m (the library's are
-  0.28 and 0.44 m), since the front foot keeps the standing idle's place.
+- The crouch stands behind the root: its pelvis is 0.36 m behind it and its rear foot 0.65 m (the library's
+  pelvis is 0.28 m behind), since the front foot keeps the standing idle's place.
 - Each clip keys 52 bones' rotations, the pelvis's place and the four `ik_` targets; the walk's fingers move with
   the arm swing, so it carries their tracks. The cost per clip is in the pull request.
 - The walk's sole wander is the heel's skin, which the shin shares: at an ankle bent this far it slides a few
