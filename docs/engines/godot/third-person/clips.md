@@ -58,6 +58,13 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   was 20 mm under the floor as a vault began and 43 mm under half way into its 0.1 s fade, where the library's
   shorter strides stayed inside the test's 20 mm. The vault's floor check counts from the end of the fade; the
   phases are kit #1158's. **Seen:** gdstudio #1155, 2026-11-11.
+- **Approach:** After rebuilding the idle, measure the aiming muzzle again and move `Weapon.no_muzzle_offset` (and
+  its copy in `test_weapon.gd`) to it: `test_weapon_ray.gd` prints the muzzle from the eye in the view's axes.
+  Run the weapon suites after every merge of main as well as after a rebuild. **Watch out for:** the offset is
+  where the pistol's muzzle is while the character aims standing on the idle, so the idle solved again on the
+  prototype bodies put it 6.2 mm from the real muzzle, over the test's 5 mm; the full run before the merge had
+  passed, because main's steady stance under the aim, which set the offset to main's idle, landed in between.
+  **Seen:** gdstudio #1155 (PR #1275), 2026-11-11 (the offset's z from -0.716 to -0.722).
 - **Approach:** When a `CharacterClips` constant moves to another library, grep for every table that lists libraries
   by name (`grep -rn LIBRARIES`, `universal/ual1`: `tests/fixtures/hold_stage.gd`, `pistol_clearance.gd`,
   `tools/ragdoll/measure_joints.gd`) and add the library, then run the weapon and hold suites (`test_weapon*.gd`,
