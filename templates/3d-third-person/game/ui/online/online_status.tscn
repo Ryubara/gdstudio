@@ -76,3 +76,4 @@ unique_name_in_owner = true
 script = ExtResource("5_button")
 text = "Back to menu"
 variant = 1
+metadata/ui_sound_role = &"back"

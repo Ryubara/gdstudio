@@ -200,4 +200,5 @@ In 3D Third Person: the `test_minimap_*.gd` suites of `tests/core/` and `tests/u
 - **Approach:** Keep a suite under gdlint's twenty public methods, `before_test` and `after_test` included, and look
   for the same private helper names across suites (`_carry`, `_section`) so a split moves cleanly. **Watch out for:**
   the minimap's view suite had 21 and gdlint failed the pre-commit hook after the tests had passed. **Seen:** gdstudio
-  #884, 2026-11-10.
+  #884, 2026-11-10; #1100, 2026-11-11 (a menu sound suite of 21, split into wiring and rules; the same hook refuses a
+  function with more than six `return`s: fold the conditions into one `silent :=` expression).

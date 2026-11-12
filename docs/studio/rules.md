@@ -149,7 +149,8 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
   section does not exist on `main` yet. **Seen:** gdstudio #1016, 2026-11-10 (its reworked body named
   `tools/blender/animation.md#contacts`, a section it adds; fix: the anchor was taken off `Read first:`), and again
   on 2026-11-11 with `clips.md#vault-clips` (the body was rebuilt from a script that listed what was read, not from
-  the body sent: check each `Read first:` anchor against `git show origin/main:docs/<page>` before sending).
+  the body sent: check each `Read first:` anchor against `git show origin/main:docs/<page>` before sending);
+  gdstudio #1040, 2026-11-11 (`weapon-pickups.md#rifle-hands`).
 
 ## Page size {#size}
 

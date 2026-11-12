@@ -12,7 +12,9 @@ extends SkeletonModifier3D
 
 ## The bones that reach: the upper arm, the forearm and the hand.
 @export var arm: Array[StringName] = [&"upperarm_l", &"lowerarm_l", &"hand_l"]
-## The bone the weapon rides.
+## The bone the weapon rides. Empty: the weapon rides no bone (a long gun placed in the model's
+## space by a `TwoHandHold`), and `offset` is the hand's place in the skeleton's space, written by
+## a modifier that runs before this one in the same update.
 @export var bone: StringName = &"hand_r"
 ## Where the hand bone sits, in the weapon's bone's space (the weapon's seat times the marker).
 @export var offset := Transform3D.IDENTITY
@@ -37,10 +39,12 @@ func _process_modification_with_delta(_delta: float) -> void:
 		for bone_name in arm:
 			_bones.append(skeleton.find_bone(bone_name))
 		_bones.append(skeleton.find_bone(bone))
-	if _bones.has(-1):
+	if _bones.slice(0, 3).has(-1) or (_bones[3] < 0 and bone != &""):
 		return
 	# Every pose is worked out from the local ones, and only three rotations are written back.
-	var goal := HandPoseModifier.global_pose(skeleton, _bones[3]) * offset
+	var goal := offset
+	if _bones[3] >= 0:
+		goal = HandPoseModifier.global_pose(skeleton, _bones[3]) * offset
 	var above := HandPoseModifier.global_pose(skeleton, skeleton.get_bone_parent(_bones[0]))
 	var fore_local := skeleton.get_bone_pose(_bones[1])
 	var hand_local := skeleton.get_bone_pose(_bones[2])

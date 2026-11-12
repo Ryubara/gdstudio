@@ -26,7 +26,7 @@ can be replaced alone.
 | `CameraZone` | `gameplay/camera_zone/camera_zone.gd` | Hands the view to another Phantom Camera while the player stands in a `TriggerZone`. |
 | `PhysicsLayers` | `core/physics_layers/physics_layers.gd`, `project.godot` `[layer_names]` | The seven named layers and the masks: the player is on Characters and meets World and Props (two characters walk through each other, for networking), shots meet characters, props, the level and a dead body's bones, the camera's walls are World and Props, pickups and zones mask what they sense. Tune a body's layers in its scene's Collision group; the names show in the inspector. |
 | `TouchControls` | `ui/touch/third_person_touch_controls.tscn` (inherits 3D Blank's `touch_controls.tscn`) | The phone controls: a floating stick, a look drag and buttons that press the game's input actions (Jump and Use from the base; Fire, Aim, Crouch and Prone added here). |
-| The rifle | `assets/weapons/rifle/` | An assault rifle model for the weapon work (not yet held or fired): `rifle.glb` and its far level `rifle_far.glb` with the hand sockets (`Grip`, `Support`), `Muzzle`, `Butt` and the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` shows the far level from 10 m. How a character can hold it with the clips the template has is in the folder's README. |
+| The rifle | `assets/weapons/rifle/` | The assault rifle a `rifle_pickup.tscn` gives, held with both hands by `gameplay/weapon/rifle_held.tscn` (a `TwoHandHold`: the butt in the shoulder, the right hand on the grip, the left under the hand guard, a reload for the left hand): `rifle.glb` and its far level `rifle_far.glb` with the hand sockets (`Grip`, `Support`), `Muzzle`, `Butt` and the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` shows the far level from 10 m. How the hold was chosen is in the folder's README. |
 | The bodies and their clips | `assets/characters/prototype/`, `assets/characters/mannequin/`, `assets/animation/universal/` | GDStudio's prototype bodies in the `form` look (`form_female.glb` for the player, friendlies and puppets, `form_male.glb` for enemies; `CharacterBodies` names them), Quaternius's female and male mannequins (`mannequin_female.glb`, `mannequin_male.glb`) and the Universal Animation Library 1 and 2 (CC0), 86 clips, each with a licence entry. |
 
 ## Input
@@ -349,6 +349,7 @@ the node or on the `WeaponDef`, builds the tree again):
 | `WeaponDef.shoot_additive` | on (the pistol), off (the fists) | On: the shot's clip is added to the aim as its difference from its own first frame, so the kick rides any pitch; off: it replaces the upper body while it plays (a punch). |
 | `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
 | `aim_brace` | on | Holds the upper body's turn on the stance the aim poses were made on while the character aims standing, walking or running (`AimBrace`, a skeleton modifier): the pistol points along the view whatever the legs' clip does to the pelvis. Off, the aim pose turns with that pelvis. |
+| `aim_stance` | on | Holds the legs still under a standing aim (`AimStance`): the ground state's idle point blends to the idle clip held on its steadiest frame (the pelvis nearest the middle of its sway) as the arm comes up, so the idle's weight shift no longer sways the pistol (33 mm to each side without it; the muzzle stays within 0.1 mm through 10 s of a held aim, the feet within 2.3 mm while it blends, on the player's and the enemies' bodies). Walking, the blend space has left the idle point, so the gaits are unchanged. Off, the idle plays under the aim. |
 | `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | How far the character looks up or down for the full aim up and down poses, and the recoil's speed. |
 | `shot_hold_time` | 0.2 s | How long the arm stays up after a shot, so a shot fired without aiming (hip fire) shows. The walk and the turn are normal at once; 0 lowers the arm as soon as the buttons are let go. |
 
@@ -390,6 +391,22 @@ hundredth of the clip while it moves and on every update of the live player relo
 `tools/capture/pistol_hold_study.tscn` prints the numbers and films the close-ups. The hold is a pose
 worked out on each machine from the aim the game already has; nothing of it goes over a network.
 
+### The slide rack clip {#slide-rack-clip}
+
+`assets/animation/pistol/pistol_rack.glb` holds one clip of GDStudio's own, `Pistol_Rack` (0.93 s): an overhand rack
+of the slide, keyed from nothing by `build_pistol_rack.py` on the player's body (`form_female`) because the library's
+reload has none. It starts and ends on the pose `Pistol_Reload` ends on. Each body has its own hand on the slide, as
+each has its own hold: `gameplay/weapon/hold/pistol_slide_rack.tres` (a `SlideRack`, the female's) lists
+`pistol_slide_rack_male.tres` in `fits`, and `SlideRack.fit()` gives the one solved on the model's file. A rack says
+where the left hand's bone is in the pistol's space on its way over the slide, how its fingers are closed on the
+slide and opened over it, how far the slide travels and at which shares of the clip the hand grips, pulls and lets
+go; what plays the clip reaches the hand there with a `HoldArm`, puts the fingers on with a `HandPoseModifier`
+(`SlideRack.set_fingers()`) and moves the pistol's `Slide` node, as `tests/fixtures/rack_stage.gd` does. On both
+bodies the hands are within the hold's 2 mm and 5 mm on every frame, the index finger's and the thumb's pads on the
+serrations (`tests/gameplay/test_pistol_rack.gd`). The folder's `README.md` has the beats, the numbers, why it is an
+overhand rack and how to build it;
+`tools/capture/rack_closeups.tscn` films it.
+
 ### Vault clips {#vault-clips}
 
 `assets/animation/vault/vault.glb` holds three clips of the template's own, made for the vault (the Universal
@@ -420,7 +437,8 @@ The two mannequins, both animation libraries and Phantom Camera are third-party 
 (`assets/characters/mannequin/`, `assets/animation/universal/`, `addons/phantom_camera/`): CC0 for the Quaternius files
 and MIT for Phantom Camera. Give them a line on the game's Credits screen. The pistol and the rifle are GDStudio's own
 (MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`. The prone and crawl
-clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`).
+clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`), and so is the slide
+rack clip (`assets/animation/pistol/LICENSE.md`).
 
 ## Testing it in a browser
 

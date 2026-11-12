@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://gameplay/pickup/weapon_pickup.tscn" id="1_base"]
+[ext_resource type="Resource" path="res://gameplay/weapon/rifle.tres" id="2_rifle"]
+[ext_resource type="PackedScene" path="res://assets/weapons/rifle/rifle.tscn" id="3_model"]
+
+[node name="RiflePickup" instance=ExtResource("1_base")]
+item_id = &"rifle"
+weapon = ExtResource("2_rifle")
+rounds = 60
+
+[node name="Rifle" parent="Visual" instance=ExtResource("3_model")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, -0.09, 0)
