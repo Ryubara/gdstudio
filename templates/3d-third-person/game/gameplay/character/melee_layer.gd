@@ -31,6 +31,8 @@ var _playing := false
 var _seen := false
 # The weapon whose blows this plays (connected once).
 var _heard: Weapon
+# The body's aim is up for a blow alone: from the blow's start until that aim has come down again.
+var _blow_aim := false
 
 
 ## Adds the one-shot to `root`: `below` (the weapon layer's last node) under it, the clip node
@@ -89,6 +91,20 @@ func play(blow: int, animation: CharacterAnimation) -> void:
 	tree.set(_P_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 	_playing = true
 	_seen = false
+
+
+## The aim the weapon layer shows for `body`: its `aim_amount`, or 0 while that aim is up only for
+## a blow. A blow turns the body the way it goes as an aim does (`Character.aiming`), but it raises
+## no aim pose: with one, the aim offset turned the spine to point the carried pistol at the aim
+## for the frames before the clip held the body and after it let go, and the body folded back
+## (66 degrees at the chest; gdstudio #1254, pull request #1315).
+func aim_of(body: Character) -> float:
+	var real := body.aim_held or body.fire_held
+	if real or body.aim_amount <= 0.0:
+		_blow_aim = false
+	if body.weapon != null and body.weapon.meleeing and not real:
+		_blow_aim = true
+	return 0.0 if _blow_aim else body.aim_amount
 
 
 ## The weapon layer's two weights (`CharacterAnimation.pistol_weights`) from the tree's `armed`

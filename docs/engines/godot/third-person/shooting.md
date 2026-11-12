@@ -490,6 +490,12 @@ living character (`NODES_ALIVE`).
   **Watch out for:** the blow lands a few ticks after the press, so a blow pressed as the drawn guard was in front of
   the player met it 0.6 m on (4 m/s for 0.15 s) and missed with the rewind on and off alike. **Seen:** gdstudio #1254,
   2026-11-11 (`test_net_melee.gd`).
+- **Approach:** Tile every frame of a blow from the game camera, its fades in and out too, and read the tiles
+  before review; let a blow turn the body (`aiming`) without raising the aim pose (`MeleeLayer.aim_of`). **Watch out
+  for:** the aim a blow raised switched the aim offset on over the carry pose for two frames before each blow and
+  four after: the chest folded 66 to 70 degrees back, in an attached clip nobody read frame by frame; the Blender
+  sheets cannot show it, and a 3 degree keyed lean was first taken for the whole cause. **Seen:** gdstudio #1254 (PR
+  #1315), 2026-11-11, from the maintainer's review (`test_a_pistol_blow_never_folds_the_body_back`).
 
 ## Bullet impacts {#impacts}
 

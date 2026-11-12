@@ -645,7 +645,7 @@ func _drive_pistol(delta: float) -> void:
 	_shot_arm = move_toward(
 		_shot_arm, 1.0 if _shot_hold > 0.0 else 0.0, delta / maxf(aim_time, 0.001)
 	)
-	var arm := maxf(character.aim_amount, _shot_arm)
+	var arm := maxf(melee.aim_of(character), _shot_arm)
 	tree.set(_P_ARMED, armed)
 	tree.set(_P_AIM, arm * aims)
 	tree.set(_P_SHOOT_SCALE, shoot_speed)

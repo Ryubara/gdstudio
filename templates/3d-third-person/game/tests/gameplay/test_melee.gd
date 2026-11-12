@@ -151,6 +151,37 @@ func test_the_pad_button_and_the_touch_button_throw_the_blow() -> void:
 	assert_int(started.size()).is_equal(2)
 
 
+# The chest's turn in the player's own space (its +Z is behind it).
+func _chest(skeleton: Skeleton3D, bone: int) -> Basis:
+	var pose := skeleton.global_transform * skeleton.get_bone_global_pose(bone)
+	return (_player.global_transform.affine_inverse() * pose).basis.orthonormalized()
+
+
+func test_a_pistol_blow_never_folds_the_body_back() -> void:
+	# A blow turns the body as an aim does but raises no aim pose: with one, the aim offset pointed
+	# the carried pistol at the aim before the clip held the body and after it let go, and the
+	# chest folded 66 degrees back for those frames (pull request #1315). Read after the skeleton's
+	# modifiers, on every frame of the blow and of the aim coming down after it.
+	var skeleton := _player.model.skeleton()
+	var bone := skeleton.find_bone(&"spine_03")
+	var animation := _player.get_node("Animation") as CharacterAnimation
+	var upright := _chest(skeleton, bone)
+	var worst := [0.0, 0.0, 0]
+	var read := func() -> void:
+		var up := (_chest(skeleton, bone) * upright.inverse()) * Vector3.UP
+		worst[0] = maxf(worst[0], rad_to_deg(atan2(up.z, up.y)))
+		worst[1] = maxf(worst[1], animation.pistol_weights().y)
+		worst[2] += 1
+	skeleton.skeleton_updated.connect(read)
+	await _tap(KEY_V)
+	assert_bool(_player.aiming).is_true()
+	await _seconds(1.2)
+	skeleton.skeleton_updated.disconnect(read)
+	assert_int(worst[2]).is_greater(30)
+	assert_float(worst[1]).is_equal(0.0)
+	assert_float(worst[0]).is_less(4.0)
+
+
 func test_the_blow_lands_in_its_window_and_once() -> void:
 	var weapon := _player.weapon
 	var category := load(PISTOL_CATEGORY) as WeaponCategory
