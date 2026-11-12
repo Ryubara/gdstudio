@@ -167,3 +167,10 @@ reach) and behind (heard, then noticed at arm's reach), with the footstep rings 
   while its noise is still on the board. **Watch out for:** a shot's noise outlived its shooter, and every listener's
   `_noise_band` raised "previously freed" until the record expired; no suite freed a body mid-noise until #968's
   scenarios did. **Seen:** gdstudio #968, 2026-11-11 (`test_a_noise_whose_maker_was_freed_is_skipped`).
+- **Approach:** Treat a node that left the tree as gone too, wherever a record outlives it (a noise's maker, an ally's
+  telling): a spawner's pool parks a corpse out of the tree, alive again and forgotten everywhere, and a record made
+  before must not bring it back. **Watch out for:** after a release, a shot's noise and a telling queued for the
+  allies both made a belief about the parked body and read its `global_position` off the tree, an engine error a
+  tick; `is_instance_valid` alone passed it. **Seen:** gdstudio #1328, 2026-11-12 (the soak's faulted run;
+  `AiNoiseRecord.maker_gone()` and `AiSenses.Share.entity()`, `test_a_noise_whose_maker_left_the_tree_is_skipped`,
+  `test_a_telling_about_a_body_out_of_the_tree_is_dropped`).

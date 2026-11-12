@@ -41,6 +41,10 @@ What was measured on the Quaternius skins is measured again on the two `form` bo
   `pistol_*_pose.tres`, the pistol's seat and markers in `pistol_held.tscn`, `support_way`); the male's is one
   `HoldFit` file (`gameplay/weapon/hold/pistol_fit_male.tres`) listed in `WeaponHold.fits`, which the hold puts on
   whenever the model is a `form_male.glb` ([the hold](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
+- **The rifle's hold is solved per body too** (kit #1040): `solve_rifle_hold.py --body=female|male`, the female's in
+  `rifle_held.tscn` and the five `rifle_*_pose.tres`, the male's in `rifle_fit_male.tres`, listed in
+  `TwoHandHold.fits`. The smaller hands also needed a place of their own on the grip
+  ([the rifle in both hands](weapon-pickups.md#rifle-hands)).
 - **The hit zones** (`character_dressed.tscn`'s `HitZones`) are sized from `tools/mannequin/measure_segments.gd`: the
   arms are longer and thinner than the Quaternius female's (upper arm 0.26 to 0.28 m long and 0.047 to 0.057 m
   round, against 0.22 and 0.068) and the calves thinner, so the arm zones are longer and narrower, the thigh and pelvis
@@ -216,7 +220,8 @@ The enemies of [the AI section](ai-characters.md#parts) set the male body (`form
   source for `Input.`, `get_camera_3d(` and `get_viewport(`. **Watch out for:** the body read `Input` in 14 places and
   the camera in 2, so a second `player.tscn` walked in step with the first and died on the same key, and a headless
   server could not move one. **Seen:** gdstudio #901, 2026-11-10 (`test_two_characters.gd`, bit-equal in
-  `test_command_stream.gd`); gdstudio #1138, 2026-11-11 (the grep caught a camera-reading throttle put there).
+  `test_command_stream.gd`); gdstudio #1138 and #1258, 2026-11-11 (a throttle,
+  then a rifle hold).
 - **Approach:** Keep out of the step what only its owner or its picture knows: call `step` inside a physics frame with
   the physics step, show `facing` on the model through one null-safe method called in the tick, and on a fall out of
   the map say `fell` once and let the owner answer. **Watch out for:** `move_and_slide()` moves by the engine's own

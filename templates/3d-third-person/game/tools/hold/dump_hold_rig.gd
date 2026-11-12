@@ -1,13 +1,18 @@
 ## Writes what the pistol hold solver needs as one JSON file (kit #1001): for each mannequin the
 ## skeleton (names, parents, rests), the skin of both arms from the elbow down (rest vertices,
 ## bones, weights, bind poses, triangles) and every bone's pose in the clips the pistol is held
-## in, as Godot plays them; and the pistol's triangles, sockets and seat. The solver
-## (`solve_pistol_hold.py`) works on this dump, never on a clip opened in Blender, whose hand
-## sits 2 to 3 cm from Godot's (kit docs, tools/blender/weapons.md).
+## in, as Godot plays them; where each arm's shoulder and elbow are in the rifle's space as the
+## rifle's hold has it at the shoulder and at the low ready (`shoulders`, kit #1187); the pistol's
+## triangles, sockets and seat; and the rifle's near level (triangles and sockets, kit #889). The
+## solvers (`solve_pistol_hold.py`, `solve_rifle_hold.py`) work on this dump, never on a clip
+## opened in Blender, whose hand sits 2 to 3 cm from Godot's (kit docs, tools/blender/weapons.md).
+## A body's name after the file (`female`, `male`: `CharacterBodies.BY_NAME`) dumps that body
+## only; with none, every body.
 ##
-## `<godot> --headless --path game -s res://tools/hold/dump_hold_rig.gd -- <out.json>`
+## `<godot> --headless --path game -s res://tools/hold/dump_hold_rig.gd -- <out.json> [male]`
 extends SceneTree
 
+const RIFLE := "res://assets/weapons/rifle/rifle.tscn"
 const POSES: Array = [
 	[&"ual1/Pistol_Idle", [0.0, 0.5, 1.0]],
 	[&"ual1/Pistol_Aim_Neutral", [0.0, 0.16]],
@@ -16,6 +21,8 @@ const POSES: Array = [
 	[&"ual1/Pistol_Shoot", [0.0, 0.05, 0.1, 0.2]],
 	[&"ual1/Pistol_Reload", [0.0, 0.4, 0.8, 1.05, 1.2]],
 ]
+## How far the rifle is up for each line of `shoulders`: at the shoulder, then at the low ready.
+const RIFLE_AIMS: Array[float] = [1.0, 0.0]
 
 
 func _initialize() -> void:
@@ -24,14 +31,23 @@ func _initialize() -> void:
 
 func _run() -> void:
 	await process_frame
-	var out := {"models": {}, "pistol": {}}
-	for model: String in HoldStage.MODELS:
+	var arguments := OS.get_cmdline_user_args()
+	var bodies: Array = HoldStage.MODELS.keys()
+	if arguments.size() > 1:
+		if not HoldStage.MODELS.has(arguments[1]):
+			printerr("dump_hold_rig: after the file, a body of ", bodies)
+			quit(1)
+			return
+		bodies = [arguments[1]]
+	var out := {"models": {}, "pistol": {}, "rifle": _rifle(), "shoulders": {}}
+	for model: String in bodies:
 		var stage := HoldStage.make(root, model, false)
 		out.models[model] = _model(stage)
-		if model == "female":
+		if out.pistol.is_empty():
 			out.pistol = _pistol(stage)
 		stage.free()
-	var path := OS.get_cmdline_user_args()[0]
+		out.shoulders[model] = await _shoulders(model)
+	var path: String = arguments[0]
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	file.store_string(JSON.stringify(out))
 	file.close()
@@ -130,8 +146,55 @@ func _skin(skeleton: Skeleton3D) -> Dictionary:
 	}
 
 
+# Each arm's shoulder joint in the rifle's space and the way from the middle of the shoulder and
+# the hand to the elbow, as the rifle's hold puts the arms in the idle clip, for each of
+# `RIFLE_AIMS`: `{"r": [[shoulder, way], ...], "l": ...}`. The rifle solver works out the
+# forearm's line from them, to cost a bent wrist.
+func _shoulders(model: String) -> Dictionary:
+	var stage := RifleStage.make_rifle(root, model)
+	var gun := stage.rifle
+	var out := {"r": [], "l": []}
+	for aim in RIFLE_AIMS:
+		stage.pose_rifle(CharacterClips.IDLE, 0.0, aim)
+		await stage.settle()
+		var inverse := gun.global_transform.affine_inverse() * stage.skeleton.global_transform
+		for side: String in out:
+			var shoulder := inverse * stage.contact.bone_pose("upperarm_" + side).origin
+			var elbow := inverse * stage.contact.bone_pose("lowerarm_" + side).origin
+			var hand := inverse * stage.contact.bone_pose("hand_" + side).origin
+			var way := (elbow - (shoulder + hand) * 0.5).normalized()
+			out[side].append([_vector(shoulder), _vector(way)])
+	stage.free()
+	return out
+
+
+func _vector(at: Vector3) -> Array:
+	return [snappedf(at.x, 0.001), snappedf(at.y, 0.001), snappedf(at.z, 0.001)]
+
+
 func _pistol(stage: HoldStage) -> Dictionary:
 	var pistol := stage.pistol
+	var out := _weapon(pistol)
+	out["seat"] = _xf(pistol.transform)
+	return out
+
+
+# The rifle's near level (the far one is hidden up close): its meshes and sockets in the space of
+# the rifle scene's root, the one the hands' targets of `rifle_held.tscn` are given in.
+func _rifle() -> Dictionary:
+	var rifle := (load(RIFLE) as PackedScene).instantiate() as Node3D
+	root.add_child(rifle)
+	var far := rifle.get_node_or_null(^"Far")
+	if far != null:
+		rifle.remove_child(far)
+		far.free()
+	var out := _weapon(rifle)
+	rifle.free()
+	return out
+
+
+# A weapon's triangles and its sockets (every node that is no mesh), in its own space.
+func _weapon(pistol: Node3D) -> Dictionary:
 	var inverse := pistol.global_transform.affine_inverse()
 	var triangles := []
 	for node in pistol.find_children("*", "MeshInstance3D", true, false):
@@ -144,7 +207,7 @@ func _pistol(stage: HoldStage) -> Dictionary:
 	for node in pistol.find_children("*", "Node3D", true, false):
 		if not node is MeshInstance3D:
 			sockets[node.name] = _xf(inverse * (node as Node3D).global_transform)
-	return {"triangles": triangles, "sockets": sockets, "seat": _xf(pistol.transform)}
+	return {"triangles": triangles, "sockets": sockets}
 
 
 # A transform as twelve numbers: the basis' columns x, y, z, then the origin.
