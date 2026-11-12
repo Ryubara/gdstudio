@@ -25,11 +25,12 @@
 ## game's speed, with its start and its stop either side. `OWN_AHEAD=<metres>` starts each turn
 ## that far ahead of the spawn point: the spawn pad ends 4.6 m ahead, and a body that steps off
 ## it plays its fall, which is not the clip under review.
+## `OWN_BODY=male` puts the enemies' body in the row of part 1 (default `female`, the player's:
+## `CharacterBodies.BY_NAME`); part 2 is always the player.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
 const REVIEW := "res://assets/animation/own/review/%s.glb"
-const MODEL := "res://assets/characters/mannequin/mannequin_female.glb"
 ## Metres between two bodies of the row, and where the row's camera stands from its middle (the
 ## bodies face +Z; the game's camera looks at a character from behind and above).
 const SPACING := 1.1
@@ -51,6 +52,7 @@ var _way := Vector3.ZERO
 var _from := Vector3.ZERO
 var _row: Node3D
 var _row_camera: Camera3D
+var _body := CharacterBodies.FEMALE
 var _label: Label
 var _clock := 0.0
 var _part := 0
@@ -67,6 +69,7 @@ func _ready() -> void:
 	var move := OS.get_environment("OWN_MOVE")
 	_move = move.to_float() if move != "" else _move
 	_ahead = OS.get_environment("OWN_AHEAD").to_float()
+	_body = CharacterBodies.BY_NAME.get(OS.get_environment("OWN_BODY"), _body)
 	_library = _read_review(REVIEW % (type if type != "" else "idle"))
 	for clip in _library.get_animation_list():
 		_clips.append(StringName("review/" + clip))
@@ -155,7 +158,7 @@ func _build_row() -> void:
 	add_child(_row)
 	_row.global_transform = _rig.player.global_transform
 	for i in _clips.size():
-		var body: Node3D = (load(MODEL) as PackedScene).instantiate()
+		var body: Node3D = (load(_body) as PackedScene).instantiate()
 		_row.add_child(body)
 		body.position = Vector3((i - 0.5 * (_clips.size() - 1)) * -SPACING, 0, 0)
 		var player := AnimationPlayer.new()

@@ -24,8 +24,8 @@ description with three sets of numbers, built from how people walk and run (the 
 - **The arms swing in their sockets**, each with the other side's leg, hanging in a walk and bent in a run; the
   forearm, the hand, the chest and the head take their motion late through the overlap pass, and the fingers open
   and close a little with the swing.
-- **The two sides are not mirror images**: a side has its own numbers for its foot, its arm and its hand (`left`,
-  `right`), the pelvis, the chest and the head keep a small turn and tilt through the cycle (the `_rest` numbers),
+- **The two sides are not mirror images**: a side has its own numbers for its foot, its arm and its hand, and its
+  own timing for its heel's rise, its foot's lift and its arm's swing (`left`, `right`), the pelvis, the chest and the head keep a small turn and tilt through the cycle (the `_rest` numbers),
   and one leg reaches and lifts a little more while the other arm swings a little wider (`uneven`).
 """
 
@@ -244,9 +244,30 @@ PARTS = {
 }
 ## The numbers a side may have of its own (`left`, `right`).
 SIDED = (
-    "ahead", "width", "toe_out", "kick", "carry_height", "arm_fore", "arm_back", "arm_out", "arm_out_back",
-    "arm_twist", "arm_clear", "elbow", "elbow_live", "pronate", "wrist", "wrist_live", "shrug", "curl",
-    "finger_live", "thumb_out",
+    "ahead",
+    "width",
+    "toe_out",
+    "kick",
+    "carry_height",
+    "arm_fore",
+    "arm_back",
+    "arm_out",
+    "arm_out_back",
+    "arm_twist",
+    "arm_clear",
+    "elbow",
+    "elbow_live",
+    "pronate",
+    "wrist",
+    "wrist_live",
+    "shrug",
+    "curl",
+    "finger_live",
+    "thumb_out",
+    # A side's own timing: when its heel comes up, when its foot is drawn highest, when its arm is furthest forward.
+    "roll_out",
+    "kick_at",
+    "arm_at",
 )
 FINGER_NAMES = ("thumb", "index", "middle", "ring", "pinky")
 ## How much further the right side goes than the left where the halves differ, at `uneven` 1: the right foot's
@@ -293,7 +314,9 @@ class Gait:
         assert self.frames % 2 == 0, "a gait's cycle is an even number of frames"
         self.contact = n["duty"] * self.frames
         self.run = n["duty"] < 0.5
-        assert n["roll_in"] + n["roll_out"] <= self.contact, "the foot's two rolls are longer than its contact"
+        for s, _ in SIDES:
+            rolls = n["roll_in"] + self.own(s, "roll_out")
+            assert rolls <= self.contact, "the foot's two rolls are longer than its contact"
         self.stride = n["speed"] * self.frames / FPS
         self.covered = n["speed"] * self.contact / FPS
         self.lags = lags
@@ -347,8 +370,9 @@ class Gait:
                 heel = ball + body_turn(0.0, yaw, 0.0) @ (sole["heel"] - sole["ball"])
                 return self.plan.state(rig, s, "heel", heel, -n["heel_strike"] * share, yaw)
             pitch = n["stance_pitch"] + (-n["heel_strike"] - n["stance_pitch"]) * share
-        elif t > self.contact - n["roll_out"]:
-            share = maths.smooth((t - (self.contact - n["roll_out"])) / n["roll_out"])
+        elif t > self.contact - self.own(s, "roll_out"):
+            roll_out = self.own(s, "roll_out")
+            share = maths.smooth((t - (self.contact - roll_out)) / roll_out)
             pitch = n["stance_pitch"] + (n["toe_off"] - n["stance_pitch"]) * share
         else:
             pitch = n["stance_pitch"]
@@ -369,7 +393,7 @@ class Gait:
         go = (1.0 - still) * go + still * u
         ankle = a["ankle"] + (b["ankle"] - a["ankle"]) * go
         lift = maths.keyed(
-            [(0.0, 0.0), (n["kick_at"], kick * more), (n["carry_at"], carry * more), (1.0, 0.0)], u
+            [(0.0, 0.0), (self.own(s, "kick_at"), kick * more), (n["carry_at"], carry * more), (1.0, 0.0)], u
         )
         ankle[1] += lift
         if n["land_from"] > 0.0:
@@ -378,7 +402,13 @@ class Gait:
             ankle[1] += n["land_from"] * min(u * swing / n["leave_frames"], 1.0, (1.0 - u) * swing / n["land_frames"])
         pitch_a, pitch_b = a["foot"][0], b["foot"][0]
         pitch = maths.keyed(
-            [(0.0, pitch_a), (n["kick_at"], max(n["kick_pitch"], pitch_a)), (0.86, 0.6 * pitch_b), (1.0, pitch_b)], u
+            [
+                (0.0, pitch_a),
+                (self.own(s, "kick_at"), max(n["kick_pitch"], pitch_a)),
+                (0.86, 0.6 * pitch_b),
+                (1.0, pitch_b),
+            ],
+            u,
         )
         yaw = sign * self.own(s, "toe_out")
         toe = a["toe"] * (1.0 - maths.smooth(u / 0.3))
@@ -479,7 +509,7 @@ class Gait:
         chest_lag = self.lags.get("chest", (0.0, 0.0))[0]
         chest_late = chest_lag * (1.0 - (2.0 * against - 1.0) / (3.0 * against))
         for s, sign in SIDES:
-            at = n["arm_at"] + (0.0 if s == "l" else 0.5)
+            at = self.own(s, "arm_at") + (0.0 if s == "l" else 0.5)
             wide = 1.0 + (UNEVEN_ARM * n["uneven"] if s == "l" else 0.0)
             o = {key: self.own(s, key) for key in SIDED}
             middle = 0.5 * (o["arm_fore"] - o["arm_back"])

@@ -105,7 +105,10 @@
     72.0,
     77.2,
     80.4
-   ]
+   ],
+   "roll_out": 6.53,
+   "kick_at": 0.34,
+   "arm_at": 0.51
   },
   "hip_turn_rest": 1.4,
   "hip_tip_rest": 1.4,
@@ -170,7 +173,10 @@
    "arm_back": 44.4,
    "elbow": 81.6,
    "arm_twist": 9.8,
-   "shrug": 2.1
+   "shrug": 2.1,
+   "roll_out": 3.04,
+   "kick_at": 0.4,
+   "arm_at": 0.27
   },
   "hip_turn_rest": 1.4,
   "hip_tip_rest": 1.4,
@@ -228,7 +234,10 @@
    "elbow": 87.0,
    "arm_out": 18.8,
    "shrug": 4.1,
-   "kick": 0.285
+   "kick": 0.285,
+   "roll_out": 2.17,
+   "kick_at": 0.38,
+   "arm_at": 0.27
   },
   "hip_turn_rest": 1.4,
   "hip_tip_rest": 1.12,
