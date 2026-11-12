@@ -2,7 +2,7 @@ class_name AimStance
 extends RefCounted
 ## The legs under a standing aim (kit #1206), kept apart so the tree's script stays one size. The
 ## template's idle shifts its weight from foot to foot (the pelvis 40 mm to each side over its
-## 10 s loop), and the aim pose rides the pelvis, so the muzzle swayed 34 mm to each side while
+## 10 s loop), and the aim pose rides the pelvis, so the muzzle swayed 33 mm to each side while
 ## the player held the aim. A person who aims stops shifting: the ground state's idle point is the
 ## idle and the same clip held still on its steadiest pose (the frame whose pelvis is nearest the
 ## middle of its sway), blended by how far the arm is up, so the stance comes in with the aim and

@@ -23,9 +23,10 @@ from the command of its last step: the command's shot block when it has one (the
 AI or a test shoots. The body calls `Weapon.fire(origin, direction)`; `fire()` with no ray shoots straight out of the
 muzzle. A `Weapon` with no `muzzle` and a `shooter` (a body with no model, as a server has) fires from
 `no_muzzle_offset` beside the ray's point at the shooter (the default is where the pistol's muzzle is while aiming
-standing on the template's idle, which `AimStance` holds still: 0.3 mm off in `test_weapon_ray.gd`). The cooldown is
-counted in `Weapon.tick(delta)`: a weapon alone ticks itself (`self_ticking`), a `Character` turns that off and ticks
-its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown and the spread's place for `restore()`.
+standing on the template's idle, which `AimStance` holds still: under 0.3 mm off on the player's body in
+`test_weapon_ray.gd`). The cooldown is counted in `Weapon.tick(delta)`: a weapon alone ticks itself (`self_ticking`), a
+`Character` turns that off and ticks its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown and
+the spread's place for `restore()`.
 
 - **Approach:** Stand a crouched `CharacterBody3D` up only after a shape query above it comes back empty, with a probe a
   little narrower than the capsule and starting a hand above the floor, and prove it with a ceiling slab that ends 2 m
@@ -48,7 +49,8 @@ its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown 
   in the clip (its pelvis nearest its mean place) each time the tree is built, and measure the muzzle through the idle's
   whole loop (`test_aim_stance.gd`). **Watch out for:** a test that read point 0 as a clip (`.animation`) broke; a fixed
   time suits one idle only; the settle to the middle takes the aim's rise (40 mm of pelvis in 0.15 s) and moves the feet
-  2.2 mm. **Seen:** gdstudio #1206, 2026-11-11 (the muzzle 34.6 mm each way without it, 0.0 with it over 10 s).
+  2.2 mm. **Seen:** gdstudio #1206, 2026-11-11 (34.6 mm each way without it, 0.0 with it); #1256 (the `form`
+  bodies: 33.2 mm without, 0.0 with on both).
 - **Approach:** When a clip is replaced, measure every layer that plays over it, in every state it plays in, and
   take a test's reference point from a bone of the pose. **Watch out for:** the aim's only measure was taken
   standing on the library idle, so the walk's fault went unseen and the swap of the idle was the first to fail it;

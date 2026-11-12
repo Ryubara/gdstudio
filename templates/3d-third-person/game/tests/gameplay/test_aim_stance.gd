@@ -1,6 +1,7 @@
 # The legs stand still under a standing aim (kit #1206): `AimStance` holds the idle on its steadiest
 # pose as the arm comes up. Without it the template's idle shifts the weight from foot to foot and
-# the muzzle sways 34 mm to each side of its middle while the player holds the aim.
+# the muzzle sways 33 mm to each side of its middle while the player holds the aim. Measured on
+# both bodies the template's characters wear (`CharacterBodies`: the player's and the enemies').
 extends GdUnitTestSuite
 
 ## How far the muzzle may wander from its place through a held aim, in metres.
@@ -112,7 +113,34 @@ func test_the_barrel_stays_along_the_view_through_the_held_aim() -> void:
 	assert_float(worst).is_less(ALONG_THE_VIEW)
 
 
+# Puts the enemies' body on the player, as their scenes do with `variant`; the tree is built again
+# on the new skeleton, and the held pose found again on it.
+func _wear_the_male_body() -> void:
+	_player.model.variant = load(CharacterBodies.MALE) as PackedScene
+	await InputSim.ticks(get_tree(), 4)
+	assert_str(_player.model.rig().scene_file_path).is_equal(CharacterBodies.MALE)
+
+
+func test_the_held_aim_keeps_the_muzzle_in_place_on_the_male_body() -> void:
+	await _wear_the_male_body()
+	await CommandDriver.run(get_tree(), _players, _aiming(), 44)
+	assert_float(_stance().amount(_animation.tree)).is_equal_approx(1.0, 0.001)
+	var sway := _sway(await _muzzle_through(_aiming(), HELD_TICKS))
+	print("male body, held aim, muzzle sway over 10 s: %.1f mm" % (sway * 1000.0))
+	assert_float(sway).override_failure_message("sway %.4f m" % sway).is_less(STEADY)
+	assert_float(_off_the_view()).is_less(ALONG_THE_VIEW)
+
+
 func test_the_feet_stay_planted_as_the_stance_comes_in_and_goes() -> void:
+	await _feet_stay_planted("female")
+
+
+func test_the_feet_stay_planted_on_the_male_body() -> void:
+	await _wear_the_male_body()
+	await _feet_stay_planted("male")
+
+
+func _feet_stay_planted(body: String) -> void:
 	# The aim comes up at five places of the idle's loop, the weight on one foot, the other, between.
 	# A lambda keeps a copy of a float it uses, so the furthest drift is kept in an array.
 	var worst: Array[float] = [0.0]
@@ -127,7 +155,7 @@ func test_the_feet_stay_planted_as_the_stance_comes_in_and_goes() -> void:
 				for foot in feet.size():
 					worst[0] = maxf(worst[0], feet[foot].distance_to(planted[foot]))
 			await CommandDriver.run(get_tree(), _players, command, 30, each)
-	print("feet while the stance blends: at most %.1f mm" % (worst[0] * 1000.0))
+	print("%s body, feet while the stance blends: at most %.2f mm" % [body, worst[0] * 1000.0])
 	assert_float(worst[0]).override_failure_message("feet %.4f m" % worst[0]).is_less(PLANTED)
 	assert_float(worst[0]).is_greater(0.0)
 
