@@ -22,7 +22,7 @@ Times are seconds from the clip's start. Reach is how far the striking point is 
 | `Melee_Unarmed_Jab` | 0.533 | 0.167 | 0.139 to 0.231 | 0.69 / 0.74 | 1.51 | The left fist straight out and back, the right fist at the jaw |
 | `Melee_Unarmed_Cross` | 0.600 | 0.200 | 0.179 to 0.285 | 0.69 / 0.74 | 1.50 | The right fist through behind a 38 degree turn of the chest |
 | `Melee_Unarmed_Hook` | 0.600 | 0.200 | 0.179 to 0.220 | 0.67 / 0.72 | 1.50 | The left fist round in a level arc, the bent arm carried by the chest |
-| `Melee_Pistol_Whip` | 0.733 | 0.267 | 0.237 to 0.300 | 0.57 / 0.61 | 1.54 | The pistol up beside the head and down and forward, the butt leading |
+| `Melee_Pistol_Whip` | 0.733 | 0.267 | 0.241 to 0.299 | 0.57 / 0.61 | 1.54 | The pistol up beside the head and down and forward, the butt leading |
 | `Melee_Pistol_Backhand` | 0.700 | 0.267 | 0.248 to 0.296 | 0.60 / 0.64 | 1.65 | The pistol across to the left shoulder and out to the right, the slide's flat leading |
 | `Melee_Pistol_Jab` | 0.633 | 0.233 | 0.195 to 0.340 | 0.61 / 0.65 | 1.40 | The pistol back to the ribs and driven forward and up, the butt leading |
 
@@ -53,7 +53,7 @@ backhand 0.05 s); the straight blows stay near it longer. A game that wants a ki
   whip and the jab) or swings back beside the hip (the backhand), and returns sideways over the last four. Take the
   support hand's own solver off while a blow plays, and fade it back with the clip's end.
 - **The carried arm's swing.** `WeaponHold` holds the carrying arm 8 degrees out from the body (`carry_arm_out`). The
-  clips were measured without it; the pistol is never nearer the head or the trunk than 39 mm (the whip, frame 2), so
+  clips were measured without it; the pistol is never nearer the head or the trunk than 29 mm (the whip, frame 7), so
   a swing away from the body has room.
 
 ## What the build checks
@@ -72,7 +72,9 @@ backhand 0.05 s); the straight blows stay near it longer. A game that wants a ki
 | The wrist's bend from the forearm's line, as the game shows it | 40 degrees | 29.2 degrees |
 | The striking point's reach at contact, both mannequins | 0.55 to 0.75 m | 0.573 to 0.741 m |
 | The striking point's height at contact | 1.25 to 1.75 m | 1.40 to 1.65 m |
-| The striking point faster into contact than after it | | 5.3 to 9.1 m/s into contact |
+| The striking point faster into contact than after it | | 5.3 to 9.1 m/s into contact (the whip 6.1) |
+| The chest or the head tipped back of the joined pose before contact (in the character's forward and back) | 0.1 degrees | 0.0 degrees |
+| The head joint behind its joined place before contact | 5 mm | 0.4 mm (the pistol jab) |
 | The exported file played back against the solved poses | 0.5 mm | 0.001 mm |
 
 Before the clips, the build tests the pistol check itself: the pistol as carried reads 0.0 mm, the holding hand on the
@@ -99,6 +101,14 @@ with the chest and cannot end up inside it.
 The shape of a blow is the same in all six: a short wind-up (the chest turns a little the other way while the hand
 goes to where the blow starts), the snap to contact over three or four frames, a follow-through of one or two frames,
 and the way back.
+
+**The arm winds a blow up; the trunk never leans back.** The first whip tipped the chest 3.7 degrees and the head
+2.2 degrees back at frame 4 and carried the head 25 mm backward before the swing (a pitch of -3 and -2, and a roll
+of -4 that a yaw of -16 had turned to the back), which read as rearing away from the target. Now the chest only
+turns 10 degrees under the arm and leans 4 degrees into the blow from the first frame, the head tips 2 forward, and
+the wind-up is the pistol's hand going 0.06 m higher and 0.05 m further back (to 1.70 m, behind the shoulder's
+line). The pistol jab's wind-up had 0.5 degrees of the same from its roll and has 1.5 degrees of forward pitch.
+The build measures it on every frame up to contact in all six clips (`wind_up_lean_back` in the json).
 
 ## No mirror poses
 

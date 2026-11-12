@@ -3,7 +3,7 @@
   "units": "metres and seconds from the clip's start; places are [left, forward, up] from the character's root; reach is how far the striking point is in front of the chest (the spine_03 joint) at contact",
   "measured": {
     "file": "melee.glb",
-    "sha256": "afa2d8501e7d8814ac2464b58f78f50d57d1f0e97da65c8cc0df1a4beecae4ee",
+    "sha256": "6999260217aa92186a9fdf6130b937db294dfdf105bb67da8f3625f5a9602e24",
     "overlap_limit_mm": 5.0,
     "gun_limit_mm": 5.0,
     "join_limit_mm": 10.0,
@@ -89,6 +89,20 @@
           8,
           "r"
         ],
+        "wind_up_lean_back": {
+          "chest_deg": [
+            0.0,
+            null
+          ],
+          "head_deg": [
+            0.0,
+            null
+          ],
+          "head_back_mm": [
+            0.0,
+            0
+          ]
+        },
         "wrist_bend_deg": [
           28.2,
           20,
@@ -204,7 +218,7 @@
         0.5531,
         1.4022
       ],
-      "into_contact_m_s": 5.25,
+      "into_contact_m_s": 5.27,
       "male": {
         "reach": 0.646,
         "point": [
@@ -231,6 +245,20 @@
           7,
           "r"
         ],
+        "wind_up_lean_back": {
+          "chest_deg": [
+            0.0,
+            null
+          ],
+          "head_deg": [
+            0.0,
+            null
+          ],
+          "head_back_mm": [
+            0.4,
+            2
+          ]
+        },
         "wrist_bend_deg": [
           28.2,
           18,
@@ -283,25 +311,25 @@
         },
         "gun_nearest_head_or_trunk_mm": {
           "female": [
-            60.6,
+            57.8,
             3
           ],
           "male": [
-            98.5,
+            95.0,
             3
           ]
         },
         "snap_m_s": {
           "spine_03": [
-            0.15,
+            0.14,
             3
           ],
           "Head": [
-            0.62,
+            0.61,
             3
           ],
           "upperarm_l": [
-            0.83,
+            0.88,
             3
           ],
           "lowerarm_l": [
@@ -313,8 +341,8 @@
             4
           ],
           "upperarm_r": [
-            1.36,
-            4
+            1.27,
+            3
           ],
           "lowerarm_r": [
             3.65,
@@ -336,8 +364,8 @@
       "joins": "Pistol_Idle_Loop",
       "what": "the pistol up beside the head and down and forward, the butt leading; the left hand guards",
       "contact": 0.2667,
-      "hit_start": 0.2372,
-      "hit_end": 0.3,
+      "hit_start": 0.2407,
+      "hit_end": 0.2994,
       "striking_bone": "hand_r",
       "striking_point": "the pistol's butt (gun_points, in the Pistol node's space)",
       "reach": 0.573,
@@ -346,7 +374,7 @@
         0.5165,
         1.5384
       ],
-      "into_contact_m_s": 5.46,
+      "into_contact_m_s": 6.12,
       "male": {
         "reach": 0.613,
         "point": [
@@ -354,8 +382,8 @@
           0.5571,
           1.5346
         ],
-        "hit_start": 0.2401,
-        "hit_end": 0.2964
+        "hit_start": 0.2433,
+        "hit_end": 0.296
       },
       "checks": {
         "join_mm": {
@@ -373,6 +401,20 @@
           8,
           "r"
         ],
+        "wind_up_lean_back": {
+          "chest_deg": [
+            0.0,
+            null
+          ],
+          "head_deg": [
+            0.0,
+            null
+          ],
+          "head_back_mm": [
+            0.0,
+            0
+          ]
+        },
         "wrist_bend_deg": [
           29.2,
           21,
@@ -425,25 +467,25 @@
         },
         "gun_nearest_head_or_trunk_mm": {
           "female": [
-            38.9,
-            2
+            28.6,
+            7
           ],
           "male": [
-            90.8,
-            6
+            85.2,
+            2
           ]
         },
         "snap_m_s": {
           "spine_03": [
-            0.17,
+            0.09,
             5
           ],
           "Head": [
-            0.62,
+            0.41,
             5
           ],
           "upperarm_l": [
-            0.67,
+            0.72,
             4
           ],
           "lowerarm_l": [
@@ -455,19 +497,19 @@
             5
           ],
           "upperarm_r": [
-            1.34,
+            0.93,
             5
           ],
           "lowerarm_r": [
-            3.09,
+            3.3,
             5
           ],
           "hand_r": [
-            3.87,
+            4.34,
             4
           ]
         },
-        "start_speed_m_s": 4.34
+        "start_speed_m_s": 4.95
       }
     },
     "Melee_Unarmed_Cross": {
@@ -515,6 +557,20 @@
           6,
           "r"
         ],
+        "wind_up_lean_back": {
+          "chest_deg": [
+            0.0,
+            null
+          ],
+          "head_deg": [
+            0.0,
+            null
+          ],
+          "head_back_mm": [
+            0.0,
+            0
+          ]
+        },
         "wrist_bend_deg": [
           13.3,
           17,
@@ -623,6 +679,20 @@
           6,
           "l"
         ],
+        "wind_up_lean_back": {
+          "chest_deg": [
+            0.0,
+            null
+          ],
+          "head_deg": [
+            0.0,
+            null
+          ],
+          "head_back_mm": [
+            0.0,
+            0
+          ]
+        },
         "wrist_bend_deg": [
           11.2,
           17,
@@ -731,6 +801,20 @@
           5,
           "l"
         ],
+        "wind_up_lean_back": {
+          "chest_deg": [
+            0.0,
+            null
+          ],
+          "head_deg": [
+            0.0,
+            null
+          ],
+          "head_back_mm": [
+            0.0,
+            0
+          ]
+        },
         "wrist_bend_deg": [
           11.6,
           15,

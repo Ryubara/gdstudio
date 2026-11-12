@@ -134,6 +134,12 @@ TIMES = {
     "fists": {"contact": (0.15, 0.22), "length": (0.5, 0.6)},
     "pistol": {"contact": (0.22, 0.30), "length": (0.6, 0.75)},
 }
+## A blow is wound up by the arm, not by leaning away from it: up to contact, the chest's and the head's up axes
+## are never tipped further back of the joined pose than this (degrees, in the character's own forward and back;
+## the chest's roll counts once its yaw has turned it to the back), and the head joint is never further behind its
+## joined place than this (mm). A maintainer's review of the pistol whip, kit #1315.
+LEAN_BACK_LIMIT = 0.1
+HEAD_BACK_LIMIT = 5.0
 ## The hit window is while the striking point is within this distance of where it is at contact (m).
 WINDOW = 0.1
 
@@ -809,7 +815,8 @@ def pistol_whip(rig):
     forward with the butt leading; the left hand stays up in front as a guard and is drawn in as the blow lands."""
     c = Clip(rig, "Melee_Pistol_Whip", 22, PISTOL_IDLE, 8, "r", "pistol", "butt")
     c.what = "the pistol up beside the head and down and forward, the butt leading; the left hand guards"
-    c.chest(4, yaw=-16, pitch=-3, roll=-4)
+    # the wind-up is the arm's: the chest only turns a little under it and never leans back (kit #1315)
+    c.chest(4, yaw=-10, pitch=4, roll=-2)
     c.chest(8, yaw=22, pitch=10, roll=3)
     c.chest(10, yaw=26, pitch=12, roll=3)
     c.chest(16, yaw=5, pitch=2)
@@ -819,12 +826,12 @@ def pistol_whip(rig):
     c.shoulder(4, "l", forward=7, up=3)
     c.shoulder(8, "l", forward=-7, up=-2)
     c.shoulder(15, "l", forward=-1, up=0)
-    c.head(4, yaw=3, pitch=-2, roll=3)
+    c.head(4, yaw=3, pitch=2, roll=3)
     c.head(8, yaw=3, pitch=5, roll=-3)
     c.hand(
         4,
         "r",
-        at=(-0.38, 0.0, 1.64),
+        at=(-0.38, -0.05, 1.70),
         elbow=(-1.0, -0.3, -0.5),
         palm=(1.0, 0.0, 0.0),
         cock=15,
@@ -927,7 +934,7 @@ def pistol_jab(rig):
     and up from the elbow with the butt leading; the left hand guards."""
     c = Clip(rig, "Melee_Pistol_Jab", 19, PISTOL_IDLE, 7, "r", "pistol", "butt")
     c.what = "the pistol back to the ribs and driven forward and up, the butt leading; the left hand guards"
-    c.chest(3, yaw=-14, pitch=0, roll=-3)
+    c.chest(3, yaw=-14, pitch=1.5, roll=-3)
     c.chest(7, yaw=28, pitch=8, roll=4)
     c.chest(9, yaw=30, pitch=8, roll=4)
     c.chest(14, yaw=5, pitch=2)
@@ -1078,8 +1085,19 @@ def check(rig, clip, action, shown):
     crossed = {body.name: {} for body in rig.bodies}  # pair: depth on each frame (mm)
     gun_near = {body.name: [9999.0, None] for body in rig.bodies}
     straight, wrist_bend, tips = [0.0, None, None], [0.0, None, None], [0.0, None, None]
+    lean = {"chest_deg": [0.0, None], "head_deg": [0.0, None], "head_back_mm": [0.0, None]}
     for frame in frames:
         scene.frame_set(frame)
+        if frame <= clip.contact:  # the wind-up: how far the trunk and the head are back of the joined pose
+            pose = {n: arm.matrix_world @ arm.pose.bones[n].matrix for n in ("spine_03", "Head")}
+            for key, name in (("chest_deg", "spine_03"), ("head_deg", "Head")):
+                up = pose[name].to_3x3() @ clip.base[name].to_3x3().inverted() @ Vector((0.0, 0.0, 1.0))
+                back = math.degrees(math.atan2(up.y, up.z))
+                if back > lean[key][0]:
+                    lean[key] = [round(back, 2), frame]
+            behind = (pose["Head"].translation.y - clip.base["Head"].translation.y) * 1000.0
+            if behind > lean["head_back_mm"][0]:
+                lean["head_back_mm"] = [round(behind, 1), frame]
         for body in rig.bodies:
             body.pose_from(arm)
             bones = body.arm.pose.bones
@@ -1122,6 +1140,17 @@ def check(rig, clip, action, shown):
             f"blow; the limit is {ARM_LIMIT})"
         )
     report["straightest_arm"] = straight
+    report["wind_up_lean_back"] = lean
+    for key, part, limit, unit in (
+        ("chest_deg", "chest leans", LEAN_BACK_LIMIT, "degrees"),
+        ("head_deg", "head tips", LEAN_BACK_LIMIT, "degrees"),
+        ("head_back_mm", "head moves", HEAD_BACK_LIMIT, "mm"),
+    ):
+        if lean[key][0] > limit:
+            problems.append(
+                f"the {part} {lean[key][0]} {unit} back of {clip.joins} at frame {lean[key][1]}, before contact "
+                f"(the limit is {limit}: the arm winds a blow up, the trunk does not lean away)"
+            )
     report["wrist_bend_deg"] = wrist_bend
     if wrist_bend[0] > WRIST_LIMIT:
         problems.append(f"the {wrist_bend[2]} wrist is bent {wrist_bend[0]} degrees at frame {wrist_bend[1]}")
