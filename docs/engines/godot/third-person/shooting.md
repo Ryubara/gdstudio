@@ -307,8 +307,9 @@ weapon is a new `.tres`; nothing else changes.
 **Hitscan, a toggle on any weapon** (gdstudio #1252). `WeaponDef.hitscan` (the Hitscan group, with `hitscan_range`,
 100 m, and `hitscan_mask`, `PhysicsLayers.SHOT_MASK`) turns a projectile weapon into an instant ray from the aim:
 nothing is made for the shot, the muzzle flash, the shot sound and the impact where the ray hits are all there is, and
-no tracer is drawn. It is read at each shot (`WeaponDef.shot_kind()`: `MELEE` stays a blow, `hitscan` or a `HITSCAN`
-kind is a ray, else a projectile), so it switches live; the range and the mask are greyed out while it is off. The
+a tracer only when the definition names one (`WeaponDef.tracer`, below). It is read at each shot
+(`WeaponDef.shot_kind()`: `MELEE` stays a blow, `hitscan` or a `HITSCAN` kind is a ray, else a projectile), so it
+switches live; the range and the mask are greyed out while it is off. The
 ray goes through the same aim as a projectile (`Weapon.aim_point()`: the muzzle toward what the aim ray meets) and
 the same hit (`HitZones.shot` and `deliver`, so the part, its multiplier and a refused friend's shot are the same, or a
 `Health`). Online it costs only its `SHOT` and `HIT` (15 bytes each, in the same TICK), and the server meets it with
@@ -348,6 +349,59 @@ machine's load more than the weapon (a second hitscan run at 8 players read 2.52
 bench above, where the modes take turns, is the server's cost of a shot: a hitscan shot about a twentieth of a
 projectile's. A `--shoot` bot puts a shot block on every command, so its up rate (about 1.9 KB/s) is not a client's
 and the run does not judge it.
+
+**A tracer, optional on a hitscan weapon** (gdstudio #1270). `WeaponDef.tracer` (the Hitscan group, empty by default,
+greyed out while the shot is not hitscan) names a `TracerDef` (`gameplay/effects/tracer_def.gd`; a ready-made one is
+`gameplay/weapon/pistol_tracer.tres`, which no weapon holds): `color` and `energy` (additive, so it never darkens),
+`width` (0.03 m, turned to the camera), `speed` (320 m/s, 0 shows the whole line at once), `length` (3 m),
+`fade_time` (0.1 s) and `start_offset` (0.1 m out of the flash). A hitscan shot then draws a streak from the muzzle
+to where its ray ended (`Weapon._scan` answers the point, or the reach): it leaves the muzzle at its full length, so
+the frame of the shot shows it, runs to the end and its last `length` metres fade there. The level's `TracerPool`
+(`Tracers` in `world/world.tscn`, `gameplay/effects/tracer_pool.tscn`, the shader
+`assets/shaders/effects/tracer.gdshader`) draws every streak of the map with one `MultiMesh`: one draw call however
+many show, no node per shot, a cap of 32 (16 on the web) that cuts the oldest, hidden with its `_process` off when
+nothing shows. It is cosmetic and costs nothing on the wire: the server's weapon has `effects` off and draws none,
+the shooter's screen draws its own from its ray, and a puppet's is drawn from the puppet's muzzle along the SHOT's
+heading and ended at the HIT on the server's ray ([shots online](online-shots.md#template-shots)). Its warm-up draws
+one unseen streak through the `EffectEmitter`'s warm-up, so the first streak links no program in the web build.
+`tests/gameplay/test_tracer.gd` and `test_tracer_online.gd` hold it; `tools/capture/hit_tour.tscn` with
+`HIT_HITSCAN=1 HIT_TRACER=1` films it.
+
+What it costs (`tools/bench/tracer_cost.tscn`: the pistol hitscan with its flash, light and impacts, a run of 5 s after
+1 s, 1280 x 720, vsync off; Windows, Godot 4.7.2, an RTX 5080, other agents on the machine; the web build in headless
+Chrome on the GPU through `tracer_cost.py`, whose frames are held near 4.17 ms, so its means cannot show a change):
+
+| Run | Compatibility: frame ms, draw calls | Forward+: frame ms, draw calls | Web: frame ms, draw calls, programs linked |
+| --- | ---: | ---: | ---: |
+| hitscan, 4 shots a second | 1.98, 274.7 | 1.67, 417.3 | 4.17, 275.2, 7 (the first shot's, without a tracer) |
+| hitscan and tracer, 4 a second | 2.04, 275.3 | 1.70, 417.7 | 4.17, 275.5, 0 (2 and a 37 ms frame before the warm-up waited for the emitter's) |
+| hitscan, 30 a second | 2.49, 533.5 | 2.05, 624.8 | 4.17, 549.1, 0 |
+| hitscan and tracer, 30 a second | 2.66, 534.2 | 1.74, 622.8 | 4.17, 547.7, 0 (most streaks at once: 4) |
+
+| Script cost (µs) | Desktop | Web |
+| --- | ---: | ---: |
+| `TracerPool.draw` (the write waits for the frame's step) | 1.1 | 1.05 to 1.45 |
+| a step with 4 streaks (what 30 shots a second keep) | 14.3 | 14.2 to 15.1 |
+| a step with the pool full (32 desktop, 16 web) | 104 | 53 to 55 |
+| a step with none (its `_process` is off then) | 1.0 | 1.2 |
+
+A streak is a draw call while it shows (the means moved by less than the machine's noise); the frame pays its step,
+about 3.5 µs a streak, and nothing while none shows. The web build linked 3 programs more while the level started
+(150 to 153), the streak's.
+
+- **Approach:** Keep a fast streak on screen for whole frames: start it at its full length and let its last stretch
+  fade at the end for 0.1 s or more. **Watch out for:** a streak whose tail ran on past the end before it faded lived
+  0.02 s on a 7 m shot, less than a frame at 30 fps, and the first capture from the game camera showed no tracer in any
+  frame although every test passed. **Seen:** gdstudio #1270, 2026-11-11 (`hit_tour.tscn`, 30 fps).
+- **Approach:** Write a pool's `MultiMesh` once a frame from one `PackedFloat32Array`
+  (`RenderingServer.multimesh_set_buffer`), marking it dirty on a draw. **Watch out for:** `set_instance_transform`,
+  `_color` and `_custom_data` for each streak, rewritten on every draw, cost 87 to 96 µs a call with the pool full; the
+  buffer and the deferred write took a draw to 1.1 µs. **Seen:** gdstudio #1270, 2026-11-11 (`tracer_cost.tscn`).
+- **Approach:** Warm a `MultiMesh` effect's program by keeping an unseen instance drawn until the `EffectEmitter`'s
+  warm-up (and its probe tour) is over (`warmed`), then a few frames more. **Watch out for:** three frames of an
+  unseen streak at the level's start still left the first streak 2 programs and a 37 ms frame in Chrome: it had been
+  drawn before the probes the camera sees had their first faces. **Seen:** gdstudio #1270, 2026-11-11
+  (`tracer_cost.py`).
 
 - **`Weapon`** (one node of the character) fires the definition it holds: `pull(origin, direction)` fires, clicks on
   an empty magazine (`dry_fired`) or does nothing (cooling down, reloading, put away), and `fire()` is the same with

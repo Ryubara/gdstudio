@@ -1,0 +1,111 @@
+# Writes the `main-green` check again on every open pull request into the default branch when a `CI failing on the
+# default branch` issue opens, closes, is reopened, renamed or deleted (docs/studio/ci.md#main-runs). main-green.yml
+# runs on pull request events only, so without this a green pull request with auto-merge on would keep its green
+# `main-green` after main went red, and a red one would stay red after the fix landed.
+#
+# What starts it:
+#   - `issues` for a person's or an agent's change to a red issue: closing it by hand or by the fix's `Fixes #N`.
+#   - `workflow_dispatch` from ci-failure.yml right after it files the issue: an issue filed with a workflow's
+#     GITHUB_TOKEN starts no `issues` workflow, but a dispatch does. Run it by hand too (`gh workflow run
+#     main-green-sweep.yml`) once the ruleset starts requiring `main-green`, or after an outage that dropped events.
+#   The `if:` lets other issues by; a skipped sweep is no check of any pull request's.
+#
+# It first waits for main-green.yml runs still going: one that read the issues before the change and finished after
+# this sweep would put the old answer back. It writes a check run through the Checks API, so no pull request is
+# touched (no event, no commit, auto-merge stays as it was); the run comes from the GitHub Actions app, the only
+# source the ruleset accepts. `fixes_red` is the same text as main-green.yml's (a test keeps them equal). Nothing is
+# checked out and the token can write only checks.
+name: main-green-sweep
+
+on:
+  issues:
+    types: [opened, edited, closed, reopened, deleted, transferred]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One sweep at a time; a newer one waits rather than cancels, and each reads the issues when it runs.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    if: >-
+      github.event_name != 'issues' ||
+      startsWith(github.event.issue.title, 'CI failing on the default branch') ||
+      startsWith(github.event.changes.title.from, 'CI failing on the default branch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      checks: write
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Report main-green on every open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BASE: ${{ github.event.repository.default_branch }}
+          RED_TITLE: CI failing on the default branch
+          WAIT_SECONDS: "180"
+        run: |
+          set -euo pipefail
+          # fixes_red BODY RED...: whether BODY closes one of the RED issues of $GH_REPO (`Fixes #N`, `Closes o/r#N`).
+          fixes_red() {
+            local body=$1 match ref repo number red
+            shift
+            while IFS= read -r match; do
+              [ -n "$match" ] || continue
+              ref=${match##*[[:space:]]}
+              repo=${ref%%#*}
+              number=${ref##*#}
+              if [ -n "$repo" ] && [ "${repo,,}" != "${GH_REPO,,}" ]; then continue; fi
+              for red in "$@"; do
+                if [ "$red" = "$number" ]; then return 0; fi
+              done
+            done < <(grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+([[:alnum:]_.-]+/[[:alnum:]_.-]+)?#[0-9]+\b' <<< "$body" || true)
+            return 1
+          }
+          waited=0
+          while :; do
+            going=0
+            for status in queued in_progress; do
+              n=$(gh run list --workflow main-green.yml --status "$status" --limit 100 --json databaseId --jq length)
+              going=$((going + n))
+            done
+            [ "$going" -eq 0 ] && break
+            if [ "$waited" -ge "$WAIT_SECONDS" ]; then
+              echo "::warning::$going main-green run(s) still going after ${WAIT_SECONDS}s; sweeping anyway."
+              break
+            fi
+            sleep 5
+            waited=$((waited + 5))
+          done
+          red=$(gh issue list --state open --limit 1000 --json number,title \
+            --jq '.[] | select(.title == env.RED_TITLE or (.title | startswith(env.RED_TITLE + ":"))) | .number')
+          list=$(tr '\n' ' ' <<< "$red" | sed 's/ $//; s/\([0-9]\+\)/#\1/g')
+          echo "Open red issues: ${list:-none}"
+          gh pr list --state open --base "$BASE" --limit 1000 --json number,headRefOid,body \
+            --jq '.[] | [.number, .headRefOid, ((.body // "") | @base64)] | @tsv' |
+          while IFS=$'\t' read -r number sha body64; do
+            [[ "$number" =~ ^[0-9]+$ && "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "unexpected row" >&2; exit 1; }
+            conclusion=success
+            summary="No open \`$RED_TITLE\` issue: the default branch is green."
+            if [ -n "$red" ]; then
+              body=$(base64 -d <<< "$body64")
+              # shellcheck disable=SC2086  # one number per word
+              if fixes_red "$body" $red; then
+                summary="The default branch is red ($list) and this pull request is its fix forward."
+              else
+                conclusion=failure
+                summary="The default branch is red ($list): nothing lands but the fix forward (Fixes #N)."
+              fi
+            fi
+            gh api --method POST "repos/$GH_REPO/check-runs" -f name=main-green -f "head_sha=$sha" -f status=completed \
+              -f "conclusion=$conclusion" -f 'output[title]=main-green-sweep' -f "output[summary]=$summary" --silent
+            echo "#$number: main-green $conclusion"
+          done
