@@ -131,23 +131,33 @@ func set_fingers(fingers: HandPoseModifier, let_go: HandPose, share: float) -> v
 
 
 ## How far back the slide is along `travel`, 0 to 1: with the gripping hand until it lets go, then
-## home within `slam`.
-func slide_pull(share: float) -> float:
+## home within `slam`. `lock` is how far back it stands when the rack starts (0 closed; an empty
+## pistol's slide locked back, `WeaponHold.slide_travel` over the travel, kit #1337): the hand
+## closes on it there and pulls it the rest of the way, the slide never coming forward before it
+## is let go.
+func slide_pull(share: float, lock := 0.0) -> float:
 	if share <= release.x:
-		return smoothstep(pull.x, pull.y, share)
+		return maxf(lock, smoothstep(pull.x, pull.y, share))
 	return clampf(1.0 - (share - release.x) / maxf(slam, 0.0001), 0.0, 1.0)
 
 
 ## The left hand bone's place in the weapon's space at a share of the clip. While the hand grips,
 ## it is its place on the closed slide moved by exactly what the slide has moved: between two of
 ## `places` the slide eases and a straight line does not, which slid the fingers 2.5 mm along the
-## serrations at the half frames.
-func hand_place(share: float) -> Transform3D:
+## serrations at the half frames. With the slide locked back by `lock` (`slide_pull()`), the way
+## to it and the grip are that much further back until the hand lets go, where the slide is at
+## the end of its travel either way.
+func hand_place(share: float, lock := 0.0) -> Transform3D:
 	if is_gripping(share):
-		return Transform3D(hand.basis, hand.origin + travel * slide_pull(share))
-	if places.size() < 2:
-		return hand
-	var at := (share - places_from) / maxf(places_to - places_from, 0.0001) * (places.size() - 1)
-	at = clampf(at, 0.0, places.size() - 1.0)
-	var index := mini(floori(at), places.size() - 2)
-	return places[index].interpolate_with(places[index + 1], at - index)
+		return Transform3D(hand.basis, hand.origin + travel * slide_pull(share, lock))
+	var place := hand
+	if places.size() >= 2:
+		var span := maxf(places_to - places_from, 0.0001)
+		var at := clampf(
+			(share - places_from) / span * (places.size() - 1), 0.0, places.size() - 1.0
+		)
+		var index := mini(floori(at), places.size() - 2)
+		place = places[index].interpolate_with(places[index + 1], at - index)
+	if share < release.x:
+		place.origin += travel * lock
+	return place

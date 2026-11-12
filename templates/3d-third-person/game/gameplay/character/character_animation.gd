@@ -282,6 +282,7 @@ const _RELOAD_FADE_OUT := 0.2
 		_rebuild()
 
 var melee := MeleeLayer.new()  # The melee blow's one-shot (gdstudio #1254).
+var rack := RackLayer.new()  # The slide's rack after an empty reload (gdstudio #1337).
 var gait := CharacterGait.new()  # speed matching, transitions, momentum, lean (gdstudio #1158)
 var _machine: AnimationNodeStateMachine
 var _tuning: CharacterTuning  # its speeds are the blend spaces' (its `changed` is connected)
@@ -663,6 +664,7 @@ func _drive_pistol(delta: float) -> void:
 	var lying := _prone_look.lying(character, hold)
 	if is_reloading() and _prone_look.reload_misplaced():
 		stop_reload()
+	rack.step()
 	_weights = Vector2(armed, arm * aims)
 	tree.set(_P_ARMED, minf(armed, 1.0 - lying))
 	tree.set(_P_AIM, arm * aims * (1.0 - lying))
@@ -880,7 +882,8 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	root.connect_node(_RELOAD_SCALE, 0, _RELOAD_CLIP)
 	root.connect_node(_RELOAD, 0, _SHOOT)
 	root.connect_node(_RELOAD, 1, _RELOAD_SCALE)
-	melee.add_to(self, root, _RELOAD, upper, _clip(_or_idle(MeleeLayer.first_clip(hold))))
+	var racked := rack.add_to(self, root, _RELOAD, upper, idle_clip)
+	melee.add_to(self, root, racked, upper, _clip(_or_idle(MeleeLayer.first_clip(hold))))
 
 
 # The clip node of the hold's `property` (`aim_clip`), or of the idle clip when the hold leaves it
