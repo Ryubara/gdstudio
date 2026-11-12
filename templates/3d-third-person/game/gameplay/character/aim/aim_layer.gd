@@ -107,13 +107,16 @@ func head_modifier() -> AimHeadModifier:
 
 
 ## The share the head looks along the aim by now (0 the clips' head, 1 all the way): the aim,
-## from the aim pose's weight or the character's `aim_amount` eased, less a reload.
+## from the aim pose's weight or the character's `aim_amount` eased, less a reload. A melee blow's
+## aim is not an aim (`MeleeLayer.aim_of`): the blow's clip keeps its own head, where an aimed
+## rifle's head looked along the sights of a rifle the clip was swinging (gdstudio #1288).
 func head_weight() -> float:
 	if head_disabled or character == null or animation == null or animation.tree == null:
 		return 0.0
 	if not animation.tree.active or character.aim_limits == null:
 		return 0.0
-	var aimed := maxf(animation.pistol_weights().y, smoothstep(0.0, 1.0, character.aim_amount))
+	var aim := animation.melee.aim_of(character)
+	var aimed := maxf(animation.pistol_weights().y, smoothstep(0.0, 1.0, aim))
 	return aimed * (1.0 - animation.reload_progress().x)
 
 

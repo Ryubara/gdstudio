@@ -2,7 +2,9 @@
 clip's solver and build, `assets/animation/pistol/`): the pistol's seat on `hand_r`, the `SupportHand` marker,
 the line the opened left hand leaves the gun along and the five hand poses. The default body's (`female`) are
 the hold scene's own (`pistol_held.tscn`, `weapon_hold.tscn` and the `pistol_*_pose.tres` files), any other
-body's are in its `HoldFit` file (`pistol_fit_<body>.tres`), both written by `write_hold.gd`. Plain Python and numpy, so Blender's Python reads it too."""
+body's are in its `HoldFit` file (`pistol_fit_<body>.tres`), both written by `write_hold.gd`. `read_rifle` reads
+the rifle's two-hand hold the same way (the melee build's rifle blows). Plain Python and numpy, so Blender's Python
+reads it too."""
 
 import re
 from pathlib import Path
@@ -58,6 +60,38 @@ def read(game, body=DEFAULT_BODY):
     for key in ("seat", "support_hand"):
         out[key] = _place(re.search(rf"^{key} = Transform3D\(([^)]*)\)", main, re.M).group(1))
     out["support_way"] = _way(main)
+    blocks = {}
+    for block in head.split("[sub_resource ")[1:]:
+        blocks[re.search(r'id="([^"]+)"', block).group(1)] = block
+    for pose in POSES:
+        out[pose] = _pose(blocks[re.search(rf'^{pose}_pose = SubResource\("([^"]+)"\)', main, re.M).group(1)])
+    return out
+
+
+def _node_place(text, node):
+    block = text.split(f'[node name="{node}"', 1)[1].split("[node", 1)[0]
+    return _place(re.search(r"transform = Transform3D\(([^)]*)\)", block).group(1))
+
+
+def read_rifle(game, body=DEFAULT_BODY):
+    """The rifle hold of `body` (`TwoHandHold`, kit #1288's melee clips): {"rifle": the `Rifle` node's place in
+    `Pivot`, "right" and "left": where the hand bones sit in the `Rifle` node's space (`RightHandTarget`,
+    `LeftHandTarget`; a fit's `seat` is the inverse of the first), "<pose>": {"rotations", "turns"} for each of
+    `POSES`}, all 4 x 4 in Godot's axes. The default body's are the scene's own (`rifle_held.tscn`, the
+    `rifle_*_pose.tres` files), any other body's from its `HoldFit` (`rifle_fit_<body>.tres`)."""
+    weapon = Path(game) / "gameplay" / "weapon"
+    held = (weapon / "rifle_held.tscn").read_text(encoding="utf-8")
+    out = {"rifle": _node_place(held, "Rifle")}
+    if body == DEFAULT_BODY:
+        out["right"] = _node_place(held, "RightHandTarget")
+        out["left"] = _node_place(held, "LeftHandTarget")
+        for pose in POSES:
+            out[pose] = _pose((weapon / "hold" / f"rifle_{pose}_pose.tres").read_text(encoding="utf-8"))
+        return out
+    text = (weapon / "hold" / f"rifle_fit_{body}.tres").read_text(encoding="utf-8")
+    head, _, main = text.partition("[resource]")
+    out["right"] = np.linalg.inv(_place(re.search(r"^seat = Transform3D\(([^)]*)\)", main, re.M).group(1)))
+    out["left"] = _place(re.search(r"^support_hand = Transform3D\(([^)]*)\)", main, re.M).group(1))
     blocks = {}
     for block in head.split("[sub_resource ")[1:]:
         blocks[re.search(r'id="([^"]+)"', block).group(1)] = block
