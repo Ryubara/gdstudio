@@ -177,7 +177,7 @@ const _RELOAD_FADE_OUT := 0.2
 	set(value):
 		interact_clip = value
 		_rebuild()
-## Being hit.
+## Being hit: on the whole body standing, on the upper body crouched, lying or sliding (`HitLayer`).
 @export var hit_clip: StringName = CharacterClips.HIT:
 	set(value):
 		hit_clip = value
@@ -422,6 +422,7 @@ func _drive(delta: float) -> void:
 	_drive_prone(speed, delta)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
+	HitLayer.follow(tree, active and _action_clip == hit_clip, body_state())
 	if _action_was_active and not active:
 		action_finished.emit(_action_clip)
 	_action_was_active = active
@@ -562,9 +563,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if model == null:
 		warnings.append("Set `model` to the CharacterModel that holds the character.")
 	elif model.rig() != null and not _fits(model.rig()):
-		warnings.append(
-			"The clips name `Armature/Skeleton3D` under the model, and this one has none."
-		)
+		warnings.append("The clips name `Armature/Skeleton3D` under the model; it has none.")
 	return warnings
 
 
@@ -586,9 +585,8 @@ func _watch_hold() -> void:
 		hold.changed.connect(_rebuild)
 
 
-# Builds the tree again from the exports: in the editor so the graph shows the change, and in
-# the game so a clip or a blend time changed while it runs takes effect (the body goes on from the
-# state it was in).
+# Builds the tree again from the exports: in the editor so the graph shows it, and in the game so
+# a clip or a blend time changed while it runs takes effect (the body goes on from its state).
 func _rebuild() -> void:
 	if not is_node_ready() or tree == null or animation_player == null or character == null:
 		return
@@ -659,8 +657,7 @@ func _drive_pistol(delta: float) -> void:
 
 
 # How far up the character looks, in degrees, `fraction` of the way from the step before the last
-# to the last one: the pose moves on every drawn frame although the body is stepped 60 times a
-# second, as the engine does for the body itself.
+# to the last one: the pose moves on every drawn frame, as the engine moves the body itself.
 func _look_up_at(fraction: float) -> float:
 	return rad_to_deg(lerpf(_pitch_before, _pitch_now, clampf(fraction, 0.0, 1.0)))
 
@@ -733,6 +730,7 @@ func _on_interacted(_target: Node3D) -> void:
 
 func _on_hit(_amount: float, _source: Node3D) -> void:
 	play_clip(hit_clip, character.tuning.hit_stun_time)
+	HitLayer.follow(tree, true, body_state())
 
 
 # A vault or a mantle plays its clip over the whole body (`VaultAnimation.start()`).
@@ -799,6 +797,7 @@ func _build_root() -> AnimationNodeBlendTree:
 	var action := AnimationNodeOneShot.new()
 	action.fadein_time = action_blend_time
 	action.fadeout_time = action_blend_time
+	HitLayer.prepare(action, _bone_paths([upper_body_bone]))
 	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
 	root.connect_node(_ACTION, 0, _RELOAD)

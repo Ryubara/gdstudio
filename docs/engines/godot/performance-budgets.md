@@ -100,6 +100,12 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   machine. **Watch out for:** a "worst tick under 1.5 ms" passed alone and read 3 to 70 ms with other jobs running, and
   a 99th percentile failed too: bots think one tick in six, so it lands on preempted think ticks. **Seen:** Deadnight
   (bot server cost), 2026-11-02 (fix: the 95th judged, with the reason in the test's header).
+- **Approach:** Before putting a slower page on the machine's load, compare it with a control in the same page (a cell
+  the change cannot touch, measured in the same rounds) and with a run where the machine was quieter. **Watch out
+  for:** browser pages whose every skinned body read twice its cost were put down to 100 % processor load for an
+  hour; the same pages on a quieter machine still read twice, and the cause was a GL buffer state the bench set in
+  some pages and not others ([the buffer hint](web-export.md#skin-buffer-hint)). **Seen:** gdstudio #1260,
+  2026-11-11.
 
 ## A leak is read as a count at the same crowd, round after round {#leak-count}
 

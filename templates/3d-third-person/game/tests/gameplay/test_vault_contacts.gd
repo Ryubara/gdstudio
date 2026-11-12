@@ -8,7 +8,13 @@ extends GdUnitTestSuite
 
 const FACE := 2.5
 const DEPTH := 0.4
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+## The bodies the vault clips were keyed and measured on, the Quaternius pair: the prototype bodies
+## the template's characters wear (kit #1187) have longer upper arms, so their planted wrists sit
+## lower than these limits; measuring the clips on them is gdstudio #1286.
+const BODIES := {
+	"female": CharacterBodies.QUATERNIUS_FEMALE,
+	"male": CharacterBodies.QUATERNIUS_MALE,
+}
 const CLIPS := "res://assets/animation/vault/vault_clips.json"
 ## The heights run: the course's walls, the clips' own boxes and the ends of each clip's range.
 const HEIGHTS: Array[float] = [0.5, 0.8, 0.9, 1.05, 1.2, 1.27]
@@ -61,15 +67,14 @@ func _reset(model: String) -> void:
 	after_test()
 	_arena.free()
 	await before_test()
-	if model == "male":
-		var slot := _player.model
-		var old := slot.rig()
-		slot.remove_child(old)
-		old.free()
-		var added := (load(MALE) as PackedScene).instantiate() as Node3D
-		slot.add_child(added)
-		added.owner = _player
-		await InputSim.ticks(get_tree(), 4)
+	var slot := _player.model
+	var old := slot.rig()
+	slot.remove_child(old)
+	old.free()
+	var added := (load(BODIES[model]) as PackedScene).instantiate() as Node3D
+	slot.add_child(added)
+	added.owner = _player
+	await InputSim.ticks(get_tree(), 4)
 	_skeleton = _player.model.skeleton()
 
 

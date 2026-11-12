@@ -58,3 +58,8 @@ hides this; compare the raw floats. See also [navigation in tests](navigation-in
   six once a change moved the grid's edges; `main` differed from `main` on one seeded night; the last bit of a float
   differs between Windows and Linux. **Seen:** Deadnight #225, 2026-11-02; Deadnight #681, 2026-11-03; Deadnight
   (crowd budget), 2026-11-03 (fix: the place left out of the hash; the bots' signature in eighths and 5 degree buckets).
+- **Approach:** Run each replay or repeat of a seed in a process of its own, and keep counters that span instances
+  (`AiNavigator._spawned`) out of what a run's outcome depends on. **Watch out for:** a static keeps its value for the
+  whole process, so a second run of the same seed in one process started from another count and its hash differed, while
+  a fresh process matched. **Seen:** gdstudio #971 (PR #1248), 2026-11-11 (the soak's replay case compares two
+  processes).

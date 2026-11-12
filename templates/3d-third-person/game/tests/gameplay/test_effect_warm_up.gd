@@ -177,3 +177,66 @@ func test_a_groups_meshes_are_drawn_inside_each_probe() -> void:
 	_world.add_child(emitter)
 	var seen: Dictionary = await _watch_tour(emitter, behind)
 	assert_bool((seen["inside"] as Array).has(skin)).is_true()
+
+
+# A view of its own that draws `_world` (a live minimap): a flat environment and no shadow atlas.
+func _other_view(own_world := false) -> SubViewport:
+	var view := SubViewport.new()
+	view.size = Vector2i(32, 32)
+	view.own_world_3d = own_world
+	view.positional_shadow_atlas_size = 0
+	view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var look := Camera3D.new()
+	look.environment = Environment.new()
+	look.cull_mask = 5
+	view.add_child(look)
+	_world.add_child(view)
+	look.make_current()
+	return view
+
+
+# The eyes of the warm-up's views while it warms: [environment, cull mask, shadow atlas size].
+func _watch_eyes(emitter: EffectEmitter) -> Array:
+	var eyes := []
+	while emitter.is_warming():
+		for view in emitter.find_children("WarmTour*", "SubViewport", false, false):
+			var eye := (view as SubViewport).get_camera_3d()
+			if eye == null:
+				continue
+			var seen := [
+				eye.environment, eye.cull_mask, (view as SubViewport).positional_shadow_atlas_size
+			]
+			if not eyes.has(seen):
+				eyes.append(seen)
+		await get_tree().process_frame
+	return eyes
+
+
+func test_another_view_of_the_world_is_drawn_as_it_draws() -> void:
+	var view := _other_view()
+	var look := view.get_camera_3d()
+	var emitter := _emitter_with(EffectProbe.def(true, false))
+	assert_array(emitter.other_views()).contains_exactly([look])
+	var eyes: Array = await _watch_eyes(emitter)
+	assert_array(eyes).contains([[look.environment, 5, 0]])
+
+
+func test_another_view_is_drawn_without_the_probe_tour() -> void:
+	_probe(Vector3(0.0, 0.0, 40.0))
+	var look := _other_view().get_camera_3d()
+	var emitter := EffectEmitter.new()
+	emitter.warm_up = [EffectProbe.def(true, false)]
+	emitter.warm_up_every_probe = false
+	_world.add_child(emitter)
+	var eyes: Array = await _watch_eyes(emitter)
+	assert_array(eyes).contains_exactly([[look.environment, 5, 0]])
+
+
+func test_a_view_of_another_world_or_one_never_drawn_is_left_alone() -> void:
+	_other_view(true)
+	var idle := _other_view()
+	idle.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	var emitter := _emitter_with(EffectProbe.def(true, false))
+	assert_array(emitter.other_views()).is_empty()
+	var eyes: Array = await _watch_eyes(emitter)
+	assert_array(eyes).is_empty()

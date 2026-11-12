@@ -1,8 +1,16 @@
 class_name RagdollBodies
 extends RefCounted
 ## The table `CharacterRagdoll` makes its physical bones from (`CharacterRagdoll.BODIES` is this
-## one), for the Quaternius universal rig (both mannequins). Data only, in a file of its own so the
-## ragdoll's script stays one that reads in one go.
+## one), for the Quaternius universal rig (every body on it). Data only, in a file of its own so
+## the ragdoll's script stays one that reads in one go.
+##
+## The capsules were sized on the Quaternius female and measured again on the template's bodies,
+## the `form` prototype mannequins (kit #1187, `tools/mannequin/measure_segments.gd`): every radius
+## is within the skin of both, as before, but for the calves, thinned from 0.06 to 0.055 so the
+## female's calf (0.054 m) does not lie on a capsule fatter than itself. Thinner arms and legs
+## (each capsule the share of the skin the Quaternius table used) let the jogging male's shoulder
+## twist 28 to 35 degrees past a person's range as it rolls over the arm
+## (`test_ragdoll_cones.gd`), so the rest stay as they were.
 ##
 ## Each physical bone: `bone` is the skeleton bone it moves, `from` and `to` the bones (or, for
 ## `to`, a length along the bone, in metres) between which its capsule lies, `radius` the
@@ -145,7 +153,7 @@ const BODIES := [
 		bone = &"calf_l",
 		from = &"calf_l",
 		to = &"foot_l",
-		radius = 0.06,
+		radius = 0.055,
 		share = 4.65,
 		side = Vector3.RIGHT,
 		joint = &"hinge",
@@ -178,7 +186,7 @@ const BODIES := [
 		bone = &"calf_r",
 		from = &"calf_r",
 		to = &"foot_r",
-		radius = 0.06,
+		radius = 0.055,
 		share = 4.65,
 		side = Vector3.RIGHT,
 		joint = &"hinge",
