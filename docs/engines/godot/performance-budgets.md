@@ -107,7 +107,8 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   for:** browser pages whose every skinned body read twice its cost were put down to 100 % processor load for an
   hour; the same pages on a quieter machine still read twice, and the cause was a GL buffer state the bench set in
   some pages and not others ([the buffer hint](web-export.md#skin-buffer-hint)). **Seen:** gdstudio #1260,
-  2026-11-11.
+  2026-11-11; gdstudio #1323, 2026-11-12 (three template time budgets red locally with about nine Godot runs up;
+  `origin/main` in a detached worktree failed the same ones in the same hour, so the branch went to CI).
 
 ## A leak is read as a count at the same crowd, round after round {#leak-count}
 

@@ -454,8 +454,10 @@ says how).
 
 ### Prone and crawl clips {#prone-clips}
 
-`assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
-`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above.
+`assets/animation/prone/` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
+`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above,
+one file a body (`prone_form_female.glb` for the template's body, `prone_form_male.glb` for the enemies', `prone.glb`
+and `prone_male.glb` for the Quaternius mannequins): a clip that rests limbs on the floor fits one body's skin.
 The dressed character's `AnimationPlayer` holds the library as `prone`, `prone_reload.glb` as `prone_reload` (the
 pistol's reload lying down, `Prone_Reload_Pistol`, 1.67 s, solved on `form_female`; `prone_reload_male.glb` is
 `form_male`'s), and `prone_aim.glb` beside it as `prone_aim`
