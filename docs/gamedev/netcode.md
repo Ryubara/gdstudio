@@ -131,3 +131,8 @@ says where it was learned (Deadnight, the first game).
   suite. **Watch out for:** the codec and wire suites read `NetWire.VERSION` and stay green, so the net suites run
   while working passed and only the full template run failed, on `test_net_server_join.gd`'s pinned 6. **Seen:**
   gdstudio #1277, 2026-11-11 (PR #1300).
+- **Approach:** A test that checks a packet's exact size sums the codec's own sizes per item
+  (`SnapshotCodec.player_size(entry)`, `event_size(event)`), never a count times a fixed constant, so a layout change
+  on main moves the expected number with it. **Watch out for:** the hitscan suite counted `PLAYER_SIZE` for every
+  player; once main gave an aiming entry an aim byte, every TICK it checked was one byte over and both cases failed
+  only after the branch merged main. **Seen:** gdstudio #1252, 2026-11-11 (PR #1269, after #1300).
