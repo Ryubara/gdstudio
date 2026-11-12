@@ -81,6 +81,9 @@ func test_the_male_body_holds_the_rifle_with_his_fit() -> void:
 	_assert_rifle_places(stage, fit)
 	assert_object(stage.hold.get(&"grip_pose")).is_same(fit.grip_pose)
 	assert_object(stage.hold.get(&"support_pose")).is_same(fit.support_pose)
+	# His trigger finger has its own way round the guard too (kit #1036).
+	assert_object(fit.trigger_way).is_not_null()
+	assert_object(stage.hold.get(&"trigger_way")).is_same(fit.trigger_way)
 	stage.free()
 
 
@@ -92,12 +95,16 @@ func test_a_swap_keeps_the_rifles_own_hold_for_the_female() -> void:
 	assert_object(stage.hold.get(&"grip_pose")).is_same(
 		load("res://gameplay/weapon/hold/rifle_grip_pose.tres")
 	)
+	var own_way: Object = stage.hold.get(&"trigger_way")
+	assert_object(own_way).is_same(load("res://gameplay/weapon/hold/rifle_trigger_way.tres"))
 	_swap(stage, CharacterBodies.MALE)
 	await _frames(3)
 	_assert_rifle_places(stage, load(MALE_RIFLE_FIT) as HoldFit)
+	assert_object(stage.hold.get(&"trigger_way")).is_not_same(own_way)
 	_swap(stage, CharacterBodies.FEMALE)
 	await _frames(3)
 	_assert_rifle_places(stage, own)
+	assert_object(stage.hold.get(&"trigger_way")).is_same(own_way)
 	stage.free()
 
 

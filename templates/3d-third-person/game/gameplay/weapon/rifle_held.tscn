@@ -9,10 +9,12 @@
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/rifle_magazine_pose.tres" id="7_magazine"]
 [ext_resource type="Script" path="res://gameplay/weapon/hold/hold_fit.gd" id="8_fit"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/rifle_fit_male.tres" id="9_fit_male"]
+[ext_resource type="Resource" path="res://gameplay/weapon/hold/rifle_trigger_way.tres" id="10_way"]
 
 [node name="RifleHeld" instance=ExtResource("1_hold")]
 grip_pose = ExtResource("3_grip")
 trigger_pose = ExtResource("4_trigger")
+trigger_way = ExtResource("10_way")
 support_pose = ExtResource("5_support")
 open_pose = ExtResource("6_open")
 magazine_pose = ExtResource("7_magazine")
@@ -21,7 +23,7 @@ magazine_far = NodePath("Pivot/Rifle/Far/Rifle/Magazine")
 fits = Array[ExtResource("8_fit")]([ExtResource("9_fit_male")])
 
 [node name="Rifle" parent="Pivot" instance=ExtResource("2_rifle")]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, -0.095, 0.307)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, -0.095, 0.257)
 
 [node name="RightHandTarget" type="Marker3D" parent="Pivot/Rifle"]
 transform = Transform3D(-0.17365, -0.95663, 0.2339, 0, 0.23751, 0.97138, -0.98481, 0.16868, -0.04124, 0.04696, 0.00837, -0.04782)
