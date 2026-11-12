@@ -66,7 +66,7 @@ limb crossing per clip and body is written beside it as `bodies_overlap.json` wi
   measured `Weapon.no_muzzle_offset` on the old `Idle` and tightened its test from 50 mm to 5: each side passed alone
   and the two together put the aimed muzzle 6.2 mm from the offset, so the pull request's check went red in a weapon
   suite no clip change had touched. **Seen:** gdstudio #1160 (PR #1285), 2026-11-12 (the offset measured again:
-  0.2 mm off).
+  0.2 mm off; and once more after #1262 moved the pistol's seat, 6 mm off until measured).
 - **Approach:** Before pushing a merge, fetch again and run the suites main added since the last merge on the branch's
   clips; a test that reads a pose (the head on the neck, a muzzle, a hand) was fitted to the clip main plays.
   **Watch out for:** main (#1353) landed a head test between this branch's local run and its push: on the library's

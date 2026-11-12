@@ -71,7 +71,7 @@ const COOLDOWN_SLACK := 1e-6
 ## beside the shooter, in the ray's own axes (x to its right, y up, z back toward the shooter,
 ## so a negative z is out in front). The default is where the pistol's muzzle is while the
 ## character aims standing on the template's idle (`AimStance` holds it still there).
-@export var no_muzzle_offset := Vector3(0.112, -0.1037, -0.7222)
+@export var no_muzzle_offset := Vector3(0.1197, -0.1032, -0.7344)
 ## What the aim ray hits (physics layers): what a shot meets (`PhysicsLayers.SHOT_MASK`: the
 ## level, characters, props, ragdoll bones and hit zones), so the crosshair's point is on what the
 ## shot will hit.
