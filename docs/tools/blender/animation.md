@@ -175,8 +175,9 @@ together with no leg astride, folded shut, snapped or held
 
 A clip with no clip to start from is solved, frame by frame, from a few targets, by a script that keys the result
 (`templates/3d-third-person/game/assets/animation/prone/build_prone_clips.py`: a prone idle, a low crawl and the two
-transitions to the Universal Animation Library's crouch, on the Quaternius universal rig, one file a mannequin:
-`prone.glb` for the female and `prone_male.glb` for the male, kit #1090; and since kit #1016
+transitions to the Universal Animation Library's crouch, on the Quaternius universal rig, one file a body:
+`prone.glb` and `prone_male.glb` for the Quaternius female and male, kit #1090, `prone_form_female.glb` and
+`prone_form_male.glb` for the template's prototype bodies, kit #1293; and since kit #1016
 `vault/build_vault.py`, the three vault clips). Godot imports the file with
 `importer="animation_library"` beside the libraries
 ([the libraries](../../engines/godot/third-person/clips.md#animation-libraries)).
@@ -211,7 +212,9 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   pair; since kit #1286 each poses `CharacterBodies.FEMALE` and `MALE` (the prototype `form` bodies) as well, and
   `limb_overlap.py --brief --json <clips>/bodies_overlap.json` writes each clip's deepest crossing a body with the
   clip file's SHA-256, which the Godot suites read (`tests/fixtures/bodies_overlap.gd`), so a rebuilt file that was not
-  measured again fails. `test_limb_overlap.py` runs on the `form` bodies by default (`--model` for others). The
+  measured again fails. A folder with one clip file a body has one report a file, `<file>_overlap.json`, measured on
+  the body that plays it (the prone clips, kit #1293). `test_limb_overlap.py` runs on the `form` bodies by
+  default (`--model` for others). The
   prototype male's thighs meet by 1.9 mm at rest, which the self-test allows (`REST_MM`, 2.5).
 - **A check that reads a clip file measures every key at the file's own rate.** A glb has key times in seconds and
   no frame rate. `limb_overlap.py`'s command line reads the rate from the key times (`clip_rate()`: the lowest of 24,
@@ -301,6 +304,32 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   -3 cm where the skin was -5.5, and counted the new rig's unanimated sockets and IK bones (1.4 m up) until it kept to
   the bones the clip keys. **Seen:** gdstudio #1286, 2026-11-11 (fix: the four-body suites, `bodies_overlap.json`;
   kit #1293, #1294, #1295 for the clips).
+- **Approach:** Measure a body that has twist bones with them turned as the engine turns them
+  (`limb_overlap.apply_twist`, the same swing-twist split as `MannequinTwist`), key and export only the library's 65
+  bones, and measure the mesh the camera sees up close (`Body_LOD0`; `CharacterBodies.near_meshes` in Godot).
+  **Watch out for:** a clip keys no twist bone, so a build that skins the rest pose of those bones reads a thigh
+  1 to 2 mm off; a skin fixture that read every `MeshInstance3D` under the skeleton put the hands 31 to 36 mm under
+  the floor in clips where the near mesh was 1 mm under, since the farthest level's hand is a mitten whose thumb
+  no clip moves; a Godot test that reads bones straight after `seek` has the twist bones where the last modifier
+  pass left them, so it calls `MannequinTwist.apply` itself. **Seen:** gdstudio #1293, 2026-11-11.
+- **Approach:** To move a solved clip set to another body, give the build a table of the numbers that differ
+  (`BODIES`) and tune them with a harness that imports the build as a module, solves the lying pose and the
+  transitions only, and prints each part's lowest vertex by frame and the limb overlap; rebuild the bodies already
+  shipped and `cmp` them after every change to the script. **Watch out for:** the whole build takes 95 s and the
+  harness 4 s; on the prototype bodies the knees held the pelvis 4.4 cm off the floor until the lying leg was
+  straight, and a toe height 2 mm too high flipped the toe solve and put a foot 49 mm under on one frame.
+  **Seen:** gdstudio #1293, 2026-11-11 (`prone_form_female.glb`, `prone_form_male.glb`).
+- **Approach:** Fix a floor fault of a landing limb where it comes from: when the knee turns, how high the ankle
+  still is, how the foot is rolled. **Watch out for:** a knee turned to point down while its foot was still coming
+  down went 22 to 35 mm into the floor, and turned late it dug the toes in 10 mm (the ankle now arrives 1.2 cm
+  up); a leg turned out lies on the inner edge of its foot, 17 mm under the floor until the foot is rolled back
+  13 degrees. **Seen:** gdstudio #1293, 2026-11-11.
+- **Approach:** Give a solved pose that is held its own numbers a side from the start (`IDLE_SIDES`: each
+  forearm's angle, each leg's spread, straightness, knee direction and foot), measure the shoulders and hips the
+  other clips are placed from in the even pose, and read the top and front views for anything lined up.
+  **Watch out for:** the prone idle's legs were one call with a flipped sign, so they mirrored each other by
+  construction; measuring the anchor in the uneven pose would have carried one side's hip into the crawl.
+  **Seen:** gdstudio #1293, 2026-11-11 ([No mirror poses](own-animation.md#feel)).
 - **Approach:** Judge two hands that touch with both measures and know how they differ: `limb_overlap.py` (Blender,
   every pair of parts both ways, depth to the other part's nearest skin) and the game's `HandContact.measure(side,
   true)` (the hand of `side` against the weapon and the other hand, one way only); measure each side when the hands

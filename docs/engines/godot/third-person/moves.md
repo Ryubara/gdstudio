@@ -36,8 +36,8 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   so an AI is held too), and `PlayerCamera.pitch_limits()` draws the orbit in to the same limits as the body lies down.
 - **The picture.** `Character.State.PRONE` (after `DEAD`, so the snapshot's state byte keeps its old numbers),
   `prone_changed(down)`, the read-only `prone` and `prone_amount`. `CharacterAnimation` has a `prone` state that
-  plays the template's own clips (gdstudio #1009, the library `prone` from `assets/animation/prone/prone.glb`, and
-  `prone_male.glb` for the male, kit #1090, with the same clip names, lengths and crawl speed;
+  plays the template's own clips (gdstudio #1009, the library `prone` from `assets/animation/prone/`, one file a
+  body with the same clip names, lengths and crawl speed, kit #1090 and #1293;
   [how they are solved](../../../tools/blender/animation.md#solved-clips)): `prone/Prone_Idle` at `prone_idle_pace`,
   and `prone/Crawl_Fwd`, which replaces the idle over `blend_time` as soon as the body moves and plays at
   `ground speed / crawl_clip_speed` (0.618 m/s, the clip's stride), backwards when the body moves away from the way it
