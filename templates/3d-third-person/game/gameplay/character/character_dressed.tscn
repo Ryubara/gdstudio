@@ -11,6 +11,7 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_male.glb" id="6_prone_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_form_female.glb" id="6_prone_form_female"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_form_male.glb" id="6_prone_form_male"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/own/locomotion.glb" id="7_gds"]
 [ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
 [ext_resource type="PackedScene" path="res://gameplay/character/footsteps.tscn" id="8_footsteps"]
 [ext_resource type="Script" path="res://gameplay/character/character_ragdoll.gd" id="9_ragdoll"]
@@ -83,7 +84,8 @@ libraries = {
 &"ual1": ExtResource("5_ual1"),
 &"ual2": ExtResource("6_ual2"),
 &"prone": ExtResource("6_prone_form_female"),
-&"vault": ExtResource("6_vault")
+&"vault": ExtResource("6_vault"),
+&"gds": ExtResource("7_gds")
 }
 
 [node name="AnimationTree" type="AnimationTree" parent="." index="5"]
