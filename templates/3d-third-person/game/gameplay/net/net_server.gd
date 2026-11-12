@@ -321,6 +321,8 @@ static func entry_of(slot: int, body: Character) -> PlayerEntry:
 	entry.rising = entry.air and body.velocity.y > 0.0
 	entry.dead = body.is_dead()
 	entry.pitch = body.view_pitch
+	# The aim layer's turn off the body, which another screen poses its puppet by (kit #1277).
+	entry.aim_yaw = body.aim_yaw if body.aiming else 0.0
 	return entry
 
 
