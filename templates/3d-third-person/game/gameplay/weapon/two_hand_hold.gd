@@ -339,6 +339,12 @@ func free_hand_for_interact() -> void:
 	free_hand(character.tuning.interact_time)
 
 
+## The action the hand was let go for ended early (a use cut short): the hand comes back onto the
+## weapon its own way, from wherever it is.
+func take_hand_back() -> void:
+	_free.finish()
+
+
 ## How far the arms are on the gun's places: 1 while the gun is in the hands, and the way there
 ## or away while a switch brings it out or has just put it away.
 func reach_amount() -> float:

@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://ui/minimap/minimap.tscn" id="7_minimap"]
 [ext_resource type="PackedScene" path="res://ui/hud/hud_weapon_slots.tscn" id="8_weapon_slots"]
 [ext_resource type="PackedScene" path="res://ui/hud/hud_hotbar.tscn" id="9_hotbar"]
+[ext_resource type="PackedScene" path="res://ui/hud/hud_use.tscn" id="10_use"]
 
 [node name="Hud" type="CanvasLayer" node_paths=PackedStringArray("root", "safe_area", "minimap_slot")]
 script = ExtResource("1_hud")
@@ -108,6 +109,9 @@ grow_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 2
+
+[node name="HudUse" parent="Root/SafeArea/BottomCenter" instance=ExtResource("10_use")]
+layout_mode = 2
 
 [node name="HudHotbar" parent="Root/SafeArea/BottomCenter" instance=ExtResource("9_hotbar")]
 layout_mode = 2

@@ -298,6 +298,7 @@ var _action_scale_node: AnimationNodeTimeScale
 var _playback: AnimationNodeStateMachinePlayback
 var _action_clip: StringName = &""
 var _action_was_active := false
+var _upper_only := false
 var _dead := false
 var _clip_death := false
 var _pitch_before := 0.0
@@ -435,7 +436,7 @@ func _drive(delta: float) -> void:
 	_prone_look.step_crawl_share(speed, blend_time, delta)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
-	HitLayer.follow(tree, active and _action_clip == hit_clip, body_state())
+	HitLayer.follow(tree, active and _action_clip == hit_clip, body_state(), active and _upper_only)
 	if _action_was_active and not active:
 		action_finished.emit(_action_clip)
 	_action_was_active = active
@@ -458,11 +459,14 @@ func last_action() -> StringName:
 
 
 ## Plays any clip of the libraries over the body once (`CharacterClips.SWORD_ATTACK`). With a
-## `duration` above zero the clip is sped up or slowed to take that long.
-func play_clip(clip: StringName, duration: float = 0.0) -> void:
+## `duration` above zero the clip is sped up or slowed to take that long; with `upper_body` it
+## plays on the spine, head and left arm alone (`UseLayer`: using an item).
+func play_clip(clip: StringName, duration: float = 0.0, upper_body := false) -> void:
 	if tree == null or not animation_player.has_animation(clip):
 		push_warning("CharacterAnimation: no clip called %s" % clip)
 		return
+	_upper_only = upper_body
+	UseLayer.keep_arm(tree, _bone_paths([UseLayer.KEPT_ARM]), upper_body)
 	_action_clip = clip
 	_action_clip_node.animation = clip
 	var length := animation_player.get_animation(clip).length

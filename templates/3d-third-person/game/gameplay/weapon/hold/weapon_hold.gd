@@ -331,6 +331,12 @@ func free_hand_for_interact() -> void:
 	free_hand(animation.character.tuning.interact_time)
 
 
+## The action the hand was let go for ended early (a use cut short): the hand comes back onto the
+## weapon its own way, from wherever it is.
+func take_hand_back() -> void:
+	_free.finish()
+
+
 ## Puts the weights on the modifiers now (the frame's own `_process` does it too).
 func refresh() -> void:
 	if animation != null and animation.tree != null:

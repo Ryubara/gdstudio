@@ -30,13 +30,16 @@ static func prepare(action: AnimationNodeOneShot, paths: Array[NodePath]) -> voi
 
 
 ## Turns the filter of `tree`'s action one-shot on while a hit plays (`hit`) in a low body state
-## `state`, and off otherwise: called when a hit lands and every frame after, so a body that
-## crouches or stands up during the stun gets the share of the clip its new state takes.
-static func follow(tree: AnimationTree, hit: bool, state: StringName) -> void:
+## `state`, or while an upper-body action plays (`upper_body`, `UseLayer`), and off otherwise:
+## called when a hit lands and every frame after, so a body that crouches or stands up during the
+## stun gets the share of the clip its new state takes.
+static func follow(
+	tree: AnimationTree, hit: bool, state: StringName, upper_body: bool = false
+) -> void:
 	var root := tree.tree_root as AnimationNodeBlendTree if tree != null else null
 	if root == null or not root.has_node(&"Action"):
 		return
 	var action := root.get_node(&"Action") as AnimationNodeOneShot
-	var upper := hit and upper_body_only(state)
+	var upper := (hit and upper_body_only(state)) or upper_body
 	if action != null and action.filter_enabled != upper:
 		action.filter_enabled = upper
