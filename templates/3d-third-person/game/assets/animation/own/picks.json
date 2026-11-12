@@ -7,6 +7,15 @@
   "Crouch_To_Stand": "A",
   "Walk": "A",
   "Jog": "A",
-  "Sprint": "A"
+  "Sprint": "A",
+  "Jump_Start": "A",
+  "Jump_Start_Run_L": "A",
+  "Jump_Start_Run_R": "A",
+  "Jump_Rise": "A",
+  "Jump_Apex": "A",
+  "Jump_Fall": "A",
+  "Land_Soft": "A",
+  "Land_Hard": "A",
+  "Land_To_Jog": "A"
  }
 }
