@@ -124,9 +124,6 @@ const KICK_RISE := 0.08
 @export var one_hand_elbow := Vector3(-0.5, -1.0, 0.0)
 ## The wrist moved from the barrel's line through the shoulder, in the model's space.
 @export var one_hand_offset := Vector3.ZERO
-## The bone from which the left arm keeps the locomotion clip while a one-handed weapon aims and
-## shoots (`free_bones()`).
-@export var free_arm_root := &"clavicle_l"
 ## How many degrees the left arm is held out from the body for balance.
 @export_range(0.0, 45.0, 0.5, "suffix:deg") var free_arm_out := 10.0
 ## The shot's kick in one hand: how many degrees the muzzle climbs at the wrist, and how far the
@@ -387,13 +384,6 @@ func _build() -> void:
 		_skeleton.add_child(_fingers)
 	refresh()
 	built.emit()
-
-
-## The bones whose chains keep the locomotion clip while the weapon aims and shoots: one-handed,
-## the left arm from `free_arm_root` (it hangs and swings as the body moves; the reload's layer
-## still takes it), none in two hands.
-func free_bones() -> Array[StringName]:
-	return [free_arm_root] if one_handed else []
 
 
 ## The fit in use now: the one whose `body` is the model's file, or the scene's own.

@@ -18,7 +18,7 @@ along the barrel, the left arm free, and a kick at the wrist and the elbow on ea
 weapon only for a reload. There is no one-handed pistol clip in the Universal Animation Library, so no new clip was
 made: the stance is put on the two-handed aim clips after the tree.
 
-- **The tree** (`WeaponHold.free_bones()`, from `free_arm_root`, `clavicle_l`): with a one-handed weapon held, the aim
+- **The tree** (`WeaponDef.free_bones()`, from `FREE_ARM_BONE`, `clavicle_l`): with a one-handed weapon held, the aim
   and shot layers leave the left arm out of their filters, so it keeps the locomotion clip (it hangs and swings as the
   body moves); the reload's filter still takes it.
 - **The stance** (`gameplay/weapon/hold/one_hand_stance.gd`, `OneHandStance`, a `SkeletonModifier3D` that

@@ -32,6 +32,10 @@ enum Kind {
 	MELEE,
 }
 
+## The bone from which the free arm keeps the locomotion clip while a `one_handed` weapon aims
+## and shoots.
+const FREE_ARM_BONE := &"clavicle_l"
+
 @export_group("Weapon")
 ## The name a HUD or an inventory shows.
 @export var display_name := "Weapon"
@@ -293,6 +297,13 @@ func uses_ammo() -> bool:
 ## True when the fire button may shoot (and aim) now, with the aim button held (`aim_held`) or not.
 func fire_allowed(aim_held: bool) -> bool:
 	return not fire_needs_aim or (can_aim and aim_held)
+
+
+## The bones whose chains keep the locomotion clip while the weapon aims and shoots: one-handed,
+## the free arm from `FREE_ARM_BONE` (it hangs and swings as the body moves; the reload's layer
+## still takes it), none in two hands.
+func free_bones() -> Array[StringName]:
+	return [FREE_ARM_BONE] if one_handed else []
 
 
 ## Seconds between two shots.
