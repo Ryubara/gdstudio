@@ -205,7 +205,8 @@ def plan_way(start, goal, depth, axes, sample, limit, clearances=CLEARANCES):
 
 
 def escape(angles, depth, sample, limit, clear=ESCAPE_CLEAR, span=ESCAPE_SPAN, step=ESCAPE_STEP):
-    """The way from the pose `angles` to the nearest pose whose skin is `clear` off the surface, through poses
+    """The way from the pose `angles` to the nearest pose whose skin is `clear` off the surface (or half that, or
+    just off it, when none is that far), through poses
     within `limit`: a finer grid of poses round it (`span` degrees each way on every angle, by `step`), walked as
     the coarse one is. The poses, the first included; None when no pose of the grid is that far off. An end sits
     wedged on the surface (the straight finger's tip and middle on the magazine well's side and the receiver's),
@@ -219,11 +220,15 @@ def escape(angles, depth, sample, limit, clear=ESCAPE_CLEAR, span=ESCAPE_SPAN, s
     middle = tuple(len(a) // 2 for a in axes)
     free = deep <= limit
     free[middle] = True
-    walk = _walk(free, middle, deep <= -clear)
+    walk = None
+    for off in (clear, 0.5 * clear, 0.0):
+        walk = _walk(free, middle, deep <= -off)
+        if walk is not None:
+            break
     if walk is None:
-        print(f"no pose {clear * 1e3:.1f} mm off within {span} degrees of {np.round(angles, 1).tolist()}")
+        print(f"no pose off the surface within {span} degrees of {np.round(angles, 1).tolist()}")
         return None
-    print(f"left {np.round(angles, 1).tolist()} in {len(walk) - 1} steps of {step} degrees")
+    print(f"left {np.round(angles, 1).tolist()} in {len(walk) - 1} steps of {step} degrees, {off * 1e3:.2f} mm off")
     return [angles] + [np.array([axes[k][i] for k, i in enumerate(n)]) for n in walk[1:]]
 
 
