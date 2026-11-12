@@ -746,6 +746,19 @@ def test_a_read_first_section_only_the_branch_has_is_refused(workspace, tmp_path
     assert code == 1 and "do not exist" in err and "studio/new.md#fresh" in err and "origin/main" in err
 
 
+@pytest.mark.parametrize("closing", ["- Fixes #128", "* Fixes #128", "  - Fixes #128"])
+def test_a_listed_fixes_line_still_looks_read_first_up_on_main(closing, workspace, tmp_path, capsys):
+    """A body from the template closes its issue with a list item; GitHub counts it, so CI looks the `Read first:`
+    sections up on the base branch, and the check on this machine must too (kit #1330, seen on #1171)."""
+    kit = read_first_branch(workspace)
+    body, title = read_first_body(tmp_path, "studio/new.md#fresh", "studio/new.md#fresh")
+    text = body.read_text(encoding="utf-8")
+    assert "\nFixes #128\n" in text
+    body.write_text(text.replace("\nFixes #128\n", f"\n{closing}\n"), encoding="utf-8", newline="\n")
+    code, err = run_gds(["pr", "check-body", str(body), "--title", str(title), "--repo", str(kit)], capsys)
+    assert code == 1 and "do not exist" in err and "studio/new.md#fresh" in err and "origin/main" in err
+
+
 def test_a_read_first_section_on_main_and_a_lessons_section_the_branch_adds_pass(workspace, tmp_path, capsys):
     kit = read_first_branch(workspace)
     body, title = read_first_body(tmp_path, "studio/hooks.md#docs", "studio/new.md#fresh")
