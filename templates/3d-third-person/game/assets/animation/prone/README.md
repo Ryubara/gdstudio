@@ -269,7 +269,8 @@ the Godot suite reads the same poses to 0.1 mm):
   for every measure and never keyed (the game's `MannequinTwist` turns them after the clip).
   They were built again on the two-handed grip of gdstudio #1171 (the `SupportHand` marker moved and the right thumb
   rests on the left thumb's root): on the old files the left elbow moved 18 mm (`form_female`) and 45 mm
-  (`form_male`) to reach the new marker.
+  (`form_male`) to reach the new marker. And again on the seat of gdstudio #1262 (the middle finger under the guard):
+  on the files before it, a little finger went 6.4 to 9.0 mm under the floor.
 - **Past 25 degrees down** the pose stays on the down clip and the aim layer stops there too
   (`ProneTuning.aim_limits`, `pitch_down` 25): turned on to the 40 degrees of the look-down limit, the spine put the
   muzzle 21 cm under the floor.
