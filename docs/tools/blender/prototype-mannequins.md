@@ -116,8 +116,8 @@ rest). The Quaternius mannequins are measured in the same run, and a body is rea
   pistol clips and a reach).
 - **Cost:** forty characters playing `Walk`, clips and bones and modifiers advanced by hand, headless: 17 to 21
   microseconds a character a frame for every body and for the Quaternius male alike; the 17 added bones and the twist
-  modifier are inside the 2 microseconds the same run varies by (`tools/mannequin/body_cost.gd`). Not measured: the
-  browser's cost of drawing them (a follow-up).
+  modifier are inside the 2 microseconds the same run varies by (`tools/mannequin/body_cost.gd`). What a browser
+  pays to draw them is [below](#browser-cost).
 
 - **Approach:** Give the levels of detail visibility ranges that meet with no margin, and look at the body in a real
   render at the distance the game's camera stands. **Watch out for:** with a begin and end margin of 0.75 m, bodies
@@ -136,6 +136,80 @@ rest). The Quaternius mannequins are measured in the same run, and a body is rea
 - **Approach:** Do not count on `meshes/ensure_tangents=false` to shrink a skinned mesh: check the imported surface's
   format. **Watch out for:** the file holds no tangents and the option was off, and the imported mesh still carried
   a tangent array. **Seen:** gdstudio #1149, 2026-11-11 (left as it is; the test does not claim it).
+
+### What a browser pays to draw them {#browser-cost}
+
+<!-- new section: the proof above measures the processor's share headless; what the web build pays to skin and draw
+the bodies (gdstudio #1186) has numbers and a bench of its own -->
+
+`tools/bench/mannequin_draw_bench.tscn` stands 1, 8 or 16 males of one model playing `Walk` in place under the
+game's sun (shadows on), at 4.5, 14 and 30 m from the camera (inside levels of detail 0, 1 and 2), and walks every
+cell in turn in each round, so a busy minute hits every row; `mannequin_draw_bench.py` reads it in Chrome, recording
+each `requestAnimationFrame` delta and each program WebGL links under the cell being measured. Make the build and run
+it with `gds template bench-web 3d-third-person mannequin_draw_bench --run`, adding `--probe-args="--gpu --uncapped"`
+for the GPU ([A bench's web export](../../engines/godot/web-probes.md#bench-web)); the page's query picks rounds,
+frames and cells (the script's header). The numbers below: 640 x 360, uncapped, four GPU runs (an RTX 5080, 8
+rounds of 60 frames) and two SwiftShader runs (6 rounds of 40), interleaved, on a workstation shared with about 25
+agents. A row is the engine's mean frame of the median round; "a body" is (16 bodies minus none) / 16.
+
+| Model, 16 bodies | GPU frame p50 / p95, near | GPU a body, level 0 / 1 / 2 | SwiftShader a body, level 0 / 1 / 2 | Draw calls a body |
+| --- | --- | --- | --- | ---: |
+| Quaternius male | 2.6 to 3.0 / 8.2 to 10.9 ms | 0.12 to 0.15 / 0.12 to 0.15 / 0.12 to 0.15 ms | 2.5 to 2.7 / 1.4 to 1.5 / 0.95 to 1.0 ms | 4 |
+| `form` | 2.1 to 2.2 / 4.4 to 6.2 ms | 0.09 to 0.10 / 0.08 to 0.10 / 0.09 to 0.10 ms | 2.8 to 2.9 / 1.2 / 0.64 to 0.68 ms | 2 |
+| `joint` | 2.0 to 2.2 / 4.7 to 6.4 ms | 0.09 to 0.10 / 0.08 to 0.09 / 0.08 to 0.10 ms | **4.5** / **2.1 to 2.2** / **1.2** ms | 2 |
+| `facet` | 2.1 to 2.3 / 4.8 to 7.4 ms | 0.09 to 0.10 / 0.08 to 0.10 / 0.08 to 0.10 ms | 1.6 to 1.7 / 1.0 / 0.50 to 0.53 ms | 2 |
+
+The floor and sun alone are 0.6 to 0.7 ms on the GPU and 21 to 22 ms on SwiftShader.
+
+- **On a GPU every look costs less than the Quaternius body**, about two thirds of it at every level. A prototype
+  body is one surface with one material, so it is skinned once and drawn twice a frame (the view and the sun's
+  shadow); the Quaternius male has two surfaces, so four draws. Split for 16 near bodies: drawing a body that does not
+  move is 0.01 ms (0.02 for the Quaternius), the clip and skeleton alone (hidden) 0.03 ms (0.02: the 17 more bones and
+  the twist modifier), and the rest of the 0.09 is skinning a moving body that is on screen. `MannequinTwist` is about
+  0.01 ms a body near (16 bodies with it off: 0.08 to 0.09 ms each) and nothing past 9 m, where it skips.
+- **On SwiftShader the cost follows the triangles drawn**, and a still body costs what a moving one does. `joint`
+  (7,760 triangles at level 0, 2.2 times the Quaternius body's 3,480) costs 1.7 times the Quaternius body near and 1.3
+  to 1.5 times beyond: it is the one look that costs more (follow-up #1259). `form` costs 5 to 10 % more near and less
+  beyond; `facet` (1,928 triangles, its 4,033 vertices notwithstanding) costs least everywhere. The Quaternius body has
+  no levels of its own; Godot's own mesh LODs (`meshes/generate_lods`) halve its triangles by 14 m.
+- **The levels switch as built**: the primitives a frame match each level's triangles twice over (view and shadow)
+  at every distance, for every look.
+- **First appearance:** the first skinned body a page draws links 9 programs (74 to 80 ms on the GPU, 140 to 164 on
+  SwiftShader); the first body of the other material 6 more (53 to 70 ms and 89 to 119), whichever comes first; the
+  other two looks link nothing (3 ms on the GPU), since the three looks share one material's shader. A game whose
+  player wears a prototype body builds them behind its loading screen; a second model in one scene (an AI in another
+  body) pays its 6 programs where it first appears unless the warm-up draws it
+  ([first-use hitches](../../engines/godot/first-use-hitches.md#the-warm-up)).
+- **The slow far levels were a buffer hint (#1260).** In 5 page loads of 10 one look's far levels (1 and 2) read 0.2 to
+  0.45 ms a body for some or all rounds. The engine skins each `MeshInstance3D` into a buffer of its own made with
+  `GL_DYNAMIC_DRAW`, which ANGLE's Direct3D 11 copies out at every draw until the buffer has been drawn 3 times its
+  size with no skinning in between ([the buffer hint](../../engines/godot/web-export.md#skin-buffer-hint)). The
+  bench's `frozen` cells held every near body still, so the level 0 buffers (and the Quaternius body's one mesh) were
+  bound directly from the first round on; a far level's own buffers only got there by chance, at a different round on
+  each page, or never. Keeping each round's numbers in order showed it: every cell started slow and flipped once to
+  its normal cost, and two other builds of the levels, one `MeshInstance3D` given each level's mesh (`@swap`) and
+  Godot's own LODs on `Body_LOD0` (`@lods`, as the Quaternius body has), were never frozen and stayed slow (0.10 to
+  0.15 ms a body against 0.06 to 0.07), so the three nodes under visibility ranges were not the cause.
+  `SkinBuffers` (gds_game) makes those buffers static from the page. Ten page loads with it, on a GPU, uncapped, the
+  full cell list with both other builds, on a workstation at 10 to 79 % processor load with about 30 agents:
+
+  | 16 bodies, a body | With `SkinBuffers` (10 loads) | Without (`--dynamic-skin`, 4 loads between them) |
+  | --- | --- | --- |
+  | Prototype looks, far levels: median round / worst round | 0.05 to 0.09 / 0.06 to 0.12 ms | 0.06 to 0.11 / 0.09 to 0.18 ms |
+  | Prototype looks, far, `@swap` and `@lods` | 0.05 to 0.09 / 0.06 to 0.12 ms | 0.09 to 0.15 / 0.11 to 0.21 ms |
+  | Prototype looks, level 0 | 0.06 to 0.09 / 0.06 to 0.14 ms | 0.06 to 0.08 / 0.09 to 0.17 ms |
+  | Quaternius male, far / near | 0.08 to 0.11 / 0.08 to 0.12 ms | 0.09 to 0.13 / 0.10 to 0.13 ms |
+
+  No far cell's median was over 0.09 ms in any of the ten loads (1,041 buffers made static a page). A page with no
+  frozen cell (`first=0`, the far cells only, the closest to a game, where no body holds still) read 0.10 ms a body
+  for every look without it and 0.06 with it. The table above was measured before the fix, in the bound state the
+  frozen cells gave; a game without `SkinBuffers` pays the streamed cost for every animated body.
+
+- **Approach:** Under a shared machine's load, measure a browser bench in many short interleaved rounds (8 of 60
+  frames, not 3 of 150) and read the median and the best round, never the mean of all. **Watch out for:** the first
+  GPU run, 3 rounds, had one round in three 2 to 4 times slower for whole stretches of cells, and its medians said the
+  prototype bodies cost twice the Quaternius body at levels 1 and 2; four runs of 8 rounds said two thirds. **Seen:**
+  gdstudio #1186, 2026-11-11.
 
 ## Building and rendering {#building}
 

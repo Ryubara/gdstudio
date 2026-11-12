@@ -9,7 +9,7 @@ extends GdUnitTestSuite
 ## The section's origin in the world (`world.tscn` puts it there).
 const SECTION := Vector3(-25.0, 0.0, -9.0)
 const POPULATION := "World/AISection/Population"
-## Each spawner of the section and whether its kind is an enemy (the male body, `CharacterBodies`).
+## Each spawner of the section and whether its kind is an enemy (the male body).
 const ENEMIES := {&"Grunts": true, &"Shooters": true, &"Allies": false, &"Civilians": false}
 const MALE := CharacterBodies.MALE
 const FEMALE := CharacterBodies.FEMALE
