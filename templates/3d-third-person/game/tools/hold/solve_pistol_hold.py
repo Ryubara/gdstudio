@@ -1115,9 +1115,10 @@ def solve_trigger_way(scene, out, started):
     """The trigger finger's way between the frame and the trigger (kit #1079), against the gun and the left
     hand where it holds: the pose it passes through half-way. The straight blend leaves the trigger guard on
     the gun's far side, through the left thumb. The way chosen passes no deeper than `WAY_TOL` through the
-    left hand at any twentieth, and as little as it can through the gun: the mannequin's finger is as thick
-    as the guard's opening is long (20 mm in 21), so on its way in it grazes the guard's front strut
-    whichever way it goes (3.6 mm at best, with the knuckle free to 40 degrees back too)."""
+    left hand at any twentieth, and as little as it can through the gun: on kit #1213's seat the last
+    bone's tip rubs the inner face of the guard's front strut as it swings in on the male body (1.9 mm,
+    kit #1273; the female's way clears it); on the earlier bodies the way crossed the strut whole,
+    whatever the guard's length (kit #1212)."""
     hand = scene.right
     frame = np.array(out["angles"]["right"]["index"])
     trigger = np.array(out["angles"]["trigger"])
