@@ -444,6 +444,22 @@ tested on made-up motion only. A body whose legs differ from the reference body'
   4 mm into her chest at the sprint's seam, between the test's eight samples of the first and on one of the
   second; three more degrees of `arm_out` moved it 1 mm, while a shallower elbow, `arm_out_back` and less
   `arm_twist` cleared it by 50 mm. The test samples 24 times now. **Seen:** gdstudio #1155, 2026-11-11.
+- **Approach:** Solve a clip on the body the player wears and check it on the other bodies the game wears
+  (`build_own.py`: `REFERENCE` is `form_female`, `BODIES` adds `form_male`); when the template's bodies change,
+  rebuild every review file and the shipped file on them the same day and read the floor, the planted sole and
+  the key bytes before the limbs. **Watch out for:** the gaits and the idle were solved on the Quaternius pair
+  while the template moved to the prototype bodies. Solved again, six of nine variants failed: the rig's four
+  `ik_` targets are keyed (a fifth more key bytes: each gait declares `kb_a_second`), longer feet put a knee at
+  140.6 degrees and a calf 0.6 degrees a frame over its limit, and the self-test's plain walk left the floor
+  band at a 38 degree heel. **Seen:** gdstudio #1155 (PR #1275), 2026-11-11.
+- **Approach:** Treat the frame a contact ends on as planted: compare a frame with `duty * frames` through a small
+  margin (`EDGE` in `clips/gait.py`), and read each sole's height on every frame of a contact after a body
+  changes. **Watch out for:** `15 / 26 * 26` is a float just under 15, so the walk's last contact frame was the
+  swing's first and its sole was never set down: 5.0 mm over the floor on the prototype bodies, whose sole turns
+  up ahead of the ball of the foot (the toes' own skin is 7 mm up, so a foot rolled onto its toes stands on the
+  ring of skin under the joint, which rises with the heel); the Quaternius sole kept the same frame inside the
+  2 mm band, and the loose walk, whose contact ends between frames, passed. **Seen:** gdstudio #1155 (PR #1275),
+  2026-11-11.
 
 ## The clip eval {#eval}
 

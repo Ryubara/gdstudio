@@ -59,14 +59,15 @@ clip's numbers are declared choices; where nothing was found it says so.
 - **The hips tip, the shoulders answer.** The free leg's hip drops, the pelvis turns toward it, the chest leans the
   other way by a share of the tip, the head stays level.
 - **The hands keep off the thighs.** The solver opens each arm from the body until the wrist, the knuckles and the
-  curled fingers' tips are 127 mm from the thigh's line on both mannequins: the female's hip is 100 mm wide of the
+  curled fingers' tips are 127 mm from the thigh's line on both bodies: the female's hip is 100 mm wide of the
   joint, and curled fingers reach 45 mm inward of their knuckles.
 - **Overlap.** The chest, the head, the upper arms, the forearms and the hands each follow the part they hang from
   through a spring with the style's lag and overshoot, run round the loop until its seam closes.
 
 ### The three variants
 
-Measured by `../audit_clips.py` on the female mannequin (the review sheet prints the same table):
+Measured by `../audit_clips.py` on the Quaternius female mannequin, the body the idle was first solved on; since
+kit #1155 the shipped idle is the same description solved on `form_female` (the review sheet prints its table):
 
 | | A, grounded | B, loose | C, sharp | `ual1/Idle` |
 | --- | --- | --- | --- | --- |
@@ -88,8 +89,10 @@ loose, lived-in character; C for a small or stylised body seen from far.
 ### Numbers for the code
 
 - The idle is in place and does not travel (`speed` 0); both feet are down for the whole clip (`contacts`).
-- Imported with Godot's key optimizer off and track compression on: 39 KB for the 10 s clip (3.9 KB a second),
-  and a planted foot's joints stay within 1 mm (`tests/gameplay/test_own_clips.gd`).
+- Imported with Godot's key optimizer off and track compression on: 39 KB for the 10 s clip (3.9 KB a second,
+  alone in the file),
+  and a planted foot's joints stay within 1.5 mm (`tests/gameplay/test_own_clips.gd`: 0.2 mm on the female and
+  0.5 on the male in the build, 1.1 and 1.4 once the tracks are compressed).
 - It keys 52 bones' rotations and the pelvis's place; the root, the `_leaf` bones and (on the prototype rig) the
   twist bones and sockets are never keyed.
 
@@ -130,9 +133,12 @@ declared choice.
   and down as a body's does (highest over the standing leg in a walk; a free fall between a run's contacts). The
   pelvis is solved from it, and the whole path is set as high as the furthest-stretched leg allows (`stretch`), so
   no knee locks and no ankle is out of reach.
-- **The feet are set down on every body's skin.** The two mannequins' soles are not one shape (the male's toes are
-  24 mm longer), and the heel's skin follows the shin: each frame's ankle height is corrected until the lowest skin
-  of both bodies is nearest the floor while planted and clear of it in the swing.
+- **The feet are set down on every body's skin.** The clips are solved on `form_female` and checked on `form_male`
+  (the prototype bodies the template wears, kit #1299; they were first made on the Quaternius pair, whose soles
+  are not one shape). The heel's skin follows the shin, and the prototype sole turns up ahead of the ball of the
+  foot (the toes' own skin is 7 mm over the floor), so a foot that rolls onto its toes stands on the ring of skin
+  under the toes' joint: each frame's ankle height is corrected until the lowest skin of both bodies is nearest
+  the floor while planted (the foot comes down 5 mm by the frame the toes leave) and clear of it in the swing.
 - **The swing.** The foot leaves over its toes, is drawn up behind (`kick`), passes under the body and comes down
   onto the floor at a speed. The knee's bend is what the path leaves it, not a keyed angle.
 - **The trunk and the arms.** The pelvis turns and tips with the legs, the chest turns and leans against it, the
@@ -150,39 +156,55 @@ declared choice.
   1.5 and tilted 1 against them. The runs do the same with their own figures (the right arm tighter and its
   shoulder a little raised and lower, the feet at different widths and toe-out). The loose variant has 1.4 times
   these differences and the sharp one 0.8. On top of that the right foot reaches 12 mm further and lifts a tenth
-  higher and the left arm swings 8 % wider (`uneven`). The right arm is the one that carries a weapon: in the
+  higher and the left arm swings 8 % wider (`uneven`). **Each side has its own timing too**: in the grounded
+  walk the right heel takes 6.8 frames to come up where the left takes 7.5, the right foot is drawn highest 33 %
+  into its swing (the left 30 %), and the right arm is furthest forward 0.02 of a cycle after half a cycle from
+  the left's (`roll_out`, `kick_at`, `arm_at` under `right`; the loose variant by 0.03, the sharp by 0.015). The
+  feet still land half a cycle apart to the frame, so a blend between the gaits stays in step. The right arm is the
+  one that carries a weapon: in the
   shipped jog and sprint it goes further out on its way back and turns in less, which keeps the carried pistol
-  50 mm clear of both bodies (`tests/gameplay/test_pistol_clearance.gd`).
+  78 mm clear of the female in the walk and more than 100 mm clear of both bodies in the jog and the sprint
+  (`tools/carry/measure_clearance.gd`, 96 samples a clip; `tests/gameplay/test_pistol_clearance.gd`).
 
 ### The three variants of each
 
-Measured by `../audit_clips.py` on the female mannequin; the review sheets print the whole table.
+Measured by `../audit_clips.py` on `form_female`, the body the clips are solved on (the player's), with the
+build's own numbers for `form_male` (the enemies'); the review sheets print the whole table.
 
 | | A, grounded | B, loose | C, sharp | the library's |
 | --- | --- | --- | --- | --- |
-| **Walk**: steps a minute, planted sole speed | 138, 1.71 m/s | 129, 1.71 | 138, 1.71 | 90, 0.95 |
-| Pelvis up and down, side to side | 37, 48 mm | 43, 66 | 32, 50 | 53, 71 |
+| **Walk**: steps a minute, planted sole speed | 138, 1.70 m/s | 129, 1.70 | 138, 1.70 | 90, 0.95 |
+| Pelvis up and down, side to side | 37, 48 mm | 44, 66 | 34, 50 | 53, 71 |
 | Hips turn and tip, shoulders turn | 8 and 6, 8 degrees | 12 and 9, 12 | 6 and 5, 10 | 4 and 5, 15 |
-| Left upper arm swings; forearm, hand, chest trail | 49 degrees; 1.4, 1.4, 1.3 frames | 65; 2.0, 2.0, 2.4 | 50; 0.9, 0.9, 0.8 | 33; 0.2, 2.2, 1.3 |
-| Thighs' halves differ, lowest sole vertex, seam's step | 1.2 degrees, 0.4 mm, 0.18 | 1.7, 0.3, 0.16 | 0.6, 0.4, 0.17 | 2.5, 14.8 under, 2.01 |
-| **Jog**: steps a minute, planted sole speed | 180, 4.07 m/s | 180, 4.07 | 180, 4.07 | 129, 5.91 |
-| Pelvis up and down, side to side | 79, 37 mm | 90, 53 | 79, 33 | 245, 36 |
-| Hips turn and tip, shoulders turn | 12 and 8, 19 degrees | 16 and 11, 25 | 9 and 5, 14 | 1 and 11, 76 |
-| Left upper arm swings; forearm, hand, chest trail | 87 degrees; 0.8, 0.9, 0.8 frames | 108; 1.2, 1.4, 1.8 | 83; 0.9, 0.9, 0.8 | 86; 1.6, none, none |
-| Thigh swings, trunk leans, halves differ | 78, 7.6, 1.3 degrees | 79, 7.6, 2.1 | 85, 8.9, 0.6 | 117, 25.5, 3.7 |
-| **Sprint**: steps a minute, planted sole speed | 200, 6.50 m/s | 200, 6.50 | 200, 6.50 | 180, 5.79 |
-| Pelvis up and down, side to side | 87, 26 mm | 90, 28 | 88, 23 | 138, 36 |
+| Upper arm swings; forearm, hand, chest trail | 49; 1.4, 1.4, 1.3 (degrees; frames) | 65; 2.1, 2.0, 2.4 | 50; 0.9, 0.9, 0.8 | 33; 0.2, 2.2, 1.3 |
+| Thigh swings, trunk leans, halves differ | 62, 5.2, 1.5 degrees | 67, 5.6, 2.0 | 63, 5.2, 1.0 | 58, 11.7, 2.5 |
+| Planted sole wanders (the build), female and male | 2.6 and 2.8 mm | 2.8 and 3.0 | 2.6 and 2.7 | 64 (the audit) |
+| Limbs inside limbs, female and male | 0.0 and 0.6 mm | 0.0 and 0.4 | 0.0 and 0.3 | 12 mm on the Quaternius female |
+| Key bytes a second | 19.9 KB | 21.4 | 23.7 | |
+| **Jog**: steps a minute, planted sole speed | 180, 4.00 m/s | 180, 4.00 | 180, 4.00 | 129, 5.90 |
+| Pelvis up and down, side to side | 79, 38 mm | 91, 53 | 81, 33 | 245, 36 |
+| Hips turn and tip, shoulders turn | 12 and 8, 19 degrees | 16 and 11, 25 | 9 and 5, 14 | 1 and 10, 76 |
+| Upper arm swings; forearm, hand, chest trail | 87; 0.8, 0.9, 0.8 (degrees; frames) | 108; 1.2, 1.4, 1.8 | 83; 0.9, 0.9, 0.8 | 86; 1.6, none, none |
+| Thigh swings, trunk leans, halves differ | 77, 7.8, 1.6 degrees | 80, 7.8, 2.3 | 86, 9.1, 0.9 | 117, 25.5, 3.7 |
+| Planted sole wanders (the build), female and male | 2.4 and 2.2 mm | 2.5 and 2.3 | 2.5 and 2.3 | 10 |
+| Limbs inside limbs, female and male | 0.0 and 1.8 mm | 0.0 and 2.5 | 0.0 and 1.3 | not measured |
+| Key bytes a second | 24.7 KB | 21.2 | 24.8 | |
+| **Sprint**: steps a minute, planted sole speed | 200, 6.51 m/s | 200, 6.51 | 200, 6.51 | 180, 5.87 |
+| Pelvis up and down, side to side | 90, 26 mm | 93, 29 | 88, 24 | 138, 36 |
 | Hips turn and tip, shoulders turn | 18 and 8, 25 degrees | 22 and 10, 31 | 14 and 5, 19 | 4 and 10, 47 |
-| Left upper arm swings; forearm, hand, chest trail | 121 degrees; 0.9, 0.9, 0.8 frames | 138; 1.2, 1.5, 1.3 | 122; 0.9, 0.9, 0.8 | 78; 0.3, 0.1, none |
-| Thigh swings, trunk leans, halves differ | 95, 9.6, 1.3 degrees | 94, 9.1, 2.0 | 100, 12.2, 0.6 | 113, 39.1, 13.4 |
-| Planted sole wanders (the build, both bodies) | 4.5, 4.4, 2.3 mm (walk, jog, sprint) | 4.5, 4.7, 2.3 | 4.5, 4.2, 2.3 | 64, 10, 313 (the audit) |
-| Limbs inside limbs, female and male | 0 and 0 mm in all three | 0 and 0 | 0 and 0 | walk: 12 mm |
+| Upper arm swings; forearm, hand, chest trail | 121; 0.9, 0.9, 0.8 (degrees; frames) | 138; 1.3, 1.5, 1.3 | 122; 0.9, 0.9, 0.8 | 78; 0.3, 0.1, none |
+| Thigh swings, trunk leans, halves differ | 95, 9.9, 1.9 degrees | 95, 9.3, 2.5 | 101, 12.4, 0.9 | 112, 39.2, 13.4 |
+| Planted sole wanders (the build), female and male | 2.1 and 1.8 mm | 2.1 and 1.8 | 2.1 and 1.8 | 305 |
+| Limbs inside limbs, female and male | 0.0 and 1.6 mm | 0.0 and 2.7 | 0.0 and 1.6 | not measured |
+| Key bytes a second | 23.9 KB | 24.1 | 27.0 | |
 
 **A is the one shipped for all three** (`picks.json`), as the recommendation: its numbers are a person's at the
 game's speeds. B is the vision for a loose, long-limbed character; C for a small or stylised body seen from far.
 The grounded and the sharp runs trail by the same frames; what tells them apart is the trunk (hips, shoulders,
 lean) and the knee lift; the "halves differ" row follows the thighs only, and the sides differ most in the
-arms, the feet's turn and the shoulders' set.
+arms, the feet's turn and the shoulders' set. The key bytes are a fifth more than on the Quaternius rig: the
+prototype rig's four `ik_` targets are keyed too (a rotation and a place each), for the game's foot and hand
+placement, and each gait declares its own limit (`kb_a_second`: 24, 25 and 27 KB a second).
 
 ### What the numbers do not say
 
@@ -192,7 +214,10 @@ arms, the feet's turn and the shoulders' set.
   to 12 cm behind the centre of mass in the sprint because the trunk leans.
 - **The audit reads the jog's planted sole wandering 7 mm.** It follows every vertex of the sole, and the heel's
   skin is weighted to the shin, which swings 25 degrees a frame over the planted foot. On the skin that only the
-  foot and the toes move, the build reads 4.4 mm.
+  foot and the toes move, the build read 4.4 mm there; on the prototype bodies it reads 2.4 mm.
+- **The toes' joint comes down 5 mm as a foot rolls off.** In Godot the joint stays within 0.4 mm along the floor
+  on both bodies and moves 5.2 to 5.7 mm in height through a contact (`tests/gameplay/test_own_clips.gd` holds
+  the two apart): that is the turned-up sole above, not a slide.
 - **The pelvis moves 2 to 5 cm fore and aft in place.** The centre of mass moves at one speed, so the pelvis gives
   way as a leg swings forward. The game's capsule moves at one speed; the tree's issue (kit #1158) decides whether
   the pelvis's own travel is kept.
@@ -206,15 +231,16 @@ arms, the feet's turn and the shoulders' set.
 | Left foot down (frames), right foot lands | 0 to 15, 13 | 0 to 6, 10 | 0 to 4, 9 |
 | Footstep events | 0 (left), 13 (right) | 0, 10 | 0, 9 |
 | In the air | never | frames 6 to 10 and 16 to 20 | 4 to 9 and 13 to 18 |
-| Tracks: bones' rotations and the pelvis's place | 52 and 1 | 52 and 1 | 52 and 1 |
-| Keys kept by the build, of every frame | 59 % | 77 % | 74 % |
-| Keys a half-degree reducer keeps on moving bones (budget 40 %) | 30 % | 40 % | 48 % |
-| Key bytes in the file | 14.1 KB | 13.9 KB | 12.1 KB |
+| Tracks: bones' rotations, and the places of the pelvis and the four `ik_` targets | 56 and 5 | 56 and 5 | 56 and 5 |
+| Keys kept by the build, of every frame | 61 % | 79 % | 76 % |
+| Keys a half-degree reducer keeps on moving bones (budget 40 %) | 34 % | 44 % | 51 % |
+| Key bytes in the file | 17.2 KB | 16.5 KB | 14.3 KB |
 
-- **Imported size:** the library file is 57.6 KB imported with all four clips (39 KB with the idle alone), 4.8 KB a
-  second over its 12.1 s, inside the 6 KB a second budget the test holds the file to. The three gaits add 18.6 KB
-  for 2.13 s, 8.7 KB a second by themselves: a short loop of fast motion has few frames a reducer can drop, and
-  the sprint is over the 40 % key budget for that reason (declared in the description, `keys_kept`).
+- **Imported size:** the library file is 68.4 KB imported with all four clips, 5.6 KB a second over its 12.1 s,
+  inside the 6 KB a second budget the test holds the file to (57.6 KB and 4.8 on the Quaternius rig, before the
+  `ik_` targets were keyed). A gait alone is over that budget: a short loop of fast motion has few frames a
+  reducer can drop, and the jog and the sprint are over the 40 % key budget for that reason (declared in the
+  description, `keys_kept`).
 - **They are played at their own pace** by the ground blend space, as the library's were; since their speeds are
   the game's own, the feet hold the floor at the three tuned speeds. Between them the blend still slides: speed
   matching is kit #1158.

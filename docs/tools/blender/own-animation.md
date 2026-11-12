@@ -150,7 +150,7 @@ inside the ranges; a number outside one is a decision written in the variant's n
 | Planted sole speed | the game's 1.7 m/s, within 2 % | 4.0 m/s | 6.5 m/s | the feet hold the floor at the speed the body moves |
 | Steps a minute | 125 to 140 | 169 to 187 | 190 to 215 | a person's cadence at that speed ([research](animation-research.md#research-weight); the sprint's lies between two sources) |
 | Planted share | 0.57 to 0.62 | 0.27 to 0.36 | 0.20 to 0.27 | a walk always has a foot down; a run flies between steps |
-| Pelvis up and down | 30 to 50 mm | 60 to 95 mm | 60 to 100 mm | weight without a bounce. The sourced measure is the centre of mass (77 mm, SD 12, in a run), and the pelvis moves more: ours 79 and 87 mm over 64 and 69 |
+| Pelvis up and down | 30 to 50 mm | 60 to 95 mm | 60 to 100 mm | weight without a bounce. The sourced measure is the centre of mass (77 mm, SD 12, in a run), and the pelvis moves more: ours 79 and 90 mm over 64 and 69 |
 | Hips turn, shoulders turn | 6 to 10, 6 to 10 degrees, opposed (about 14 between them) | 8 to 14, 15 to 25 | 10 to 16, 20 to 30 | the trunk winds against the legs; the arms swing in their sockets |
 | Pelvis tips toward the swinging leg | 4 to 8 degrees | 5 to 10 | 5 to 10 | the hip drops over the leg that carries nothing |
 | Trunk lean at a steady pace | 2 to 5 degrees | 4 to 8 | 6 to 12 | the rest of the lean is acceleration's, added by the lean layer |
@@ -189,6 +189,13 @@ one clip symmetric about its own middle.
   **Watch out for:** the melee clips had the guard and the striking fist level at frames 4 and 12 to 14, between keys,
   so the key-frame sheet looked uneven while the move passed through a mirror pose; a flipped tuple mirrors the sides by
   construction. **Seen:** gdstudio #1254, 2026-11-11.
+- **Approach:** Give a loop's sides their own timing as well as their own poses: when each heel comes up, when
+  each foot is highest in its swing, when each arm is furthest forward (`roll_out`, `kick_at`, `arm_at` under a
+  style's `left` or `right`); keep the footfalls half a cycle apart, since the blend between gaits needs them
+  in step. **Watch out for:** the gaits had a pose per side and one clock for both, so the right side replayed
+  the left's half cycle with other sizes, and the sharp walk's halves differed by 0.6 degrees, under the 1 to 4
+  of the table above; with the right side 0.015 to 0.03 of a cycle late they differ by 1.0 to 2.5. **Seen:**
+  gdstudio #1155 (PR #1275), 2026-11-11.
 
 ## The set we will own {#set}
 
@@ -412,7 +419,7 @@ clip that only works on the reference fails its build.
 | --- | --- | --- |
 | Tracks a gait clip keys | 22 body bones and the pelvis's position; fingers only where they move | fingers at rest come from one hand-pose clip under the gait; a clip names its bones and the export strips the rest |
 | Keys | under 40 % of the frames on a moving bone at half a degree | curves solved at 30 a second, reduced by the build, checked against the full curve on the skinned mesh (1 mm at the hands and feet) |
-| Imported size | 6 KB a second of clip, compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the gaits 8.7 KB a second, the sprint 48 % of keys, declared as `keys_kept`) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
+| Imported size | 6 KB a second of clip, compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
 | Clips blended at once | four on a character near the camera (two gaits, a transition or an action, one additive); one on a far one | the tree's layers are counted in the Godot issue's bench, in the browser |
 | Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)) |
 

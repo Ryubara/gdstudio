@@ -166,4 +166,6 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size before using it.
   **Watch out for:** `git show <rev>:<file>` prints the LFS pointer, about 130 bytes of text, so a "before" sound
   decoded as nothing and a model imported as a broken file. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound
-  clip); Deadnight #1282, 2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding)).
+  clip); Deadnight #1282, 2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding));
+  gdstudio #1155 (PR #1275), 2026-11-11 (a merge's clip files set aside with `git show`: 130-byte glbs, found by
+  `ls -la` before any build read them; `git checkout --ours -- <file>` writes the real file in a merge).

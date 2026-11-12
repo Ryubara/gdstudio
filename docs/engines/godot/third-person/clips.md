@@ -42,6 +42,14 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   widest on the landing frame, which is true of a walk and not of a run; a footstep count asserted for the
   library's walk (90 steps a minute) is wrong for ours (138). **Seen:** gdstudio #1155,
   2026-11-11 (`tests/gameplay/test_own_clips.gd`, `test_footsteps.gd`).
+- **Approach:** Hold a rolling foot's joint along the floor and in height apart, on the bodies the game wears
+  (`CharacterBodies`), and give a limit the import's own share: measure the same joint with
+  `compression/enabled` off before blaming the clip. **Watch out for:** on the prototype bodies the toes' joint
+  stays within 0.4 mm along the floor and comes down 5.2 to 5.7 mm as the foot rolls off (the build sets the
+  turned-up sole's skin on the floor), which one distance read as a 5 mm slide; and the idle's planted joints
+  move 0.2 mm in the build and 1.1 to 1.4 mm in Godot, the rest being the compressed tracks' rounding (0.2 to
+  0.5 mm with compression off), over the test's first 1 mm. **Seen:** gdstudio #1155 (PR #1275), 2026-11-11
+  (`ROLLING` 1 mm, `ROLL_DROP` 7 mm, `PLANTED` 1.5 mm).
 - **Approach:** After a gait changes, run every suite that measures a pose over the gait, not only the gait's
   own: an action that fades in over it (the vault, `test_vault_contacts.gd`), the carried weapon
   (`test_pistol_clearance.gd`) and a shot at a running body (`test_net_ai_rewind.gd`). **Watch out for:** the
