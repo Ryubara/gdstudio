@@ -55,9 +55,9 @@ made: the stance is put on the two-handed aim clips after the tree.
   muzzle is within 3 degrees of the aim) and `test_pistol_hold.gd`'s one-handed reload while aiming, measured on every
   update. `tools/capture/one_hand_tour.tscn` films the aim, three shots, the look up and down, a reload and the let-go
   (`ONE_HAND=0` two-handed, `ONE_HAND_VIEW=side|front|hand|right|thumb|above|below`, `MODEL=male`) and prints the
-  barrel's pitch a tick. `tools/bench/hold_cost.tscn -- one_handed` measured about the two-handed aimed hold's cost, on
-  a machine too loaded for a number per character (40 characters: 39 to 43 ms a frame against 42 to 74 aimed and 20 to
-  30 with no hold); measure it again on a quiet machine.
+  barrel's pitch a tick. `tools/bench/hold_cost.tscn -- one_handed` costs about what the two-handed aimed hold
+  does: over three interleaved rounds on both bodies, headless, 40 characters, the median frame's work was 3.44 ms
+  one-handed, 3.26 ms aimed in two hands and 1.68 ms with no hold (about 44 and 39 microseconds a character).
 
 - **Approach:** Build a pose the library has no clip for on top of the nearest clip, after the tree, keeping what the
   clip aims (the barrel's direction) and moving only where the body is; read the live pose for a test inside
