@@ -80,6 +80,14 @@ another order; the menus-under-test entry covers the router alone -->
   so a pad test failed after the touch suite; a scan for `Input.action_press(` missed three suites that pressed with
   events and never released. **Seen:** Deadnight #456, 2026-11-02; Deadnight, 2026-11-05 (fix: `free_all` releases
   the mouse, `InputFixture.release_all()`, and the scan counts events).
+- **Approach:** A release-all records what the fixture pressed and lets go of exactly that, never a typed list of the
+  usual keys; when CI shuffles the suite order, name what is down before guessing (a probe suite run last that prints
+  each pressed key, action, mouse mask and pad button), then run `[leaker, victim]`. **Watch out for:** the kit's
+  `InputSim.release_all()` released ten named keys, so a suite that held Y left it down though it released in
+  `after_test`, and `Input.is_anything_pressed()` failed 141 times in a suite 58 places later, on two unrelated pull
+  requests and on `main` in that order; two suites that pressed with `Input.action_press` were suspected first and
+  were clean. **Seen:** gdstudio #1274 and #1171, 2026-11-12 (`test_player_input.gd` before `test_character_split.gd`;
+  fix: `InputSim` keeps what it pressed).
 - **Approach:** A helper that writes a static or a global (the device as touch, the opener a stub replaced, the join
   address a lobby fills) restores it in the same change that adds the write, and a suite that stubs the step which
   would consume a static clears it in `after_test`. **Watch out for:** `UiFitRun.set_window` set the device as touch

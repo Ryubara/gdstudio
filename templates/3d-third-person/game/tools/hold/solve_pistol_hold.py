@@ -78,6 +78,11 @@ THUMB_OVER_Y = 0.10  # how high in the gun the right thumb may lie there, beside
 # The left thumb lies ahead of the right one along the frame, above the trigger guard and under the slide.
 LEFT_THUMB_AT = np.array([-0.095, 0.074, 0.029])
 UNDER_GUARD_Y = 0.006  # the middle of a finger that lies under the trigger guard is no higher
+# The shooting hand's middle finger lies under the trigger guard, tight up against it (kit #1213): what a
+# millimetre of its first bone's middle above `UNDER_GUARD_Y` costs, in millimetres of contact. At 1 the seat
+# search on the prototype bodies stopped with the bone 0.5 mm over the test's limit (8 mm up the gun), paid
+# for by the thumb's root, which the lower hand takes off the tang.
+UNDER = 3.0
 # What a support finger's millimetre off the shooting hand costs, in millimetres of contact; the little finger's
 # more: at 0.5 the female prototype's lay 18 mm under the right hand, and at 2 for every finger the male's index
 # finger hooked under the trigger guard so far that the opened hand found no way off the gun.
@@ -85,6 +90,11 @@ OVER = 0.5
 OVER_LITTLE = 2.0
 CANT = (30.0, 45.0)  # the support hand's cant the search stays in, degrees (`left_cant`)
 REACH_SPARE = 0.010  # how much shorter than the arm the way from the left shoulder to the hand stays, metres
+# Under `REACH_LEAST` to spare, each millimetre costs `REACH_SHORT` more (kit #1213: the seat under the trigger
+# guard holds the gun 10 to 14 mm farther from the left shoulder, and at a millimetre a millimetre the search
+# took a place 4.6 mm out of the male arm's reach for the palm's sake).
+REACH_LEAST = 0.004
+REACH_SHORT = 20.0
 ACROSS_Z = -0.015  # a support finger's last bone is at least this far on the gun's right (-Z), metres
 OVER_NEAR = 0.002  # how near the shooting hand's skin a support finger's bone counts as lying on it, metres
 WEB_Y = 0.07  # how high on the gun the thumb's root should sit (the web under the tang)
@@ -98,7 +108,10 @@ FRAME_TRIGGER_CLEAR = 0.034
 REFERENCE_SEAT = [0.0234, -0.9867, 0.1609, -0.0805, 0.1585, 0.9841, -0.9965, -0.036, -0.0757, -0.0264, 0.1234, 0.0091]
 # The seat the template ships, as a move from the reference, and the left hand's place as a move from the right
 # hand's mirrored across the pistol.
-SEAT = [0.022, -0.035, 0.0306, -4.0, -23.5, -15.5]
+# `SEAT` is the female body's (kit #1213: the right middle finger under the trigger guard, the web kept under
+# the tang by tipping the hand, not by sliding it down the grip); the male body's is `--seat=` `SEAT_MALE`.
+SEAT = [0.016, -0.025, 0.0069, 3.0, -8.5, -29.0]
+SEAT_MALE = [0.01, -0.021, 0.0075, -6.0, -12.0, -28.0]
 LEFT = [-0.0097, -0.0322, 0.0131, -11.85, -0.84, 26.56]
 # The left hand's place while it pushes the magazine in, as a move from `MAGAZINE_FROM` (about the middle of
 # the magazine's base): rolled about the barrel's line until the heel of the palm is under the base.
@@ -210,7 +223,7 @@ class Scene:
             # The triangles of this mannequin's hand, as indices into the hand's own points.
             mine = (self.rig.model[hand.ids][hand.tris[:, 0]] == index) & ~left_out
             tris = [points[hand.tris[mine]]] + [moved[hand.tris[mine & whole]] for whole, moved in extra]
-            tris.append(wrist_cap(tris[0]))
+            tris.append(hold_field.ring_caps(tris[0]))
             grid = hold_field.PiecesField(np.concatenate(tris), HAND_LOW, HAND_HIGH, 0.0015, rays=(0, 1, 2))
             fields.append(lambda at, grid=grid: grid(self.to_gun(at)))
         self.frozen[hand.side] = fields
@@ -225,39 +238,6 @@ class Scene:
             np.concatenate([all_points[kept], faces]),
             np.concatenate([models[kept], face_models]),
         )
-
-
-def wrist_cap(tris):
-    """Triangles that close a hand's skin where it is open (the palm ends at the wrist, a finger's bone
-    where the skin's selection ends): each ring of edges only one triangle has, joined to its own middle,
-    so every piece stays its own closed piece. The forearm goes on at the wrist, so what lies in that
-    opening is inside the arm; left open, the rays that count a point inside or out disagree there, and a
-    thumb laid in the other wrist read 0.7 mm off it where the game's measure read 8.9 mm in."""
-    keys = np.round(tris.reshape(-1, 3) * 1e5).astype(np.int64)
-    welded, ids = np.unique(keys, axis=0, return_inverse=True)
-    ids = ids.reshape(-1, 3)
-    edges = np.concatenate([ids[:, [0, 1]], ids[:, [1, 2]], ids[:, [2, 0]]])
-    lone, counts = np.unique(np.sort(edges, axis=1), axis=0, return_counts=True)
-    lone = lone[counts == 1]
-    if len(lone) == 0:
-        return np.empty((0, 3, 3))
-    ring = {int(v): int(v) for v in lone.ravel()}
-
-    def find(v):
-        while ring[v] != v:
-            ring[v] = ring[ring[v]]
-            v = ring[v]
-        return v
-
-    for a, b in lone:
-        ring[find(int(a))] = find(int(b))
-    of = np.array([find(int(a)) for a in lone[:, 0]])
-    caps = []
-    for root in np.unique(of):
-        corners = welded[lone[of == root]] * 1e-5
-        middle = np.broadcast_to(corners.reshape(-1, 3).mean(axis=0), (len(corners), 1, 3))
-        caps.append(np.concatenate([corners, middle], axis=1))
-    return np.concatenate(caps)
 
 
 def finger_cost(scene, hand, finger, angles, mode):
@@ -275,7 +255,11 @@ def finger_cost(scene, hand, finger, angles, mode):
         rots = local_rotations(finger, np.atleast_2d(angles))
         deep = np.maximum(deep, relu(hand.finger_depth(finger, rots, *other) - TOL))
     if mode == "cup" and finger == "thumb":
-        deep = relu(CUP_THUMB_OFF - sd.min(axis=1))
+        # Its own skin stays off every surface, and the other hand's skin stays out of it all the same: the
+        # cupped thumb lies up the grip's right side, where the seat under the trigger guard puts the right
+        # little finger's knuckle (kit #1213: 5.0 mm inside it, between the thumb's own vertices).
+        inside = deep if other is not None else 0.0
+        deep = np.maximum(relu(CUP_THUMB_OFF - sd.min(axis=1)), inside)
     cost = 100.0 * deep
     if mode == "cup":
         # The cupped fingers ride the hand up the magazine's line and a little way down it again, so each is
@@ -290,8 +274,14 @@ def finger_cost(scene, hand, finger, angles, mode):
     tip_at = scene.to_gun(pts[:, tip].mean(axis=1))
     mid_at = scene.to_gun(pts[:, mid].mean(axis=1))
     touch = [np.abs(low - TARGET) for low in lows]
-    if mode == "wrap":
+    if mode in ("wrap", "under"):
         cost += touch[2] + touch[1] + 0.5 * touch[0] + natural(a)
+        if mode == "under":
+            # The middle finger round the front of the grip under the trigger guard, not beside the guard:
+            # the middle of its first bone, between that bone's two joints, as the test measures it.
+            bones = hand.finger_bones(finger, local_rotations(finger, a))[:, :2, :3, 3]
+            first_at = scene.to_gun(bones.mean(axis=1))
+            cost += UNDER * relu(first_at[:, 1] - UNDER_GUARD_Y)
     elif mode == "over":
         # The support hand's fingers lie over the shooting hand's fingers, never beside them on the gun:
         # the middle and last bones are on the other hand's skin, whatever else they touch.
@@ -436,7 +426,7 @@ def close_right(scene, quick=False, trigger=True):
     hand = scene.right
     total = 0.0
     table = {}
-    modes = {"index": "trigger" if trigger else "frame", "thumb": "thumb"}
+    modes = {"index": "trigger" if trigger else "frame", "middle": "under", "thumb": "thumb"}
     for _ in range(1 if quick else 2):
         total = 0.0
         for finger in FINGERS:
@@ -445,10 +435,16 @@ def close_right(scene, quick=False, trigger=True):
             hand.set(finger, best)
             total += cost
             table[finger] = (mode, best, cost)
-    palm = scene.field(hand, hand.points(hand.part["palm"]), hand.part["palm"])
+    palm = right_palm(scene)
     total += abs(palm.min() - TARGET) + 100.0 * relu(-palm.min() - TOL)
     table["palm"] = palm.min()
     return total, table
+
+
+def right_palm(scene):
+    """The distances from all over the right palm's faces to the gun (kit #1213): its vertices alone read the
+    male palm 1.0 mm in where the game's measure, which samples the faces, read 4.9 mm."""
+    return scene.gun(scene.to_gun(scene.right.palm_points()))
 
 
 def seat_from(scene, params):
@@ -473,7 +469,7 @@ def settle(scene, params):
     def gap(z):
         params[2] = z
         scene.seat = seat_from(scene, params)
-        return scene.field(scene.right, scene.right.points(scene.right.part["palm"])).min() - TARGET
+        return right_palm(scene).min() - TARGET
 
     low, high = -0.01, 0.08
     for _ in range(24):
@@ -609,7 +605,8 @@ def left_score(scene, params, quick=True):
     # hand to 51 degrees for fingertips that then lay off the right hand), a millimetre of reach the arm lacks
     # a millimetre.
     total += 2e-3 * (relu(CANT[0] - cant) + relu(cant - CANT[1]))
-    total += relu(max(over for _, _, over in reach(scene, in_gun)) + REACH_SPARE)
+    over = max(over for _, _, over in reach(scene, in_gun))
+    total += relu(over + REACH_SPARE) + REACH_SHORT * relu(over + REACH_LEAST)
     table["cant"] = cant
     return total, table
 
@@ -671,7 +668,11 @@ def place_magazine(scene, support, params):
 
     def gap(lift):
         put(lift)
-        return scene.field(hand, hand.points(palm), palm).min() - TARGET
+        # The palm's vertices and points all over its faces: the right little finger's tip, which the seat
+        # under the trigger guard puts by the grip's foot, went 2.7 to 3.6 mm into a face between them
+        # (kit #1213).
+        faces = min(part.min() for part in scene.palm(hand))
+        return min(scene.field(hand, hand.points(palm), palm).min(), faces) - TARGET
 
     # Up from well below in 1 mm steps to the first touch (past the gun the palm is clear again, so no
     # bisection over the whole way), then to the place between the last two steps.

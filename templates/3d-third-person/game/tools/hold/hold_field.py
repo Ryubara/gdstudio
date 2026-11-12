@@ -120,6 +120,39 @@ def crossings(tris, low, step, shape, axis):
     return np.transpose(count, np.argsort(order))
 
 
+def ring_caps(tris):
+    """Triangles that close a hand's skin where it is open (the palm ends at the wrist, a finger's bone
+    where the skin's selection ends): each ring of edges only one triangle has, joined to its own middle,
+    so every piece stays its own closed piece. The forearm goes on at the wrist, so what lies in that
+    opening is inside the arm; left open, the rays that count a point inside or out disagree there, and a
+    thumb laid in the other wrist read 0.7 mm off it where the game's measure read 8.9 mm in."""
+    keys = np.round(tris.reshape(-1, 3) * 1e5).astype(np.int64)
+    welded, ids = np.unique(keys, axis=0, return_inverse=True)
+    ids = ids.reshape(-1, 3)
+    edges = np.concatenate([ids[:, [0, 1]], ids[:, [1, 2]], ids[:, [2, 0]]])
+    lone, counts = np.unique(np.sort(edges, axis=1), axis=0, return_counts=True)
+    lone = lone[counts == 1]
+    if len(lone) == 0:
+        return np.empty((0, 3, 3))
+    ring = {int(v): int(v) for v in lone.ravel()}
+
+    def find(v):
+        while ring[v] != v:
+            ring[v] = ring[ring[v]]
+            v = ring[v]
+        return v
+
+    for a, b in lone:
+        ring[find(int(a))] = find(int(b))
+    of = np.array([find(int(a)) for a in lone[:, 0]])
+    caps = []
+    for root in np.unique(of):
+        corners = welded[lone[of == root]] * 1e-5
+        middle = np.broadcast_to(corners.reshape(-1, 3).mean(axis=0), (len(corners), 1, 3))
+        caps.append(np.concatenate([corners, middle], axis=1))
+    return np.concatenate(caps)
+
+
 class PiecesField:
     """The signed distance to a surface built from closed pieces that overlap (a kitbashed weapon, the
     mannequin's hand of finger capsules and joint balls), on a grid: negative inside a piece, by the
