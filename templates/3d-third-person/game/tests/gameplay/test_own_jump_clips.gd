@@ -17,6 +17,9 @@ const MODELS: Array[String] = [
 ]
 ## How far the lowest skin of the fall's first foot may be from the capsule's bottom (m).
 const SOLE := 0.002
+## How far the compressed import may move a bone's place (m) and turn (degrees) from the file's.
+const IMPORT_PLACE := 0.01
+const IMPORT_TURN := 2.0
 
 var _model: Node3D
 var _skeleton: Skeleton3D
@@ -42,6 +45,12 @@ func _spawn_player() -> Player:
 	player.start_at_spawn = false
 	add_child(player)
 	return player
+
+
+# How far the left hand is from where the right hand would be in a mirror pose (m): the right
+# hand's place reflected across the body's middle, the model's x = 0.
+func _mirror_gap(left: Vector3, right: Vector3) -> float:
+	return left.distance_to(Vector3(-right.x, right.y, right.z))
 
 
 # Every bone's place and turn in the model's space with a clip held at a time.
@@ -137,8 +146,8 @@ func test_a_landing_is_picked_by_fall_speed_and_gives_control_back_in_time() -> 
 
 func test_the_jump_is_not_a_mirror_of_itself() -> void:
 	# No pose of the jump is the same on both sides (kit docs, own-animation.md#feel): in the air
-	# the right knee leads, the feet are apart fore and aft and the hands are at different heights;
-	# a landing's right foot stands a step ahead of the left at its lowest.
+	# the right knee leads and the feet are apart fore and aft; a landing's right foot stands a step
+	# ahead of the left at its lowest; and no hand is where the other's mirror image would be.
 	var records := _records()
 	for model_path in MODELS:
 		_stage(model_path)
@@ -162,7 +171,7 @@ func test_the_jump_is_not_a_mirror_of_itself() -> void:
 				. is_greater(0.05)
 			)
 			(
-				assert_float(absf(hand_l.origin.y - hand_r.origin.y))
+				assert_float(_mirror_gap(hand_l.origin, hand_r.origin))
 				. override_failure_message(where)
 				. is_greater(0.05)
 			)
@@ -183,10 +192,69 @@ func test_the_jump_is_not_a_mirror_of_itself() -> void:
 				. is_greater(0.1)
 			)
 			(
-				assert_float(absf(hand_l.origin.z - hand_r.origin.z))
+				assert_float(_mirror_gap(hand_l.origin, hand_r.origin))
 				. override_failure_message(where)
 				. is_greater(0.05)
 			)
+
+
+func test_the_import_keeps_every_clip_s_motion() -> void:
+	# Godot's compressed import cuts the library into pages; with 8 KiB pages it dropped the
+	# pelvis's place keys on frames 16 to 28 of `Land_Hard` (the feet 173 to 194 mm off the
+	# floor), with 32 the track is whole (kit docs, third-person/clips.md#animation-libraries).
+	# Every bone's place and turn in the imported clips against the same file read uncompressed.
+	var state := GLTFState.new()
+	assert_int(GLTFDocument.new().append_from_file(OWN, state)).is_equal(OK)
+	var scene: Node = auto_free(GLTFDocument.new().generate_scene(state))
+	var raw: AnimationPlayer = scene.find_children("*", "AnimationPlayer", true, false)[0]
+	var imported: AnimationLibrary = load(OWN)
+	var compared := 0
+	for clip: StringName in imported.get_animation_list():
+		var packed := imported.get_animation(clip)
+		# The file names a loop `<name>_Loop`; the importer takes the suffix off.
+		var named := clip if raw.has_animation(clip) else StringName(String(clip) + "_Loop")
+		assert_bool(raw.has_animation(named)).override_failure_message(String(clip)).is_true()
+		if not raw.has_animation(named):
+			continue
+		var source := raw.get_animation(named)
+		var tracks := {}
+		for track in source.get_track_count():
+			var bone := source.track_get_path(track).get_concatenated_subnames()
+			tracks["%s %d" % [bone, source.track_get_type(track)]] = track
+		var worst_place := 0.0
+		var worst_turn := 0.0
+		var where := ""
+		for track in packed.get_track_count():
+			var kind := packed.track_get_type(track)
+			var key := "%s %d" % [packed.track_get_path(track).get_concatenated_subnames(), kind]
+			if not tracks.has(key):
+				continue
+			var from: int = tracks[key]
+			for frame in int(round(packed.length * 30.0)) + 1:
+				var at := minf(frame / 30.0, packed.length)
+				if kind == Animation.TYPE_POSITION_3D:
+					var off := packed.position_track_interpolate(track, at).distance_to(
+						source.position_track_interpolate(from, at)
+					)
+					if off > worst_place:
+						worst_place = off
+						where = "%s frame %d" % [key, frame]
+				elif kind == Animation.TYPE_ROTATION_3D:
+					var turn := rad_to_deg(
+						packed.rotation_track_interpolate(track, at).angle_to(
+							source.rotation_track_interpolate(from, at)
+						)
+					)
+					worst_turn = maxf(worst_turn, turn)
+			compared += 1
+		var message := (
+			"%s: a place %.1f mm off (%s), a turn %.2f degrees off"
+			% [clip, worst_place * 1000.0, where, worst_turn]
+		)
+		print(message)
+		assert_float(worst_place).override_failure_message(message).is_less(IMPORT_PLACE)
+		assert_float(worst_turn).override_failure_message(message).is_less(IMPORT_TURN)
+	assert_int(compared).is_greater(0)
 
 
 func test_the_player_plays_our_jump_where_the_library_s_played() -> void:
