@@ -27,6 +27,10 @@ extends Resource
 @export var support_pose: HandPose
 @export var magazine_pose: HandPose
 @export var open_pose: HandPose
+## `WeaponHold.one_hand_pose` and `one_hand_way_pose` for this body, or none (the pistol's: kit
+## #1085, fitted to the default body's placement: kit #1274).
+@export var one_hand_pose: HandPose
+@export var one_hand_way_pose: HandPose
 ## The left hand's fingers closed on the new magazine and opened to take it (kit #1052:
 ## `WeaponHold.carry_pose`, `carry_open_pose`), for this body.
 @export var carry_pose: HandPose
