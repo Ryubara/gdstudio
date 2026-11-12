@@ -25,6 +25,10 @@
 ## gdstudio #1158): only part 1 is filmed, with no library body, and a clip that plays once is
 ## played again every two seconds. `OWN_FROM=<clip>` (`gds/Idle`) holds each body on that clip's
 ## first pose between two plays, so a stance change is seen leaving the pose it joins.
+## `OWN_PLAYER=<clip>` (`gds/Crouch_To_Stand`) films a shipped clip the tree does not play yet on
+## the real player, from the game's own camera and nothing else: the tree is off, the body rests
+## on `OWN_FROM`'s first pose, plays the clip and goes on into `OWN_INTO` (`gds/Idle`), every
+## three seconds, five seconds from behind and five from the front.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -40,6 +44,9 @@ const STAND := 3.0
 const WALK := 1.5
 const SETTLE := 2.0
 const FRONT := 2.5
+## `OWN_PLAYER`: seconds between two plays, and the rest on the pose the clip leaves.
+const PLAYER_EVERY := 3.0
+const PLAYER_REST := 0.8
 
 var _clips: Array[StringName] = []
 var _library: AnimationLibrary
@@ -54,6 +61,8 @@ var _crouch := false
 var _row_players: Array[AnimationPlayer] = []
 var _from := &""
 var _replayed := 0.0
+var _shown := &""
+var _into := &""
 
 @onready var _rig: PlayerRig = $Main/PlayerRig
 
@@ -79,7 +88,14 @@ func _ready() -> void:
 	_label.add_theme_font_size_override(&"font_size", 34)
 	layer.add_child(_label)
 	var only := OS.get_environment("OWN_ONLY")
-	if only != "":
+	_shown = StringName(OS.get_environment("OWN_PLAYER"))
+	_into = StringName(OS.get_environment("OWN_INTO"))
+	if _shown != &"":
+		(_rig.player.get_node("AnimationTree") as AnimationTree).active = false
+		_label.text = "shipped %s, from the game's camera" % _shown
+		_replayed = -PLAYER_EVERY
+		_part = 2
+	elif only != "":
 		var wanted := _clips[-1] if only == "Library" else StringName("review/" + only)
 		if only == "Shipped":
 			wanted = _rig.player.get_node("Animation").get(_slot)
@@ -95,8 +111,10 @@ func _physics_process(delta: float) -> void:
 	_clock += delta
 	if _part == 0:
 		_film_row()
-	else:
+	elif _part == 1:
 		_film_player()
+	else:
+		_film_shipped()
 
 
 # Part 1: the row, from behind and then from the front.
@@ -171,6 +189,26 @@ func _film_player() -> void:
 	else:
 		Input.action_release(&"move_forward")
 	_face(180.0 if at >= STAND + WALK + SETTLE else 0.0)
+
+
+# `OWN_PLAYER`: the shipped clip on the real player with the tree off, from the game's camera.
+func _film_shipped() -> void:
+	_face(180.0 if _clock >= ROW_SECONDS else 0.0)
+	if _clock >= 2.0 * ROW_SECONDS:
+		_finish()
+		return
+	if _clock - _replayed < PLAYER_EVERY:
+		return
+	_replayed = _clock
+	var player: AnimationPlayer = _rig.player.get_node("AnimationPlayer")
+	if _from != &"":
+		player.play(_from)
+		player.seek(0.0, true)
+		player.pause()
+	await get_tree().create_timer(PLAYER_REST, false, true).timeout
+	player.play(_shown)
+	if _into != &"":
+		player.queue(_into)
 
 
 func _build_row() -> void:

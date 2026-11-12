@@ -260,7 +260,7 @@
    "Tried: the loose hand overlap (3 frames, 0.35 past): the left hand trailed 21 mm into the thigh that rose under it; the forearm and the hand trail 1.5 frames here."
   ],
   "crouch_to_stand": [
-   "Shipped as gds/Crouch_To_Stand (the maintainer's choice, 2026-11-12). Loose: 20 frames, the right foot landing at frame 16, the trunk unfolding last; the rise stops at 0.50 of gravity.",
+   "Kept for review (shipped first, then the maintainer chose A on 2026-11-12). Loose: 20 frames, the right foot landing at frame 16, the trunk unfolding last; the rise stops at 0.50 of gravity.",
    "Tried: the foot landing at frame 18: the head and the left forearm kicked 0.8 and 1.1 degrees on the landing frame as the ends were let go; it lands at 16 and the ends are let go over 4 frames."
   ]
  },

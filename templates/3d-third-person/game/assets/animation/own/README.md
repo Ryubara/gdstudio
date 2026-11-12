@@ -260,8 +260,11 @@ body.
 | A planted sole off the floor, `form_female` and `form_male` | 0.0, 0.3 mm | 0.1, 0.3 | 0.1, 0.3 |
 | Limbs inside limbs, the four bodies | 0 mm | 0 | 0 |
 
-**B is shipped for all four** (`picks.json`): the maintainer's choice, `Crouch_Walk` on 2026-11-11 and
-`Crouch_Idle`, `Stand_To_Crouch` and `Crouch_To_Stand` on 2026-11-12; A and C stay in the review files. Every
+**B is shipped for `Crouch_Idle`, `Crouch_Walk` and `Stand_To_Crouch`, and A for `Crouch_To_Stand`**
+(`picks.json`): the maintainer's choice, `Crouch_Walk` on 2026-11-11 and the rest on 2026-11-12 (the stand-up
+first B, then A the same day: 16 frames, the quicker rise); the other variants stay in the review files. On
+`form_male` the standing end of both stance changes reads 2.1 mm, thigh in thigh, which is the shipped idle's
+own standing pose on that body (`bodies_overlap.json`; the limit is 5). Every
 variant of a stance change joins the shipped idles and every variant of the walk is carried like the shipped
 crouch idle, so the tables above are A, B and C on idle B's pose, and the walk's default carriage
 (`clips/crouch_walk.py`: `lift`, `chest_more`, `arm_out`, `arm_fore`) is the one that fits it: on the carriage
@@ -276,8 +279,9 @@ its standing place, so one step of the right foot makes the stance.
   entry's first frame to the end of its contact the ball of the foot stays on its place while the heel may rise.
 - The stance changes do not travel. The left foot is down for the whole clip; the right has two contacts with its
   step between them (`contacts`), and a `footstep` event where it lands. `joins` names the shipped clips whose
-  first poses the ends are, and the event `crouched` (frame 19 of 20) or `rising` marks where the legs' fold ends
-  or begins. They are 0.67 s long against a `crouch_time` of 0.2 s: going down, the capsule and the camera get
+  first poses the ends are, and the event `crouched` (frame 19 of 20) or `rising` (frame 1 of 16) marks where the
+  legs' fold ends or begins. They are 0.67 s down and 0.53 s up against a `crouch_time` of 0.2 s: going down, the
+  capsule and the camera get
   there first; coming up, the capsule is full height before the body is. The tree that plays them is kit #1158.
 - The crouch stands behind the root: its pelvis is 0.36 m behind it and its rear foot 0.65 m (the library's
   pelvis is 0.28 m behind), since the front foot keeps the standing idle's place.

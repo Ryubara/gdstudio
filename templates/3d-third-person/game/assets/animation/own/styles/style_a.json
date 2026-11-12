@@ -81,7 +81,7 @@
    "Could not be done: the controller's crouch_time of 0.2 s (6 frames). The centre of mass goes down 0.45 m, which a free fall takes 9 frames over; the clip is played whole, or sped up by the tree (#1158)."
   ],
   "crouch_to_stand": [
-   "Kept for review (the maintainer chose B on 2026-11-12), leaving the shipped crouch idle B: 16 frames; the legs drive first, the right foot leaves its ball at frame 6 and lands flat beside the left at frame 14, the trunk unfolds after; the rise stops at 0.94 of gravity.",
+   "Shipped as gds/Crouch_To_Stand (the maintainer's choice, 2026-11-12, after B the same day), leaving the shipped crouch idle B: 16 frames; the legs drive first, the right foot leaves its ball at frame 6 and lands flat beside the left at frame 14, the trunk unfolds after; the rise stops at 0.94 of gravity.",
    "Tried: keeping the left forearm on the thigh by a constraint all the way up: the arm jumped 40 to 63 degrees in a frame where the constraint ran out; each arm's numbers are mixed instead and open 6 and 12 degrees round the thighs."
   ]
  }
