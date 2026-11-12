@@ -4,8 +4,24 @@ Four clips for a character that lies down and crawls, made by GDStudio from noth
 Animation Library has none. They are in `prone.glb`, which Godot imports as an `AnimationLibrary` the same way as
 `assets/animation/universal/`: add it to an `AnimationPlayer` as the library `prone` and the clips are
 `prone/Prone_Idle`, `prone/Crawl_Fwd`, `prone/Crouch_To_Prone` and `prone/Prone_To_Crouch` (the import drops `_Loop`
-from a looping clip's name and makes it loop). The player scene does not hold the library yet: the prone stance
-(kit #1012) adds it with the code that plays it.
+from a looping clip's name and makes it loop). The character scene
+(`gameplay/character/character_dressed.tscn`) holds it: the `AnimationPlayer` has `prone.glb` as its library `prone`,
+and the `Animation` node's `prone_libraries` names `prone_male.glb` for the male mannequin, swapped in when the game
+sets that model (kit #1012, #1090).
+
+**One file a mannequin** (kit #1090). The library is always named `prone` and holds the same four clip names, lengths
+and crawl speed; which file it is loaded from follows the model:
+
+| Model | The library `prone` is |
+| --- | --- |
+| `assets/characters/mannequin/mannequin_female.glb` (the default) | `res://assets/animation/prone/prone.glb` |
+| `assets/characters/mannequin/mannequin_male.glb` | `res://assets/animation/prone/prone_male.glb` |
+
+A clip holds the pelvis's height and every joint angle that sets an elbow's or a knee's height, so one file cannot
+rest both bodies on the floor: in `prone.glb` the male, whose upper arms are 5 cm longer (0.27 m against 0.22 m) and
+whose limbs are thicker, lay with his forearms 3.7 to 4.4 cm, his fists 2.3 to 3.0 cm and his thighs and shins about
+3 cm under it. A model that is neither takes the file of the nearer upper arm (`upperarm_l` to `lowerarm_l` in the
+rest pose) and is measured with `tests/fixtures/skinned_parts.gd` before it ships.
 
 | Clip in the file | Length | Loops | What it is |
 | --- | --- | --- | --- |
@@ -19,7 +35,8 @@ body), on the 65 bones of the Quaternius universal rig.
 
 ## Numbers for the code
 
-Measured by the build on the female mannequin, the template's default (`build_prone_clips.py --report`):
+Measured by the build on the female mannequin, the template's default (`build_prone_clips.py --report`); the
+male's file is [below](#the-males-file):
 
 - **Crawl speed: 0.618 m/s** at the clip's own rate. A planted elbow travels 0.30 m under the body in 52 % of the
   cycle; one cycle (two pulls) covers 0.577 m. Play the clip at `speed / 0.618` and nothing slides. A foot is planted
@@ -58,12 +75,50 @@ Measured by the build on the female mannequin, the template's default (`build_pr
 - **Backing up and turning:** there is no backward or turning clip. Play `Crawl_Fwd` backwards to back up, and turn
   the body while it plays to turn (the shipped games studied do the same or turn without a clip).
 
-On the male mannequin the same clips play (the rig is the same), but his upper arms are 5 cm longer and his limbs
-thicker, so a planted elbow rolls up to 3 cm and he lies in the floor: the build measures his forearms 3.7 cm (lying
-still) to 4.4 cm (crawling) and his fists 2.3 to 3.0 cm under it, and his thighs and shins about 3 cm (with flat palms
-the forearms were 4.3 to 4.6 cm and the hands 3.1 to 3.5 cm under). One clip file cannot rest both bodies on the
-floor; a set solved on his own body would (kit #1090). `tests/gameplay/test_prone_clips.gd` holds both models to the
-bone numbers, the forearms' roll and the fists.
+`tests/gameplay/test_prone_clips.gd` holds both models, each in its own file, to the bone numbers, the forearms'
+roll, the fists and the floor under the skin.
+
+## The male's file
+
+`prone_male.glb` is the same four clips solved on the male mannequin's own skeleton and skin
+(`build_prone_clips.py --body male`; the build's `BODIES` holds every number that differs from the female's, with
+why). The look is the female's: the forearms 40 degrees inward in the crawl and 29.5 lying still, rolled 45 degrees
+onto their outer edges, the hands in fists, the same timing, stride and **crawl speed (0.618 m/s)**, so the code needs
+one set of numbers for both.
+
+| Measured by the build | Female in `prone.glb` | Male in `prone.glb` (before) | Male in `prone_male.glb` |
+| --- | --- | --- | --- |
+| Forearms' lowest skin, lying still and crawling | 0.5 and 0.6 mm under the floor | 37.1 and 44.3 mm | 1.1 and 1.2 mm |
+| Fists' lowest skin, lying still and crawling | 1.2 mm | 23.0 and 30.1 mm | 1.5 mm |
+| Flat hands in the transitions | 2.7 mm | 36.3 mm | 1.7 mm |
+| Thighs, lying still | 3.0 mm | 30.8 mm | 3.1 mm |
+| Shins, at their lowest (the back knee going down) | 5.0 mm | 28.4 mm | 4.2 mm |
+| A planted elbow's slide in the crawl | 0.0 mm | 30 mm | 0.0 mm |
+| Limbs inside each other, at most | 0.0 mm | 0.8 mm | 0.1 mm |
+| The fist: deepest finger piece, thumb off the fingers | 1.3 mm, 0.0 mm | 2.6 mm, 4.0 mm | 1.4 mm, 2.0 mm |
+| Top of the head, lying still and crawling | 0.48 and 0.52 m | | 0.51 and 0.55 m |
+| Wrist from the centre line, lying still | 12.5 cm | 16.5 cm | 12.3 cm |
+
+Godot's import drops keys that are within half a degree of their neighbours, so in the game a planted hand reads up
+to 3 mm lower than the build's number (4.1 mm under the floor at most, on both mannequins); the Godot test measures
+what is played and holds the male to 5 mm.
+
+What had to differ, and why:
+
+- **Thicker limbs.** His elbow joint rests 5.7 cm over the floor (hers 4.1), his wrist 6.7 cm under a fist and 5.1 cm
+  under a flat hand, his ankle 4.4 cm, and his toes bend at 2.3 cm. His knees are 2.5 cm thicker: with her leg, which
+  hangs the knee 5 cm under the line from hip to ankle, he lay on his knees and elbows with the belly 5 cm off the
+  floor, so his lying leg is straighter (0.998 of its length against 0.992) and his belly rests 1 cm over the floor.
+- **Longer upper arms.** On elbows placed as hers his shoulders rode 7 cm higher and the back arched up to the head
+  (10 cm higher than hers). His collarbones draw back instead (16 degrees lying still, 12 crawling, where hers push 4
+  and 11 toward the floor): the chest hangs between the shoulders, as it does on anyone propped on the elbows. His
+  elbows rest 11 cm outside the shoulders (hers 9.5 lying, 8.5 crawling) and, lying still, 8 cm ahead of them
+  (hers 3.5). His head is then 3.5 cm higher than hers, the difference of the two bodies' thickness.
+- **The transitions.** The pelvis passes 3.5 cm higher where the back knee comes just over the floor going down, the
+  feet lift 2 cm more as they come onto their toes to get up, and the elbows (going down) and the left hand (coming
+  up) pass 10 cm and 4 cm further outside the front knee, which his longer arm otherwise met by 9 mm.
+- **The fist.** His fingers are longer: the middle joints curl 4 degrees less, which puts his fingertips on the palm
+  (0.1 to 1 mm off it) where the shared fist had them 2 to 2.6 mm inside it. The female's file keeps the shared fist.
 
 ## Weapon
 
@@ -74,20 +129,25 @@ dragged through the floor. The code holsters or hides the weapon while prone. A 
 ## How they are made
 
 `build_prone_clips.py` solves every frame from a few targets (where the pelvis lies, how the spine arches, where each
-elbow, hand and foot rests on the floor), keys the result on the female mannequin's armature in the pinned Blender and
+elbow, hand and foot rests on the floor), keys the result on the armature of the mannequin it is given (`--model`, with
+`--body` naming whose numbers to use) in the pinned Blender and
 exports the armature with a one-triangle stand-in mesh, so the file has a skin for Godot's `Skeleton3D` and no copy of
 the mannequin. The chest rides on the planted elbows: the spine pitches and rolls by the amount that keeps each
 shoulder one upper arm from its elbow. The only pose read from the library is frame 0 of `Crouch_Idle_Loop`, where the
 transitions join. The build fails before it exports when a loop does not close, a planted joint slides, the body sinks
 more than 2 cm into the floor, a transition misses the pose it joins, a part of the body goes more than 5 mm into
-another on either mannequin (`../limb_overlap.py`, the check the template's clip builds share), a hand of the
-female goes more than 5 mm under the floor on any frame, or the fist does not fit on either mannequin (a finger
+another (`../limb_overlap.py`, the check the template's clip builds share), a hand of the
+female (in the male's file: a hand, forearm, thigh or shin of the male) goes more than 5 mm under the floor on any
+frame, or the fist does not fit (a finger
 piece more than 3 mm inside the palm or another finger, or the thumb more than 5 mm off the fingers:
-`fist_numbers`, on the mesh's own pieces). The report (`--report`) has every frame's lowest hand and forearm vertex
-on both mannequins (`floor_mm`) and the fists' fit (`fist_mm`).
+`fist_numbers`, on the mesh's own pieces). The female's file is held to the overlap and fist limits on both
+mannequins, as it was made; the male's on the male, the only body that plays it. The report (`--report`) has every
+frame's lowest hand, forearm, thigh and shin vertex on both mannequins (`floor_mm`) and the fists' fit (`fist_mm`).
+A rebuild writes the same bytes, so `cmp` against the committed file proves a change to the script left a file alone.
 
 ```text
-blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --male <mannequin_male.glb> --library <ual1.glb> --out <prone.glb>
+blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --other <mannequin_male.glb> --library <ual1.glb> --out <prone.glb>
+blender -b --factory-startup -P build_prone_clips.py -- --body male --model <mannequin_male.glb> --other <mannequin_female.glb> --library <ual1.glb> --out <prone_male.glb>
 blender -b --factory-startup -P render_clip_sheets.py -- --model <mannequin.glb> --clips <prone.glb> --out <folder> --travel Crawl_Fwd_Loop=0.618
 blender -b --factory-startup -P render_clip_sheets.py -- --model <mannequin.glb> --clips <prone.glb> --out <folder> --clip Crawl_Fwd_Loop --travel Crawl_Fwd_Loop=0.618 --views top --scale 1.35 --ahead 0.6 --frames 15 --wrap 5 --tile 420x360
 ```
@@ -97,7 +157,8 @@ the top; the third line is the close-up of the arms from above over one cycle, a
 frames over a part of a clip. `tools/capture/prone_clips_tour.tscn` plays the four clips on the mannequin in Godot
 from the side, the front quarter, the game camera's place and close over the arms, for a clip or stills
 (`PRONE_FISTS=<folder>`: one sheet of the forearms and fists at five moments of the crawl and in the idle, from the
-game camera's place, the side, the front and above; `MODEL=male` for the other mannequin).
+game camera's place, the side, the front and above; `MODEL=male` for the other mannequin, which plays its own
+file).
 
 ## How people crawl (the research behind the arms)
 
@@ -127,6 +188,7 @@ What the clips take from it:
 ## Where it comes from
 
 The motion is GDStudio's own work, under this repository's licence; nothing in it is copied from another game, pack or
-capture. The skeleton in `prone.glb` (bone names, parents and rest pose) is the Quaternius universal rig's, CC0, taken
-from `assets/characters/mannequin/mannequin_female.glb` (its `LICENSE.md` has the source). The timing was set after
+capture. The skeleton in `prone.glb` and in `prone_male.glb` (bone names, parents and rest pose) is the Quaternius
+universal rig's, CC0, taken from `assets/characters/mannequin/mannequin_female.glb` and `mannequin_male.glb` (their
+`LICENSE.md` has the source). The timing was set after
 studying how shipped games and the army's low crawl are described (kit pull request of #1009).

@@ -36,7 +36,8 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   so an AI is held too), and `PlayerCamera.pitch_limits()` draws the orbit in to the same limits as the body lies down.
 - **The picture.** `Character.State.PRONE` (after `DEAD`, so the snapshot's state byte keeps its old numbers),
   `prone_changed(down)`, the read-only `prone` and `prone_amount`. `CharacterAnimation` has a `prone` state that
-  plays the template's own clips (gdstudio #1009, the library `prone` from `assets/animation/prone/prone.glb`;
+  plays the template's own clips (gdstudio #1009, the library `prone` from `assets/animation/prone/prone.glb`, and
+  `prone_male.glb` for the male, kit #1090, with the same clip names, lengths and crawl speed;
   [how they are solved](../../../tools/blender/animation.md#solved-clips)): `prone/Prone_Idle` at `prone_idle_pace`,
   and `prone/Crawl_Fwd`, which replaces the idle over `blend_time` as soon as the body moves and plays at
   `ground speed / crawl_clip_speed` (0.618 m/s, the clip's stride), backwards when the body moves away from the way it
@@ -45,9 +46,10 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   1.0 s clips played in 0.5 and 0.7 s), from and to the crouch idle's first pose. The clips rest the body on the
   forearms and fists, so lying puts the weapon away (`ProneAnimation.stow_share`: its model hidden and the grip off)
   until the body aims. A model whose body needs clips of its own gets them from `prone_libraries` (its scene file to a
-  library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the
-  pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`), cosmetic and
-  never sent.
+  library with the same clip names), swapped in when the model is set or replaced, in the game only;
+  `character_dressed.tscn` names `prone_male.glb` for `mannequin_male.glb`, so the AI's enemies lie in his clips. The
+  share, the pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`),
+  cosmetic and never sent.
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
 studios; the template's run is 4.0 m/s and its walk 1.7):

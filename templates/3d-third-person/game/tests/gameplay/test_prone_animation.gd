@@ -18,6 +18,8 @@ const JOINTS := {
 	&"foot_r": FOOT_PLANTED,
 }
 const FEMALE := CharacterBodies.FEMALE
+const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const MALE_CLIPS := "res://assets/animation/prone/prone_male.glb"
 
 var _arena: PlayArena
 var _player: Player
@@ -200,4 +202,22 @@ func test_a_model_can_play_prone_clips_of_its_own() -> void:
 	assert_bool(player.has_animation(CharacterClips.CRAWL)).is_true()
 	_animation.prone_libraries = {}
 	model.rig_changed.emit(model.rig())
+	assert_object(player.get_animation_library(CharacterClips.LIBRARY_PRONE)).is_same(shared)
+
+
+# The character scene names the male mannequin's own file, so a body set to him (the AI's enemies,
+# a game's own pick) lies on the floor in his clips and goes back to hers with her model.
+func test_the_male_mannequin_gets_his_own_prone_clips() -> void:
+	var player: AnimationPlayer = _player.get_node("AnimationPlayer")
+	var model := _player.get_node("Model") as CharacterModel
+	var shared := player.get_animation_library(CharacterClips.LIBRARY_PRONE)
+	assert_str(shared.resource_path).is_equal("res://assets/animation/prone/prone.glb")
+	model.variant = load(MALE)
+	await InputSim.ticks(get_tree(), 2)
+	assert_str(model.rig().scene_file_path).is_equal(MALE)
+	var his := player.get_animation_library(CharacterClips.LIBRARY_PRONE)
+	assert_str(his.resource_path).is_equal(MALE_CLIPS)
+	assert_bool(player.has_animation(CharacterClips.CRAWL)).is_true()
+	model.variant = load(FEMALE)
+	await InputSim.ticks(get_tree(), 2)
 	assert_object(player.get_animation_library(CharacterClips.LIBRARY_PRONE)).is_same(shared)

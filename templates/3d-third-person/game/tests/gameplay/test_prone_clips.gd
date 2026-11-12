@@ -1,15 +1,39 @@
-# The prone and crawl clips (`assets/animation/prone/prone.glb`, kit #1009) import as a library
-# beside the Universal Animation Library and play on both mannequins: the loops close, the two
-# transitions start and end on the poses they join, the crawl's elbows and feet stay on their
-# place on the floor at the speed the clip was made for, and the body stays low.
+# The prone and crawl clips (kit #1009) import as a library beside the Universal Animation
+# Library, one file a mannequin (kit #1090): `assets/animation/prone/prone.glb` is solved on the
+# female and `prone_male.glb` on the male, whose upper arms are 5 cm longer and whose limbs are
+# thicker, with the same clip names, lengths and crawl speed. Each mannequin plays its own file
+# as the library `prone`: the loops close, the two transitions start and end on the poses they
+# join, the crawl's elbows and feet stay on their place on the floor at the speed the clip was
+# made for, the body stays low, and no hand, forearm, thigh or shin of the skinned mesh sinks
+# into the floor.
 extends GdUnitTestSuite
 
-const PRONE := "res://assets/animation/prone/prone.glb"
 const UAL1 := "res://assets/animation/universal/ual1.glb"
 const MODELS: Array[String] = [
 	"res://assets/characters/mannequin/mannequin_female.glb",
 	"res://assets/characters/mannequin/mannequin_male.glb",
 ]
+## The file each of `MODELS` plays as the library `prone`.
+const PRONE: Array[String] = [
+	"res://assets/animation/prone/prone.glb",
+	"res://assets/animation/prone/prone_male.glb",
+]
+## The parts of the body the floor is measured against, on the skinned mesh.
+const FLOOR_PARTS: Array[StringName] = [
+	&"hand_l",
+	&"hand_r",
+	&"lowerarm_l",
+	&"lowerarm_r",
+	&"thigh_l",
+	&"thigh_r",
+	&"calf_l",
+	&"calf_r",
+]
+const FEET: Array[StringName] = [&"foot_l", &"foot_r"]
+## Metres a part's skin may be under the floor (skin pressed on it) on any frame of any clip, for
+## each of `MODELS`. The male's is the bar of kit #1090; the female's back shin presses 5.0 mm
+## into the floor on one frame of going down, as her file was made (kit #1020).
+const FLOOR_LIMITS: Array[float] = [0.006, 0.005]
 ## The numbers of the clips' README, which the code that crawls reads.
 const CRAWL_SPEED := 0.618
 const CRAWL_SECONDS := 28.0 / 30.0
@@ -27,15 +51,15 @@ var _skeleton: Skeleton3D
 var _player: AnimationPlayer
 
 
-func _stage(model_path: String) -> void:
-	_model = auto_free((load(model_path) as PackedScene).instantiate())
+func _stage(index: int) -> void:
+	_model = auto_free((load(MODELS[index]) as PackedScene).instantiate())
 	add_child(_model)
 	_skeleton = _model.find_children("*", "Skeleton3D", true, false)[0]
 	_player = auto_free(AnimationPlayer.new())
 	add_child(_player)
 	_player.root_node = _player.get_path_to(_model)
 	_player.add_animation_library(&"ual1", load(UAL1))
-	_player.add_animation_library(&"prone", load(PRONE))
+	_player.add_animation_library(&"prone", load(PRONE[index]))
 
 
 # Every bone's place in the model's space with a clip held at a time.
@@ -62,28 +86,32 @@ func _gap(a: Dictionary, b: Dictionary) -> Vector2:
 	return Vector2(apart, turn)
 
 
-func test_the_library_holds_the_four_clips_and_the_loops_loop() -> void:
-	var library: AnimationLibrary = load(PRONE)
-	var names: Array[String] = []
-	for clip in library.get_animation_list():
-		names.append(String(clip))
-	names.sort()
-	assert_array(names).is_equal(["Crawl_Fwd", "Crouch_To_Prone", "Prone_Idle", "Prone_To_Crouch"])
-	for clip: StringName in LENGTHS:
-		var animation := library.get_animation(clip)
-		assert_float(animation.length).override_failure_message(clip).is_equal_approx(
-			LENGTHS[clip], 0.002
+func test_each_library_holds_the_four_clips_and_the_loops_loop() -> void:
+	for file in PRONE:
+		var library: AnimationLibrary = load(file)
+		var names: Array[String] = []
+		for clip in library.get_animation_list():
+			names.append(String(clip))
+		names.sort()
+		assert_array(names).override_failure_message("%s holds %s" % [file, names]).is_equal(
+			["Crawl_Fwd", "Crouch_To_Prone", "Prone_Idle", "Prone_To_Crouch"]
 		)
-		var loops := clip in [&"Prone_Idle", &"Crawl_Fwd"]
-		assert_int(animation.loop_mode).override_failure_message(clip).is_equal(
-			Animation.LOOP_LINEAR if loops else Animation.LOOP_NONE
-		)
+		for clip: StringName in LENGTHS:
+			var animation := library.get_animation(clip)
+			var where := "%s in %s" % [clip, file.get_file()]
+			assert_float(animation.length).override_failure_message(where).is_equal_approx(
+				LENGTHS[clip], 0.002
+			)
+			var loops := clip in [&"Prone_Idle", &"Crawl_Fwd"]
+			assert_int(animation.loop_mode).override_failure_message(where).is_equal(
+				Animation.LOOP_LINEAR if loops else Animation.LOOP_NONE
+			)
 
 
 func test_every_track_drives_a_bone_of_both_mannequins() -> void:
-	for model_path in MODELS:
-		_stage(model_path)
-		var library: AnimationLibrary = load(PRONE)
+	for index in MODELS.size():
+		_stage(index)
+		var library: AnimationLibrary = load(PRONE[index])
 		for clip in library.get_animation_list():
 			var animation := library.get_animation(clip)
 			assert_int(animation.get_track_count()).is_greater(50)
@@ -100,8 +128,8 @@ func test_every_track_drives_a_bone_of_both_mannequins() -> void:
 
 
 func test_the_loops_end_on_their_first_pose() -> void:
-	for model_path in MODELS:
-		_stage(model_path)
+	for index in MODELS.size():
+		_stage(index)
 		for clip: StringName in [&"prone/Prone_Idle", &"prone/Crawl_Fwd"]:
 			var length := _player.get_animation(clip).length
 			var gap := _gap(_pose(clip, 0.0), _pose(clip, length))
@@ -110,8 +138,9 @@ func test_the_loops_end_on_their_first_pose() -> void:
 
 
 func test_the_transitions_join_the_crouch_and_the_prone_idle() -> void:
-	for model_path in MODELS:
-		_stage(model_path)
+	for index in MODELS.size():
+		_stage(index)
+		var model_path := MODELS[index]
 		var crouch := _pose(&"ual1/Crouch_Idle", 0.0)
 		var prone := _pose(&"prone/Prone_Idle", 0.0)
 		var joins := [
@@ -127,13 +156,13 @@ func test_the_transitions_join_the_crouch_and_the_prone_idle() -> void:
 			assert_float(gap.y).override_failure_message(message).is_less(0.2)
 
 
-# A planted joint stays on its place on the floor while the body moves at the crawl's speed.
-# The clip was solved on the female mannequin, where it holds to a millimetre; the male's upper
-# arms are 5 cm longer, so his elbows roll a little.
+# A planted joint stays on its place on the floor while the body moves at the crawl's speed, to
+# a few millimetres on each mannequin in its own file (the female's file rolled the male's
+# elbows 3 cm).
 func test_planted_elbows_and_feet_do_not_slide_at_the_crawl_speed() -> void:
-	var limits := [0.004, 0.035]
+	var limits := [0.004, 0.004]
 	for index in MODELS.size():
-		_stage(MODELS[index])
+		_stage(index)
 		for joint: Array in [
 			["lowerarm_r", 0.0, ELBOW_PLANTED],
 			["lowerarm_l", 0.5, ELBOW_PLANTED],
@@ -165,13 +194,12 @@ func test_planted_elbows_and_feet_do_not_slide_at_the_crawl_speed() -> void:
 			)
 
 
-# No bone goes under the floor on the female mannequin, which the clips were solved on; the
-# male's longer arms put his thumb tips 2 cm lower.
+# No bone goes under the floor and none rises over the prone height, on either mannequin.
 func test_the_body_stays_low_while_prone() -> void:
-	var floors := [-0.01, -0.03]
+	var floors := [-0.01, -0.01]
 	for index in MODELS.size():
 		var model_path := MODELS[index]
-		_stage(model_path)
+		_stage(index)
 		for clip: StringName in [&"prone/Prone_Idle", &"prone/Crawl_Fwd"]:
 			var length := _player.get_animation(clip).length
 			var highest := 0.0
@@ -205,9 +233,9 @@ func test_the_body_stays_low_while_prone() -> void:
 # the other. The idle lies the same way. Measured on both mannequins; the male's shoulders are
 # wider, so his wrists lie a little further out.
 func test_the_forearms_point_inward_and_the_hands_reach_past_each_other() -> void:
-	var wrist_limits := [0.10, 0.14]
+	var wrist_limits := [0.10, 0.10]
 	for index in MODELS.size():
-		_stage(MODELS[index])
+		_stage(index)
 		var model := MODELS[index].get_file()
 		for side: Array in [["r", "l", 0.0, -1.0], ["l", "r", 0.5, 1.0]]:
 			var just_planted := _pose(&"prone/Crawl_Fwd", side[2] * CRAWL_SECONDS)
@@ -256,9 +284,9 @@ func test_the_forearms_point_inward_and_the_hands_reach_past_each_other() -> voi
 # planted and carried (an open finger's last joint is 1.6 times as far from the wrist as its
 # knuckle, a closed one's 0.9, a carried fist's a little more).
 func test_the_forearms_rest_on_their_outer_edge_and_the_hands_are_fists() -> void:
-	for model_path in MODELS:
-		_stage(model_path)
-		var model := model_path.get_file()
+	for body in MODELS.size():
+		_stage(body)
+		var model := MODELS[body].get_file()
 		var moments := [
 			["idle", &"prone/Prone_Idle", 0.0, ["l", "r"]],
 			["crawl, right planted", &"prone/Crawl_Fwd", 0.25 * CRAWL_SECONDS, ["r"]],
@@ -307,6 +335,54 @@ func test_the_forearms_rest_on_their_outer_edge_and_the_hands_are_fists() -> voi
 					. override_failure_message("%s: the thumb is off the fingers" % where)
 					. is_less(0.5 * palm_length)
 				)
+
+
+# The floor, on the skin: on every frame of the four clips no hand (with its fingers), forearm,
+# thigh or shin of either mannequin's own mesh is more than `FLOOR_LIMITS` under the floor, each
+# in its own file (kit #1090: the male lay 2 to 4 cm in the floor in the female's file, which
+# bone heights did not show). The build measures the same in Blender (`floor_mm` in its report);
+# Godot's import drops keys within half a degree, so a planted hand reads up to 3 mm lower here.
+func test_no_hand_forearm_thigh_or_shin_sinks_into_the_floor() -> void:
+	for index in MODELS.size():
+		_stage(index)
+		# the feet are parts of their own, so a shin is not counted with its foot and toes
+		var parts := SkinnedParts.new(_skeleton, FLOOR_PARTS + FEET)
+		for part in FLOOR_PARTS:
+			assert_int(parts.size(part)).override_failure_message(part).is_greater(20)
+		var model := MODELS[index].get_file()
+		for clip: StringName in LENGTHS:
+			var frames := roundi(LENGTHS[clip] * 30.0)
+			var lowest: Dictionary[StringName, float] = {}
+			var lowest_frame: Dictionary[StringName, int] = {}
+			for frame in frames + 1:
+				_pose(StringName("prone/" + clip), minf(frame / 30.0, LENGTHS[clip]))
+				var now := parts.lowest()
+				for part in FLOOR_PARTS:
+					if now[part] < lowest.get(part, INF):
+						lowest[part] = now[part]
+						lowest_frame[part] = frame
+			for part in FLOOR_PARTS:
+				(
+					assert_float(lowest[part])
+					. override_failure_message(
+						(
+							"%s on %s: %s is %.1f mm under the floor at frame %d"
+							% [clip, model, part, -lowest[part] * 1000.0, lowest_frame[part]]
+						)
+					)
+					. is_greater(-FLOOR_LIMITS[index])
+				)
+			print("FLOOR %s %s %s" % [model, clip, _millimetres(lowest, lowest_frame)])
+
+
+# Each part's lowest height in millimetres and its frame, for the log.
+func _millimetres(
+	heights: Dictionary[StringName, float], frames: Dictionary[StringName, int]
+) -> String:
+	var out: Array[String] = []
+	for part: StringName in heights:
+		out.append("%s %.1f (%d)" % [part, heights[part] * 1000.0, frames[part]])
+	return ", ".join(out)
 
 
 # Degrees a forearm points toward the body's centre line, seen from above (the model faces +Z and
