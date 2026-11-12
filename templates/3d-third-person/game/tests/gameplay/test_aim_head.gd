@@ -20,6 +20,11 @@ const ROLL_ON_NECK := 8.0
 const STRAIGHT := 4.0
 ## How far the head may turn between two drawn frames while the aim holds still, in degrees.
 const STEP := 0.5
+## A weapon aimed down its sights (the rifle): how far the eye may be off the sight line, in
+## metres (the cheek on the stock, as near as the skin lets it), and how far the face may be off
+## the aim, in degrees.
+const SIGHT_OFF := 0.081
+const SIGHT_FACE := 20.0
 ## The aim pitches each case holds (negative looks down).
 const PITCHES: Array[float] = [-30.0, 0.0, 20.0]
 
@@ -52,14 +57,25 @@ func test_the_pistol_aimed_holds_the_head_level_on_the_neck() -> void:
 	await _every_stance("pistol")
 
 
-func test_the_rifle_aimed_holds_the_head_level_on_the_neck() -> void:
+# A shouldered weapon is aimed with the eye behind its sights: a level head erases the cheek on
+# the stock (kit #1082). The rifle's definition asks for it (`WeaponDef.AimHead.SIGHT`).
+func test_the_rifle_aimed_brings_the_eye_to_its_sights() -> void:
 	_player.loadout.give(load("res://gameplay/weapon/rifle.tres") as WeaponDef, 30)
 	await _stand(30)
 	assert_str(String(_player.weapon.definition.resource_path)).ends_with("rifle.tres")
+	assert_int(_player.weapon.definition.aim_head).is_equal(WeaponDef.AimHead.SIGHT)
 	var holds := _player.loadout.model.find_children("*", "TwoHandHold", true, false)
 	assert_int(holds.size()).is_equal(1)
 	assert_float((holds[0] as TwoHandHold).weight()).is_equal_approx(1.0, 0.01)
-	await _every_stance("rifle")
+	# The hold made its modifiers after the probe: the probe reads the pose they leave.
+	_probe.get_parent().move_child(_probe, -1)
+	await _every_stance("rifle", true)
+	# The head's modifier runs after the stance that placed the rifle in the same update.
+	var stance := 0
+	for child in _layer.head_modifier().get_parent().get_children():
+		if child.get_script() == TwoHandHold.STANCE_SCRIPT:
+			stance = child.get_index()
+	assert_int(_layer.head_modifier().get_index()).is_greater(stance)
 
 
 func test_the_fists_aimed_hold_the_head_level_on_the_neck() -> void:
@@ -101,7 +117,7 @@ func test_the_head_comes_and_goes_with_the_aim() -> void:
 
 
 # Standing, moving, crouched and lying, each at every pitch of `PITCHES`.
-func _every_stance(weapon: String) -> void:
+func _every_stance(weapon: String, sights := false) -> void:
 	for stance: String in ["standing", "moving", "crouched", "lying"]:
 		await _stand(30)
 		for pitch: float in PITCHES:
@@ -114,7 +130,10 @@ func _every_stance(weapon: String) -> void:
 			await CommandDriver.run(get_tree(), [_player], command, 8)
 			var label := "%s %s, pitch %+.0f" % [weapon, stance, pitch]
 			assert_float(_layer.head_weight()).override_failure_message(label).is_greater(0.99)
-			_check_level(label, 0)
+			if sights:
+				_check_sights(label)
+			else:
+				_check_level(label, 0)
 			# Lying, the clip shifts the body as it crawls and settles; standing, crouched or walking
 			# a still aim leaves the head still.
 			if stance != "lying":
@@ -195,6 +214,55 @@ func _check_level(label: String, from: int) -> void:
 				]
 			)
 			+ " (pitch %.1f, roll %.1f)" % [_probe.neck_turns[-1].x, _probe.neck_turns[-1].y]
+		)
+	)
+
+
+# The eye is by the sight line on every drawn frame, the face near the aim, and the neck and the
+# head bend the same way.
+func _check_sights(label: String) -> void:
+	assert_int(_probe.eye_offs.size()).override_failure_message(label + ": no frame").is_greater(0)
+	for index in _probe.eye_offs.size():
+		var frame := "%s, frame %d: " % [label, index]
+		(
+			assert_float(_probe.eye_offs[index])
+			. override_failure_message(
+				frame + "the eye is %.1f mm off the sight line" % (_probe.eye_offs[index] * 1e3)
+			)
+			. is_less(SIGHT_OFF)
+		)
+		(
+			assert_float(_probe.misses[index])
+			. override_failure_message(
+				frame + "the head faces %.1f degrees off the aim" % _probe.misses[index]
+			)
+			. is_less(SIGHT_FACE)
+		)
+		var on_neck := _probe.turns[index]
+		var neck := _probe.neck_turns[index]
+		var against := on_neck.x * neck.x < 0.0 and minf(absf(on_neck.x), absf(neck.x)) > STRAIGHT
+		(
+			assert_bool(against)
+			. override_failure_message(
+				frame + "the head bends %.1f on a neck bent %.1f" % [on_neck.x, neck.x]
+			)
+			. is_false()
+		)
+	print(
+		(
+			(
+				"%s: eye %.1f mm off the sight line, face %.1f off the aim, head roll %.1f, on the neck"
+				% [label, _probe.eye_offs[-1] * 1e3, _probe.misses[-1], _probe.model_turns[-1].y]
+			)
+			+ (
+				" (pitch %.1f, roll %.1f), neck (pitch %.1f, roll %.1f)"
+				% [
+					_probe.turns[-1].x,
+					_probe.turns[-1].y,
+					_probe.neck_turns[-1].x,
+					_probe.neck_turns[-1].y
+				]
+			)
 		)
 	)
 
