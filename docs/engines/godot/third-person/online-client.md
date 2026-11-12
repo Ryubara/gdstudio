@@ -326,7 +326,9 @@ frames a second it is 8 s of Loading, two frames of Connecting, then play).
   online game joined on ready, so a page met the warm-up's 1.1 to 1.7 s frames as stalls in its first 3 s (2 to 3
   hitches, 53 programs linked after the seat); and with the probe's hold of 67 ms, a page drawn at 13 frames a
   second (two pages on one CPU, or a Movie Maker capture) never had 20 short frames in a row and waited out the
-  whole 10 s limit on Loading. **Seen:** gdstudio #1142, 2026-11-11 (`online.py` judges the join window).
+  whole 10 s limit on Loading; a suite that waited 240 frames for a join ran out once the warm-up grew. **Seen:**
+  gdstudio #1142, 2026-11-11 (`online.py` judges the join window); gdstudio #1297, 2026-11-11 (the minimap's tour:
+  `test_online_main.gd` waits 600).
 - **Approach:** Count the puppets a probe's page sees from its own report (`puppets`), and give a docstring's argument
   arithmetic a run before trusting it. **Watch out for:** the probe's docstring said `--bots` 0, 3 and 6 give 1, 4 and
   7 puppets; one page sees one puppet a bot, and the first GPU sweep of #1117 measured 0, 3 and 6 before the report's

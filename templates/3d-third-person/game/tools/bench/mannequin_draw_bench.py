@@ -9,6 +9,10 @@ machine slows whole rounds), the draw calls and primitives a frame and what a bo
 body, from both rounds; then each model's first appearance (its worst frame and the programs
 linked then). Software drawing (SwiftShader) by default; `--gpu` draws with the machine's GPU; `--uncapped` turns
 vsync and the frame cap off so the frame is the page's own work (without it the page's frames are whole vsyncs). `--query` is the page's query (`rounds=2&frames=90`).
+`--dynamic-skin` turns the page's `SkinBuffers` script off (gds_game: the engine's skinned buffers then keep their
+`DYNAMIC_DRAW` hint, which ANGLE's Direct3D 11 copies out at every draw: kit #1260); `--calls` times every WebGL call
+under each cell and `--trace` writes a Chrome trace (ANGLE's events and the cells' marks), both to compare a slow page
+with a normal one.
 
     uv run --project <kit>/python gds quiet -- uv run --with playwright==1.64.1 \
         python tools/bench/mannequin_draw_bench.py build/web [--gpu] [--uncapped] [--query q] [--out x.json]
@@ -34,7 +38,13 @@ BENCH_TIMEOUT_S = 3600.0
 UNCAPPED_ARGS = ["--disable-gpu-vsync", "--disable-frame-rate-limit"]
 # Records each rAF delta and each program linked (with its link time) under `window.__cell`.
 RECORDER = """
-window.__cell = '';
+(() => {
+  let cell = '';
+  Object.defineProperty(window, '__cell', {
+    get: () => cell,
+    set: (v) => { cell = v; performance.mark('cell:' + v); },
+  });
+})();
 window.__frames = {};
 window.__links = {};
 (() => {
@@ -59,6 +69,33 @@ window.__links = {};
   };
 })();
 """
+# With `--calls`: each WebGL method's calls and milliseconds under `window.__cell`, to compare a slow page with a
+# normal one (docs/engines/godot/first-use-hitches.md#how-to-find-it).
+CALLS = """
+window.__calls = {};
+(() => {
+  const proto = WebGL2RenderingContext.prototype;
+  for (const name of Object.getOwnPropertyNames(proto)) {
+    const desc = Object.getOwnPropertyDescriptor(proto, name);
+    if (!desc || typeof desc.value !== 'function' || name === 'constructor') continue;
+    const original = desc.value;
+    proto[name] = function (...a) {
+      if (!window.__cell) return original.apply(this, a);
+      const t = performance.now();
+      const r = original.apply(this, a);
+      const cell = (window.__calls[window.__cell] ||= {});
+      const entry = (cell[name] ||= [0, 0]);
+      entry[0] += 1;
+      entry[1] += performance.now() - t;
+      return r;
+    };
+  }
+})();
+"""
+# With `--dynamic-skin`: the page's `SkinBuffers` script (gds_game) is turned off, so the engine's skinned output
+# buffers keep their `DYNAMIC_DRAW` hint and ANGLE's Direct3D 11 copies them out at every draw (kit #1260).
+DYNAMIC_SKIN = "window.gdsSkinBuffersOff = true;"
+TRACE_CATEGORIES = ["gpu.angle", "blink.user_timing"]
 RENDERER = """(() => {
   const gl = document.createElement('canvas').getContext('webgl2');
   const info = gl && gl.getExtension('WEBGL_debug_renderer_info');
@@ -78,6 +115,9 @@ def main() -> int:
     parser.add_argument("--uncapped", action="store_true", help="vsync and the frame cap off")
     parser.add_argument("--viewport", default="640x360", help="the page's size, WxH")
     parser.add_argument("--query", default="", help="the page's query: rounds, frames, warm, order")
+    parser.add_argument("--calls", action="store_true", help="time every WebGL call under each cell")
+    parser.add_argument("--trace", type=Path, help="write a Chrome trace of the GPU process's work here")
+    parser.add_argument("--dynamic-skin", action="store_true", help="turn the page's SkinBuffers script off")
     parser.add_argument("--out", type=Path, help="write the bench's JSON and the page's frames here")
     args = parser.parse_args()
     server, port = serve(args.build)
@@ -88,9 +128,15 @@ def main() -> int:
         width, height = (int(n) for n in args.viewport.split("x"))
         page = browser.new_page(viewport={"width": width, "height": height})
         page.add_init_script(RECORDER)
+        if args.calls:
+            page.add_init_script(CALLS)
+        if args.dynamic_skin:
+            page.add_init_script(DYNAMIC_SKIN)
         page.on("console", lambda m: messages.append(f"{m.type}: {m.text}"))
         page.on("pageerror", lambda e: messages.append(f"pageerror: {e}"))
         query = f"?{args.query}" if args.query else ""
+        if args.trace:
+            browser.start_tracing(page=None, path=str(args.trace), categories=TRACE_CATEGORIES)
         page.goto(f"http://127.0.0.1:{port}/index.html{query}")
         renderer = page.evaluate(RENDERER)
         end = time.time() + BENCH_TIMEOUT_S
@@ -100,12 +146,18 @@ def main() -> int:
             result = page.evaluate("window.__mannequin_draw_bench || null")
         frames = page.evaluate("window.__frames")
         links = page.evaluate("window.__links")
+        calls = page.evaluate("window.__calls || {}")
+        skin_buffers = page.evaluate("window.gdsSkinBuffersOff ? 0 : (window.gdsSkinBuffers || 0)")
+        if args.trace:
+            browser.stop_tracing()
         browser.close()
     server.shutdown()
     failed = [m for m in messages if m.startswith(("error", "pageerror"))][:5]
     if result is None:
         failed.append("the bench did not finish")
     else:
+        result["calls"] = calls
+        result["skin_buffers"] = skin_buffers
         report(args, result, frames, links, renderer)
     for line in failed:
         print("FAIL", line)
