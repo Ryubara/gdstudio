@@ -35,6 +35,10 @@ func set_source(node: Node3D) -> void:
 	faction = member.faction_id() if member != null else &""
 
 
-## True when something made it and is gone since (freed): its `member` is gone with it.
+## True when something made it and is gone since: freed (its `member` is gone with it), or out of
+## the tree (a body back in its spawner's pool: nobody to believe in, and no position to read).
 func maker_gone() -> bool:
-	return _source != null and _source.get_ref() == null
+	if _source == null:
+		return false
+	var maker := _source.get_ref() as Node
+	return maker == null or not maker.is_inside_tree()

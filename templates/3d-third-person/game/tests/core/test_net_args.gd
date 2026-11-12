@@ -99,6 +99,7 @@ func test_the_server_exports_are_pinned() -> void:
 			load("res://gameplay/ai/profiles/grunt.tres"),
 			load("res://gameplay/ai/profiles/ally.tres"),
 			load("res://gameplay/ai/profiles/civilian.tres"),
+			load("res://gameplay/ai/profiles/shooter.tres"),
 		],
 		&"ai_sees_players": true,
 	}

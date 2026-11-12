@@ -94,9 +94,22 @@ camera), its collision layer is 0 (nothing meets it; its mask keeps the world fo
 `_physics_process` returns at once, so `step` never runs (no move, no weapon tick, no pickup, no health regeneration).
 It joins no group (`player` is what the HUD, the minimap and a camera zone look for) and goes to no spawn point.
 `PlayerPuppet.place` writes exactly what the drawing parts read from a stepped body: `state`, `velocity` (from the two
-snapshots around the moment), `facing` and the model's turn, `view_pitch`, `crouching`, `aiming` and an eased
-`aim_amount`, the sprint flag, the crouch and prone amounts (with `crouch_changed`, `aim_changed`, `prone_changed`),
-and refits the capsule. `CharacterAnimation` needed nothing new.
+snapshots around the moment), `facing` and the model's turn, `view_pitch`, `view_yaw` (along the facing, turned by
+the aim's heading off the body while aiming), `crouching`, `aiming` and an eased `aim_amount`, the sprint flag, the
+crouch and prone amounts (with `crouch_changed`, `aim_changed`, `prone_changed`), and refits the capsule.
+`CharacterAnimation` needed nothing new.
+
+**The aim off the body** (kit #1277). Sliding, the body keeps along the slide and the
+[aim layer](shooting.md#aim-layer) turns the upper body to the aim; the layer reads the aim from `view_yaw` and
+`view_pitch`. An aiming player's entry ends with one signed byte, `Character.aim_yaw` (the view's heading off the
+facing, a half turn either way, about 1.4 degrees a step), sent only while the aim flag is on; `PlayerPuppet.place` sets
+`view_yaw` to `facing - PI + aim_yaw`, and `InterpolationTrack` blends it as an angle. On a slide aimed 50 degrees to
+each side (`test_net_puppet_aim.gd`, loopback), Bo's puppet of Ada pointed its pistol 49.8 and -48.8 degrees off its
+body (her own screen 49.8 and -48.8), the muzzle within 0.5 degrees of its aim and the body along the slide; without
+the byte it pointed 0.5 degrees off its body. The cost: one byte a TICK for each aiming player (the TICK of two players
+is 37 bytes, 38 while one aims; eight players 109, 117 all aiming; the longest WELCOME 2303), so 30 B/s down a client
+for each aiming player at 30 TICKs a second, nothing for one who does not aim. The capture is
+`tools/capture/puppet_aim_tour.tscn` (Ada's screen beside Bo's).
 
 Its animation throttle and render layer: [what a puppet costs](puppet-cost.md#puppet-cost). How a puppet shows a
 vault it never stepped: [a puppet's vault](traversal.md#online).
@@ -112,6 +125,13 @@ vault it never stepped: [a puppet's vault](traversal.md#online).
   the last client's follow camera while each viewport's `get_camera_3d()` was still its own `Camera3D`: a test that
   reads only the viewport's camera passes. The game itself runs one client a process. **Seen:** gdstudio #905,
   2026-11-11 (`OnlineRig._own_cameras`; the test asks the host's `get_active_pcam()`).
+- **Approach:** Film a puppet's turn off its body (an aim to the side) from ahead of it, on a lane read from the level's
+  scene (each block's place and size) before the first run, with the watcher's camera turned to follow it; put a test's
+  route on the same lane. **Watch out for:** from beside or above at 5 to 10 m a 50 degree aim and an aim along the
+  body looked the same (the before and after captures could not be told apart while the suite measured 49.8 against
+  0.5 degrees); routes picked blind started inside the ragdoll ledge and ran into crates and the steps, and the
+  slide's 8 m/s carried the body 10 m past a watcher in a second. **Seen:** gdstudio #1277, 2026-11-11
+  (`puppet_aim_tour.tscn`, five captures before the front view).
 
 ## What it measured {#client-costs}
 
@@ -306,7 +326,9 @@ frames a second it is 8 s of Loading, two frames of Connecting, then play).
   online game joined on ready, so a page met the warm-up's 1.1 to 1.7 s frames as stalls in its first 3 s (2 to 3
   hitches, 53 programs linked after the seat); and with the probe's hold of 67 ms, a page drawn at 13 frames a
   second (two pages on one CPU, or a Movie Maker capture) never had 20 short frames in a row and waited out the
-  whole 10 s limit on Loading. **Seen:** gdstudio #1142, 2026-11-11 (`online.py` judges the join window).
+  whole 10 s limit on Loading; a suite that waited 240 frames for a join ran out once the warm-up grew. **Seen:**
+  gdstudio #1142, 2026-11-11 (`online.py` judges the join window); gdstudio #1297, 2026-11-11 (the minimap's tour:
+  `test_online_main.gd` waits 600).
 - **Approach:** Count the puppets a probe's page sees from its own report (`puppets`), and give a docstring's argument
   arithmetic a run before trusting it. **Watch out for:** the probe's docstring said `--bots` 0, 3 and 6 give 1, 4 and
   7 puppets; one page sees one puppet a bot, and the first GPU sweep of #1117 measured 0, 3 and 6 before the report's

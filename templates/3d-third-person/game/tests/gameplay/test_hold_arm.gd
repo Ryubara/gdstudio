@@ -1,7 +1,7 @@
 # The two small rules the pistol hold's modifiers add to a straight reach and a straight blend:
 # an arm too short for the hand's place backs the hand off along a line to the nearest place it
 # reaches (kit #1078, `HoldArm.backed_off`), and a bone blended to a second pose goes through a
-# pose between when it has one (kit #1079, `HandPoseModifier.second_via`).
+# pose between when it has one (kit #1079, `HandPoseModifier.second_way`).
 extends GdUnitTestSuite
 
 const ARM := 0.5
@@ -49,7 +49,7 @@ func test_a_bone_goes_to_its_second_pose_through_the_pose_between() -> void:
 	var modifier := HandPoseModifier.new()
 	modifier.pose = pose
 	modifier.second = second
-	modifier.second_via = via
+	modifier.second_way = [via] as Array[HandPose]
 	skeleton.add_child(modifier)
 	skeleton.skeleton_updated.connect(func() -> void: _read = skeleton.get_bone_pose_rotation(0))
 	var expected: Dictionary[float, Quaternion] = {
@@ -73,7 +73,7 @@ func test_a_bone_goes_to_its_second_pose_through_the_pose_between() -> void:
 			. is_true()
 		)
 	# With no pose between, the blend is the straight one.
-	modifier.second_via = null
+	modifier.second_way = [] as Array[HandPose]
 	modifier.second_weight = 0.5
 	skeleton.set_bone_pose_rotation(0, Quaternion.IDENTITY)
 	await get_tree().process_frame

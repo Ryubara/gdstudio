@@ -1,4 +1,6 @@
-"""The 3D Third Person template's bullet impact sounds, synthesised here (nothing sampled, nothing third-party).
+"""Bullet impact sounds synthesised here (nothing sampled, nothing third-party): the 3D Third Person template's set
+until kit #1083 replaced it with generated ones (`tools/audio/sfx.py`); kept as an MIT fallback a game can write in
+their place with `--out`.
 
     uv run --with numpy --with scipy python tools/audio/impact_sounds.py --ffmpeg <pinned ffmpeg> \
         [--out templates/3d-third-person/game/assets/audio/impacts] [--wav-dir <folder>]

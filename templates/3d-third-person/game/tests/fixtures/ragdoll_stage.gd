@@ -7,8 +7,8 @@ extends Node3D
 ## The scenarios are the ragdoll lab's (docs/engines/godot/ragdoll.md#limits).
 
 const MODELS := {
-	&"female": "res://assets/characters/mannequin/mannequin_female.glb",
-	&"male": "res://assets/characters/mannequin/mannequin_male.glb",
+	&"female": CharacterBodies.FEMALE,
+	&"male": CharacterBodies.MALE,
 }
 
 var ragdoll: CharacterRagdoll

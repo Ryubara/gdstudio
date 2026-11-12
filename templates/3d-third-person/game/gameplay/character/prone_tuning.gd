@@ -85,6 +85,9 @@ enum InputMode {
 @export_range(0.0, 89.0, 0.5, "suffix:deg") var look_up_limit := 12.0
 ## The lowest the character looks (and the camera turns) lying down.
 @export_range(0.0, 89.0, 0.5, "suffix:deg") var look_down_limit := 40.0
+## How far the aim layer turns the upper body lying down to put the weapon on the aim
+## (`AimLayer`); the lying body turns to the view while aiming, so this covers the turn's lag.
+@export var aim_limits := AimLimits.new()
 
 @export_group("Input")
 ## How the human's controls ask for prone.

@@ -27,6 +27,7 @@ one after it.
 | Settings | `ui/menus/settings_menu.tscn` | Tabs Video, Audio and Controls of `SettingRow` nodes and the generated rebinding rows; saves itself, Reset restores the defaults. |
 | Screen host | `ui/menus/screen_host.tscn` (the `Screens` node of `main.tscn`), its script the synced `addons/gds_game/screen_host/screen_host.gd` | Opens screens over the game ([Menus over a game](#screen-host)). |
 | Pause button | `ui/menus/pause_button.tscn`, in `MenuLayer` of `ui/player_rig/player_rig.tscn` | Shows with the touch layer at the top middle (the top corners are the HUD's); the way in on a phone, which has no Esc. With a `screen` it opens that screen instead: the `BagButton` beside it opens the [inventory](inventory.md#template-screen). |
+| Menu sounds | `ui/menus/menu_sound_service.tscn` (autoload `MenuSounds`) | Every `gds_ui` control, the inventory's slots and the router send their cues (`UIAudio`) to it, and a table of roles and cues picks one of its players on the `UI` bus ([Menu sounds](audio.md#menu-sounds)). |
 | Settings service | `core/settings/` (autoload `Settings`) | Options, saved and applied; `quality_preset.gd` is one step of the quality choice, `input_bindings.gd` the rebinding. |
 | Touch layer | `suspend()` and `resume()` of `TouchControls` (3D Blank) | Lets go of every finger and hides the layer while a menu is up, shows it again if it was in use; the host calls them on `opened` and `closed`. |
 | Look bridge | `gameplay/player/look_settings.gd`, a `LookSettings` node of the player rig | Carries mouse sensitivity and invert to the camera rig. |
@@ -40,6 +41,8 @@ High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `
 `PauseButton`: `host` (empty uses `ScreenHost.current`), `touch`, `screen` (empty: the pause menu), `always_shown`.
 `LookSettings`: `camera`. `MenuScene`:
 `main_menu`, `game_scene`, `online_scene`, `server_scene`, `skip_menu`, `shader_programs`. `LoadingScreen`: `least_time`.
+`MenuSoundService` (the `MenuSounds` autoload's scene): `enabled`, `hint_gap`, `quiet_after_action`, `tick_gap`,
+`tick_pitch`, and its twelve players.
 
 - **Approach:** Make a menu's parts nodes of its scene and write the scene's `.tscn` with each node's `script =` line
   before the script's own exports. **Watch out for:** a `.tscn` written by a script that put `style = 1` and
@@ -68,6 +71,12 @@ High apply. `MenuFit`: `phone_short_side`, `touch_short_side`, `phone_factor`, `
   its 16 px title sat on the marquee's row of bulbs, at every window size; it looked so from the day it was made, and
   only a capture showed it. **Seen:** gdstudio #1166, 2026-11-11 (fix: `OnlineStatus._apply_theme`,
   `tests/ui/test_online_status.gd`, which fails without it).
+- **Approach:** Drive a capture tour through the main menu with the arrow keys only after reading its focus order in
+  the build the tour runs (a debug build): Play, Play online, the address field, Settings, Quit, wrapping at both ends;
+  reach Settings with Up from Play (Quit, then Settings), and check a frame before trusting the log. **Watch out for:**
+  the address field shows in a debug build only, so Down from Play takes three presses, not two, to reach Settings; a
+  tour that counted two pressed Enter on the field and then on Quit, and the run ended at 50 s with the log saying
+  Settings had opened. **Seen:** gdstudio #1100, 2026-11-11 (`tools/capture/menu_sounds_tour.gd`).
 
 ## A menu over a game that pauses: the screen host {#screen-host}
 

@@ -230,4 +230,5 @@ script), and the Godot editor opened by a person or by the MCP add-on.
   window guard read a bare assignment `GODOT="$(...)"` as a program named `godot=...` with no `--headless` and refused
   the line, even with a headless Godot after it; agents worked round it with another name or `export`, and #887 called
   the program by its path. **Seen:** gdstudio #997, 2026-11-10 (the cause found in `launches_godot`); gdstudio #887,
-  2026-11-10 (fix: gdstudio #1004, PR #1007).
+  2026-11-10 (fix: gdstudio #1004, PR #1007); gdstudio #1286, 2026-11-11 (`GD=$(cd <dir> && ...)`
+  then `"$GD" --headless` was refused; the path written out ran).

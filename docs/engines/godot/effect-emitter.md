@@ -84,6 +84,15 @@ meshes in `warm_up_groups` (`world/world.tscn` lists `player`: a character under
 program too). Last it draws them once more above every probe, outside them all. It costs about 25 frames a probe and
 the programs those places need; the player's view never changes.
 
+It goes round once more for each other view of the level's world (`other_views()`: a `SubViewport` that shares the
+world, is drawn and has a camera of its own, such as the live minimap), with a tour view made like that one (its
+anti-aliasing, shadow atlas and debug draw, its camera's environment, attributes and layers): first where the
+player's camera stands, then at every probe (each place with a look the six ways first), then above them all. Such a
+view draws the level and everything near the player with programs of its own: the minimap's flat environment has no
+sky, so none of its programs has the radiance map (`USE_RADIANCE_MAP`), and it has no shadow atlas. Without it the
+minimap's view of the first flash, sparks and mark linked 6 or 7 programs at the first shot (gdstudio #1297). With
+`warm_up_every_probe` off the other views are still drawn once, where the player's camera stands.
+
 ## What it costs {#cost}
 
 Measured with `tools/bench/effects_cost.tscn` (the pistol fires at every chance, at 4 and at 30 shots a second, 300
@@ -143,6 +152,24 @@ frames after 90 of warm-up, the character in the map, 1280 x 720, vsync off; God
   machine whose runs varied by a second either way. A tour without the place above every probe still left one program
   (sparks or dust drawn without a probe but under the lamp, 26 to 45 ms, a 33 to 41 ms frame) in six runs of nine, a
   second or so into the shooting.
+- **A second view of the world** (gdstudio #1297): the live minimap draws the first flash, its sparks and the mark out
+  in the open with its own environment, and the warm-up had drawn none of them there. The bench's run of the hitscan
+  pistol (`hitscan_flash_and_impacts_4`, first after `idle`, so it shows what any first shot builds) and
+  `effects_first_use.py`, which names each program linked after the start by its defines and material (`programs` in
+  its result), found it: every program in play lacked `USE_RADIANCE_MAP`, which all the warm-up's had. Measured with
+  that script (Chrome on the GPU, a fresh profile; before five runs, after four):
+
+  | Run | Before: programs, link ms, slowest first frame | After: programs, slowest first frame |
+  | --- | --- | --- |
+  | the first hitscan shot (flash, light, impacts) | 6 to 7 (the star, the sparks and the mark in the minimap, with the flash's light and without it), 144 to 158 ms, 117 to 151 ms | 0, 5.8 to 37 ms |
+  | flash and impacts in the room | 3 (the same in the minimap under two probes), 34 to 45 ms, 60 to 79 ms | 0, 5.3 to 38.5 ms |
+  | the level's start (the `warm_up` mark to the first run) | 126 to 143 programs, 1.4 to 1.9 s | 160 to 165 programs, 2.8 to 5.8 s |
+
+  The first frames of 31 to 41 ms after came with no program linked, on runs whose idle mean was 7 to 8 ms instead of
+  4.2 (another load on the machine); on the quiet runs they were 5.8 to 7.5 ms. The projectile's runs come after the
+  hitscan one in the bench and so found everything built; the programs are the minimap's view of the flash and the
+  impact, which a projectile's first shot draws as well. The tour of the minimap's view costs about 1 s more while the
+  level starts (the probe tour once more, and 20 to 25 programs).
 - **Software rendering** (headless Chromium on SwiftShader) ran 150 to 170 ms a frame whatever the effect and cannot
   show the difference; only the program counts are the same as on a GPU.
 - **Approach:** Measure an effect system with the bench in both renderers and in Chrome on a real GPU, and read the

@@ -1,8 +1,9 @@
 class_name PlayerEntry
 extends RefCounted
-## One player as a TICK carries it (12 bytes, `SnapshotCodec`): what another screen needs to draw
-## the body (where, facing, the animation state, the locomotion flags, the aim pitch). Velocity,
-## the aim and crouch amounts and the timers are not sent: a client derives them.
+## One player as a TICK carries it (12 bytes, 13 while aiming, `SnapshotCodec`): what another
+## screen needs to draw the body (where, facing, the animation state, the locomotion flags, the aim
+## pitch, and while aiming the aim's heading off the body). Velocity, the aim and crouch amounts
+## and the timers are not sent: a client derives them.
 
 ## The player's place in the game, 0 to `NetLimits.MAX_PLAYERS` - 1.
 var slot := 0
@@ -22,9 +23,13 @@ var rising := false
 var dead := false
 ## The aim's look up or down, radians (a signed byte, about 1.4 degrees a step).
 var pitch := 0.0
+## The aim's heading off the way the body faces, radians, positive to the character's left
+## (`Character.aim_yaw`): what the aim layer turns the upper body by. Sent only while `aim` (a
+## signed byte over a half turn either way, about 1.4 degrees a step); 0 otherwise.
+var aim_yaw := 0.0
 ## The player's name; only a WELCOME carries it (a TICK does not).
 var player_name := ""
 
 
 func all_finite() -> bool:
-	return position.is_finite() and is_finite(yaw) and is_finite(pitch)
+	return position.is_finite() and is_finite(yaw) and is_finite(pitch) and is_finite(aim_yaw)
