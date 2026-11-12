@@ -172,8 +172,6 @@ func _swap_to_male() -> void:
 	var old := slot.rig()
 	slot.remove_child(old)
 	old.free()
-	var male := (
-		(load("res://assets/characters/mannequin/mannequin_male.glb") as PackedScene).instantiate()
-	)
+	var male := (load(CharacterBodies.MALE) as PackedScene).instantiate()
 	slot.add_child(male)
 	await _ticks(3)

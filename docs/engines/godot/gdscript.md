@@ -24,9 +24,9 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   own class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
   `[debug]` of `project.godot`, as the templates do. **Watch out for:** the editor warned on
   opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
-  `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 and #877 (a
-  test's `for name in`, exit 105); #902, 2026-11-10 (`hash`, `snapped`, `world_hash` beside a function of that name);
-  #903 (a parameter `url` and a method `url()`); #901 (`before`); #966 (`mesh` in a mesh's script); #970 (`rows`).
+  `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 and #877 (`for
+  name in`, exit 105); #902 (`hash`, `snapped`, `world_hash` beside such a function); #903 (`url` and `url()`); #901
+  (`before`); #966 (`mesh`); #970 (`rows`); #1186 (`show`: a bench's web export failed).
 
 - **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
   `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an
@@ -66,7 +66,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   the first line of a headless run's log for `SCRIPT ERROR`. **Watch out for:** `var paths: Array[String] = [a] if
   cond else [b, c]` parses, then fails when the line runs (`Trying to assign an array of type "Array" to a variable of
   type "Array[String]"`) because the ternary makes an untyped array; the process went on running, so a measurement
-  matrix recorded cells from a node that never set up. **Seen:** gdstudio #883, 2026-11-10 (fix: the if).
+  matrix recorded cells from a node that never set up. **Seen:** gdstudio #883, 2026-11-10 (fix: the if); gdstudio
+  #1297, 2026-11-11 (`EffectEmitter`'s `probes if warm_up_every_probe else []` stopped the warm-up in two suite cases).
 - **Approach:** Pass an exported node to a typed parameter of a helper only through `is_instance_valid(node)`
   (`model if is_instance_valid(model) else null`), and test the body with its model freed. **Watch out for:** a node
   freed while the export still names it is not `null`, so `model != null` passed and the call failed on the type
@@ -112,9 +113,9 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   a captured packed array. **Watch out for:** a lambda captures a local `int`, `bool`, `float` or packed array by
   value when it is made, so `kills += 1` or `vertices.append(...)` works on a copy: a test read 0 events and a
   navigation mesh built in a lambda had no vertices (every path `[]`); assigning a whole Array or Dictionary to the
-  outer variable inside the lambda is the same trap. **Seen:** Deadnight, 2026-11-02 (fix: Array holders and members
-  in the bot suites); Deadnight #226, 2026-11-02 (the mesh built in a method with `_vertices` and `_index`);
-  gdstudio #836, 2026-11-08 (`hits += 1` read 0; the fix is `var hits: Array[Node]` and `hits.append(c)`).
+  outer variable inside the lambda is the same trap. **Seen:** Deadnight #226, 2026-11-02 (bot counts, a
+  mesh); gdstudio #836, 2026-11-08 (`hits += 1` read 0); gdstudio #1251, 2026-11-11 (`met = {...}` left the
+  dict empty); gdstudio #1206, 2026-11-11 (a `maxf` into a captured float read 0 mm).
 
 ## Project and scene files {#project-and-scene-files}
 

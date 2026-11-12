@@ -37,8 +37,12 @@ enum Kind {
 @export var display_name := "Weapon"
 ## The picture a HUD or an inventory shows. Empty: none.
 @export var icon: Texture2D
-## How a shot travels: a projectile, a hitscan ray or a melee blow.
-@export var kind := Kind.PROJECTILE
+## How a shot travels: a projectile, a hitscan ray or a melee blow. The `hitscan` toggle below
+## turns a projectile weapon into a hitscan one without changing this.
+@export var kind := Kind.PROJECTILE:
+	set(value):
+		kind = value
+		notify_property_list_changed()
 
 @export_group("Fire")
 ## On: holding the fire button keeps shooting. Off: one shot a press.
@@ -53,7 +57,7 @@ enum Kind {
 ## What one hit takes from what it hits. The weapon hands it on (`Projectile.damage`, the hit
 ## record's `damage`); the template's `Target` counts hits, and a game's health reads this.
 @export_range(0.0, 1000.0, 0.5, "or_greater") var damage := 34.0
-## How far the aim ray (and a hitscan shot) looks for something to hit.
+## How far the aim ray looks for something to hit (a hitscan shot reaches `hitscan_range`).
 @export_range(5.0, 500.0, 1.0, "suffix:m") var aim_range := 100.0
 ## The push a hit gives a physics body (newton seconds).
 @export_range(0.0, 500.0, 0.5, "suffix:N·s") var impulse := 40.0
@@ -65,6 +69,57 @@ enum Kind {
 ## the body along the slide): the body turns so the aim is within reach again, or the shot is
 ## refused until it is.
 @export var past_aim_limit := PastAimLimit.TURN_BODY
+
+@export_group("Aim and zoom")
+## What a press of aim or fire does with this weapon in the hands. The character and the camera
+## read these every step, so a change while the game runs shows at once. `can_aim` and
+## `fire_needs_aim` are gameplay (a server reads them from the same definition); the zoom and the
+## crosshair are the local screen's and never sent.
+##
+## On: the aim button raises the weapon and zooms the view in. Off: the aim button does nothing.
+@export var can_aim := true
+## On: the fire button shoots only while the aim button is held (with `can_aim` off it never
+## does). Off: the fire button aims by itself and shoots once the arm is up.
+@export var fire_needs_aim := false
+## On: holding fire without aiming zooms the view in (the camera's Fire framing, and the camera's
+## `zoom_when_firing` must be on too). Off: firing leaves the framing alone, as for the fists.
+@export var fire_zooms := true
+## On: the crosshair shows while the player aims or fires with this weapon. Off: never.
+@export var show_crosshair := true
+@export_subgroup("Zoom")
+## On: the zoom below replaces the camera's own aim and fire framing while this weapon is in the
+## hands. Off: the camera's `aim_fov`, `aim_distance`, `fire_fov` and `fire_distance` are used.
+@export var override_zoom := false
+## The field of view while aiming, when `override_zoom` is on.
+@export_range(20.0, 110.0, 0.5, "suffix:deg") var aim_fov := 50.0
+## How far behind the target the lens sits while aiming, when `override_zoom` is on.
+@export_range(0.5, 8.0, 0.05, "suffix:m") var aim_distance := 1.1
+## The field of view while firing without aiming, when `override_zoom` is on.
+@export_range(20.0, 110.0, 0.5, "suffix:deg") var fire_fov := 56.0
+## How far behind the target the lens sits while firing without aiming, when `override_zoom` is on.
+@export_range(0.5, 8.0, 0.05, "suffix:m") var fire_distance := 1.4
+## Moves the view while zoomed in, when `override_zoom` is on: x further to the side of the chosen
+## shoulder (mirrored on the left one), y up. It blends in with the zoom.
+@export_custom(PROPERTY_HINT_RANGE, "-1,1,0.01,suffix:m") var zoom_offset := Vector2.ZERO
+
+@export_group("Hitscan")
+## On: the weapon fires one instant ray from the aim instead of a projectile (a `PROJECTILE` weapon
+## becomes a `HITSCAN` one, `shot_kind()`). Nothing is made for the shot: the muzzle flash, the
+## shot sound and the impact where the ray hits are all there is, and online the shot costs only
+## its SHOT and HIT events. Read at each shot, so it switches live. No effect on a melee weapon.
+@export var hitscan := false:
+	set(value):
+		hitscan = value
+		notify_property_list_changed()
+## How far a hitscan shot reaches.
+@export_range(5.0, 1000.0, 1.0, "or_greater", "suffix:m") var hitscan_range := 100.0
+## What a hitscan shot can hit (physics layers): by default what every shot meets
+## (`PhysicsLayers.SHOT_MASK`: the level, characters, props, ragdoll bones and hit zones).
+@export_flags_3d_physics var hitscan_mask := PhysicsLayers.SHOT_MASK
+## The streak a hitscan shot draws from the muzzle to where its ray ended (a `TracerDef`, drawn
+## by the level's `TracerPool` on each screen, never sent). Empty: no tracer, the flash and the
+## impact are all there is.
+@export var tracer: TracerDef
 
 @export_group("Ammo")
 ## Rounds in a full magazine. Zero: the weapon needs no ammunition (fists, a blade) and shows no
@@ -119,6 +174,11 @@ enum Kind {
 ## pistol's `PistolHeld`); it is shown while the weapon is out and hidden otherwise. Empty: no
 ## model (fists).
 @export var view: NodePath
+## The scene of that model in the hand (the rifle's `rifle_held.tscn`), made under the `Model` slot
+## the first time a character carries the weapon, named as `view` says, when the slot has no such
+## node: a character that never picks the weapon up carries none of its nodes. Empty: the node is
+## part of the character's scene (the pistol's `PistolHeld`).
+@export var view_scene: PackedScene
 ## The marker the shots leave from, under the `Model` slot (the pistol's
 ## `PistolHeld/Pistol/Pistol/Muzzle`). Empty: no muzzle (shots leave from beside the shooter).
 @export var muzzle: NodePath
@@ -155,6 +215,14 @@ enum Kind {
 	set(value):
 		shoot_clips = value
 		emit_changed()
+## On: a shot's clip is added to the pose under it as its difference from its own first frame (the
+## first frame is the aim pose it was made on), so the recoil rocks the body wherever the character
+## aims, up and down too (the pistol, the rifle). Off: the clip replaces the pose under it while it
+## plays (a punch).
+@export var shoot_additive := false:
+	set(value):
+		shoot_additive = value
+		emit_changed()
 ## The reload, played on the upper body and stretched to `reload_time`. Empty: none.
 @export var reload_clip: StringName = &"":
 	set(value):
@@ -183,11 +251,50 @@ enum Kind {
 @export_range(0.1, 4.0, 0.05, "or_greater", "suffix:x") var muzzle_flash_size := 1.0
 
 
+## How a shot of this weapon travels now: `MELEE` for a melee weapon, `HITSCAN` when `hitscan` is
+## on or `kind` says so, else `PROJECTILE`. The weapon reads this, never `kind` alone.
+func shot_kind() -> Kind:
+	if kind == Kind.MELEE:
+		return Kind.MELEE
+	if hitscan or kind == Kind.HITSCAN:
+		return Kind.HITSCAN
+	return Kind.PROJECTILE
+
+
+## True when a shot is a ray (a hitscan shot or a blow) and makes no projectile.
+func shoots_rays() -> bool:
+	return shot_kind() != Kind.PROJECTILE
+
+
+## The physics layers a shot's ray looks in: `hitscan_mask` for a hitscan shot, else `fallback`
+## (the weapon's `aim_mask`).
+func ray_mask(fallback: int) -> int:
+	return hitscan_mask if shot_kind() == Kind.HITSCAN else fallback
+
+
+## How far a shot's ray reaches: `melee_reach` for a blow, `hitscan_range` for a hitscan shot.
+func ray_reach() -> float:
+	return melee_reach if shot_kind() == Kind.MELEE else hitscan_range
+
+
 ## True when the weapon uses ammunition (a magazine of at least one round).
 func uses_ammo() -> bool:
 	return magazine_size > 0
 
 
+## True when the fire button may shoot (and aim) now, with the aim button held (`aim_held`) or not.
+func fire_allowed(aim_held: bool) -> bool:
+	return not fire_needs_aim or (can_aim and aim_held)
+
+
 ## Seconds between two shots.
 func shot_interval() -> float:
 	return 1.0 / maxf(fire_rate, 0.001)
+
+
+# The hitscan numbers are read-only in the inspector while the toggle is off (a `HITSCAN` kind
+# reads them too).
+func _validate_property(property: Dictionary) -> void:
+	var field: String = property["name"]
+	if field in ["hitscan_range", "hitscan_mask", "tracer"] and shot_kind() != Kind.HITSCAN:
+		property["usage"] |= PROPERTY_USAGE_READ_ONLY

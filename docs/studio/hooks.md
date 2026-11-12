@@ -18,7 +18,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Disk | under `[disk] hard_gb` free (10 GB): a task agent's start, `git worktree add` (and `gds issue start`) ([below](#disk)) | `gds disk guard`; report what is left to the coordinator and the maintainer |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
-| Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations; a session writing the hold switch ([below](#hold)) | stop and report; only the maintainer takes a hold off, or the coordinator while the maintainer's switch is on |
+| Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations; a session writing a session transcript or spelling an entry as the maintainer's ([below](#hold)) | stop and report; only the maintainer takes a hold off, or the coordinator once the maintainer approves that lift in its session |
 | Behind main | a merge command (as in Hold) on a pull request whose head lacks the tip of its base, by GitHub's compare (`behind_by` > 0); an API failure only warns ([Landing](landing.md#landing)) | `gds merge-main --path <worktree>`, push, merge once the checks pass |
 | Red main | a merge command (as in Hold) while a `CI failing on the default branch` issue is open in that repository, unless the body says `Fixes #<that issue>`; an API failure only warns ([Red main](hooks-red-main.md#red-main)) | wait for the fix, `gds merge-main`, push, merge |
 | Comments | any `gh` command that posts a comment or a review under the maintainer's account: the `comment` commands, `gh pr review`, `--comment` or `-c` on a close or reopen, `gh api` writes to a comments or reviews path, GraphQL mutations ([below](#comments)) | the same command without the text; the text goes in the scratch folder and the report |
@@ -91,7 +91,8 @@ branch deletion and an empty push pass. `--no-verify` is refused by the Git guar
 
 <!-- moved: hooks.md went over 50 KB with #1202; the anchor stays for the links in code and AGENTS.md -->
 
-How `S-hold` stops a merge, who may take it off, and the maintainer's switch that lets the coordinator lift it: [The hold](hooks-hold.md#hold).
+How `S-hold` stops a merge, who may take it off, and how the maintainer's approval in the coordinator's session lets
+it lift one: [The hold](hooks-hold.md#hold).
 
 ## Comments {#comments}
 
@@ -181,6 +182,9 @@ maintainer were not labelled `S-blocked` and held every slot). `Stop` (the main 
    "May start now" are idle: nobody has them (no `S-in-progress`, no open pull request that closes them) and they are not
    blocked. So are blocked issues whose `Blocked (...)` line waits on issues that have all closed ("Unblocked").
    A paused repository offers only its `P-critical` issues ([Starting work: pausing](starting-work.md#paused)).
+   While the kit has more open pull requests than `merge.queue_cap` (`.github/conventions.yml`; 0, so any open one),
+   nothing is idle: the landing freeze ([Starting work](starting-work.md#parallel)). The kit is read first, so no game
+   is asked then.
 2. **The refusal** names each idle issue and gives the ways out: `gds issue start <repo>#N --agent <name>` and then an
    agent with the `Issue:`/`Worktree:` lines it prints; or `gds issue block <repo>#N --on <#N|maintainer> --why "<text>"`
    when it waits on the maintainer, or on #N that its body names (its `### Blocked by` section, `Depends on:`,
@@ -464,19 +468,19 @@ Standard library only: the hooks start under `uv run --no-project`.
 | `issues.py` | issue order and the labels of progress ([below](#issues)) |
 | `bodies.py` | pull request bodies before `gh pr create\|edit` runs and after it ran ([the image guard](pull-requests.md#attach-paths)) |
 | `commits.py` | commits and pushes |
-| `merges.py` | `gh pr merge`, manual paths, the hold and its switch ([above](#hold)) |
+| `merges.py` | `gh pr merge`, manual paths, the hold and the coordinator's approved lift ([above](#hold)) |
 | `behind_base.py` | a merge only of a head that holds its base's tip |
 | `red_default.py` | no merge but the fix forward while main is red ([Red main](hooks-red-main.md#red-main)) |
 | `comments.py` | no comment or review under the maintainer's account ([above](#comments)) |
 | `launches.py` | pinned tools, windowed Godot, Godot audio, browser probes, kills by name |
-| `protected.py` | secrets printed, protected and generated files edited, the hold switch |
+| `protected.py` | secrets printed, protected and generated files edited, session transcripts written |
 | `proof.py`, `session.py`, `mains.py`, `disk.py`, `sweep.py`, `learning.py`, `docs.py`, `stall.py`, `idle.py` | the sections of the same names below |
 
 A module imports what it uses from another (`from .shell import segments`), and `guards.<name>` still finds any name
 of the package (a module `__getattr__`), as it did when the guards were one file. The entry points import a module
 when a call needs it: a Read loads `disk.py` and `workspace.py` only, a shell command the `git` or `gh` guards only
 when it runs `git` or `gh`. The kit modules the hooks load
-by file (`gds_tools/pr.py`, `lessons.py`, `issues.py`, `hold_switch.py`) go through `load_kit_module(name)`, so
+by file (`gds_tools/pr.py`, `lessons.py`, `issues.py`, `hold_approval.py`) go through `load_kit_module(name)`, so
 they must use the
 standard library only; `python/tests/hooks/test_hook_modules.py` loads them under `python -I -S`.
 

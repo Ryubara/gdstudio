@@ -12,16 +12,17 @@ The characters a level is populated with, and the node that keeps them alive (ki
 
 | Part | Where (in `templates/3d-third-person/game/`) | What it is |
 | --- | --- | --- |
-| Grunt | `gameplay/ai/characters/enemy_grunt.tscn` | `grunt.tres`, `hostile_guard.tres`, the male mannequin: patrols, engages, chases, searches. |
-| Shooter | `gameplay/ai/characters/enemy_shooter.tscn`, `gameplay/ai/profiles/shooter.tres` | Engages at 24 m and prefers 16, aim 0.55, `careful_margin` 1.0: always in the Careful play state, so it fights from cover and peeks. Male mannequin. |
-| Ally | `gameplay/ai/characters/ally.tscn` | `ally.tres`, `friendly_ally.tres`, the female mannequin: follows its leader (the player) and fights with it; startled by shots of anybody. |
+| Grunt | `gameplay/ai/characters/enemy_grunt.tscn` | `grunt.tres`, `hostile_guard.tres`, the male body (`form_male.glb`): patrols, engages, chases, searches. |
+| Shooter | `gameplay/ai/characters/enemy_shooter.tscn`, `gameplay/ai/profiles/shooter.tres` | Engages at 24 m and prefers 16, aim 0.55, `careful_margin` 1.0: always in the Careful play state, so it fights from cover and peeks. Male body. |
+| Ally | `gameplay/ai/characters/ally.tscn` | `ally.tres`, `friendly_ally.tres`, the female body (`form_female.glb`): follows its leader (the player) and fights with it; startled by shots of anybody. |
 | Civilian | `gameplay/ai/characters/civilian.tscn` | `civilian.tres` and set, unarmed (`Loadout.start_slot` -1), wanders 3 m round its home (`home_radius`), keeps away from a stranger with a gun (`remind_up_to` Unfriendly), and flees or cowers at a shot it hears from anybody (`startled_by` `shot`, the set's two heard-shot rows). |
 | `AiSpawner` | `gameplay/ai/spawner/ai_spawner.gd` | Keeps `count` of one scene alive at its markers, wakes when a player comes near, respawns after a death, lets bodies lie and takes them back. |
 | `AiPool` | `gameplay/ai/spawner/ai_pool.gd` | The spawner's characters, made once; a parked one is out of the tree. |
 | `CharacterModel.variant` | `gameplay/character/character_model.gd` | Another model of the same rig in place of the one the base holds ([Replacing the model](character.md#replacing-the-model)). |
 | AI section | `world/prototype/ai_section/ai_section.tscn`: `AiMarkers/` (the guard lane `guard_lane`, two shooter posts, 8 cover spots, 3 civilian homes) and `Population/` (Grunts 3, Shooters 2 on route `hold`, Allies 2 with leader `player`, Civilians 3; each `wake_range` 25 m, `max_corpses` 2, `on_server` on) | The population, placed and tuned in the scene (the template's `docs/design/map-sections.md`). |
 
-Enemies wear the male mannequin and friendlies the female, so a side reads without the band rings. The older scenes
+Enemies wear the male prototype body and friendlies the female (the `form` look,
+[the bodies](character.md#mannequins)), so a side reads without the band rings. The older scenes
 `gameplay/ai/ai_guard.tscn`, `ai_ally.tscn` and `ai_civilian.tscn` stay for the tests and benches that use them.
 
 ## Adding an enemy or a friendly {#recipe}
@@ -127,13 +128,76 @@ most of it): a section of this mix (half of it fighting) reaches the budget at a
 by the behaviour bench's limits (12 in Chrome, 6 at 4x). The
 soak's director step (180 s, desktop native) was 650 µs mean, 998 p95, with a moving fight and the respawns.
 
+## The cost gate and the web probe {#cost-gate}
+
+<!-- new section: the cost section above is the section's own population on the bench; nothing held the gate CI runs
+     on the AI's counts and cost, or the browser numbers of the soak's populations -->
+
+`tests/gameplay/test_ai_cost_gate.gd` (the template job) runs 50, 100 and
+200 of the template's `civilian.tscn` on a 28 m test mesh round a visitor in the player's faction and a raider in the
+enemy's (seen and fled from), 300 ticks after a 120-tick warm-up, under the director's shipped budgets with its desktop
+cap raised to 200. Counts are held exactly: no character asks for more paths than its `repath_seconds` allows, thinks
+more often than its `think_rate` or casts more than `max_rays_per_think` (2) rays a think, and the shared budget is
+never overspent. Time is held as medians: the step a character and a think over the median of a ruler loop timed
+every 50 ticks of the window (GDScript work of the AI's kind: vectors, an array, a dictionary, about 10 ms here), and
+the hit history over the step of the same ticks (a section of a few microseconds that a loop does not follow:
+[the ruler](../performance-budgets.md#budgets-counts-tight-time-loose)). Each limit sits between the highest ratio seen
+and twice the lowest, so a step, a think or a record twice as slow fails (a run with each made twice as slow by a wait
+failed every row), and a failure prints the row. Native debug build, Windows, 2026-11-11, on the prototype bodies;
+the step and think columns are 4 runs with the ruler (2 of them side by side), the history column 11 runs (5 with two
+or three copies of the gate beside it, 4 beside the full template suite):
+
+| Civilians | Step a character a tick | A think | Hit history a character (`ai_history_us`) | Paths / thinks a second each | Rays a think | Walking |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 50 | 48 to 56 us (4.6 to 5.1 a ruler ms; limit 8.0) | 72 to 84 us (6.9 to 7.7; limit 13) | 1.7 to 3.0 us (0.031 to 0.038 of the step; limit 0.055) | 0.60 / 10.0 | 0.17 | 57 % |
+| 100 | 44 to 47 us (4.1 to 5.1; limit 7.5) | 91 to 97 us (8.5 to 10.4; limit 14) | 2.1 to 3.8 us (0.034 to 0.049; limit 0.06) | 0.51 / 6.7 | 0.10 | 50 % |
+| 200 | 35 to 40 us (3.3 to 4.0; limit 6.5) | 108 to 119 us (10.0 to 12.2; limit 18) | 2.6 to 3.5 us (0.046 to 0.063; limit 0.09) | 0.39 / 3.6 | 0.11 | 35 % |
+
+- The first ruler was the soak's `sin` loop: on the Linux CI runner it took 7.5 ms against 12.5 on this desktop while
+  the AI's step cost the same (60 us a character at 50), so the step read 7.9 to 5.9 loops there against 4.3 to 6.2
+  here and failed CI. The C library's `sin` is not the AI's kind of work; the ruler now is.
+- With the `sin` loop, 11 runs on a loaded machine (two or three copies of the gate, or the full suite, beside it)
+  read the step at 46 to 95 us a character: load moves the microseconds 2 times and the ratio 1.6 times.
+- The branch before the prototype bodies (Quaternius's mannequins), measured turn about with these, read the same: the
+  body's look is not in the AI's step. The first table of this gate (34.9 us a character at 50, ratio 3.2) was a mean
+  over one calibration on a quieter day.
+- A think grows with the crowd (about 80 us at 50, 115 at 200) where the step a character falls: a frightened
+  civilian's think walks more beliefs and tellings in a bigger crowd. The calm crowd (no raider) is 31 to 46 us a
+  think.
+- The server's record of every AI character's hit volume (`AiHitHistory`, #1198) is 2 to 3.5 us a character a tick:
+  120 characters add about 0.3 ms to a server tick.
+
+`tools/web_smoke/ai.py` loads the soak's web export (`gds template bench-web 3d-third-person tools/soak/ai_soak.tscn`)
+with `?scale=N&pathing=0` (the AI section's 10 times N, the player fighting round it) for 15 s and reads the last 10 s
+(Chrome on the fast desktop, before the attack slots of #1203 landed; a run after them read a calibration loop of 34 to
+150 ms against 8 to 42 on a machine other agents had loaded, so it is not in the table; the page clean of console
+errors; frame work and the AI step in ms, median / 95th percentile):
+
+| Characters (fighting) | CPU | Frame work | AI step a tick | Ticks a frame |
+| ---: | ---: | ---: | ---: | ---: |
+| 10 | 1x | 1.6 / 2.3 | 0.57 / 0.80 | 1.00 |
+| 20 | 1x | 2.4 / 3.6 | 0.85 / 1.20 | 1.01 |
+| 30 | 1x | 2.8 / 4.1 | 0.98 / 1.50 | 1.00 |
+| 40 | 1x | 3.3 / 4.8 | 1.23 / 1.80 | 1.01 |
+| 10 | 4x | 9.5 / 20.8 | 3.07 / 4.80 | 1.15 |
+| 20 | 4x | 45.1 / 98.7 | 4.86 / 7.60 | 3.73 |
+| 30 | 4x | 97.4 / 138.3 | 5.91 / 9.20 | 6.74 |
+| 40 | 4x | 99 / 155 | 6.14 / 9.40 | 6.67 |
+
+- The section's own population of 10 holds both budgets (0.57 ms, 3.1 ms at 4x); fighting populations of 20 and more
+  fall off the tick cliff at 4x (3.7 to 6.7 ticks a frame), as [the fight table](ai-behaviour.md#cost-follow-up) says: a
+  web fight needs the attack slots of #1203 to hold its engaged count.
+- At 40 (scale 4) the director refused characters past its cap of 40 with a console warning: the spawners' corpses
+  still count against the cap while they lie, so a population at the cap is refused on its first respawns.
+
 ## Proof {#proof}
 
 `tests/gameplay/test_ai_characters.gd` (the four scenes, their looks and kinds), `test_ai_spawner.gd` (count,
 markers, pool, respawn, corpses, waking, reuse, network, a player of another world), `test_net_ai_section.gd` (the
 section online: a server and a client), `tests/world/test_ai_section.gd` (in `main.tscn` with the
 real player: the cone, walking heard and crouching not, one shot heard by the shooter and the ally while only the
-civilians run, killing an ally turns the allies Hostile). The soak `tools/soak/ai_section_soak.tscn` fights round
-the section for 180 s and fails on a character stuck for 3 s, idle with a threat in view for 5 s, or any engine
-error. `tools/capture/section_tour.tscn` (`SECTION_TOUR=fight|cover|chase|civilians`) films each from the game
+civilians run, killing an ally turns the allies Hostile). The AI soak `tools/soak/ai_soak.tscn` fights round the
+section with its population and fails on any of its gates ([the AI soak](../../../gamedev/bots.md#ai-soak));
+`tests/gameplay/test_ai_cost_gate.gd` holds the AI's counts and cost ([the cost gate](#cost-gate)).
+`tools/capture/section_tour.tscn` (`SECTION_TOUR=fight|cover|chase|civilians`) films each from the game
 camera; `tools/capture/ai_section_online_tour.tscn` films the section's fight online from a client's camera.

@@ -56,6 +56,9 @@ const TRIGGER_WAY_STEPS := 20
 ## opening is kit #1212). At its two places and against the left hand the limit is the
 ## usual one.
 const TRIGGER_GUARD_GRAZE := 0.004
+## The equal parts of the right thumb's way between the frame and the left thumb's root that are
+## measured (kit #1084): the plan's `on` from `SupportHandPlan.ARM_UNTIL` to `WAY_FROM`.
+const THUMB_WAY_STEPS := 40
 ## How far the left hand's bone may stop from its marker, in metres (a clamped arm stops short).
 const REACH := 0.005
 ## The parts of the left hand's fingers that lie on the right hand's in a two-handed grip (kit
@@ -572,6 +575,42 @@ func test_the_trigger_finger_passes_through_nothing_on_its_way_to_the_trigger() 
 				. override_failure_message("%s: %s" % [tag, "; ".join(fails)])
 				. is_empty()
 			)
+		stage.free()
+
+
+# The right thumb between the frame and the root of the left thumb (kit #1084), at every fortieth
+# of its way on both mannequins, the left hand waiting out at the far end of its own way as the
+# plan has it: no part of the thumb is more than `HandContact.MAX_DEPTH` inside the gun or the
+# left hand. A reload plays the whole move inside one hundredth of the clip, so the reload's
+# samples saw one moment of it (2.7 mm on the male body, 3.6 mm between two samples); the thumb
+# goes by a pose between, set by hand (`thumb_way_pose`).
+func test_the_right_thumb_passes_through_nothing_on_its_way_to_the_left_thumb() -> void:
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		var moved := Vector2(1.0, 0.0)
+		for step in THUMB_WAY_STEPS + 1:
+			var on := lerpf(
+				SupportHandPlan.ARM_UNTIL, SupportHandPlan.WAY_FROM, float(step) / THUMB_WAY_STEPS
+			)
+			stage.pose(CharacterClips.PISTOL_AIM, 0.16, on)
+			await stage.settle()
+			var plan: SupportHandPlan = stage.hold.call(&"left_hand")
+			moved = Vector2(minf(moved.x, plan.room), maxf(moved.y, plan.room))
+			var parts := stage.contact.measure("r", true)
+			var fails: Array[String] = []
+			for part: String in ["thumb_base", "thumb_mid", "thumb_tip"]:
+				var depth: float = -parts[part].distance
+				if depth > HandContact.MAX_DEPTH:
+					fails.append("%s %.1f mm inside" % [part, depth * 1e3])
+			(
+				assert_array(fails)
+				. override_failure_message(
+					"%s, the thumb %.2f on its way: %s" % [model, plan.room, "; ".join(fails)]
+				)
+				. is_empty()
+			)
+		# The steps took the thumb from the frame all the way onto the left hand.
+		assert_vector(moved).is_equal(Vector2(0.0, 1.0))
 		stage.free()
 
 

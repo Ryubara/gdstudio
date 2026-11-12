@@ -6,7 +6,7 @@ cross-sections, on the same palette and material as the pistol. Licence: [LICENS
 
 | File | What it is |
 | --- | --- |
-| `rifle.glb` | The near level (held, close up): 1,236 triangles, one material (`Weapons`), 0.816 x 0.386 x 0.097 m |
+| `rifle.glb` | The near level (held, close up): 1,236 triangles, one material (`Weapons`), 0.766 x 0.386 x 0.097 m |
 | `rifle_far.glb` | The far level: 420 triangles, the same parts with no chamfers, half the sides on round parts and the small parts left out, every node at the near level's place |
 | `rifle.tscn` | Both levels in one scene: `Near` drawn to 10 m, `Far` from 10 m (each mesh's Visibility Range, 0.5 m margin) |
 | `rifle_weapons_palette.png`, `rifle_far_weapons_palette.png` | The 32 x 32 palette Godot extracts from each glb (lossless, no mipmaps, Detect 3D off) |
@@ -31,13 +31,28 @@ grip. In Godot the muzzle points along -X, up is +Y and the gun's left is +Z (th
 | `Grip` | (0, 0, 0) | the right hand's handle; +Y up the handle (raked back 16 degrees), -Z along the fingers (the barrel) |
 | `Trigger` | (-0.054, 0.047, 0) | the trigger's front face; -Z is the press |
 | `Support` | (-0.246, 0.115, 0) | the left hand's handle, under the hand guard; +Y toward the muzzle, -Z the way the left fingers point (round the guard to the gun's right, and up) |
-| `Butt` | (0.307, 0.095, 0) | the butt pad's rear face, where the stock meets the shoulder |
+| `Butt` | (0.257, 0.095, 0) | the butt pad's rear face, where the stock meets the shoulder |
 
 `Support` is 4 cm further back than on Deadnight's model: the female mannequin's arm is 0.49 m from shoulder to wrist,
 and with the support where Deadnight put it the left hand stopped 4 cm short of it even with the chest turned 30
 degrees (the hold study below).
 
-## Holding it (a proposal for the weapon work)
+The stock is collapsed 5 cm from Deadnight's drawing (`STOCK_IN` in `build_rifle.py`, an M4's stock on its first
+positions; kit #1177): with the full stock and the butt on the shoulder's skin the mannequin's left arm stopped 4 to
+10 cm short of `Support`, so the first hold put the butt 5 to 10 cm inside the chest.
+
+## Holding it
+
+The game holds it with C and E below (kit #889): `gameplay/weapon/rifle_held.tscn`, a `TwoHandHold` under the
+character's `Model` slot, and `gameplay/pickup/rifle_pickup.tscn` gives it. Both hands are closed on it: the right
+on the grip with the index finger along the receiver (on the trigger while the rifle is up), the left cupped under the
+hand guard, from places and finger poses that `tools/hold/solve_rifle_hold.py` solves on each body's skin (the
+female's in the scene and the `rifle_*_pose.tres` files, the male's in `gameplay/weapon/hold/rifle_fit_male.tres`,
+which the hold puts on when the model is his) and `tests/gameplay/test_rifle_hold.gd` measures (the kit docs,
+`engines/godot/third-person/weapon-pickups.md#rifle-hands`). The study below is how the stance was chosen; its hands'
+targets and the engine's IK nodes are no longer what the game uses.
+
+### The proposal
 
 The Universal Animation Library has pistol clips and no rifle clips, so the rifle needs a hold made from what the
 template has. `tools/capture/rifle_hold_study.tscn` builds five on the female mannequin and measures each hand
@@ -74,8 +89,7 @@ turns and the chest turn added 0.3 ms a frame on the desktop (2.1 to 2.4 ms of p
 with), about 8 microseconds a character; it is a cosmetic pose, computed on each machine from the aim pitch the game
 already has, and never sent over the network.
 
-What it does not do yet: the fingers keep the clip's fist (the left hand's fingers go into the 8 cm hand guard; a
-fingers pose for the support grip, or a solve like Deadnight's grips, is the next step), and the head stays beside the
-stock rather than on it. Rifle clips made in Blender on the universal rig (an idle, an aim with up and down, a shot, a
+What it does not do: the head stays beside the stock rather than on it. Rifle clips made in Blender on the universal
+rig (an idle, an aim with up and down, a shot, a
 reload) would give a better body motion than a chest turn, at the cost of animating them; the IK hold above is the
 start that the weapon work can ship with, and a clip can replace any part of it later.

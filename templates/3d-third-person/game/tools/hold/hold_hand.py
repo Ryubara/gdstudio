@@ -63,6 +63,18 @@ class Hand:
                 self.part[f + "_" + tag] = np.where(rig.main[self.ids] == self.chains[f][k])[0]
         self.part["palm"] = np.where(rig.main[self.ids] == self.hand)[0]
         self.finger_verts = {f: np.where(np.isin(rig.main[self.ids], self.chains[f]))[0] for f in FINGERS}
+        # The bones under each finger's last one, and where each is from that bone (it never turns).
+        self.tips = {f: [b for b in rig.under(rig.names[self.chains[f][2]]) if b != self.chains[f][2]] for f in FINGERS}
+        self.tip_local = {}
+        for f in FINGERS:
+            last = self.chains[f][2]
+            for bone in self.tips[f]:
+                at = self.local[bone].copy()
+                above = rig.parent[bone]
+                while above != last:
+                    at = self.local[above] @ at
+                    above = rig.parent[above]
+                self.tip_local[bone] = at
         self._apply_all()
         self._sample_palm()
         self._measure_fingers()
@@ -87,6 +99,10 @@ class Hand:
                     mine = (rig.main == bone) & (rig.model == model)
                     local = rig.homog[mine] @ rig.bind[bone].T
                     middle = local[(local[:, 1] > 0.25 * lengths[k]) & (local[:, 1] < 0.75 * lengths[k])]
+                    if len(middle) < 8:
+                        # A low-poly finger (the prototype bodies: one ring of eight at each end of a
+                        # bone) has no vertex in its middle half: its tube is the rings along the bone.
+                        middle = local[(local[:, 1] >= 0.0) & (local[:, 1] <= lengths[k])]
                     centre = 0.5 * (middle[:, [0, 2]].min(axis=0) + middle[:, [0, 2]].max(axis=0))
                     # The skin's outside: joint balls put vertices inside it, so not the median.
                     radius = np.percentile(np.linalg.norm(middle[:, [0, 2]] - centre, axis=1), 90)
@@ -207,6 +223,12 @@ class Hand:
             local[:, :3, :3] = rig.rest[bone][:3, :3] @ rot
             g = g @ local
             mats.append(g @ rig.bind[bone])
+        # A bone under the finger's last one (a leaf bone at the tip, which one mannequin's skin is weighted
+        # to and the other's is not) rides it.
+        chain = list(chain)
+        for bone in self.tips[finger]:
+            chain.append(bone)
+            mats.append(g @ self.tip_local[bone] @ rig.bind[bone])
         vid = self.ids[self.finger_verts[finger][:: self.stride]]
         homog = rig.homog[vid]
         static = np.zeros((len(vid), 3))

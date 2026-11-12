@@ -4,7 +4,9 @@ extends Node
 ## `WeaponDef`s, and `unarmed` (the fists), a weapon of its own. It gives its `weapon` node the
 ## definition in the hands, keeps the magazine and the reserve of each slot while it is put away,
 ## shows the model of the one in the hands (the definition's `view` under `model`) and fills a
-## reserve from a `Pickup` whose `item_id` is the definition's `ammo_item`.
+## reserve from a `Pickup` whose `item_id` is the definition's `ammo_item`. `give()` adds a weapon
+## it does not carry yet in a new slot (a `WeaponPickup` calls it), or only its rounds when it
+## does.
 ##
 ## A switch takes the old weapon's `holster_time` (it goes down and cannot fire or reload; a
 ## reload under way is cut short and gives nothing), then the new one's `draw_time` (it comes up,
@@ -21,8 +23,16 @@ signal weapon_changed(definition: WeaponDef)
 signal switch_started(definition: WeaponDef)
 ## A switch ended: the weapon is up and ready.
 signal switch_finished(definition: WeaponDef)
+## `give()` put a weapon the loadout did not carry in a new slot, `slot`.
+signal weapon_added(definition: WeaponDef, slot: int)
+## The carried weapons changed while the game runs (`give()` added one or put rounds on one that is
+## not in the hands, or a restored step state took one back): a screen that lists `slots` and
+## their rounds (the inventory) redraws. Rounds of the weapon in the hands are its `ammo_changed`.
+signal slots_changed
 
 enum Phase { READY, HOLSTER, DRAW }
+## What `give()` did.
+enum Given { NOTHING, AMMO, WEAPON }
 
 ## The slot number of the empty hands.
 const UNARMED := -1
@@ -47,6 +57,9 @@ const UNARMED := -1
 @export var unarmed: WeaponDef
 ## The slot in the hands at the start (0 is the first; -1 the empty hands).
 @export var start_slot := 0
+## On: a weapon `give()` adds is brought out at once (an arena shooter's pickup). Off: it waits in
+## its slot for next or previous.
+@export var switch_to_new := true
 
 var _held := UNARMED
 var _target := UNARMED
@@ -58,11 +71,15 @@ var _kept: Array = []
 
 
 func _ready() -> void:
+	# Its own list: `give()` adds to it, and an array from a scene may be shared by its instances.
+	slots = slots.duplicate()
 	if character == null:
 		character = get_parent() as Character
 	if character != null:
 		character.item_collected.connect(_on_item_collected)
 	_kept.clear()
+	for definition: WeaponDef in slots:
+		_make_view(definition)
 	for definition: WeaponDef in slots:
 		_kept.append([definition.magazine_size, definition.start_reserve] if definition else [0, 0])
 	var first := clampi(start_slot, UNARMED, slots.size() - 1)
@@ -192,6 +209,52 @@ func take_ammo(item_id: StringName, amount: int) -> bool:
 	return taken
 
 
+## The slot that carries `definition`, or -1 when none does.
+func slot_of(definition: WeaponDef) -> int:
+	return slots.find(definition) if definition != null else -1
+
+
+## How many more rounds the reserve of `slot` takes before it is full (0 for a weapon with no
+## magazine or a slot that is not carried).
+func reserve_room(slot: int) -> int:
+	var definition := _definition(slot)
+	if slot < 0 or definition == null or not definition.uses_ammo():
+		return 0
+	return maxi(definition.max_reserve - int(ammo_of(slot)[1]), 0)
+
+
+## Gives the character `definition` with `rounds` rounds for its reserve. A weapon it does not
+## carry goes in a new slot with a full magazine and `rounds` in the reserve (held to
+## `max_reserve`), and is brought out when `switch_to_new` is on; one it carries takes only the
+## rounds, up to a full reserve. Returns how it went: `GIVEN_WEAPON`, `GIVEN_AMMO` or `NOTHING`
+## (it carries the weapon with a full reserve, or `definition` is null).
+func give(definition: WeaponDef, rounds: int) -> Given:
+	if definition == null:
+		return Given.NOTHING
+	var slot := slot_of(definition)
+	if slot >= 0:
+		var taken := mini(maxi(rounds, 0), reserve_room(slot))
+		if taken <= 0:
+			return Given.NOTHING
+		if slot == _held and weapon != null:
+			weapon.add_ammo(taken)
+		else:
+			_kept[slot][1] += taken
+			slots_changed.emit()
+		return Given.AMMO
+	_make_view(definition)
+	slots.append(definition)
+	var reserve := clampi(rounds, 0, definition.max_reserve) if definition.uses_ammo() else 0
+	_kept.append([definition.magazine_size, reserve])
+	slot = slots.size() - 1
+	_show_views()
+	weapon_added.emit(definition, slot)
+	slots_changed.emit()
+	if switch_to_new:
+		select(slot)
+	return Given.WEAPON
+
+
 ## Moves the switch one physics tick on. The character calls it in its `step`, before the weapon's.
 func tick(delta: float) -> void:
 	if _phase == Phase.READY:
@@ -211,21 +274,29 @@ func tick(delta: float) -> void:
 			switch_finished.emit(held_definition())
 
 
-## The loadout's step state in `kept`: what is held, where a switch is, and each slot's ammunition.
+## The loadout's step state in `kept`: what is held, where a switch is, each slot's ammunition and
+## the weapons carried (a pickup adds one).
 func save_step_state(kept: Array) -> void:
-	kept.resize(6)
+	kept.resize(7)
 	kept[0] = _held
 	kept[1] = _target
 	kept[2] = _phase
 	kept[3] = _phase_left
 	kept[4] = _last_armed
 	kept[5] = _kept.duplicate(true)
+	kept[6] = slots.duplicate()
 
 
 ## Puts back what `save_step_state()` wrote.
 func load_step_state(kept: Array) -> void:
 	if kept.size() < 6:
 		return
+	if kept.size() > 6 and kept[6] != slots:
+		# A weapon given after the state was saved goes again, its model with it.
+		_set_views_visible(false)
+		slots.assign(kept[6])
+		_show_views()
+		slots_changed.emit()
 	if kept[0] != _held:
 		_equip(kept[0])
 	_target = kept[1]
@@ -279,6 +350,30 @@ func _show_views() -> void:
 		var view := _node_under_model(definition.view) as Node3D
 		if view != null:
 			view.visible = view == shown
+
+
+# Makes the definition's `view_scene` under `model` when the model slot has no `view` node yet
+# (a weapon given by a pickup brings its model in the hand with it). It starts hidden.
+func _make_view(definition: WeaponDef) -> void:
+	if model == null or definition == null or definition.view_scene == null:
+		return
+	if definition.view.is_empty() or definition.view.get_name_count() != 1:
+		return
+	if model.has_node(definition.view):
+		return
+	var view := definition.view_scene.instantiate() as Node3D
+	if view == null:
+		return
+	view.name = String(definition.view.get_name(0))
+	view.visible = false
+	model.add_child(view)
+
+
+func _set_views_visible(shown: bool) -> void:
+	for definition in slots:
+		var view := _node_under_model(definition.view) if definition != null else null
+		if view != null:
+			view.visible = shown
 
 
 func _node_under_model(path: NodePath) -> Node3D:
