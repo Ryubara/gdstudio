@@ -4,13 +4,16 @@
 # solve its turn on the drawn pose, the aim pose blended with the carry pose whose muzzle points at
 # the floor, and asked for a 70 degree lift there; and it wrote each bone once per pass, so Godot's
 # `influence` blended from the first pass and the chest took that lift whole (80 degrees at a tenth
-# of the aim). Read from the chest (`spine_03`) after the skeleton's modifiers, against its pose
-# right before the layer, which a probe modifier records.
+# of the aim). Since the aim pose is the one the tree draws at full aim (the clips blended as the
+# tree blends them, a bone a clip leaves out at its rest, the brace and the grip's wrist turn), the
+# turn on the way up is the full aim's to a tenth of a degree. Read from the chest (`spine_03`)
+# after the skeleton's modifiers, against its pose right before the layer, which a probe modifier
+# records.
 extends GdUnitTestSuite
 
 ## Degrees the chest may turn past its share of the full aim's turn on any frame (the share is the
 ## aim's weight).
-const MARGIN := 3.0
+const MARGIN := 1.0
 ## Degrees the chest turns at most once a standing aim is all the way up (the clips aim it).
 const STANDING_FULL := 6.0
 
@@ -35,6 +38,8 @@ var _chest := -1
 # Per drawn frame: the aim's weight and the degrees the layer turned the chest.
 var _weights := PackedFloat32Array()
 var _turns := PackedFloat32Array()
+# A weapon definition a case made one-handed, put back after it.
+var _one_handed: WeaponDef
 
 
 func before_test() -> void:
@@ -57,6 +62,9 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	if _one_handed != null:
+		_one_handed.one_handed = false
+		_one_handed = null
 	InputSim.release_all()
 	AudioDrain.stop_all(_arena)
 
@@ -139,6 +147,18 @@ func test_lying_the_chest_never_folds_as_the_aim_goes_up_and_down() -> void:
 	var full := await _aim_in_and_out(command)
 	assert_bool(_player.prone).is_true()
 	_assert_no_fold("lying", full)
+
+
+func test_one_handed_the_chest_never_folds_either() -> void:
+	_one_handed = _player.weapon.definition
+	assert_bool(_one_handed.one_handed).is_false()
+	_one_handed.one_handed = true
+	for crouched: bool in [false, true]:
+		var command := _command(20.0)
+		command.crouch = crouched
+		var full := await _aim_in_and_out(command)
+		assert_bool(_layer.hold.one_handed).is_true()
+		_assert_no_fold("one-handed, crouched %s" % crouched, full)
 
 
 func test_a_shot_from_the_carry_keeps_the_chest_too() -> void:

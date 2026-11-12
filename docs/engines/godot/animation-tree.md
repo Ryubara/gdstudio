@@ -155,6 +155,25 @@ stride.
   influence of 0 it still turned 75 degrees; a modifier that writes each bone once blended exactly (9.0 of 90 degrees at
   0.1). **Seen:** gdstudio #1318, 2026-11-11 (`test_aim_fold.gd`).
 
+## A blend worked out by hand {#a-blend-worked-out-by-hand}
+
+<!-- new section: nothing said how the tree blends rotations or a track a clip lacks, which a script that rebuilds a
+     pose from the clips must match -->
+
+A script that works out by hand the pose a tree draws (to solve on it before the tree reaches it) has to blend as the
+tree does (Godot 4.7, measured against the drawn pose in gdstudio #1318). A deterministic tree (`deterministic`, on by
+default) blends a bone that a clip has no track for toward the bone's rest, not toward what the other clips give it:
+an aim clip with no `spine_01` track leaves `spine_01` at its rest at full aim, over whatever the legs' clip had. A
+blend of rotations is not a `slerp` from one clip to the other: each clip adds its turn off the rest, scaled by its
+weight, `rest * slerp(identity, rest.inverse() * q_a, w_a) * slerp(identity, rest.inverse() * q_b, w_b)`; positions
+are the weighted sum. Between the down and level points of an aim blend space 30 degrees down, the `slerp` of the two
+was off by 1.1 degrees on the chest and 6 at the hand, and this form by under 0.1.
+
+- **Approach:** Read each clip's tracks once, keep every bone's rest, and blend as above. **Watch out for:** a bone
+  missing from a clip taken as drawn rather than at rest, and a `slerp` between two blend points, each put the
+  third-person aim layer's solve 4 to 14 degrees off. **Seen:** gdstudio #1318, 2026-11-12 (`AimPose`,
+  `test_aim_fold.gd`).
+
 ## A state machine that starts at Start and has no way out {#a-state-machine-that-starts-at-start-and-has-no-way-out}
 
 A `AnimationNodeStateMachine` begins in its `Start` node, and a state reached only by `travel()` from the locomotion

@@ -230,17 +230,22 @@ func _aim_locals() -> Array[Transform3D]:
 	var result: Array[Transform3D] = []
 	for index in _bones.size():
 		result.append(aim_pose.local(_bones[index], _locals[index]))
+	if not result.is_empty():
+		result[0] = aim_pose.braced(_bones[0], result[0], _base.basis)
 	return result
 
 
 # From the last bone of the chain to the muzzle in the aim pose alone: the arm as the aim clips
-# pose it, and the hand the attachment rides as it is drawn (the grip has turned the wrist).
+# pose it, and the hand the attachment rides as the grip turns it (`AimPose.gripped()`).
 func _aim_below(skeleton: Skeleton3D) -> Transform3D:
 	var result := _offset
 	var cursor := _bone
 	while cursor != _bones[-1] and cursor >= 0:
 		var pose := skeleton.get_bone_pose(cursor)
-		result = (pose if cursor == _bone else aim_pose.local(cursor, pose)) * result
+		if cursor == _bone:
+			result = aim_pose.gripped(cursor, skeleton.get_bone_name(cursor), pose) * result
+		else:
+			result = aim_pose.local(cursor, pose) * result
 		cursor = skeleton.get_bone_parent(cursor)
 	return result
 
