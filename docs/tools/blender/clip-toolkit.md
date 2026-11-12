@@ -200,7 +200,7 @@ lean is tested on made-up motion only. A body whose legs differ from the referen
   cost check: declare it. **Seen:** gdstudio #1159, 2026-11-12 (`clips/lean.py`, `test_own_directions.gd`).
 - **Approach:** Import the shipped file in Godot as soon as a clip is added to it and read its bytes a second
   before the review files are polished; key the fingers only in clips where they are seen to move.
-  **Watch out for:** six short loops and five held poses took the library from 5.3 to 6.35 KB a second (the test
+  **Watch out for:** six short loops and five held poses took the library from 5.3 to 6.2 KB a second (the test
   holds 6): a short fast loop is 11 KB a second imported and a pose has no seconds at all. Thirty finger tracks
   that opened 3 degrees were a quarter to a third of each loop's key bytes; held, the file is under 6, and the
   share of keys a reducer keeps is then read on 26 bones and has to be declared (`keys_kept` 0.6).

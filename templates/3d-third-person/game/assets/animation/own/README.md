@@ -559,7 +559,7 @@ degrees to the left of the way the body faces, with a table of numbers per clip.
   degrees at the hips, 42 mm at a foot and 17 mm in a hand's height (`tests/gameplay/test_own_directions.gd`).
 - **The fingers hold their curl.** These gaits play while the character aims, with a weapon in its hands whose
   hold poses the fingers. Thirty finger tracks that opened and closed 3 degrees were a quarter to a third of a
-  clip's key bytes, and with them the library file imported at 6.35 KB a second, over the 6 the test holds it to.
+  clip's key bytes, and with them the library file imported at 6.2 KB a second, over the 6 the test holds it to.
 
 ### How the lean poses are built
 
@@ -648,6 +648,6 @@ in the shipped gaits, thigh in thigh: his thighs meet by 2 mm in his rest pose a
 - A lean pose's record has `pose` (true), `lean` (`way`, degrees to the left of ahead, and `degrees`, the lean the
   full pose is) and `reference` (`Lean_Ref`). The weight of a lean is the lean wanted over `degrees`. Each pose is
   two keys a bone on 52 bones, 1.7 KB in the file; they key no `ik_` target.
-- **Imported size:** the nineteen clips' 29.7 s import inside the 6 KB a second the test holds the file to (it
-  was 130 KB and 5.3 before these clips, and 6.35 with the directions' fingers keyed). The next short loops will
+- **Imported size:** 174 KB for the nineteen clips, 29.7 s: 5.86 KB a second against the 6 the test holds the
+  file to (130 KB and 5.3 before these clips, 6.2 with the directions' fingers keyed). The next short loops will
   need the budget looked at: a file of short fast loops and held poses has few seconds to spread its keys over.
