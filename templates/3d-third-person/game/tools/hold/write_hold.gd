@@ -1,9 +1,14 @@
-## Writes the solved pistol hold into the project (kit #1001): the seven `HandPose` files of
+## Writes the solved pistol hold into the project (kit #1001): the eight `HandPose` files of
 ## `gameplay/weapon/hold/`, `assets/weapons/pistol/pistol_held.tscn` (the pistol's seat on
 ## `hand_r`, the `SupportHand` and `MagazineHand` markers) and the left hand's way off the pistol
 ## in `gameplay/weapon/hold/weapon_hold.tscn` (`support_way`), from the JSON file
-## `solve_pistol_hold.py` wrote. No number of the hold is typed by hand: change the model or the
-## solver, run both again, then the test `tests/gameplay/test_pistol_hold.gd`.
+## `solve_pistol_hold.py` wrote. No number of the hold is typed into those files: change the model
+## or the solver, run both again, then the test `tests/gameplay/test_pistol_hold.gd`.
+##
+## The finger poses set by hand (kit #1084, `tools/hold/pistol_authored.json`, read by
+## `authored_pose.gd`) are laid over the solved ones here, on the body's own skeleton, so a new
+## solve keeps them: a finger the file names takes its angles, in the pose it names. The thumb's
+## pose between (`thumb_way`) exists only there.
 ##
 ## Each body has its own hold (kit #1187). The default body's (`female`, `CharacterBodies.FEMALE`)
 ## goes into the files above; another body's into one `HoldFit` file,
@@ -12,11 +17,13 @@
 ## `<godot> --headless --path game -s res://tools/hold/write_hold.gd -- <hold.json> [female|male]`
 extends SceneTree
 
+const Authored := preload("res://tools/hold/authored_pose.gd")
 const POSES: Dictionary[String, String] = {
 	"grip": "res://gameplay/weapon/hold/pistol_grip_pose.tres",
 	"trigger": "res://gameplay/weapon/hold/pistol_trigger_pose.tres",
 	"trigger_way": "res://gameplay/weapon/hold/pistol_trigger_way_pose.tres",
 	"thumb": "res://gameplay/weapon/hold/pistol_thumb_pose.tres",
+	"thumb_way": "res://gameplay/weapon/hold/pistol_thumb_way_pose.tres",
 	"support": "res://gameplay/weapon/hold/pistol_support_pose.tres",
 	"magazine": "res://gameplay/weapon/hold/pistol_magazine_pose.tres",
 	"open": "res://gameplay/weapon/hold/pistol_open_pose.tres",
@@ -46,6 +53,7 @@ func _initialize() -> void:
 		quit(1)
 		return
 	var solved: Dictionary = parsed
+	_lay_authored(solved, body)
 	if body != DEFAULT_BODY:
 		_write_fit(solved, body)
 		quit()
@@ -78,6 +86,22 @@ func _initialize() -> void:
 	if solved.has("way"):
 		_write_way(solved.way)
 	quit()
+
+
+# Lays the finger poses set by hand for `body` over the solved ones: each bone they name takes
+# their rotation, worked out on the body's own skeleton.
+func _lay_authored(solved: Dictionary, body: String) -> void:
+	var rig := (load(CharacterBodies.BY_NAME[body]) as PackedScene).instantiate()
+	var skeleton := rig.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	var authored := Authored.poses(skeleton, body)
+	for key: String in authored:
+		if not solved.has(key):
+			solved[key] = {}
+		for bone: StringName in authored[key]:
+			var turned: Quaternion = authored[key][bone]
+			solved[key][String(bone)] = [turned.x, turned.y, turned.z, turned.w]
+		print("laid the authored ", key, " pose over the solved one (", body, ")")
+	rig.free()
 
 
 # Writes another body's hold as one `HoldFit` file, its poses inside it.

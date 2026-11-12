@@ -61,6 +61,10 @@ const _SUPPORT_FINGERS := &"HoldSupportFingers"
 ## over `grip_pose` while the left hand waits at the far end of `support_way`, before it comes in
 ## (`SupportHandPlan.room`).
 @export var thumb_pose: HandPose
+## Where the right thumb is half-way between the frame and the left thumb's root: lifted clear of
+## the frame's edge, which the straight blend took its middle bone through (2.7 mm on the male
+## body). Posed by hand (`tools/hold/pistol_authored.json`), as the trigger finger's way is solved.
+@export var thumb_way_pose: HandPose
 ## How far the right hand is on `grip_pose` (0 the clip's own fist).
 @export_range(0.0, 1.0, 0.01) var held_weight := 1.0
 ## The arm that carries the weapon, and how many degrees it is held out from the body while the
@@ -267,6 +271,7 @@ func _build() -> void:
 	_grip.second = trigger_pose
 	_grip.second_via = trigger_way_pose
 	_grip.open = thumb_pose
+	_grip.open_via = thumb_way_pose
 	_skeleton.add_child(_grip)
 	_marker = seat.get_child(0).get_node_or_null(support_marker) as Node3D
 	if _marker != null and _marker.get_parent() == seat.get_child(0) and support_arm.size() == 3:
@@ -313,6 +318,7 @@ func _fit_body() -> void:
 		_own.trigger_pose = trigger_pose
 		_own.trigger_way_pose = trigger_way_pose
 		_own.thumb_pose = thumb_pose
+		_own.thumb_way_pose = thumb_way_pose
 		_own.support_pose = support_pose
 		_own.magazine_pose = magazine_pose
 		_own.open_pose = open_pose
@@ -327,6 +333,7 @@ func _fit_body() -> void:
 	trigger_pose = chosen.trigger_pose
 	trigger_way_pose = chosen.trigger_way_pose
 	thumb_pose = chosen.thumb_pose
+	thumb_way_pose = chosen.thumb_way_pose
 	support_pose = chosen.support_pose
 	magazine_pose = chosen.magazine_pose
 	open_pose = chosen.open_pose

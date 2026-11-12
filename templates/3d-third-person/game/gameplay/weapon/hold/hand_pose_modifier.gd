@@ -22,6 +22,10 @@ extends SkeletonModifier3D
 ## go of the weapon or comes back to it, or a thumb moved over to make room for the other hand.
 @export var open: HandPose
 @export_range(0.0, 1.0, 0.01) var open_weight := 0.0
+## A pose the bones it names pass through half-way to `open` (kit #1084): the right thumb lifts
+## clear of the weapon's frame before it swings over to the other hand's thumb, where the
+## straight blend took its middle bone through the frame's edge.
+@export var open_via: HandPose
 ## An upper arm lifted away from the body before the pose is put on, and by how many degrees: the
 ## weapon's arm held out from the thigh while the weapon is carried (`swing_out()`).
 @export var swing_bone: StringName = &""
@@ -62,7 +66,7 @@ func _process_modification_with_delta(_delta: float) -> void:
 		if second != null and second_weight > 0.0 and second.rotations.has(bone_name):
 			turned = _toward_second(bone_name, turned)
 		if open != null and open_weight > 0.0 and open.rotations.has(bone_name):
-			turned = turned.slerp(open.rotations[bone_name], open_weight)
+			turned = _toward_open(bone_name, turned)
 		skeleton.set_bone_pose_rotation(bone, turned)
 
 
@@ -76,6 +80,18 @@ func _toward_second(bone_name: StringName, from: Quaternion) -> Quaternion:
 	if second_weight < 0.5:
 		return from.slerp(via, second_weight * 2.0)
 	return via.slerp(to, second_weight * 2.0 - 1.0)
+
+
+# A bone's rotation `open_weight` of the way from `from` to `open`'s, through `open_via`'s at the
+# half when it names the bone.
+func _toward_open(bone_name: StringName, from: Quaternion) -> Quaternion:
+	var to := open.rotations[bone_name]
+	if open_via == null or not open_via.rotations.has(bone_name):
+		return from.slerp(to, open_weight)
+	var via := open_via.rotations[bone_name]
+	if open_weight < 0.5:
+		return from.slerp(via, open_weight * 2.0)
+	return via.slerp(to, open_weight * 2.0 - 1.0)
 
 
 ## Lifts `bone` (an upper arm) `degrees` away from the body, where the skeleton poses it now: it
