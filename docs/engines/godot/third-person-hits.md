@@ -37,7 +37,9 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `took_hit` and `health_changed`, and when the health reaches zero dies (`die(record)`), goes limp and then says
   `hit_received(record)` with `killed` set. `health` and `max_health` on the character read the `Health` node's `value`
   and `max_value` (read only: a game sets the `Health` node). `hit(amount, source)` is still there: a blow with no point
-  that also stops and throws the character (`hit_stun_time`, `knockback_speed`), as before. A dead character takes no
+  that also stops and throws the character (`hit_stun_time`, `knockback_speed`), as before. The hit clip plays over the
+  whole body standing and over the upper body only crouched, lying or sliding (`HitLayer`), so a low body stays down
+  ([one action state for every body](animation-tree.md#one-action-state-for-every-body)). A dead character takes no
   damage, but its `hit_received` still fires (the lying-body push). Getting up gives the health back, and `die()` with
   no record sets it to 0. The HUD's health part reads `health` and `max_health` and shows them.
 - **The reaction.** `HitReaction` listens to `hit_received`. A record that killed pushes the hit bone at the hit point
