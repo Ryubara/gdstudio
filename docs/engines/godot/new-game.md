@@ -228,8 +228,9 @@ another game with no `.import`: the full local run was green and CI's step faile
 - **Approach:** Give a new script of a synced addon (`godot/addons/<name>/` in the kit) its `.uid` in the addon's
   source, then sync: `uv run --project python python -c "from pathlib import Path; from gds_tools import uids;
   print(uids.write(uids.uid_file(Path('<script>.gd'))))"`. **Watch out for:** `gds template uids` skips every
-  `addons/` folder on purpose (an addon's files are its own), so it wrote nothing for a new `gds_game` script and
-  nothing on the page said how to make one. **Seen:** gdstudio #1183 (PR #1214), 2026-11-11.
+  `addons/` folder on purpose (an addon's files are its own), so it wrote nothing for a new `gds_game` script, still
+  reported every script as having its uid, and nothing on the page said how to make one. **Seen:** gdstudio #1183
+  (PR #1214), 2026-11-11; #1037 (PR #1239), 11-11 (the report).
 
 ## With `--local` {#with-local}
 
