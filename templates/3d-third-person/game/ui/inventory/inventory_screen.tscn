@@ -81,6 +81,7 @@ layout_mode = 2
 script = ExtResource("5_button")
 text = "Close"
 variant = 1
+metadata/ui_sound_role = &"back"
 
 [node name="Side" type="VBoxContainer" parent="Fit/Margin/Center/Card/Row"]
 layout_mode = 2
