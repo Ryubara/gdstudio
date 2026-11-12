@@ -8,7 +8,10 @@
 ## `NEAR_CAMERA` (every figure inside the rifle hold's `fingers_far_distance`, as the player's
 ## own character and those near it); `no_hold_far` and `rifle_far` from `FAR_CAMERA` (past it,
 ## the holds told so as the animation throttle tells them in a game).
-## A game always has a camera, and what the hold moves costs more with one looking.
+## A game always has a camera, and what the hold moves costs more with one looking. The figures
+## wear one of the template's own bodies, named by the second user argument (or `?body=`):
+## `female` (the default, the player's; the holds' own places and poses) or `male` (the enemies';
+## the holds' `fits` solved on it).
 ##
 ## A frame's work is the span from the `_process` of the first node to process to the end of the
 ## deferred calls that follow the last one (the skeletons run their modifiers there), the same
@@ -29,7 +32,10 @@ const WARM_FRAMES := 150
 const MEASURED_FRAMES := 600
 const CLIP := &"ual1/Pistol_Aim_Neutral"
 const LIBRARY := "res://assets/animation/universal/ual1.glb"
-const MODEL := "res://assets/characters/mannequin/mannequin_female.glb"
+const BODIES: Dictionary[String, String] = {
+	"female": "res://assets/characters/prototype/form_female.glb",
+	"male": "res://assets/characters/prototype/form_male.glb",
+}
 const PISTOL_HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 const PISTOL_HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
 const RIFLE_HELD := "res://gameplay/weapon/rifle_held.tscn"
@@ -68,7 +74,13 @@ func _bench() -> void:
 		printerr("hold_cost: the run is one of %s" % ", ".join(RUNS.keys()))
 		get_tree().quit(1)
 		return
-	var run := RUNS[run_name]
+	var run := RUNS[run_name].duplicate()
+	var body := _argument(1, "body", "female")
+	if not BODIES.has(body):
+		printerr("hold_cost: the body is one of %s" % ", ".join(BODIES.keys()))
+		get_tree().quit(1)
+		return
+	run.model = BODIES[body]
 	var camera := Camera3D.new()
 	add_child(camera)
 	camera.position = Vector3(0.0, 2.0, run.camera)
@@ -101,6 +113,7 @@ func _bench() -> void:
 		total += work
 	var result := {
 		"run": run_name,
+		"body": body,
 		"characters": FIGURES,
 		"camera": run.camera,
 		"frames": _works.size(),
@@ -109,8 +122,8 @@ func _bench() -> void:
 	}
 	print(
 		(
-			"BENCH %s: %d characters, work %.3f ms a frame (median %.3f)"
-			% [run_name, FIGURES, result.mean_ms, result.median_ms]
+			"BENCH %s %s: %d characters, work %.3f ms a frame (median %.3f)"
+			% [run_name, body, FIGURES, result.mean_ms, result.median_ms]
 		)
 	)
 	if OS.has_feature("web"):
@@ -127,14 +140,19 @@ func end_frame() -> void:
 
 
 func _run_name() -> String:
+	return _argument(0, "run", "rifle")
+
+
+# The user argument at `index`, or in the web build the address's `key=`; `fallback` when absent.
+func _argument(index: int, key: String, fallback: String) -> String:
 	if OS.has_feature("web"):
 		var query := str(JavaScriptBridge.eval("window.location.search", true))
 		for pair in query.trim_prefix("?").split("&"):
-			if pair.begins_with("run="):
-				return pair.trim_prefix("run=")
-		return "rifle"
+			if pair.begins_with(key + "="):
+				return pair.trim_prefix(key + "=")
+		return fallback
 	var arguments := OS.get_cmdline_user_args()
-	return arguments[0] if arguments.size() > 0 else "rifle"
+	return arguments[index] if arguments.size() > index else fallback
 
 
 # A mannequin in a model slot under a figure node, holding the run's weapon.
@@ -143,13 +161,16 @@ func _figure(run: Dictionary) -> Node3D:
 	add_child(figure)
 	var slot := CharacterModel.new()
 	figure.add_child(slot)
-	slot.add_child((load(MODEL) as PackedScene).instantiate())
+	slot.add_child((load(run.model) as PackedScene).instantiate())
 	if run.get("rifle", false):
 		var held := (load(RIFLE_HELD) as PackedScene).instantiate() as TwoHandHold
 		held.posed_aim = run.aim
 		held.posed_reload = run.get("reload", -1.0)
 		# What the animation throttle tells a hold past `fingers_far_distance` in a game.
-		held.fingers_far = run.camera > held.fingers_far_distance
+		# (`set` and `get`: a hold from before #1178 has neither, so the bench measures it too.)
+		var far_from: Variant = held.get(&"fingers_far_distance")
+		if far_from != null:
+			held.set(&"fingers_far", run.camera > float(far_from))
 		slot.add_child(held)
 		return figure
 	var seat := (load(PISTOL_HELD) as PackedScene).instantiate() as BoneAttachment3D

@@ -5,7 +5,8 @@ docs/engines/godot/web-probes.md#bench-web) cross-origin isolated (so the page's
 once a run (`?run=no_hold`, `aimed`, `rifle`, ...; one page a run, as the bench measures one set of figures a process),
 waits for `window.__hold_cost` and prints each run's mean and median frame work and, for each hold, its cost a
 character a frame: the run's mean less that of the `no_hold` run with the same camera, over the figures. The optional second argument is a CPU throttle
-(4 is the weak-machine stand-in), the third a comma-separated list of runs.
+(4 is the weak-machine stand-in), the third a comma-separated list of runs, the fourth the body (`female`, the default, or
+`male`).
 
     uv run --project <kit>/python gds quiet -- \
         uv run --with playwright==1.64.1 python tools/bench/hold_cost.py build/web 1
@@ -44,7 +45,8 @@ class IsolatedHandler(http.server.SimpleHTTPRequestHandler):
 def main() -> int:
     folder = Path(sys.argv[1])
     throttle = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
-    runs = sys.argv[3].split(",") if len(sys.argv) > 3 else RUNS
+    runs = sys.argv[3].split(",") if len(sys.argv) > 3 and sys.argv[3] else RUNS
+    body = sys.argv[4] if len(sys.argv) > 4 else "female"
     handler = functools.partial(IsolatedHandler, directory=str(folder))
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -59,7 +61,7 @@ def main() -> int:
             if throttle > 1.0:
                 session = page.context.new_cdp_session(page)
                 session.send("Emulation.setCPUThrottlingRate", {"rate": throttle})
-            page.goto(f"http://127.0.0.1:{server.server_address[1]}/index.html?run={run}")
+            page.goto(f"http://127.0.0.1:{server.server_address[1]}/index.html?run={run}&body={body}")
             end = time.time() + RUN_TIMEOUT_S
             result = None
             while result is None and time.time() < end:
@@ -75,7 +77,7 @@ def main() -> int:
     server.shutdown()
     failed = [m for m in messages if m.startswith(("error", "pageerror"))][:5]
     bases = {r["camera"]: r for r in results.values() if r["run"].startswith("no_hold")}
-    print(f"throttle {throttle:g}x")
+    print(f"throttle {throttle:g}x, body {body}")
     for run, result in results.items():
         base = bases.get(result["camera"])
         line = (
@@ -86,7 +88,7 @@ def main() -> int:
             each = (result["mean_ms"] - base["mean_ms"]) * 1000.0 / result["characters"]
             line += f"  hold {each:6.1f} us a character a frame"
         print(line)
-    print("JSON " + json.dumps({"throttle": throttle, "runs": results}))
+    print("JSON " + json.dumps({"throttle": throttle, "body": body, "runs": results}))
     for line in failed:
         print("FAIL", line)
     return 1 if failed else 0
