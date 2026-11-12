@@ -202,9 +202,10 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
 
 - **Teeth:** `AiSoakFaults` (`--faults all`, one hostile a fault, each taken when its state lets the fault show)
   breaks each gate: an injected error, a body held while its navigator is sent on, a paused runner with a refreshed
-  belief in the player, a never-ending task with its clock held, the navigator's query clock put back each tick, a
-  think 6 ms longer, an invulnerable hostile, a fully aware belief in a wall. `test_ai_soak.gd` runs them in one 60 s
-  run at scale 2 and checks each gate names its target.
+  belief in the player (kept alive for the gate's `idle_seconds` and 1 s, then mortal again), a never-ending task
+  with its clock held, the navigator's query clock put back each tick, a think 6 ms longer, an invulnerable hostile, a
+  fully aware belief in a wall. `test_ai_soak.gd` runs them in one 60 s run at scale 2 and checks each gate names its
+  target.
 - **Replay:** the same seed in a fresh process gives the same `command_hash`; another seed does not. In one process the
   second run differs: the navigators take their phase and seed from a static counter of navigators made.
 - **Where it runs:** the pull-request suite runs seed 1 for 120 s (about 10 s); `.github/workflows/ai-soak.yml` runs 50
@@ -231,6 +232,13 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   for:** a held task clock never broke the overdue gate because the AI's tasks change every few seconds; an injected
   unnoticed belief faded in the same think; resetting a goal every tick did not storm because the navigator holds its
   own interval. **Seen:** gdstudio #971, 2026-11-11 (`AiSoakFaults`).
+- **Approach:** Keep a fault's target alive for the whole window its gate needs (the `IDLE` target cannot die for the
+  watch's `idle_seconds` and a second, then it can), and run the teeth case for many seeds in fresh processes before
+  calling it deterministic. **Watch out for:** the pilot shoots every hostile in its sight and a still one is the
+  easiest, so the idle target died 2.4 s into its 5 s window whenever the pilot's loop passed it; whether it did
+  turned on the process's history (the navigators' static counters), so the case passed alone and failed inside the
+  full suite and on main's CI (seed 1 in a fresh process failed too). **Seen:** gdstudio #1328, 2026-11-12
+  (`AiSoakFaults._hold_idle`; 24 of 24 seeds then broke the gate).
 - **Approach:** Check a soak's replay in fresh processes, and look for static counters (`static var`) before calling a
   run nondeterministic. **Watch out for:** two runs of the same seed in one GdUnit process gave different hashes
   while separate processes matched. **Seen:** gdstudio #971, 2026-11-11 (`test_the_same_seed_repeats_its_commands`).
