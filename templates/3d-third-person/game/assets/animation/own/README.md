@@ -153,7 +153,7 @@ summary of the page named, so they are leads; where nothing was found it says so
 | Running and walking on bent legs | Running with the knees bent lowers the body's vertical stiffness and costs up to 50 % more oxygen; walking on bent hips and knees has a nearly flat path of the centre of mass, lower peak forces, much more ankle bend and less hip extension, and the swinging leg turns further because the foot has less room under it. | [McMahon et al., 1987](https://doi.org/10.1152/jappl.1987.62.6.2326) and a review of bent-hip, bent-knee walking, in a search's summary | The crouch walk's pelvis dips 8 to 24 mm as each leg takes the weight (the library's rises and falls 61 mm), the foot lands flat and its heel rises from the landing on, and the swing clears the floor by 45 mm. |
 | Cadence and step of a crouched walk at 1.5 m/s | Not found in a source we could open. | | 150 to 180 steps a minute on steps of 0.50 to 0.60 m: a declared choice, set by the body. With the pelvis this low a longer step bends the ankle past its 55 degrees and brings the trailing knee toward the floor. |
 | How long a drop takes | No study with a time was found. Physics gives the floor: a body with a foot down cannot fall faster than gravity, and the centre of mass goes down 0.45 m, which a free fall takes 0.30 s over (9 frames) before any braking. | computed | 15 frames is the shortest drop here that stays under gravity (0.97 of it); the build fails one that does not (`checks.FALL`). The controller's `crouch_time` is 0.2 s (6 frames), which no drop of this depth fits. |
-| The capsule | `CharacterTuning.crouch_height` is 1.1 m for a body 1.80 m tall. | the template | Every frame of the crouch idle and walk is under 1.1 m on both mannequins (the taller reaches 1.092 and 1.0975 m; the library's walk reaches 1.127 m), which is what folds the trunk 78 degrees. |
+| The capsule | `CharacterTuning.crouch_height` is 1.1 m for a body 1.80 m tall. | the template | Every frame of the crouch idle and walk is under 1.1 m on both mannequins (the taller reaches 1.092 and 1.0971 m; the library's walk reaches 1.127 m), which is what folds the trunk 78 degrees. |
 
 ### How they are built
 
@@ -168,8 +168,9 @@ summary of the page named, so they are leads; where nothing was found it says so
   the chest turns and leans the other way.
 - **A forearm on a thigh.** The solver's `rest` lowers the left arm until its forearm's line is 115 mm from the left
   thigh's and shin's on both mannequins, measured at each body's own joints, on every frame, so it stays there
-  while the chest breathes and the weight moves; that arm is left out of the overlap pass. The right arm hangs,
-  and keeps its hand 100 mm from its thigh's line.
+  while the chest breathes and the weight moves; that arm is left out of the overlap pass. The right arm hangs
+  24 degrees out from the body and keeps its hand 100 mm from its thigh's line, which is what keeps a pistol held
+  in that hand out of the leg on both mannequins (`tests/gameplay/test_pistol_clearance.gd`).
 - **The walk is its footfalls** (`gdsanim.plan`): speed, cadence and planted share are inputs, and the two steps are
   the same length half a stride apart, as a steady gait's must be. Its carriage is read from the shipped crouch
   idle (pelvis height, the trunk's fold, half of the idle's turn and tilt, each arm's hang), and everything else
@@ -198,7 +199,7 @@ Three stances, not one stance at three tempos. Measured on the female mannequin 
 | Shoulders turned the other way | 11 degrees | 17 | 6 | 1 |
 | The trunk folds, the head looks down | 78, 22 degrees | 84, 26 | 76, 20 | 80, 39 |
 | The left arm | forearm on the left thigh, elbow 57 degrees, the hand drooping inside the knee | the same, the hand drooping further | the same, the fingers closed further | hangs outside the knee, elbow 47 |
-| The right arm | hangs outside the low knee, elbow 17 degrees, wrist 0.36 m up | the hand lies on the low knee, elbow 45, wrist 0.39 m up | bent 63 degrees, the hand held outside the knee at 0.43 m | held ahead of the knee, elbow 75 |
+| The right arm | hangs 24 degrees out from the body, outside the low knee, elbow 17 degrees, wrist 0.39 m up | the hand lies on the low knee, elbow 45, wrist 0.39 m up | bent 63 degrees, the hand held outside the knee at 0.43 m | held ahead of the knee, elbow 75 |
 | Length | 8 s | 10.7 s | 8 s | 2.9 s |
 | Pelvis side to side, hips turn, head turns | 33 mm, 3, 7 degrees | 34 mm, 6, 14 | 19 mm, 3, 29 (looks, holds, looks back) | 6 mm, 1, 4 |
 | Highest vertex, female and male | 1.068, 1.092 m | 1.065, 1.089 | 1.062, 1.086 | 1.045 on the female |
@@ -216,7 +217,7 @@ Three stances, not one stance at three tempos. Measured on the female mannequin 
 | The arms swing, left and right | 10, 18 degrees | 13, 22 | 7, 13 | the arms hold still |
 | The elbows, left and right | 74, 36 degrees | the same | the same | 47, 75 |
 | Arm with the other side's leg | 0.80 and 0.84 | 0.79 and 0.85 | 0.79 and 0.83 | none |
-| Highest vertex on the male | 1.0974 m | 1.0967 | 1.0975 | 1.127 on the female |
+| Highest vertex on the male | 1.0970 m | 1.0963 | 1.0971 | 1.127 on the female |
 | Limbs inside limbs, both bodies | 0 mm | 0 | 0 | none |
 
 | Stance changes | A, grounded | B, loose | C, sharp |
@@ -225,7 +226,7 @@ Three stances, not one stance at three tempos. Measured on the female mannequin 
 | `Crouch_To_Stand` | 16 frames, stops at 0.96 of gravity; the right foot in the air from frame 6 to 14 | 20 frames, 0.54; 7 to 16 | 15 frames, 1.05; 4.5 to 12 |
 | First and last pose against the idles' | 0.0 mm, 0.09 degrees | the same | the same |
 | A planted sole wanders | 3.2 and 2.8 mm | 3.2 and 2.8 | 3.0 and 2.8 |
-| Limbs inside limbs, female and male | 3.4, 0 mm going down; 0 coming up | 3.6, 0; 0 | 0.2, 0; 0 |
+| Limbs inside limbs, female and male | 3.1, 0 mm going down; 0 coming up | 3.4, 0; 0 | 0, 0; 0 |
 
 **A is shipped for all four** (`picks.json`), as the recommendation. Every variant of a stance change joins the
 shipped idles, so the letters can be picked apart: a `Crouch_Idle` of another letter rebuilds the stance changes
