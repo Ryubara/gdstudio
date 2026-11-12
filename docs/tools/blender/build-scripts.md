@@ -83,6 +83,9 @@ on the same frames as the build, at the rate it reads from the file's key times
 with the pinned Blender (it keys a clip, measures it both ways at 30 and 24 frames a second and exits 1 on a
 difference).
 
+A clip that passes an obstacle is also read between its keys, as a game draws it
+([A clip that touches the world](animation.md#contacts)).
+
 - **Approach:** Make a build script fail on its triangle budget and on its lowest vertex before it exports, read the
   count on the first build, and chamfer only what is big and seen: parts under about 0.2 m on an asset seen from afar
   are plain boxes. Lift a part pitched about its centre by half its length times the sine of the pitch plus half its

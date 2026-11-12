@@ -58,6 +58,21 @@ PALM = 0.036
 ## A planted arm is never straighter than this share of its length.
 ARM_REACH = 0.94
 
+## A game draws the clip between its keys (60 frames a second and more, where the clip has 24): the build measures
+## this many times a frame (240 a second), with the keys joined by straight lines as a player joins them. Between
+## the keys no leg joint's middle may be deeper in the box than this (m), on either mannequin, and the skin keeps
+## `BOX_LIMIT`: two keys that are both clear of the box say nothing of the path between them.
+BETWEEN = 10
+JOINT_LIMIT = 0.005
+LEG_JOINTS = ["thigh_l", "thigh_r", "calf_l", "calf_r", "foot_l", "foot_r", "ball_l", "ball_r"]
+## A planted hand or foot is held by a chain of joints, and joints joined by straight lines do not hold its end
+## still: between two keys the palm presses into the top and the sole into the floor, under the contact where it
+## does not show. The skin of a hand from the frame before its plant to the frame after its release, and the
+## lowest skin over the floor, get these limits between the keys (m; the clips read 16.3 mm and 20.8 mm).
+PRESS_LIMIT = 0.02
+FLOOR_PRESS_LIMIT = 0.025
+HAND_PARTS = ("hand", "thumb", "index", "middle", "ring", "pinky")
+
 ## The most a planted hand may move the body off its keyed path from one frame to the next (m).
 PULL_STEP = 0.02
 ## How deep one body part may be inside another that no joint joins it to (mm), on either mannequin, on any frame:
@@ -738,7 +753,10 @@ def vault_low(rig, offsets=None):
     # upper one and the left leg the lower, each on its own side of the hips (`hips`: left above 0 for the left
     # foot, below 0 for the right), knees a hip's width apart. They never cross.
     # The left leg pushes off, trails, tucks under the right leg with its knee forward, and stays behind on the
-    # way down as the trailing leg of the landing stride.
+    # way down as the trailing leg of the landing stride. On frame 7 its knee is out beside the rolled body (the
+    # thigh in line with the trunk, the shin folded back) and already over the top, a frame before it passes the
+    # front edge: with the ankle behind the hip and the knee pointed forward, the knee hung straight down under
+    # the top there and whipped forward through the edge between frames 7 and 8 (gdstudio #1221).
     stance = c.channels["foot_l_pos"].at(0)
     c.keys(
         "foot_l_pos",
@@ -747,7 +765,7 @@ def vault_low(rig, offsets=None):
             3: stance + P(0.0, 0.03, 0.05),
             4: stance + P(0.0, 0.08, 0.17),
             6: c.body(6, 0.08, -0.44, 0.78),
-            7: c.hips(7, 0.14, -0.20, -0.10),
+            7: c.body(7, -0.21, -0.15, top + 0.34),
             8: c.hips(8, 0.20, 0.10, -0.16),
             10: c.hips(10, 0.20, 0.14, -0.18),
             12: c.hips(12, 0.17, 0.08, -0.24),
@@ -773,6 +791,7 @@ def vault_low(rig, offsets=None):
         {
             4: P(0.0, 1.0, 0.0),
             6: c.hips_way(6, 0.15, 1.0, 0.2),
+            7: P(-0.75, 0.6, -0.4),
             8: c.hips_way(8, 0.15, 1.0, 0.25),
             10: c.hips_way(10, 0.15, 1.0, 0.25),
             15: c.hips_way(15, 0.2, 1.0, 0.1),
@@ -800,11 +819,15 @@ def vault_low(rig, offsets=None):
             18: c.under(18, -0.10, 0.31, 0.73),
         },
     )
+    # The lead foot is lifted and held back a little on frame 5, toes up (`foot_r_rot`), so the toes are over the
+    # top when they pass the front edge between frames 5 and 6 (they cut it by 40 mm; gdstudio #1221).
+    c.key("foot_r_pos", 5, c.channels["foot_r_pos"].at(5) + P(0.0, -0.03, 0.06))
     c.keys(
         "foot_r_rot",
         {
             4: c.turned("foot_r", -10, 20, 0),
-            6: c.hips_turned(6, "foot_r", 0, 10, 0),
+            5: c.hips_turned(5, "foot_r", 0, -15, 0),
+            6: c.hips_turned(6, "foot_r", 0, -5, 0),
             8: c.hips_turned(8, "foot_r", 0, 10, 0),
             12: c.hips_turned(12, "foot_r", 0, 10, 0),
             15: c.turned("foot_r", 0, 16, 0),
@@ -1333,11 +1356,21 @@ def bake(rig, clip):
                 bone.location = (rig.rest_rel[name].inverted() @ rel).translation
                 bone.keyframe_insert("location", frame=frame)
     arm.animation_data.action_slot = action.slots[0]
+    # Keys are joined by straight lines, as Godot joins the exported keys: a pose read between two frames
+    # (`check_between`) is then the pose a game draws there. The export samples whole frames and is the same.
+    for curve in curves_of(action):
+        for point in curve.keyframe_points:
+            point.interpolation = "LINEAR"
     return action, worst
 
 
+def curves_of(action):
+    return [c for layer in action.layers for strip in layer.strips for bag in strip.channelbags for c in bag.fcurves]
+
+
 def skinned(rig, frame):
-    bpy.context.scene.frame_set(frame)
+    whole = math.floor(frame)
+    bpy.context.scene.frame_set(whole, subframe=frame - whole)
     graph = bpy.context.evaluated_depsgraph_get()
     obj = rig.mesh.evaluated_get(graph)
     mesh = obj.to_mesh()
@@ -1421,9 +1454,102 @@ def check(rig, clip, action, worst):
                 f"(the limit is {OVERLAP_LIMIT} mm)"
             )
     clip.overlap = measured
+    between, report["between_keys"] = check_between(rig, clip, action)
     moving, motion = check_motion(clip)
     clip.motion = motion
-    return problems + moving, report
+    return problems + between + moving, report
+
+
+def in_box(clip, point, ahead):
+    """How deep a point of the body (in place, the root `ahead` of the front face) is inside the obstacle: under
+    its top and past both faces, 0 when it is outside."""
+    forward = -point.y + ahead
+    if not (0.0 < forward < clip.box_depth and abs(point.x) < BOX_HALF_WIDTH and point.z < clip.box_height):
+        return 0.0
+    return min(clip.box_height - point.z, forward, clip.box_depth - forward)
+
+
+def check_between(rig, clip, action):
+    """Fail on what the body does between two keys: `BETWEEN` times a frame, with the keys joined as a player
+    joins them and the root moved as the game moves it, each leg joint of both mannequins against the box, and
+    the keyed mannequin's skin against the box and the floor. Each worst reading comes with its time in seconds."""
+    arm = rig.arm
+    arm.animation_data.action = action
+    arm.animation_data.action_slot = action.slots[0]
+    curves = curves_of(action)
+    assert curves and all(k.interpolation == "LINEAR" for c in curves for k in c.keyframe_points), (
+        f"{clip.name}: the baked keys are not joined by straight lines, so a pose between frames is not a game's"
+    )
+    scene = bpy.context.scene
+    problems = []
+    report = {"samples_a_second": FPS * BETWEEN, "joint_limit_mm": JOINT_LIMIT * 1000.0}
+    joints = {body.name: [0.0, None, None] for body in rig.bodies}
+    skin, pressed, lowest = [0.0, None, None], [0.0, None, None], [9.0, None]
+    holding = {
+        limb[-1]: [(first - 1, final + 1) for name, first, final in clip.planted if name == limb]
+        for limb in ("hand_l", "hand_r")
+    }
+    rows = []  # one a sample, for `--trace`: frame, lowest skin, deepest skin in the box, deepest joint in the box
+    for step in range(clip.frames * BETWEEN + 1):
+        frame = step / BETWEEN
+        seconds = round(frame / FPS, 4)
+        ahead = clip.forward(frame)
+        points, groups = skinned(rig, frame)
+        low = min(p.z for p in points)
+        if low < lowest[0]:
+            lowest = [low, seconds]
+        row = [frame, low, 0.0, "", 0.0, "", {}]
+        rows.append(row)
+        for name in ("thigh_l", "calf_l", "foot_l", "thigh_r", "calf_r", "foot_r", "ball_r"):
+            place = arm.pose.bones[name].head
+            row[6][name] = (-place.y + ahead, place.z - clip.box_height)
+        if clip.box_height <= 0.0:
+            continue
+        for point, names in zip(points, groups):
+            depth = in_box(clip, point, ahead)
+            if depth <= 0.0:
+                continue
+            if depth > row[2]:
+                row[2:4] = depth, ",".join(names)
+            # A planted hand's own skin is the contact; everything else has no business in the box.
+            held = names and all(
+                n.startswith(HAND_PARTS) and any(a <= frame <= b for a, b in holding[n[-1]]) for n in names
+            )
+            worst = pressed if held else skin
+            if depth > worst[0]:
+                worst[:] = depth, ",".join(names), seconds
+        for body in rig.bodies:
+            body.pose_from(arm)
+            for name in LEG_JOINTS:
+                place = body.arm.matrix_world @ body.arm.pose.bones[name].head
+                depth = in_box(clip, place, ahead)
+                if depth > row[4]:
+                    row[4:6] = depth, f"{body.name} {name}"
+                if depth > joints[body.name][0]:
+                    joints[body.name] = [depth, name, seconds]
+    clip.between = rows
+    report["lowest"] = [round(lowest[0], 4), lowest[1]]
+    if lowest[0] < -FLOOR_PRESS_LIMIT:
+        problems.append(f"between the keys, at {lowest[1]} s: {-lowest[0] * 1000:.0f} mm under the floor")
+    if clip.box_height > 0.0:
+        report["skin_in_box_mm"] = [round(skin[0] * 1000, 1), skin[1], skin[2]]
+        report["planted_hand_in_box_mm"] = [round(pressed[0] * 1000, 1), pressed[1], pressed[2]]
+        if skin[0] > BOX_LIMIT:
+            problems.append(f"between the keys, at {skin[2]} s: {skin[0] * 1000:.0f} mm into the box ({skin[1]})")
+        if pressed[0] > PRESS_LIMIT:
+            problems.append(
+                f"between the keys, at {pressed[2]} s: the planted hand presses {pressed[0] * 1000:.0f} mm into the "
+                f"box ({pressed[1]})"
+            )
+        report["joint_in_box_mm"] = {}
+        for name, (depth, bone, seconds) in joints.items():
+            report["joint_in_box_mm"][name] = [round(depth * 1000, 1), bone, seconds]
+            if depth > JOINT_LIMIT:
+                problems.append(
+                    f"between the keys, at {seconds} s: {name}'s {bone} is {depth * 1000:.0f} mm inside the box "
+                    f"(the limit is {JOINT_LIMIT * 1000:.0f} mm)"
+                )
+    return problems, report
 
 
 def release_of(clip, limb, first, final):
@@ -1806,6 +1932,16 @@ def main():
         print(f"PULLED {clip.name}:", {f: v for f, v in clip.pulled.items() if v}, clip.pullers)
         if args.trace:
             print_trace(clip)
+            for frame, low, deep, where, joint, which, legs in clip.between:
+                if low < -0.004 or deep > 0.004 or joint > 0.0:
+                    print(
+                        f"BETWEEN {clip.name} {frame:5.1f} ({frame / FPS:.4f} s): lowest {low * 1000:+.1f} mm | skin "
+                        f"in the box {deep * 1000:.1f} mm {where} | joint in the box {joint * 1000:.1f} mm {which}"
+                    )
+                # Each leg joint near the box: forward of the front face and up from the top (m).
+                if clip.box_height > 0.0 and -0.5 < clip.forward(frame) < clip.box_depth + 0.3:
+                    places = " | ".join(f"{name} {at[0]:+.2f} {at[1]:+.2f}" for name, at in legs.items())
+                    print(f"LEGS {clip.name} {frame:5.1f}: {places}")
         for problem in problems:
             failed = True
             print(f"PROBLEM {clip.name}: {problem}")

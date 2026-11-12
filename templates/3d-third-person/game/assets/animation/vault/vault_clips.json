@@ -3,7 +3,7 @@
   "units": "metres and seconds; forward 0 is the obstacle's front face",
   "measured": {
     "file": "vault.glb",
-    "sha256": "8a2a6c0945f8cbba62bbe9e7aa6d88602b62ee626399036f0497687a46825640",
+    "sha256": "4a3c236d942750454a3deca8677fda5b1e4c066fb5f3274c502cdaa62d6909f2",
     "overlap_limit_mm": 5.0
   },
   "clips": {
@@ -47,7 +47,7 @@
         "lowest": -0.0036,
         "deepest_in_box": 0.0039,
         "foot_l_drift_mm": 0.4,
-        "hand_l_drift_mm": 0.4,
+        "hand_l_drift_mm": 1.4,
         "palm_gap_mm": [
           -3.9,
           2.1
@@ -64,6 +64,36 @@
             "frame": null,
             "pair": null,
             "by_class": {}
+          }
+        },
+        "between_keys": {
+          "samples_a_second": 240,
+          "joint_limit_mm": 5.0,
+          "lowest": [
+            -0.0208,
+            0.0167
+          ],
+          "skin_in_box_mm": [
+            0.0,
+            null,
+            null
+          ],
+          "planted_hand_in_box_mm": [
+            15.1,
+            "hand_l,thumb_01_l",
+            0.3583
+          ],
+          "joint_in_box_mm": {
+            "female": [
+              0.0,
+              null,
+              null
+            ],
+            "male": [
+              0.0,
+              null,
+              null
+            ]
           }
         }
       },
@@ -101,21 +131,21 @@
           ],
           "elbow_deg": [
             152,
-            124,
+            114,
             128,
             176,
             176
           ],
           "arm_length_share": [
             0.97,
-            0.88,
+            0.84,
             0.9,
             1.0,
             1.0
           ],
           "shoulder_over_wrist": [
             0.405,
-            0.402,
+            0.38,
             0.435,
             0.475,
             0.447
@@ -131,12 +161,12 @@
           ],
           "wrist_over_shoulder": [
             -0.245,
-            -0.169,
+            -0.164,
             -0.053,
-            -0.003,
+            0.019,
             0.013,
-            0.006,
-            -0.029,
+            0.005,
+            -0.028,
             -0.067,
             -0.1,
             -0.132,
@@ -147,8 +177,8 @@
             -0.299,
             -0.231
           ],
-          "peak_over_shoulder": 0.013,
-          "peak_over_head_bone": 0.132,
+          "peak_over_shoulder": 0.019,
+          "peak_over_head_bone": 0.148,
           "speed": [
             5.54,
             6.34,
@@ -170,7 +200,7 @@
           "speed_up": [
             2.88,
             2.56,
-            0.76,
+            0.77,
             0.33,
             0.97,
             0.98,
@@ -186,12 +216,12 @@
           ],
           "peak_speed_up": 2.88,
           "speed_against_shoulder": [
-            2.96,
-            3.16,
-            1.21,
-            0.53,
-            0.49,
-            1.06,
+            3.03,
+            3.06,
+            1.73,
+            0.41,
+            0.5,
+            1.03,
             1.32,
             1.12,
             1.08,
@@ -205,12 +235,12 @@
           "peak_speed_against_shoulder": 3.19,
           "speed_change_a_frame": [
             1.21,
-            3.54,
+            3.53,
             1.18,
             0.9,
             0.83,
             1.58,
-            0.48,
+            0.47,
             0.95,
             1.53,
             2.87,
@@ -219,7 +249,7 @@
             1.24,
             0.81
           ],
-          "peak_speed_change_a_frame": 3.54
+          "peak_speed_change_a_frame": 3.53
         },
         "reach": {
           "frames": [
@@ -310,6 +340,36 @@
             "by_class": {
               "leg/leg": 3.1
             }
+          }
+        },
+        "between_keys": {
+          "samples_a_second": 240,
+          "joint_limit_mm": 5.0,
+          "lowest": [
+            -0.0161,
+            0.0167
+          ],
+          "skin_in_box_mm": [
+            4.4,
+            "lowerarm_l",
+            0.475
+          ],
+          "planted_hand_in_box_mm": [
+            16.3,
+            "hand_r,thumb_01_r",
+            0.4792
+          ],
+          "joint_in_box_mm": {
+            "female": [
+              0.0,
+              null,
+              null
+            ],
+            "male": [
+              0.0,
+              null,
+              null
+            ]
           }
         }
       },
@@ -900,6 +960,14 @@
             "pair": null,
             "by_class": {}
           }
+        },
+        "between_keys": {
+          "samples_a_second": 240,
+          "joint_limit_mm": 5.0,
+          "lowest": [
+            -0.0036,
+            0.4167
+          ]
         }
       },
       "motion": {

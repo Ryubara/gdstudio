@@ -64,6 +64,10 @@ const LEGS_FOLD := 35.0
 const LEGS_UNDER_TOP := 0.02
 const LEGS_SPEED_CHANGE := 6.5
 const LEGS_HELD := 1.0
+## Between the keys: how often a second the legs are read against the box, and how far a leg
+## joint's middle may be inside it (the build's `BETWEEN` and `JOINT_LIMIT`).
+const BETWEEN_KEYS := 240.0
+const JOINT_IN_BOX := 0.005
 const LEG_BONES: Array[String] = [
 	"pelvis", "thigh_l", "thigh_r", "calf_l", "calf_r", "foot_l", "foot_r", "ball_l", "ball_r"
 ]
@@ -250,6 +254,45 @@ func test_the_clips_join_the_sprint_and_each_other() -> void:
 		assert_float(_farthest(end, _pose(rig, &"vault/Vault_Land", 0.0, ENDS))).is_less(0.02)
 	var landed := _pose(rig, &"vault/Vault_Land", land.length, ENDS)
 	assert_float(_farthest(landed, left_strike)).is_less(0.02)
+
+
+# A game draws the clip between its 24 keys a second, where two keys that are both clear of the
+# box say nothing (gdstudio #1221: `Vault_Low`'s left knee went through the front edge between
+# two keys). 240 times a second, with the body moved at the clip's speed, no leg joint of either
+# mannequin is inside the reference box.
+func test_no_leg_joint_cuts_the_box_between_the_keys() -> void:
+	var joints: Array[String] = LEG_BONES.slice(1)
+	for model: String in [FEMALE, MALE]:
+		var rig := _rig(model)
+		for clip: String in ["Vault_Low", "Vault_High"]:
+			var spec: Dictionary = _file.clips[clip]
+			var top: float = spec.obstacle.height
+			var depth: float = spec.obstacle.depth
+			var deepest := 0.0
+			var where := ""
+			var steps := int(round(spec.length * BETWEEN_KEYS))
+			for step in steps + 1:
+				var time := minf(step / BETWEEN_KEYS, spec.length)
+				var pose := _pose(rig, StringName("vault/" + clip), time, joints)
+				for bone in joints:
+					var at: Vector3 = pose[bone]
+					var forward: float = at.z + spec.root_start + spec.speed * time
+					var inside := minf(top - at.y, minf(forward, depth - forward))
+					if inside > deepest:
+						deepest = inside
+						where = "%s at %.4f s" % [bone, time]
+			(
+				assert_float(deepest)
+				. override_failure_message(
+					(
+						"%s on %s: %s is %.3f m inside the box"
+						% [clip, model.get_file(), where, deepest]
+					)
+				)
+				. is_less(JOINT_IN_BOX)
+			)
+		var between: Dictionary = _file.clips.Vault_Low.contacts.between_keys
+		assert_float(between.samples_a_second).is_greater_equal(60.0)
 
 
 # No limb passes through another: `build_vault.py` measures, on every frame of every clip and on
