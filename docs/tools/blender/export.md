@@ -70,6 +70,13 @@ pointer imported as a model leaves a broken `.import` behind ([Build scripts](bu
   glTF animation after its action, and check the names in Godot after the import. **Watch out for:**
   `ACTIVE_ACTIONS` writes the active actions as one animation named `Animation`, so the clip the game asks for by name
   is not there. **Seen:** gdstudio #1035 (PR #1217), 2026-11-11.
+- **Approach:** After rebuilding a glb that a kept game also holds, copy it in and run `godot --headless --import`
+  before any `-s` probe or suite; take an older model for a "before" from a separate checkout (its LFS file), and if
+  a pointer was imported, delete its `.godot/imported/<name>.glb-*` files and import again. **Watch out for:** a `-s`
+  run does not import, so a probe measured the old 0.30 m stock at the new grip offset and read a stock 5 cm deeper
+  than the model it was meant to measure; a `git show` of the glb wrote its LFS pointer, the import marked the file
+  `valid=false`, and copying the real glb back did not clear it until the cached import was deleted. **Seen:**
+  gdstudio #1177, 2026-11-11.
 
 ## Reading a glb back in Blender {#reimport}
 

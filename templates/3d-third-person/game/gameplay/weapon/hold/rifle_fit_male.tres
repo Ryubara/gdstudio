@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose.gd" id="1_ugvyd"]
 [ext_resource type="Script" path="res://gameplay/weapon/hold/hold_fit.gd" id="2_qkht1"]
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose_way.gd" id="3_qkht1"]
 
 [sub_resource type="Resource" id="Resource_j7tpy"]
 script = ExtResource("1_ugvyd")
@@ -88,6 +89,26 @@ rotations = Dictionary[StringName, Quaternion]({
 &"index_03_r": Quaternion(0.35225, 0, 0, 0.93591)
 })
 
+[sub_resource type="Resource" id="Resource_ph6ty"]
+script = ExtResource("1_ugvyd")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.06379531, -0.97502273, 0.1591132, -0.1412233),
+&"index_02_r": Quaternion(0.019629948, 0, 0, 0.99980736),
+&"index_03_r": Quaternion(0, 0, 0, 1)
+})
+
+[sub_resource type="Resource" id="Resource_vxpoj"]
+script = ExtResource("1_ugvyd")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.06379531, -0.97502273, 0.1591132, -0.1412233),
+&"index_02_r": Quaternion(0.74895763, 0, 0, 0.66261786),
+&"index_03_r": Quaternion(0.35224867, 0, 0, 0.9359064)
+})
+
+[sub_resource type="Resource" id="Resource_80kuy"]
+script = ExtResource("3_qkht1")
+poses = Array[ExtResource("1_ugvyd")]([SubResource("Resource_ph6ty"), SubResource("Resource_vxpoj")])
+
 [resource]
 script = ExtResource("2_qkht1")
 body = "form_male.glb"
@@ -99,3 +120,4 @@ trigger_pose = SubResource("Resource_1vdqf")
 support_pose = SubResource("Resource_umvhw")
 magazine_pose = SubResource("Resource_akh41")
 open_pose = SubResource("Resource_wl1ko")
+trigger_way = SubResource("Resource_80kuy")

@@ -20,6 +20,9 @@
 - `assets/animation/vault/` is GDStudio's own vault clips (`Vault_Low`, `Vault_High`, `Vault_Land`; MIT, keyed from
   scratch by `build_vault.py` on the mannequin's rig, with a `LICENSE.md`), an `AnimationLibrary` like the two packs,
   and `vault_clips.json`, each clip's reference obstacle and contact times.
+- `assets/animation/fixed/` is three library clips with one arm swung clear of the shin it passed through on the
+  prototype bodies (`Jump_Land`, `Slide_Exit`, `NinjaJump_Land`; CC0 as the library, changed by
+  `build_fixed_clips.py`, with a `LICENSE.md` and a `README.md`), the `AnimationLibrary` `fixed`.
 - `assets/animation/limb_overlap.py` measures, with the pinned Blender, how deep any limb is inside another on every
   frame of a clip, on both mannequins' skinned meshes; a build that keys clips runs it before it exports. From the
   command line it reads a clip file at the file's own frame rate (`test_limb_overlap.py` proves both ways agree).

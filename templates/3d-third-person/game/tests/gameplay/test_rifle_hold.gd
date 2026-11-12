@@ -33,6 +33,8 @@ const PALM_TO_SUPPORT := 0.04
 ## otherwise.
 const ON_TRIGGER := 0.012
 const OFF_TRIGGER := 0.02
+## How deep any point of the rifle may be in the torso's skin, in metres.
+const STOCK_DEPTH := 0.01
 ## The step between the shares of the reload that are measured: every half hundredth, since a
 ## hand passed 8 to 17 mm through the rifle between two steps of 2 hundredths (kit #1187).
 const RELOAD_STEP := 0.005
@@ -84,6 +86,47 @@ func test_both_hands_hold_the_rifle_while_it_follows_the_view_up_and_down() -> v
 				await stage.settle()
 				_assert_holds(stage, "%s %s pitch %.0f" % [model, clip_name, pitch])
 		stage.free()
+
+
+# The butt is on the shoulder, not in the chest (kit #1177): at the low ready and aimed, in every
+# locomotion clip and with the view up and down, on both mannequins, no point of the rifle is
+# deeper than `STOCK_DEPTH` in the torso's skin (`BodyClearance`, the arms, legs and head left
+# out), while both hands stay on their places.
+func test_the_stock_stays_out_of_the_chest() -> void:
+	for model in MODELS:
+		var stage := RifleStage.make_rifle(_holder, model)
+		var clearance := BodyClearance.new(stage.skeleton, stage.contact, _near(stage))
+		var poses: Array[Array] = []
+		for clip_name: StringName in CARRIED:
+			for time: float in CARRIED[clip_name]:
+				for aim: float in [0.0, 1.0]:
+					poses.append([clip_name, time, aim, 0.0])
+		for clip_name in PITCHED:
+			for pitch in PITCHES:
+				poses.append([clip_name, 0.0, 1.0, pitch])
+		for pose in poses:
+			stage.pose_rifle(pose[0], pose[1], pose[2], pose[3])
+			await stage.settle()
+			var tag := (
+				"%s %s at %.2f aim %.0f pitch %.0f" % [model, pose[0], pose[1], pose[2], pose[3]]
+			)
+			var found := clearance.deepest(_near(stage))
+			(
+				assert_float(found.depth)
+				. override_failure_message(
+					(
+						"%s: the rifle is %.1f mm in the %s (its point %s)"
+						% [tag, found.depth * 1e3, found.bone, found.point]
+					)
+				)
+				. is_less(STOCK_DEPTH)
+			)
+			_assert_holds(stage, tag)
+		stage.free()
+
+
+func _near(stage: RifleStage) -> Node3D:
+	return stage.rifle.get_node(^"Near") as Node3D
 
 
 func test_the_index_finger_is_on_the_trigger_only_while_the_rifle_is_up() -> void:
@@ -193,6 +236,62 @@ func test_the_left_hand_takes_the_magazine_out_and_in_through_the_reload() -> vo
 			share += RELOAD_STEP
 		assert_int(seated).override_failure_message("never on the magazine").is_greater(1)
 		stage.free()
+
+
+# The hold puts the left hand's place and the magazine back only when a reload ends (kit #1178:
+# it no longer writes them every frame), so a reload cut off with the magazine out of the rifle
+# still leaves both where they rest and the left hand on the hand guard.
+func test_a_reload_cut_off_puts_the_magazine_and_the_left_hand_back() -> void:
+	var stage := RifleStage.make_rifle(_holder, "female")
+	var hold := stage.hold as TwoHandHold
+	var magazine := hold.get_node(hold.magazine) as Node3D
+	var target := stage.rifle.get_node(^"LeftHandTarget") as Node3D
+	stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0)
+	await stage.settle()
+	var magazine_rest := magazine.transform
+	var target_rest := target.transform
+	stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0, 0.0, 0.35)
+	await stage.settle()
+	assert_bool(magazine.transform.is_equal_approx(magazine_rest)).is_false()
+	stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0)
+	await stage.settle()
+	assert_bool(magazine.transform.is_equal_approx(magazine_rest)).is_true()
+	assert_bool(magazine.visible).is_true()
+	assert_bool(target.transform.is_equal_approx(target_rest)).is_true()
+	_assert_hand(stage, "l", "after a reload cut off")
+	stage.free()
+
+
+# Told the camera is past `fingers_far_distance` (`fingers_far`, from the animation throttle), the
+# fingers keep the clip (their modifiers are off: kit #1178) and both arms still hold the rifle;
+# told it is near again, the fingers close on it.
+func test_far_from_the_camera_the_fingers_rest_and_the_arms_still_hold() -> void:
+	var stage := RifleStage.make_rifle(_holder, "female")
+	var hold := stage.hold as TwoHandHold
+	for far: bool in [true, false, true]:
+		var distance := hold.fingers_far_distance + (5.0 if far else -7.0)
+		hold.fingers_far = far
+		stage.pose_rifle(CharacterClips.IDLE, 0.0, 1.0)
+		await stage.settle()
+		for modifier in hold.modifiers():
+			var posed := modifier is not HandPoseModifier or not far
+			(
+				assert_bool(modifier.active)
+				. override_failure_message(
+					"%s at %.0f m: active %s" % [modifier.name, distance, modifier.active]
+				)
+				. is_equal(posed)
+			)
+		for side: String in ["r", "l"]:
+			var gap := stage.hand_gap(side)
+			(
+				assert_float(gap)
+				. override_failure_message(
+					"at %.0f m hand_%s is %.1f mm off" % [distance, side, gap * 1e3]
+				)
+				. is_less(REACH)
+			)
+	stage.free()
 
 
 # The player's own scene: with the rifle out, both hands are on it on every update while the

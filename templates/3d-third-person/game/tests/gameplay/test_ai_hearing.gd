@@ -3,7 +3,8 @@
 # character's own `AiNoiseMaker` makes footsteps by how fast it moves (quieter crouched) and a shot
 # when its weapon fires; an ally's telling arrives once however many allies pass it on, and is
 # believed but never a fire target; the ray budget caps the rays of 200 characters a tick; the
-# board's faction index hears in order among friends, and a grudge reads past it.
+# board's faction index hears in order among friends, and a grudge reads past it; a noise whose
+# maker, or a telling whose subject, was freed or left the tree since is skipped.
 extends GdUnitTestSuite
 
 var _arena: SensesArena
@@ -200,6 +201,38 @@ func test_a_noise_whose_maker_was_freed_is_skipped() -> void:
 	maker.free()
 	await _ticks(20)
 	assert_int(_senses(character).beliefs.size()).is_equal(0)
+
+
+# A maker taken out of the tree before a listener's think (a body back in its spawner's pool, not
+# freed) is skipped too: a belief about it read the position of a node out of the tree, an engine
+# error a tick (kit #1328: the AI soak's faulted run).
+func test_a_noise_whose_maker_left_the_tree_is_skipped() -> void:
+	_arena.add_director()
+	var character := _arena.add_watcher("Grunt", Vector3.ZERO, 0.0)
+	var maker := _arena.add_target("Maker", Vector3(0.0, 0.0, -4.0))
+	await _ticks(2)
+	AiNoise.emit(_arena, AiNoise.SHOT, maker.position, 1.0, maker)
+	maker.get_parent().remove_child(maker)
+	await _ticks(20)
+	assert_int(_senses(character).beliefs.size()).is_equal(0)
+	maker.free()
+
+
+# A telling about a body that left the tree since it was sent (back in its pool, which forgot it
+# everywhere) is dropped: it neither brings the body back as a belief nor reads its position.
+func test_a_telling_about_a_body_out_of_the_tree_is_dropped() -> void:
+	_arena.add_director()
+	var character := _arena.add_watcher("Grunt", Vector3.ZERO, 0.0)
+	var body := _arena.add_target("Pooled", Vector3(0.0, 0.0, -4.0))
+	var share := AiSenses.Share.new()
+	share.key = 1
+	share.entity_id = body.get_instance_id()
+	share.set(&"_entity", weakref(body))
+	share.position = body.position
+	body.get_parent().remove_child(body)
+	_senses(character).receive(share)
+	assert_int(_senses(character).beliefs.size()).is_equal(0)
+	body.free()
 
 
 # The listener walks only the factions it cares about from the board's index (kit #1204): after a

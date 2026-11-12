@@ -168,9 +168,13 @@ force push, which is the maintainer's decision: open the same change from a new 
   land the oldest, and land a flake's fix first. **Watch out for:** with many agents CI is the bottleneck: with 21 open,
   20 jobs running and 33 queued, every push restarted a 15-minute run and about ten workflows. **Seen:** Deadnight #447,
   2026-11-02 (fix: the rule above).
-- **Approach:** After a conflicted merge, read the diff of every test file against `main` before rerunning the suites.
-  **Watch out for:** a merge of `main` doubled a step in a test, so the branch failed for a reason the change never had.
-  **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge).
+- **Approach:** After a merge of `main`, conflicted or not, read the diff of every test file against `main` and run
+  `gds check scripts` (or the template's test) before pushing. **Watch out for:** a merge of `main` doubled a step in a
+  test, so the branch failed for a reason the change never had; `main` retyping a shared property (the loadout's
+  `slots` to `Array[Resource]`) leaves the branch's new lines on the old type, which merge cleanly and fail to parse.
+  **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge); gdstudio #1258, 2026-11-11 (an
+  inventory test from #1040 still typed `Array[WeaponDef]`; fix: retyped after the template check failed;
+  then a new export met the pins test `main` had added since).
 - **Approach:** When a branch moves a shared asset path (a body, a model), grep the merged tree for the old path after
   `gds merge-main`, in tests and in scenes, and run the full template suite, not only the suites the branch touched.
   **Watch out for:** a scene and a suite that landed on `main` after the branch started still use the old path, so
@@ -190,8 +194,8 @@ force push, which is the maintainer's decision: open the same change from a new 
   --3way mine.patch`; a pull request stacked on a hand-merged sync one takes its own side of the synced files, runs `gds
   sync <game>` and `gds sync --check`, and says what it is stacked on. **Watch out for:** a squash merge writes a commit
   no branch contains, so 17 files conflicted with none of the agent's own lines, and `.claude/gds-sync.json` and
-  `groundwork.py` conflicted on identical content. **Seen:** Deadnight #230 on #643, 2026-11-03; Deadnight #575 on #571,
-  2026-11-02.
+  `groundwork.py` conflicted on identical content. **Seen:** Deadnight #230 on
+  #643, 2026-11-03; Deadnight #575 on #571, 2026-11-02; gdstudio #1291 on #1040, 2026-11-11.
 - **Approach:** After every `gds merge-main`, diff the branch against `origin/main` for each file it shares with a
   merged pull request (`git diff origin/main -- <file>`), delete the branch's own copy of a fix `main` landed, and drop
   a workaround whose blocking issue has closed. **Watch out for:** a clean textual merge hid a second copy: a stub

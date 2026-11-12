@@ -23,7 +23,8 @@ extends Node
 ## read from the feet, frame by frame. While a tree is throttled its `WeaponHold` puts the hand's
 ## weights on only when the tree advances, and its ragdoll keeps no per-tick pose for the bones'
 ## own velocities (a pose that moves every few frames has none worth keeping): a death in that
-## time leaves with the character's velocity, as `pose_velocity` off does.
+## time leaves with the character's velocity, as `pose_velocity` off does. A rifle's `TwoHandHold`
+## is told when the camera is past its `fingers_far_distance` (kit #1178), so its fingers rest.
 ##
 ## Cosmetic and per machine: nothing here changes what the body does or what a network sends.
 
@@ -84,6 +85,8 @@ class Entry:
 	var animation: CharacterAnimation
 	var footsteps: Footsteps
 	var hold: WeaponHold
+	## The rifle's hold under the model, found once the character carries it.
+	var two_hand: TwoHandHold
 	var pose_velocity := false
 	var slot := 0
 	## Frames between advances: 1 the tree's own, 0 never.
@@ -135,6 +138,8 @@ func remove(character: Character) -> void:
 		return
 	var entry := _entries[index]
 	_entries.remove_at(index)
+	if entry.two_hand != null and is_instance_valid(entry.two_hand):
+		entry.two_hand.fingers_far = false
 	if is_instance_valid(character):
 		character.hit_received.disconnect(entry.on_hit)
 		character.died.disconnect(entry.on_change)
@@ -198,6 +203,7 @@ func _recheck(entry: Entry) -> void:
 	if not is_instance_valid(entry.character) or frame - entry.since < FIRST_FRAMES:
 		return
 	_set_period(entry, _period_for(entry))
+	_rest_fingers(entry)
 
 
 func _recheck_character(character: Character) -> void:
@@ -266,6 +272,32 @@ func _set_period(entry: Entry, period: int) -> void:
 		entry.period = period
 	if entry.footsteps != null and is_instance_valid(entry.footsteps):
 		entry.footsteps.set_listening(period == 1 and _hears(entry.character))
+
+
+# Tells the character's rifle hold whether the camera is past its `fingers_far_distance`.
+func _rest_fingers(entry: Entry) -> void:
+	if entry.two_hand == null or not is_instance_valid(entry.two_hand):
+		entry.two_hand = _two_hand_of(entry.character)
+		if entry.two_hand == null:
+			return
+	var view := _camera()
+	var hold := entry.two_hand
+	var far := hold.fingers_far_distance
+	hold.fingers_far = (
+		view != null
+		and far > 0.0
+		and view.global_position.distance_squared_to(hold.global_position) > far * far
+	)
+
+
+func _two_hand_of(character: Character) -> TwoHandHold:
+	var loadout := character.loadout
+	if loadout == null or loadout.model == null:
+		return null
+	for child in loadout.model.get_children():
+		if child is TwoHandHold:
+			return child
+	return null
 
 
 # Moves a throttled tree on by the time since its last advance, and the hand's weights with it.

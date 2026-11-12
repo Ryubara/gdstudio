@@ -214,7 +214,8 @@ The enemies of [the AI section](ai-characters.md#parts) set the male body (`form
   source for `Input.`, `get_camera_3d(` and `get_viewport(`. **Watch out for:** the body read `Input` in 14 places and
   the camera in 2, so a second `player.tscn` walked in step with the first and died on the same key, and a headless
   server could not move one. **Seen:** gdstudio #901, 2026-11-10 (`test_two_characters.gd`, bit-equal in
-  `test_command_stream.gd`); gdstudio #1138, 2026-11-11 (the grep caught a camera-reading throttle put there).
+  `test_command_stream.gd`); gdstudio #1138 and #1258, 2026-11-11 (a throttle,
+  then a rifle hold).
 - **Approach:** Keep out of the step what only its owner or its picture knows: call `step` inside a physics frame with
   the physics step, show `facing` on the model through one null-safe method called in the tick, and on a fall out of
   the map say `fell` once and let the owner answer. **Watch out for:** `move_and_slide()` moves by the engine's own
