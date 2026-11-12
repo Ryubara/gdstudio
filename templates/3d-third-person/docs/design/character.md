@@ -331,7 +331,8 @@ degrees lying down (`ProneTuning.aim_limits`), so the pistol never turns into th
 `prone_reload_clip` (the pistol's is `prone_reload/Prone_Reload_Pistol`) on the reload layer, never the standing
 `reload_clip`: the body rolls a little onto its right side, the right arm props on its elbow with the pistol canted
 in front of the face, and the left hand fetches the magazine at the belt, pushes it in and takes the pistol again,
-at the standing reload's shares, so the `WeaponHold` follows it as it is. A reload with the pistol put away brings
+at the standing reload's shares, so the `WeaponHold` follows it as it is. Each body plays the reload solved on it
+(`prone_reload_libraries`, as the aim's files). A reload with the pistol put away brings
 it out for the reload, a body that gets up stops the lying clip, and a weapon with no `prone_reload_clip` shows no
 clip lying down. The camera frames it with its
 Prone aim group

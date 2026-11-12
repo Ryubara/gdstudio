@@ -177,15 +177,25 @@ func stow_view(model: Node3D, hold: WeaponDef, away: bool) -> void:
 	stowed = away
 
 
-## Gives `player` the prone library (the prone aim library when `aim`) that `libraries` names for
-## `rig`'s scene file, or the scene's shared one. Only in the game: a library swapped in the
-## editor would be saved with the scene.
+## Gives `player` the body's own prone, prone aim and prone reload libraries: `own` is
+## `CharacterAnimation`'s three dictionaries, in that order.
+func use_body_clips(player: AnimationPlayer, rig: Node3D, own: Array) -> void:
+	use_model_clips(player, rig, own[0])
+	use_model_clips(player, rig, own[1], CharacterClips.LIBRARY_PRONE_AIM)
+	use_model_clips(player, rig, own[2], CharacterClips.LIBRARY_PRONE_RELOAD)
+
+
+## Gives `player` the library `library` (the prone clips', the prone aim's or the prone reload's)
+## that `libraries` names for `rig`'s scene file, or the scene's shared one. Only in the game: a
+## library swapped in the editor would be saved with the scene.
 func use_model_clips(
-	player: AnimationPlayer, rig: Node3D, libraries: Dictionary, aim := false
+	player: AnimationPlayer,
+	rig: Node3D,
+	libraries: Dictionary,
+	library := CharacterClips.LIBRARY_PRONE
 ) -> void:
 	if Engine.is_editor_hint() or player == null or rig == null:
 		return
-	var library := CharacterClips.LIBRARY_PRONE_AIM if aim else CharacterClips.LIBRARY_PRONE
 	var has := player.has_animation_library(library)
 	if not _shared.has(library) and has:
 		_shared[library] = player.get_animation_library(library)

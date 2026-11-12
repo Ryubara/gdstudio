@@ -223,3 +223,23 @@ func test_a_standing_body_reloads_with_the_standing_clip() -> void:
 	await InputSim.ticks(get_tree(), 10)
 	assert_bool(_animation.is_reloading()).is_true()
 	assert_str(String(_reload_clip())).is_equal(String(_player.weapon.definition.reload_clip))
+
+
+func test_each_body_plays_the_prone_reload_solved_on_it() -> void:
+	var player: AnimationPlayer = _player.get_node("AnimationPlayer")
+	var model := _player.get_node("Model") as CharacterModel
+	var library := CharacterClips.LIBRARY_PRONE_RELOAD
+	# The scene's own library is the default body's; the other body has its own file.
+	assert_str(model.rig().scene_file_path).is_equal(CharacterBodies.FEMALE)
+	var shared := player.get_animation_library(library)
+	assert_str(shared.resource_path).ends_with("prone_reload.glb")
+	var male := _animation.prone_reload_libraries[CharacterBodies.MALE]
+	assert_str(male.resource_path).ends_with("prone_reload_male.glb")
+	model.variant = load(CharacterBodies.MALE)
+	await InputSim.ticks(get_tree(), 4)
+	assert_str(model.rig().scene_file_path).is_equal(CharacterBodies.MALE)
+	assert_object(player.get_animation_library(library)).is_same(male)
+	assert_bool(player.has_animation(CharacterClips.PRONE_RELOAD)).is_true()
+	model.variant = load(CharacterBodies.FEMALE)
+	await InputSim.ticks(get_tree(), 4)
+	assert_object(player.get_animation_library(library)).is_same(shared)

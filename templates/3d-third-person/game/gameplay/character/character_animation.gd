@@ -233,6 +233,8 @@ const _RELOAD_FADE_OUT := 0.2
 @export var prone_libraries: Dictionary[String, AnimationLibrary] = {}
 ## The same for the `prone_aim` library: the hands of each body are solved on its own arms.
 @export var prone_aim_libraries: Dictionary[String, AnimationLibrary] = {}
+## The same for the library `prone_reload`: a reload lying down is solved a body, as the aim is.
+@export var prone_reload_libraries: Dictionary[String, AnimationLibrary] = {}
 
 @export_group("Weapon")
 ## How the weapon is carried while the character is not aiming or firing. The clips are the held
@@ -310,8 +312,8 @@ func _ready() -> void:
 	if model != null:
 		model.rig_changed.connect(_on_rig_changed)
 		_follow_rig()
-	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_libraries)
-	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_aim_libraries, true)
+	var own := [prone_libraries, prone_aim_libraries, prone_reload_libraries]
+	_prone_look.use_body_clips(animation_player, _rig_or_null(), own)
 	_build()
 	_follow_tuning()
 	if Engine.is_editor_hint():
@@ -556,8 +558,8 @@ func _on_rig_changed(_rig: Node3D) -> void:
 			tree.active = false
 		return
 	_follow_rig()
-	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_libraries)
-	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_aim_libraries, true)
+	var own := [prone_libraries, prone_aim_libraries, prone_reload_libraries]
+	_prone_look.use_body_clips(animation_player, _rig_or_null(), own)
 	tree.anim_player = NodePath()
 	if not Engine.is_editor_hint():
 		tree.active = _fits(model.rig()) and not _dead

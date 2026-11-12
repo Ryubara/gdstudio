@@ -60,7 +60,9 @@ pointer imported as a model leaves a broken `.import` behind ([Build scripts](bu
   for:** a `.import` made by hand from a sibling's (no `uid`, a made-up name under `.godot/imported/`) loaded and
   passed every suite locally, and CI failed its last step because the import rewrote the file; the copy back from
   the probe game sat in a command the commit hook refused before it ran. **Seen:** gdstudio #1111 (PR #1191),
-  2026-11-11 (`prone_aim_male.glb.import`; the path's suffix is the MD5 of the `res://` path).
+  2026-11-11 (`prone_aim_male.glb.import`; the path's suffix is the MD5 of the `res://` path); gdstudio #1185 (PR
+  #1265), 2026-11-12 (`prone_reload_male.glb.import` made with `sed` from its sibling kept the sibling's suffix;
+  found by `diff` against the kept game's file before the push).
 - **Approach:** Give a new glb that holds only clips `importer="animation_library"` in its `.import` (the Import dock's
   "Import As: Animation Library") before the commit, as the template's other clip files have. **Watch out for:**
   Godot imports a new glb as a scene by default, so the clips sat in a scene nothing loads as a library and the

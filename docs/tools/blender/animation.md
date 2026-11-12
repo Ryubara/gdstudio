@@ -290,6 +290,13 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   pistol, the elbow moved 58 to 100 mm and the magazine 8 to 26 mm under the floor; the build's skin had open
   fingers, so its floor numbers were not the game's. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11 (fix:
   `--body` and `--idle` in `build_prone_aim_clips.py`; 1.2 mm in at most, Godot's skin within 0.1 mm of the build's).
+- **Approach:** When a clip is solved again on another body, take nothing typed for the old one: rest each arm on
+  the floor frame by frame (turn the elbow's pole up until the skin is over it), search the elbow's direction for a
+  wrist the hold turns (bend and overlap together), and lift the weapon while a hand leaves it down its grip.
+  **Watch out for:** the reload solved on the Quaternius female left the prototype bodies' left hand 8 and 25 mm
+  off its place; its typed elbow height and pole then put the thinner right arm 16 mm and the left hand 13 mm
+  under the floor; the pole that bent the returning wrist least put the upper arm 28 to 49 mm through the head.
+  **Seen:** gdstudio #1185 (PR #1265), 2026-11-12 (one file a body; `Reload.frame`, `pole_return`, `let_go_lift`).
 - **Approach:** When a held pose gets its two sides' own numbers, turn the support side ahead (the shoulder of the
   hand that reaches round the other), keep the firing arm the straighter one, and read both arms' stretch after
   every change of the trunk. **Watch out for:** the first uneven prone aim pushed the firing shoulder ahead, which

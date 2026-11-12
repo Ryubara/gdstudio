@@ -9,6 +9,7 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone.glb" id="6_prone"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_aim.glb" id="6_prone_aim"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_reload.glb" id="6_prone_reload"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_reload_male.glb" id="6_prone_reload_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_aim_male.glb" id="6_prone_aim_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault.glb" id="6_vault"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/own/locomotion.glb" id="7_gds"]
@@ -100,6 +101,9 @@ animation_player = NodePath("../AnimationPlayer")
 tree = NodePath("../AnimationTree")
 prone_aim_libraries = Dictionary[String, AnimationLibrary]({
 "res://assets/characters/prototype/form_male.glb": ExtResource("6_prone_aim_male")
+})
+prone_reload_libraries = Dictionary[String, AnimationLibrary]({
+"res://assets/characters/prototype/form_male.glb": ExtResource("6_prone_reload_male")
 })
 
 [node name="Weapon" parent="." node_paths=PackedStringArray("muzzle")]

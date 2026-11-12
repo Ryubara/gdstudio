@@ -249,8 +249,8 @@ muzzle's own swing round the spine (1.3 to 1.8 degrees off with one pass, 0.1 to
 `WeaponHold`'s grip (whose wrist turn moves the muzzle) and before its support arm, which reaches for the weapon where
 the turn left it: the left hand, the fingers and the trigger finger stay on the gun with no change to the hold.
 `WeaponHold` says `built` when it makes its modifiers again, and the layer puts itself back after the grip. The layer is
-on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's; a weapon with no muzzle (the fists)
-turns nothing.
+on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's, and keeps its turn through a
+reload ([why](moves.md#prone)); a weapon with no muzzle (the fists) turns nothing.
 
 **Recoil.** While the shot's one-shot plays (`CharacterAnimation.is_shooting()`), the turn found before the shot is kept
 and moved only with the aim, so the recoil the clip shows is not turned away; after it the turn eases back over

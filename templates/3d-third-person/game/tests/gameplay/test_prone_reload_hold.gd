@@ -1,5 +1,6 @@
 # The prone reload clip (kit #1185) with the game's hold on it, on the skinned mesh of both
-# mannequins after the hold's modifiers ran (`HoldStage`, `HandContact`): the clip starts and
+# bodies, each playing its own file (`prone_reload.glb` on `form_female`, `prone_reload_male.glb`
+# on `form_male`), after the hold's modifiers ran (`HoldStage`, `HandContact`): the clip starts and
 # ends on the prone aim's pose, the right hand holds the pistol throughout, the left hand is on
 # the pistol at the clip's ends and under the magazine while it goes in within the hold's limits
 # (2 mm in, 5 mm off) and passes through nothing between, the clip has the left hand where the
@@ -24,11 +25,11 @@ const HOLD_HAS_IT: Array[float] = [0.06, 0.4]
 ## How far the left hand's bone may stop from its marker, in metres.
 const REACH := 0.005
 ## How far the hold may move the left hand's bone and its elbow from where the clip has them
-## while the hold has the hand, in metres: next to nothing on the female mannequin, which the
-## clip is solved on; the male's upper arms are 5 cm longer, so his propped right arm carries the
-## pistol 7 to 9 cm from where the clip's left hand goes, which the reach takes up.
-const HAND_KEPT: Dictionary[String, float] = {"female": 0.004, "male": 0.1}
-const ELBOW_KEPT: Dictionary[String, float] = {"female": 0.01, "male": 0.08}
+## while the hold has the hand, in metres: next to nothing on either body, since each plays the
+## clip solved on its own arms with its own hold (one clip for both left the male's pistol 7 to
+## 9 cm from where the clip's left hand went).
+const HAND_KEPT := 0.004
+const ELBOW_KEPT := 0.01
 ## How far a bone of the clip's first and last pose may be turned from the prone aim's, degrees.
 const JOINS := 0.5
 ## The lowest a hand or finger bone may be over the floor, in metres, and the pistol's parts.
@@ -69,28 +70,42 @@ func _pose(stage: HoldStage, share: float) -> void:
 
 
 func test_the_clip_starts_and_ends_on_the_prone_aim() -> void:
-	var stage := HoldStage.make(_holder, "female", false)
-	var reload := stage.clip(CLIP)
-	var aim := stage.clip(CharacterClips.PRONE_AIM)
-	assert_float(reload.length).is_equal_approx(50.0 / 30.0, 0.001)
-	assert_int(reload.loop_mode).is_equal(Animation.LOOP_NONE)
-	for track in reload.get_track_count():
-		if reload.track_get_type(track) != Animation.TYPE_ROTATION_3D:
-			continue
-		var path := reload.track_get_path(track)
-		var other := aim.find_track(path, Animation.TYPE_ROTATION_3D)
-		assert_int(other).override_failure_message("%s is not in the aim" % path).is_not_equal(-1)
-		var joined := aim.rotation_track_interpolate(other, 0.0)
-		for time: float in [0.0, reload.length]:
-			var off := rad_to_deg(reload.rotation_track_interpolate(track, time).angle_to(joined))
-			(
-				assert_float(off)
-				. override_failure_message(
-					"%s at %.2f s is %.2f deg off the prone aim" % [path, time, off]
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model, false)
+		var reload := stage.clip(CLIP)
+		var aim := stage.clip(CharacterClips.PRONE_AIM)
+		assert_float(reload.length).is_equal_approx(50.0 / 30.0, 0.001)
+		assert_int(reload.loop_mode).is_equal(Animation.LOOP_NONE)
+		for track in reload.get_track_count():
+			if reload.track_get_type(track) != Animation.TYPE_ROTATION_3D:
+				continue
+			var path := reload.track_get_path(track)
+			var other := aim.find_track(path, Animation.TYPE_ROTATION_3D)
+			var missing := "%s: %s is not in the aim" % [model, path]
+			assert_int(other).override_failure_message(missing).is_not_equal(-1)
+			var joined := aim.rotation_track_interpolate(other, 0.0)
+			for time: float in [0.0, reload.length]:
+				var turned := reload.rotation_track_interpolate(track, time).angle_to(joined)
+				(
+					assert_float(rad_to_deg(turned))
+					. override_failure_message(
+						(
+							"%s: %s at %.2f s is %.2f deg off the prone aim"
+							% [model, path, time, rad_to_deg(turned)]
+						)
+					)
+					. is_less(JOINS)
 				)
-				. is_less(JOINS)
-			)
-	stage.free()
+		stage.free()
+
+
+func test_each_body_plays_its_own_file() -> void:
+	var files := {}
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model, false)
+		files[model] = stage.clip(CLIP)
+		stage.free()
+	assert_object(files["female"]).is_not_same(files["male"])
 
 
 func test_the_right_hand_holds_the_pistol_through_the_prone_reload() -> void:
@@ -169,7 +184,7 @@ func test_the_clip_has_the_left_hand_where_the_hold_wants_it() -> void:
 							% [model, share, bone, moved * 1e3]
 						)
 					)
-					. is_less((entry[1] as Dictionary)[model])
+					. is_less(entry[1] as float)
 				)
 		stage.free()
 		bare.free()
