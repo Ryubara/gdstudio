@@ -241,6 +241,9 @@ placement, and each gait declares its own limit (`kb_a_second`: 24, 25 and 27 KB
   `ik_` targets were keyed). A gait alone is over that budget: a short loop of fast motion has few frames a
   reducer can drop, and the jog and the sprint are over the 40 % key budget for that reason (declared in the
   description, `keys_kept`).
+- **Frame cost:** ten walking characters take 1.39 ms a frame with `gds/Walk` against 1.28 ms with the library
+  walk on the desktop (the median of `tests/gameplay/test_parts_budget.gd`, five runs of each, interleaved): 8 %
+  more, 0.011 ms a character, for 61 tracks where the library clip moves 21 bones.
 - **They are played at their own pace** by the ground blend space, as the library's were; since their speeds are
   the game's own, the feet hold the floor at the three tuned speeds. Between them the blend still slides: speed
   matching is kit #1158.
