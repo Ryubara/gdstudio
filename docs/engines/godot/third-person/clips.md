@@ -327,6 +327,8 @@ plays and the states change as before.
 **What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
 pose's difference from the idle's first frame.
 
-The cost, from `tools/bench/gait_cost.tscn` (`gds template bench-web 3d-third-person gait_cost --run`): see the pull
-request of gdstudio #1158 for the numbers in Chrome; the momentum blend reads 25 body bones a frame on each character
-and turns the ones that differ for 0.4 s after a change.
+The cost, from `tools/bench/gait_cost.tscn` (`gds template bench-web 3d-third-person gait_cost --run`, headless
+Chrome on a workstation, the settings off and on in turns, players walking, blending, sprinting and stopping): 38 µs a
+frame for one character, 17 µs a character with 40 (4.28 ms off, 4.97 ms on); headless desktop, 12 µs a character
+with 40. The momentum blend reads 25 body bones a frame on each character and turns the ones that differ for 0.4 s
+after a change; the transitions ask nothing of the body while no transition clip is in the libraries.

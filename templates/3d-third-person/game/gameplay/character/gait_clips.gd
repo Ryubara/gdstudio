@@ -152,6 +152,7 @@ static func _load(clip: StringName) -> void:
 	_loaded[library] = true
 	for path: String in SOURCES[library]:
 		if not FileAccess.file_exists(path):
+			push_warning("GaitClips: no %s: its clips play at their own pace" % path)
 			continue
 		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 		if not parsed is Dictionary:
