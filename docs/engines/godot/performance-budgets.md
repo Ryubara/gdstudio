@@ -163,6 +163,13 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   per minute of the night it was 0.4 to 0.6 on all six nights. **Seen:** Deadnight #1319, 2026-11-06 (fix:
   `leak_budget.json` has `fixed_fps: 60` and the limit is back at 1.5; `tools/perf/test_check_budget.py` runs a flat
   night and 1.2 and 0.5 times each limit on a fast and a slow runner).
+- **Approach:** Time both sides of a time ratio in the same frames with the same statistic: at the end of each measured
+  frame run the calibration loop once and divide the median frame by the median loop; prove it with 10 runs beside
+  other suites and a made game whose frame spins as long again (it must fail). **Watch out for:** the loop's fastest
+  of nine, timed after the frames, dodged the load that the frames' median took, so the ratio rose with load: 0.83 to
+  1.45 against a 1.3 limit where the paired ratio read 0.90 to 1.12 (a doubled frame 1.78 to 2.11). A loop inside a
+  frame runs about 1.5 times slower than alone: measure a limit again. **Seen:** gdstudio #1324, 2026-11-12 (3D Third Person
+  `test_ten_walking_characters_stay_under_the_frame_budget`, the frame-ratio case of `test_parts_budget.gd`).
 
 ## In the editor {#in-the-editor}
 
