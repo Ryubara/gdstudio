@@ -1,9 +1,11 @@
 # How many shots a press of the fire button gives (gdstudio #1335): a mouse button pressed through
 # the engine's own input path (`InputSim`), read by the player's `PlayerInput` as a player's is,
 # and the weapon's `fired` signal counted. For every weapon of the template, one shot a press and
-# automatic: a press of one frame and a tap shorter than the weapon's shot interval each fire
-# exactly one shot, from the arm down or with the aim already up, and a held press fires the
-# weapon's rate for as long as it is held (within one shot), with nothing after the release.
+# automatic: with the aim up, a press of one frame fires exactly one shot; a tap shorter than the
+# weapon's shot interval fires exactly one, from the arm down or with the aim up; a held press
+# fires the weapon's rate for as long as it is held (within one shot), with nothing after the
+# release. A one-frame press from the arm down fires nothing: the arm drops as the button is let
+# go, before it is half up (`test_aim_release.gd`).
 extends GdUnitTestSuite
 
 const WEAPONS: Array[String] = [
@@ -41,12 +43,12 @@ func after_test() -> void:
 	AudioDrain.stop_all(_arena)
 
 
-func test_a_one_frame_press_fires_one_shot_from_the_arm_down() -> void:
+func test_a_one_frame_press_from_the_arm_down_fires_nothing() -> void:
 	for automatic: bool in [false, true]:
 		for path in WEAPONS:
 			await _arm(path, automatic)
 			await _tap(1)
-			_expect(1, path, automatic, "one frame, arm down")
+			_expect(0, path, automatic, "one frame, arm down")
 
 
 func test_a_one_frame_press_fires_one_shot_with_the_aim_up() -> void:

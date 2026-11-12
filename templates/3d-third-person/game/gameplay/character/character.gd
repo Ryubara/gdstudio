@@ -249,8 +249,10 @@ var _sprinting := false
 var _wants_crouch := false
 var _crouch_amount := 0.0
 var _fire_buffer := 0.0
-# The fire button as the last step's command held it (`fire_press`).
+# The fire button as the last step's command held it, and whether a press was counted from the
+# button going down before its press flag came, so the flag is not a second press (`fire_press`).
 var _fire_was := false
+var _fire_echo := false
 var _stand_probe := CapsuleShape3D.new()
 # The prone stance; its step state is `CharacterState.prone`.
 var _prone := CharacterProne.new()
@@ -336,7 +338,7 @@ func step(command: PlayerCommand, delta: float) -> void:
 		loadout.tick(delta)
 	if weapon != null:
 		weapon.tick(delta)
-	_fire_was = last_command.fire
+	_remember_fire(last_command)
 
 
 # One tick of a living body inside the map. A controller that asks for it (an AI's) gets the lean
@@ -389,13 +391,14 @@ func shot_wanted(command: PlayerCommand) -> bool:
 	return _fire_buffer > 0.0 or fire_press(command) or _trigger_held(command)
 
 
-## True when `command` is a new press of the fire button: the button is down (or was pressed and
-## let go between two commands) and the last step's command did not hold it. A controller's press
-## flag can come a tick after the held button (Godot's `is_action_just_pressed` read in a physics
-## tick did, gdstudio #1335) or ride on a later command (`merge_edges_from`): counted from the held
-## button, one press is one press, never one from the button and one more from its late flag.
+## True when `command` is a new press of the fire button: its press flag, or the button down when
+## the last step's command did not hold it. A controller's press flag can come a tick after the
+## held button (Godot's `is_action_just_pressed` read in a physics tick did, gdstudio #1335): a
+## press already counted from the button makes its late flag no second press.
 func fire_press(command: PlayerCommand) -> bool:
-	return (command.fire or command.fire_pressed) and not _fire_was
+	if command.fire_pressed:
+		return not _fire_echo
+	return command.fire and not _fire_was
 
 
 ## True when `command` holds the trigger of an automatic weapon: each tick it is held pulls once
@@ -659,10 +662,8 @@ func _update_aim(delta: float) -> void:
 	if weapon != null and _action_lock <= 0.0 and _prone_lets_aim():
 		var held := weapon.definition
 		aim_held = last_command.aim and (held == null or held.can_aim)
-		var lets_fire := _prone_lets_fire() and _weapon_lets_fire(aim_held)
-		fire_held = last_command.fire and lets_fire
-		# A press let go before the arm was up keeps it rising until its buffered shot leaves.
-		wants = aim_held or fire_held or (_fire_buffer > 0.0 and lets_fire)
+		fire_held = last_command.fire and _prone_lets_fire() and _weapon_lets_fire(aim_held)
+		wants = aim_held or fire_held
 		if _slide.active and not slide_tuning.can_shoot:
 			aim_held = false
 			fire_held = false
@@ -879,6 +880,19 @@ func _use_weapon(delta: float) -> void:
 	if wanted and aiming and aim_amount >= tuning.shot_aim_amount and _within_reach():
 		if weapon.pull(_aim_origin(), _aim_direction()) != Weapon.Pull.BUSY:
 			_fire_buffer = 0.0
+
+
+# What `fire_press` reads on the next step: the button as held now, and whether this step counted a
+# press from the button with no flag (its flag, when it comes, is no new press). A step with the
+# button up and no flag forgets a flag that never came.
+func _remember_fire(command: PlayerCommand) -> void:
+	if command.fire_pressed:
+		_fire_echo = false
+	elif command.fire and not _fire_was:
+		_fire_echo = true
+	elif not command.fire:
+		_fire_echo = false
+	_fire_was = command.fire
 
 
 # False while the weapon refuses a shot aimed past what the move lets the upper body reach.
