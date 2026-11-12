@@ -109,6 +109,13 @@ they are rerun, replayed or read from another branch -->
   stayed `IN_PROGRESS` in the rollup while its run had finished green, so a loop over `gh pr checks` waited on a check
   that would never change, with the pull request already `CLEAN`. **Seen:** gdstudio #1000, 2026-11-10 (run
   42893048440).
+- **Approach:** Judge a check on a commit by its newest run alone (`pr_status.py`'s `newest_runs`: by start time,
+  then id), and when a status label disagrees with `gh pr checks`, list the commit's check runs with their suites.
+  **Watch out for:** `check-runs?filter=latest` is the latest run of each check per check suite, and every event
+  of a pull request (opened, edited, pushed to) makes its own suite, so `commits`, failed twice on a description
+  whose Model line lacked a model and passed after the edit, came back three times and `S-ci-failing` stayed on a
+  pull request whose only red check was `hold`. **Seen:** gdstudio #1265, 2026-11-12
+  (`test_a_check_that_passed_after_the_description_was_edited_is_not_failing`).
 
 ## Reruns {#reruns}
 

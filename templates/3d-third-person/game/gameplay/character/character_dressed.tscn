@@ -8,6 +8,8 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/universal/ual2.glb" id="6_ual2"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone.glb" id="6_prone"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_aim.glb" id="6_prone_aim"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_reload.glb" id="6_prone_reload"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_reload_male.glb" id="6_prone_reload_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_aim_male.glb" id="6_prone_aim_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault.glb" id="6_vault"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_male.glb" id="6_prone_male"]
@@ -96,7 +98,8 @@ libraries = {
 &"fixed": ExtResource("6_fixed"),
 &"melee": ExtResource("6_melee"),
 &"gds": ExtResource("7_gds"),
-&"rifle": ExtResource("7_rifle")
+&"rifle": ExtResource("7_rifle"),
+&"prone_reload": ExtResource("6_prone_reload")
 }
 
 [node name="AnimationTree" type="AnimationTree" parent="." index="5"]
@@ -107,13 +110,16 @@ character = NodePath("..")
 model = NodePath("../Model")
 animation_player = NodePath("../AnimationPlayer")
 tree = NodePath("../AnimationTree")
+prone_aim_libraries = Dictionary[String, AnimationLibrary]({
+"res://assets/characters/prototype/form_male.glb": ExtResource("6_prone_aim_male")
+})
+prone_reload_libraries = Dictionary[String, AnimationLibrary]({
+"res://assets/characters/prototype/form_male.glb": ExtResource("6_prone_reload_male")
+})
 prone_libraries = Dictionary[String, AnimationLibrary]({
 "res://assets/characters/mannequin/mannequin_female.glb": ExtResource("6_prone"),
 "res://assets/characters/mannequin/mannequin_male.glb": ExtResource("6_prone_male"),
 "res://assets/characters/prototype/form_male.glb": ExtResource("6_prone_form_male")
-})
-prone_aim_libraries = Dictionary[String, AnimationLibrary]({
-"res://assets/characters/prototype/form_male.glb": ExtResource("6_prone_aim_male")
 })
 vault_libraries = Dictionary[String, AnimationLibrary]({
 "res://assets/characters/mannequin/mannequin_female.glb": ExtResource("6_vault_quaternius"),

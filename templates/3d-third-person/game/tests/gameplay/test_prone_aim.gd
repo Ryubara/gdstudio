@@ -190,7 +190,7 @@ func test_a_shot_lying_down_kicks_the_prone_aim_and_plays_no_standing_shot() -> 
 	assert_bool(played).is_true()
 
 
-func test_a_reload_lying_down_keeps_the_prone_aim() -> void:
+func test_a_reload_lying_down_never_plays_the_standing_clip() -> void:
 	await _lie_down()
 	await _aim()
 	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
@@ -201,10 +201,16 @@ func test_a_reload_lying_down_keeps_the_prone_aim() -> void:
 	await InputSim.ticks(get_tree(), 3)
 	InputSim.key(KEY_R, false)
 	assert_bool(_player.weapon.is_reloading()).is_true()
-	# The standing reload clip does not play over the lying body; the prone aim stays.
+	# The standing reload clip does not play over the lying body: the reload layer holds the
+	# weapon's prone reload (kit #1185, `test_prone_reload.gd`), and the prone aim stays under it.
+	var root := _animation.tree.tree_root as AnimationNodeBlendTree
+	var layer := root.get_node(&"ReloadClip") as AnimationNodeAnimation
 	for _tick in 30:
 		await InputSim.ticks(get_tree(), 1)
-		assert_bool(_animation.is_reloading()).is_false()
+		if _animation.is_reloading():
+			assert_str(String(layer.animation)).is_not_equal(
+				String(_player.weapon.definition.reload_clip)
+			)
 		assert_float(_animation.tree.get(PRONE_AIM)).is_equal_approx(1.0, 0.001)
 
 

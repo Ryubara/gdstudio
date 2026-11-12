@@ -9,14 +9,17 @@ message, hook output and reminders (`isMeta`) and tool results all fail that tes
 (`<pasted_content>` blocks), quoted lines, fenced code and text in quotation marks are dropped before it is read, so
 the coordinator's own words quoted back do not approve anything.
 
-What approves pull request N, read sentence by sentence (a sentence ends at `.`, `!`, `?` or `;` before a space, a
-line break or "but"):
+What approves pull request N, read sentence by sentence (a sentence ends at `.`, `!`, `?` or `;` before a space, or
+at a line break; a clause after "but" is read on its own for a named number), in the maintainer's own words with no set
+wording:
 - a sentence that names N (`#N`, `N`, `repo#N`, `.../pull/N`) and says to lift, remove, release, approve, land or
   merge it, or yes; or
-- a short message (at most 20 words) with no digit in it and says yes or go ahead, answering the coordinator's last
-  message before it, which named N and the hold.
-A question, a negation or a condition (no, not, don't, wait, keep, if, once, after, until...) in that sentence or short
-message does not approve. Unsure is no: the guard then refuses as it always did.
+- a sentence with no digit in it that says yes, approve or go ahead ("I approve of all the PRs mentioned"), answering
+  the coordinator's last message before it, which named N and the hold or an approval. It covers every number that
+  message named, however long the maintainer's message is.
+A question, a negation or a condition (no, not, don't, wait, keep, if, once, after, until...) in that sentence does not
+approve, and a sentence that names N with one vetoes N for the whole message. Unsure is no: the guard then refuses as
+it always did.
 
 An approval counts for 24 hours and for one lift of that pull request: the lift log records the approving message's
 time, and a lift whose approval is already in the log is refused. Standard library only: the hooks load this file by
@@ -34,14 +37,15 @@ from pathlib import Path
 
 LOG = "scratch/hold-lifts.log"  # every lift the guard lets through, relative to the workspace
 WINDOW = timedelta(hours=24)  # how long a maintainer's approval stays good
-SHORT = 20  # the most words a bare yes may have
 HUMAN = "human"  # the origin kind of an entry the maintainer typed
 
 _PASTED = re.compile(r"<pasted_content\b[^>]*>.*?(?:</pasted_content\b[^>]*>|\Z)", re.DOTALL | re.IGNORECASE)
 _FENCED = re.compile(r"```.*?(?:```|\Z)", re.DOTALL)
 _QUOTED = re.compile(r"\"[^\"\n]*\"|“[^”\n]*”|(?<!\w)'[^'\n]*'(?!\w)")
 _QUOTE_LINE = re.compile(r"^\s*>.*$", re.MULTILINE)
-_SENTENCES = re.compile(r"(?<=[.!?;])(?=\s)|(?<=\n)|\bbut\b", re.IGNORECASE)
+_ENDS = r"(?<=[.!?;])(?=\s)|(?<=\n)"
+_SENTENCES = re.compile(_ENDS + r"|\bbut\b", re.IGNORECASE)  # clauses, read for a named number
+_WHOLE = re.compile(_ENDS)  # whole sentences, read for a yes to the list: "yes but not yet" stays one
 _YES = re.compile(
     r"\b(yes|yep|yeah|yup|ok|okay|sure|approved?|approving|go ahead|go for it|do it|green light|lgtm"
     r"|lift(?:ed)?|remove[d]?|release[d]?|unhold|take (?:it|them|the holds?|that|those) off|land|merge|ship)\b",
@@ -53,7 +57,7 @@ _NO = re.compile(
     re.IGNORECASE,
 )
 _NUMBER = re.compile(r"\d")
-_HOLD = re.compile(r"\bhold\b", re.IGNORECASE)
+_HOLD = re.compile(r"\b(?:hold|approv\w*)\b", re.IGNORECASE)  # the reply asked about a hold or an approval
 
 
 @dataclass(frozen=True)
@@ -138,26 +142,23 @@ def names(text: str, number: int, repo: str | None) -> bool:
     return False
 
 
-def _sentences(text: str) -> list[str]:
-    return [part for part in _SENTENCES.split(text) if part and part.strip()]
+def _sentences(text: str, pattern: re.Pattern[str] = _SENTENCES) -> list[str]:
+    return [part for part in pattern.split(text) if part and part.strip()]
 
 
 def approves(text: str, reply: str, number: int, repo: str | None) -> str:
     """How a maintainer's message (its own words) approves lifting the hold on `number`, '' when it does not."""
-    for sentence in _sentences(text):
-        if names(sentence, number, repo) and _YES.search(sentence) and not _NO.search(sentence):
+    clauses = _sentences(text)
+    if any(names(c, number, repo) and _NO.search(c) for c in clauses):
+        return ""  # "don't lift 7" anywhere in the message vetoes 7, whatever else it says
+    for clause in clauses:
+        if names(clause, number, repo) and _YES.search(clause):
             return "named"
-    words = text.split()
-    if (
-        words
-        and len(words) <= SHORT
-        and _YES.search(text)
-        and not _NO.search(text)
-        and not _NUMBER.search(text)
-        and _HOLD.search(reply)
-        and names(reply, number, repo)
-    ):
-        return "answered"
+    if not (_HOLD.search(reply) and names(reply, number, repo)):
+        return ""
+    for sentence in _sentences(text, _WHOLE):
+        if _YES.search(sentence) and not _NO.search(sentence) and not _NUMBER.search(sentence):
+            return "answered"
     return ""
 
 

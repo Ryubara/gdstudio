@@ -29,6 +29,8 @@ var lies := 0.0
 
 # The `prone` library the scene holds, put back for a model with no library of its own.
 var _shared: Dictionary[StringName, AnimationLibrary] = {}
+# True when the reload clip chosen last was the prone one (`reload_clip`).
+var _reload_lying := false
 # What is left of the last shot's kick (1 just fired, 0 none).
 var _kick := 0.0
 # The looks the held weapon's prone down and up clips are made for (`WeaponDef.prone_aim_angles`).
@@ -116,6 +118,23 @@ func step_crawl_share(speed: float, blend_time: float, delta: float) -> float:
 	return crawl_share
 
 
+## The clip a reload of `hold` plays now: its prone reload on a body that lies with a prone aim
+## (none when it has none: the standing clip folds the arms under a lying chest), else its
+## standing one, and none where `body` lies too far for the weapon's clips (`lies_past_clips`).
+## The choice is kept, so `reload_misplaced` can tell when the body has changed.
+func reload_clip(body: Character, hold: WeaponDef) -> StringName:
+	_reload_lying = lies > 0.5
+	if hold == null or lies_past_clips(body, hold):
+		return &""
+	return hold.prone_reload_clip if _reload_lying else hold.reload_clip
+
+
+## True when the reload clip that plays was chosen for the other way of holding the body: a
+## standing reload on a body that has lain down since, or the prone one on a body that got up.
+func reload_misplaced() -> bool:
+	return _reload_lying != (lies > 0.5)
+
+
 ## A shot was fired: true when the body lies with a prone aim, which then kicks (the muzzle
 ## jumps up and settles) in place of the standing shot clip.
 func kick() -> bool:
@@ -142,9 +161,10 @@ static func crawl_pace(body: Character, clip_speed: float) -> float:
 
 
 ## How far the weapon is put away for lying (0 in the hand, 1 away): the prone clips rest the body
-## on its forearms and fists, which cannot hold it. Aiming brings it back.
-static func stow_share(body: Character) -> float:
-	return smoothstep(0.0, 1.0, body.prone_amount) * (1.0 - body.aim_amount)
+## on its forearms and fists, which cannot hold it. Aiming brings it back, and so does a reload
+## clip, by `reloading`, how much of the upper body it holds.
+static func stow_share(body: Character, reloading := 0.0) -> float:
+	return smoothstep(0.0, 1.0, body.prone_amount) * (1.0 - maxf(body.aim_amount, reloading))
 
 
 ## How much of a weapon's clips a body plays for how far it lies (1 all, 0 none): less than 1 only
@@ -161,12 +181,6 @@ static func lies_past_clips(body: Character, hold: WeaponDef) -> bool:
 	return upright_share(body, hold) < 0.5
 
 
-## True when a reload plays no clip on `body`: it lies with a prone aim, which it keeps through
-## the reload (the reload clip is a standing one), or too far for `hold`'s clips.
-func plays_no_reload(body: Character, hold: WeaponDef) -> bool:
-	return lies > 0.5 or lies_past_clips(body, hold)
-
-
 ## Hides the model of the weapon in the hands (`hold.view` under `model`) while `away`, and shows
 ## it again after; the loadout shows the model of a weapon switched to while lying, so it is
 ## hidden again.
@@ -178,13 +192,23 @@ func stow_view(model: Node3D, hold: WeaponDef, away: bool) -> void:
 	stowed = away
 
 
-## Gives `player` the prone library (the prone aim library when `aim`) that `libraries` names for
-## `rig`'s scene file, or the scene's shared one. Only in the game: a library swapped in the
-## editor would be saved with the scene.
+## Gives `player` the body's own prone, prone aim and prone reload libraries: `own` is
+## `CharacterAnimation`'s three dictionaries, in that order.
+func use_body_clips(player: AnimationPlayer, rig: Node3D, own: Array) -> void:
+	use_model_clips(player, rig, own[0])
+	use_model_clips(player, rig, own[1], CharacterClips.LIBRARY_PRONE_AIM)
+	use_model_clips(player, rig, own[2], CharacterClips.LIBRARY_PRONE_RELOAD)
+
+
+## Gives `player` the library `library` (the prone clips', the prone aim's or the prone reload's)
+## that `libraries` names for `rig`'s scene file, or the scene's shared one. Only in the game: a
+## library swapped in the editor would be saved with the scene.
 func use_model_clips(
-	player: AnimationPlayer, rig: Node3D, libraries: Dictionary, aim := false
+	player: AnimationPlayer,
+	rig: Node3D,
+	libraries: Dictionary,
+	library := CharacterClips.LIBRARY_PRONE
 ) -> void:
-	var library := CharacterClips.LIBRARY_PRONE_AIM if aim else CharacterClips.LIBRARY_PRONE
 	var shared := swap_library(player, rig, library, libraries, _shared.get(library))
 	if shared != null:
 		_shared[library] = shared

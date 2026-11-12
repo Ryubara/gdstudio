@@ -62,6 +62,31 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   films any of the four, `MODEL`, read by `tools/capture/study_body.gd`). The two transitions join GDStudio's own
   crouch idle (`gds/Crouch_Idle`, kit #1160), whose right foot stands a step behind on its ball: it is lifted
   the rest of the way back and forward, not slid.
+- **The prone reload** (gdstudio #1185). A reload on a body that lies with a prone aim plays the held weapon's
+  `prone_reload_clip` (`WeaponDef`; the pistol's is `prone_reload/Prone_Reload_Pistol`, the library `prone_reload`:
+  `assets/animation/prone/prone_reload.glb` solved on `form_female`, the scene's library, and `prone_reload_male.glb`
+  on `form_male`, swapped in by `CharacterAnimation.prone_reload_libraries` as the aim's are) on the same reload
+  layer as the standing clip, from `spine_01` up and
+  stretched to `reload_time`: `ProneAnimation.reload_clip()` picks the clip when the reload starts, so the standing
+  clip never plays on a lying body, and a weapon with none shows no clip lying down. The clip starts and ends on the
+  prone aim's first pose and keeps the standing reload's shares for the left hand (off the pistol by 0.10, at the
+  belt at 0.22, under the magazine from 0.40, pushing it in to 0.54, back on from 0.88), so `WeaponHold` and
+  `SupportHandPlan` follow it unchanged, with the clip's own elbow (`support_keep_elbow`). The reload brings a
+  pistol that was put away out for as long as its clip holds the body (`ProneAnimation.stow_share(body,
+  reloading)`), and a body that gets up or lies down while a reload clip plays stops that clip
+  (`reload_misplaced()`); the rounds go in at the end of `reload_time` either way. The aim layer keeps the turn
+  it had when the reload began (`AimOffsetModifier.hold_turn`) and fades with the reload clip, since the clip is made
+  for the level look and moves the muzzle itself. Tests: `test_prone_reload.gd` (the main scene, simulated input)
+  and `test_prone_reload_hold.gd` (both bodies, each on its own file, the hold's 2 mm and 5 mm at every hundredth
+  the hand moves near the pistol).
+- **Approach:** While a clip that moves the weapon by itself plays over the aim (a reload), hold the aim layer's
+  turn at what it was before the clip (`hold_turn`, as for a shot's recoil) and let only its weight fade; measure
+  the hands over the floor on every update of the live player through both fades. **Watch out for:** the layer
+  solved, on every update, the whole turn that puts the muzzle back on the aim; as the lying reload (made for the
+  level look) faded in over a body aiming 14 degrees down it found up to 18 degrees and pitched the spine with
+  it: the hands and the muzzle 125 mm under the floor and the head 12 cm lower for nine updates at each end of the
+  reload, on a stage that passed every posed check. **Seen:** gdstudio #1185 (PR #1265), 2026-11-12
+  (`test_a_reload_lying_down_plays_the_prone_reload`; `AimLayer.refresh`).
 - **The prone aim** (gdstudio #1111). A lying body aims with clips made for the ground, never with the standing aim
   layer: the held `WeaponDef` names them (`prone_aim_clip`, `prone_aim_up_clip`, `prone_aim_down_clip`, and
   `prone_aim_angles`, the looks the down and up clips are made for: 25 and 20 degrees), the prone state blends them

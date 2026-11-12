@@ -147,7 +147,7 @@ func refresh() -> void:
 	aim.muzzle = character.weapon.muzzle
 	aim.limits = character.aim_limits
 	aim.target = aim_point(Engine.get_physics_interpolation_fraction())
-	aim.hold_turn = animation.is_shooting()
+	aim.hold_turn = animation.is_shooting() or animation.is_reloading()
 	aim.release_time = release_time
 
 
