@@ -45,12 +45,13 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
 - **The reaction.** `HitReaction` listens to `hit_received`. A record that killed pushes the hit bone at the hit point
   along the shot by `death_push` times its strength; a hit on a lying body by `lying_push`. A hit that does not kill
   starts a flinch: the hit body and every body hanging from it go physical (`physical_bones_start_simulation` with that
-  list, never a leg; a hit on the pelvis or a leg starts from `spine_01`), pushed by `flinch_push`, shown at
-  `flinch_strength` through the simulator's `influence`, held for `flinch_hold` of `flinch_time` and blended back to
-  the clip, then the bones stop. Every body is put at the animated pose first, in the physics server too, while the
-  simulator is off, and `RagdollLengths` keeps the flinch's bones at their rest lengths, so no limb stretches
-  ([A flinch](ragdoll.md#flinch), gdstudio #1338). A death during a flinch hands the whole skeleton to the ragdoll.
-  The marks shots left on the bones go when the body gets up (`Impacts.clear_marks_on(simulator)`).
+  list, never a leg; a hit on the pelvis or a leg starts from `spine_01`), pushed at its middle by `flinch_push` (at
+  most `flinch_most_speed`), shown at `flinch_strength` through the simulator's `influence`, held for `flinch_hold` of
+  `flinch_time` and blended back to the clip, then the bones stop. The bodies it leaves out are put on the clip's pose
+  in the server, at rest and off every layer, and the ragdoll's extra joints go for the flinch ([A partial
+  ragdoll](ragdoll.md#partial)); `RagdollLengths` keeps its bones, and the get-up's, at their rest lengths (gdstudio
+  #1338). A death during a flinch hands the whole skeleton to the ragdoll. The marks shots left
+  on the bones go when the body gets up (`Impacts.clear_marks_on(simulator)`).
 
 ### The inspector {#inspector}
 
@@ -62,7 +63,7 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `enabled`. The eleven: `head` (sphere, 3.0), `chest` and `pelvis` (1.0), `arm_l`, `arm_r`, `forearm_l`, `forearm_r`
   (0.6), `thigh_l`, `thigh_r`, `shin_l`, `shin_r` (0.7); the forearm capsules reach over the hands, the feet have none.
 - **On `HitReaction`**: `death_push` (1.5), `lying_push` (0.5), `flinch_enabled`, `flinch_push` (0.6),
-  `flinch_strength` (0.85), `flinch_time` (0.45 s), `flinch_hold` (0.25).
+  `flinch_most_speed` (3 m/s), `flinch_strength` (0.85), `flinch_time` (0.45 s), `flinch_hold` (0.25).
 - **On the character's `Health` node** (in `character.tscn`): `enabled` (off: hits still flinch and push but take
   nothing), `max_value` (100) and the rest of [the component](#health). **On the `WeaponDef`** (`pistol.tres`):
   `damage` (34: three chest shots, one headshot), passed to the projectile's `damage` and to a hitscan shot's or a
