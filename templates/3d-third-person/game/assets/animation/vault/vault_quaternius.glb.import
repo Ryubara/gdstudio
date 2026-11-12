@@ -3,12 +3,13 @@
 importer="animation_library"
 importer_version=1
 type="AnimationLibrary"
-path="res://.godot/imported/vault_quaternius.glb-04dd7fbbca32b12157f985363f702378.res"
+uid="uid://b75xbuaqvryns"
+path="res://.godot/imported/vault_quaternius.glb-9371175964cd1f1509e22079004bea1e.res"
 
 [deps]
 
 source_file="res://assets/animation/vault/vault_quaternius.glb"
-dest_files=["res://.godot/imported/vault_quaternius.glb-04dd7fbbca32b12157f985363f702378.res"]
+dest_files=["res://.godot/imported/vault_quaternius.glb-9371175964cd1f1509e22079004bea1e.res"]
 
 [params]
 

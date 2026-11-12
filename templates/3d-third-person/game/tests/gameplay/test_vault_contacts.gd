@@ -194,6 +194,18 @@ func test_the_settings_clips_carry_the_numbers_the_clips_were_built_with() -> vo
 	assert_str(str(_animation.vault_land_clip)).is_equal(str(CharacterClips.VAULT_LAND))
 
 
+# A planted hand is on the top only on the arms its clips were solved for (kit #1294), so each
+# body plays its own file: the character's `vault` library follows the model.
+func test_each_body_plays_the_vault_clips_solved_on_it() -> void:
+	var files := {"female": "vault.glb", "male": "vault_male.glb"}
+	var player := _player.get_node("AnimationPlayer") as AnimationPlayer
+	for model: String in ["male", "female"]:
+		await _reset(model)
+		player = _player.get_node("AnimationPlayer") as AnimationPlayer
+		var library := player.get_animation_library(CharacterClips.LIBRARY_VAULT)
+		assert_str(library.resource_path.get_file()).is_equal(files[model])
+
+
 func test_each_planted_hand_sits_on_the_top_and_stays_there() -> void:
 	for model: String in ["female", "male"]:
 		for height in HEIGHTS:
