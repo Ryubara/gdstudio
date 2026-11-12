@@ -61,6 +61,7 @@ const MODIFIER_PINS := {
 	&"second_way": [] as Array[HandPose],
 	&"open": null,
 	&"open_weight": 0.0,
+	&"open_via": null,
 	&"open_first": [] as Array[StringName],
 	&"open_first_share": 0.5,
 	&"open_together": false,
