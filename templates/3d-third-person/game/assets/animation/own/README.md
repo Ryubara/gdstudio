@@ -200,8 +200,9 @@ build's own numbers for `form_male` (the enemies'); the review sheets print the 
 | Limbs inside limbs, female and male | 0.0 and 1.6 mm | 0.0 and 2.7 | 0.0 and 1.6 | not measured |
 | Key bytes a second | 23.9 KB | 24.1 | 27.0 | |
 
-**Shipped** (`picks.json`, the maintainer's picks on PR #1275): `Walk` is B, `Jog` and `Sprint` are A (the jog
-reads better with the pistol held). A's numbers are a person's at the game's speeds; B is the vision for a loose,
+**Shipped** (`picks.json`, the maintainer's picks on PR #1275): `Walk`, `Jog` and `Sprint` are all A (the jog
+reads better with the pistol held; the walk was B until the second pick).
+A's numbers are a person's at the game's speeds; B is the vision for a loose,
 long-limbed character; C for a small or stylised body seen from far.
 The grounded and the sharp runs trail by the same frames; what tells them apart is the trunk (hips, shoulders,
 lean) and the knee lift; the "halves differ" row follows the thighs only, and the sides differ most in the
@@ -235,9 +236,9 @@ placement, and each gait declares its own limit (`kb_a_second`: 24, 25 and 27 KB
 | Footstep events | 0 (left), 13 (right) | 0, 10 | 0, 9 |
 | In the air | never | frames 6 to 10 and 16 to 20 | 4 to 9 and 13 to 18 |
 | Tracks: bones' rotations, and the places of the pelvis and the four `ik_` targets | 56 and 5 | 56 and 5 | 56 and 5 |
-| Keys kept by the build, of every frame | 61 % | 79 % | 76 % |
-| Keys a half-degree reducer keeps on moving bones (budget 40 %) | 34 % | 44 % | 51 % |
-| Key bytes in the file | 17.2 KB | 16.5 KB | 14.3 KB |
+| Keys kept by the build, of every frame | 76 % | 79 % | 76 % |
+| Keys a half-degree reducer keeps on moving bones (budget 40 %) | 33 % | 44 % | 51 % |
+| Key bytes in the file | 20.6 KB | 16.5 KB | 14.3 KB |
 
 - **Imported size:** the library file is 68.4 KB imported with all four clips, 5.6 KB a second over its 12.1 s,
   inside the 6 KB a second budget the test holds the file to (57.6 KB and 4.8 on the Quaternius rig, before the
@@ -260,21 +261,23 @@ The first review found the loops less fluid than the library's. `fluidity.py` me
 clip as its file plays (`uv run --with numpy python -B fluidity.py --bones`). The shipped picks before and after
 the pass, and the library clip each replaced:
 
-| | Walk (B) before | after | `ual1/Walk` | Jog (A) before | after | `ual1/Jog_Fwd` | Sprint (A) before | after | `ual1/Sprint` |
+| | Walk (A) before | after | `ual1/Walk` | Jog (A) before | after | `ual1/Jog_Fwd` | Sprint (A) before | after | `ual1/Sprint` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Frames a cycle | 28 | 28 | 40 | 20 | 20 | 28 | 18 | 18 | 20 |
-| Joints' effective harmonic (1 is one smooth wave a cycle) | 3.41 | 2.78 | 4.17 | 2.82 | 2.37 | 4.05 | 2.60 | 2.24 | 3.36 |
-| Largest change of a joint's speed in one frame (degrees) | 36.7 | 21.5 | 18.0 | 53.8 | 32.1 | 73.6 | 72.6 | 40.5 | 67.9 |
-| Joints' change of speed, RMS (degrees/s2) | 3108 | 2806 | 1494 | 6020 | 4842 | 7054 | 8762 | 7086 | 10522 |
-| Pelvis's path: effective harmonic | 3.69 | 1.89 | 1.88 | 2.86 | 2.05 | 2.61 | 2.84 | 2.13 | 2.59 |
-| Head's path: effective harmonic | 3.70 | 1.91 | 1.92 | 2.84 | 2.04 | 2.66 | 2.84 | 2.12 | 2.72 |
-| Pelvis's acceleration, RMS (m/s2) | 4.91 | 4.02 | 1.72 | 12.5 | 9.0 | 18.3 | 18.1 | 10.7 | 20.8 |
-| Hand's acceleration, RMS (m/s2, left) | 13.3 | 12.7 | 3.5 | 28.2 | 27.6 | 30.3 | 57.5 | 54.9 | 33.3 |
-| Forearm and hand trail by (frames) | 2.1, 2.0 | 2.1, 2.0 | 0.2, 2.2 | 0.8, 0.9 | 1.4, 1.6 | 1.6, none | 0.9, 0.9 | 1.2, 1.4 | 0.3, 0.1 |
+| Frames a cycle | 26 | 26 | 40 | 20 | 20 | 28 | 18 | 18 | 20 |
+| Joints' effective harmonic (1 is one smooth wave a cycle) | 3.88 | 3.18 | 4.17 | 2.82 | 2.37 | 4.05 | 2.60 | 2.24 | 3.36 |
+| Largest change of a joint's speed in one frame (degrees) | 36.9 | 25.8 | 18.0 | 53.8 | 32.1 | 73.6 | 72.6 | 40.5 | 67.9 |
+| Joints' change of speed, RMS (degrees/s2) | 3328 | 3023 | 1494 | 6020 | 4842 | 7054 | 8762 | 7086 | 10522 |
+| Pelvis's path: effective harmonic | 3.69 | 1.92 | 1.88 | 2.86 | 2.05 | 2.61 | 2.84 | 2.13 | 2.59 |
+| Head's path: effective harmonic | 3.70 | 1.93 | 1.92 | 2.84 | 2.04 | 2.66 | 2.84 | 2.12 | 2.72 |
+| Pelvis's acceleration, RMS (m/s2) | 4.95 | 4.10 | 1.72 | 12.5 | 9.0 | 18.3 | 18.1 | 10.7 | 20.8 |
+| Hand's acceleration, RMS (m/s2, left) | 13.2 | 12.5 | 3.5 | 28.2 | 27.6 | 30.3 | 57.5 | 54.9 | 33.3 |
+| Forearm and hand trail by (frames) | 1.4, 1.4 | 1.4, 1.4 | 0.2, 2.2 | 0.8, 0.9 | 1.4, 1.6 | 1.6, none | 0.9, 0.9 | 1.2, 1.4 | 0.3, 0.1 |
 
 By these numbers the walk was rougher than the library's where an eye rests (the pelvis and the head), and the runs
 were not rougher than the library's runs before the pass; the pass took the same faults out of all three. The rows
-of the tables above this section were measured before it for `Walk` B, `Jog` A and `Sprint` A.
+of the tables above this section were measured before it. The walk's pass was made on B, the pick at the time;
+when the pick became A the same three numbers went into A's walk, with its own limit (27 degrees: its cycle is
+two frames shorter), and B keeps its pass.
 
 What was choppy, and what changed (all in `clips/gait.py` and the picks' style sections; the other variants build
 to the same bytes as before):
@@ -288,7 +291,7 @@ to the same bytes as before):
 - **The foot was flicked off the floor.** `swing_early` gave the foot a share of its speed on its first frame in
   the air (79 mm a frame from nothing in the walk; the calf's speed changed 37 degrees in that frame, 73 in the
   sprint). The picks leave the floor from rest and their acceleration grows from nothing and ends in nothing
-  (`swing_ease` 1, `swing_early` 0); each declares a tighter `speed_limit` (24, 36 and 45 degrees) so a rebuild
+  (`swing_ease` 1, `swing_early` 0); each declares a tighter `speed_limit` (27, 36 and 45 degrees) so a rebuild
   cannot bring the flick back.
 - **The runs' arms and head moved nearly with the trunk** (forearm and hand under a frame late, where the feel asks
   for one to two). The jog's and the sprint's chest, head, forearm and hand trail further (`overlap_jog`,
@@ -297,7 +300,7 @@ to the same bytes as before):
 - **Not the import.** The imported clips are within 0.013 degrees of the file's keys on every joint (compressed, 61
   tracks), and Godot plays straight lines between 30 keys a second for ours and for the library's alike.
 
-What is left, and why: our cycles are shorter than the library's (28, 20 and 18 frames against 40, 28 and 20: a
+What is left, and why: our cycles are shorter than the library's (26, 20 and 18 frames against 40, 28 and 20: a
 person's cadence at the game's speeds), so each frame is a larger share of the motion, and a foot that holds the
 floor at the game's speed has to swing faster than one that slides (the walk's joints change speed twice as hard as
 the library's, by the square of the pace). Keys at 60 a second would halve each step; that doubles the file's key
