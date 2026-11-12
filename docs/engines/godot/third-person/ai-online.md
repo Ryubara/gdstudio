@@ -33,7 +33,7 @@ The server's inspector (`net_server.tscn`, group AI; the lag compensation's two 
 character's look on the wire is the index of its profile here: `grunt.tres`, `ally.tres`, `civilian.tres`,
 `shooter.tres`), `ai_sees_players` (the players' bodies join the group `player` with the faction `player`, so the AI
 sees, fights and measures its tiers from them). The client's (`AiReplica`, group Drawing): `interp_delay`,
-`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes` (the male mannequin's
+`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes` (the male body's
 `character_dressed_male.tscn` for the grunt and the shooter, the female `character_dressed.tscn` for the ally and the
 civilian, as offline); group Making puppets: `puppets_per_frame`, `puppet_budget_usec`, `puppets_shown_per_frame`,
 `viewer`.
@@ -48,7 +48,7 @@ The prototype map's AI section ([its population](ai-characters.md#parts)) runs o
 and frees their pools), and the server's spawners wake when a player's body on the server comes within `wake_range`
 (the bodies join the group `player` with `ai_sees_players`). The allies follow the server's body of the first player
 in their world. Each character reaches every client as a row like any other, drawn in its own look: the grunt and the
-shooter in the male mannequin, the ally and the civilian in the female (`ai_variants` and `variant_scenes` at the same
+shooter in the male body, the ally and the civilian in the female (`ai_variants` and `variant_scenes` at the same
 index). A body the spawner takes back to the pool leaves the tree, so its row stops and the client frees its puppet; a
 spawn from the pool keeps its wire id and is a new puppet on the client.
 

@@ -7,9 +7,11 @@
 - Binary assets go through Git LFS (`.gitattributes` lists the types).
 - `assets/shaders/prototype/` and `assets/materials/prototype/` are the template's prototype surface: one world-space
   grid shader and a material per colour.
-- `assets/characters/mannequin/` is Quaternius's two mannequins (`mannequin_female.glb`, the default, and
-  `mannequin_male.glb`) and `assets/animation/universal/` the Universal Animation
-  Library 1 and 2 (CC0, each with a `LICENSE.md`): the character's mesh and its 86 clips.
+- `assets/characters/prototype/` is GDStudio's own prototype bodies (generated, see its `README.md`):
+  `form_female.glb` is the default character, `form_male.glb` the enemies'.
+- `assets/characters/mannequin/` is Quaternius's two mannequins (`mannequin_female.glb` and
+  `mannequin_male.glb`, on the same rig) and `assets/animation/universal/` the Universal Animation
+  Library 1 and 2 (CC0, each with a `LICENSE.md`): the clip checks' bodies and the character's 86 clips.
 - `assets/animation/vault/` is GDStudio's own vault clips (`Vault_Low`, `Vault_High`, `Vault_Land`; MIT, keyed from
   scratch by `build_vault.py` on the mannequin's rig, with a `LICENSE.md`), an `AnimationLibrary` like the two packs,
   and `vault_clips.json`, each clip's reference obstacle and contact times.

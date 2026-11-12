@@ -31,7 +31,7 @@ const WORLD_COUNT := 100
 const WARM_FRAMES := 60
 const FRAMES := 300
 const CHARACTER := "res://gameplay/character/character_dressed.tscn"
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const MALE := CharacterBodies.MALE
 const WORLD_PARTS := {
 	"pickup": "res://gameplay/pickup/pickup.tscn",
 	"target": "res://gameplay/target/target.tscn",
