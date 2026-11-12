@@ -288,6 +288,9 @@ by the overshoot; a refusing weapon keeps the body and fires nothing until the a
 limits are the move's; a zero limit holds the aim along the body). The capture is `tools/capture/slide_aim_tour.tscn`
 (`AIM_LAYER_OFF=1` shows the clips alone, `CLOSE=1` and `CLOSE_SIDE=left` film the hands).
 
+**The head** (gdstudio #1334): an `AimHeadModifier` after the spine's turn holds the head level and looking along the
+aim on a straight neck while any weapon aims, whatever head the clips carry ([the aiming head](aim-head.md#head-on-aim)).
+
 - **Approach:** Solve an aim offset as a pitch about the body's side axis first, then a yaw about up, and hold the
   *aimed direction* within the limits, not the turn. **Watch out for:** a yaw about up first, then a pitch, with the
   turn clamped, is ill-conditioned when the clip points the muzzle near vertical (the slide: the heading of a direction
@@ -473,28 +476,27 @@ most of a shot: with the `ShotSound` playing, a projectile shot measured 400 µs
 web before taking the number as a budget.
 
 Hands on the pistol through the reload: the `WeaponHold` follows the reload clip by
-`CharacterAnimation.reload_progress()` (the one-shot's weight and the share of the clip played, whatever `reload_time`
-is), so the left hand is on the gun, away for the new magazine, under it while it goes in and on the gun again, and
+`CharacterAnimation.reload_progress()` (the one-shot's weight and the share of the clip played), so the left hand is
+on the gun, away for the new magazine, under it while it goes in and on the gun again, and
 the trigger finger is off the trigger
 ([the hold and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)). The hand goes on
 and off the gun one way (its fingers open where it holds, then the opened hand leaves along a solved clear line,
 `WeaponHold.support_way`), and `SupportHandPlan` names the reload's
 phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD`, `LET_GO`, `AWAY`, `REACH`,
 `INSERT`, `SEATED` or `RETURN`. The magazines follow it: the old one drops at the first sound, a new one rides the left
-hand into the grip, and an empty pistol's slide, locked open, runs forward at the last sound
+hand in, and an empty pistol's slide runs forward at the last
 ([the magazine and the slide](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#the-magazine-through-the-reload)).
-It is cosmetic: the rounds go in at the end of `reload_time` whatever the hands do.
+It is cosmetic: the rounds go in at the end of `reload_time`.
 How the two hands hold the pistol together, the trigger finger's way to the trigger and the hand's retreat when the
 arm is short are on [The two-handed pistol grip](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses).
 
-The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (`assets/animation/pistol/`, kit #1081): it
-starts and ends on the pose the reload ends on, and its `SlideRack` resource (`pistol_slide_rack.tres`;
-`SlideRack.fit()` gives the model's body's) holds the left hand's place and fingers on the slide, the slide's travel
-and the shares of its grip, pull and release. The reload does not play it yet (kit #1337): the hold releases the
-slide at the last sound and writes the `Slide` node only when its lock changes, so a rack can move it.
-`test_pistol_rack.gd` and `tools/capture/rack_closeups.tscn` play it on a stage whose `reload_weight` is
-`SlideRack.support_weight(share)`; that also takes off the carry arm's swing (`carry_arm_out`), so there the pistol
-swings 7 cm out and back through the rack. The game's player of the clip keeps the arm in (the `arm in` cases)
+The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (kit #1081); its `SlideRack` resource
+(`pistol_slide_rack.tres`; `SlideRack.fit()` gives the model's body's) holds the left hand's place and fingers on
+the slide, the slide's travel and the shares of its grip, pull and release. The reload does not play it yet
+(kit #1337): the hold releases the slide at the last sound and writes the `Slide` node only on a change, so a rack can
+move it. `test_pistol_rack.gd` and the `rack_closeups` capture play it on a stage whose `reload_weight` is
+`SlideRack.support_weight(share)`, which also takes off the carry arm's swing: there the pistol swings 7 cm out and
+back through the rack, and the game's player keeps the arm in
 ([the clip and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
 
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
