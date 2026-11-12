@@ -3,7 +3,7 @@
 Godot plays a library clip on any model of the Quaternius universal rig by writing the clip's local bone rotations
 (and the pelvis and root positions) onto the model's own bones, so a clip authored on one mannequin reaches a slightly
 different pose on the other. This script does the same in Blender: it imports the model and the clip file, copies each
-frame's local rotations onto the model's armature and renders the model from the side, the front and the top, one
+frame's local rotations onto the model's armature (and turns a prototype body's twist bones as the game does) and renders the model from the side, the front and the top, one
 column per frame. Run it with the pinned Blender, headless, every path absolute:
 
     blender -b --factory-startup -P render_clip_sheets.py -- --model <mannequin.glb> --clips <clips.glb>
@@ -25,6 +25,9 @@ from pathlib import Path
 import bpy
 import numpy as np
 from mathutils import Matrix
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import limb_overlap  # noqa: E402  (for the twist bones of a prototype body, turned as the game turns them)
 
 VIEWS = ("side", "front", "top", "quarter")
 # Where each camera stands for a model at the origin, and how it is turned. The model faces -Y, so the side view
@@ -228,6 +231,10 @@ def main():
             obj.type == "MESH" and obj.parent is None
         ):  # the female file carries a stray icosphere
             bpy.data.objects.remove(obj)
+    # a prototype body carries three levels of detail: show the full one only
+    skins = [o for o in bpy.data.objects if o.type == "MESH" and o.parent == model]
+    for obj in skins:
+        obj.hide_render = obj is not max(skins, key=lambda o: len(o.data.vertices))
     clips_arm, clip_objects = import_glb(args.clips)
     for obj in clip_objects:
         obj.hide_render = True
@@ -251,6 +258,8 @@ def main():
         speed = travel.get(name, 0.0)
         for frame, pose in frames:
             apply_pose(model, pose)
+            bpy.context.view_layer.update()
+            limb_overlap.apply_twist(model)
             shift = -speed * (frame - first) / fps  # the model faces -Y
             model.location = (0, shift, 0)
             shift -= args.ahead
