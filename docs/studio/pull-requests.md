@@ -165,6 +165,8 @@ read it prints `commits: cannot tell`, as the docs rule does (kit #1303). The gu
   passed a `Read first:` anchor only the branch had, because it judged the rule from no history (it never ran) and would
   have read the worktree's `docs/`, while `pr-rules` reads the base checkout and refused it after the push. **Seen:**
   gdstudio #1016 and #1123, 2026-11-11 (fix: #1131, `--docs-ref origin/main` and closes from `Fixes #N`; PR #1144).
+  Again on #1171, 2026-11-12: with `- Fixes #N` as list items the local check finds no closing line and skips
+  the rule; a page the branch adds goes in `Lessons:` only.
 
 - **Approach:** When a required check fails on a pull request's first commit, add `Lessons: <page.md#anchor>` to the
   body in the same push that fixes it, naming the topic section the fix is recorded in. **Watch out for:** the local
