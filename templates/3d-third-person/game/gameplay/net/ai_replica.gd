@@ -197,6 +197,9 @@ func play_event(event: NetEvent) -> void:
 		NetEvent.AiCode.FIRED:
 			if puppet.weapon != null and not puppet.is_dead():
 				puppet.weapon.fire_cosmetic(event.point, event.direction)
+		NetEvent.AiCode.MELEE:
+			if puppet.weapon != null and not puppet.is_dead():
+				puppet.weapon.melee(event.point, Vector3.ZERO, true)
 	event_played.emit(event, puppet)
 
 

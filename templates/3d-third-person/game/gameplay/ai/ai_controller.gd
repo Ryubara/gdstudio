@@ -39,8 +39,12 @@ var interact := false
 ## Holds the empty-hands button: the loadout puts the weapon away for the fists (or takes it
 ## back) on the tick it goes on.
 var unarmed := false
+## Holds the melee button: the weapon in the hands throws its category's blow on the tick it goes
+## on (gdstudio #1254).
+var melee := false
 
 var _fire_was := false
+var _melee_was := false
 var _jump_was := false
 var _reload_was := false
 var _interact_was := false
@@ -64,12 +68,14 @@ func sample() -> PlayerCommand:
 	var reload_pressed := reload and not _reload_was
 	var interact_pressed := interact and not _interact_was
 	var unarmed_pressed := unarmed and not _unarmed_was
+	var melee_pressed := melee and not _melee_was
+	_melee_was = melee
 	_fire_was = fire
 	_jump_was = jump
 	_reload_was = reload
 	_interact_was = interact
 	_unarmed_was = unarmed
-	var other_press := reload_pressed or interact_pressed or unarmed_pressed
+	var other_press := reload_pressed or interact_pressed or unarmed_pressed or melee_pressed
 	# The channels as they were at the last call, with no press then or now: the same command,
 	# not built again (an AI's channels change at its thinks, a few times a second).
 	if (
@@ -82,6 +88,7 @@ func sample() -> PlayerCommand:
 		and not command.reload_pressed
 		and not command.interact_pressed
 		and not command.unarmed_pressed
+		and not command.melee_pressed
 		and walk_direction == _walk_was
 		and look_direction == _look_was
 		and walk_strength == _strength_was
@@ -106,6 +113,7 @@ func sample() -> PlayerCommand:
 	command.reload_pressed = reload_pressed
 	command.interact_pressed = interact_pressed
 	command.unarmed_pressed = unarmed_pressed
+	command.melee_pressed = melee_pressed
 	_built = true
 	_walk_was = walk_direction
 	_look_was = look_direction
@@ -135,6 +143,7 @@ func release() -> void:
 	reload = false
 	interact = false
 	unarmed = false
+	melee = false
 
 
 ## Where the person watching is (the viewport's camera), so a death far from it plays the death
