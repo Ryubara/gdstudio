@@ -159,6 +159,16 @@ are named as such.
   while the hand comes down off the hand guard (`_WAY_THUMB`), and on the magazine the four fingers close as one
   (`HandPoseModifier.open_together`; off the hand guard they open knuckles first).
 
+The body under the hold is the rifle's own clips (kit #1082, the library `rifle`): `rifle.tres` names
+`Rifle_Idle` as the grip clip on `spine_01` and all under it, the three aims, `Rifle_Shoot` added on top of the aim
+(`WeaponDef.shoot_additive`) and `Rifle_Reload`. The hold runs after them and still puts the rifle and the hands;
+the clips were built round it on both bodies, each under its own fit
+([clips under a hold](../../../tools/blender/clips-under-a-hold.md#body-under-the-hold)), so when the hold's
+numbers, a fit or the solved hands change, their build is run again
+(`assets/animation/rifle/build_rifle_clips.py`, 90 s; a new step of the hold is ported to the build's `Hold`
+first). The
+left hand does not go to the charging handle yet (kit #1266).
+
 Measured on the skinned mesh against the rifle (`HandContact`, the same in every clip, since the fingers are absolute
 and the arms reach their places), on the prototype bodies:
 

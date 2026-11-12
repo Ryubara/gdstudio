@@ -20,6 +20,9 @@ enum PastAimLimit {
 }
 
 ## How a shot travels.
+## What the head does while the weapon is aimed (`AimHeadModifier`): level and along the aim, or
+## brought to the weapon's sights, a cheek on the stock.
+enum AimHead { LEVEL, SIGHT }
 enum Kind {
 	## A body (`projectile_scene`) flies from the muzzle and hits what it touches: it can be seen
 	## and dodged, and it costs a physics body while it flies.
@@ -69,6 +72,14 @@ enum Kind {
 ## the body along the slide): the body turns so the aim is within reach again, or the shot is
 ## refused until it is.
 @export var past_aim_limit := PastAimLimit.TURN_BODY
+## The head while aiming: level and looking along the aim (a pistol, the fists), or with the eye
+## brought behind the sights, which tilts the head onto the stock (a shouldered weapon: it needs
+## `aim_eye`).
+@export var aim_head := AimHead.LEVEL
+## Where the aiming eye belongs on the weapon, for `AimHead.SIGHT`: a marker under the character's
+## `Model` slot, like `muzzle` (the rifle's `RifleHeld/Pivot/Rifle/AimEye`), its -Z along the sight
+## line.
+@export var aim_eye: NodePath
 
 @export_group("Aim and zoom")
 ## What a press of aim or fire does with this weapon in the hands. The character and the camera
@@ -182,6 +193,11 @@ enum Kind {
 ## The marker the shots leave from, under the `Model` slot (the pistol's
 ## `PistolHeld/Pistol/Pistol/Muzzle`). Empty: no muzzle (shots leave from beside the shooter).
 @export var muzzle: NodePath
+## On: the weapon's clips (grip, aim, reload) are keyed for an upright trunk, the whole upper body
+## stood from the pelvis (the rifle's), so they do not play on a lying body: the prone clips keep
+## it and the weapon's hold alone carries the weapon there. Off: they play lying too (the pistol's,
+## which key the arms).
+@export var clips_upright := false
 ## The clip whose pose the gripping hand takes while the weapon is out. Empty: no grip pose
 ## (the arms follow the locomotion).
 @export var grip_clip: StringName = &"":

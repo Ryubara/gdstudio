@@ -1,5 +1,6 @@
 """One hand of the mannequin as the solver bends it: batched finger poses and their skin."""
 
+import hold_field
 import hold_rig as R
 import numpy as np
 
@@ -14,6 +15,8 @@ LIMITS = {
     "thumb": np.array([[-50.0, 50.0], [-50.0, 50.0], [-50.0, 50.0], [-40.0, 40.0], [-15.0, 75.0], [0.0, 85.0]]),
 }
 X, Y, Z = np.eye(3)
+# How near a finger's capsule a point of the other hand must be for the finger's own skin to be read, metres.
+SKIN_NEAR = 0.006
 
 
 def local_rotations(finger, angles):
@@ -28,6 +31,15 @@ def local_rotations(finger, angles):
         r2 = R.axis_angle(X, a[:, 2])
         r3 = R.axis_angle(X, a[:, 3])
     return r1, r2, r3
+
+
+def segment_distance(points, a, b):
+    """The distance from each of `points` (K or 1, N, 3) to the segments from `a` to `b` (K, 3): (K, N)."""
+    along = b - a
+    length = np.maximum(np.einsum("ki,ki->k", along, along), 1e-12)
+    share = np.clip(np.einsum("kni,ki->kn", points - a[:, None], along) / length[:, None], 0.0, 1.0)
+    nearest = a[:, None] + share[..., None] * along[:, None]
+    return np.linalg.norm(points - nearest, axis=-1)
 
 
 class Hand:
@@ -66,6 +78,168 @@ class Hand:
                     above = rig.parent[above]
                 self.tip_local[bone] = at
         self._apply_all()
+        self._sample_palm()
+        self._measure_fingers()
+        self._measure_finger_skins()
+
+    def _measure_fingers(self):
+        """Each finger bone's skin as a capsule, for each mannequin: `capsule[finger]` (models, 3, 5) holds
+        where its middle line crosses the bone's own XZ plane (the skin is not centred on the bone: 4 to 9 mm
+        off), where that line starts and ends along the bone's Y, and its radius (what the outermost
+        vertices of its middle half keep from the line)."""
+        rig = self.rig
+        models = rig.model.max() + 1
+        self.capsule = {}
+        for f in FINGERS:
+            chain = self.chains[f]
+            leaf = [b for b in range(len(rig.names)) if rig.parent[b] == chain[2]]
+            # A bone is as long as the way to the next one; the last ends at its leaf bone.
+            lengths = [np.linalg.norm(rig.rest[b][:3, 3]) for b in chain[1:]]
+            lengths.append(np.linalg.norm(rig.rest[leaf[0]][:3, 3]) if leaf else lengths[-1])
+            self.capsule[f] = np.zeros((models, 3, 5))
+            for k, bone in enumerate(chain):
+                for model in range(models):
+                    mine = (rig.main == bone) & (rig.model == model)
+                    local = rig.homog[mine] @ rig.bind[bone].T
+                    middle = local[(local[:, 1] > 0.25 * lengths[k]) & (local[:, 1] < 0.75 * lengths[k])]
+                    if len(middle) < 8:
+                        # A low-poly finger (the prototype bodies: one ring of eight at each end of a
+                        # bone) has no vertex in its middle half: its tube is the rings along the bone.
+                        middle = local[(local[:, 1] >= 0.0) & (local[:, 1] <= lengths[k])]
+                    centre = 0.5 * (middle[:, [0, 2]].min(axis=0) + middle[:, [0, 2]].max(axis=0))
+                    # The skin's outside: joint balls put vertices inside it, so not the median.
+                    radius = np.percentile(np.linalg.norm(middle[:, [0, 2]] - centre, axis=1), 90)
+                    if f == "thumb" and k == 0:
+                        radius = 0.0  # the thumb's root is part of the palm, which is sampled all over
+                    # The line ends a radius inside the skin's two ends, which are round.
+                    first = min(local[:, 1].min() + radius, 0.5 * lengths[k])
+                    last = max(local[:, 1].max() - radius, 0.5 * lengths[k])
+                    self.capsule[f][model, k] = [centre[0], centre[1], first, last, radius]
+
+    def _measure_finger_skins(self):
+        """Each finger bone's skin as it is, for each mannequin: `skin_field[finger][model][k]` is a distance
+        grid in the bone's own space over the triangles that touch the bone's vertices (closed where they
+        end), and `skin_span[finger][model][k]` the stretch of the bone's Y it is read on (from its joint, then from
+        its own first vertices, as far as they go). Between the joint and those vertices the skin is a tube
+        to the bone before, which the grid holds unbent (it read 2 mm too deep there), so a point there is as
+        deep as the shallower of this bone's grid and that bone's. A capsule is round where a low-poly
+        fingertip is blunt: the male prototype's right little knuckle lay 4.8 mm inside the left middle
+        fingertip's skin and 0.6 mm inside its capsule (kit #1213)."""
+        rig = self.rig
+        self.skin_field, self.skin_span = {}, {}
+        for f in FINGERS:
+            chain = self.chains[f]
+            self.skin_field[f], self.skin_span[f] = [], []
+            for model in range(rig.model.max() + 1):
+                fields, spans = [], []
+                for k, bone in enumerate(chain):
+                    mine = (rig.main == bone) & (rig.model == model)
+                    tris = rig.tris[mine[rig.tris].any(axis=1)]
+                    if f == "thumb" and k == 0 or len(tris) == 0:
+                        # The thumb's root is part of the palm, which is sampled all over.
+                        fields.append(None)
+                        spans.append((0.0, 0.0))
+                        continue
+                    local = (rig.homog @ rig.bind[bone].T)[:, :3]
+                    own = local[mine]
+                    faces = local[tris]
+                    faces = np.concatenate([faces, hold_field.ring_caps(faces)])
+                    low, high = faces.reshape(-1, 3).min(axis=0) - 0.004, faces.reshape(-1, 3).max(axis=0) + 0.004
+                    fields.append(hold_field.PiecesField(faces, low, high, 0.001, rays=(0, 1, 2)))
+                    spans.append((min(0.0, own[:, 1].min()), max(0.0, own[:, 1].min()), own[:, 1].max()))
+                self.skin_field[f].append(fields)
+                self.skin_span[f].append(spans)
+
+    def finger_bones(self, finger, rots):
+        """The finger's three bones in the world for each row of their rotations on top of their rests (as
+        `finger_points_turned` takes them): (K, 3, 4, 4)."""
+        rig = self.rig
+        count = len(rots[0])
+        g = np.broadcast_to(self.glob[rig.parent[self.chains[finger][0]]], (count, 4, 4))
+        out = []
+        for bone, rot in zip(self.chains[finger], rots, strict=False):
+            local = np.broadcast_to(rig.rest[bone], (count, 4, 4)).copy()
+            local[:, :3, :3] = rig.rest[bone][:3, :3] @ rot
+            g = g @ local
+            out.append(g)
+        return np.stack(out, axis=1)
+
+    def finger_depth(self, finger, rots, points, model):
+        """How deep `points` (N, 3; `model` says whose mannequin each is) are inside the finger taken as
+        three capsules, for each row of `rots`: (K,), 0 when none is inside. The other hand's vertices are
+        measured this way, since a fingertip of it that enters this finger between two rings of vertices
+        shows only from its own side."""
+        bones = self.finger_bones(finger, rots)
+        deepest = np.zeros(len(bones))
+        for index, capsules in enumerate(self.capsule[finger]):
+            mine = points[model == index]
+            # Only what is within a finger's length of the knuckle can touch it; every other vertex of a
+            # finely meshed hand is enough.
+            mine = mine[np.linalg.norm(mine - bones[0, 0, :3, 3], axis=1) < 0.14]
+            if len(mine) == 0:
+                continue
+            for first in range(0, len(bones), 256):
+                rows = bones[first : first + 256]
+                view = deepest[first : first + 256]
+                for k, (x, z, first_y, last_y, radius) in enumerate(capsules):
+                    a = rows[:, k] @ np.array([x, first_y, z, 1.0])
+                    b = rows[:, k] @ np.array([x, last_y, z, 1.0])
+                    inside = radius - segment_distance(mine[None], a[:, :3], b[:, :3])
+                    # Every other point is enough for the capsule; a low-poly hand's lone knuckle vertex
+                    # is not among them, so the skin below reads them all.
+                    np.maximum(view, inside[:, ::2].max(axis=1), out=view)
+                    field = self.skin_field[finger][index][k]
+                    if field is None:
+                        continue
+                    # The points near the capsule, in the bone's own space, against the skin itself.
+                    row, point = np.nonzero(inside > -SKIN_NEAR)
+                    if len(row) == 0:
+                        continue
+                    turn = rows[row, k]
+                    local = np.einsum("nji,nj->ni", turn[:, :3, :3], mine[point] - turn[:, :3, 3])
+                    low, own, high = self.skin_span[finger][index][k]
+                    depth = np.where((local[:, 1] >= low) & (local[:, 1] <= high), -field(local), 0.0)
+                    before = self.skin_field[finger][index][k - 1] if k else None
+                    joint = (local[:, 1] < own) & (depth > 0.0)
+                    if joint.any():
+                        if before is None:
+                            depth[joint] = 0.0
+                        else:
+                            turn = rows[row[joint], k - 1]
+                            at = np.einsum("nji,nj->ni", turn[:, :3, :3], mine[point[joint]] - turn[:, :3, 3])
+                            depth[joint] = np.minimum(depth[joint], -before(at))
+                    np.maximum.at(view, row, depth)
+        return deepest
+
+    def _sample_palm(self, spacing=0.003):
+        """Points all over the palm's faces, `spacing` apart, as weights of its vertices. The palm is one
+        piece of a few large faces (edges up to 5 cm), so its vertices alone miss a fingertip or a corner of
+        the gun that enters a face between them; the fingers are meshed finely and need none."""
+        points = self.points()
+        piece = hold_field.pieces(points[self.tris])
+        palm = np.zeros(len(self.tris), bool)
+        for index in range(piece.max() + 1):
+            mine = piece == index
+            if (self.rig.main[self.ids][self.tris[mine]] == self.hand).any():
+                palm |= mine
+        corners, weights = [], []
+        for a, b, c in self.tris[palm]:
+            across = max(1, int(np.ceil(np.linalg.norm(points[b] - points[a]) / spacing)))
+            down = max(1, int(np.ceil(np.linalg.norm(points[c] - points[a]) / spacing)))
+            u, v = np.meshgrid(np.arange(across + 1) / across, np.arange(down + 1) / down)
+            keep = u + v <= 1.0 + 1e-9
+            u, v = u[keep], v[keep]
+            corners.append(np.broadcast_to([a, b, c], (len(u), 3)))
+            weights.append(np.stack([1.0 - u - v, u, v], axis=1))
+        self.palm_corners = np.concatenate(corners)
+        self.palm_weights = np.concatenate(weights)
+        # The mannequin each sample belongs to, as `Rig.model` says for a vertex.
+        self.palm_model = self.rig.model[self.ids][self.palm_corners[:, 0]]
+
+    def palm_points(self):
+        """The palm's sample points as posed: (S, 3), on the faces as they are drawn."""
+        points = self.points()
+        return np.einsum("sk,skj->sj", self.palm_weights, points[self.palm_corners])
 
     def _apply_all(self):
         rig = self.rig

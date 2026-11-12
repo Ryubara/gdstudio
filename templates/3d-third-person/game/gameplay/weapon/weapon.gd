@@ -46,6 +46,10 @@ enum Pull {
 
 ## How many bodies the aim ray may pass between the parts of before it is taken as it is.
 const AIM_PASSES := 4
+## Seconds of cooldown left that count as none: a shot interval that is a whole number of ticks
+## (0.1 s at 60 ticks) counts down to a rounding error just above zero, which would hold each shot
+## one tick late (9 shots a second for 10).
+const COOLDOWN_SLACK := 1e-6
 
 @export_group("Weapon")
 ## What the weapon is: its numbers, its projectile, its sounds and how it is held. Changing it
@@ -67,7 +71,7 @@ const AIM_PASSES := 4
 ## beside the shooter, in the ray's own axes (x to its right, y up, z back toward the shooter,
 ## so a negative z is out in front). The default is where the pistol's muzzle is while the
 ## character aims standing on the template's idle (`AimStance` holds it still there).
-@export var no_muzzle_offset := Vector3(0.112, -0.103, -0.716)
+@export var no_muzzle_offset := Vector3(0.12, -0.103, -0.728)
 ## What the aim ray hits (physics layers): what a shot meets (`PhysicsLayers.SHOT_MASK`: the
 ## level, characters, props, ragdoll bones and hit zones), so the crosshair's point is on what the
 ## shot will hit.
@@ -171,20 +175,23 @@ func _physics_process(delta: float) -> void:
 ## empty magazine with rounds in reserve starts a reload (`auto_reload`). Counted here and nowhere
 ## else (never from a clock), so it is the same on every machine that steps the same ticks.
 func tick(delta: float) -> void:
-	_cooldown = maxf(_cooldown - delta, 0.0)
+	# A cooldown that ends inside this tick keeps the part of the tick past its end (below zero),
+	# and the next shot's interval starts that much early, so a held trigger fires the rate however
+	# the interval falls between ticks; a tick that fires nothing forgets it.
+	_cooldown = _cooldown - delta if _cooldown > COOLDOWN_SLACK else 0.0
 	if _reload_left > 0.0:
 		_reload_left = maxf(_reload_left - delta, 0.0)
 		_play_reload_steps()
 		if _reload_left <= 0.0:
 			_finish_reload()
-	elif definition != null and definition.auto_reload and _magazine == 0 and _cooldown <= 0.0:
+	elif definition != null and definition.auto_reload and _magazine == 0 and not is_cooling_down():
 		reload()
 
 
 ## True when a pull would fire now: somewhere to shoot from, not cooling down, reloading or put
 ## away, and a round in the magazine (or no magazine at all).
 func can_fire() -> bool:
-	if definition == null or lowered or _cooldown > 0.0 or _reload_left > 0.0:
+	if definition == null or lowered or is_cooling_down() or _reload_left > 0.0:
 		return false
 	if _uses_ammo() and _magazine <= 0:
 		return false
@@ -198,10 +205,10 @@ func can_fire() -> bool:
 ## cooling down, reloading or put away.
 func pull(origin := Vector3.INF, direction := Vector3.ZERO) -> Pull:
 	_last_projectile = null
-	if definition == null or lowered or _cooldown > 0.0 or _reload_left > 0.0:
+	if definition == null or lowered or is_cooling_down() or _reload_left > 0.0:
 		return Pull.BUSY
 	if _uses_ammo() and _magazine <= 0:
-		_cooldown = definition.shot_interval()
+		_cooldown = _next_cooldown()
 		_play(_player(&"EmptySound"), _muzzle_point())
 		dry_fired.emit()
 		return Pull.EMPTY
@@ -266,7 +273,7 @@ func cancel_reload() -> void:
 
 ## True while the weapon cools down after a shot (or a click): a pull now does nothing.
 func is_cooling_down() -> bool:
-	return _cooldown > 0.0
+	return _cooldown > COOLDOWN_SLACK
 
 
 ## Plays a shot the server fired for another player (a puppet's, online): a cosmetic projectile
@@ -423,7 +430,7 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 	last_heading = heading
 	if _uses_ammo():
 		_magazine -= 1
-	_cooldown = definition.shot_interval()
+	_cooldown = _next_cooldown()
 	if shot_kind == WeaponDef.Kind.PROJECTILE:
 		_launch(start, heading, _rewind_flight(start, heading))
 	else:
@@ -632,6 +639,11 @@ func _cast(start: Vector3, end: Vector3, skip: Array[RID] = [], mask := -1) -> D
 		excluded.append(shooter.get_rid())
 	query.exclude = excluded
 	return get_world_3d().direct_space_state.intersect_ray(query)
+
+
+# The interval to the next pull, less what the last tick ran past the end of the cooldown.
+func _next_cooldown() -> float:
+	return definition.shot_interval() + minf(_cooldown, 0.0)
 
 
 func _range() -> float:
