@@ -203,8 +203,12 @@ class Share:
 	var due := 0.0
 	var _entity: WeakRef
 
+	## What it tells of, or null when that is freed or out of the tree since (a body back in its
+	## spawner's pool, forgotten everywhere when it went: a telling sent before must not bring it
+	## back).
 	func entity() -> Node3D:
-		return _entity.get_ref() as Node3D if _entity != null else null
+		var node := _entity.get_ref() as Node3D if _entity != null else null
+		return node if node != null and node.is_inside_tree() else null
 
 
 ## The characters that perceive `actor` or `victim` now (the victim always): what
@@ -642,7 +646,8 @@ func _listen_to(
 	var source := noise.source()
 	if source == _character:
 		return
-	# Its maker was freed since (a despawn): the record's member is gone with it.
+	# Its maker was freed since (a despawn: the record's member is gone with it) or left the tree
+	# (back in its pool).
 	if noise.maker_gone():
 		return
 	var band := _noise_band(noise.member, table, mine)

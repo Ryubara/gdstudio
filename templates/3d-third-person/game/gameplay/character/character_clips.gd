@@ -2,11 +2,17 @@ class_name CharacterClips
 extends RefCounted
 ## The names of every clip the character can play: the Universal Animation Library 1 and 2
 ## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
-## `ual2`, so a clip is `ual1/Idle`, and the template's own prone and crawl clips (gdstudio
-## #1009, `assets/animation/prone/`), the library `prone`. The looping clips lose their `_Loop`
-## suffix on import (`Idle_Loop` is `Idle`) and loop. The library `fixed` holds the few library
-## clips that put a limb through another on the template's bodies, with that limb swung clear
-## (gdstudio #1295, `assets/animation/fixed/`).
+## `ual2`, so a clip is `ual1/Idle`, the template's own prone and crawl clips (gdstudio
+## #1009, `assets/animation/prone/`), the library `prone`, and GDStudio's own clips that replace
+## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
+## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
+## The library `fixed` holds the few library clips that put a limb through another on the
+## template's bodies, with that limb swung clear (gdstudio #1295, `assets/animation/fixed/`).
+##
+## When a clip of our own or a fixed clip replaces a library clip its constant moves (`IDLE` is
+## `gds/Idle`, `LAND` is `fixed/Jump_Land`) and `STAND_INS` names the library clip it replaced,
+## which stays in the game: set a clip export of `CharacterAnimation` to
+## `CharacterClips.stand_in(CharacterClips.IDLE)` to play it again.
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
 ## `player_animation.play_clip(CharacterClips.SWORD_ATTACK)`. The constants below are the clips
@@ -16,11 +22,12 @@ extends RefCounted
 const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
+const LIBRARY_OWN := &"gds"
 const LIBRARY_VAULT := &"vault"
 const LIBRARY_FIXED := &"fixed"
 
 # Locomotion and the clips the player's states use.
-const IDLE := &"ual1/Idle"
+const IDLE := &"gds/Idle"
 const WALK := &"ual1/Walk"
 const RUN := &"ual1/Jog_Fwd"
 const SPRINT := &"ual1/Sprint"
@@ -70,7 +77,17 @@ const VAULT_LOW := &"vault/Vault_Low"
 const VAULT_HIGH := &"vault/Vault_High"
 const VAULT_LAND := &"vault/Vault_Land"
 
-## Every clip of the five libraries, with its library.
+## The library clip each clip of our own replaced, kept as a stand-in, and the library clip
+## each fixed clip was made from: the same clip, as Quaternius keyed it. A game whose bodies it
+## suits puts it back in the inspector (`CharacterAnimation.land_clip`).
+const STAND_INS: Dictionary[StringName, StringName] = {
+	&"gds/Idle": &"ual1/Idle",
+	&"fixed/Jump_Land": &"ual1/Jump_Land",
+	&"fixed/NinjaJump_Land": &"ual2/NinjaJump_Land",
+	&"fixed/Slide_Exit": &"ual2/Slide_Exit",
+}
+
+## Every clip of the six libraries, with its library.
 const ALL: Array[StringName] = [
 	&"ual1/A_TPose",
 	&"ual1/Crouch_Fwd",
@@ -162,6 +179,7 @@ const ALL: Array[StringName] = [
 	&"prone/Crouch_To_Prone",
 	&"prone/Prone_Idle",
 	&"prone/Prone_To_Crouch",
+	&"gds/Idle",
 	&"vault/Vault_High",
 	&"vault/Vault_Land",
 	&"vault/Vault_Low",
@@ -170,10 +188,7 @@ const ALL: Array[StringName] = [
 	&"fixed/Slide_Exit",
 ]
 
-## The library clip each fixed clip was made from: the same clip, as Quaternius keyed it. A game
-## whose bodies it suits puts it back in the inspector (`CharacterAnimation.land_clip`).
-const STAND_INS: Dictionary[StringName, StringName] = {
-	&"fixed/Jump_Land": &"ual1/Jump_Land",
-	&"fixed/NinjaJump_Land": &"ual2/NinjaJump_Land",
-	&"fixed/Slide_Exit": &"ual2/Slide_Exit",
-}
+
+## The library clip a clip of our own replaced, or the clip itself when it replaced none.
+static func stand_in(clip: StringName) -> StringName:
+	return STAND_INS.get(clip, clip)

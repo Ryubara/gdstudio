@@ -281,6 +281,14 @@ A bed is judged by what the player hears of it in its own place, not by a loudne
   6 dB, so gusts levelled from the files stood 3 to 5 dB over a base that does not lose them. **Seen:** Deadnight #782,
   2026-11-03 (fix: trims from the Ambience-bus capture; the seed picked by a probe of the plan so the proof shows every
   part).
+- **Approach:** Level a wind bed by its integrated loudness over the whole loop and leave its gusts in: a wind is a
+  slow rise and fall of level and colour with a whistle in the gusts, not an even bed
+  ([A wind that reads as wind](../../gamedev/audio/sound-effects.md#wind)). Measure the movement as well as the level
+  (the 100 ms level's p5 to p95, gusts a minute, spectral flatness, the share over 4 kHz) and make the loop 20 s or
+  longer. **Watch out for:** a wind evened out to one level reads as white noise in the background: the template's
+  generated wind was divided by its own level every 0.25 s, so it moved 0.7 dB with 29% of its energy over 4 kHz, and
+  the maintainer heard a hiss, not wind; the regenerated loop moves 9.3 dB at the same -50 LUFS in the game, its lulls
+  at -56 and its gusts at -46 LUFS-M. **Seen:** gdstudio #1101, 2026-11-11 (review of #1083's sounds).
 
 ## A crowd's voices (the dead) {#a-crowds-voices-the-dead}
 
@@ -427,6 +435,28 @@ of roles and cues) are [Menu and interface sounds](../../gamedev/audio/ui-sounds
   file of each row of the table, 0.7 s apart, 60 frames a second, no picture), and read peak and K-weighted loudness of
   every play from the recording; a test that predicts the peak from the decoded file, the trims and the bus agreed with
   the recording within 0.1 dB, so the level is pinned in a plain test.
+
+**3D Third Person's menu sounds** (gdstudio #1100). The `MenuSounds` autoload (`ui/menus/menu_sound_service.tscn`,
+script `MenuSoundService`) takes `UIAudio.handler` when it enters the tree, so every `gds_ui` control, the router and
+the inventory's slots (`InventoryCell` sends `focus`, `hover` and `select` itself) sound through it. Its children are
+twelve `AudioStreamPlayer` nodes on `UI`, one a sound, each an `AudioStreamRandomizer` decoded while loading
+(`DecodedSounds`, [Starting sounds](#starting-sounds)): `Hint` (hover, focus), `Tick` (a slider step: the hint's files,
+pitch from the value), `Press`, `Back` and `Refuse` (the press's files at 0.8 and 0.67), `Confirm` (a primary button),
+`Tab` and `Select` (one family at two pitches), `ToggleOn` and `ToggleOff` (one switch at two pitches), `Open` and
+`Close` (one swish). A role comes from the control's `ui_sound_role` metadata, else its `ui_sound_role()`, and the
+script's `TABLE` maps role and cue to a player or to a written silence; the rules (one hint for hover and focus, a
+`hint_gap`, nothing for a finger, a disabled control or a screen still moving, a swish only with no press just before it,
+spaced ticks) are exports. 3D Blank has no menus, so it ships none. Levels in a game made from the template (real keys,
+Movie Maker at 60 fps; loudest 400 ms at the mix, median of three plays): hint -45.4, tick -46.4, tab -40.4, select
+-40.8, toggles -41.3 and -41.8, swish -42.0 and -43.3, press -37.3, back -38.9, confirm -33.0 LUFS-M, against a pistol
+shot at -28.4; a hint's peak sits 23 dB over the wind's loudest 400 ms in the pause menu.
+
+- **Approach:** Install a template's menu sound service as an autoload scene whose name differs from its script's
+  `class_name` (`MenuSounds` and `MenuSoundService`, as `Settings` and `SettingsService`), give it
+  `PROCESS_MODE_ALWAYS`, and let a suite instance its own copy (it takes the hook on entering the tree) and give the
+  hook back to the autoload in `after_test`. **Watch out for:** the pause menu runs over a paused tree, where a player
+  under a pausable node stops; an autoload and a class of one name do not both load. **Seen:** gdstudio #1100, 2026-11-11
+  (`tests/ui/test_menu_sounds.gd`, `test_menu_sound_rules.gd`).
 
 ## Music that holds a long stay {#music-that-holds-a-long-stay}
 

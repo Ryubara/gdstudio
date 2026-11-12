@@ -10,6 +10,9 @@ When a watched workflow fails on the default branch, `.github/workflows/ci-failu
 every merge on top of a red `main` hides which change broke it and makes the next fix harder
 ([Landing](landing.md#landing)).
 
+- **GitHub enforces it** for every route, auto-merge included: the required `main-green` check fails on each open pull
+  request but the fix forward while such an issue is open ([CI: runs on the default branch](ci.md#main-runs)). The guard
+  below gives a session the reason before it tries.
 - **The guard** (`check_red_main` in `.claude/hooks/guards/red_default.py`) refuses a merge command, `gh pr merge`
   with or without `--auto` and a write to `gh api .../pulls/<n>/merge`, while an issue of that title is open in the
   pull request's repository. The refusal names each open issue and points at

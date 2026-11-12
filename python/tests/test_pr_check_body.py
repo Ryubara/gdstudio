@@ -768,3 +768,82 @@ def test_the_guard_refuses_a_read_first_section_only_the_branch_has(workspace, t
     assert "studio/new.md#fresh" in denied(shell(command, kit))
     ok, _ = read_first_body(tmp_path, "studio/hooks.md#docs", "studio/new.md#fresh")
     assert denied(shell(f'gh pr create --title "tools: Add a section lookup" --body-file {ok}', kit)) == ""
+
+
+# --- the branch's commits against the Model line, as pr-rules' commits check (kit #1303) ------------------------------
+
+SONNET = "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+OPUS = "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+
+
+def commit(repo: Path, name: str, message: str) -> None:
+    (repo / name).write_text(f"{name}\n", encoding="utf-8", newline="\n")
+    subprocess.run([*GIT, "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run([*GIT, "-C", str(repo), "commit", "-q", "-m", message], check=True)
+
+
+def stacked_branch(workspace: dict[str, Path]) -> Path:
+    """main, then a base branch committed by one model and a branch stacked on it committed by another: the stacked
+    pull request (against main) carries both commits, as #1264 and #1274 did."""
+    kit = branch_with(workspace["kit"], {"notes-base.txt": "base\n"}, branch="base")
+    subprocess.run([*GIT, "-C", str(kit), "commit", "-q", "--amend", "-m", f"docs: Add the base\n\n{OPUS}"], check=True)
+    subprocess.run(["git", "-C", str(kit), "checkout", "-q", "-b", "stacked"], check=True)
+    commit(kit, "notes-stacked.txt", f"docs: Add the stacked part\n\n{SONNET}")
+    return kit
+
+
+def model_body(tmp_path: Path, model: str) -> Path:
+    text = (BODIES / "good.txt").read_text(encoding="utf-8").replace("Claude Sonnet 5.5", model)
+    path = tmp_path / "model-body.md"
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return path
+
+
+def test_a_stacked_branch_needs_its_base_commits_models_on_the_model_line(workspace, tmp_path, capsys):
+    kit = stacked_branch(workspace)
+    code, err = run_gds(
+        ["pr", "check-body", str(model_body(tmp_path, "Claude Sonnet 5.5")), "--repo", str(kit)], capsys
+    )
+    assert code == 1 and "commits: refused" in err and "'Claude Opus 5.5'" in err and "'Claude Sonnet 5.5'" not in err
+    both = model_body(tmp_path, "Claude Sonnet 5.5, Claude Opus 5.5")
+    assert cli.main(["pr", "check-body", str(both), "--repo", str(kit)]) == 0
+    assert "commits: ok" in capsys.readouterr().out
+
+
+def test_commits_main_brought_in_are_not_the_branchs(workspace, tmp_path, capsys):
+    kit = branch_with(workspace["kit"], {"notes.txt": "hi\n"})
+    subprocess.run([*GIT, "-C", str(kit), "commit", "-q", "--amend", "-m", f"docs: Add notes\n\n{SONNET}"], check=True)
+    subprocess.run(["git", "-C", str(kit), "checkout", "-q", "main"], check=True)
+    commit(kit, "main-only.txt", f"docs: Add a main change\n\n{OPUS}")
+    subprocess.run(["git", "-C", str(kit), "update-ref", "refs/remotes/origin/main", "HEAD"], check=True)
+    subprocess.run(["git", "-C", str(kit), "checkout", "-q", "feature"], check=True)
+    subprocess.run(
+        [*GIT, "-C", str(kit), "merge", "-q", "--no-edit", "main", "-m", f"Merge main\n\n{SONNET}"], check=True
+    )
+    assert cli.main(["pr", "check-body", str(model_body(tmp_path, "Claude Sonnet 5.5")), "--repo", str(kit)]) == 0
+    assert "commits: ok" in capsys.readouterr().out
+
+
+def test_a_commit_with_a_bad_trailer_is_refused(workspace, tmp_path, capsys):
+    kit = branch_with(workspace["kit"], {"notes.txt": "hi\n"})
+    bad = "Co-Authored-By: Claude Sonnet 5.5 <someone@example.com>"
+    subprocess.run([*GIT, "-C", str(kit), "commit", "-q", "--amend", "-m", f"docs: Add notes\n\n{bad}"], check=True)
+    code, err = run_gds(
+        ["pr", "check-body", str(model_body(tmp_path, "Claude Sonnet 5.5")), "--repo", str(kit)], capsys
+    )
+    assert code == 1 and "commits: refused" in err and "noreply" in err
+
+
+def test_on_main_the_commits_rule_says_it_cannot_tell(workspace, tmp_path, capsys):
+    assert cli.main(["pr", "check-body", str(BODIES / "good.txt"), "--repo", str(workspace["kit"])]) == 0
+    out = capsys.readouterr().out
+    assert "commits: cannot tell" in out and "commits: ok" not in out
+
+
+def test_the_guard_refuses_a_stacked_body_missing_a_base_model(workspace, tmp_path):
+    kit = stacked_branch(workspace)
+    assert "'Claude Opus 5.5'" in denied(
+        shell(f"gh pr edit 7 --body-file {model_body(tmp_path, 'Claude Sonnet 5.5')}", kit)
+    )
+    ok = model_body(tmp_path, "Claude Sonnet 5.5, Claude Opus 5.5")
+    assert denied(shell(f"gh pr edit 7 --body-file {ok}", kit)) == ""
