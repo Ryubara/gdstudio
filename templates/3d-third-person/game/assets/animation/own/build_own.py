@@ -38,8 +38,8 @@ from gdsanim.solve import Solver  # noqa: E402
 
 ASSETS = HERE.parents[1]
 ## The body clips are solved on, and the bodies every clip is checked on (the reference first).
-REFERENCE = ASSETS / "characters/mannequin/mannequin_female.glb"
-BODIES = [REFERENCE, ASSETS / "characters/mannequin/mannequin_male.glb"]
+REFERENCE = ASSETS / "characters/prototype/form_female.glb"
+BODIES = [REFERENCE, ASSETS / "characters/prototype/form_male.glb"]
 ## A clip type's description, by its name in lower case.
 TYPES = {
     "idle": ("Idle", idle.describe),

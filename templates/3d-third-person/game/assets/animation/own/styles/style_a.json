@@ -133,7 +133,8 @@
   "chest_turn_rest": -2.5,
   "chest_tip_rest": 1.5,
   "head_turn_rest": 1.5,
-  "head_tip_rest": 1.0
+  "head_tip_rest": 1.0,
+  "swing_early": 0.28
  },
  "overlap_sprint": {
   "chest": [

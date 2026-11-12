@@ -37,7 +37,7 @@ from gdsanim import checks, export, style  # noqa: E402
 from gdsanim.rig import Rig, audit_clips  # noqa: E402
 
 ASSETS = HERE.parents[1]
-BODIES = [ASSETS / "characters/mannequin/mannequin_female.glb", ASSETS / "characters/mannequin/mannequin_male.glb"]
+BODIES = [ASSETS / "characters/prototype/form_female.glb", ASSETS / "characters/prototype/form_male.glb"]
 LIBRARIES = {"ual1": ASSETS / "animation/universal/ual1.glb", "ual2": ASSETS / "animation/universal/ual2.glb"}
 VIEWS = ("side", "front", "top")
 CELL, TOP_CELL = (230, 330), (230, 230)
@@ -77,8 +77,11 @@ ROWS = [
 GAIT_ROWS = ("speed", "cadence", "duty")
 REPORT_ROWS = [
     (("weight", "support_margin_mm"), "centre of mass inside the feet (mm)", "over 0"),
-    (("planted", "mannequin_female", "wander_mm"), "planted sole wanders, the foot's own skin (mm)", f"at most {checks.WANDER * 1000:.0f}"),
-    (("planted", "mannequin_female", "planted_speed"), "planted sole speed, the build's (m/s)", "clips.json's, within 2 %"),
+    (("planted", "form_female", "wander_mm"), "planted sole wanders, the foot's own skin (mm)", f"at most {checks.WANDER * 1000:.0f}"),
+    (("planted", "form_male", "wander_mm"), "the same on the male (mm)", f"at most {checks.WANDER * 1000:.0f}"),
+    (("planted", "form_female", "planted_speed"), "planted sole speed, the build's (m/s)", "clips.json's, within 2 %"),
+    (("floor", "form_female", "sole_off_mm"), "planted sole off the floor (mm)", f"at most {checks.SOLE_BAND * 1000:.0f}"),
+    (("floor", "form_male", "sole_off_mm"), "the same on the male (mm)", f"at most {checks.SOLE_BAND * 1000:.0f}"),
     (("weight", "arc_off_mm"), "in the air, off a free fall's arc (mm)", f"at most {checks.ARC * 1000:.0f}"),
     (("limits", "knee_l"), "left knee bends (degrees)", "-5 to 140"),
     (("cost", "kb_a_second"), "key bytes a second (KB)", f"at most {checks.KB_A_SECOND:.0f}, or what the clip declares"),
@@ -295,7 +298,7 @@ def main() -> int:
                 text(
                     draw,
                     (x + 6, y + 44),
-                    f"{name} on {rig.path.stem.replace('mannequin_', '')}, frame {frame}",
+                    f"{name} on {rig.path.stem.replace('mannequin_', '').replace('form_', '')}, frame {frame}",
                     14,
                     FAINT,
                 )

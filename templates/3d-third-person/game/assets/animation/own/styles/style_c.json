@@ -105,7 +105,8 @@
   "chest_turn_rest": -1.6,
   "chest_tip_rest": 1.2,
   "head_turn_rest": 1.2,
-  "head_tip_rest": 0.8
+  "head_tip_rest": 0.8,
+  "swing_early": 0.2
  },
  "overlap_jog": {
   "chest": [
@@ -213,7 +214,8 @@
    "arm_back": 50.0,
    "elbow": 98.0,
    "arm_out": 13.6,
-   "shrug": 3.2
+   "shrug": 3.2,
+   "kick": 0.32
   },
   "hip_turn_rest": 0.8,
   "hip_tip_rest": 0.64,

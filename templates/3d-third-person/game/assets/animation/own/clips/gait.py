@@ -107,7 +107,9 @@ COMMON = {
     "head_tip_rest": 0.0,  # degrees it stays tilted to its right
     "speed_limit": 38.0,  # the largest change of a joint's speed in one frame the clip may have (degrees a frame)
     "keys_kept": 0.4,  # the share of a moving bone's keys a half-degree reducer may keep
-    "kb_a_second": 20.0,  # the clip's key bytes for a second of clip (a short cycle has few frames to drop)
+    # The clip's key bytes for a second of clip: a short cycle has few frames to drop, and on the prototype rig
+    # the four `ik_` targets are keyed too (a rotation and a place each, about 3 KB a clip).
+    "kb_a_second": 24.0,
     "ranges": {},  # a measured number the variant holds to another range than the gait's, `{"cadence": [low, high]}`
 }
 DEFAULTS = {
@@ -162,7 +164,7 @@ DEFAULTS = {
         "thumb_out": 30.0,
         "speed_limit": 55.0,
         "keys_kept": 0.75,
-        "kb_a_second": 22.0,
+        "kb_a_second": 25.0,
     },
     "sprint": {
         **COMMON,
@@ -216,7 +218,7 @@ DEFAULTS = {
         "thumb_out": 30.0,
         "speed_limit": 80.0,
         "keys_kept": 0.85,
-        "kb_a_second": 26.0,
+        "kb_a_second": 27.0,
     },
 }
 ## The clip each gait replaces, and the ranges its measured numbers are held to (`own-animation.md#feel`; the
@@ -253,6 +255,10 @@ UNEVEN_REACH = 0.012
 UNEVEN_LIFT = 0.1
 UNEVEN_ARM = 0.08
 UNEVEN_TURN = 1.0
+## A contact that ends on a whole frame ends on it: `duty * frames` is a float (15 / 26 * 26 is under 15), and the
+## frame the toes leave on was taken for the swing's first, so its sole was never set down (5 mm over the floor on
+## the prototype bodies, whose foot rolls higher onto its toes).
+EDGE = 1e-6
 ## The bodies a gait's feet are set down for, beside the one it is solved on (`play_on`).
 _OTHERS = []
 
@@ -390,8 +396,8 @@ class Gait:
         since = f - self._land(s)
         cycle = math.floor(since / self.frames)
         t = since - cycle * self.frames
-        if t <= self.contact:
-            out = self._stance(s, sign, cycle, t)
+        if t <= self.contact + EDGE:
+            out = self._stance(s, sign, cycle, min(t, self.contact))
         else:
             out = self._swing(s, sign, cycle, (t - self.contact) / (self.frames - self.contact))
         out["ankle"] = out["ankle"] + maths.Y * self._set_down.get((s, f), 0.0)
@@ -542,7 +548,7 @@ class Gait:
                     drop = max(drop, 0.08 if level >= want else -math.sqrt(want * want - level * level) - to[1])
                     gaps = self._sole_gaps(pose, s)
                     t = (f - self._land(s)) % self.frames
-                    if t <= self.contact:
+                    if t <= self.contact + EDGE:
                         change = -0.5 * (max(gaps) + min(gaps))
                     else:
                         u = (t - self.contact) / (self.frames - self.contact)

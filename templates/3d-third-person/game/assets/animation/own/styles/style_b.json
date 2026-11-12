@@ -227,7 +227,8 @@
    "arm_back": 59.0,
    "elbow": 87.0,
    "arm_out": 18.8,
-   "shrug": 4.1
+   "shrug": 4.1,
+   "kick": 0.285
   },
   "hip_turn_rest": 1.4,
   "hip_tip_rest": 1.12,
