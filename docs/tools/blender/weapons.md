@@ -196,7 +196,11 @@ shooting page once that work lands).
   or `--body=male` (`--body=both` is the old measure of two bodies whose skeletons match from the hands down), and
   `write_hold.gd -- <hold.json> <body>` writes the female's into the files above and any other body's into one
   `HoldFit` (`gameplay/weapon/hold/pistol_fit_male.tres`: seat, both markers, `support_way` and the five poses)
-  that `WeaponHold.fits` lists and puts on when the model is that body's file. The left hand is solved over the right
+  that `WeaponHold.fits` lists and puts on when the model is that body's file. A smaller hand changes more than
+  the finger angles, on every gun: its straight index finger ends nearer the trigger, its thumb reaches other
+  surfaces, and the place of the whole hand that suited a larger one can leave the palm off the grip (the rifle's
+  did: [the rifle in both hands](../../engines/godot/third-person/weapon-pickups.md#rifle-hands)), so look at each
+  body's close-ups again and do not stop at the contact numbers. The left hand is solved over the right
   index finger on the trigger and along the frame at once (a reload takes the finger off the trigger while the left
   hand still holds), the finger along the frame is kept 20 mm from the trigger, and the cupped fingers under the
   magazine are measured along the magazine's line too, which they ride up and down. On the two bodies: right hand at
@@ -265,6 +269,10 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   never emits it, so a probe that awaits the signal there waits forever.
 - The study that measures five holds and renders them is the template's `tools/capture/rifle_hold_study.tscn`; the
   proposal and its numbers are in the rifle folder's README.
+- **The hold in the game (kit #889)** is not that study's: `TwoHandHold` places the gun from the chest bone, reaches
+  each arm with a `HoldArm` and closes the fingers with poses solved on the rifle's own `Grip`, `Trigger` and
+  `Support`, as the pistol's are. How it is built, its numbers and what went wrong on the way:
+  [The rifle in both hands](../../engines/godot/third-person/weapon-pickups.md#rifle-hands).
 
 - **Approach:** Measure the left arm's reach to the `Support` in the pose the game will hold before keeping a support
   copied from another rig's model: shoulder to the hand's target against the arm's length, with the chest turn the hold
@@ -273,6 +281,13 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   the pistol clip's arms keep the target 0.72 m from the shoulder even with the support moved (22.5 cm short). **Seen:**
   gdstudio #886, 2026-11-10 (fix: the support moved 4 cm back, 0.25 m ahead of the grip; both hands then reached in
   every hold of the study).
+
+- **Approach:** Measure a hold made by modifiers inside the skeleton's `skeleton_updated` (after the modifiers, before
+  the next frame), and free the character only after an `await process_frame` that leaves the signal. **Watch out
+  for:** `get_bone_global_pose()` read in `_process` gave the clip's arm hanging at the hip, so a close-up camera
+  placed from the hand framed the thigh (place it from the hand's IK target instead); and freeing the player right
+  after `await skeleton.skeleton_updated` freed the skeleton during its own signal and crashed Godot (signal 11).
+  **Seen:** gdstudio #889, 2026-11-10 (`rifle_tour.gd` and the rifle's contact probe).
 
 - **Approach:** Measure a hold against the pose Godot plays: write the bones and the hand skinned on the CPU (weight
   times `get_bone_global_pose(bone) * skin.get_bind_pose(bind)` times the vertex) from Godot, read them into Blender

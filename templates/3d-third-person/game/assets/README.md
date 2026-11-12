@@ -21,8 +21,9 @@
 - `assets/weapons/pistol/` is GDStudio's own pistol (MIT, from Deadnight's build script, with a `LICENSE.md`), and
   `pistol_held.tscn` puts it in the mannequin's right hand for the pistol clips (the folder's README).
 - `assets/audio/coin/` (a coin pickup, four variants), `assets/audio/footsteps/` (four soft steps),
-  `assets/audio/fists/` (three punch whooshes), `assets/audio/impacts/` (nine bullet impacts: default, wood and metal,
-  three each) and the pistol's empty click, reload and draw in `assets/audio/pistol/` are generated with ElevenLabs
+  `assets/audio/fists/` (three punch whooshes), `assets/audio/weapon_pickup/` (the weapon pickup, two variants),
+  `assets/audio/impacts/` (nine bullet impacts: default, wood and metal, three each) and the pistol's empty click,
+  reload and draw in `assets/audio/pistol/` are generated with ElevenLabs
   Sound Effects on the studio's paid plan, like the base's wind: commercial use in a game allowed, no attribution
   required, not to be shared on their own as sound files (each folder's `LICENSE.md`).
 - The five pistol shots in `assets/audio/pistol/` are synthesised by Deadnight's code (MIT, GDStudio's own; the

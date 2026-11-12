@@ -164,6 +164,12 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   `leak_budget.json` has `fixed_fps: 60` and the limit is back at 1.5; `tools/perf/test_check_budget.py` runs a flat
   night and 1.2 and 0.5 times each limit on a fast and a slow runner).
 
+- **Approach:** Make a part that only some characters use (a weapon's model in the hand) when it is first needed (a
+  `WeaponDef.view_scene` the loadout instances on `give()`), not as a node of the shared character scene. **Watch out
+  for:** the rifle's hold put in `character_dressed.tscn` added 32 nodes (the two levels of the rifle, its sockets,
+  the markers) to every living character, rifle or not, and `test_parts_budget.gd` refused 78 against 46. **Seen:**
+  gdstudio #889, 2026-11-10 (fix: `rifle.tres`'s `view_scene`).
+
 ## In the editor {#in-the-editor}
 
 The pinned Godot is a debug build, so a game run from the editor costs about what a run with `godot --path` costs (a

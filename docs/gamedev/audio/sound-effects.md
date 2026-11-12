@@ -16,6 +16,7 @@ the templates' `assets/audio/` folders, each with a `LICENSE.md`.
 | Sound | Where | Request (#1083) | Result |
 | --- | --- | --- | --- |
 | Coin pickup | `3d-third-person` `assets/audio/coin/` | 6 takes of 0.5 s | 4 files of 0.31 to 0.32 s, one coin's chime and sparkle, starting at once |
+| Weapon pickup | `3d-third-person` `assets/audio/weapon_pickup/` | 4 takes of 1.0 s, `eleven_text_to_sound_v3`, paid plan | 2 files of 0.64 and 0.56 s kept from takes 4 and 1, a grab and a bolt pulled back and let go; billed 10 credits each (#889) |
 | Footsteps | `3d-third-person` `assets/audio/footsteps/` | 3 takes of 5 s | 4 single steps of 0.10 to 0.24 s, soft sneakers on stone, from 9 to 17 steps a take |
 | Fists | `3d-third-person` `assets/audio/fists/` | 4 takes of 0.5 s | 3 punch whooshes of 0.15 to 0.17 s, high-passed at 120 Hz |
 | Impacts | `3d-third-person` `assets/audio/impacts/` | 6, 8 and 8 takes of 0.5 s | 3 files each for stone, wood and metal, 0.15 to 0.31 s |
@@ -187,6 +188,7 @@ Generated takes vary wildly in level and lead-in, so every file is levelled and 
 | Set | Reading | Target | Measured |
 | --- | --- | --- | --- |
 | Coin pickup (4) | loudest momentary (400 ms, zero-padded) | -20 LUFS-M | -20.3 to -20.0, peak -3.8 to -2.1 dBFS |
+| Weapon pickup (2, #889) | loudest momentary | -23.5 LUFS-M | -23.7 to -23.5, peak -3.5 to -1.8 dBFS (the first file is peak limited at -23.7, so the set's target sits under it) |
 | Footsteps (4, #857) | loudest momentary | -33 LUFS-M | -33.0 to -32.9, peak -13.3 to -9.2 dBFS |
 | Wind (1, #1101) | integrated | -33 LUFS | -33.1, peak -16.3 dBFS, its momentary level moving 9.3 LU |
 
@@ -212,8 +214,10 @@ player's distance filter leaves alone, while the filter took the 2 to 5 kHz out 
 maintainer's player volumes (steps -20, crouch steps -29, landing -15 and wind -20 dB) and the coin at -16 and the shot
 at -22 dB, the loudest 400 ms at the mix, through the camera and the buses, is, played with the real input: step -40,
 crouch step -46, landing -37, coin -37, shot -31 LUFS-M and the wind -50 LUFS integrated ([Audio](../../engines/godot/audio.md#template-buses)
-has how it was measured). Within a set the files match to 0.3 LU (`check` fails over 1 LU). Every file starts within
-5 ms of its first sample and none peaks over -1 dBFS decoded, apart from the pistol's: the five Deadnight shots are
+has how it was measured). The weapon pickup at -20 dB reads -35 LUFS-M in the rifle tour's mix (between the coin
+and the shot, its draw sound right after it at -29) and the rifle's automatic burst at -27 dB -25 (#889). Within a
+set the files match to 0.3 LU (`check` fails over 1 LU). Every file starts within 5 ms
+of its first sample and none peaks over -1 dBFS decoded, apart from the pistol's: the five Deadnight shots are
 full-scale files (peak about 0 dBFS), made to be played at a trim, and play here at -22 dB.
 
 - **Approach:** Read short sounds as the loudest momentary loudness (the file zero-padded to one second) and level to
@@ -228,6 +232,8 @@ full-scale files (peak about 0 dBFS), made to be played at a trim, and play here
   length and the peak check; `check` runs on the decoded Oggs).
 
 ## 6. Licence {#licence}
+
+<!-- the paid-plan route is its own subsection below: the studio moved from the free tier to a paid plan (kit #889) -->
 
 The plan is read from the subscription (`tier`), never from the account page. On the **free tier** a sound needs
 attribution and is not licensed for commercial use; on a paid plan it is, and no attribution is asked. ElevenLabs'
@@ -249,6 +255,45 @@ synthesised by its own code (`tools/audio/gun_recipes_2.py`, nothing sampled) an
 the kit, so their `LICENSE.md` names no generator and asks for no attribution and no replacement
 ([#857](https://github.com/Ryubara/gdstudio/issues/857)). Check how a sound's source documents its origin before
 copying it across repositories; only the folders its design page lists as synthesised (here `guns/`) are plain MIT.
+
+### On the paid plan {#paid-plan}
+
+<!-- new section: the studio's ElevenLabs account moved to a paid plan (Starter) in kit #889; nothing said which source
+     to use then, which model, or what the licence entry says -->
+
+The studio's account is on ElevenLabs' Starter plan (kit #889): everything generated on it may be used commercially,
+and so may the sounds of ElevenLabs' own premade library of sound effects. That changes the route, not the recipe:
+
+- **Generate, or take a premade sound: your judgement.** Generate when the sound is ours to describe and should be
+  reproducible (the recipe keeps the prompt, length, model and takes in `template_sounds.json`, and anyone can make it
+  again); take a premade library sound when one already fits better than takes would, and record its name and where it
+  came from. The library is browsed and downloaded on the ElevenLabs site; the public API documents generation
+  (`POST /v1/sound-generation`) and no library endpoint, so the recipe generates. Either way, listen-test it against
+  the template's other sounds of its kind before keeping it ([Proof](#proof)).
+- **The newest API model for each kind of sound**: the sound's own `model` in the data file (`eleven_text_to_sound_v3`
+  for a short effect, the API's newest; v2 where v3 lacks a parameter the sound needs, such as `loop`), the newest
+  text-to-speech model for voice ([Voice lines](voice-lines.md)). Read the API reference's model list when you start,
+  not this page.
+- **More takes, then keep the best.** Starter's credits (about 30,000 a month, billed 10 a second of requested
+  length, the same as the free tier) make four takes of a short sound cheap; list the ones you keep in the sound's
+  `keep` (numbers from 1) and `encode` makes files of those only.
+- **The licence entry** is the folder's `LICENSE.md`, written by `encode` from the plan the take's request file
+  recorded (`tier`, read from `GET /v1/user/subscription` at generation): on any plan other than `free` it says the
+  output is licensed for commercial use, needs no attribution and has nothing to replace (the data file's `licences`).
+  A premade library sound gets the same file by hand: its name in the library, the plan it was downloaded on, the date
+  and the same licence line. Neither needs the maintainer's yes; a sound from anywhere else still does (a third-party
+  asset is a maintainer decision).
+- **Replace a free-tier sound** by generating it again on the paid plan with a fresh cache folder (the old cache's
+  request files say `free`), then `encode`, `check` and a listening clip Before and After.
+
+- **Approach:** Generate several takes on the newest model and pick by measurement and a look at each take's envelope
+  and spectrum: the transients the prompt asks for (a grab, then a bolt back and forward), the band shares against the
+  set it joins, the length after the cut. **Watch out for:** v3's takes of the weapon pickup came back with 0.15 to 0.44
+  s of silence before the sound (the cut takes it off) and with their energy low (43 to 51% under 250 Hz, like the
+  rifle's draw and shot), where the free tier's v2 takes were bright (44% at 2 to 5 kHz); one of four was clicks alone,
+  too quiet for a pickup. Take 4 was peak limited at -23.7 LUFS-M, 1.7 LU under the set's old -22 target, so the set's
+  target moved to -23.5 (`check` allows 1 LU inside a set) and the level in the game was measured again. **Seen:**
+  gdstudio #889, 2026-11-10 (takes 4 and 1 kept).
 
 ## 7. Proof {#proof}
 

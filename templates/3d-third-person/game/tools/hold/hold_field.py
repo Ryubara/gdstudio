@@ -3,6 +3,9 @@
 import numpy as np
 from scipy.spatial import cKDTree
 
+# How many threads a nearest-sample query uses (a solver with a large grid sets it; 1 by default).
+WORKERS = 1
+
 
 def closest_on_triangles(p, a, b, c):
     """Closest points on triangles (a, b, c) to points p, row by row (Ericson 5.1.5), vectorised."""
@@ -77,7 +80,7 @@ def exact_distance(points, tris, tree, sample_tri):
     out = np.empty(len(points))
     for start in range(0, len(points), 200000):
         chunk = points[start : start + 200000]
-        _, near = tree.query(chunk)
+        _, near = tree.query(chunk, workers=WORKERS)
         t = tris[sample_tri[near]]
         closest = closest_on_triangles(chunk, t[:, 0], t[:, 1], t[:, 2])
         out[start : start + 200000] = np.linalg.norm(chunk - closest, axis=1)

@@ -18,6 +18,17 @@ extends SkeletonModifier3D
 ## go of the weapon or comes back to it.
 @export var open: HandPose
 @export_range(0.0, 1.0, 0.01) var open_weight := 0.0
+## The bones of `open` that open first, over the first `open_first_share` of `open_weight`, with
+## the others opening over the rest (and closing before them): fingers hooked over a part let go
+## at the knuckles before they straighten. Empty: every bone opens together.
+@export var open_first: Array[StringName] = []:
+	set(value):
+		open_first = value
+		_bones.clear()
+@export_range(0.05, 0.95, 0.01) var open_first_share := 0.5
+## Every bone opens together though `open_first` names some: fingers closing round a part they
+## are not hooked over (a magazine's front) curl as one.
+@export var open_together := false
 ## An upper arm lifted away from the body before the pose is put on, and by how many degrees: the
 ## weapon's arm held out from the thigh while the weapon is carried (`swing_out()`).
 @export var swing_bone: StringName = &""
@@ -26,6 +37,8 @@ extends SkeletonModifier3D
 # The skeleton's bone index for each name of `pose`, its rotations and then its turns.
 var _bones: Dictionary[StringName, int] = {}
 var _turned: Dictionary[StringName, int] = {}
+# The bones that open first, as a set.
+var _first: Dictionary[StringName, bool] = {}
 
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
@@ -38,6 +51,9 @@ func _process_modification_with_delta(_delta: float) -> void:
 		return
 	if _bones.is_empty():
 		_turned.clear()
+		_first.clear()
+		for bone_name in open_first:
+			_first[bone_name] = true
 		for bone_name in pose.rotations:
 			_bones[bone_name] = skeleton.find_bone(bone_name)
 		for bone_name in pose.turns:
@@ -58,8 +74,18 @@ func _process_modification_with_delta(_delta: float) -> void:
 		if second != null and second_weight > 0.0 and second.rotations.has(bone_name):
 			turned = turned.slerp(second.rotations[bone_name], second_weight)
 		if open != null and open_weight > 0.0 and open.rotations.has(bone_name):
-			turned = turned.slerp(open.rotations[bone_name], open_weight)
+			turned = turned.slerp(open.rotations[bone_name], _opened(bone_name))
 		skeleton.set_bone_pose_rotation(bone, turned)
+
+
+# How far `bone_name` is on the open pose: `open_weight`, or its part of it when some bones open
+# first.
+func _opened(bone_name: StringName) -> float:
+	if _first.is_empty() or open_together:
+		return open_weight
+	if _first.has(bone_name):
+		return minf(open_weight / open_first_share, 1.0)
+	return maxf((open_weight - open_first_share) / (1.0 - open_first_share), 0.0)
 
 
 ## Lifts `bone` (an upper arm) `degrees` away from the body, where the skeleton poses it now: it
