@@ -41,10 +41,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   `read_text(encoding="utf-8")` and `write_bytes(text.encode("utf-8"))`), keep an `assert old in text`, or use the Edit
   tool; after the script, or a `gdformat` run, `sed -i 's/\r$//' <files>` and `file <path>` (`ASCII text`, not `with
   CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n`, whatever the file had, and reading
-  in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing
-  and edits nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
+  in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds
+  nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
   #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
-  #1127 (a tool's `write_text`, 16 pages), #1138, #1190, #1218 and #1260, 11-11.
+  #1127 (a tool's `write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154 and #1260, 11-11.
 
 ## Scripted edits {#scripted-edits}
 
@@ -84,7 +84,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   the kit's main checkout, and committed there. **Seen:** Deadnight, 2026-11-01 (a worktree inside the repository);
   gdstudio, 2026-11-03 (a commit on the kit's `main`, moved to a branch before any push); gdstudio #1073, 2026-11-11
   (`cp ... && cd <worktree> && check; git add -A; git commit`: the `cp` failed, the `cd` was skipped and `git commit`
-  ran on the main checkout, which was clean).
+  ran on the main checkout, which was clean); #1154 (refused).
 - **Approach:** Give a Windows program (Python, a hook, `gh --body-file`) a path with its drive letter,
   `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts and PR text in `scratch/<repo>/<branch>/`
   (the session scratchpad and the temp folder are shared), and pass the worktree as an argument. **Watch out for:**
@@ -140,7 +140,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   test` refused a new test with no `.uid` before running any suite. **Seen:** gdstudio #975, 2026-11-10
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
   lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went); gdstudio #963,
-  2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red).
+  2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red); #1154.
 
 ## Reverting and checking out {#checkout}
 
