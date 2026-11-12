@@ -142,11 +142,12 @@ class ContactPlan:
         return best
 
     def events(self) -> list:
-        """A footstep on every landing inside the clip."""
+        """A footstep on every landing inside the clip. A foot that is already down as a clip that plays once
+        begins did not land in it."""
         out = []
         for side, _ in SIDES:
             for fall, _ in self._falls(side):
-                whole = fall.land <= 0.0 and fall.lift >= self.frames
+                whole = fall.land <= 0.0 and (fall.lift >= self.frames or not self.loop)
                 if 0.0 <= fall.land < self.frames and not whole:
                     out.append({"frame": round(fall.land, 3), "name": "footstep", "foot": side})
         return sorted(out, key=lambda event: event["frame"])

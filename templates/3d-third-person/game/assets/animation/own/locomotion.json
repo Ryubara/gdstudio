@@ -195,11 +195,6 @@
    "events": [
     {
      "foot": "r",
-     "frame": 0.0,
-     "name": "footstep"
-    },
-    {
-     "foot": "r",
      "frame": 14.08,
      "name": "footstep"
     },
@@ -222,7 +217,7 @@
      ],
      [
       14.08,
-      14.08
+      16.0
      ]
     ]
    },
@@ -592,11 +587,6 @@
    },
    "end_foot": "r",
    "events": [
-    {
-     "foot": "r",
-     "frame": 0.0,
-     "name": "footstep"
-    },
     {
      "foot": "r",
      "frame": 10.24,

@@ -1119,7 +1119,7 @@ def build_transitions(rig, solver, anchor, crouch, clips):
     keys["ankle"]["r"] = [
         (0, r0),
         (3, r0),
-        # the crouch stands with its feet side by side (kit #1160): the foot is carried back, not slid
+        # the crouch's right foot stands a step behind on its ball (kit #1160): it is lifted the rest of the way
         (8, (r0 + p["ankle_r"]) / 2 + vec(0.0, 0.0, STEP_LIFT)),
         (14, p["ankle_r"] + vec(0.07, 0.0, 0.10)),
         (19, p["ankle_r"] + vec(0.03, 0.0, 0.07)),

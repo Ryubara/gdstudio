@@ -111,7 +111,7 @@
    55.0
   ],
   "wrist": [
-   12.0,
+   34.0,
    22.0
   ],
   "carry": [
@@ -229,20 +229,20 @@
    "Could not be done: the deepest shift still reads 1.3 mm of hand in thigh on the female (the limit is 5); the free foot stays flat, a heel that lifts was not tried."
   ],
   "crouch_idle": [
-   "For a loose, lived-in character: the weight goes 42 to 70 % onto the flat foot and swings 12 % past, the hips turn 7 degrees, the head 14, over a 10.7 s loop.",
-   "Could not be done: a higher heel with this shift. At 30 degrees the right thigh turned 126 degrees from its rest (the limit is 125), so the heel stays at 26 and the hip tips 3 degrees, not 4."
+   "A deep, wide kneel: the right foot 0.65 m behind and 0.10 m wider, turned out 35 degrees with its heel up 54; the hips turned 18 degrees and the shoulders 17 the other way, the head looking over the left knee; the right hand lies on the low right knee and the left forearm on the left thigh.",
+   "Could not be done: the left arm hanging free outside the high knee or between the knees: its forearm went 20 to 55 mm into the thigh; and the weight shifting as far as the first loose crouch did (0.14 of the share): the rear knee bent 150 degrees (the limit is 140), so the shift is 0.04."
   ],
   "crouch_walk": [
-   "A prowl: 150 steps a minute on longer steps, the pelvis dipping 24 mm, the hips turning 21 degrees against shoulders turning 18, the weight going 45 % of the way over each foot.",
-   "Could not be done: the idle's long overlap on the arms. With the forearm 4 frames behind in a 12-frame step the arms swung with their own side's legs (-0.31); the walk has its own overlap (1.5 to 2 frames) and reads 0.84. Its sole wanders 4.98 mm, at the limit."
+   "Loose: 150 steps a minute, the pelvis dipping 24 mm and turning 11 degrees, the left arm swinging 13 degrees and the right 22.",
+   "Could not be done: a longer step. At 24 frames the planted sole wanders 5.0 mm, the limit."
   ],
   "stand_to_crouch": [
-   "A sink, not a drop: 20 frames at 0.38 of gravity, the trunk, head and arms each starting later and trailing through the spring.",
-   "Could not be done: the idle's overlap on the arms (4 to 5 frames): the hands trailed into the rising thighs by 38 to 49 mm; the arms take 2 to 3 frames here and open 16 degrees."
+   "Loose: 20 frames, the step back taken slowly, the arms opening 20 and 18 degrees round the thighs; 0.59 of gravity.",
+   "Tried: the loose hand overlap (3 frames, 0.35 past): the left hand trailed 21 mm into the thigh that rose under it; the forearm and the hand trail 1.5 frames here."
   ],
   "crouch_to_stand": [
-   "An unhurried rise over 20 frames, the trunk starting to unfold at 30 % and the rise stopping at 0.66 of gravity.",
-   "Not tried: a settle past the standing pose. The last frame is the idle's first to the bit, so an overshoot would have to come back inside the clip."
+   "Loose: 20 frames, the right foot landing at frame 16, the trunk unfolding last; the rise stops at 0.54 of gravity.",
+   "Tried: the foot landing at frame 18: the head and the left forearm kicked 0.8 and 1.1 degrees on the landing frame as the ends were let go; it lands at 16 and the ends are let go over 4 frames."
   ]
  },
  "overlap_stand_to_crouch": {

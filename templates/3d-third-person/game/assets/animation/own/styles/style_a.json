@@ -68,20 +68,20 @@
    "Tried: arms hanging closer (the wrist 135 mm from the thigh's line): the female's curled fingers were 47 mm inside the thigh; they keep 127 mm, and read 0 mm on both bodies."
   ],
   "crouch_idle": [
-   "Shipped as gds/Crouch_Idle (the recommendation): a quiet crouch, the weight 49 to 63 % on the flat foot, the head drifting 7 degrees; it is the pose the stance changes and the prone transitions join.",
-   "Tried: the hands hanging beside the knees (elbows 42 degrees): the male's forearm was 30 mm inside his raised thigh; the arms hang 30 degrees forward instead and read 0 mm on both bodies."
+   "Shipped as gds/Crouch_Idle (the recommendation): a kneeling crouch at ease. The right foot a 0.53 m step behind on its ball, turned out 26 degrees, its knee 0.25 m off the floor and the left 0.50; the hips turned 12 degrees one way and the shoulders 11 the other; the left forearm on the left thigh, the right arm hanging outside the low knee.",
+   "Could not be done: the forearm lying on the thigh's skin on both bodies. Its line is held 115 mm from the thigh's, which touches the male mannequin's thicker thigh and leaves about a centimetre of air on the female's; at 105 mm it was 12 mm inside his."
   ],
   "crouch_walk": [
-   "Shipped as gds/Crouch_Walk (the recommendation): 164 steps a minute, the pelvis dipping 16 mm, the head 0.3 mm under the 1.1 m capsule on the taller body.",
-   "Could not be done: a slower cadence at this depth. At 138 steps a minute the ankle had to bend 80 degrees (the limit is 55); the heel rises from the landing on, so the sole wanders 4.6 mm, not 6.8."
+   "Shipped as gds/Crouch_Walk (the recommendation): 164 steps a minute, the trunk keeping half the idle's turn; the right foot tracks 18 mm wider and turns out 11 degrees for the left's 4, the left arm is carried bent 74 degrees and swings 10, the right hangs at 36 and swings 18.",
+   "Tried: the left forearm carried across the body as in the idle: the thigh that rises to the chest went 38 to 53 mm into it; both arms are carried outside their thighs."
   ],
   "stand_to_crouch": [
-   "Shipped as gds/Stand_To_Crouch (the recommendation): 16 frames, the centre of mass dropping at 0.80 of gravity at most.",
+   "Shipped as gds/Stand_To_Crouch (the recommendation): 16 frames; the left sole never moves, the right foot leaves at frame 3 and lands on its ball 0.52 m behind at frame 10; the centre of mass drops at 0.91 of gravity at most.",
    "Could not be done: the controller's crouch_time of 0.2 s (6 frames). The centre of mass goes down 0.45 m, which a free fall takes 9 frames over; the clip is played whole, or sped up by the tree (#1158)."
   ],
   "crouch_to_stand": [
-   "Shipped as gds/Crouch_To_Stand (the recommendation): 16 frames, the legs driving first and the trunk unfolding after; the rise stops at 0.91 of gravity.",
-   "Tried: the arms returning with the trunk: the hands crossed the thighs by 10 to 27 mm; they hang back in the second half and open 10 degrees round the thighs."
+   "Shipped as gds/Crouch_To_Stand (the recommendation): 16 frames; the legs drive first, the right foot leaves its ball at frame 6 and lands flat beside the left at frame 14, the trunk unfolds after; the rise stops at 0.96 of gravity.",
+   "Tried: keeping the left forearm on the thigh by a constraint all the way up: the arm jumped 40 to 63 degrees in a frame where the constraint ran out; each arm's numbers are mixed instead and open 6 and 12 degrees round the thighs."
   ]
  }
 }

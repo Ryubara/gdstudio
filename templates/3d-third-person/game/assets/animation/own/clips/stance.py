@@ -204,7 +204,6 @@ def _between(rig, style, name: str, joined, section: str, defaults: dict, first:
         },
         "distance": 0.0,
         "turn": 0.0,
-        "heel_up": crouch_idle.heel_up(c),
         "join_names": {"first": first, "last": last},
         # A stance change is all motion: a reducer keeps most of its few frames.
         "keys_kept": 0.9,

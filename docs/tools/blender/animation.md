@@ -317,7 +317,10 @@ uv run --with numpy --with pillow python -B review_sheet.py <type> --blender <b>
 | Make parts trail | `Clip.chains` from the style's `overlap` numbers (`overlap.chains_from`): each bone follows the part it hangs from with a lag in frames and an overshoot, closed round a loop. `overlap.follow` does the same to one number |
 | Make the other side | `build.mirrored(rig, built, name, half_cycle=...)` |
 | Join another clip | `clips/joined.py` (`Joined`: the picked variant of another clip, its first frame as a spec and its solved pose), `Clip.meet` (the exact end poses, with the frames the difference is let go over) and `declared["joins"]`: the pose and the speed a first or last frame must meet |
-| Hold or raise a heel | `ContactPlan.raised(rig, side, frame, heel)`: the planted foot turned about its toes; name the side in `declared["heel_up"]` so `clips.json`'s `flat` says no frame of it is flat |
+| Hold or raise a heel | `Footfall.heel` for a foot that stands on its ball for a whole contact (the swing lands on it with the toes already bent), or `ContactPlan.raised(rig, side, frame, heel)` for a heel that moves; name the side in `declared["heel_up"]` so `clips.json`'s `flat` says no frame of it is flat |
+| Give each side its own pose | a pair `[left, right]` for every number of a description that a side could own (foot place and turn, heel, knee, each arm's numbers, each hand's curl), read with `AT[side]`; a description never shares one number between two limbs |
+| Lay a forearm on a thigh | the arm's `rest` (`{"on": side, "gap": metres, "hand": metres}`): the arm comes down until its forearm's line is `gap` from that thigh's and shin's on every body, measured at each body's own joints; leave that arm out of `Clip.chains` |
+| Step a foot inside a transition | two `Footfall`s of that side with the step between them (`clips/stance.py`, `stance_plan`): the plan swings the foot, and `toe_reach` clears the longest toes |
 | Take a body down or up | `Clip.stretch` as a function of the frame; the weight check fails a drop over 1.05 of gravity with a foot down; `declared["ceiling"]` holds a crouched clip under its capsule on every body |
 
 **What the build does** (`build.build_clip`, `build.build_file`): solves every frame in the world, runs the overlap
@@ -330,7 +333,8 @@ their limits; `selftest.py` breaks a clip for each one.
 **What is proved and what is not.** `Idle` went through all of it. The contact plan, the foot's roll, the travel and
 the gait checks are proved by the self-test's plain walk (planted soles within 5 mm at its speed on both mannequins),
 which is not a clip anyone has looked at for style. The joins are proved by the stance changes (kit #1160: both ends
-0.0 mm and 0.09 degrees from the idles' first poses) and the contact plan by `Crouch_Walk`. Mirroring, the placed hand
+0.0 mm and 0.09 degrees from the idles' first poses), which also prove a step inside a transition, and the contact
+plan by `Crouch_Walk`; the crouch idle proves `rest` and a foot held on its ball. Mirroring, the placed hand
 and the `ik_` targets are written and not yet used by a shipped clip: the first issue that uses each proves it. The
 weight check's lean and the free fall's arc are tested on made-up motion only. A body whose legs differ from the
 reference body's is reported with `needs_ik` and not held to the floor and planted limits.
@@ -395,6 +399,27 @@ reference body's is reported with `needs_ik` and not held to the floor and plant
   24 mm higher in the same pose, and his longer forearm was 30 mm inside a thigh the female's cleared.
   **Seen:** gdstudio #1160, 2026-11-11 (fix: `declared["ceiling"]`, the pelvis tipped 12 degrees under an 80
   degree fold, the arms hung forward).
+- **Approach:** Write a held pose from how a person rests in it, one side at a time: read the clip it replaces
+  from the front, the side and above, write down what each foot, knee, hip, shoulder and hand does, and give every
+  number a side could own a value per side (a pair in the description and the style files). **Watch out for:** the
+  first crouch shared one `heel`, `knee_out`, `arm_swing` and `elbow` between both sides and stood on the standing
+  idle's feet so that no foot had to move, so it was a level squat with its hands hung evenly and failed review;
+  a variant that changes only timing and amplitude is the same stance three times. **Seen:** gdstudio #1160
+  (PR #1285), 2026-11-11, a maintainer correction (fix: pairs in `clips/crouch_idle.py` and `crouch_walk.py`, a
+  right foot a step behind on its ball, a forearm on a knee, three stances, a Godot test that the pose is no
+  mirror).
+- **Approach:** Measure a limb that rests on another on every body's own joints (`Solver._joint_on`), and leave it
+  out of the overlap pass. **Watch out for:** a forearm laid 105 mm from the reference body's thigh line was 49 mm
+  inside the male mannequin's thigh, whose longer legs put the knee elsewhere; the overlap pass then trailed the
+  resting forearm 14 mm into the shin whatever the gap asked for, and the same number came back four builds running
+  before the pass was suspected; a hanging arm's `clear` opens the arm on one frame as a thigh passes it, which
+  reads as a pop on a landing frame. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11 (fix: `rest` reads each
+  body, resting arms are not in `chains`, the walk carries both arms outside the thighs).
+- **Approach:** When a foot lands on its ball, bend the toes before the landing and give the stepping foot the
+  longest body's toes (`toe_reach`); let a foot that leaves a flat stance roll over its toes for at least three
+  frames. **Watch out for:** a step that landed heel-up with straight toes put them 33 mm under the floor on the
+  landing frame (50 on the male), and a roll of one frame turned the toe bone 46 degrees in a frame. **Seen:**
+  gdstudio #1160 (PR #1285), 2026-11-11 (fix: `Footfall.heel`, the toe's bend in `plan._swing`).
 - **Approach:** Film a review clip in a game made from the branch (`gds template test <template> --suite <one
   suite> --keep`, then `gds capture frames --project game` in the kept folder), and count the frames it wrote.
   **Watch out for:** the template's own `game/` folder has no kit addons, so the capture scene did not parse

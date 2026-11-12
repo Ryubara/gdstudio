@@ -62,11 +62,11 @@ DEFAULTS = {
     "head_yaw": 4.0,  # degrees the head drifts to each side
     "head_sharp": 0.0,  # 0 lets the head drift; toward 1 it looks, holds and looks back
     "arm_swing": [50.0, 10.0],  # degrees each upper arm hangs forward of straight down
-    "arm_out": [8.0, 14.0],  # degrees it hangs out from the body
+    "arm_out": [8.0, 24.0],  # degrees it hangs out from the body
     "arm_twist": [30.0, 0.0],  # degrees it is turned inward about itself: the forearm points across the body
     "elbow": [58.0, 16.0],  # degrees each elbow bends
     "pronate": [36.0, 20.0],  # degrees each forearm turns the thumb inward
-    "wrist": [12.0, 5.0],  # degrees each wrist bends toward the palm
+    "wrist": [32.0, 5.0],  # degrees each wrist bends toward the palm
     "carry": [0.5, 0.15],  # the share of the chest's tilt each arm takes
     "arm_rest": [0.115, 0.0],  # metres a forearm's line lies from its own thigh's (0: the arm hangs free)
     "hand_rest": [0.075, 0.0],  # metres that hand's line (wrist to knuckles) keeps from the thigh's

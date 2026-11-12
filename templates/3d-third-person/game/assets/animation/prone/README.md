@@ -78,14 +78,15 @@ elbow, hand and foot rests on the floor), keys the result on the female mannequi
 exports the armature with a one-triangle stand-in mesh, so the file has a skin for Godot's `Skeleton3D` and no copy of
 the mannequin. The chest rides on the planted elbows: the spine pitches and rolls by the amount that keeps each
 shoulder one upper arm from its elbow. The only pose read from another file is frame 0 of our own `Crouch_Idle_Loop`
-(`../own/locomotion.glb`, kit #1160; the library's until then), where the transitions join: its feet stand side by
-side, so the right foot is carried back and forward, not slid. The build fails before it exports when a loop does not
-close, a planted joint slides, the body sinks more than 2 cm into the floor, a transition misses the pose it joins, a
-part of the body goes more than 5 mm into another on either mannequin (`../limb_overlap.py`, the check the template's
-clip builds share), a hand of the female goes more than 5 mm under the floor on any frame, or the fist does not fit on
-either mannequin (a finger piece more than 3 mm inside the palm or another finger, or the thumb more than 5 mm off the
-fingers: `fist_numbers`, on the mesh's own pieces). The report (`--report`) has every frame's lowest hand and forearm
-vertex on both mannequins (`floor_mm`) and the fists' fit (`fist_mm`).
+(`../own/locomotion.glb`, kit #1160; the library's until then), where the transitions join: its right foot stands a
+step behind the left on its ball, and is lifted the rest of the way back and forward, not slid. The build fails before
+it exports when a loop does not close, a planted joint slides, the body sinks more than 2 cm into the floor, a
+transition misses the pose it joins, a part of the body goes more than 5 mm into another on either mannequin
+(`../limb_overlap.py`, the check the template's clip builds share), a hand of the female goes more than 5 mm under the
+floor on any frame, or the fist does not fit on either mannequin (a finger piece more than 3 mm inside the palm or
+another finger, or the thumb more than 5 mm off the fingers: `fist_numbers`, on the mesh's own pieces). The report
+(`--report`) has every frame's lowest hand and forearm vertex on both mannequins (`floor_mm`) and the fists' fit
+(`fist_mm`).
 
 ```text
 blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --male <mannequin_male.glb> --library <../own/locomotion.glb> --out <prone.glb>

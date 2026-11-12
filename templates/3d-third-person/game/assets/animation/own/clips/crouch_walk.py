@@ -58,9 +58,10 @@ DEFAULTS = {
     "stance": 0.5,  # the share of the crouch idle's turn and tilt (pelvis, chest and head) the walk keeps
     "arm_swing": [10.0, 18.0],  # degrees each upper arm swings to each side of its hang
     "arm_bend": [0.3, 0.6],  # degrees each elbow closes for each degree its arm swings forward
-    "elbow": [74.0, 58.0],  # degrees each elbow bends
-    "arm_out": [18.0, 20.0],  # degrees each arm is carried wider than in the crouch idle, outside the thigh that rises to it
-    "arm_fore": [-24.0, 4.0],  # degrees each arm hangs further forward than in the crouch idle
+    "elbow": [74.0, 36.0],  # degrees each elbow bends
+    "arm_out": [18.0, 10.0],  # degrees each arm is carried wider than in the crouch idle, outside the thigh that rises to it
+    "arm_fore": [-24.0, -20.0],  # degrees each arm hangs further forward than in the crouch idle
+    "wrist": [8.0, 5.0],  # degrees each wrist bends toward the palm (the idle's resting hand droops further)
     "arm_twist": 0.0,  # the share of the crouch idle's inward turn each upper arm keeps
     "arm_clear": [0.10, 0.10],  # metres each hand keeps from its thigh's line
     "finger_live": [2.0, 4.0],  # degrees each hand's fingers open and close with the swing
@@ -127,7 +128,7 @@ def describe(rig, style, name: str = "Crouch_Walk", joined=None) -> Clip:
                 "clear": n["arm_clear"][i],
                 "bend": n["elbow"][i] + n["arm_bend"][i] * swing,
                 "pronate": c["pronate"][i],
-                "wrist": c["wrist"][i],
+                "wrist": n["wrist"][i],
                 "carry": c["carry"][i],
             }
             curls = {

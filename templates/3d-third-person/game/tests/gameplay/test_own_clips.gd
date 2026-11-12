@@ -229,8 +229,8 @@ func test_a_stance_change_begins_and_ends_on_the_poses_it_joins() -> void:
 
 func test_the_crouch_clips_fit_the_game() -> void:
 	# The crouch walk's feet cover the ground at the tuning's crouch speed, the head stays under
-	# the crouched capsule on both bodies, and a stance change both keeps its feet down and
-	# lowers the head by the difference between the two stances.
+	# the crouched capsule on both bodies, and a stance change keeps its left foot down, steps
+	# its right foot once and lowers the head by the difference between the two stances.
 	var records := _records()
 	var tuning := CharacterTuning.new()
 	var walk: Dictionary = records.clips["Crouch_Walk"]
@@ -254,8 +254,53 @@ func test_the_crouch_clips_fit_the_game() -> void:
 	for clip: String in ["Stand_To_Crouch", "Crouch_To_Stand"]:
 		var record: Dictionary = records.clips[clip]
 		assert_bool(record.loop).is_false()
-		for side: String in ["l", "r"]:
-			assert_array(record.contacts[side]).is_equal([[0.0, float(record.frames)]])
+		# The left sole never leaves its place; the right foot takes the one step that makes the
+		# staggered stance (or undoes it): two contacts with the step between them.
+		assert_array(record.contacts["l"]).is_equal([[0.0, float(record.frames)]])
+		var right: Array = record.contacts["r"]
+		assert_int(right.size()).is_equal(2)
+		assert_float(right[0][0]).is_equal(0.0)
+		assert_float(right[1][1]).is_equal(float(record.frames))
+		assert_float(right[1][0] - right[0][1]).is_greater(3.0)
+
+
+func test_the_crouch_is_not_a_mirror_of_itself() -> void:
+	# A held pose has a number per side (kit docs, own-animation.md#feel): in the crouch idle the
+	# right foot stands a step behind the left on its ball and turned out further, the right knee
+	# hangs lower than the left, the hips and the shoulders are turned against each other, and the
+	# hands are at different heights doing different things.
+	for model_path in MODELS:
+		_stage(model_path)
+		var pose := _pose(&"gds/Crouch_Idle", 0.0)
+		var where := model_path.get_file()
+		var ball_l: Transform3D = pose["ball_l"]
+		var ball_r: Transform3D = pose["ball_r"]
+		assert_float(ball_l.origin.z - ball_r.origin.z).override_failure_message(where).is_greater(
+			0.35
+		)
+		var foot_l: Transform3D = pose["foot_l"]
+		var foot_r: Transform3D = pose["foot_r"]
+		assert_float(foot_r.origin.y - foot_l.origin.y).override_failure_message(where).is_greater(
+			0.04
+		)
+		var knee_l: Transform3D = pose["calf_l"]
+		var knee_r: Transform3D = pose["calf_r"]
+		assert_float(knee_l.origin.y - knee_r.origin.y).override_failure_message(where).is_greater(
+			0.12
+		)
+		var hand_l: Transform3D = pose["hand_l"]
+		var hand_r: Transform3D = pose["hand_r"]
+		assert_float(hand_l.origin.y - hand_r.origin.y).override_failure_message(where).is_greater(
+			0.08
+		)
+		var hips: Vector3 = (
+			(pose["thigh_l"] as Transform3D).origin - (pose["thigh_r"] as Transform3D).origin
+		)
+		var chest: Vector3 = (
+			(pose["upperarm_l"] as Transform3D).origin - (pose["upperarm_r"] as Transform3D).origin
+		)
+		var turn := rad_to_deg(atan2(-hips.z, hips.x)) - rad_to_deg(atan2(-chest.z, chest.x))
+		assert_float(absf(turn)).override_failure_message(where).is_greater(8.0)
 
 
 func test_the_player_plays_our_crouch_where_the_library_s_played() -> void:

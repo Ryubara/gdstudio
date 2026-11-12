@@ -102,7 +102,42 @@ loose, lived-in character; C for a small or stylised body seen from far.
 
 Kit #1160. `Crouch_Idle` and `Crouch_Walk` replace `ual1/Crouch_Idle` and `ual1/Crouch_Fwd`, which stay as their
 stand-ins. `Stand_To_Crouch` and `Crouch_To_Stand` are new: Quaternius's library has no stance change, and the game
-cross-faded between a standing pose and a half kneel whose feet stand 0.67 m apart, 719 mm apart at the head.
+cross-faded between a standing pose and a half kneel 719 mm apart at the head.
+
+The first crouch of this issue stood on the standing idle's feet, side by side and level, with one number for both
+knees and both arms. It read as a squat over a toilet beside the library's crouch and was rejected in review. The
+rule it broke is the kit's `docs/tools/blender/own-animation.md#feel` ("No mirror poses"): a held pose has a number
+per side. This crouch is built that way, and every number below that a side could own is a pair `[left, right]` in
+the description and in the style files.
+
+### What each side of the library's crouch does (read, not copied)
+
+Read on 2026-11-11 from `ual1/Crouch_Idle` and `ual1/Crouch_Fwd` on the female mannequin, filmed from the front,
+the side and above and measured joint by joint. These are what makes it read as a person at ease; none of its keys
+or values is used, and our numbers are in the next table.
+
+| Part | Left | Right |
+| --- | --- | --- |
+| Foot | flat, 0.37 m ahead of the root, turned out 3 degrees | 0.32 m behind the root on its ball, the heel up 51 degrees, turned out 21 |
+| Knee | up in front of the chest, 0.53 m off the floor, bent 95 degrees | pointing forward and down, 0.27 m off the floor, bent 133 |
+| Hip | 13 degrees lower than the right; the pelvis is 0.47 m up and turned 8 degrees toward the rear leg | the higher hip |
+| Shoulder | 4 degrees lower; the chest folds 80 degrees and turns 8 against the hips | |
+| Arm and hand | the elbow far out and back, bent 47 degrees; the hand hangs 0.41 m out to the side, outside the knee, at 0.42 m | the elbow bent 75 degrees; the hand held ahead of the low knee at 0.49 m |
+| Head | looks 39 degrees down, turned 3 | |
+| Life | breath only: the pelvis moves 6 mm, the fingers hold a pose | |
+
+In `Crouch_Fwd` the trunk and both arms hold that pose for the whole stride (the hands move only as the trunk
+does), the pelvis keeps its 8 degree turn and tips from 14 degrees to none and back rather than evenly to both
+sides, each trailing knee comes within 0.14 to 0.18 m of the floor, the trailing heel is up 41 to 51 degrees, the
+leading foot lands with its toes up 21, the pelvis rises 0.46 to 0.52 m twice a stride and the head sways 0.09 m
+from side to side. Its feet are the ones the audit measured: a planted sole wanders 574 mm.
+
+**What we take from it:** the stance is staggered and each foot lies differently; one knee is high and one low;
+the hips and the shoulders are turned and tipped against each other; the two arms do different things; a walk
+keeps the idle's carriage. **What ours does differently:** the stagger is shorter (one step from standing makes
+it), the stance is narrower, the low knee's hip is the lower one, the left forearm lies on the thigh where the
+library's left hand hangs outside the knee, the right arm hangs where the library's is held, the head looks
+ahead, the weight moves, and the walk's arms swing.
 
 ### How a body crouches and walks crouched (the research)
 
@@ -111,76 +146,105 @@ summary of the page named, so they are leads; where nothing was found it says so
 
 | What | Finding | Source | What the clips do with it |
 | --- | --- | --- | --- |
-| How far each joint folds in a deep squat | Squatting as deep as they could hold, feet at shoulder width and heels down, people went down 43 to 47 % of their leg length; the knee moved through 119 to 125 degrees, the hip 99, the ankle 31, the pelvis tipped forward 20 to 23 and the lower spine flexed 30 to 44. | [Zawadka et al., 2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC7429430) | The crouch folds the knee 122 degrees and lowers the pelvis by 51 % of its standing height; the pelvis tips 12 degrees and the spine takes the rest of an 80 degree fold. The flat foot's ankle bends 39 degrees, past the study's 31, which is why the other heel is up. |
-| The order the joints finish in | The pelvis's forward tip peaks at 62 to 70 % of the way down and the ankle at 87 to 90 %; the knee, the hip and the spine reach their ends together at the bottom. | the same study | Going down, the pelvis's turn is done by 62 % of the clip, the heel comes up from 40 %, and the legs and the trunk finish last. |
-| The heel | A heel that leaves the floor makes up for an ankle that has run out of bend. | a coaching text and a review, both in a search's summary | The right heel is held 26 degrees up in the crouch and rises as the body goes down; the left sole stays flat. |
+| How far each joint folds in a deep squat | Squatting as deep as they could hold, feet at shoulder width and heels down, people went down 43 to 47 % of their leg length; the knee moved through 119 to 125 degrees, the hip 99, the ankle 31, the pelvis tipped forward 20 to 23 and the lower spine flexed 30 to 44. | [Zawadka et al., 2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC7429430) | The crouch lowers the pelvis to 0.44 m, 48 % of its standing height. The front knee bends 115 degrees with its heel down; the rear knee bends more than a level squat allows (140), which is why that foot is behind on its ball. The pelvis tips 12 degrees and the spine takes the rest of a 78 degree fold. |
+| The order the joints finish in | The pelvis's forward tip peaks at 62 to 70 % of the way down and the ankle at 87 to 90 %; the knee, the hip and the spine reach their ends together at the bottom. | the same study | Going down, the pelvis's turn is done by 62 % of the clip and the legs and the trunk finish last. |
+| The heel | A heel that leaves the floor makes up for an ankle that has run out of bend. | a coaching text and a review, both in a search's summary | The rear foot stands on its ball with the heel 46 degrees up; the front sole stays flat. |
+| A crouch held at rest | Not found in a study we could open: no source gave the angles of a person resting in a staggered crouch. | | The stance is read from how the library's crouch rests (the table above) and from our own bodies, then given our own numbers; they are declared choices. |
 | Running and walking on bent legs | Running with the knees bent lowers the body's vertical stiffness and costs up to 50 % more oxygen; walking on bent hips and knees has a nearly flat path of the centre of mass, lower peak forces, much more ankle bend and less hip extension, and the swinging leg turns further because the foot has less room under it. | [McMahon et al., 1987](https://doi.org/10.1152/jappl.1987.62.6.2326) and a review of bent-hip, bent-knee walking, in a search's summary | The crouch walk's pelvis dips 8 to 24 mm as each leg takes the weight (the library's rises and falls 61 mm), the foot lands flat and its heel rises from the landing on, and the swing clears the floor by 45 mm. |
-| Cadence and step of a crouched walk at 1.5 m/s | Not found in a source we could open. | | 150 to 180 steps a minute on steps of 0.50 to 0.60 m: a declared choice, set by the body. With the pelvis under 0.51 m a longer step bends the ankle past its 55 degrees and brings the trailing knee toward the floor. |
-| How long a drop takes | No study with a time was found. Physics gives the floor: a body whose feet stay down cannot fall faster than gravity, and the centre of mass goes down 0.45 m, which a free fall takes 0.30 s over (9 frames) before any braking. | computed | 13 frames is the shortest drop that stays under gravity (0.92 of it); the build fails one that does not (`checks.FALL`). The controller's `crouch_time` is 0.2 s (6 frames), which no drop of this depth fits. |
-| The capsule | `CharacterTuning.crouch_height` is 1.1 m for a body 1.80 m tall. | the template | Every frame of the crouch idle and walk is under 1.1 m on both mannequins (the taller reaches 1.087 and 1.0997 m; the library's walk reaches 1.127 m), which is what folds the trunk 80 degrees. |
+| Cadence and step of a crouched walk at 1.5 m/s | Not found in a source we could open. | | 150 to 180 steps a minute on steps of 0.50 to 0.60 m: a declared choice, set by the body. With the pelvis this low a longer step bends the ankle past its 55 degrees and brings the trailing knee toward the floor. |
+| How long a drop takes | No study with a time was found. Physics gives the floor: a body with a foot down cannot fall faster than gravity, and the centre of mass goes down 0.45 m, which a free fall takes 0.30 s over (9 frames) before any braking. | computed | 15 frames is the shortest drop here that stays under gravity (0.97 of it); the build fails one that does not (`checks.FALL`). The controller's `crouch_time` is 0.2 s (6 frames), which no drop of this depth fits. |
+| The capsule | `CharacterTuning.crouch_height` is 1.1 m for a body 1.80 m tall. | the template | Every frame of the crouch idle and walk is under 1.1 m on both mannequins (the taller reaches 1.092 and 1.0975 m; the library's walk reaches 1.127 m), which is what folds the trunk 78 degrees. |
 
 ### How they are built
 
-- **One stance.** The crouch stands on the shipped standing idle's feet (`clips/joined.py` reads `picks.json`), so
-  both feet stay on their places through the stance changes: the left sole flat, the right on its ball.
-- **The weight is an input**, as in the idle: the pelvis is solved until the centre of mass is over a point between
-  the feet and the flat foot's leg is folded to a share of its length. In the walk the point moves toward each
-  planted foot.
-- **The walk is its footfalls** (`gdsanim.plan`): speed, cadence and planted share are inputs. Its carriage (pelvis
-  height, the trunk's fold, the head, the arms' hang) is read from the shipped crouch idle, so the two blend
-  without pumping: the pelvis rides 0.06 m higher than the idle's on average and the trunk folds 8 degrees more.
-- **A stance change mixes every control** from the one idle's first frame to the other's, each on its own timing,
-  and `Clip.meet` takes out what the overlap pass left in the joined clips' bones, so the ends are their first
-  poses to the bit (0.0 mm and 0.09 degrees in the build's check, which reads 32-bit keys).
-- **The arms keep off the thighs.** They hang 30 degrees forward of straight down in the crouch, are carried 14
-  degrees wider in the walk, and open 10 degrees round the thighs in the middle of a stance change.
+- **A staggered stance, one step from standing.** The left foot stands flat where the shipped standing idle has it
+  (`clips/joined.py` reads `picks.json`); the right foot is a step behind on its ball, wider and turned out
+  further. Only the right foot's place differs from the standing idle's, so one step makes the stance.
+- **The knees at different heights.** The front knee is up in front of the chest; the rear knee points outward of
+  its foot and 30 degrees under level (`knee_down`), a hand or two off the floor.
+- **The weight is an input**, as in the idle: the pelvis is solved until the centre of mass is over a point
+  between the flat foot and the ball of the rear one (62 to 72 % of the way to the front foot), and the front leg is
+  folded to a share of its length. The pelvis is turned toward the rear leg and tipped so that leg's hip is lower;
+  the chest turns and leans the other way.
+- **A forearm on a thigh.** The solver's `rest` lowers the left arm until its forearm's line is 115 mm from the left
+  thigh's and shin's on both mannequins, measured at each body's own joints, on every frame, so it stays there
+  while the chest breathes and the weight moves; that arm is left out of the overlap pass. The right arm hangs,
+  and keeps its hand 100 mm from its thigh's line.
+- **The walk is its footfalls** (`gdsanim.plan`): speed, cadence and planted share are inputs, and the two steps are
+  the same length half a stride apart, as a steady gait's must be. Its carriage is read from the shipped crouch
+  idle (pelvis height, the trunk's fold, half of the idle's turn and tilt, each arm's hang), and everything else
+  has a number per side: the right foot tracks wider and turns out further, its knee swings wider, the left arm
+  is carried bent and swings little, the right hangs longer and swings freely. Both arms are carried outside
+  their thighs, which rise to the chest.
+- **A stance change steps the right foot** (`clips/stance.py`, `stance_plan`): the left sole never moves. Going
+  down the right foot leaves over its toes as the hips let go and lands on its ball as the body arrives over it;
+  coming up it leaves from its ball once the legs have begun to push and lands flat. Every other control is mixed
+  from the one idle's first frame to the other's on its own timing, each arm from its own numbers, and
+  `Clip.meet` makes the ends the idles' first poses to the bit (0.0 mm and 0.09 degrees in the build's check,
+  which reads 32-bit keys).
 
 ### The variants
 
-Measured by `../audit_clips.py` and the build on the female mannequin (the review sheets print the same tables).
+Three stances, not one stance at three tempos. Measured on the female mannequin at the first frame by the build and
+`../audit_clips.py` (the review sheets print the audit's tables).
 
 | `Crouch_Idle` | A, grounded | B, loose | C, sharp | `ual1/Crouch_Idle` |
 | --- | --- | --- | --- | --- |
+| The right foot behind the left, and the feet apart | 0.53 m, 0.28 m | 0.65 m, 0.33 m | 0.41 m, 0.26 m | 0.68 m, 0.39 m |
+| The feet turned out, left and right | 9, 26 degrees | 9, 35 | 9, 18 | 3, 21 |
+| The right heel up | 46 degrees | 54 | 38 | 51 |
+| Knees off the floor, left and right | 0.50, 0.25 m | 0.51, 0.26 m | 0.50, 0.36 m | 0.53, 0.27 m |
+| Hips turned, and the right hip lower by | 12, 5 degrees | 18, 8 | 7, 3 | 3, and the left lower by 13 |
+| Shoulders turned the other way | 11 degrees | 17 | 6 | 1 |
+| The trunk folds, the head looks down | 78, 22 degrees | 84, 26 | 76, 20 | 80, 39 |
+| The left arm | forearm on the left thigh, elbow 57 degrees, the hand drooping inside the knee | the same, the hand drooping further | the same, the fingers closed further | hangs outside the knee, elbow 47 |
+| The right arm | hangs outside the low knee, elbow 17 degrees, wrist 0.36 m up | the hand lies on the low knee, elbow 45, wrist 0.39 m up | bent 63 degrees, the hand held outside the knee at 0.43 m | held ahead of the knee, elbow 75 |
 | Length | 8 s | 10.7 s | 8 s | 2.9 s |
-| Pelvis side to side | 34 mm | 64 mm | 23 mm | 6 mm |
-| Hips turn, head turns | 3, 7 degrees | 7, 14 | 3, 29 (looks, holds, looks back) | 1, 4 |
-| Highest vertex, female and male | 1.063, 1.087 m | 1.068, 1.092 | 1.063, 1.087 | 1.045 on the female |
-| Limbs inside limbs, both bodies | 0 mm | 0 | 0 | none |
+| Pelvis side to side, hips turn, head turns | 33 mm, 3, 7 degrees | 34 mm, 6, 14 | 19 mm, 3, 29 (looks, holds, looks back) | 6 mm, 1, 4 |
+| Highest vertex, female and male | 1.068, 1.092 m | 1.065, 1.089 | 1.062, 1.086 | 1.045 on the female |
+| Limbs inside limbs, female and male | 0, 0 mm | 0, 3.9 | 0, 0 | none |
 
 | `Crouch_Walk` | A, grounded | B, loose | C, sharp | `ual1/Crouch_Fwd` |
 | --- | --- | --- | --- | --- |
 | Stride | 22 frames | 24 | 20 | 60 |
 | Steps a minute | 164 | 150 | 180 | 60 |
 | Planted sole speed | 1.51 m/s | 1.51 | 1.51 | 0.46 (0.04 to 0.96) |
-| A planted sole wanders (the build's measure) | 4.6 mm | 5.0 | 4.3 | 574 |
+| A planted sole wanders (the build's measure) | 4.5 mm | 5.0 | 4.3 | 574 |
 | Pelvis up and down | 16 mm | 24 | 8 | 61 |
-| Hips turn, shoulders turn, opposed | 14, 11 degrees | 21, 18 | 10, 7 | 5, 3 |
-| Arm with the other side's leg | 0.82 | 0.84 | 0.81 | the arms hold still |
-| Highest vertex on the male | 1.0997 m | 1.0988 | 1.0998 | 1.127 on the female |
-| Lowest sole vertex | on the floor | on the floor | on the floor | 11 mm under |
+| The trunk's turn the walk keeps, hips and shoulders | 6, 4 degrees | 6, 4 | 6, 4 | 8, 10, held still |
+| The feet turned out, left and right; the right tracks wider by | 4, 11 degrees; 18 mm | the same | the same | 3, 3 at landing |
+| The arms swing, left and right | 10, 18 degrees | 13, 22 | 7, 13 | the arms hold still |
+| The elbows, left and right | 74, 36 degrees | the same | the same | 47, 75 |
+| Arm with the other side's leg | 0.80 and 0.84 | 0.79 and 0.85 | 0.79 and 0.83 | none |
+| Highest vertex on the male | 1.0974 m | 1.0967 | 1.0975 | 1.127 on the female |
+| Limbs inside limbs, both bodies | 0 mm | 0 | 0 | none |
 
 | Stance changes | A, grounded | B, loose | C, sharp |
 | --- | --- | --- | --- |
-| `Stand_To_Crouch` | 16 frames, 0.80 of gravity | 20 frames, 0.38 | 13 frames, 0.92 |
-| `Crouch_To_Stand` | 16 frames, stops at 0.91 of gravity | 20 frames, 0.66 | 14 frames, 0.91 |
+| `Stand_To_Crouch` | 16 frames, 0.91 of gravity; the right foot in the air from frame 3 to 10 | 20 frames, 0.59; 4 to 13 | 15 frames, 0.97; 3 to 10 |
+| `Crouch_To_Stand` | 16 frames, stops at 0.96 of gravity; the right foot in the air from frame 6 to 14 | 20 frames, 0.54; 7 to 16 | 15 frames, 1.05; 4.5 to 12 |
 | First and last pose against the idles' | 0.0 mm, 0.09 degrees | the same | the same |
-| A planted sole wanders | 4.6 and 4.1 mm | 4.6 and 4.2 | 4.5 and 4.1 |
+| A planted sole wanders | 3.2 and 2.8 mm | 3.2 and 2.8 | 3.0 and 2.8 |
+| Limbs inside limbs, female and male | 3.4, 0 mm going down; 0 coming up | 3.6, 0; 0 | 0.2, 0; 0 |
 
 **A is shipped for all four** (`picks.json`), as the recommendation. Every variant of a stance change joins the
 shipped idles, so the letters can be picked apart: a `Crouch_Idle` of another letter rebuilds the stance changes
-and the prone transitions on its pose.
+and the prone transitions on its pose. In every variant the left foot keeps its standing place, so one step of the
+right foot makes the stance.
 
 ### The crouch's numbers for the code
 
 - `Crouch_Walk` is in place at 1.5 m/s (`speed`), the left foot lands at frame 0 and the right half a stride later
   (`contacts`, `events`). `flat` in `locomotion.json` is each contact's frames with the whole sole down: from an
   entry's first frame to the end of its contact the ball of the foot stays on its place while the heel may rise.
-- The stance changes do not travel; both feet are down for the whole clip. `joins` names the shipped clips whose
+- The stance changes do not travel. The left foot is down for the whole clip; the right has two contacts with its
+  step between them (`contacts`), and a `footstep` event where it lands. `joins` names the shipped clips whose
   first poses the ends are, and the event `crouched` (frame 15 of 16) or `rising` marks where the legs' fold ends
   or begins. They are 0.53 s long against a `crouch_time` of 0.2 s: going down, the capsule and the camera get
   there first; coming up, the capsule is full height before the body is. The tree that plays them is kit #1158.
-- Imported with the key optimizer off and compression on, `locomotion.glb` (five clips, 19.8 s) is 85.7 KB, 4.3 KB
-  a second (the budget is 6). Each clip keys 52 bones' rotations and the pelvis's place; the walk's fingers move
-  with the arm swing, so it carries their tracks.
-- The walk's sole wander is the heel's skin, which the shin shares: at an ankle bent 39 degrees it slides a few
+- The crouch stands behind the root: its pelvis is 0.38 m behind it and its rear heel 0.56 m (the library's are
+  0.28 and 0.44 m), since the front foot keeps the standing idle's place.
+- Each clip keys 52 bones' rotations and the pelvis's place; the walk's fingers move with the arm swing, so it
+  carries their tracks. The cost per clip is in the pull request.
+- The walk's sole wander is the heel's skin, which the shin shares: at an ankle bent this far it slides a few
   millimetres over a foot whose joints do not move (the Godot test holds the joints to 1 mm).
