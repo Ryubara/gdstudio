@@ -1,13 +1,13 @@
 # Prone and crawl clips
 
 Four clips for a character that lies down and crawls, made by GDStudio from nothing (kit #1009) because the Universal
-Animation Library has none. Each clip file here holds the four, and Godot imports it as an `AnimationLibrary` the
-same way as `assets/animation/universal/`: add one to an `AnimationPlayer` as the library `prone` and the clips are
-`prone/Prone_Idle`, `prone/Crawl_Fwd`, `prone/Crouch_To_Prone` and `prone/Prone_To_Crouch` (the import drops `_Loop`
-from a looping clip's name and makes it loop). The character scene
-(`gameplay/character/character_dressed.tscn`) holds them: the `AnimationPlayer` has `prone_form_female.glb`, the
-file of the body the scene wears, as its library `prone`, and the `Animation` node's `prone_libraries` names the
-file of each other body, swapped in when the game sets that model (kit #1012, #1090, #1293).
+Animation Library has none, and three that aim the pistol lying down ([Prone aim clips](#prone-aim-clips)). Each `prone`
+file here holds the four, and Godot imports it as an `AnimationLibrary` the same way as `assets/animation/universal/`:
+add one to an `AnimationPlayer` as the library `prone` and the clips are `prone/Prone_Idle`, `prone/Crawl_Fwd`,
+`prone/Crouch_To_Prone` and `prone/Prone_To_Crouch` (the import drops `_Loop` from a looping clip's name and makes it
+loop). The character scene (`gameplay/character/character_dressed.tscn`) holds them: the `AnimationPlayer` has
+`prone_form_female.glb`, the file of the body the scene wears, as its library `prone`, and the `Animation` node's
+`prone_libraries` names the file of each other body, swapped in when the game sets that model (kit #1012, #1090, #1293).
 
 **One file a body** (kit #1090, #1293). The library is always named `prone` and holds the same four clip names,
 lengths and crawl speed; which file it is loaded from follows the model:
@@ -204,9 +204,119 @@ byte.
 
 ## Weapon
 
-The clips are **weapon-free**: both hands are fists on the floor and carry weight, so a weapon in the hand would be
-dragged through the floor. The code holsters or hides the weapon while prone. A prone aim (the weapon held, per kit
-`docs/tools/blender/weapons.md#hands-on-the-weapon`) would be a clip set of its own.
+The four clips above are **weapon-free**: both hands are fists on the floor and carry weight, so a weapon in the
+hand would be dragged through the floor. The code hides the weapon while the body lies and brings it back when it
+aims, with the clips below.
+
+## Prone aim clips
+
+Three more clips of GDStudio's own, made from nothing (kit #1111), one file a body: `prone_aim.glb` solved on
+`form_female` (the body the character scene wears; the `AnimationPlayer`'s library `prone_aim`) and
+`prone_aim_male.glb` solved on `form_male` (the Animation's `prone_aim_libraries` gives it to that body). They aim
+the template's pistol lying down and are named on the pistol's `WeaponDef` (`prone_aim_clip`, `prone_aim_up_clip`,
+`prone_aim_down_clip`); the game plays them over the prone idle and the crawl from `spine_01` up and blends them by
+the look.
+
+| Clip in the file | Look | Length | What it is |
+| --- | --- | --- | --- |
+| `Prone_Aim_Neutral_Loop` | level | 3.0 s (90 frames), loops | Flat on the belly behind the pistol, the chest on the floor, both arms ahead (the right, the firing arm, at 0.95 of its length; the left at 0.89), both hands on the pistol in front of the right eye, the grip's foot 6 to 9 mm over the floor, the left forearm resting on the floor, the head low and tipped a little to the left. One slow breath that leaves the pistol still. |
+| `Prone_Aim_Up_Loop` | 20 degrees up | the same | The arms lift the pistol 8 cm, the head comes up with the look. |
+| `Prone_Aim_Down_Loop` | 25 degrees down | the same | The hands rise 1 cm so the muzzle clears the floor (6 cm over it) and the wrists point the pistol down. |
+
+**No side mirrors the other** (kit page `tools/blender/own-animation.md#feel`). The left shoulder is pushed ahead and
+the chest turned after it (8 degrees on `form_female`, 7 on `form_male`), as a two-handed hold turns the support
+side toward the target; the right arm is the straighter one, the left elbow lies lower and wider, on the floor; the
+pistol is 35 to 40 mm to the right of the body's middle; the head is turned and tipped to the left. Each side has
+its own numbers in the build's `BODIES`, and the build fails when the left elbow is less than 30 mm, or the left
+shoulder less than 8 mm, from the right one's reflection (they are 52 to 69 mm and 94 to 96 mm).
+
+**Why one file a body.** The first set was solved on the Quaternius female and played on every body. On the
+prototype bodies (kit #1187), whose arms and hands differ, the hold had to move the left elbow 58 to 100 mm, the
+left hand stopped 3 to 27 mm short of its marker with its fingers 3 to 17 mm inside the pistol, and the magazine
+was 8 to 26 mm under the floor. Each file is now solved on its body's own skeleton and skin, with that body's own
+hold (`HoldFit`).
+
+Numbers, measured by the build on each body's own skin as the game shows it: the grip pose's wrist turn on, the
+hold's fingers closed, the twist bones turned as `MannequinTwist` turns them (`build_prone_aim_clips.py --report`;
+the Godot suite reads the same poses to 0.1 mm):
+
+| | `form_female` | `form_male` |
+| --- | --- | --- |
+| Barrel off the look, left hand off its marker | 0.0 degrees, 0.0 mm | 0.13 degrees, 0.0 mm |
+| Left arm's stretch (down, level, up); the right is 0.95 | 0.87, 0.89, 0.89 | 0.87, 0.90, 0.90 |
+| Left arm's stretch between two clips, at most | 0.89 | 0.90 |
+| Grip's foot over the floor (down, level, up) | 17, 9, 85 mm | 15, 6, 90 mm |
+| Muzzle over the floor (down, level, up) | 62, 154, 291 mm | 59, 151, 296 mm |
+| Lowest skin of the left and the right hand, level | 2.9, 29.8 mm | 4.5, 38.0 mm |
+| Lowest hand or finger bone, down and level | 9.0 mm | 10.5, 11.1 mm |
+| Lowest skin of the left and the right forearm, level | 1.0, 17.8 mm | 1.0, 4.6 mm |
+| Wrists bent from the forearm, left and right (down, level, up) | 63 and 54, 35 and 25, 25 and 10 degrees | 52 and 42, 32 and 14, 23 and 7 degrees |
+| A part of the body in another, at most | 0.0 mm | 0.9 mm |
+
+- **In the game**, after the hold's modifiers, the hands are at most 1.1 mm (female) and 1.2 mm (male) inside the
+  pistol or each other and the holding parts at most 2.8 and 1.7 mm off, the left hand's bone is 0.0 mm from its
+  marker, and the hold moves the left elbow 0.0 mm (`tests/gameplay/test_prone_aim_hold.gd`, which also holds each
+  hand's skin over the floor). On the live player the left hand is 0.0 to 0.1 mm from its marker at every look.
+- **The chest's** skin presses 3 mm into the floor, the hands' skin stays 2 mm or more over it, and an elbow whose
+  arm would lie in the floor is turned up until the arm rests 1 mm over it.
+- **The lower body is the prone idle's** first pose, read from the prone library the body plays in the game
+  (`--idle`): the game's filter from `spine_01` up lays these clips on that pelvis, so the chest and the hands are
+  solved on it. **When a body's prone idle changes (kit #1293 solves the prone clips on the prototype bodies), build
+  its aim clips again with the new file**, or the hands ride higher or lower by what the pelvis moved.
+  The files here are built on `prone_form_female.glb` and `prone_form_male.glb` (kit #1323 lowered the `form`
+  female's pelvis 42 mm; on the files built on `prone.glb` the live prone reload of gdstudio #1265 read the left
+  hand 14 mm and the magazine 28 mm under the floor). They hold the library's 65 bones: the twist bones are turned
+  for every measure and never keyed (the game's `MannequinTwist` turns them after the clip).
+  They were built again on the two-handed grip of gdstudio #1171 (the `SupportHand` marker moved and the right thumb
+  rests on the left thumb's root): on the old files the left elbow moved 18 mm (`form_female`) and 45 mm
+  (`form_male`) to reach the new marker. And again on the seat of gdstudio #1262 (the middle finger under the guard):
+  on the files before it, a little finger went 6.4 to 9.0 mm under the floor.
+- **Past 25 degrees down** the pose stays on the down clip and the aim layer stops there too
+  (`ProneTuning.aim_limits`, `pitch_down` 25): turned on to the 40 degrees of the look-down limit, the spine put the
+  muzzle 21 cm under the floor.
+- **The Quaternius mannequins** have no solved hold since kit #1187 and no aim clips of their own: a game that wears
+  them plays the default file, unmeasured.
+
+Why the arms are stretched (read before the clips were made):
+
+| Source | What it says |
+| --- | --- |
+| US Army, FM 23-35 Combat Training with Pistols (the prone position, paragraph 2-8; <https://biggerhammer.net/manuals/23-35/FM23-_3.htm>) | Lie flat facing the target, the arms extended in front with the firing arm locked; the arms may be slightly unlocked for high targets; rest the butt of the weapon on the ground for single well-aimed shots; wrap the other hand's fingers round the firing hand's; keep the head down between the arms and behind the weapon. |
+| Shooting USA, a professional shooter's tip on prone pistol (<https://archive.shootingusa.com/PRO_TIPS/JULIE2022-5PRONE/julie2022-5prone.html>) | The grip is the standing one; the gun flat on the ground is the most stable position; a leg drawn up a little or a lean onto a shoulder when the target cannot be reached. |
+| American Rifleman, alternative shooting positions (<https://www.americanrifleman.org/articles/2012/6/25/alternative-shooting-positions>) | Flat, or rolled slightly onto a side, by preference or cover. |
+| PopMatters on Metal Gear Solid V (<https://www.popmatters.com/getting-to-know-the-ground-in-metal-gear-solid-v-2495486441.html>) | On the ground the character shimmies forward and shoots with the arms out in front. |
+| PC Gamer on Ghost Recon Breakpoint (<https://www.pcgamer.com/ghost-recon-breakpoint-tips-guide>), GamesRadar on PUBG's aiming (<https://www.gamesradar.com/uk/playerunknowns-battlegrounds-aiming-scope-controls-pubg/>) | Prone costs horizontal turning; holding aim in third person pulls the camera to a tighter over-the-shoulder view. No game studied publishes its prone camera's numbers. |
+
+What the clips take from it: flat and straight behind the pistol, arms stretched, the grip's foot on the ground
+looking level, arms unlocked looking up, head low behind the sights. Elbows planted with raised forearms are a
+rifle's position: the first version of these clips had them, and the pistol sat 10 cm in front of the face, hidden
+by the head from the player's camera, with the wrists bent past 90 degrees to look down. The clips stop at 25
+degrees down (a body flat on the ground cannot point a pistol further down); the game holds that pose for the rest
+of the look.
+
+`build_prone_aim_clips.py` imports `build_prone_clips.py` (the solver, the keying, the export) and places the
+hands from the hold the game uses: `tools/hold/dump_aim_seat.gd` writes, for each body, the pistol's seat on `hand_r`,
+the left hand's marker, the grip pose's wrist turn, the finger rotations of the grip, trigger and support poses and
+every bone's rest, and once the muzzle and the grip's foot; the build puts each hand bone where that seat carries the
+pistol along the look and keys the hold's fingers. Run the dump and both builds again after the seat, the marker, a
+hand pose or the pistol changes. It fails before it exports when a loop does not close, the barrel is more than 0.3
+degrees off its look, a wrist moves in the breath, the rig's rests differ from Godot's, the left arm is past 0.985 of
+its length in a clip or between two, the pistol's foot or muzzle is at the floor, a hand's skin or a hand bone is
+under the Godot test's floor limits, an arm's skin is more than 1 mm under the floor, the two sides mirror each
+other, or a part of the body goes more than 5 mm into another. Blender exits 0 when the script raises: read the
+output for `EXPORTED` and check the file's time.
+
+```text
+godot --headless --path game -s res://tools/hold/dump_aim_seat.gd -- <aim_seat.json>
+blender -b --factory-startup -P build_prone_aim_clips.py -- --body female --model <form_female.glb>
+    --hold <aim_seat.json> --idle <prone_form_female.glb> --out <prone_aim.glb>
+blender -b --factory-startup -P build_prone_aim_clips.py -- --body male --model <form_male.glb>
+    --hold <aim_seat.json> --idle <prone_form_male.glb> --out <prone_aim_male.glb>
+```
+
+`tools/capture/prone_aim_tour.tscn` plays the aim in the game from the player's camera, or from the side, the front,
+above and close on the hands (`PRONE_AIM_VIEW`), on either body (`PRONE_AIM_MODEL=male`); `PRONE_AIM_TOUR=looks`
+holds the three looks, and `PRONE_AIM_FULL_UP=1` opens the look-up limit to the up clip's 20 degrees.
 
 ## How they are made
 
@@ -281,6 +391,7 @@ The motion is GDStudio's own work, under this repository's licence; nothing in i
 capture. The skeleton in `prone.glb` and in `prone_male.glb` (bone names, parents and rest pose) is the Quaternius
 universal rig's, CC0, taken from `assets/characters/mannequin/mannequin_female.glb` and `mannequin_male.glb` (their
 `LICENSE.md` has the source); the one in the `form` files is GDStudio's prototype rig's 65 library bones (the same
-names, parents and rest rotations, the bodies' own bone lengths), from `assets/characters/prototype/`.
+names, parents and rest rotations, the bodies' own bone lengths), from `assets/characters/prototype/`; so is the one in
+`prone_aim.glb` and `prone_aim_male.glb`.
 The timing was set after
 studying how shipped games and the army's low crawl are described (kit pull request of #1009).
