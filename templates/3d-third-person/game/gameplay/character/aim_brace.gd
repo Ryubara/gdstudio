@@ -87,15 +87,16 @@ class Driver:
 	var _shot_arm := 0.0
 
 	## How far the arm is up (the aim the brace and the aim pose follow): the character's aim
-	## amount, or the shot's own hold when that is more. After a shot it goes on rising for
-	## `shot_hold_time` and then comes down at the speed of the aim (`aim_pose_time`).
+	## amount (none while it is up only for a melee blow, `MeleeLayer.aim_of`), or the shot's own
+	## hold when that is more. After a shot it goes on rising for `shot_hold_time` and then comes
+	## down at the speed of the aim (`aim_pose_time`).
 	func arm(animation: CharacterAnimation, delta: float) -> float:
 		var tuning := animation.character.tuning
 		var aim_time := tuning.aim_pose_time if tuning != null else 0.15
 		_shot_hold = maxf(_shot_hold - delta, 0.0)
 		var target := 1.0 if _shot_hold > 0.0 else 0.0
 		_shot_arm = move_toward(_shot_arm, target, delta / maxf(aim_time, 0.001))
-		return maxf(animation.character.aim_amount, _shot_arm)
+		return maxf(animation.melee.aim_of(animation.character), _shot_arm)
 
 	## A shot: the arm stays up `shot_hold_time` from where it is now.
 	func shot(animation: CharacterAnimation) -> void:

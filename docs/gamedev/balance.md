@@ -18,7 +18,8 @@ Write the target first (how many hits a zone takes on a round), then measure the
   reasonable made one-taps: a melee sweep that leaves the eye always met the head sphere (x1.5), and the start
   revolver's head hit of 60 topped the 50 and 58 health of rounds 1 and 2, with no shots-to-kill target written.
   **Seen:** Deadnight #897, 2026-11-03; Deadnight #898, 2026-11-03 (fix: deadnight `test_starter_pistol.gd` and
-  `test_melee_hits_to_kill.gd`).
+  `test_melee_hits_to_kill.gd`); gdstudio #1254, 2026-11-11 (one real blow per zone: a loop of blows let each
+  flinch move the next onto another part).
 
 ## A weapon is a model, a definition and a source {#roster}
 

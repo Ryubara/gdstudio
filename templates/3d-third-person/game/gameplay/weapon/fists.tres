@@ -1,20 +1,8 @@
-[gd_resource type="Resource" script_class="WeaponDef" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="WeaponDef" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://gameplay/weapon/weapon_def.gd" id="1_def"]
 [ext_resource type="Texture2D" path="res://assets/ui/inventory/weapon_fists.svg" id="i1_icon"]
-[ext_resource type="AudioStream" path="res://assets/audio/fists/fist_swing_1.ogg" id="s1"]
-[ext_resource type="AudioStream" path="res://assets/audio/fists/fist_swing_2.ogg" id="s2"]
-[ext_resource type="AudioStream" path="res://assets/audio/fists/fist_swing_3.ogg" id="s3"]
-
-[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_swing"]
-streams_count = 3
-stream_0/stream = ExtResource("s1")
-stream_0/weight = 1.0
-stream_1/stream = ExtResource("s2")
-stream_1/weight = 1.0
-stream_2/stream = ExtResource("s3")
-stream_2/weight = 1.0
-random_pitch = 1.06
+[ext_resource type="Resource" path="res://gameplay/weapon/categories/unarmed.tres" id="c1_category"]
 
 [resource]
 script = ExtResource("1_def")
@@ -22,10 +10,7 @@ display_name = "Fists"
 icon = ExtResource("i1_icon")
 kind = 2
 fire_zooms = false
-fire_rate = 2.5
 recoil = 0.0
-damage = 5.0
-impulse = 25.0
 impacts = false
 magazine_size = 0
 start_reserve = 0
@@ -33,8 +18,5 @@ max_reserve = 0
 auto_reload = false
 holster_time = 0.12
 draw_time = 0.15
-melee_reach = 1.1
+category = ExtResource("c1_category")
 grip_bones = Array[StringName]([])
-shoot_clips = Array[StringName]([&"ual1/Punch_Jab", &"ual1/Punch_Cross"])
-shot_sound = SubResource("AudioStreamRandomizer_swing")
-shot_volume_db = -27.0

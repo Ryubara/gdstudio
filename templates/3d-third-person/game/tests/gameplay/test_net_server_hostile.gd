@@ -116,6 +116,7 @@ func test_the_largest_numbers_a_command_can_carry_step_a_finite_body() -> void:
 	extreme[0] = NetWire.Type.COMMAND
 	extreme.encode_u32(1, 1)
 	extreme.encode_u16(11, CommandCodec.F_SHOT | CommandCodec.F_SPRINT | CommandCodec.F_FIRE)
+	extreme[CommandCodec.MORE_FLAGS_AT] = CommandCodec.G_MELEE_PRESSED
 	hostile.link.send(extreme)
 	var peer := _rig.server.peer_at(1)
 	assert_bool(await _rig.until(func() -> bool: return peer.ack == 1)).is_true()
