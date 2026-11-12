@@ -1,6 +1,7 @@
-## Films the fingers on the rifle as the player sees them (kit #1036): four views at once, each a
+## Films the fingers on the rifle as the player sees them (kit #1036): six views at once, each a
 ## viewport of its own over the game, every one from the game camera's eye. The game camera as it
-## is, then the grip hand, the support hand and both hands, each a long lens aimed at the hand from
+## is, then each hand from its thumb's side and from its fingers' side (the trigger finger lies
+## on the rifle's right) and both hands, each a long lens aimed at the hand from
 ## the game camera's eye swung round the character as the player swings the view (straight behind,
 ## the body hides both hands), at the camera's own distance and height: only the field narrows,
 ## so a close-up shows the hand as the game draws it from there. It presses the
@@ -9,11 +10,12 @@
 ## from round the rifle.
 ##
 ## Record it with Movie Maker through the kit (the frames land where `--write-movie` says):
-## `gds godot -- --path game --resolution 1600x900 --write-movie <folder>/f.png --fixed-fps 20
+## `gds godot -- --path game --resolution 1920x1080 --write-movie <folder>/f.png --fixed-fps 20
 ## --quit-after 230 res://tools/capture/rifle_fingers_view.tscn`
 ## At each stage it prints `STAGE` with its first frame, and two thirds in `FINGERS`: each part of
 ## each hand against the rifle in millimetres (below 0 inside; `HandContact`), so a still can be
-## read against its numbers. It lives in tools/, which the export leaves out, and nothing in the
+## read against its numbers. `RIFLE_FINGERS_BODY=male` films the other body (the hold is solved on
+## each, `HoldFit`). It lives in tools/, which the export leaves out, and nothing in the
 ## game refers to it.
 extends Node
 
@@ -39,11 +41,13 @@ const STAGES: Array[Dictionary] = [
 ## right above 0).
 const VIEWS: Array[Array] = [
 	["the game camera", "game", 0.0, 0.0],
-	["grip hand, game camera swung 125 degrees left", "r", 0.2, -125.0],
-	["support hand, game camera swung 70 degrees right", "l", 0.2, 70.0],
+	["grip hand's thumb, game camera swung 125 degrees left", "r", 0.2, -125.0],
+	["trigger finger, game camera swung 90 degrees right", "r", 0.2, 90.0],
+	["support hand's fingers, game camera swung 70 degrees right", "l", 0.2, 70.0],
+	["support hand's thumb, game camera swung 80 degrees left", "l", 0.2, -80.0],
 	["both hands, game camera swung 35 degrees right", "both", 0.5, 35.0],
 ]
-const COLUMNS := 2
+const COLUMNS := 3
 ## Where each hand's middle is from its bone, in the bone's space (the palm).
 const PALM := Vector3(0.0, 0.08, 0.0)
 ## The parts printed for each hand, in this order.
@@ -83,6 +87,9 @@ func _ready() -> void:
 	target.position = TARGET_AT
 	add_child(target)
 	_player.teleport(START, PI)
+	var body := OS.get_environment("RIFLE_FINGERS_BODY")
+	if CharacterBodies.BY_NAME.has(body):
+		_player.model.variant = load(CharacterBodies.BY_NAME[body]) as PackedScene
 	_player.loadout.give(load(RIFLE) as WeaponDef, 90)
 	# After the camera rig has placed the game camera this frame.
 	process_priority = 1000
@@ -111,7 +118,7 @@ func _ready() -> void:
 		var label := Label.new()
 		label.text = view[0]
 		label.position = Vector2(10.0, 6.0)
-		label.add_theme_font_size_override(&"font_size", 20)
+		label.add_theme_font_size_override(&"font_size", 16)
 		label.add_theme_color_override(&"font_outline_color", Color.BLACK)
 		label.add_theme_constant_override(&"outline_size", 6)
 		container.add_child(label)

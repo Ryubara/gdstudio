@@ -12,7 +12,7 @@
 extends GdUnitTestSuite
 
 const RIFLE := "res://gameplay/weapon/rifle.tres"
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const MALE := CharacterBodies.MALE
 ## The updates each state is held for before it is measured, and the updates between the samples.
 const SETTLE := 30
 const SAMPLE_GAP := 7

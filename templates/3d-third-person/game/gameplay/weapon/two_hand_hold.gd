@@ -556,6 +556,7 @@ func _fit_body(slot: CharacterModel) -> void:
 		_own.support_pose = support_pose
 		_own.magazine_pose = magazine_pose
 		_own.open_pose = open_pose
+		_own.trigger_way = trigger_way
 	var chosen := HoldFit.chosen(fits, slot)
 	if chosen == null:
 		chosen = _own
@@ -571,6 +572,7 @@ func _fit_body(slot: CharacterModel) -> void:
 	support_pose = chosen.support_pose
 	magazine_pose = chosen.magazine_pose
 	open_pose = chosen.open_pose
+	trigger_way = chosen.trigger_way
 
 
 func _add_arm(bones: Array[StringName], tag: String) -> void:

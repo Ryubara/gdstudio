@@ -3,8 +3,9 @@
 ## between `rifle_grip_pose` and `rifle_trigger_pose` takes the fingertip through the magazine
 ## well and the trigger guard (17 mm deep): the finger lies along the well's side ahead of the
 ## guard and curls in before it is over the guard's opening. The solver measures the skinned
-## finger of both mannequins against the rifle's triangles (`HandContact`, the right hand on its
-## place on the rifle at the low ready) and builds the way from two poses: the straight finger
+## finger of one body against the rifle's triangles (`HandContact`, the right hand on its place on
+## the rifle at the low ready, with that body's own hold: the scene's for the female, the
+## `HoldFit` for any other) and builds the way from two poses: the straight finger
 ## rolled about its own length until its bend lies along the rifle's side, then bent to the
 ## trigger's bend there, then turned onto the trigger (each roll in `ROLLS` is tried, the one whose
 ## way goes least deep is kept).
@@ -20,12 +21,18 @@
 ## No number of the way is typed: change the rifle, the hold or the poses, run this again, then
 ## `tests/gameplay/test_rifle_fingers.gd`. It lives in tools/, which the export leaves out.
 ##
-## `<godot> --headless --path game -s res://tools/hold/solve_trigger_way.gd`
+## Each body has its own way, as it has its own hold (kit #1187): the default body's (`female`)
+## is `rifle_trigger_way.tres`, which `rifle_held.tscn` names; another body's is written into its
+## fit (`rifle_fit_<body>.tres`, `HoldFit.trigger_way`). Run it after `write_hold.gd` for that
+## body, since the way starts and ends on that body's poses.
+##
+## `<godot> --headless --path game -s res://tools/hold/solve_trigger_way.gd -- [female|male]`
 extends SceneTree
 
 const OUT := "res://gameplay/weapon/hold/rifle_trigger_way.tres"
-const GRIP := "res://gameplay/weapon/hold/rifle_grip_pose.tres"
-const TRIGGER := "res://gameplay/weapon/hold/rifle_trigger_pose.tres"
+const FIT := "res://gameplay/weapon/hold/rifle_fit_%s.tres"
+## The body whose way is the scene's own; every other body's is in its `HoldFit` file.
+const DEFAULT_BODY := "female"
 const BONES: Array[StringName] = [&"index_01_r", &"index_02_r", &"index_03_r"]
 const PARTS: Array[String] = ["index_base", "index_mid", "index_tip"]
 ## The deepest any step of the way may go into the rifle, in metres: the depth a hand may pass
@@ -45,15 +52,25 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	var body := DEFAULT_BODY
+	var arguments := OS.get_cmdline_user_args()
+	if not arguments.is_empty():
+		body = arguments[0]
+	if not HoldStage.MODELS.has(body):
+		printerr("solve_trigger_way: a body ", HoldStage.MODELS.keys())
+		quit(1)
+		return
 	var holder := Node3D.new()
 	root.add_child(holder)
-	for model: String in HoldStage.MODELS:
-		var stage := RifleStage.make_rifle(holder, model)
-		stage.pose_rifle(CharacterClips.IDLE, 0.0, 0.0)
-		await stage.settle()
-		_stages.append(stage)
-	var grip := _pose_of(load(GRIP) as HandPose)
-	var trigger := _pose_of(load(TRIGGER) as HandPose)
+	var stage := RifleStage.make_rifle(holder, body)
+	stage.pose_rifle(CharacterClips.IDLE, 0.0, 0.0)
+	await stage.settle()
+	_stages.append(stage)
+	# The poses the hold put on for this body (the scene's own, or its fit's).
+	var held := stage.hold as TwoHandHold
+	var grip := _pose_of(held.grip_pose)
+	var trigger := _pose_of(held.trigger_pose)
+	print("body %s" % body)
 	print("straight way: %.1f mm deep" % (_leg_depth(grip, trigger)[0] * 1e3))
 	var keys := _first_guess(grip, trigger)
 	var report := "legs:"
@@ -75,8 +92,16 @@ func _run() -> void:
 			rotations[bone] = (keys[index][bone] as Quaternion).normalized()
 		pose.rotations = rotations
 		way.poses.append(pose)
-	var error := ResourceSaver.save(way, OUT)
-	print("wrote %s: %d poses (error %d)" % [OUT, way.poses.size(), error])
+	var out := OUT
+	var error := OK
+	if body == DEFAULT_BODY:
+		error = ResourceSaver.save(way, OUT)
+	else:
+		out = FIT % body
+		var fit := load(out) as HoldFit
+		fit.trigger_way = way
+		error = ResourceSaver.save(fit, out)
+	print("wrote %s: %d poses (error %d)" % [out, way.poses.size(), error])
 	holder.free()
 	quit(error)
 
@@ -137,8 +162,7 @@ func _between(from: Dictionary, to: Dictionary, share: float) -> Dictionary:
 	return found
 
 
-# How deep the finger posed `rotations` goes into the rifle, the deeper of the two mannequins, in
-# metres (below 0: that far off it).
+# How deep the finger posed `rotations` goes into the rifle, in metres (below 0: that far off it).
 func _depth(rotations: Dictionary) -> float:
 	var deepest := -INF
 	for stage in _stages:
