@@ -5,9 +5,14 @@ Animation Library share it): `Vault_Low` (a one-handed speed vault), `Vault_High
 `Vault_Land` (the landing step back into the sprint). Nothing is copied from another clip but the first and last
 poses, which are the library's own `Sprint_Loop` so the clips join the run.
 
-Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute:
+The same keys are solved once for each body that plays them, into a file a body (`BODIES`, gdstudio #1294): a planted
+hand is on its place only on the arms it was solved for.
 
-    blender -b --factory-startup -P <this file> -- [--out <folder>] [--render <folder>] [--only <clip>]
+Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute, the default body first (the
+others are held to its numbers); `--python-exit-code 1` because Blender exits 0 when a script raises:
+
+    blender -b --factory-startup --python-exit-code 1 -P <this file> -- [--body <name>] [--out <folder>]
+        [--render <folder>] [--only <clip>] [--trace] [--no-fail]
 
 How a clip is made: every clip is a table of keys on a small set of controls (the pelvis, the spine, each wrist and
 ankle with the way its elbow or knee points, the hands and feet, the fingers' curl), written in the **world** of a

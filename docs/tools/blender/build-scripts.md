@@ -17,6 +17,11 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   only where it starts an argument; inside `Title=/c/...` it converted for one model and not the next (`Ray=` against
   `"Ray gun="`), and Blender failed with `Please select a file`. **Seen:** Deadnight, 2026-11-01; Deadnight #797,
   2026-11-03 (fix: `render_sheet.py --model` is given `C:/` paths).
+- **Approach:** Run a build with `--python-exit-code 1` before `-P`, and prove a rebuild by the line the script
+  prints when it has written its file, never by the exit code alone. **Watch out for:** Blender exits 0 when the
+  script raises: after a refactor cut an attribute, three builds "passed" with exit 0 and the committed files'
+  hashes unchanged, because nothing had been written. **Seen:** gdstudio #1294, 2026-11-11 (`build_vault.py`; the
+  `AttributeError` was in the log).
 - **Approach:** Edit a script that a running batch or loop reads only between runs, or run a copy and edit the
   original; land a change that has to be whole (a use and its import) in one write, and read every log of a background
   loop for `Traceback`, not only its exit code. **Watch out for:** bash reads a script as it runs, so an edit shifted

@@ -1,15 +1,20 @@
 # Vault clips
 
 Three clips of the template's own for vaulting over an obstacle, on the mannequins' rig (the Universal Animation
-Library has a climb, `ClimbUp_1m`, and no vault). Godot imports `vault.glb` as an `AnimationLibrary`, like the two
-packs; add it to an `AnimationPlayer` under the name `vault` and the clips are `vault/Vault_Low`, `vault/Vault_High`
-and `vault/Vault_Land`. Nothing in the game plays them yet: the vault (kit #1013) plays a stand-in until kit #1037.
+Library has a climb, `ClimbUp_1m`, and no vault). Godot imports each file as an `AnimationLibrary`, like the two
+packs; added to an `AnimationPlayer` under the name `vault`, the clips are `vault/Vault_Low`, `vault/Vault_High`
+and `vault/Vault_Land`. There is a file for each body (kit #1294): a planted hand is on the obstacle only on the arms
+the clips were solved for. The character scene holds `vault.glb` and gives another model its own file
+(`Animation`'s `vault_libraries`, the model's scene file to its library).
 
 | File | What it is |
 | --- | --- |
-| `vault.glb` | The three clips (24 frames a second, in place, no loop) |
-| `vault_clips.json` | Each clip's reference obstacle, the speed the body is moved at, and the contact times |
-| `build_vault.py` | Rebuilds both with the pinned Blender (`blender -b --factory-startup -P build_vault.py`) |
+| `vault.glb` | The three clips (24 frames a second, in place, no loop), solved on `form_female`, the template's default body |
+| `vault_male.glb` | The same clips solved on `form_male` |
+| `vault_quaternius.glb` | The same clips solved on the Quaternius female mannequin; the Quaternius male plays it too |
+| `vault_clips.json`, `vault_male_clips.json`, `vault_quaternius_clips.json` | Each file's numbers: every clip's reference obstacle, the speed the body is moved at, the contact times (the same in all three), and what the build measured on that body |
+| `bodies_overlap.json` | Limbs inside limbs on the two bodies that share `vault_quaternius.glb` (`../limb_overlap.py --brief`) |
+| `build_vault.py` | Rebuilds a body's file and numbers with the pinned Blender (`blender -b --factory-startup --python-exit-code 1 -P build_vault.py -- --body form_female`, then `form_male` and `quaternius_female`; the default body first, the others are held to its numbers) |
 | `render_vault.py` | The contact sheets (`build_vault.py -- --render <folder>`), the poses between the keys among them |
 | `../limb_overlap.py` | Measures limbs passing through each other, for this build and any other clips |
 
@@ -51,8 +56,16 @@ no weapon is in the hands during it.
 
 For another height, lift the body by the difference while a hand is on the top (`tools/capture/vault_study.tscn` does
 it with `LOW_HEIGHT` and `HIGH_HEIGHT`); `Vault_Low` is made for about 0.5 to 1.0 m and `Vault_High` for about 1.0 to
-1.3 m. The clips were keyed on the female mannequin. The male's arms are 5 cm longer, so his planted wrist moves up
-to 35 mm (`Vault_Low`) and 71 mm (`Vault_High`) and sits up to 49 mm low: put the hand on the edge by IK if it shows.
+1.3 m.
+
+## A body of your own
+
+A body with other arms or thighs needs its own file: add it to `BODIES` in `build_vault.py` (its model, the file
+names, and the four measured numbers the table's comment explains; `--trace` prints them), run the build with
+`--body <name>`, read what fails, and give the body the few `low_*` and `high_*` numbers that clear it (`VAULT_TUNE`
+in the environment tries numbers for one run without an edit). Then name the file for the model in the character
+scene's `vault_libraries`. In another body's file the planted wrist slides (34 and 79 mm on the Quaternius male in the
+Quaternius female's file, which the template accepts for a body none of its characters wears).
 
 The clips carry the body's rise and fall themselves (in the pelvis), over the reference obstacle: move the root level
 and forward at `speed`. A path that drops the root to the floor at the end as well, or ends sooner than the clip's
@@ -60,31 +73,31 @@ and forward at `speed`. A path that drops the root to the floor at the end as we
 
 ## Rebuilding
 
-`build_vault.py` reads the female mannequin and the library's `Sprint_Loop`, keys the three clips from the tables in
+`build_vault.py` reads the body `--body` names and the library's `Sprint_Loop`, keys the three clips from the tables in
 the file, and fails before it exports when the skin goes under the floor or more than 12 mm into the box, when a
 planted wrist or ankle moves, when the palm is more than 15 mm from the top, when the body is jerked to keep a hand in
-reach, or when a limb is more than 5 mm inside another on either mannequin (`../limb_overlap.py` measures both skinned
-meshes on every frame; the clips read 0.0 mm). It reads the clip between its keys as well, 240 times a second with
-the keys joined by straight lines as a game joins them (`check_between`): a leg joint of either mannequin more than
-5 mm inside the box, skin more than 12 mm inside it, a planted hand's own skin more than 20 mm into the top or the
-lowest skin more than 25 mm under the floor fails the build (`--trace` prints every sample that reads anything, and
-each leg joint's place near the box). It also fails on a move a body cannot make (`check_motion`): the centre
-of mass more than 15 mm off a free fall's arc while nothing touches the body, a planted arm that never gives under the
-weight or is not straight when the hand leaves or carries under a quarter of the body's weight, a landing leg that
-folds again, snaps open or is not nearly straight a frame before the foot lands, a landing step whose knee and hips do
-not give, and a free arm that is flung: its wrist more than 0.05 m over its own shoulder, faster than 7 m/s in the
-world or 4.5 m/s against the shoulder, or a change of speed over 4 m/s in one frame. In `Vault_High` it fails on legs
-that do not go over together: the knees over 2.0 or the ankles over 2.6 hip widths apart while the hips are over the
-box, a knee under 40 degrees or a leg bone under the top there, an ankle whose speed against the hips changes by over
-6 m/s in a frame, or a leg held under 1 m/s for two frames in the air. From each vault's jump on, the pelvis is not
-keyed by hand: `Clip.drive` takes the height the centre of mass has to be at on every frame (a free fall in the air;
-while a hand carries the body, a curve between the heights and speeds at the plant and at the push) and keys the
-pelvis under it, and the build keys each clip a few times until the two agree (`--trace` prints every frame's
-numbers). Positions in the tables are `(left, forward, up)` in the world of the reference obstacle; the legs in the
-air are keyed in the hips' own axes (`hips()`), the left foot left of the hips and the right foot right of them, so
-they cannot cross. A free arm is keyed from its own shoulder in the world's axes (`shoulder()`), so its height over
-the shoulder is a number in the table whatever the body's roll. The export is the same bytes on every run, and
-`vault_clips.json` carries its sha256 with the measured numbers. After a rebuild, run
+reach, or when a limb is more than 5 mm inside another on that body (`../limb_overlap.py` measures its skinned
+mesh on every frame, its twist bones turned as the game turns them; the clips read 4.5, 4.6 and 0.0 mm). It reads the
+clip between its keys as well, 240 times a second with the keys joined by straight lines as a game joins them
+(`check_between`): a leg joint of the body more than 5 mm inside the box, skin more than 12 mm inside it, a planted
+hand's own skin more than 20 mm into the top or the lowest skin more than 25 mm under the floor fails the build
+(`--trace` prints every sample that reads anything, and each leg joint's place near the box). It also fails on a move
+a body cannot make (`check_motion`): the centre of mass more than 15 mm off a free fall's arc while nothing touches
+the body, a planted arm that never gives under the weight or is not straight when the hand leaves or carries under a
+quarter of the body's weight, a landing leg that folds again, snaps open or is not nearly straight a frame before the
+foot lands, a landing step whose knee and hips do not give, and a free arm that is flung: its wrist more than 0.05 m
+over its own shoulder, faster than 7 m/s in the world or 4.5 m/s against the shoulder, or a change of speed over 4 m/s
+in one frame. In `Vault_High` it fails on legs that do not go over together: the knees over 2.0 or the ankles over 2.6
+hip widths apart while the hips are over the box, a knee under 40 degrees or a leg bone under the top there, an ankle
+whose speed against the hips changes by over 6 m/s in a frame, or a leg held under 1 m/s for two frames in the air.
+From each vault's jump on, the pelvis is not keyed by hand: `Clip.drive` takes the height the centre of mass has to be
+at on every frame (a free fall in the air; while a hand carries the body, a curve between the heights and speeds at
+the plant and at the push) and keys the pelvis under it, and the build keys each clip a few times until the two agree
+(`--trace` prints every frame's numbers). Positions in the tables are `(left, forward, up)` in the world of the
+reference obstacle; the legs in the air are keyed in the hips' own axes (`hips()`), the left foot left of the hips and
+the right foot right of them, so they cannot cross. A free arm is keyed from its own shoulder in the world's axes
+(`shoulder()`), so its height over the shoulder is a number in the table whatever the body's roll. The export is the
+same bytes on every run, and `vault_clips.json` carries its sha256 with the measured numbers. After a rebuild, run
 `tests/assets/test_vault_clips.gd` and look at the sheets (`_over` and `_close` show the legs over the top, `_arm` the
 planted arm from the plant to the push, `_side` every frame of the whole move, `_edge` the legs at the front edge
 between the keys, five poses a frame).

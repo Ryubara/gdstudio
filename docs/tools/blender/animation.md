@@ -90,7 +90,8 @@ reads them (the template's `assets/animation/vault/build_vault.py` and `vault_cl
 The build checks, on every frame and on the skinned mesh, before it exports: the lowest vertex against the floor, the
 deepest vertex inside the obstacle (12 mm allowed, as wide as a wall so the legs must clear the top), the planted
 palm's gap to the surface, how far each planted wrist or ankle moves in the world while planted (0.5 mm on the vault
-clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on either mannequin
+clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on the body the file
+is for
 ([Keyframes](#keyframes); 5 mm allowed). It reads the legs and the skin against the obstacle **between the keys**
 as well, ten times a frame, since two keys that are clear of an edge say nothing of the path between them. It also
 checks what the body does between its contacts: its centre of mass
@@ -278,6 +279,14 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   never ran (`n[:-4]` of `index_01_l` is `index_`); a nearest-normal test called a finger 90 mm inside the thumb's
   open base. **Seen:** gdstudio #1020, 2026-11-11 (fix: `floor_mm` and `fist_mm` in the build's report; the male's
   own clip set is a follow-up).
+- **Approach:** Key only the bones the clip library has, and measure the skin with the body's other bones where
+  the game puts them: the prototype bodies' six twist bones are turned by a modifier in Godot
+  (`mannequin_twist.gd`), so `limb_overlap.py` turns them the same way before it reads the skin
+  (`twist_bones`, `twist_roll`; `build_vault.py` keys them for its own measures and strips them from the file).
+  **Watch out for:** a build that keys every bone of a prototype body writes tracks the Quaternius bodies have no
+  bone for, and a build that leaves the twist bones at rest measures thighs and forearms wrung as no player sees
+  them near the camera (beyond 9 m the game rests them). **Seen:** gdstudio #1294, 2026-11-11 (the tool and the
+  build read the same 4.5 and 4.6 mm on the two `form` bodies).
 - **Approach:** Run the limb overlap check on both mannequins inside the build, and when a transition crosses, move
   the keys of the limb that can leave first in time before changing its path. **Watch out for:** the transitions
   passed their own checks with the chest 25 to 50 mm in the front thigh going down and the left arm 51 mm in the
