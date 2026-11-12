@@ -216,10 +216,15 @@ func test_the_pistols_left_hand_lets_go_clean_on_both_bodies() -> void:
 			var tag := "%s tick %d free %.2f" % [model, tick, freed]
 			var right := stage.contact.measure("r")
 			_assert_passes(tag, right, "gun", TRIGGER_FINGER, TRIGGER_PASSING)
+			# The right thumb rests on the left hand while both hold and is in the air while that
+			# hand is on its way (kit #1084): it holds the gun only when the left hand's plan asks
+			# for no room.
+			var plan: SupportHandPlan = stage.hold.call(&"left_hand")
 			var holding: Array[String] = []
 			for part in HoldStage.RIGHT_CONTACTS:
-				if not TRIGGER_FINGER.has(part):
-					holding.append(part)
+				if TRIGGER_FINGER.has(part) or (part == "thumb_tip" and plan.room > 0.0):
+					continue
+				holding.append(part)
 			for part in TRIGGER_FINGER:
 				right.erase(part)
 			assert_array(HandContact.failures(tag, right, holding)).is_empty()
