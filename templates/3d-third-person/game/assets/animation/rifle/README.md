@@ -29,13 +29,16 @@ side moves.
 ## The rifle is not in the clip
 
 The rifle is carried by `TwoHandHold` (`gameplay/weapon/two_hand_hold.gd`), not by a bone: after the clip it
-puts the butt in the shoulder's pocket from the chest bone's place, turns the chest, reaches both arms to their
-places on the rifle and closes the fingers, on whichever body plays the clip, with the places and the finger
-poses solved on that body (the scene's own for the female, `rifle_fit_male.tres` for the male). The build works
-the same hold out in Python (`Hold`, from the numbers in the hold's script and scenes, each body's fit and the
-five finger poses, none typed in the build), shapes the body round the rifle where the game will draw it, and
-keys the hold's own arms and fingers, so the file alone shows two hands on the rifle. On the female body the
-clip's own hands are within 0.9 mm of where the game's hold puts them (`tests/gameplay/test_rifle_clips.gd`); on
+turns the chest (and raises one that leans past `aim_lean_limit` while the rifle is up), puts the butt in the
+shoulder's pocket from the chest bone's place in the chest's frame, brings the left shoulder toward the hand
+guard and the butt forward to the torso's skin (kit #1177), reaches both arms to their places on the rifle and
+closes the fingers, on whichever body plays the clip, with the places and the finger poses solved on that body
+(the scene's own for the female, `rifle_fit_male.tres` for the male). The build works the same hold out in Python
+(`Hold`, from the numbers in the hold's script and scenes, each body's fit and the five finger poses, none typed
+in the build; the torso's skin for the butt from each body's own mesh, `Hold.measure_chest`), shapes the body
+round the rifle where the game will draw it, and keys the hold's own arms and fingers, so the file alone shows
+two hands on the rifle. On the female body the clip's own hands are within 1.6 mm of where the game's hold puts
+them (`tests/gameplay/test_rifle_clips.gd`; the game settles the butt's push over frames, to within 3 mm); on
 the male, whose arms are longer and whose hands are bigger, the hold's reach does the work, as it does for every
 clip. **When the hold's numbers, a body or the solved hands change, run the build again.**
 
@@ -53,11 +56,16 @@ with the face along it, within what a body gives (`AIM_LIMITS`: 12 degrees more 
 with the head's and the neck's skin of both bodies, each under its own hold, kept off the stock. The eye is 32 mm
 right of the rig's `socket_camera`, in the middle of the visor.
 
-What it reaches, and why not more: the eye ends 30 mm over the sight line with the view level, 47 mm with it up
-and 5 mm with it down (48, 52 and 24 mm on the male). The hold's pocket puts the butt at the shoulder joint's
-height, so the sight line runs 8 cm under an upright eye, and a neck gives about 5 of them before the visor
-looks at the floor. A pocket a few centimetres higher would close it (the pocket is the hold's: kit #1177). From
-the game camera the head reads as down on the rifle.
+What it reaches, and why not more: the eye ends 53 mm off the sight line with the view level (40 mm over it and
+36 mm to its left), 81 mm with it up (to its left) and 51 mm with it down (65, 79 and 63 mm on the male), with
+every angle of the neck at what `AIM_LIMITS` gives. The hold's pocket is at the shoulder joint's height and at the
+deltoid's edge, 16 cm from the spine (kit #1177: nearer the neck the stock lay across the sternum), so the sight
+line runs beside and under an upright eye, farther than a neck gives. Before the pocket moved out the eye was 30,
+47 and 5 mm off. From the game camera the head reads as down toward the rifle, not on its comb.
+
+The trunk's lean also moves the rifle now: the butt comes forward to the skin of a chest that leans over it, by
+44 mm with the view level, 3 mm with it up and 103 mm with it 45 degrees down (there the pitched stock's top edge
+meets the chest, with or without these clips' lean: the hold's tests go to 30 degrees).
 
 What was read first, for the mechanics only:
 
@@ -80,28 +88,30 @@ and fails before it exports over a limit:
 | A loop's last pose against its first; the shot's ends against the aim, the reload's against the idle | 0.01 degrees | 0.000 | (one file) |
 | An arm short of its place on the rifle | 0.5 mm | 0.0 mm | 0.0 mm |
 | The head's skin inside the rifle | 5 mm | 0.0 mm | 0.0 mm |
-| The right eye off the sight line: level, up, down | 80 mm | 29.9, 46.8, 4.8 mm | 48.1, 52.1, 24.2 mm |
+| The right eye off the sight line: level, up, down | 90 mm | 53.0, 81.0, 50.5 mm | 65.2, 78.9, 62.5 mm |
 | A limb inside another (`../limb_overlap.py`): idle, the aims, the shot | 5 mm, or what the hold alone does plus 3 mm | 0.0 mm | 1.9 mm (his thighs meet by that at rest) |
 | The same in `Rifle_Reload` | the same | 0.0 mm | 8.2 mm (the left hand in the right, frame 10) |
 
-The floor is the hold run on the idle pose with no rifle clip: 0 mm on the female and 27.0 mm on the male at the
-low ready (his right forearm in his chest), and 38.9 and 35.8 mm through the reload. The clips' rounded shoulders
-and raised right collarbone take all of it away but the male's reload: there his opened left hand passes 8.2 mm
-through the fingers of the right on its way to the magazine, which is the hold's way (`reload_clearance`,
-`magazine_approach`), the same under any clip.
+The floor is the hold run on the idle pose with no rifle clip: 0 mm on the female and 1.9 mm on the male at the
+low ready and aimed, and 10.6 and 18.2 mm through the reload (27.0 mm at the low ready and 38.9 and 35.8 mm
+through the reload before the butt was brought to the skin, kit #1177). Under the clips only the male's reload is
+over nothing: his opened left hand passes 8.2 mm through the fingers of the right on its way to the magazine,
+which is the hold's way (`reload_clearance`, `magazine_approach`), the same under any clip.
 
-Reported and not failed, since they are the hold's pocket and not the clip's (kit #1177):
+Reported and not failed, since they are the hold's pocket and not the clip's:
 
 | Deepest in the rifle's butt | Female | Male |
 | --- | --- | --- |
-| The chest: idle, aim level, up, down, shot, reload | 12.5, 4.6, 6.2, 14.5, 4.6, 21.9 mm | 4.0, 9.7, 0.8, 14.6, 8.5, 8.0 mm |
-| The neck's base: aim level, down, shot (0 elsewhere) | 0 mm | 11.6, 11.8, 12.0 mm |
+| The chest: idle, aim level, up, down, shot, reload | 0 mm in every clip | 0 mm but the shot: 2.7 mm at frame 3 (the kick) |
+| The neck's base | 0 mm | 0 mm |
+
+Before the hold brought the butt to the skin the chest was 5 to 22 mm in the butt and the male's neck base 12 mm.
 
 In Godot (`tests/gameplay/test_rifle_clips.gd`): with each clip on the upper body over the standing and the
 crouched legs, at every eighth of the clip, on both bodies, each hand's bone is on its place and the skin is
 within the hold's limits (2 mm in, 5 mm off). In the game (`tools/capture/rifle_hands.tscn`, both bodies, every
-state): each hand's bone 0.0 to 0.1 mm from its place, the right hand 1.3 mm in at most on the female and 1.2 mm
-on the male, the left 1.2 and 0.9 mm, no holding part off the rifle.
+state): each hand's bone 0.0 mm from its place, the right hand 1.2 mm in at most on both bodies, the left 1.2
+and 0.9 mm, no holding part off the rifle; on its way through the reload the left hand passes 2.8 mm.
 
 ## Building and looking
 
@@ -110,7 +120,7 @@ blender -b --factory-startup -P build_rifle_clips.py -- --out <abs>/rifle_clips.
     [--report <numbers.json>] [--preview <folder>] [--only <clip> ...]
 ```
 
-with the pinned Blender (`gds tool path blender`); about 40 seconds. `--preview` writes a sheet a clip and body
+with the pinned Blender (`gds tool path blender`); about 90 seconds. `--preview` writes a sheet a clip and body
 (the right side, the front left, above, behind the right shoulder; six frames) with the rifle where the hold has
 it. In the game: `tools/capture/rifle_clip_closeups.tscn` (a picture a pose: the body from the right, above, the
 front and the player's camera, and each hand from both its sides, both bodies), `tools/capture/rifle_hands.tscn`

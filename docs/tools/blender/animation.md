@@ -306,11 +306,13 @@ are the body under that.
 
 - **Work the game's hold out in the build, from the game's own files.** The build reads the hold's exported numbers
   from its script, the hands' places from its scenes and the finger poses from their resources, and runs the same
-  steps on its own skeleton (the chest turn, the pocket, the pull along the barrel, the two-bone reach, the fingers,
-  the reload's way). The body is then shaped round the rifle where the game will draw it, the arms it keys are the
-  hold's, and the same code poses the other body for the checks, with the hold solved on that body (its `HoldFit`).
-  A Godot test proves it is the same hold: the clip's own hand against the hold's, on a key (0.9 mm on the
-  prototype female).
+  steps on its own skeleton (the chest turn and its straightening, the pocket in the chest's frame, the left
+  collarbone's reach, the butt brought to the torso's skin from points over the body's own triangles, the pull
+  along the barrel, the two-bone reach, the fingers, the reload's way). The body is then shaped round the rifle
+  where the game will draw it, the arms it keys are the hold's, and the same code poses the other body for the
+  checks, with the hold solved on that body (its `HoldFit`). A Godot test proves it is the same hold: the clip's
+  own hand against the hold's, on a key (1.6 mm on the prototype female; the game settles the butt's push over
+  frames, to within 3 mm).
 - **Key over the pose the game holds under the clip.** A clip keys each bone in its parent, so arms keyed to reach
   a place the hold sets in the model's space are right over one pelvis only. The build stands on the game's
   standing idle at its steadiest frame (the frame `AimStance` holds the legs on under an aim) and writes the clip
@@ -360,6 +362,14 @@ are the body under that.
   another way, and each bone is keyed in its parent), while every test of the hands on the rifle still passed,
   because the hold moves the arms. Only the own-arms test saw it. **Seen:** gdstudio #1267, 2026-11-12 (fix:
   `BASE_CLIP`, `library_pose()`'s steadiest frame, `base` in `rifle_clips.json`; 0.9 mm).
+- **Approach:** When the hold a build mirrors changes on `main`, port every step of its diff that moves the weapon
+  or a bone, build, and read what the search solved and where the weapon ended before any test; a state the hold
+  settles over frames (the push) is worked out to its settled value. **Watch out for:** after the hold gained the
+  push to the skin, the collarbone's reach and a pocket 4 cm farther out, the old clips passed every hand test (the
+  hold moves the arms) while the build's rifle was 4 to 10 cm from the game's; ported, the head search ran the neck
+  to its limits with the eye 5 to 8 cm off the line, and the clips' lean now moves the rifle (44 mm at a level
+  aim). **Seen:** gdstudio #1267, 2026-11-12 (fix: `Hold.straighten`, `chest_frame`, `measure_chest`,
+  `butt_push`, `reach_shoulder`; own arms 1.6 mm; the eye's limit 80 to 90 mm).
 - **Approach:** Cut the skin you measure against a weapon where the weapon's own place is: the head for the comb,
   the neck's base and the chest for the butt, each its own number. **Watch out for:** the limb check's `head` part
   is the head and the whole neck; on the prototype male one vertex of the neck's base read 9 to 13 mm in the butt's
