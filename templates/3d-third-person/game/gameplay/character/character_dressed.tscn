@@ -10,6 +10,8 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_aim.glb" id="6_prone_aim"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_aim_male.glb" id="6_prone_aim_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault.glb" id="6_vault"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault_male.glb" id="6_vault_male"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault_quaternius.glb" id="6_vault_quaternius"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/fixed/fixed.glb" id="6_fixed"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/own/locomotion.glb" id="7_gds"]
 [ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
@@ -100,6 +102,11 @@ animation_player = NodePath("../AnimationPlayer")
 tree = NodePath("../AnimationTree")
 prone_aim_libraries = Dictionary[String, AnimationLibrary]({
 "res://assets/characters/prototype/form_male.glb": ExtResource("6_prone_aim_male")
+})
+vault_libraries = Dictionary[String, AnimationLibrary]({
+"res://assets/characters/mannequin/mannequin_female.glb": ExtResource("6_vault_quaternius"),
+"res://assets/characters/mannequin/mannequin_male.glb": ExtResource("6_vault_quaternius"),
+"res://assets/characters/prototype/form_male.glb": ExtResource("6_vault_male")
 })
 
 [node name="Weapon" parent="." node_paths=PackedStringArray("muzzle")]
