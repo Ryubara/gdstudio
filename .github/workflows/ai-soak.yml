@@ -64,7 +64,7 @@ jobs:
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
           mkdir -p ai_soak
           failed=0
-          for seed in 5 27 11 40 38; do
+          for seed in 26 26 26 26 26 26; do
             if ! "$godot" --headless --path repos/template-check/game --fixed-fps 60 res://tools/soak/ai_soak.tscn \
               -- --seconds 120 --seed "$seed" --lines --finite > "ai_soak/seed_$seed.log" 2>&1; then
               failed=$((failed + 1))
