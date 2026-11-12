@@ -23,10 +23,9 @@ extends Node
 ## building runs in the editor, never the driving (no signals, no `_process`), and the built tree
 ## is taken off the node while the scene is saved, so no `.tscn` holds a generated resource.
 ##
-## It follows the `CharacterModel` too: when the character's model is replaced, it points the
-## `AnimationPlayer` at the new model and builds the tree again, so a swap in the editor needs
-## nothing set by hand (the editor empties the character's Root Node when the node it pointed at is
-## deleted).
+## It follows the `CharacterModel` too: a replaced model gets the `AnimationPlayer` pointed at it
+## and the tree built again, so a swap in the editor needs nothing set by hand (the editor empties
+## the character's Root Node when the node it pointed at is deleted).
 
 ## An action clip started; `clip` is its name.
 signal action_started(clip: StringName)
