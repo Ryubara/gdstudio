@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_njytd")
 rotations = Dictionary[StringName, Quaternion]({
-&"index_01_r": Quaternion(0.23458, -0.70707, -0.00771, 0.66706),
-&"index_02_r": Quaternion(0.24827, 0, 0, 0.96869),
-&"index_03_r": Quaternion(0.14997, 0, 0, 0.98869)
+&"index_01_r": Quaternion(-0.20231, -0.70588, 0.04163, 0.67755),
+&"index_02_r": Quaternion(0.74896, 0, 0, 0.66262),
+&"index_03_r": Quaternion(0.30279, 0, 0, 0.95306)
 })

@@ -66,6 +66,8 @@ THUMB_BACK_Z = 0.0
 # How far the middle of the straight index finger's last bone lies from the trigger along the receiver (the test
 # wants the nearest skin 20 mm off; `--register-clear=` tries another).
 REGISTER_TRIGGER_CLEAR = option("register-clear", [0.034])[0]
+# How high the right thumb's last two bones may lie: under the receiver, whose underside is at 0.065.
+THUMB_TOP = 0.055
 # How high the thumb's root sits on the grip (the web under the receiver's tail).
 WEB_Y = 0.03
 # The palm's middle in the hand bone's space (+Y along the fingers, +Z toward the thumb's side).
@@ -89,13 +91,31 @@ STARTS = {
     # The palm faces the magazine's left face; the fingers go round its front, the thumb's side is up.
     "magazine": ([[0, 0, -1], [-1, 0, 0], [0, 1, 0]], [-0.115, -0.07, 0.06], -Z),
 }
-# The moves from the starts that the template ships (metres along the rifle's axes, then degrees about them).
-# The right hand sits 4 cm back and 2 cm up from the start (its index knuckle level with the trigger), turned 20 degrees about the rifle's up axis so the
-# palm bears on the grip's right rear and the web is behind it.
+# The moves from the starts that the template ships, a body (metres along the rifle's axes, then degrees about
+# them). A prototype body's right hand (0.18 and 0.195 m from wrist to fingertip) sits 2 cm forward (the male's longer
+# palm 1.5 cm: at 2 its index knuckle is against the trigger guard and the finger cannot lie straight) and 3 cm up
+# from the start, its web under the receiver's tail behind the grip, turned 10 degrees about the rifle's up axis
+# (the heel of the palm out to the right, where the forearm comes from) and 30 about its left axis: the knuckles
+# cross the grip at a slant, the index finger points up at the receiver's side and the wrist bends 7 to 10
+# degrees. `both` is the Quaternius pair's (0.23 m): 4 cm back and 2 cm up, turned 20 degrees the other way
+# about the up axis; on a prototype hand that place left the palm behind the grip with only the fingers on it
+# and the web 23 mm off, and bent the wrist 68 degrees.
 MOVES = {
-    "right": [0.04, 0.02, 0.0, 0.0, -20.0, 0.0],
-    "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-    "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "female": {
+        "right": [-0.02, 0.03, 0.0, 0.0, 10.0, -30.0],
+        "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    },
+    "male": {
+        "right": [-0.015, 0.03, 0.0, 0.0, 10.0, -30.0],
+        "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    },
+    "both": {
+        "right": [0.04, 0.02, 0.0, 0.0, -20.0, 0.0],
+        "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    },
 }
 ROUNDS = [(0.008, 4.0), (0.004, 2.0), (0.002, 1.0)]
 # How far the opened left hand's fingers are from their place under the hand guard to their rest (straight).
@@ -261,6 +281,10 @@ def finger_cost(placed, finger, angles, mode):
         lie = tip_at - mid_at
         cost += 2.0 * touch[2] + 0.7 * touch[1] + 0.3 * touch[0]
         cost += relu(0.012 - tip_at[:, 2]) + relu(lie[:, 0] + 0.005)
+        if placed.name == "right":
+            # On the grip's left panel, under the receiver: a small hand high on the grip laid its thumb up the
+            # receiver's side, its tip 4 cm above the grip (kit #1187).
+            cost += relu(tip_at[:, 1] - THUMB_TOP) + relu(mid_at[:, 1] - THUMB_TOP)
         cost += 2e-4 * relu(a[:, 5] - 45.0)
     elif mode == "thumb_back":
         # Behind the magazine: on whatever it reaches, nearly straight, and on the near (left, +Z) half: a thumb
@@ -474,7 +498,7 @@ def main():
         if any(argument.startswith("--only=") and argument[7:] != name for argument in sys.argv):
             continue
         placed = Placed(rig, side, gun, sockets, name)
-        params = np.array(option(name, MOVES[name]), float)
+        params = np.array(option(name, MOVES[body][name]), float)
         if "--trigger-only" in sys.argv:
             # Only the finger on the trigger again, on the grip the output file has (its `right_angles`).
             if name != "right":

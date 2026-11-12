@@ -6,21 +6,21 @@
 [sub_resource type="Resource" id="Resource_j7tpy"]
 script = ExtResource("1_ugvyd")
 rotations = Dictionary[StringName, Quaternion]({
-&"index_01_r": Quaternion(0.27345, -0.68139, 0.18897, 0.65209),
-&"index_02_r": Quaternion(0, 0, 0, 1),
+&"index_01_r": Quaternion(-0.16507, -0.7056, 0.04625, 0.68757),
+&"index_02_r": Quaternion(0.01963, 0, 0, 0.99981),
 &"index_03_r": Quaternion(0, 0, 0, 1),
-&"middle_01_r": Quaternion(0.13367, -0.63768, 0.30557, 0.69436),
-&"middle_02_r": Quaternion(0.18652, -0.00028, -0.00149, 0.98245),
-&"middle_03_r": Quaternion(0.12187, 0.00014, 0.00112, 0.99255),
-&"pinky_01_r": Quaternion(0.05799, -0.70057, 0.09592, 0.70472),
-&"pinky_02_r": Quaternion(0.49432, 0.00041, 0.00073, 0.86928),
-&"pinky_03_r": Quaternion(0.33175, -0.0002, -0.00057, 0.94337),
-&"ring_01_r": Quaternion(0.21827, -0.68133, 0.18921, 0.67257),
-&"ring_02_r": Quaternion(0.40674, 0, -1e-05, 0.91355),
-&"ring_03_r": Quaternion(0.31316, 0.00033, 0.00101, 0.9497),
-&"thumb_01_r": Quaternion(-0.49165, 0.7741, 0.3801, -0.12069),
-&"thumb_02_r": Quaternion(-0.11764, -0.00248, 0.02163, 0.99282),
-&"thumb_03_r": Quaternion(0.0874, -3e-05, 0.00054, 0.99617)
+&"middle_01_r": Quaternion(0.38145, -0.47905, 0.52011, 0.59539),
+&"middle_02_r": Quaternion(0.16505, -0.00025, -0.00149, 0.98628),
+&"middle_03_r": Quaternion(0.47332, 0.00053, 0.001, 0.88089),
+&"pinky_01_r": Quaternion(0.0349, -0.6699, 0.22637, 0.70624),
+&"pinky_02_r": Quaternion(0.51877, 0.00043, 0.00071, 0.85491),
+&"pinky_03_r": Quaternion(0.35633, -0.00022, -0.00057, 0.93436),
+&"ring_01_r": Quaternion(0.24451, -0.5929, 0.38533, 0.66348),
+&"ring_02_r": Quaternion(0.47907, -1e-05, -1e-05, 0.87777),
+&"ring_03_r": Quaternion(0.37056, 0.0004, 0.00099, 0.92881),
+&"thumb_01_r": Quaternion(-0.37121, 0.89141, 0.23048, -0.12027),
+&"thumb_02_r": Quaternion(0.50504, -0.12594, -0.20661, 0.82849),
+&"thumb_03_r": Quaternion(0.33404, 0.0001, 0.00053, 0.94256)
 })
 
 [sub_resource type="Resource" id="Resource_akh41"]
@@ -83,15 +83,15 @@ rotations = Dictionary[StringName, Quaternion]({
 [sub_resource type="Resource" id="Resource_1vdqf"]
 script = ExtResource("1_ugvyd")
 rotations = Dictionary[StringName, Quaternion]({
-&"index_01_r": Quaternion(0.2862, -0.70549, 0.04779, 0.6466),
-&"index_02_r": Quaternion(0.28402, 0, 0, 0.95882),
-&"index_03_r": Quaternion(0.18652, 0, 0, 0.98245)
+&"index_01_r": Quaternion(-0.17555, -0.7037, 0.06931, 0.68497),
+&"index_02_r": Quaternion(0.74896, 0, 0, 0.66262),
+&"index_03_r": Quaternion(0.35225, 0, 0, 0.93591)
 })
 
 [resource]
 script = ExtResource("2_qkht1")
 body = "form_male.glb"
-seat = Transform3D(0.3420245, -4.5821407e-06, -0.9396938, -0.902109, -0.27999917, -0.3283416, -0.26311514, 0.96000034, -0.095766306, -0.041772954, 0.10047168, -0.006737429)
+seat = Transform3D(-0.17364737, 2.831222e-06, -0.98480535, -0.9566252, 0.23750849, 0.1686802, 0.23390232, 0.97139055, -0.041243628, -0.040759213, 0.056245085, -0.022368968)
 support_hand = Transform3D(0, -0.6, -0.8, 1, 0, 0, 0, -0.8, 0.6, -0.204, 0.07657, 0.056)
 magazine_hand = Transform3D(0, -1, 0, 0, 0, 1, -1, 0, 0, -0.045, -0.07, 0.03045)
 grip_pose = SubResource("Resource_j7tpy")
