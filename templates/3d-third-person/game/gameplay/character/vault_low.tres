@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="VaultClip" format=3]
+
+[ext_resource type="Script" path="res://addons/gds_game/traversal/vault_clip.gd" id="1_clip"]
+
+[resource]
+script = ExtResource("1_clip")
+lower_from = 0.1875
+lower_by = 0.25
+planted_hands = Dictionary[StringName, Vector3]({
+&"hand_l": Vector3(0.27, 0.036, 0.12)
+})
+hand_release = Dictionary[StringName, float]({
+&"hand_l": 0.375
+})
