@@ -23,10 +23,9 @@ extends Node
 ## building runs in the editor, never the driving (no signals, no `_process`), and the built tree
 ## is taken off the node while the scene is saved, so no `.tscn` holds a generated resource.
 ##
-## It follows the `CharacterModel` too: when the character's model is replaced, it points the
-## `AnimationPlayer` at the new model and builds the tree again, so a swap in the editor needs
-## nothing set by hand (the editor empties the character's Root Node when the node it pointed at is
-## deleted).
+## It follows the `CharacterModel` too: a replaced model gets the `AnimationPlayer` pointed at it
+## and the tree built again, so a swap in the editor needs nothing set by hand (the editor empties
+## the character's Root Node when the node it pointed at is deleted).
 
 ## An action clip started; `clip` is its name.
 signal action_started(clip: StringName)
@@ -178,7 +177,7 @@ const _RELOAD_FADE_OUT := 0.2
 	set(value):
 		interact_clip = value
 		_rebuild()
-## Being hit.
+## Being hit: on the whole body standing, on the upper body crouched, lying or sliding (`HitLayer`).
 @export var hit_clip: StringName = CharacterClips.HIT:
 	set(value):
 		hit_clip = value
@@ -290,8 +289,6 @@ var _action_clip: StringName = &""
 var _action_was_active := false
 var _dead := false
 var _clip_death := false
-var _shot_hold := 0.0
-var _shot_arm := 0.0
 var _pitch_before := 0.0
 var _pitch_now := 0.0
 var _throttled := false
@@ -427,6 +424,7 @@ func _drive(delta: float) -> void:
 	_drive_prone(speed, delta)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
+	HitLayer.follow(tree, active and _action_clip == hit_clip, body_state())
 	if _action_was_active and not active:
 		action_finished.emit(_action_clip)
 	_action_was_active = active
@@ -567,9 +565,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if model == null:
 		warnings.append("Set `model` to the CharacterModel that holds the character.")
 	elif model.rig() != null and not _fits(model.rig()):
-		warnings.append(
-			"The clips name `Armature/Skeleton3D` under the model, and this one has none."
-		)
+		warnings.append("The clips name `Armature/Skeleton3D` under the model; it has none.")
 	return warnings
 
 
@@ -592,9 +588,8 @@ func _watch_hold() -> void:
 		hold.changed.connect(_rebuild)
 
 
-# Builds the tree again from the exports: in the editor so the graph shows the change, and in
-# the game so a clip or a blend time changed while it runs takes effect (the body goes on from the
-# state it was in).
+# Builds the tree again from the exports: in the editor so the graph shows it, and in the game so
+# a clip or a blend time changed while it runs takes effect (the body goes on from its state).
 func _rebuild() -> void:
 	if not is_node_ready() or tree == null or animation_player == null or character == null:
 		return
@@ -650,12 +645,7 @@ func _drive_pistol(delta: float) -> void:
 	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, hidden)
 	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
-	var aim_time := character.tuning.aim_pose_time if character.tuning != null else 0.15
-	_shot_hold = maxf(_shot_hold - delta, 0.0)
-	_shot_arm = move_toward(
-		_shot_arm, 1.0 if _shot_hold > 0.0 else 0.0, delta / maxf(aim_time, 0.001)
-	)
-	var arm := maxf(character.aim_amount, _shot_arm)
+	var arm := _brace.arm(self, delta)
 	tree.set(_P_ARMED, armed)
 	tree.set(_P_AIM, arm * aims)
 	_brace.drive(self, arm * aims, delta)
@@ -666,8 +656,7 @@ func _drive_pistol(delta: float) -> void:
 
 
 # How far up the character looks, in degrees, `fraction` of the way from the step before the last
-# to the last one: the pose moves on every drawn frame although the body is stepped 60 times a
-# second, as the engine does for the body itself.
+# to the last one: the pose moves on every drawn frame, as the engine moves the body itself.
 func _look_up_at(fraction: float) -> float:
 	return rad_to_deg(lerpf(_pitch_before, _pitch_now, clampf(fraction, 0.0, 1.0)))
 
@@ -741,6 +730,7 @@ func _on_interacted(_target: Node3D) -> void:
 
 func _on_hit(_amount: float, _source: Node3D) -> void:
 	play_clip(hit_clip, character.tuning.hit_stun_time)
+	HitLayer.follow(tree, true, body_state())
 
 
 # A vault or a mantle plays its clip over the whole body (`VaultAnimation.start()`).
@@ -762,8 +752,7 @@ func traversal_clip(plan: VaultPlan) -> StringName:
 
 
 func _on_shot(_projectile: Projectile) -> void:
-	_shot_hold = shot_hold_time
-	_shot_arm = maxf(_shot_arm, character.aim_amount)
+	_brace.shot(self)
 	var hold := held_definition()
 	if hold != null and hold.shoot_clips.size() > 1 and _shoot_clip_node != null:
 		# One clip after another shot by shot (a jab, then a cross).
@@ -807,6 +796,7 @@ func _build_root() -> AnimationNodeBlendTree:
 	var action := AnimationNodeOneShot.new()
 	action.fadein_time = action_blend_time
 	action.fadeout_time = action_blend_time
+	HitLayer.prepare(action, _bone_paths([upper_body_bone]))
 	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
 	root.connect_node(_ACTION, 0, _RELOAD)
@@ -890,10 +880,30 @@ func _or_idle(clip: StringName) -> StringName:
 	return clip if clip != &"" else idle_clip
 
 
-# The filter paths of the given bones and every bone below each (`ShotLayer.bone_paths`).
+# The filter paths of the given bones and every bone below each of them, as the clips' tracks name
+# them (`Armature/Skeleton3D:spine_01`); a name the skeleton does not have is left out.
 func _bone_paths(roots: Array) -> Array[NodePath]:
+	var found: Array[NodePath] = []
 	var rig := animation_player.get_node_or_null(animation_player.root_node)
-	return ShotLayer.bone_paths(rig, roots)
+	if rig == null:
+		return found
+	var skeletons := rig.find_children("*", "Skeleton3D", true, false)
+	if skeletons.is_empty():
+		return found
+	var skeleton := skeletons[0] as Skeleton3D
+	var starts := PackedInt32Array()
+	for root: StringName in roots:
+		var start := skeleton.find_bone(root)
+		if start >= 0:
+			starts.append(start)
+	var where := rig.get_path_to(skeleton)
+	for bone in skeleton.get_bone_count():
+		var cursor := bone
+		while cursor >= 0 and not starts.has(cursor):
+			cursor = skeleton.get_bone_parent(cursor)
+		if cursor >= 0:
+			found.append(NodePath("%s:%s" % [where, skeleton.get_bone_name(bone)]))
+	return found
 
 
 func _build_machine() -> AnimationNodeStateMachine:

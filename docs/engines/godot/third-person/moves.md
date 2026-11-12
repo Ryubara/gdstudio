@@ -48,6 +48,15 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the
   pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`), cosmetic and
   never sent.
+- **On the template's bodies.** The clips were solved on the Quaternius female, and the `form` bodies the template
+  wears since kit #1187 play the same file, lower: `tests/gameplay/test_prone_clips.gd` (all four bodies, kit #1286)
+  reads the forearms' skin 33 and 38 mm under the floor on `form_female` (lying and crawling) and 48 and 55 mm on
+  `form_male`, the thighs, knees and feet 15 to 22 mm under lying still, the planted elbows rolling 19 and 32 mm a
+  stride (the feet hold to 2 mm), and the two transitions putting the left shin 17 to 18 mm into the left arm on
+  `form_female` (`prone/bodies_overlap.json`). The arms' angles, the fists and the joins pass on every body. The
+  suite holds those numbers as the `form` bodies' limits until kit #1293 solves the clips on them (as kit #1090
+  does for the Quaternius male); `tools/capture/prone_clips_tour.tscn` films any of the four (`MODEL`, read by
+  `tools/capture/study_body.gd`), and its `PRONE_FISTS` sheet has a row of the legs at the floor.
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
 studios; the template's run is 4.0 m/s and its walk 1.7):

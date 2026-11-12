@@ -206,6 +206,12 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
 - **The build's checks** are the clip's own: loops close, planted joints stay within a millimetre at the clip's speed,
   the lowest vertex by body part, a transition's first and last pose against the poses it joins, and the frozen clip
   list. A rebuild writes the same bytes, so `cmp` proves a script change did not move a clip.
+- **A check that names its bodies poses every body the game wears.** The clip checks were made on the Quaternius
+  pair; since kit #1286 each poses `CharacterBodies.FEMALE` and `MALE` (the prototype `form` bodies) as well, and
+  `limb_overlap.py --brief --json <clips>/bodies_overlap.json` writes each clip's deepest crossing a body with the
+  clip file's SHA-256, which the Godot suites read (`tests/fixtures/bodies_overlap.gd`), so a rebuilt file that was not
+  measured again fails. `test_limb_overlap.py` runs on the `form` bodies by default (`--model` for others). The
+  prototype male's thighs meet by 1.9 mm at rest, which the self-test allows (`REST_MM`, 2.5).
 - **A check that reads a clip file measures every key at the file's own rate.** A glb has key times in seconds and
   no frame rate. `limb_overlap.py`'s command line reads the rate from the key times (`clip_rate()`: the lowest of 24,
   25, 30, 48, 50, 60 and 120 at which every key is a whole frame; `--fps` for a file that fits none), sets the scene
@@ -273,6 +279,14 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   the prone idle's hands 2.5 cm forward put the going-down clip's hands 8 mm out of reach on the frame they land,
   since the transition takes its hand places from the idle. **Seen:** gdstudio #1009, 2026-11-10 (the build's miss
   check caught it; the dive was moved forward).
+- **Approach:** When the bodies a game wears change, run every clip check on the new bodies the same day, on their
+  skinned meshes as well as their bones, and give each failure its own issue with the numbers and a capture.
+  **Watch out for:** the template moved to the prototype bodies (kit #1187) with its prone, vault and limb checks
+  still posing the Quaternius mannequins; on the new bodies the prone forearms lie 3.3 to 5.5 cm in the floor, the
+  vault's planted hand slides 7 to 8 cm and two clips cross 17 to 34 mm, all unseen; the bones-only floor test read
+  -3 cm where the skin was -5.5, and counted the new rig's unanimated sockets and IK bones (1.4 m up) until it kept to
+  the bones the clip keys. **Seen:** gdstudio #1286, 2026-11-11 (fix: the four-body suites, `bodies_overlap.json`;
+  kit #1293, #1294, #1295 for the clips).
 - **Approach:** Judge two hands that touch with both measures and know how they differ: `limb_overlap.py` (Blender,
   every pair of parts both ways, depth to the other part's nearest skin) and the game's `HandContact.measure(side,
   true)` (the hand of `side` against the weapon and the other hand, one way only); measure each side when the hands

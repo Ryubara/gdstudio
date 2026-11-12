@@ -22,7 +22,9 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## enters the tree (the engine's compatibility one, which `find_children` lists), not the walker
 ## the test adds. A character whose skeleton made the pool's sets (the first of a game) kept its
 ## `RagdollDrawing` after handing them over, one node more alone than in the full run (#1210).
-const NODES_ALIVE := 57
+## The prototype body (kit #1187) has 3 more than the Quaternius female it replaced: three meshes
+## (its levels of detail) where she had one, and the `MannequinTwist` modifier.
+const NODES_ALIVE := 60
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120

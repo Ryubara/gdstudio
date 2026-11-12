@@ -5,7 +5,8 @@
 # `ShotRewind`): a shot Ada's screen draws on a running guard's chest hits on the server and on
 # Bo's screen, and one led to where the server will have it misses; with the rewind off it is the
 # other way round. The guard's brain, senses and navigation are never rewound: only the volume
-# the shot meets.
+# the shot meets. A hitscan pistol (`WeaponDef.hitscan`, gdstudio #1252) is met there at once: the
+# shot drawn on the chest hits with no projectile on any peer, and misses with the rewind off.
 extends GdUnitTestSuite
 
 ## Open ground west of the push cubes (`test_net_ai_online.gd`'s), facing north.
@@ -30,15 +31,21 @@ const LEAD_SHARE := 0.7
 ## run (about 6 cm) on average, a send's at worst (the clock's pull moves the drawn tick).
 const MAX_MEAN_GAP := 0.1
 const MAX_WORST_GAP := 0.2
+const PISTOL := "res://gameplay/weapon/pistol.tres"
 
 var _rig: OnlineRig
 var _ada: NetClient
 var _bo: NetClient
 var _aim_point := Callable()
 var _presses: Array[int] = []
+## On: the pistol fires hitscan (the `.tres` every peer of the rig shares) and the aim leads by no
+## flight.
+var _hitscan := false
 
 
 func after_test() -> void:
+	(load(PISTOL) as WeaponDef).hitscan = false
+	_hitscan = false
 	_rig = null
 	_ada = null
 	_bo = null
@@ -69,6 +76,25 @@ func test_at_150_ms_each_way_a_shot_led_to_where_the_server_will_have_the_guard_
 func test_with_the_rewind_off_the_shot_led_to_the_server_hits() -> void:
 	var runner := await _run_guard(0.0)
 	assert_bool(await _shoot(runner, _server_chest.bind(runner))).is_true()
+
+
+func test_at_150_ms_each_way_a_hitscan_shot_drawn_on_the_chest_hits_with_no_projectile() -> void:
+	_hitscan = true
+	var runner := await _run_guard()
+	var bo_hits := [0]
+	_bo.ai_replica.puppet_of(_id_of(runner)).hit_received.connect(
+		func(_record: HitRecord) -> void: bo_hits[0] += 1
+	)
+	assert_bool(await _shoot(runner, _drawn_chest.bind(runner))).is_true()
+	assert_bool(await _rig.until(func() -> bool: return bo_hits[0] > 0, 60)).is_true()
+	# No peer made a projectile for it: the server, Ada's own shot and her puppet on Bo's screen.
+	assert_array(_rig.find_children("*", "Projectile", true, false)).is_empty()
+
+
+func test_with_the_rewind_off_a_hitscan_shot_drawn_on_the_chest_misses() -> void:
+	_hitscan = true
+	var runner := await _run_guard(0.0)
+	assert_bool(await _shoot(runner, _drawn_chest.bind(runner))).is_false()
 
 
 func test_the_drawn_guard_is_where_the_history_has_it_at_the_shots_tick() -> void:
@@ -129,7 +155,7 @@ func _shoot(runner: AiCharacter, aim: Callable) -> bool:
 func _drawn_chest(runner: AiCharacter) -> Vector3:
 	var puppet := _ada.ai_replica.puppet_of(_id_of(runner))
 	var chest := puppet.global_position + Vector3.UP * CHEST
-	var flight := _ada.player.global_position.distance_to(chest) / ROUND_SPEED
+	var flight := 0.0 if _hitscan else _ada.player.global_position.distance_to(chest) / ROUND_SPEED
 	return chest + puppet.velocity * flight * LEAD_SHARE
 
 
@@ -144,6 +170,7 @@ func _server_chest(runner: AiCharacter) -> Vector3:
 # Ada facing the lane, and sends a guard running across it; returns the guard once both screens
 # draw it mid-lane.
 func _run_guard(rewind_seconds := 0.6) -> AiCharacter:
+	(load(PISTOL) as WeaponDef).hitscan = _hitscan
 	_rig = auto_free(OnlineRig.new(false))
 	_rig.delay = DELAY
 	_rig.prepare_server = func(server: NetServer) -> void: server.ai_rewind_seconds = rewind_seconds

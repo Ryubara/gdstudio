@@ -89,9 +89,14 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.
 - **Approach:** When a tour's printed lines are part of the proof (each step's name, a measured number), have the
   scene also write them to a file under the capture folder, or record with `gds godot -- --path <game> --write-movie
-  ...`, which keeps the game's output in the terminal. **Watch out for:** `gds capture frames` keeps Godot's output
+  ...`, which keeps the game's output in the terminal (Godot's
+  `--log-file <path>` after `--` keeps it in a file). **Watch out for:** `gds capture frames` keeps Godot's output
   to itself and shows only its `ERROR` lines, so a tour's `print` step lines never appear and its log cannot be read
-  beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11.
+  beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11; #1037 (PR #1239), 11-11.
+- **Approach:** Run `gds capture frames` on a game made from the template (`gds template test <t> --keep` or `gds
+  template game <t>`), never on the template's own `game/` folder. **Watch out for:** a template's `game/` folder has no
+  GdUnit4 and is not a game one opens (a new game gets its addons and its import when it is made), so a capture pointed
+  at it does not film the game. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11.
 
 - **Approach:** Give `gds capture frames --project` an imported game: for a template, the kept game of `gds template
   test <template> --suite <one suite> --keep` (run from its folder with `--out` into your scratch folder; remove the
@@ -222,6 +227,13 @@ the new one (2 and 0).
   `drawImage` of the GIF saw no frame change at all, since drawing an animated image draws its first frame, and
   headless shell showed the same; a 68-run sweep was stopped at 900 s with its rows printed and its JSON never
   written. **Seen:** gdstudio #1153, 2026-11-11.
+- **Approach:** For a loop of a gait, record whole cycles at 60 fps (the GIF is then an even 20 fps, and a cycle of
+  0.667 s ends on a frame), compare the last frame with the first, and frame the scene in Godot as the GIF should
+  show it. **Watch out for:** cropping the frames to win a wider GIF made every file larger at each width (2.2 MB
+  became 2.8 MB at 640 px), because the encoder scales what is left to the same width and the moving bodies cover
+  more of it: three bodies on a grid floor fit the budget at 480 px either way; and a jump clip that is in place
+  reads as a body standing on one leg until the scene lifts it as the game would. **Seen:** gdstudio #1149,
+  2026-11-11 (`tools/capture/mannequin_parade.gd` of 3D Third Person).
 - **Approach:** Give every file on an `--attach` its own `![name](./<file>)` reference inside `## Screenshots`, a
   video as well as a picture, and write a video's reference in image form alone on its line. **Watch out for:** the
   guard refuses an attached file the section does not refer to, and a bare `./clip.mp4` line or a plain-text name is

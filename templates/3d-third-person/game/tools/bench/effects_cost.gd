@@ -1,7 +1,8 @@
 ## Measures what the effect emitter costs while the pistol fires. The pistol shoots every physics
-## tick it is allowed to, in nine runs (nothing fired; shots with no flash and no impacts; the
-## flash without its light; the flash; flash and impacts; the same two at 30 shots a second; then
-## walking into the room with a probe of its own, and flash and impacts there), and
+## tick it is allowed to, in ten runs (nothing fired; the hitscan pistol with flash, light and
+## impacts, first so it shows what any first shot builds, gdstudio #1297; shots with no flash and no
+## impacts; the flash without its light; the flash; flash and impacts; the same two at 30 shots a
+## second; then walking into the room with a probe of its own, and flash and impacts there), and
 ## for each the frame time, the draw calls, the nodes and the slowest frame are printed on lines
 ## starting `BENCH`. `first_frames_max_ms`, the slowest of the 90 frames before a run is measured,
 ## is the first-use hitch of the first run with a flash (and of the first with its light):
@@ -24,6 +25,14 @@ const MEASURED_FRAMES := 300
 ## impacts are on.
 const RUNS: Array[Dictionary] = [
 	{"name": "idle", "rate": 0.0, "flash": false, "light": false, "impacts": false},
+	{
+		"name": "hitscan_flash_and_impacts_4",
+		"rate": 4.0,
+		"flash": true,
+		"light": true,
+		"impacts": true,
+		"hitscan": true
+	},
 	{"name": "shots_only_4", "rate": 4.0, "flash": false, "light": false, "impacts": false},
 	{"name": "flash_no_light_4", "rate": 4.0, "flash": true, "light": false, "impacts": false},
 	{"name": "flash_4", "rate": 4.0, "flash": true, "light": true, "impacts": false},
@@ -138,6 +147,7 @@ func _next_run() -> void:
 	weapon.definition.muzzle_flash.light_energy = _flash_energy if bool(spec["light"]) else 0.0
 	weapon.definition.impacts = bool(spec["impacts"])
 	weapon.definition.projectile_lifetime = 1.0
+	weapon.definition.hitscan = bool(spec.get("hitscan", false))
 	_emitter.stop_all()
 	_last = Time.get_ticks_usec()
 
