@@ -17,6 +17,7 @@ a branch fresh are in [Landing a pull request](landing.md#landing).
   older commit; `ui: Merge main into x` is not a title the convention knows (only git's own `Merge remote-tracking
   branch ...` is exempt), so the merge stayed uncommitted. **Seen:** Deadnight #987, 2026-11-04; Deadnight #1280,
   2026-11-05; Deadnight, 2026-11-02 (fix: the title checked as a file before the commit).
+  gdstudio #1323, 2026-11-12 (a docs commit title written inline at 74 characters, refused by the hook).
 
 ## The description {#body}
 
@@ -40,8 +41,8 @@ a branch fresh are in [Landing a pull request](landing.md#landing).
   `commits` check matches each commit's `Co-Authored-By` model against that line; a coordinator cherry-picking a Sonnet
   agent's commit, merging main to settle a conflict, or finishing a handed-over branch wrote only one model. A stacked
   pull request carries its base's commits, which `gds pr check-body` does not read (`groundwork.py check-commits` does).
-  **Seen:** gdstudio #207, #208 and Deadnight #553, 11-02 (fix: every model listed, checked before the push); gdstudio
-  #1264 (stacked on #1239), #1311 (stacked on #1172), #1268 and #1254 (a helper's commit), 11-11.
+  **Seen:** gdstudio #207, #208 and Deadnight #553, 2026-11-02 (fix: every model listed, checked before the push);
+  gdstudio #1264 (stacked on #1239), #1311, #1268, #1323 (stacked) and #1254 (a helper's commit), 2026-11-11.
 - **Approach:** Name the model that wrote the commits on the `Model:` line and in each `Co-Authored-By` trailer (`Claude
   Opus 5.5`, `Claude Sonnet 5.5`), never the harness that ran the session or an alias. **Watch out for:** an
   attribution line that names a tool (`Claude Code`) is not a model name; when a machine maps an alias to another
