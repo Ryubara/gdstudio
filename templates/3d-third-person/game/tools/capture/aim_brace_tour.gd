@@ -3,7 +3,8 @@
 ## The crosshair is where the view points, so a pistol that points off it is seen at once.
 ## `AIM_BRACE=0` turns `CharacterAnimation.aim_brace` off (the aim pose then turns with the
 ## pelvis of the legs' clip), `AIM_STANCE=0` turns `aim_stance` off (the idle's weight shift
-## then sways the aim, kit #1206) and `AIM_IDLE=ual1/Idle` plays another idle clip, for the pull
+## then sways the aim, kit #1206), `AIM_IDLE=ual1/Idle` plays another idle clip and
+## `AIM_BODY=male` puts the enemies' body on the player (`CharacterBodies.MALE`), for the pull
 ## request's before and after.
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
@@ -38,10 +39,12 @@ func _ready() -> void:
 		animation.aim_brace = false
 	if OS.get_environment("AIM_STANCE") == "0":
 		animation.aim_stance = false
+	if OS.get_environment("AIM_BODY") == "male":
+		_player.model.variant = load(CharacterBodies.MALE) as PackedScene
 	if OS.get_environment("AIM_IDLE") != "":
 		animation.idle_clip = StringName(OS.get_environment("AIM_IDLE"))
 	print("aim_brace ", animation.aim_brace, " aim_stance ", animation.aim_stance)
-	print("idle ", animation.idle_clip)
+	print("idle ", animation.idle_clip, " body ", _player.model.rig().scene_file_path)
 	var floor_block := (load("res://world/blocks/proto_block.tscn") as PackedScene).instantiate()
 	floor_block.size = Vector3(30.0, 1.0, 60.0)
 	floor_block.position = FLOOR_AT - Vector3(0.0, 0.5, 0.0)
