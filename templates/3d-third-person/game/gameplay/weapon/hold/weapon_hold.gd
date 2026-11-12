@@ -22,7 +22,10 @@ extends Node
 ## - the left hand's one way on and off the weapon (kit #1051): its fingers open where it holds
 ##   (`open_pose`), then the opened hand leaves along `support_way`, and it comes on the same way
 ##   backwards, for the aim and from the magazine alike. `SupportHandPlan` says where on all of
-##   this the hand is now, and holds the reload's phases.
+##   this the hand is now, and holds the reload's phases;
+## - for an action that reaches with the left hand (using a door: the interact clip, kit #1336),
+##   the left hand off the weapon along that same way and back on it after (`FreeHand`), with the
+##   trigger finger off the trigger meanwhile, since the action's clip has the weapon's arm down.
 ##
 ## The skeleton is inside the model's `.glb`, which a scene cannot add nodes to, so the three
 ## modifiers (two `HandPoseModifier`s and a `HoldArm`) are made here, as children of the model's
@@ -101,6 +104,16 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 @export var support_way := Vector3(0.0, 0.0, 0.06)
 ## How far the weapon is aimed: the left hand is on it by this much, and the trigger finger.
 @export_range(0.0, 1.0, 0.01) var aim_weight := 0.0
+
+## How far the left hand is let go for an action that reaches with it (`FreeHand.amount()`: 0 on
+## the weapon as the aim has it, 1 with the clip's arm); from the character's `interacted`, or
+## the caller's for a character posed by hand.
+@export_range(0.0, 1.0, 0.01) var free_weight := 0.0
+## Seconds the left hand takes off the weapon for such an action, and back onto it at its end.
+## An interact also takes the aim down for its time, which lets the hand go a little sooner (the
+## tuning's `aim_pose_time`); these are the times of an action that leaves the aim up.
+@export_range(0.01, 1.0, 0.01, "suffix:s") var free_release_time := 0.2
+@export_range(0.01, 1.0, 0.01, "suffix:s") var free_return_time := 0.12
 
 @export_group("Reload")
 ## The left hand's fingers while the heel of its palm pushes the magazine in.
@@ -206,6 +219,11 @@ var _slide_released := false
 var _slide_locked := false
 # Where the left hand is now: on its way on or off the weapon, at the magazine, with the clip.
 var _left := SupportHandPlan.new()
+# The left hand let go for an action that reaches with it.
+var _free := FreeHand.new()
+# The weapon whose view was looked up last, and the node found (null: not made yet).
+var _view_of: WeaponDef
+var _view: Node
 # The scene's own hold as a fit, kept the first time a model is built, for a model with no fit.
 var _own: HoldFit
 
@@ -213,10 +231,13 @@ var _own: HoldFit
 func _ready() -> void:
 	if model != null:
 		model.rig_changed.connect(_build.unbind(1))
+	if animation != null and animation.character != null:
+		animation.character.interacted.connect(free_hand_for_interact.unbind(1))
 	_build.call_deferred()
 
 
 func _process(delta: float) -> void:
+	_free.step(delta)
 	# The magazine's speed is only wanted where it drops: it is followed through a reload alone
 	# (its place in the world is the skeleton's work to give; kit #1052's cost a character).
 	if reload_weight <= 0.0:
@@ -233,26 +254,44 @@ func _process(delta: float) -> void:
 	refresh()
 
 
+## Lets the left hand go for an action of `seconds` that reaches with it. The character's
+## `interacted` does it by itself.
+func free_hand(seconds: float) -> void:
+	_free.release_time = free_release_time
+	_free.return_time = free_return_time
+	_free.start(seconds)
+
+
+## The character used something: the interact clip reaches with the left hand.
+func free_hand_for_interact() -> void:
+	free_hand(animation.character.tuning.interact_time)
+
+
 ## Puts the weights on the modifiers now (the frame's own `_process` does it too).
 func refresh() -> void:
 	if animation != null and animation.tree != null:
-		var weights := animation.pistol_weights()
+		# The weapon layer's weights are this hold's only with its own weapon in the hands.
+		var mine := _holds_it()
+		var weights := animation.pistol_weights() if mine else Vector2.ZERO
 		held_weight = weights.x
 		# A dead character's tree is off and the ragdoll holds the arms.
 		aim_weight = weights.y if animation.tree.active else 0.0
-		var reload := animation.reload_progress() if animation.tree.active else Vector2.ZERO
+		var playing := mine and animation.tree.active
+		var reload := animation.reload_progress() if playing else Vector2.ZERO
 		reload_weight = reload.x
 		reload_share = reload.y
+		free_weight = _free.amount() if animation.tree.active else 0.0
 	if _grip == null or not is_instance_valid(_grip):
 		return
 	_weigh(_grip, held_weight)
-	# The finger leaves the trigger for the reload.
-	_grip.second_weight = aim_weight * (1.0 - reload_weight)
+	# The finger leaves the trigger for the reload, and while an action's clip has the arm.
+	var aim := minf(aim_weight, 1.0 - FreeHand.gone(free_weight))
+	_grip.second_weight = aim * (1.0 - reload_weight)
 	_grip.swing_bone = carry_arm
 	# The arm comes back in for a reload as for the aim: the reload clip holds the weapon in front of
 	# the body, and swung out the weapon was past the left hand's reach (13 mm on the Quaternius male,
 	# 9 to 29 mm on the prototype bodies at the clip's start and end: kit #1187).
-	_grip.swing_degrees = carry_arm_out * (1.0 - aim_weight) * (1.0 - reload_weight)
+	_grip.swing_degrees = carry_arm_out * (1.0 - aim) * (1.0 - reload_weight)
 	if _arm == null:
 		return
 	_plan_left()
@@ -316,7 +355,28 @@ func _plan_left() -> void:
 	_left.take = reload_take
 	_left.carry_release = carry_release
 	_left.carry_arrive = carry_arrive
-	_left.update(aim_weight, reload_weight if _magazine != null else 0.0, reload_share)
+	# Let go for an action, the hand is no further on the weapon than its way off has it (the
+	# hold's arm has it to the way's far end, `WAY_FROM`) less what the clip's arm has. The lesser
+	# of that and the aim: an action that also takes the aim down (an interact does) lets the
+	# hand go as the aim alone would, and one that leaves the aim up lets it go by itself.
+	var gone := FreeHand.gone(free_weight)
+	var on := lerpf(1.0, SupportHandPlan.WAY_FROM, FreeHand.off(free_weight)) * (1.0 - gone)
+	var reload := reload_weight * (1.0 - gone) if _magazine != null else 0.0
+	_left.update(minf(aim_weight, on), reload, reload_share)
+
+
+# False while the weapon in the hands has a view of its own that is not on this hold's seat (the
+# rifle's `TwoHandHold`): its clips weigh the same weapon layer (kit #1082), and this hold's grip
+# and left arm would close on a weapon that is not there, under the other hold's and through it
+# whenever that one lets a hand go (kit #1336). A weapon with no view keeps this hold.
+func _holds_it() -> bool:
+	var definition := animation.held_definition()
+	if definition == null or definition.view.is_empty() or model == null:
+		return true
+	if definition != _view_of or not is_instance_valid(_view):
+		_view_of = definition
+		_view = model.get_node_or_null(definition.view)
+	return _view == null or _view == seat
 
 
 ## The modifiers this node made on the skeleton now: the grip, then the left arm and fingers.

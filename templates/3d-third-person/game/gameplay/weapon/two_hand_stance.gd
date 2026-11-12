@@ -1,7 +1,8 @@
 extends SkeletonModifier3D
 ## The first of a `TwoHandHold`'s modifiers, made by it at run time. It turns the chest about the
 ## model's up axis, split evenly over the hold's spine bones, until the chest stands at the
-## hold's `chest_turn` from the model's front: the turn the clip of this frame already has is
+## hold's `chest_turn` from the model's front (by `chest_weight()`: not while the left hand is
+## away for an action): the turn the clip of this frame already has is
 ## taken off, so a walk or a run that swings the shoulders leaves the left shoulder forward and
 ## the left hand in reach of the hand guard. The turn goes by the hold's weight (a switch eases it
 ## in and out), and the head is turned back by as much, so it keeps the facing the clip gives it:
@@ -39,7 +40,7 @@ func _turn_chest(skeleton: Skeleton3D) -> void:
 	var bones := hold.spine_indices()
 	if bones.is_empty():
 		return
-	var degrees := (hold.chest_turn - _chest_yaw(skeleton, bones[-1])) * hold.weight()
+	var degrees := (hold.chest_turn - _chest_yaw(skeleton, bones[-1])) * hold.chest_weight()
 	var turn := Basis(Vector3.UP, deg_to_rad(degrees / bones.size()))
 	# The poses come from the local ones up the parents (`HandPoseModifier.global_pose`): asking
 	# the skeleton for a global pose after a bone was set makes it work out every bone under
