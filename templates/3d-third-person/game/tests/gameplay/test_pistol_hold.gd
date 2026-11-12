@@ -77,6 +77,15 @@ const THUMB_AHEAD := 0.03
 const LEFT_HAND_PASSING := 0.0025
 ## The right thumb's tip rests this near the skin of the left thumb's root bone at most, in metres.
 const ON_THUMB_ROOT := 0.012
+## Where the shooting hand's middle finger lies (kit #1213): under the trigger guard, tight up
+## against it. The guard's underside is this high in the pistol, in metres. The grip slants back
+## below the guard, so a finger under it lies behind the guard's rear end along the barrel: only
+## its height and its contact are checked.
+const GUARD_UNDERSIDE := 0.014
+## How far below the guard's underside the middle of that finger's first bone lies at least, in
+## metres: about the finger's half thickness, so the bone is under the guard and not beside it
+## (beside it, as kit #1001's seat had it, the bone's middle is level with the underside).
+const UNDER_GUARD := 0.006
 ## How near the trigger the index finger's tip is while aiming, and how far off it otherwise.
 const ON_TRIGGER := 0.012
 const OFF_TRIGGER := 0.02
@@ -289,6 +298,45 @@ func test_the_right_hand_holds_the_pistol_in_the_locomotion_clips() -> void:
 				stage.pose(clip_name, time, 0.0, grip_clip, bones)
 				await stage.settle()
 				_assert_holds(stage, "r", "%s %s at %.2f" % [model, clip_name, time])
+		stage.free()
+
+
+# The shooting hand's middle finger goes round the front of the grip under the trigger guard, as a
+# grip is taught (kit #1213), in the one-handed and the two-handed clips on both mannequins: the
+# middle of its first bone is below the guard's underside and the finger's skin is on the gun
+# there.
+func test_the_right_middle_finger_lies_under_the_trigger_guard() -> void:
+	var poses: Dictionary[StringName, float] = {
+		CharacterClips.PISTOL_IDLE: 0.0,
+		CharacterClips.PISTOL_AIM: 1.0,
+		CharacterClips.PISTOL_SHOOT: 1.0,
+	}
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		for clip_name: StringName in poses:
+			stage.pose(clip_name, 0.0, poses[clip_name])
+			await stage.settle()
+			var bone := (_in_gun(stage, &"middle_01_r") + _in_gun(stage, &"middle_02_r")) * 0.5
+			var right := stage.contact.measure("r", true)
+			var fails: Array[String] = []
+			if bone.y > GUARD_UNDERSIDE - UNDER_GUARD:
+				fails.append(
+					(
+						"its first bone's middle is %.1f mm up the gun, over %.1f"
+						% [bone.y * 1e3, (GUARD_UNDERSIDE - UNDER_GUARD) * 1e3]
+					)
+				)
+			if right.middle_base.gun > HandContact.MAX_FLOAT:
+				fails.append(
+					"its first bone is %.1f mm off the gun" % (right.middle_base.gun * 1e3)
+				)
+			(
+				assert_array(fails)
+				. override_failure_message(
+					"%s %s, the right middle finger: %s" % [model, clip_name, "; ".join(fails)]
+				)
+				. is_empty()
+			)
 		stage.free()
 
 
