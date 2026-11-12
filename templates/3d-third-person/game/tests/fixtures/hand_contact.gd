@@ -9,7 +9,11 @@ extends RefCounted
 ## that lies over the other one (the support hand of a two-handed grip) is measured against the
 ## other hand's skin too, which is closed pieces as well (a capsule a finger bone, a ball a joint):
 ## inside a piece is an odd number of crossings along most of three rays, never the side of the
-## nearest face, which reads a thumb lying beside the other thumb as 5 mm inside it.
+## nearest face, which reads a thumb lying beside the other thumb as 5 mm inside it. A piece that
+## is open where the hand's skin ends (the palm at the wrist) is closed there first, each ring of
+## open edges joined to its middle: the forearm goes on at the wrist, so what lies in the opening
+## is in the arm, and left open two of the three rays can leave through it (kit #1084: a thumb
+## 2 mm off the other wrist read 19 mm inside the palm once the aim turned the hands up).
 ##
 ## Call `snapshot()` inside the skeleton's `skeleton_updated` signal: only there does
 ## `get_bone_global_pose()` hold what the modifiers (the finger pose, the arm's IK) made of the
@@ -50,6 +54,7 @@ var _surfaces: Array[Dictionary] = []
 var _parts := {"r": {}, "l": {}}
 var _hand_triangles := {"r": PackedInt32Array(), "l": PackedInt32Array()}
 var _hand_pieces := {}
+var _hand_rings := {}
 var _poses: Array[Transform3D] = []
 var _weapon: Node3D
 var _to_weapon := Transform3D.IDENTITY
@@ -487,6 +492,18 @@ func _hand_field(side: String) -> HandSkin:
 		skin.pieces[piece].append(triangle)
 		for corner in corners:
 			skin.bounds[piece] = skin.bounds[piece].expand(corner)
+	# Each open ring closed with a fan to its middle, as part of its piece.
+	for ring: Array in _hand_rings[side]:
+		var rim := PackedVector3Array()
+		var middle := Vector3.ZERO
+		for entry: int in ring[1]:
+			var at := _skinned(list[entry * 2], list[entry * 2 + 1], cache)
+			rim.append(at)
+			middle += at
+		middle /= rim.size()
+		for edge in rim.size() / 2:
+			skin.pieces[ring[0]].append(skin.field.points.size() / 3)
+			skin.field.add(rim[edge * 2], rim[edge * 2 + 1], middle)
 	return skin
 
 
@@ -519,12 +536,46 @@ func _pieces_of(side: String) -> PackedInt32Array:
 			numbers[root] = numbers.size()
 		piece_of.append(numbers[root])
 	_hand_pieces[side] = piece_of
+	_hand_rings[side] = _open_rings(ids, piece_of)
 	return piece_of
 
 
+# The rings of edges that only one triangle has, where a piece is open: [piece, the corners of its
+# edges as indices into the hand's list of vertices, two an edge] each. `ids` is the welded vertex
+# of every corner, `piece_of` the piece of every triangle.
+static func _open_rings(ids: PackedInt32Array, piece_of: PackedInt32Array) -> Array:
+	var users := {}
+	var welded := 0
+	for triangle in ids.size() / 3:
+		for corner in 3:
+			var first := triangle * 3 + corner
+			var second := triangle * 3 + (corner + 1) % 3
+			welded = maxi(welded, ids[first] + 1)
+			var key := Vector2i(mini(ids[first], ids[second]), maxi(ids[first], ids[second]))
+			users[key] = Vector2i(-1, -1) if users.has(key) else Vector2i(first, second)
+	var parent := PackedInt32Array(range(welded))
+	var lone: Array[Vector2i] = []
+	for key: Vector2i in users:
+		var edge: Vector2i = users[key]
+		if edge.x < 0:
+			continue
+		lone.append(edge)
+		var a := _find(parent, key.x)
+		var b := _find(parent, key.y)
+		if a != b:
+			parent[b] = a
+	var rings := {}
+	for edge in lone:
+		var root := _find(parent, ids[edge.x])
+		if not rings.has(root):
+			rings[root] = [piece_of[edge.x / 3], []]
+		(rings[root][1] as Array).append_array([edge.x, edge.y])
+	return rings.values()
+
+
 # The signed distance to a skin: negative inside one of its pieces, by how far it is to that
-# piece's surface. Nothing is deeper in a hand than `_SKIN_DEPTH`. Three rays vote on each piece:
-# the palm's piece is open at the wrist, and one ray may leave through that hole.
+# piece's surface. Nothing is deeper in a hand than `_SKIN_DEPTH`. Three rays vote on each piece,
+# so that one ray along an edge or through a gap in a ring's fan decides nothing.
 func _skin_distance(skin: HandSkin, at: Vector3) -> float:
 	var hit := skin.field.nearest(at)
 	if hit[2] < 0:

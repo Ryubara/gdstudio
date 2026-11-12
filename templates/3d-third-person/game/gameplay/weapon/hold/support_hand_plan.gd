@@ -33,7 +33,9 @@ extends RefCounted
 enum Phase { HELD, LET_GO, AWAY, REACH, INSERT, SEATED, RETURN }
 
 ## How far on the weapon the hand is when the hold's arm has it at the far end of its way:
-## below this the arm reaches there from the clip's place, above it the hand comes in.
+## below `ARM_UNTIL` the arm reaches there from the clip's place, above `WAY_FROM` the hand comes
+## in, and between the two it waits there while the other hand makes room for it (`room`).
+const ARM_UNTIL := 0.3
 const WAY_FROM := 0.6
 ## The share of the way the fingers take to open where the hand holds; the rest is the line.
 const UNHOOK := 0.45
@@ -70,6 +72,11 @@ var down := 0.0
 ## How far the hand is across from the magazine to the way's far end (0 to 1 and it bows out by
 ## `WeaponHold.return_clearance` between).
 var across := 0.0
+## How far the other hand has made room for this one (kit #1084: the right thumb lifts off the
+## frame to lie on the root of the left one). It does so only while the hold's arm has this hand
+## out at the far end of its way or beyond: 0 while the clip's arm has a share of the hand, 1
+## before the hand comes in along its way, and back the same way.
+var room := 0.0
 
 
 ## Works the plan out: `aim` how far the weapon is aimed, `weight` how much of the body the reload
@@ -107,16 +114,19 @@ func update(aim: float, weight: float, share: float) -> void:
 				1.0 - inserted + BACK_DOWN_SHARE * smoothstep(BACK_DOWN.x, BACK_DOWN.y, returned)
 			)
 			if across >= 1.0:
-				# In along the way from its far end.
-				on_reload = lerpf(WAY_FROM, 1.0, smoothstep(BACK_ACROSS.y, 1.0, returned))
+				# At the way's far end: the other hand makes room, then in along the way.
+				on_reload = lerpf(ARM_UNTIL, 1.0, smoothstep(BACK_ACROSS.y, 1.0, returned))
 		on = lerpf(aim, on_reload, weight)
-	arm = maxf(clampf(on / WAY_FROM, 0.0, 1.0), magazine_arm)
+	arm = maxf(clampf(on / ARM_UNTIL, 0.0, 1.0), magazine_arm)
 	var way := 1.0 - clampf(inverse_lerp(WAY_FROM, 1.0, on), 0.0, 1.0)
 	opened = smoothstep(0.0, UNHOOK, way)
 	off = smoothstep(UNHOOK, 1.0, way)
+	room = smoothstep(ARM_UNTIL, WAY_FROM, on)
 	if at_magazine > 0.0:
-		# From the magazine the fingers open as the hand crosses to the way's far end.
+		# From the magazine the fingers open as the hand crosses to the way's far end; the other
+		# hand makes room once it is there.
 		opened = across
+		room = 0.0
 
 
 ## The reload's phase at a share of the reload clip.
