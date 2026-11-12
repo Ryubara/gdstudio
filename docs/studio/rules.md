@@ -149,7 +149,8 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
   section does not exist on `main` yet. **Seen:** gdstudio #1016, 2026-11-10 (its reworked body named
   `tools/blender/animation.md#contacts`, a section it adds; fix: the anchor was taken off `Read first:`), and again
   on 2026-11-11 with `clips.md#vault-clips` (the body was rebuilt from a script that listed what was read, not from
-  the body sent: check each `Read first:` anchor against `git show origin/main:docs/<page>` before sending).
+  the body sent: check each `Read first:` anchor against `git show origin/main:docs/<page>` before sending);
+  gdstudio #1040, 2026-11-11 (`weapon-pickups.md#rifle-hands`).
 
 ## Page size {#size}
 
@@ -176,7 +177,9 @@ Those are the times a learning makes a new page. The check names the page and it
   on the merge result; when the page is over 50 KB, move the branch's own section to a subpage of its subject and leave
   a pointer under the old anchor. **Watch out for:** each side was under the limit, so neither pull request's checks
   saw it; only the merge put `hooks.md` over 50 KB, and the branch could not land. **Seen:** gdstudio #1202, 2026-11-11
-  (the hold section moved to `hooks-hold.md`, a pointer stays at `hooks.md#hold`; the check passed).
+  (the hold section moved to `hooks-hold.md`, a pointer stays at `hooks.md#hold`; the check passed); gdstudio #1298,
+  2026-11-11 (main had `own-animation.md` at 49.8 KB, so the branch's `#audit-bodies` table moved to
+  `body-crossings.md`).
 
 ## Where the entry is named {#named}
 

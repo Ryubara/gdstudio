@@ -145,7 +145,11 @@ real-sized mannequin animated by the Universal Animation Library -->
 
 The 3D Third Person template's pistol (kit #834, `templates/3d-third-person/game/assets/weapons/pistol/`) is
 Deadnight's service pistol on Quaternius's mannequin (1.8 m, a real-sized hand), held in the Universal Animation
-Library's six pistol clips on the `hand_r` bone.
+Library's six pistol clips on the `hand_r` bone. Since kit #1187 the template's characters wear GDStudio's prototype
+bodies (`form_female.glb`, `form_male.glb`, [the bodies](../../engines/godot/third-person/character.md#mannequins)),
+whose hands are a person's size (0.181 m and 0.195 m wrist to fingertip, against the library rig's 0.232 m): the
+hold below is solved on each of them, one body at a time, and the numbers in this section from before that were
+measured on the Quaternius pair.
 
 The two mannequins' skins differ at the fingertips: the female's are weighted up to half to the fingertip leaf bones
 (`index_04_leaf_r` and its like), the male's are not. A hold solver or a contact test that moves or sorts the skin by
@@ -188,6 +192,20 @@ shooting page once that work lands).
   the skeleton from the hands down, but their skins differ by up to 3.3 mm in the same pose (in both directions), so
   the solver measures both skins in every step and presses the nearer one 0.8 mm into the surface; the other is then
   up to 2.5 mm off it. A hold solved on one mannequin put the other 2.7 mm into the grip.
+- **One hold a body** (kit #1187). Two hands of different sizes do not share a pose: the solver takes `--body=female`
+  or `--body=male` (`--body=both` is the old measure of two bodies whose skeletons match from the hands down), and
+  `write_hold.gd -- <hold.json> <body>` writes the female's into the files above and any other body's into one
+  `HoldFit` (`gameplay/weapon/hold/pistol_fit_male.tres`: seat, both markers, `support_way` and the five poses)
+  that `WeaponHold.fits` lists and puts on when the model is that body's file. A smaller hand changes more than
+  the finger angles, on every gun: its straight index finger ends nearer the trigger, its thumb reaches other
+  surfaces, and the place of the whole hand that suited a larger one can leave the palm off the grip (the rifle's
+  did: [the rifle in both hands](../../engines/godot/third-person/weapon-pickups.md#rifle-hands)), so look at each
+  body's close-ups again and do not stop at the contact numbers. The left hand is solved over the right
+  index finger on the trigger and along the frame at once (a reload takes the finger off the trigger while the left
+  hand still holds), the finger along the frame is kept 20 mm from the trigger, and the cupped fingers under the
+  magazine are measured along the magazine's line too, which they ride up and down. On the two bodies: right hand at
+  most 1.2 mm in, holding parts at most 1.0 mm off in the solver; the whole hold suite passes for both
+  (`tests/gameplay/test_pistol_hold.gd`).
 - **The left hand follows the reload** (kit #1031). `Pistol_Reload` (1.67 s, stretched to the weapon's
   `reload_time`) has the left hand on the gun for its first 4 hundredths, down at the left hip for the new magazine at
   a quarter, under the grip from 0.54 to 0.71 and back on the gun from 0.88. After the solved seat moved the pistol
@@ -254,7 +272,7 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
 - **The hold in the game (kit #889)** is not that study's: `TwoHandHold` places the gun from the chest bone, reaches
   each arm with a `HoldArm` and closes the fingers with poses solved on the rifle's own `Grip`, `Trigger` and
   `Support`, as the pistol's are. How it is built, its numbers and what went wrong on the way:
-  [The rifle in both hands](../../engines/godot/third-person/shooting.md#rifle-hands).
+  [The rifle in both hands](../../engines/godot/third-person/weapon-pickups.md#rifle-hands).
 
 - **Approach:** Measure the left arm's reach to the `Support` in the pose the game will hold before keeping a support
   copied from another rig's model: shoulder to the hand's target against the arm's length, with the chest turn the hold

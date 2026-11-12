@@ -77,6 +77,10 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
   clear called all nine agents running and left the handover unmentioned until the maintainer asked, by which point
   the agent had reached 527k. A project with no `agents` poller in `.claude/tether.json` gets no repeat wake.
   **Seen:** gdstudio #887, 2026-11-10 (fix: the kit checkout's ignored `.claude/tether.json` declares the poller).
+- **Approach:** Build each status's list of what is running from `ListAgents` and each pull request's state at the time
+  of writing, never by carrying the last message's list forward. **Watch out for:** after a clear, every status ended
+  with a running list copied from the handoff, with a vague tail of other agents and pull requests already merged,
+  while five agents were live; the maintainer counted them. **Seen:** gdstudio coordinator, 2026-11-11.
 - **Approach:** When a guard keeps its own record of what is live, check it against what the harness itself reports
   (a hook input's `background_tasks`, a clear) and let the harness win when its report is newer. **Watch out for:**
   Tether learned that a subagent's background task ended only from its notification or a TaskStop answer. A `/clear`

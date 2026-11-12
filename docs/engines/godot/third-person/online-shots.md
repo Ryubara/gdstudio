@@ -48,6 +48,16 @@ template](../third-person-template.md); the bytes are [the template's packets](.
   it is now. Only the volume is rewound, never the AI's brain, senses or navigation
   ([the AI online: a shot meets the AI where its shooter drew it](ai-online.md#rewind)).
 
+- **A hitscan weapon** (`WeaponDef.hitscan`, #1252) is the cheapest shot on the wire: the server fires the ray in the
+  body's step, meets the AI where the shooter drew it at once and sends the same `SHOT` and `HIT` in the same TICK
+  (30 bytes to each other player); no peer makes a projectile, and every TICK is still exactly its header, players,
+  props and events (`test_net_hitscan.gd`, `test_net_ai_rewind.gd`'s hitscan cases). A puppet's hitscan shot is its
+  flash and sound; the shooter's impact comes with the server's HIT
+  ([the costs](shooting.md#weapons)). With a `WeaponDef.tracer` (#1270) each screen draws the streak from what it
+  has, never sent: the shooter's own from its ray, a puppet's from its muzzle along the SHOT's heading, ended at the
+  HIT that lies on the server's ray (`ClientCombat._end_tracer`; the server sends that HIT before the SHOT in the same
+  TICK, since the ray hits inside the step that fires it).
+
 What each screen makes itself (`ClientCombat`), never sent: the shooter's own flash, sound, recoil and round at once
 (its weapon is cosmetic: `authoritative` off, the round stops at its first contact and changes nothing); a puppet's
 shot from its own muzzle along the event's heading with the weapon the event names (`Weapon.fire_cosmetic`,
@@ -61,6 +71,11 @@ shot leaves where the puppet is drawn and its hit lands as the round gets there.
 (`PlayerPuppet.place`); a ragdoll that falls out of the map waits for the server's `REVIVED`. A HIT near this screen's camera
 shakes it (`NearHitShake` on the rig, from the impact; [the near-hit shake](../camera.md#shake-component), #1068).
 
+- **Approach:** Match a hitscan shot's SHOT and HIT by geometry within one frame's events (the HIT that lies on the
+  SHOT's ray, kept from the HITs played that frame), never by their order. **Watch out for:** the server's ray hits
+  inside the body's step and the `fired` signal comes after it, so the HIT is ahead of its SHOT in the TICK; a
+  puppet's tracer ended by the HIT as a projectile is (`_stop_cosmetic_at`) found no streak yet and ran to its own
+  ray's end, on the floor 1 m past the board it hit. **Seen:** gdstudio #1270, 2026-11-11 (`test_tracer_online.gd`).
 - **Approach:** Name a thing a client must find again by its place among its kind in the same viewport
   (`get_viewport() ==`), and find a level's one-of-a-kind node (`Impacts`, `EffectEmitter`) the same way, whenever one
   process can hold several maps (the online tests and the side-by-side capture hold three). **Watch out for:** the

@@ -27,7 +27,8 @@ The template has a character and the map's components:
   and the empty hands, and a `Target` falls over when its `Health` runs out. They work with any model: a definition
   names the model node it shows and its muzzle marker under the character's `Model` slot. `rifle.tres` is the
   automatic hitscan rifle; `TwoHandHold` (`two_hand_hold.tscn`, the rifle's `rifle_held.tscn`) holds a long gun with
-  both hands where the clips have no pose for it: a stance, an arm reach and solved fingers per hand, a reload for
+  both hands where the clips have no pose for it: a stance, an arm reach and solved fingers per hand (solved for each
+  body: `fits` holds a `HoldFit` for a body other than the scene's own, as the pistol's hold does), a reload for
   the left hand and a switch that never shows the gun without the hands on it. `WeaponLoadout.give()` adds a weapon
   at run time.
 - `hit_zones/`: `HitZones` (a body on the Hit Zones layer holding the `HitZone` shapes, eleven body parts that follow

@@ -13,6 +13,30 @@ checked before its first run.
 <!-- new section: the studio pages cover hooks, issues and the workspace; nothing held how CI and deploys run on the
 default branch -->
 
+**No pull request lands on a red main, auto-merge included.** While a `CI failing on the default branch` issue is open
+([Merging on a red main](hooks-red-main.md#red-main)), the `main-green` check fails on every open pull request but the fix
+forward, whose body closes one of those issues by a closing keyword (`Fixes #N`); the `Main` ruleset requires it from
+GitHub Actions (`merge.red_main` in `.github/conventions.yml`), so no route merges past it, not even auto-merge turned
+on earlier. Two workflows give it:
+
+- `.github/workflows/main-green.yml` runs on each pull request event (`pull_request_target`: opened, reopened,
+  synchronize, edited) and reads the open issues and the body when it runs. A body edited to add `Fixes #N` re-runs it.
+- `.github/workflows/main-green-sweep.yml` writes the check again on every open pull request into `main`, through the
+  Checks API, when a red issue changes: `ci-failure.yml` dispatches it right after filing the issue (an issue filed with
+  a workflow's token starts no `issues` workflow), and closing, reopening, renaming or deleting one starts it as an
+  `issues` event. It first waits for `main-green` runs still going, so one that read the issues before the change cannot
+  put the old answer back. Run it by hand (`gh workflow run main-green-sweep.yml`) after the ruleset first requires the
+  check, so open pull requests do not wait on a check that never ran, or after an outage that dropped events.
+
+A pull request therefore merges once the issue closes, with no push: its auto-merge stays on and lands when the sweep turns
+`main-green` green. `main-green` stays out of `merge.required_checks`, so `pr-status` does not call a red main the pull
+request's failure. Tests: `python/tests/test_main_green.py` (the steps run under bash against a fake `gh`).
+
+- **Approach:** Stop a merge that must not happen with a check the ruleset requires, not only with a guard on the merge
+  command: auto-merge turned on before main went red merges with no command at all. **Watch out for:** #1276 had
+  auto-merge on, went green and landed while #1279 (main red) was open; the hook guard of #1241 refuses `gh pr merge`
+  and the merge API, never a merge GitHub makes by itself. **Seen:** gdstudio #1302, 2026-11-11 (fix: the required
+  `main-green` check and its sweep).
 - **Approach:** Use `cancel-in-progress` for pull requests only; every run on the default branch finishes. **Watch out
   for:** main's CI cancelled its run when the next merge landed, so four of five merges in three minutes were never
   checked. **Seen:** Deadnight #290, 2026-11-01 (fix: the evening review found it (Deadnight #290) and Deadnight #296
@@ -20,6 +44,14 @@ default branch -->
   for `main` too: 4 of the last 30 runs on `main` were cancelled; fix: the group is the commit for a push, and
   `test_workflow_concurrency.py` fails any workflow that runs on `main` and can cancel there, unless a
   `# cancels-on-main:` comment gives the reason, as `docs.yml` does: a cancelled site build is replaced by the next).
+- **Approach:** Read a green head as checked against the main it was built on: before landing one whose base is older
+  than main, merge main in when main has changed a file the pull request also changes, even where the merge is clean,
+  and push once. **Watch out for:** #1250 added two cases to `test_ai_spawner.gd` and landed; #1243's green head,
+  built before that, added one more and auto-merged 24 minutes later, so the suite reached 21 public methods and
+  main's gdlint failed though neither pull request had. Auto-merge never merges main in, so a pull request with it on
+  needs the same refresh by hand when main changes one of its files. **Seen:** gdstudio #1279, 2026-11-11 (fix: the
+  suite split in two); gdstudio #1312, 2026-11-11: #1296 auto-merged on a head built before #1239 and
+  `character_animation.gd` reached 1001 lines (fix: a comment reflowed; the split is #1287).
 - **Approach:** When a job can skip itself, work out how often it skips at the real run time and merge rate and give a
   recurring skip a signal; deploy any green commit newer than the live one, and read the live commit after a merge
   someone waits on. **Watch out for:** deploy jobs skipped unless their commit was still main's head; CI took 10 to 25
@@ -95,6 +127,15 @@ they are rerun, replayed or read from another branch -->
   commit is the retry" came from one case. The site stays up on the last good deploy, so a red `docs` run costs stale
   pages, not an outage. **Seen:** gdstudio #758 and #763, Deadnight #1358 and #1364, 2026-11-06 (fix: none in code; the
   cause was not found).
+- **Approach:** To clear runs stuck in the queue after an Actions outage, pick each one by its own state and jobs
+  (`status` queued and no job started, from `actions/runs/<id>/jobs`), never by `created_at`; a run that the API calls
+  completed while it shows queued takes no cancel, so a new commit on its branch (a merge of `main`) is the retry.
+  **Watch out for:** a rerun keeps the original run's `created_at`, so a sweep of "queued since before 20:40" cancelled
+  two live reruns (#1040's test job 14 minutes in, and #1239's capture rerun) and could not touch the seven stuck runs
+  it was meant for. **Seen:** gdstudio #1040, #1239 and #1245, 2026-11-11.
+- **Approach:** When a run fails uploading an artifact while GitHub reports an Actions incident, wait until its status
+  page shows Actions operational, then rerun once. **Watch out for:** a rerun during the outage failed at the same
+  upload step, spending a run and the branch's slot for nothing. **Seen:** gdstudio #1040, 2026-11-11.
 
 ## Time limits and shards {#shards}
 

@@ -19,6 +19,7 @@ const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
 const LIBRARIES: Dictionary[StringName, String] = {
 	&"ual1": "res://assets/animation/universal/ual1.glb",
 	&"ual2": "res://assets/animation/universal/ual2.glb",
+	&"gds": "res://assets/animation/own/locomotion.glb",
 }
 
 var skeleton: Skeleton3D
@@ -174,8 +175,7 @@ func _globals() -> Array[Transform3D]:
 
 
 func _collect_body() -> void:
-	for node in rig.find_children("*", "MeshInstance3D", true, false):
-		var instance := node as MeshInstance3D
+	for instance in CharacterBodies.near_meshes(rig):
 		var skin := instance.skin
 		if skin == null or instance.mesh == null:
 			continue

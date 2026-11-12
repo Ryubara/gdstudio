@@ -1,7 +1,7 @@
 class_name ShotLayer
 extends RefCounted
 ## The part of `CharacterAnimation`'s weapon layer that plays a shot's clip, either over the pose
-## under it (a punch, the pistol's shot) or added to it (`WeaponDef.shoot_additive`, the rifle's
+## under it (a punch) or added to it (`WeaponDef.shoot_additive`, the pistol's and the rifle's
 ## recoil): added, the clip counts as its difference from its own first frame, which is the aim
 ## pose it was made on, so the same recoil rocks the body wherever the character aims.
 

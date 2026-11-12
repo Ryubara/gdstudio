@@ -126,3 +126,13 @@ says where it was learned (Deadnight, the first game).
   presses' branch held bits 11 to 14, so the two were settled only at the merge; after them no flag bit is free.
   **Seen:** gdstudio #1012 (PR #1021) and #887, 2026-11-10
   ([the template's packets](../engines/godot/multiplayer.md#template-packets)).
+- **Approach:** When you raise the protocol version, search the tests for the old number pinned as a literal
+  (`grep -rn "is_equal(<old>)" tests`, the join suite's refusal case) and change it with the bump, before the full
+  suite. **Watch out for:** the codec and wire suites read `NetWire.VERSION` and stay green, so the net suites run
+  while working passed and only the full template run failed, on `test_net_server_join.gd`'s pinned 6. **Seen:**
+  gdstudio #1277, 2026-11-11 (PR #1300).
+- **Approach:** A test that checks a packet's exact size sums the codec's own sizes per item
+  (`SnapshotCodec.player_size(entry)`, `event_size(event)`), never a count times a fixed constant, so a layout change
+  on main moves the expected number with it. **Watch out for:** the hitscan suite counted `PLAYER_SIZE` for every
+  player; once main gave an aiming entry an aim byte, every TICK it checked was one byte over and both cases failed
+  only after the branch merged main. **Seen:** gdstudio #1252, 2026-11-11 (PR #1269, after #1300).

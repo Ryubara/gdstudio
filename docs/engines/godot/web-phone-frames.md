@@ -60,6 +60,10 @@ Chrome has two knobs and each hides what the other shows:
   vertex and pixel on the CPU, nearer to a weak phone or an integrated chip: an outline of 3 zombies (51 extra draw
   calls) moved a 40-zombie frame from 2.66 to 2.62 ms in Chrome with a GPU and from 199 to 239 ms on SwiftShader.
   **Seen:** Deadnight #580, 2026-11-02 (fix: `outline_cost.py --gl gpu` and `--gl software` are both reported).
+- **Approach:** Turn vsync and the frame cap off on the SwiftShader page as on the GPU one (`--disable-gpu-vsync
+  --disable-frame-rate-limit`), and read every `requestAnimationFrame` delta. **Watch out for:** without them Chrome on
+  SwiftShader snaps each page frame to whole vsyncs, so the deltas come in steps of a vsync and hide the page's own
+  work. **Seen:** gdstudio #1186 (PR #1268), 2026-11-11 (`mannequin_draw_bench.py`).
 
 ## Fewer draw calls is not a faster CPU-bound frame (Deadnight #728) {#draw-calls-cpu-bound}
 
