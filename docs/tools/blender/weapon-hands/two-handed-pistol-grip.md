@@ -60,15 +60,16 @@ own, and both hands, the rack's hand on the slide among them, were solved again 
 
 What the rig cannot do, and where it differs from the taught grip:
 
-- **On the male body the trigger finger grazes the inside of the guard's front strut as it swings in** (on kit
-  #1213's seat, swept at every hundredth of its way: 1.9 mm deep at 0.68, over 1 mm from 0.66 to 0.80, the last
-  bone's tip on the strut's inner face near its lower corner). On the female body the way no longer touches the
-  guard (0.1 mm at most; 0.75 mm on the trigger itself, at the way's end). Half-way the finger is drawn out to the
-  gun's right side, its middle bone 7 mm (female) and 16 mm (male) off the frame. Against the left hand it is never
-  more than 0.4 mm in (male, at the frame end of the way). On kit #1001's seat the graze was 1.4 mm (female) and
-  2.2 mm (male) from 0.69 to 0.81 of the way (kit #1273); on the earlier bodies the solved way crossed the strut whole
-  (3.7 mm, the most a point can read inside that 8 mm bar), and moving the strut 6, 12 and 18 mm forward did not
-  clear it (kit #1212); the guard is unchanged.
+- **Two-handed, on the male body the trigger finger grazes the inside of the guard's front strut as it swings in** (on
+  kit #1213's seat, swept at every hundredth of its way: 1.9 mm deep at 0.68, over 1 mm from 0.66 to 0.80, the last
+  bone's tip on the strut's inner face near its lower corner). On the female body the way no longer touches the guard
+  (0.1 mm at most until 0.95, then 0.6 to 0.75 mm on the trigger itself as it arrives). Half-way the finger is drawn out
+  to the gun's right side, its middle bone 7 mm (female) and 16 mm (male) off the frame. Against the left hand it is
+  never more than 0.4 mm in (male, at the frame end of the way). One-handed the finger has a way of its own
+  ([one-handed](../../../engines/godot/third-person/one-handed.md#one-handed)). On kit #1001's seat the graze was 1.4 mm
+  (female) and 2.2 mm (male) from 0.69 to 0.81 of the way (kit #1273); on the earlier bodies the solved way crossed the
+  strut whole (3.7 mm, the most a point can read inside that 8 mm bar), and moving the strut 6, 12 and 18 mm forward did
+  not clear it (kit #1212); the guard is unchanged.
 
 **Poses set by hand** (kit #1084, on the prototype bodies of kit #1187). Where the solver's search ended in a pose
 that passed no test or did not read as a hand, the finger's angles are set by hand in
