@@ -17,7 +17,18 @@
 ## `OWN_TYPE=<type>` picks the clip type (default `idle`) and `OWN_SLOT=<export>` the
 ## `CharacterAnimation` export the variants are played through (default `idle_clip`).
 ## `OWN_ONLY=<clip>` (`Idle_A`, or `Library`) films part 2 for that one clip and nothing else:
-## nine seconds, short enough for a GIF.
+## nine seconds, short enough for a GIF. `OWN_ONLY=Shipped` films the clip the game ships in the
+## slot (`gds/Crouch_Walk`), which is not always a variant's bytes: a clip that is carried like
+## another is built on the variant picked for that one.
+## `OWN_CROUCH=1` holds the crouch button through part 2, for the crouch clips (gdstudio #1160).
+## `OWN_SLOT=none` is for a clip type the tree has no export for yet (the stance changes, until
+## gdstudio #1158): only part 1 is filmed, with no library body, and a clip that plays once is
+## played again every two seconds. `OWN_FROM=<clip>` (`gds/Idle`) holds each body on that clip's
+## first pose between two plays, so a stance change is seen leaving the pose it joins.
+## `OWN_PLAYER=<clip>` (`gds/Crouch_To_Stand`) films a shipped clip the tree does not play yet on
+## the real player, from the game's own camera and nothing else: the tree is off, the body rests
+## on `OWN_FROM`'s first pose, plays the clip and goes on into `OWN_INTO` (`gds/Idle`), every
+## three seconds, five seconds from behind and five from the front.
 ## A gait is filmed moving (kit #1155): `OWN_HOLD=<action>` is held with `move_forward` (`walk`
 ## for the walk, `sprint` for the sprint, nothing for the jog) and `OWN_MOVE=<seconds>` is how
 ## long it moves for (default 1.5; the walk wants 4; a run reaches the far wall, so the jog
@@ -44,6 +55,9 @@ const STAND := 3.0
 const WALK := 1.5
 const SETTLE := 2.0
 const FRONT := 2.5
+## `OWN_PLAYER`: seconds between two plays, and the rest on the pose the clip leaves.
+const PLAYER_EVERY := 3.0
+const PLAYER_REST := 0.8
 
 var _clips: Array[StringName] = []
 var _library: AnimationLibrary
@@ -52,7 +66,7 @@ var _hold := &""
 var _move := WALK
 var _ahead := 0.0
 var _way := Vector3.ZERO
-var _from := Vector3.ZERO
+var _start := Vector3.ZERO
 var _row: Node3D
 var _row_camera: Camera3D
 var _body := CharacterBodies.FEMALE
@@ -60,6 +74,12 @@ var _label: Label
 var _clock := 0.0
 var _part := 0
 var _turn := -1
+var _crouch := false
+var _row_players: Array[AnimationPlayer] = []
+var _from := &""
+var _replayed := 0.0
+var _shown := &""
+var _into := &""
 
 @onready var _rig: PlayerRig = $Main/PlayerRig
 
@@ -77,8 +97,11 @@ func _ready() -> void:
 	for clip in _library.get_animation_list():
 		_clips.append(StringName("review/" + clip))
 	_clips.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
-	var replaced: StringName = _rig.player.get_node("Animation").get(_slot)
-	_clips.append(CharacterClips.stand_in(replaced))
+	_crouch = OS.get_environment("OWN_CROUCH") != ""
+	_from = StringName(OS.get_environment("OWN_FROM"))
+	if _slot != &"none":
+		var replaced: StringName = _rig.player.get_node("Animation").get(_slot)
+		_clips.append(CharacterClips.stand_in(replaced))
 	_rig.player.get_node("AnimationPlayer").add_animation_library(&"review", _library)
 	_pick_row(OS.get_environment("OWN_BEFORE"), OS.get_environment("OWN_ROW"))
 	var layer := CanvasLayer.new()
@@ -88,8 +111,18 @@ func _ready() -> void:
 	_label.add_theme_font_size_override(&"font_size", 34)
 	layer.add_child(_label)
 	var only := OS.get_environment("OWN_ONLY")
-	if only != "":
+	_shown = StringName(OS.get_environment("OWN_PLAYER"))
+	_into = StringName(OS.get_environment("OWN_INTO"))
+	if _shown != &"":
+		(_rig.player.get_node("AnimationTree") as AnimationTree).active = false
+		_label.text = "shipped %s, from the game's camera" % _shown
+		_replayed = -PLAYER_EVERY
+		_part = 2
+	elif only != "":
 		var wanted := _clips[-1] if only == "Library" else StringName("review/" + only)
+		if only == "Shipped":
+			wanted = _rig.player.get_node("Animation").get(_slot)
+			_clips.append(wanted)
 		assert(_clips.has(wanted), "no clip %s in the review file" % only)
 		_clips = [wanted]
 		_part = 1
@@ -101,8 +134,10 @@ func _physics_process(delta: float) -> void:
 	_clock += delta
 	if _part == 0:
 		_film_row()
-	else:
+	elif _part == 1:
 		_film_player()
+	else:
+		_film_shipped()
 
 
 # Part 1: the row, from behind and then from the front.
@@ -116,13 +151,44 @@ func _film_row() -> void:
 	_label.text = (
 		"side by side, from %s" % ["the front" if front else "behind, as the game sees them"]
 	)
+	_replay_row()
 	if _clock >= 2.0 * ROW_SECONDS:
+		if _slot == &"none":
+			_finish()
+			return
+		_row_players.clear()
 		_row.queue_free()
 		_row = null
 		_rig.player.visible = true
 		_rig.camera_rig.camera.make_current()
 		_part = 1
 		_clock = 0.0
+
+
+# A clip that plays once is played again every two seconds, after a rest on the pose it leaves.
+func _replay_row() -> void:
+	if _clock - _replayed < 2.0:
+		return
+	_replayed = _clock
+	for i in _row_players.size():
+		var clip := _clips[i]
+		var player := _row_players[i]
+		if player.get_animation(clip).loop_mode != Animation.LOOP_NONE:
+			continue
+		if _from != &"":
+			player.play(_from)
+			player.seek(0.0, true)
+			player.pause()
+			_play_later(player, clip)
+		else:
+			player.play(clip)
+			player.seek(0.0, true)
+
+
+func _play_later(player: AnimationPlayer, clip: StringName) -> void:
+	await get_tree().create_timer(0.5, false, true).timeout
+	if is_instance_valid(player):
+		player.play(clip)
 
 
 # Part 2: the real player, one variant at a time, the same input for each.
@@ -139,11 +205,13 @@ func _film_player() -> void:
 		if _way == Vector3.ZERO:
 			var way := -_rig.camera_rig.camera.global_basis.z
 			_way = Vector3(way.x, 0.0, way.z).normalized()
-			_from = _rig.player.global_position + _way * _ahead
+			_start = _rig.player.global_position + _way * _ahead
 		if turn > 0 or _ahead > 0.0:
-			_rig.player.teleport(_from, atan2(_way.x, _way.z))
+			_rig.player.teleport(_start, atan2(_way.x, _way.z))
 		_rig.player.get_node("Animation").set(_slot, _clips[turn])
 		_label.text = _name_of(_clips[turn])
+	if _crouch:
+		Input.action_press(&"crouch")
 	var at := fmod(_clock, length)
 	var moving := at >= STAND and at < STAND + _move
 	for action: StringName in [&"move_forward", _hold]:
@@ -154,6 +222,26 @@ func _film_player() -> void:
 		else:
 			Input.action_release(action)
 	_face(180.0 if at >= STAND + _move + SETTLE else 0.0)
+
+
+# `OWN_PLAYER`: the shipped clip on the real player with the tree off, from the game's camera.
+func _film_shipped() -> void:
+	_face(180.0 if _clock >= ROW_SECONDS else 0.0)
+	if _clock >= 2.0 * ROW_SECONDS:
+		_finish()
+		return
+	if _clock - _replayed < PLAYER_EVERY:
+		return
+	_replayed = _clock
+	var player: AnimationPlayer = _rig.player.get_node("AnimationPlayer")
+	if _from != &"":
+		player.play(_from)
+		player.seek(0.0, true)
+		player.pause()
+	await get_tree().create_timer(PLAYER_REST, false, true).timeout
+	player.play(_shown)
+	if _into != &"":
+		player.queue(_into)
 
 
 func _build_row() -> void:
@@ -172,10 +260,12 @@ func _build_row() -> void:
 		for library in source.get_animation_library_list():
 			player.add_animation_library(library, source.get_animation_library(library))
 		player.play(_clips[i])
+		_row_players.append(player)
 		var name_plate := Label3D.new()
 		name_plate.text = _name_of(_clips[i])
 		name_plate.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		name_plate.font_size = 48 if _clips.size() > 3 else 34
+		var short := name_plate.text.length() <= 12
+		name_plate.font_size = 26 if not short else (48 if _clips.size() > 3 else 34)
 		name_plate.pixel_size = 0.004
 		name_plate.no_depth_test = true
 		name_plate.position = body.position + Vector3(0, 2.0, 0)
@@ -210,7 +300,9 @@ func _name_of(clip: StringName) -> String:
 	var text := String(clip)
 	if text.begins_with("before/"):
 		return "before: %s" % text.trim_prefix("before/")
-	return text.trim_prefix("review/") if text.begins_with("review/") else "library %s" % text
+	if text.begins_with("review/"):
+		return text.trim_prefix("review/")
+	return ("shipped %s" if text.begins_with("gds/") else "library %s") % text
 
 
 # Reads a clip file the game does not import: the clips of a glb as a library, a `_Loop` clip
@@ -245,6 +337,7 @@ func _face(yaw: float) -> void:
 func _finish() -> void:
 	set_physics_process(false)
 	Input.action_release(&"move_forward")
+	Input.action_release(&"crouch")
 	if _hold != &"":
 		Input.action_release(_hold)
 	AudioSettings.stop_players(get_tree().root)

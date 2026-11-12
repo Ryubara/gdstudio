@@ -1,6 +1,6 @@
 {
  "clips_file": "prone_male.glb",
- "sha256": "6ae252861750e0bfb19ced495889596c049ef1ba1bfb5f690b0323414b86dfd1",
+ "sha256": "e7a8d788ca642ffff5004c2718383a9df094521d0f2ddf5d60ae082676c83a12",
  "fps": 30,
  "limit_mm": 5.0,
  "clips": {
@@ -27,9 +27,9 @@
   },
   "Prone_To_Crouch": {
    "mannequin_male": {
-    "deepest_mm": 0.1,
-    "frame": 19,
-    "pair": "thigh_l in upperarm_l"
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
    }
   }
  }

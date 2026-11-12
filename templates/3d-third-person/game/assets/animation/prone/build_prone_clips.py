@@ -3,15 +3,16 @@
 GDStudio's own animation, made from nothing on the Quaternius universal rig (CC0), one file a mannequin: `prone.glb`
 on the female's skeleton and skin and `prone_male.glb` on the male's (kit #1090; `BODIES` holds what differs), because the Universal Animation Library has no prone or crawl clip. Every frame is solved by this script from a few
 targets (where the pelvis lies, how the spine arches, where an elbow, a hand and a foot rest on the ground) and keyed
-on the armature in Blender; nothing is copied from another game's or pack's motion. The only pose read from the
-library is frame 0 of `Crouch_Idle_Loop`, where the two transitions have to start and end.
+on the armature in Blender; nothing is copied from another game's or pack's motion. The only pose read from
+another file is frame 0 of `Crouch_Idle_Loop`, where the two transitions have to start and end: GDStudio's own
+crouch idle (`../own/locomotion.glb`, kit #1160), given as `--library`.
 
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute:
 
     blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --other <mannequin_male.glb>
-        --library <ual1.glb> --out <prone.glb> [--report <numbers.json>]
+        --library <own/locomotion.glb> --out <prone.glb> [--report <numbers.json>]
     blender -b --factory-startup -P build_prone_clips.py -- --body male --model <mannequin_male.glb>
-        --other <mannequin_female.glb> --library <ual1.glb> --out <prone_male.glb> [--report <numbers.json>]
+        --other <mannequin_female.glb> --library <own/locomotion.glb> --out <prone_male.glb> [--report <numbers.json>]
 
 Axes: Blender's, 1 unit = 1 m, up +Z, the mannequin faces -Y (Godot's +Z) with its left at +X. The clips are in place
 (the game moves the body) at 30 frames a second, the library's rate. The build fails before it exports when a loop
@@ -121,13 +122,14 @@ OVERLAP_LIMIT = 5.0  # millimetres a part of the body may be inside another (`..
 # Coming up, where each hand and elbow wait beside the place they have in the crouch (forward, out to their own side
 # and up, in metres) while the knee comes forward under them.
 HAND_WAIT = {
-    "l": ((0.0, 0.22, 0.10), (-0.05, 0.24, 0.10)),
-    "r": ((0.0, 0.06, 0.04), (-0.03, 0.08, 0.04)),
+    "l": ((0.0, 0.30, 0.10), (-0.05, 0.34, 0.10)),
+    "r": ((0.0, 0.18, 0.08), (-0.04, 0.20, 0.08)),
 }
 HAND_WAIT_FRAMES = {
     "l": (13, 19, 26),
     "r": (14, 19, 25),
 }  # the hand leaves the floor, waits, takes its place
+STEP_LIFT = 0.13  # metres the right ankle is lifted half way between the crouch and the lying place
 HAND_LIFT = 0.038  # metres a hand lifts off the floor while it closes
 ROLL_FRAMES = (
     12,
@@ -1486,6 +1488,8 @@ def build_transitions(rig, solver, anchor, crouch, clips):
     keys["ankle"]["r"] = [
         (0, r0),
         (3, r0),
+        # the crouch's right foot stands a step behind on its ball (kit #1160): it is lifted the rest of the way
+        (8, (r0 + p["ankle_r"]) / 2 + vec(0.0, 0.0, STEP_LIFT)),
         (14, p["ankle_r"] + vec(0.07, 0.0, 0.10)),
         (19, p["ankle_r"] + vec(0.03, 0.0, 0.07)),
         (24, p["ankle_r"] + vec(0.0, 0.0, LAND_LIFT)),
@@ -1668,6 +1672,7 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         (0, p["ankle_r"]),
         (4, p["ankle_r"] + vec(0.0, 0.0, 0.07 + FOOT_LIFT)),
         (8, p["ankle_r"] + vec(0.0, 0.0, 0.10)),
+        (13, (r0 + p["ankle_r"]) / 2 + vec(0.0, 0.0, STEP_LIFT)),
         (17, r0),
         (n, r0),
     ]

@@ -22,6 +22,7 @@ extends Node3D
 
 const STUDY_BODY := preload("res://tools/capture/study_body.gd")
 const UAL1 := "res://assets/animation/universal/ual1.glb"
+const OWN := "res://assets/animation/own/locomotion.glb"
 ## The file each body of `study_body.gd` plays as the library `prone`.
 const PRONE := {
 	"female": "res://assets/animation/prone/prone_form_female.glb",
@@ -35,13 +36,13 @@ const CRAWL_SPEED := 0.618
 const BLEND := 0.25
 ## The round: a clip, its seconds and whether the body travels.
 const STEPS: Array[Dictionary] = [
-	{"clip": &"ual1/Crouch_Idle", "seconds": 0.6},
+	{"clip": &"gds/Crouch_Idle", "seconds": 0.6},
 	{"clip": &"prone/Crouch_To_Prone", "seconds": 0.9},
 	{"clip": &"prone/Prone_Idle", "seconds": 1.7},
 	{"clip": &"prone/Crawl_Fwd", "seconds": 3.7333, "travel": true, "blend": BLEND},
 	{"clip": &"prone/Prone_Idle", "seconds": 1.0, "blend": BLEND},
 	{"clip": &"prone/Prone_To_Crouch", "seconds": 1.0, "blend": 0.1},
-	{"clip": &"ual1/Crouch_Idle", "seconds": 0.6},
+	{"clip": &"gds/Crouch_Idle", "seconds": 0.6},
 ]
 ## Where each pass's camera stands from the body (the body faces +Z), and how wide it sees.
 const VIEWS: Array[Dictionary] = [
@@ -86,6 +87,7 @@ func _ready() -> void:
 	_holder.add_child(_player)
 	_player.root_node = _player.get_path_to(model)
 	_player.add_animation_library(&"ual1", load(UAL1))
+	_player.add_animation_library(&"gds", load(OWN))
 	var clips := OS.get_environment("PRONE_CLIPS")
 	var own: String = PRONE[STUDY_BODY.chosen()]
 	_player.add_animation_library(&"prone", load(clips if clips != "" else own))

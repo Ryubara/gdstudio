@@ -1,6 +1,10 @@
 {
  "picks": {
   "Idle": "A",
+  "Crouch_Idle": "B",
+  "Crouch_Walk": "B",
+  "Stand_To_Crouch": "B",
+  "Crouch_To_Stand": "A",
   "Walk": "A",
   "Jog": "A",
   "Sprint": "A"

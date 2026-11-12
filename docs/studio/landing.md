@@ -179,6 +179,10 @@ force push, which is the maintainer's decision: open the same change from a new 
   **Seen:** Deadnight, 2026-11-01; gdstudio #1258, 2026-11-11 (an inventory test from #1040 still typed
   `Array[WeaponDef]`); gdstudio #1315, 2026-11-12 (the online fire count expected the fists, now a blow, to
   shoot); #1275, 2026-11-12 (a clip count of 97 on both sides, 100 merged).
+- **Approach:** After a merge with no conflict in a test, read the assertions that name an example ("a clip with no
+  stand-in") against what the branch changed. **Watch out for:** `main` moved such an example from the walk to the
+  crouch walk, which the branch had just given a stand-in; git merged it cleanly. **Seen:** gdstudio #1285 on #1275,
+  2026-11-12 (`test_own_clips.gd`; it now names `JUMP_START`).
 - **Approach:** When a branch moves a shared asset path (a body, a model), grep the merged tree for the old path after
   `gds merge-main`, in tests and in scenes, and run the full template suite, not only the suites the branch touched.
   **Watch out for:** a scene and a suite that landed on `main` after the branch started still use the old path, so
@@ -201,6 +205,14 @@ force push, which is the maintainer's decision: open the same change from a new 
   no branch contains, so 17 files conflicted with none of the agent's own lines, and `.claude/gds-sync.json` and
   `groundwork.py` conflicted on identical content. **Seen:** Deadnight #230 on
   #643, 2026-11-03; Deadnight #575 on #571, 2026-11-02; gdstudio #1291 on #1040, 2026-11-11.
+- **Approach:** When the pull request a branch was stacked on has landed as a squash, merge each file against the
+  stacked tip the branch started from, not against git's merge base: start `gds merge-main`, restore every file
+  the branch's own commits did not touch from `origin/main` (`git restore --source=origin/main --staged --worktree
+  -- .`), and for each file of `git diff --name-only <stacked tip> HEAD` run `git merge-file <ours> <the stacked
+  tip's copy> <main's copy>`; then `gds merge-main --continue`. **Watch out for:** git's base was the commit
+  before the whole stack, so 32 files conflicted and a line the stacked branch later removed would have come back
+  without a conflict; against the stacked tip 4 files conflicted, each where both sides really changed.
+  **Seen:** gdstudio #1285 on #1195, 2026-11-11.
 - **Approach:** After every `gds merge-main`, diff the branch against `origin/main` for each file it shares with a
   merged pull request (`git diff origin/main -- <file>`), delete the branch's own copy of a fix `main` landed, and drop
   a workaround whose blocking issue has closed. **Watch out for:** a clean textual merge hid a second copy: a stub

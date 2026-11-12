@@ -169,8 +169,9 @@ or the shot is refused. Its own inspector: the chain of spine bones and their sh
 `release_time` (how fast it takes over again after a shot's recoil) and `disabled`.
 
 While the character aims, with any weapon (the fists too), the aim layer also holds the head level and looking along
-the aim, on a straight neck, whatever head the clips carry: in its Head group, `head_neck_share` (the neck's share of
-the turn, 0.4), `head_max_turn` (the most the head turns off the line the chest gives it, 90 degrees) and
+the aim, on a straight neck, whatever head the clips carry: in its Head group, `head_neck_share` and
+`head_crouch_neck_share` (the neck's share of the turn, 0.4 standing and 0.5 crouched), `head_max_turn` (the most the
+head turns off the line the chest gives it, 90 degrees) and
 `head_disabled`. A weapon whose definition says `aim_head` `SIGHT` (the rifle) has the head brought on from there
 toward its sights, the eye to the weapon's `aim_eye` marker: a cheek on the stock.
 

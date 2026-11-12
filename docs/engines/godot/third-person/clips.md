@@ -33,7 +33,8 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   (a review file under a `.gdignore`) with `GLTFDocument` at run time. **Watch out for:** `GLTFDocument` keeps the
   `_Loop` suffix and leaves the clip unlooped, which the importer's scene step would have fixed; a clip count
   asserted in a test (`ALL.size()`) moves with every clip added. **Seen:** gdstudio #1154, 2026-11-11
-  (`tools/capture/own_clips_review.gd`).
+  (`tools/capture/own_clips_review.gd`); gdstudio #1160, 2026-11-11 (the crouch clips: `CROUCH_IDLE` and
+  `CROUCH_WALK` moved to `gds/`, and the count test failed at 91 for 95, as this entry warns).
 - **Approach:** Test a gait of our own by what holds for a rolling foot and a run: the patch of the sole on the
   floor stays put along the travel curve (the toes' joint, after the first quarter of the contact, which is the
   roll onto it; the ankle travels), each arm goes with the other side's leg, the

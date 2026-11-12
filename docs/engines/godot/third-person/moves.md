@@ -59,7 +59,9 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   thigh, shin or foot is more than 5 mm under it, the planted elbows stay within 2 mm, no limb crosses another by
   more than 2.2 mm and no frame is a mirror of itself (the wrists stay 96 mm and the shoulders 31 mm from one in the
   transitions) (`tests/gameplay/test_prone_clips.gd`, each body in its own file; `tools/capture/prone_clips_tour.tscn`
-  films any of the four, `MODEL`, read by `tools/capture/study_body.gd`).
+  films any of the four, `MODEL`, read by `tools/capture/study_body.gd`). The two transitions join GDStudio's own
+  crouch idle (`gds/Crouch_Idle`, kit #1160), whose right foot stands a step behind on its ball: it is lifted
+  the rest of the way back and forward, not slid.
 - **The prone reload** (gdstudio #1185). A reload on a body that lies with a prone aim plays the held weapon's
   `prone_reload_clip` (`WeaponDef`; the pistol's is `prone_reload/Prone_Reload_Pistol`, the library `prone_reload`:
   `assets/animation/prone/prone_reload.glb` solved on `form_female`, the scene's library, and `prone_reload_male.glb`

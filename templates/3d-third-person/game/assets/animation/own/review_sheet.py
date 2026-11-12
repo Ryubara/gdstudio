@@ -37,7 +37,14 @@ from gdsanim import checks, export, style  # noqa: E402
 from gdsanim.rig import Rig, audit_clips  # noqa: E402
 
 ASSETS = HERE.parents[1]
-BODIES = [ASSETS / "characters/prototype/form_female.glb", ASSETS / "characters/prototype/form_male.glb"]
+## The bodies of the sheet: the strip is drawn on the first (the body the clips are solved on), and the "other
+## bodies" row on all of them: the template's two, then the Quaternius pair a game can swap in.
+BODIES = [
+    ASSETS / "characters/prototype/form_female.glb",
+    ASSETS / "characters/prototype/form_male.glb",
+    ASSETS / "characters/mannequin/mannequin_female.glb",
+    ASSETS / "characters/mannequin/mannequin_male.glb",
+]
 LIBRARIES = {"ual1": ASSETS / "animation/universal/ual1.glb", "ual2": ASSETS / "animation/universal/ual2.glb"}
 VIEWS = ("side", "front", "top")
 CELL, TOP_CELL = (230, 330), (230, 230)
@@ -77,19 +84,17 @@ ROWS = [
 GAIT_ROWS = ("speed", "cadence", "duty")
 REPORT_ROWS = [
     (("weight", "support_margin_mm"), "centre of mass inside the feet (mm)", "over 0"),
-    (
-        ("planted", "form_female", "wander_mm"),
-        "planted sole wanders, the foot's own skin (mm)",
-        f"at most {checks.WANDER * 1000:.0f}",
-    ),
-    (("planted", "form_male", "wander_mm"), "the same on the male (mm)", f"at most {checks.WANDER * 1000:.0f}"),
+    (("weight", "fall_g"), "fastest drop of the centre of mass (of gravity)", f"at most {checks.FALL}"),
+    (("floor", "form_male", "highest_mm"), "highest vertex, form_male (mm)", "a crouch: at most 1100"),
+    (("floor", "mannequin_male", "highest_mm"), "highest vertex, the tallest body (mm)", "a crouch: at most 1100"),
+    (("floor", "form_female", "sole_off_mm"), "planted sole off the floor, form_female (mm)", "at most 2"),
+    (("floor", "form_male", "sole_off_mm"), "planted sole off the floor, form_male (mm)", "at most 2"),
+    (("floor", "mannequin_male", "sole_off_mm"), "the same, mannequin_male (mm)", "at most 9.3: its toes rest 7.3 lower"),
+    (("planted", "form_female", "wander_mm"), "sole wanders in its declared contacts, form_female (mm)", "at most 5"),
+    (("planted", "form_male", "wander_mm"), "the same, form_male (mm)", "at most 5"),
+    (("gait", "arm_leg"), "arm with the other side's leg (correlation)", f"over {checks.ARM_LEG}"),
+    (("overlap", "lags", "forearm"), "forearm trails the upper arm (frames)", ""),
     (("planted", "form_female", "planted_speed"), "planted sole speed, the build's (m/s)", "clips.json's, within 2 %"),
-    (
-        ("floor", "form_female", "sole_off_mm"),
-        "planted sole off the floor (mm)",
-        f"at most {checks.SOLE_BAND * 1000:.0f}",
-    ),
-    (("floor", "form_male", "sole_off_mm"), "the same on the male (mm)", f"at most {checks.SOLE_BAND * 1000:.0f}"),
     (("weight", "arc_off_mm"), "in the air, off a free fall's arc (mm)", f"at most {checks.ARC * 1000:.0f}"),
     (("limits", "knee_l"), "left knee bends (degrees)", "-5 to 140"),
     (
@@ -279,7 +284,7 @@ def main() -> int:
         body_h = 40 + CELL[1] + pad
         row_h = 24
         table_h = 40 + row_h * len(table) + pad
-        note_h = 40 + 26 * 3 * len(names) + pad
+        note_h = 40 + 26 * sum(1 + len(styles[n.rsplit("_", 1)[-1]].notes(args.type)) for n in names) + pad
         width = label_w + len(columns) * column_w + pad
         sheet = Image.new("RGB", (width, strip_h + body_h + table_h + note_h), PAPER)
         draw = ImageDraw.Draw(sheet)
@@ -310,7 +315,7 @@ def main() -> int:
                 text(
                     draw,
                     (x + 6, y + 44),
-                    f"{name} on {rig.path.stem.replace('mannequin_', '').replace('form_', '')}, frame {frame}",
+                    f"{name} on {rig.path.stem.replace('mannequin_', 'quaternius ').replace('form_', '')}, frame {frame}",
                     14,
                     FAINT,
                 )

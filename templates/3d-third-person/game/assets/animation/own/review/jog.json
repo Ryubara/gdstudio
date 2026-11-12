@@ -86,7 +86,22 @@
      "name": "footstep"
     }
    ],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      6.0
+     ]
+    ],
+    "r": [
+     [
+      10.0,
+      16.0
+     ]
+    ]
+   },
    "frames": 20,
+   "joins": {},
    "kind": "gait",
    "loop": true,
    "reduced_to_deg": 0.05,
@@ -204,7 +219,22 @@
      "name": "footstep"
     }
    ],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      6.0
+     ]
+    ],
+    "r": [
+     [
+      10.0,
+      16.0
+     ]
+    ]
+   },
    "frames": 20,
+   "joins": {},
    "kind": "gait",
    "loop": true,
    "reduced_to_deg": 0.1,
@@ -322,7 +352,22 @@
      "name": "footstep"
     }
    ],
+   "flat": {
+    "l": [
+     [
+      0.0,
+      6.0
+     ]
+    ],
+    "r": [
+     [
+      10.0,
+      16.0
+     ]
+    ]
+   },
    "frames": 20,
+   "joins": {},
    "kind": "gait",
    "loop": true,
    "reduced_to_deg": 0.05,

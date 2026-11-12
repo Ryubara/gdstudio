@@ -36,6 +36,67 @@
   "head_yaw": 3.0,
   "finger_live": 4.0
  },
+ "crouch_idle": {},
+ "crouch_walk": {},
+ "stand_to_crouch": {},
+ "crouch_to_stand": {},
+ "overlap_crouch_walk": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.5,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.5,
+   0.1
+  ],
+  "hand": [
+   1.5,
+   0.15
+  ]
+ },
+ "notes": {
+  "idle": [
+   "Shipped as gds/Idle (the recommendation): it reads as a person at rest from the game's camera, and the gaits' first frames stay close to it.",
+   "Tried: arms hanging closer (the wrist 135 mm from the thigh's line): the female's curled fingers were 47 mm inside the thigh; they keep 127 mm, and read 0 mm on both bodies."
+  ],
+  "crouch_idle": [
+   "Kept for review (the maintainer chose B on 2026-11-12): a kneeling crouch at ease. The right foot a 0.53 m step behind on its ball, turned out 26 degrees, its knee 0.25 m off the floor and the left 0.50; the hips turned 12 degrees one way and the shoulders 11 the other; the left forearm on the left thigh, the right arm hanging outside the low knee.",
+   "Could not be done: the forearm lying on the thigh's skin on every body. Its line is held 115 mm from the thigh's, which touches the Quaternius male's thicker thigh and leaves about a centimetre of air on the form bodies'; at 105 mm it was 12 mm inside his."
+  ],
+  "crouch_walk": [
+   "Kept for review (the maintainer chose B on 2026-11-11): 164 steps a minute, carried like the shipped crouch idle B, the trunk keeping half the idle's turn; the right foot tracks 18 mm wider and turns out 11 degrees for the left's 4, the left arm is carried bent 74 degrees and swings 10, the right hangs at 36 and swings 18.",
+   "Tried: the left forearm carried across the body as in the idle: the thigh that rises to the chest went 38 to 53 mm into it; both arms are carried outside their thighs.",
+   "The audit's planted rows count the frame before each landing as planted (the sole 6 mm up, inside its band of a fifth of the lift) and read 40.7 mm of wander; in the declared contacts the sole wanders 2.3 mm on the form female."
+  ],
+  "stand_to_crouch": [
+   "Kept for review (the maintainer chose B on 2026-11-12), ending on the shipped crouch idle B: 16 frames; the left sole never moves, the right foot leaves at frame 3 and lands on its ball behind at frame 10; the centre of mass drops at 0.85 of gravity at most.",
+   "Could not be done: the controller's crouch_time of 0.2 s (6 frames). The centre of mass goes down 0.45 m, which a free fall takes 9 frames over; the clip is played whole, or sped up by the tree (#1158)."
+  ],
+  "crouch_to_stand": [
+   "Shipped as gds/Crouch_To_Stand (the maintainer's choice, 2026-11-12, after B the same day), leaving the shipped crouch idle B: 16 frames; the legs drive first, the right foot leaves its ball at frame 6 and lands flat beside the left at frame 14, the trunk unfolds after; the rise stops at 0.94 of gravity.",
+   "Tried: keeping the left forearm on the thigh by a constraint all the way up: the arm jumped 40 to 63 degrees in a frame where the constraint ran out; each arm's numbers are mixed instead and open 6 and 12 degrees round the thighs."
+  ],
+  "walk": [
+   "A person's numbers at 1.7 m/s: 138 steps a minute (people take 134), a foot down 58 % of the cycle, the hips 8 degrees against the shoulders' 8, the left arm through 49 and the right through less. Shipped as gds/Walk (the maintainer's pick). Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
+   "Could not be done: a knee as straight as a person's when the heel lands (ours is 23 degrees bent, a person's about 5). The step is 0.74 m on 0.83 m legs and the body is held to 37 mm of rise, so both legs cannot be straight while both feet are down."
+  ],
+  "jog": [
+   "A person's numbers at 4.0 m/s: 180 steps a minute and a foot down 30 % (people: 178 and 32 %), the centre of mass 62 mm up and down on a free fall between contacts, the hips 12 degrees against the shoulders' 19. Shipped as gds/Jog. Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
+   "Could not be done: the pelvis inside the old 60 to 90 mm with a low knee lift only; it goes 79 mm because the legs' own rise is counted by the centre of mass. The audit reads the planted sole on all its skin, the heel's too, which the shin drags; on the foot's own skin it is 2.4 (2.2 on the male)."
+  ],
+  "sprint": [
+   "200 steps a minute at 6.5 m/s, a foot down 22 % (133 ms), landing on the ball of the foot with the heel up, the heel drawn to the seat behind, the trunk 10 degrees forward. Shipped as gds/Sprint. Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
+   "Could not be done: the forearm turned in across the chest as sprinters carry it (12 to 19 mm inside the chest on the Quaternius pair it was first tried on); it is turned 4 degrees out. A calf moves 70 degrees a frame faster in one frame as the foot leaves; the limit for the clip is declared at 80."
+  ]
+ },
  "overlap_walk": {
   "chest": [
    1.5,
@@ -203,23 +264,5 @@
   "swing_ease": 1.0,
   "lean_live": 2.0,
   "speed_limit": 45.0
- },
- "notes": {
-  "idle": [
-   "Shipped as gds/Idle (the recommendation): it reads as a person at rest from the game's camera, and the gaits' first frames stay close to it.",
-   "Tried: arms hanging closer (the wrist 135 mm from the thigh's line): the female's curled fingers were 47 mm inside the thigh; they keep 127 mm, and read 0 mm on both bodies."
-  ],
-  "walk": [
-   "A person's numbers at 1.7 m/s: 138 steps a minute (people take 134), a foot down 58 % of the cycle, the hips 8 degrees against the shoulders' 8, the left arm through 49 and the right through less. Shipped as gds/Walk (the maintainer's pick). Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
-   "Could not be done: a knee as straight as a person's when the heel lands (ours is 23 degrees bent, a person's about 5). The step is 0.74 m on 0.83 m legs and the body is held to 37 mm of rise, so both legs cannot be straight while both feet are down."
-  ],
-  "jog": [
-   "A person's numbers at 4.0 m/s: 180 steps a minute and a foot down 30 % (people: 178 and 32 %), the centre of mass 62 mm up and down on a free fall between contacts, the hips 12 degrees against the shoulders' 19. Shipped as gds/Jog. Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
-   "Could not be done: the pelvis inside the old 60 to 90 mm with a low knee lift only; it goes 79 mm because the legs' own rise is counted by the centre of mass. The audit reads the planted sole on all its skin, the heel's too, which the shin drags; on the foot's own skin it is 2.4 (2.2 on the male)."
-  ],
-  "sprint": [
-   "200 steps a minute at 6.5 m/s, a foot down 22 % (133 ms), landing on the ball of the foot with the heel up, the heel drawn to the seat behind, the trunk 10 degrees forward. Shipped as gds/Sprint. Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
-   "Could not be done: the forearm turned in across the chest as sprinters carry it (12 to 19 mm inside the chest on the Quaternius pair it was first tried on); it is turned 4 degrees out. A calf moves 70 degrees a frame faster in one frame as the foot leaves; the limit for the clip is declared at 80."
-  ]
  }
 }

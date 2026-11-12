@@ -184,7 +184,7 @@ blend is a modifier written in the Godot issue. All of it is cosmetic and never 
   ([retargeting 3D
   skeletons](https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/retargeting_3d_skeletons.html)).
 - Not found in a source we could open: how games stop limbs entering a body with a large head or short arms, or
-  per-body correction poses. The clearance pose in [other proportions](own-animation.md#proportions) is our own
+  per-body correction poses. The clearance pose in [other proportions](mannequin-rig.md#proportions) is our own
   design and is
   proved on the chibi body before any clip depends on it.
 

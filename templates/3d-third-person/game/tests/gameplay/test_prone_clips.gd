@@ -9,6 +9,7 @@
 extends GdUnitTestSuite
 
 const UAL1 := "res://assets/animation/universal/ual1.glb"
+const OWN := "res://assets/animation/own/locomotion.glb"
 ## The bodies the clips are checked on, by the name the limits below use: the template's two
 ## first, then the Quaternius pair.
 const MODELS: Dictionary[String, String] = {
@@ -96,6 +97,7 @@ func _stage(body: String) -> void:
 	add_child(_player)
 	_player.root_node = _player.get_path_to(_model)
 	_player.add_animation_library(&"ual1", load(UAL1))
+	_player.add_animation_library(&"gds", load(OWN))
 	_player.add_animation_library(&"prone", load(PRONE[body]))
 	_twist = _skeleton.get_node_or_null("MannequinTwist") as MannequinTwist
 
@@ -183,7 +185,7 @@ func test_the_loops_end_on_their_first_pose() -> void:
 func test_the_transitions_join_the_crouch_and_the_prone_idle() -> void:
 	for body: String in MODELS:
 		_stage(body)
-		var crouch := _pose(&"ual1/Crouch_Idle", 0.0)
+		var crouch := _pose(&"gds/Crouch_Idle", 0.0)
 		var prone := _pose(&"prone/Prone_Idle", 0.0)
 		var joins := [
 			[_pose(&"prone/Crouch_To_Prone", 0.0), crouch, "down starts on the crouch"],

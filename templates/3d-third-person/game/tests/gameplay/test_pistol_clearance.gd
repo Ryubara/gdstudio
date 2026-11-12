@@ -14,6 +14,8 @@ const CLIPS: Array[StringName] = [
 	CharacterClips.SPRINT,
 	CharacterClips.CROUCH_IDLE,
 	CharacterClips.CROUCH_WALK,
+	CharacterClips.STAND_TO_CROUCH,
+	CharacterClips.CROUCH_TO_STAND,
 	CharacterClips.JUMP_START,
 	CharacterClips.AIR,
 	CharacterClips.LAND,

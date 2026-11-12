@@ -7,6 +7,7 @@ also the proof that the plan, the foot paths and the travel work before the gait
 """
 
 import copy
+import dataclasses
 import math
 
 import numpy as np
@@ -110,6 +111,42 @@ def hop_built(rig, solver, arc: bool):
     return built
 
 
+def tiptoe_built(rig, solver, settled: bool):
+    """A stand whose right foot stands on its ball, the heel 40 degrees up: set down by its own skin when `settled`,
+    and turned about the toes' hinge with nothing more when not, as a body whose toes lie flat on the floor would
+    be. On a body whose toes curl up off the floor at rest the second hangs over it."""
+    clip = stand_clip(rig)
+    clip.name = "Tiptoe_Test"
+    clip.plan.footfalls = [
+        dataclasses.replace(fall, heel=40.0) if fall.side == "r" else fall for fall in clip.plan.footfalls
+    ]
+    sole = rig.sole["r"]
+    toes = sole["tread_toes"]
+    if not settled:
+        sole["tread_toes"] = np.ones_like(toes)
+    try:
+        return build.build_clip(rig, solver, clip)
+    finally:
+        sole["tread_toes"] = toes
+
+
+def drop_built(rig, solver, taken: int):
+    """A stand that plays once and whose pelvis goes down 0.2 m over `taken` frames on an even ease, the knees
+    folding over feet that stay on the floor: over 12 frames it stays under gravity, over 7 it does not."""
+    clip = stand_clip(rig)
+    clip.name, clip.loop, clip.kind = "Drop_Test", False, "action"
+    clip.plan.loop = False
+    stand = clip.spec
+
+    def spec(f: int) -> dict:
+        out = stand(0)
+        out["pelvis"]["place"] = out["pelvis"]["place"] - maths.Y * 0.2 * maths.smoother((f - 4) / taken)
+        return out
+
+    clip.spec = spec
+    return build.build_clip(rig, solver, clip)
+
+
 def dense(built):
     """A copy that keeps every key, so a change to any frame is what the checks play."""
     twin = copy.copy(built)
@@ -155,6 +192,14 @@ def run(rig, solver, bodies) -> int:
     sunk = dense(stand)
     sunk.translation[:, pelvis] += rig.rest_rot[rig.parent["pelvis"]].T @ (-0.012 * maths.Y)
     case("the feet are under the floor", "floor", stand, sunk)
+    # floor: a foot on its ball that is not set down by its skin (only a body whose toes rest off the floor shows it).
+    if rig.sole["r"]["toes_up"] > checks.SOLE_BAND:
+        case(
+            "a foot on its ball hangs over the floor",
+            "floor",
+            tiptoe_built(rig, solver, True),
+            tiptoe_built(rig, solver, False),
+        )
     # planted: a planted foot slid; the speed in clips.json wrong.
     slid = dense(walk)
     slid.translation[:, pelvis] += np.outer(
@@ -191,6 +236,14 @@ def run(rig, solver, bodies) -> int:
     aside.clip.plan = ContactPlan(30, [fall for fall in stand.clip.plan.footfalls if fall.side == "r"])
     case("the centre of mass is outside the feet", "weight", stand, aside)
     case("a jump is not on a free fall's arc", "weight", hop_built(rig, solver, True), hop_built(rig, solver, False))
+    # weight: a body that drops faster than gravity with its feet on the floor.
+    case("a drop is faster than a fall", "weight", drop_built(rig, solver, 12), drop_built(rig, solver, 7))
+    # floor: a head above the declared ceiling.
+    low = dense(stand)
+    low.clip.declared["ceiling"] = 1.9
+    tall = dense(stand)
+    tall.clip.declared["ceiling"] = 1.5
+    case("the head is over the declared ceiling", "floor", low, tall)
     # joins: a first pose that is not the pose it joins.
     joined = dense(stand)
     joined.clip.declared["joins"] = {"first": (stand.rotation[0], stand.translation[0]), "first_speed": 0.0}

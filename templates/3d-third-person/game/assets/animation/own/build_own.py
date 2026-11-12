@@ -13,12 +13,15 @@ part of the `gds` animation library.
 Every clip passes every check of `gdsanim/checks.py` on every body before anything is written, and the file passes
 `../limb_overlap.py` in Blender (`--blender <path>`, the pinned one from `gds tool path blender`; without it the
 build says the check was not run and writes nothing unless `--no-overlap` is given). A failed build leaves the
-last good file in place and exits 1; the last line of a good build is `BUILT <file>`.
+last good file in place and exits 1; the last line of a good build is `BUILT <file>`. A shipped file's limb
+numbers on every body are written beside it as `bodies_overlap.json` with the file's SHA-256, which the Godot
+suite reads (`tests/fixtures/bodies_overlap.gd`): a file that was rebuilt and not measured fails there.
 
 `--check` builds and compares with the files on disk instead of writing: exit 1 when a byte differs.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -31,30 +34,55 @@ HERE = Path(__file__).resolve().parent
 QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 sys.path.insert(0, str(HERE))
 
-from clips import gait, idle  # noqa: E402
+from clips import crouch_idle, crouch_walk, gait, idle, stance  # noqa: E402
+from clips.joined import Joined, described  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
 from gdsanim.solve import Solver  # noqa: E402
 
 ASSETS = HERE.parents[1]
-## The body clips are solved on, and the bodies every clip is checked on (the reference first).
+## The body clips are solved on (the template's default, `CharacterBodies.FEMALE`), and the bodies every clip is
+## checked on, the reference first: the template's two, then the Quaternius pair a game can swap in.
 REFERENCE = ASSETS / "characters/prototype/form_female.glb"
-BODIES = [REFERENCE, ASSETS / "characters/prototype/form_male.glb"]
+BODIES = [
+    REFERENCE,
+    ASSETS / "characters/prototype/form_male.glb",
+    ASSETS / "characters/mannequin/mannequin_female.glb",
+    ASSETS / "characters/mannequin/mannequin_male.glb",
+]
+## The bodies a gait's feet are set down for (`gait.play_on`): the template's own.
+GAIT_BODIES = {path.resolve() for path in BODIES[:2]}
 ## A clip type's description, by its name in lower case.
 TYPES = {
     "idle": ("Idle", idle.describe),
     "walk": ("Walk", gait.walk),
     "jog": ("Jog", gait.jog),
     "sprint": ("Sprint", gait.sprint),
+    "crouch_idle": ("Crouch_Idle", crouch_idle.describe),
+    "crouch_walk": ("Crouch_Walk", crouch_walk.describe),
+    "stand_to_crouch": ("Stand_To_Crouch", stance.describe_down),
+    "crouch_to_stand": ("Crouch_To_Stand", stance.describe_up),
 }
 ## The shipped files: the frozen list of clips each carries.
-GROUPS = {"locomotion": ["Idle", "Walk", "Jog", "Sprint"]}
+GROUPS = {
+    "locomotion": [
+        "Idle",
+        "Walk",
+        "Jog",
+        "Sprint",
+        "Crouch_Idle",
+        "Crouch_Walk",
+        "Stand_To_Crouch",
+        "Crouch_To_Stand",
+    ]
+}
 ## The deepest a limb may be inside another part of the body, on every body (mm).
 OVERLAP_MM = 5.0
 
 
-def limb_overlap(blender: str, glb: bytes, bodies: list, report: dict) -> list:
-    """Run `../limb_overlap.py` on a file's bytes in Blender; the failures, with the numbers added to `report`."""
+def limb_overlap(blender: str, glb: bytes, bodies: list, report: dict, brief: dict) -> list:
+    """Run `../limb_overlap.py` on a file's bytes in Blender; the failures, with the numbers added to `report` and,
+    by the clips' names in the file, to `brief`."""
     with tempfile.TemporaryDirectory() as folder:
         clips = Path(folder) / "clips.glb"
         numbers = Path(folder) / "overlap.json"
@@ -72,11 +100,9 @@ def limb_overlap(blender: str, glb: bytes, bodies: list, report: dict) -> list:
         for clip, by_body in json.loads(numbers.read_text(encoding="utf-8")).items():
             name = clip.removesuffix("_Loop")
             for body, entry in by_body.items():
-                report.setdefault(name, {}).setdefault("limbs", {})[body] = {
-                    "deepest_mm": entry["deepest_mm"],
-                    "frame": entry["frame"],
-                    "pair": entry["pair"],
-                }
+                numbers = {key: entry[key] for key in ("deepest_mm", "frame", "pair")}
+                report.setdefault(name, {}).setdefault("limbs", {})[body] = numbers
+                brief.setdefault(clip, {})[body] = numbers
                 if entry["deepest_mm"] > OVERLAP_MM:
                     failures.append(
                         f"{name}: limbs: {entry['pair']} by {entry['deepest_mm']} mm on {body} at frame {entry['frame']}"
@@ -87,8 +113,9 @@ def limb_overlap(blender: str, glb: bytes, bodies: list, report: dict) -> list:
 def make(args, builts: list, frozen: list, rig: Rig, bodies: list, out: Path) -> int:
     result = build.build_file(rig, builts, bodies, frozen)
     failures, report = result["failures"], result["report"]
+    brief = {}
     if args.blender:
-        failures += limb_overlap(args.blender, result["glb"], [body.path for body in bodies], report)
+        failures += limb_overlap(args.blender, result["glb"], [body.path for body in bodies], report, brief)
     elif not args.no_overlap:
         failures.append("limbs: not checked (give --blender <the pinned Blender>, or --no-overlap to write anyway)")
     if args.report:
@@ -102,13 +129,27 @@ def make(args, builts: list, frozen: list, rig: Rig, bodies: list, out: Path) ->
         return 1
     side = out.with_suffix(".json")
     text = json.dumps(result["clips"], indent=1, sort_keys=True) + "\n"
+    # A shipped file's limbs on every body, in the form `../limb_overlap.py --brief` writes.
+    shipped = out.parent == HERE and bool(brief)
+    limbs = out.with_name("bodies_overlap.json")
+    limbs_report = {
+        "clips_file": out.name,
+        "sha256": hashlib.sha256(result["glb"]).hexdigest(),
+        "fps": build.FPS,
+        "limit_mm": OVERLAP_MM,
+        "clips": brief,
+    }
+    limbs_text = json.dumps(limbs_report, indent=1) + "\n"
     if args.check:
         same = out.exists() and out.read_bytes() == result["glb"] and side.read_text(encoding="utf-8") == text
+        same = same and (not shipped or (limbs.exists() and limbs.read_text(encoding="utf-8") == limbs_text))
         print(f"{'SAME' if same else 'DIFFERENT'} {out.name}")
         return 0 if same else 1
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(result["glb"])
     side.write_text(text, encoding="utf-8", newline="\n")
+    if shipped:
+        limbs.write_text(limbs_text, encoding="utf-8", newline="\n")
     print(f"BUILT {out}")
     return 0
 
@@ -118,7 +159,7 @@ def main() -> int:
     parser.add_argument("what", choices=["review", "ship", "self-test"])
     parser.add_argument("name", nargs="?", help="a clip type for review (idle), a group for ship (locomotion)")
     parser.add_argument("--model", type=Path, default=REFERENCE, help="the body clips are solved on")
-    parser.add_argument("--body", type=Path, action="append", help="a body to check on (default: both mannequins)")
+    parser.add_argument("--body", type=Path, action="append", help="a body to check on (default: the four of BODIES)")
     parser.add_argument("--blender", help="the pinned Blender, for limbs inside limbs")
     parser.add_argument("--no-overlap", action="store_true", help="write without the limbs check (never to commit)")
     parser.add_argument("--report", help="write the checks' numbers here as json")
@@ -128,22 +169,28 @@ def main() -> int:
     rig = Rig(args.model)
     bodies = [rig] + [Rig(path) for path in (args.body or BODIES) if Path(path).resolve() != args.model.resolve()]
     solver = Solver(rig, bodies[1:])
-    gait.play_on(bodies)
+    # Set down for the Quaternius pair as well, whose toes rest 7 mm lower, a gait's soles stand 3 to 4 mm off
+    # the floor on the template's bodies (the band is 2).
+    template = [body for body in bodies if body.path.resolve() in GAIT_BODIES]
+    gait.play_on(template or bodies)
     if args.what == "self-test":
         return selftest.run(rig, solver, bodies)
     styles = {one.letter: one for one in style.load_all(HERE / "styles")}
+    picks = json.loads((HERE / "picks.json").read_text(encoding="utf-8"))["picks"]
+    # The clips a description joins are the picked ones: a variant of a stance change ends on the shipped crouch.
+    joined = Joined(rig, solver, styles, picks, TYPES)
     if args.what == "review":
         name, describe = TYPES[args.name]
         builts = [
-            build.build_clip(rig, solver, describe(rig, one, f"{name}_{letter}")) for letter, one in styles.items()
+            build.build_clip(rig, solver, described(describe, rig, one, f"{name}_{letter}", joined))
+            for letter, one in styles.items()
         ]
         frozen = [f"{name}_{letter}" for letter in styles]
         return make(args, builts, frozen, rig, bodies, HERE / "review" / f"{args.name}.glb")
-    picks = json.loads((HERE / "picks.json").read_text(encoding="utf-8"))["picks"]
     builts = []
     for name in GROUPS[args.name]:
         _, describe = TYPES[name.lower()]
-        builts.append(build.build_clip(rig, solver, describe(rig, styles[picks[name]], name)))
+        builts.append(build.build_clip(rig, solver, described(describe, rig, styles[picks[name]], name, joined)))
     return make(args, builts, GROUPS[args.name], rig, bodies, HERE / f"{args.name}.glb")
 
 

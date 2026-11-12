@@ -45,6 +45,193 @@
   "finger_live": 3.0,
   "sway": 0.002
  },
+ "crouch_idle": {
+  "fold": 0.535,
+  "foot_ahead": [
+   0.0,
+   -0.4
+  ],
+  "foot_wide": [
+   0.0,
+   0.02
+  ],
+  "heel": [
+   0.0,
+   38.0
+  ],
+  "knee_out": [
+   2.0,
+   8.0
+  ],
+  "share": 0.6,
+  "shift": 0.04,
+  "sway": 0.002,
+  "pelvis": [
+   18.0,
+   -6.0,
+   -3.0
+  ],
+  "chest": [
+   76.0,
+   4.0,
+   2.0
+  ],
+  "head": [
+   20.0,
+   -6.0,
+   2.0
+  ],
+  "head_sharp": 0.5,
+  "head_yaw": 16.0,
+  "arm_swing": [
+   52.0,
+   8.0
+  ],
+  "arm_out": [
+   6.0,
+   16.0
+  ],
+  "arm_twist": [
+   38.0,
+   10.0
+  ],
+  "elbow": [
+   66.0,
+   62.0
+  ],
+  "pronate": [
+   40.0,
+   30.0
+  ],
+  "wrist": [
+   22.0,
+   0.0
+  ],
+  "carry": [
+   0.5,
+   0.4
+  ],
+  "arm_rest": [
+   0.115,
+   0.0
+  ],
+  "arm_clear": [
+   0.0,
+   0.1
+  ],
+  "curl_more": [
+   16.0,
+   20.0
+  ],
+  "finger_live": [
+   2.0,
+   2.5
+  ],
+  "hand_rest": [
+   0.075,
+   0.0
+  ],
+  "foot_turn": [
+   0.0,
+   9.0
+  ]
+ },
+ "crouch_walk": {
+  "frames": 20,
+  "dip": 0.008,
+  "hip_turn": 5.0,
+  "chest_turn": 4.0,
+  "arm_swing": [
+   7.0,
+   13.0
+  ]
+ },
+ "stand_to_crouch": {
+  "frames": 15,
+  "fall": 0.66,
+  "chest": [
+   0.1,
+   1.0
+  ],
+  "drop": [
+   0.0,
+   1.0
+  ],
+  "meet": 3
+ },
+ "crouch_to_stand": {
+  "frames": 15,
+  "fall": 0.34,
+  "drop": [
+   0.0,
+   1.0
+  ],
+  "chest": [
+   0.1,
+   1.0
+  ],
+  "meet": 3,
+  "step": [
+   0.3,
+   0.78
+  ]
+ },
+ "overlap_crouch_walk": {
+  "chest": [
+   1.5,
+   0.0
+  ],
+  "head": [
+   1.0,
+   0.1
+  ],
+  "upperarm": [
+   0.75,
+   0.2
+  ],
+  "forearm": [
+   1.0,
+   0.2
+  ],
+  "hand": [
+   1.0,
+   0.25
+  ]
+ },
+ "notes": {
+  "idle": [
+   "For a small or stylised body seen from far: the shift takes 26 frames and the head looks, holds and looks back.",
+   "Not tried: a shift under 20 frames. The held poses are still but for breath and fingers (3 degrees), which is the point of it."
+  ],
+  "crouch_idle": [
+   "Tight and alert: the right foot only 0.40 m behind, turned out 18 degrees, its heel up 38 and its knee 0.36 m up; the hips turned 7 degrees; the right arm bent 62 degrees with its hand held outside the knee, the left forearm on the thigh with the fingers closed further; the head looks, holds and looks back.",
+   "Could not be done: both hands held forward of the knees: they met, 26 mm inside each other on the female; the right hand is carried 16 degrees out."
+  ],
+  "crouch_walk": [
+   "Sharp: 180 steps a minute, the pelvis dipping 8 mm, the arms swinging 7 and 13 degrees.",
+   "Tried: the idle's hand numbers in the walk: the left hand's turn popped 1.4 degrees on a landing frame as the arm was opened round the thigh; the walk has its own wrists and carries the arms 25 and 18 degrees out, as fits the shipped crouch idle B."
+  ],
+  "stand_to_crouch": [
+   "Sharp: 15 frames, falling for 66 % of the drop; 0.91 of gravity.",
+   "Could not be done: 13 frames. With a foot in the air the trunk's fold and the step add to the fall: 1.20 of gravity (the limit is 1.05)."
+  ],
+  "crouch_to_stand": [
+   "Sharp: 15 frames, the legs pushing for the first third; the rise stops at 1.04 of gravity (the limit is 1.05).",
+   "Could not be done: 14 frames: the rise stopped at 1.24 of gravity."
+  ],
+  "walk": [
+   "Sharp: a quiet trunk (the hips turn 6 degrees and tip 5, 34 mm of rise), a higher step, elbows bent 26 degrees, each side its own numbers at four fifths of the grounded one's and its own timing, parts trail under a frame.",
+   "Not tried: held keys with fewer in-betweens; every change is still eased, so it is quieter, not snappier, than the grounded one. Its keys are 23.7 KB a second in the file, the most of the three."
+  ],
+  "jog": [
+   "Sharp: the knee lifts higher (the foot passes 13 cm over its straight path), the front hand comes higher than the back one goes, the hips turn 9 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
+   "Not tried: a shorter contact than the grounded one's six frames (five is 25 % of the cycle, under what people run with at this speed)."
+  ],
+  "sprint": [
+   "Sharp: more lean (the trunk 12 degrees forward), a higher knee, the elbows held at a right angle, the hips turn 14 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
+   "Not tried: 16 frames a cycle (225 steps a minute, over the range): a contact would be under four frames."
+  ]
+ },
  "overlap_walk": {
   "chest": [
    1.0,
@@ -232,23 +419,5 @@
   "chest_tip_rest": 1.2,
   "head_turn_rest": 0.8,
   "head_tip_rest": 0.8
- },
- "notes": {
-  "idle": [
-   "For a small or stylised body seen from far: the shift takes 26 frames and the head looks, holds and looks back.",
-   "Not tried: a shift under 20 frames. The held poses are still but for breath and fingers (3 degrees), which is the point of it."
-  ],
-  "walk": [
-   "Sharp: a quiet trunk (the hips turn 6 degrees and tip 5, 34 mm of rise), a higher step, elbows bent 26 degrees, each side its own numbers at four fifths of the grounded one's and its own timing, parts trail under a frame.",
-   "Not tried: held keys with fewer in-betweens; every change is still eased, so it is quieter, not snappier, than the grounded one. Its keys are 23.7 KB a second in the file, the most of the three."
-  ],
-  "jog": [
-   "Sharp: the knee lifts higher (the foot passes 13 cm over its straight path), the front hand comes higher than the back one goes, the hips turn 9 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
-   "Not tried: a shorter contact than the grounded one's six frames (five is 25 % of the cycle, under what people run with at this speed)."
-  ],
-  "sprint": [
-   "Sharp: more lean (the trunk 12 degrees forward), a higher knee, the elbows held at a right angle, the hips turn 14 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
-   "Not tried: 16 frames a cycle (225 steps a minute, over the range): a contact would be under four frames."
-  ]
  }
 }

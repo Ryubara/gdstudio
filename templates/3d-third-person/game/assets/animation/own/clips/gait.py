@@ -342,7 +342,7 @@ class Gait:
             land = 0.0 if s == "l" else self.frames / 2.0
             place = self._place(s, sign, 0)
             falls.append(Footfall(s, land, land + self.contact, place, yaw=sign * self.own(s, "toe_out")))
-        self.plan = ContactPlan(self.frames, falls, Travel.steady(n["speed"]))
+        self.plan = ContactPlan(self.frames, falls, Travel.steady(n["speed"]), tread=False)
         self._heights = self._height_curve()
 
     def own(self, s: str, key: str):

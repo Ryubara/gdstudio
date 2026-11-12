@@ -71,10 +71,10 @@ rotations and the pelvis's place, and the `ik_` targets on a rig that has them. 
 their limits; `selftest.py` breaks a clip for each one.
 
 **What is proved and what is not.** `Idle`, `Walk`, `Jog` and `Sprint` went through all of it: the contact plan, the
-foot's roll, the travel, the gait checks and the free fall's arc (0 to 1.1 mm off it in the runs). Mirroring, the
-placed hand, the joins and the `ik_` targets are
-written and not yet used by a shipped clip: the first issue that uses each proves it. The weight check's lean is
-tested on made-up motion only. A body whose legs differ from the reference body's is reported with
+foot's roll, the travel, the gait checks and the free fall's arc (0 to 1.1 mm off it in the runs). The joins and the
+`ik_` targets are proved by the crouch clips ([their rows](stance-clips.md#toolkit-rows)). Mirroring and the placed
+hand are written and not yet used by a shipped clip: the first issue that uses each proves it. The weight check's
+lean is tested on made-up motion only. A body whose legs differ from the reference body's is reported with
 `needs_ik` and not held to the floor and planted limits.
 
 - **Approach:** Give a description the body's weight and contacts, not its pose: the share of weight on each foot,

@@ -52,8 +52,12 @@ const HIT := &"ual1/Hit_Chest"
 # Other clips a game reaches for first (the rest are in `ALL`).
 const DEATH := &"ual1/Death01"
 const ROLL := &"ual1/Roll"
-const CROUCH_IDLE := &"ual1/Crouch_Idle"
-const CROUCH_WALK := &"ual1/Crouch_Fwd"
+const CROUCH_IDLE := &"gds/Crouch_Idle"
+const CROUCH_WALK := &"gds/Crouch_Walk"
+## The stance changes (gdstudio #1160): from the idle's first pose to the crouch idle's and back,
+## both feet on their places. The tree that plays them is gdstudio #1158.
+const STAND_TO_CROUCH := &"gds/Stand_To_Crouch"
+const CROUCH_TO_STAND := &"gds/Crouch_To_Stand"
 const PISTOL_IDLE := &"ual1/Pistol_Idle"
 const PISTOL_AIM := &"ual1/Pistol_Aim_Neutral"
 const PISTOL_AIM_UP := &"ual1/Pistol_Aim_Up"
@@ -102,6 +106,8 @@ const MELEE_PISTOL_JAB := &"melee/Melee_Pistol_Jab"
 ## suits puts it back in the inspector (`CharacterAnimation.land_clip`).
 const STAND_INS: Dictionary[StringName, StringName] = {
 	&"gds/Idle": &"ual1/Idle",
+	&"gds/Crouch_Idle": &"ual1/Crouch_Idle",
+	&"gds/Crouch_Walk": &"ual1/Crouch_Fwd",
 	&"gds/Walk": &"ual1/Walk",
 	&"gds/Jog": &"ual1/Jog_Fwd",
 	&"gds/Sprint": &"ual1/Sprint",
@@ -212,6 +218,9 @@ const ALL: Array[StringName] = [
 	&"prone/Crouch_To_Prone",
 	&"prone/Prone_Idle",
 	&"prone/Prone_To_Crouch",
+	&"gds/Crouch_Idle",
+	&"gds/Crouch_To_Stand",
+	&"gds/Crouch_Walk",
 	&"prone_aim/Prone_Aim_Down",
 	&"prone_aim/Prone_Aim_Neutral",
 	&"prone_aim/Prone_Aim_Up",
@@ -219,6 +228,7 @@ const ALL: Array[StringName] = [
 	&"gds/Idle",
 	&"gds/Jog",
 	&"gds/Sprint",
+	&"gds/Stand_To_Crouch",
 	&"gds/Walk",
 	&"vault/Vault_High",
 	&"vault/Vault_Land",
