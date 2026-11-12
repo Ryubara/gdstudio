@@ -298,6 +298,12 @@ other style files stay in the repository, so a game picks another vision by rebu
 5. **Docs.** The clip's row on `engines/godot/third-person/clips.md` and the template's inspector list change in
    the same pull request.
 
+- **Approach:** List every clip a build adds to the shipped file in `CharacterClips.ALL` (and its count in
+  `test_character_clips.gd`), new clips that replace nothing as well, and run that suite with the clip's own before
+  the full one. **Watch out for:** the eleven directions and leans shipped in `locomotion.glb` without a line in
+  `ALL`; every suite of their own passed, and only the full run's count (133 clips for 122 listed) showed it.
+  **Seen:** gdstudio #1159, 2026-11-12.
+
 ## The rig, and other proportions {#rig}
 
 <!-- new section: the clips and the prototype mannequins are made at once and must agree on one skeleton -->
