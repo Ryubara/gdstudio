@@ -250,15 +250,17 @@ uv run --project <your worktree>/python gds template bench-web 3d-third-person n
 uv run --project <your worktree>/python gds template bench-web 3d-third-person nav_cost_bench --run --probe-args=4
 ```
 
-It makes the game from the working tree's template in a workspace of its own (as `gds template game`, see
-[Proving a new game](new-game.md#proof)), sets `run/main_scene` in its `project.godot` to the bench, takes `tools/*` out
-of the Web preset's `exclude_filter` (the tests and addons stay out), exports with the pinned Godot
-(`--export-release Web`, failing on an `ERROR` line; an export whose only error is the at-exit leak runs once more, as
-CI does) and prints the build's folder, the game and the probe's command. The bench is named by its name, its
-`tools/bench/<name>.tscn` path or its `res://` path. Without `--run` the game is kept (`gds template clean <path>` when
-done); with `--run` the bench's `<name>.py` reads the build under `gds quiet` (`--probe-args` after the build folder: 4
-is the weak-machine throttle) and the game is removed unless `--keep`, the exit code the probe's. Nothing in the
-template changes. Its tests are `python/tests/test_bench_web.py` (the edits on the real template files, a fake Godot).
+It makes the game from the working tree's template in a workspace of its own (as `gds template game`, see [Proving a new
+game](new-game.md#proof)), sets `run/main_scene` in its `project.godot` to the bench, takes `tools/*` out of the Web
+preset's `exclude_filter` (the tests and addons stay out), exports with the pinned Godot (`--export-release Web`,
+failing on an `ERROR` line; an export whose only error is the at-exit leak runs once more, as CI does) and prints the
+build's folder, the game and the probe's command. The bench is named by its name, its `tools/bench/<name>.tscn` path or
+its `res://` path; any scene of the game works by its path (`tools/soak/ai_soak.tscn`), since only a bare name is looked
+up in `tools/bench/` and every `tools/*` folder goes into the pack. Without `--run` the game is kept (`gds template
+clean <path>` when done); with `--run` the bench's `<name>.py` reads the build under `gds quiet` (`--probe-args` after
+the build folder: 4 is the weak-machine throttle) and the game is removed unless `--keep`, the exit code the probe's.
+Nothing in the template changes. Its tests are `python/tests/test_bench_web.py` (the edits on the real template files, a
+fake Godot).
 
 Through it, the nav cost bench of 3D Third Person read 189, 267 and 562 µs a tick for 50, 100 and 200 navigators in
 headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdstudio #1130).
@@ -274,3 +276,18 @@ headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdst
   kept game and exported again), then run the two probes in turns, A B A B, on a quiet machine. **Watch out for:** one
   build measured at two times compares two machine loads, which moved rows 15 to 20 % between runs, more than most
   changes save. **Seen:** gdstudio #1208 (PR #1219), 2026-11-11.
+- **Approach:** Build a bench's figures from the bodies the template ships, named by an argument (`hold_cost.tscn --
+  rifle male`, `?body=male`), and when the template's bodies or a part's per-body data change, check that the bench's
+  model paths still name them before you compare numbers. **Watch out for:** the hold bench kept loading the
+  Quaternius mannequin after the template moved to its own bodies (#1299) and the rifle's hold gained per-body fits
+  (#1040), so a before and after measured a body no character wears and never the male's fit. **Seen:** gdstudio
+  #1178 (PR #1258), 2026-11-11.
+- **Approach:** Give a bench's new script its `.uid` (`gds template uids <t>`) before the first `bench-web` run, and run
+  `gds template test <t>` before the push. **Watch out for:** `bench-web` exports without the layout check, so a bench
+  whose script had no `.uid` measured fine, and the missing file showed only when the full run's layout check stopped
+  it. **Seen:** gdstudio #1186 (PR #1268), 2026-11-11.
+- **Approach:** To measure a branch with a probe that exists only in another open pull request, merge both branches into
+  a throwaway worktree (under `worktrees/`, from `origin/main`), run `bench-web` from it, name the other pull request in
+  the body, and remove the worktree after. **Watch out for:** neither branch alone held both the change and the probe
+  that shows it, and nothing here said how to measure one with the other. **Seen:** gdstudio #1247 (PR #1250, with the
+  soak probe of PR #1248), 2026-11-11.

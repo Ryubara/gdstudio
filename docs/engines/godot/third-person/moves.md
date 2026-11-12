@@ -48,6 +48,15 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the
   pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`), cosmetic and
   never sent.
+- **On the template's bodies.** The clips were solved on the Quaternius female, and the `form` bodies the template
+  wears since kit #1187 play the same file, lower: `tests/gameplay/test_prone_clips.gd` (all four bodies, kit #1286)
+  reads the forearms' skin 33 and 38 mm under the floor on `form_female` (lying and crawling) and 48 and 55 mm on
+  `form_male`, the thighs, knees and feet 15 to 22 mm under lying still, the planted elbows rolling 19 and 32 mm a
+  stride (the feet hold to 2 mm), and the two transitions putting the left shin 17 to 18 mm into the left arm on
+  `form_female` (`prone/bodies_overlap.json`). The arms' angles, the fists and the joins pass on every body. The
+  suite holds those numbers as the `form` bodies' limits until kit #1293 solves the clips on them (as kit #1090
+  does for the Quaternius male); `tools/capture/prone_clips_tour.tscn` films any of the four (`MODEL`, read by
+  `tools/capture/study_body.gd`), and its `PRONE_FISTS` sheet has a row of the legs at the floor.
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
 studios; the template's run is 4.0 m/s and its walk 1.7):
@@ -128,7 +137,7 @@ What shipped games do, and the template's default for each:
 | Slide jump | Titanfall 2: `slideJumpHeight` 50 against a jump of 60 (0.83), speed held to `slideMaxJumpSpeed` 350 u/s (8.9 m/s) [2]; Apex: a jump out of a slide keeps momentum longer than one out of a sprint [8]; Deadlock: air drag after a slide jump [5] | `jump_height_scale` 0.85, `jump_max_speed` 9.0 m/s, the carried speed fading by `jump_air_drag` 1 m/s² |
 | Steering | Titanfall: harder to stop or turn than a walk [3]; Deadlock: a turn speed [5] | `turn_rate` 1.2 rad/s (about 70 degrees a second) |
 | Capsule and camera | Titanfall 2: crouch hull 47 of 72 u (65 percent), eye 38 of 60; a crouch that starts a slide takes 0.2 s, not 0.4; `slideFOVScale` 1.1 over 0.25 s in and out [1][2] | `height` 0.9 m (half the 1.8 m capsule, under the 1.1 m crouch), `drop_time` 0.12 s, `camera_height` 0.75 m; `PlayerCamera.slide_fov_change` 5 degrees at `slide_zoom_speed` 4 a second, on top of the sprint view |
-| Shooting | Deadlock reduces recoil while sliding (`SlidingRecoilReduction`) [5]; Apex, Call of Duty and Titanfall fire while sliding | `can_shoot` on: aim and fire work, and the body turns to the view |
+| Shooting | Deadlock reduces recoil while sliding (`SlidingRecoilReduction`) [5]; Apex, Call of Duty and Titanfall fire while sliding | `can_shoot` on: aim and fire work; the body keeps along the slide and the [aim layer](shooting.md#aim-layer) turns the upper body to the aim within `aim_limits` (75 degrees each side), and past them the body turns (or the weapon refuses the shot) |
 | Spam | Titanfall's boost cooldown [2]; Call of Duty MW III cut the sprint delay after a slide by 53 percent [9] | `cooldown` 0.3 s between slides, and the boost's own 2 s |
 
 Sources: [1] Titanfall 2's `pilot_mp.set` and `pilot_base.set` (data files, mirrored at

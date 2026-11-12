@@ -17,7 +17,6 @@ from gds_tools import (
     capture,
     disk,
     evals,
-    hold_switch,
     integrations,
     issues,
     layout,
@@ -574,6 +573,7 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
             + result.reasons,
         )
     docs = pr.check_docs(repo, body, kit=kit)
+    commits = pr.check_commits(repo, body, kit=kit)
     if result.ok:
         print("description: ok")
     else:
@@ -588,7 +588,15 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
         print("docs: refused", file=sys.stderr)
         for reason in docs.reasons:
             print(f"  - {reason}", file=sys.stderr)
-    return 0 if result.ok and docs.ok else 1
+    if commits.unknown:  # not an "ok": the rule depends on the branch's commits
+        print(f"commits: cannot tell, {commits.unknown}; pr-rules will judge them after the push")
+    elif commits.ok:
+        print("commits: ok")
+    else:
+        print("commits: refused (the branch's commits since origin/main, as pr-rules reads them)", file=sys.stderr)
+        for reason in commits.reasons:
+            print(f"  - {reason}", file=sys.stderr)
+    return 0 if result.ok and docs.ok and commits.ok else 1
 
 
 def _cmd_learn(args: argparse.Namespace) -> int:
@@ -718,7 +726,6 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
             bad += 1
     for check in workspace.check_services(root):  # warnings: signing in is the person's step, not the bootstrap's
         print(f"  {'ok  ' if check.ok else 'WARN'}    {check.name}: {check.detail}")
-    print(f"  info    hold switch: {hold_switch.read(root).describe()}")  # the maintainer's (hooks.md#hold)
     print("\n".join(sweep.disk_lines(root)))  # a warning only: low space is not a missing prerequisite
     return 1 if bad else 0
 

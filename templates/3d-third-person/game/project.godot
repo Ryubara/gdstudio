@@ -5,6 +5,7 @@ run/main_scene="res://ui/menus/menu_scene.tscn"
 [autoload]
 
 Settings="*res://core/settings/settings_service.tscn"
+MenuSounds="*res://ui/menus/menu_sound_service.tscn"
 
 [display]
 

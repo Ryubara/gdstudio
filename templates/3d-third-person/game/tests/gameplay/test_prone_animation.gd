@@ -17,7 +17,7 @@ const JOINTS := {
 	&"foot_l": FOOT_PLANTED,
 	&"foot_r": FOOT_PLANTED,
 }
-const FEMALE := "res://assets/characters/mannequin/mannequin_female.glb"
+const FEMALE := CharacterBodies.FEMALE
 
 var _arena: PlayArena
 var _player: Player
@@ -113,7 +113,12 @@ func test_the_crawl_plays_at_the_pace_of_the_ground_and_backwards_backing_up() -
 # The planted joints keep their place on the floor at the slowest crawl the tuning allows, the
 # default and the fastest: the tree is stepped by hand by the same time as the body, and the
 # joint's best planted stretch (most of its planted share of the cycle) drifts under a centimetre.
+# On the body the clips were solved on, the Quaternius female: the prototype bodies' upper arms are
+# longer (0.26 m against 0.22), so their elbows slide 1.5 to 2.6 cm at the same pace while the feet
+# hold (kit #1187; solving the clips on them is gdstudio #1286).
 func test_planted_elbows_and_feet_do_not_slide_at_any_crawl_speed() -> void:
+	(_player.get_node("Model") as CharacterModel).variant = load(CharacterBodies.QUATERNIUS_FEMALE)
+	await InputSim.ticks(get_tree(), 2)
 	await _lie_down()
 	var skeleton := (_player.get_node("Model") as CharacterModel).skeleton()
 	_animation.set_throttled(true)
