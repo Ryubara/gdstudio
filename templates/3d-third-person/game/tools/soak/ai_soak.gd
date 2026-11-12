@@ -122,6 +122,7 @@ func _ready() -> void:
 	_pilot.retarget(_loop)
 	_faults.player = _player
 	_faults.wall = _section.get_node("Navigation/Cover/TallCover")
+	_faults.watch = _watch
 	for spawner in _section_spawners():
 		_wire_spawner(spawner)
 		for character in spawner.alive:
