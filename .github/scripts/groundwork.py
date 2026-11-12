@@ -40,7 +40,7 @@ KNOWN: dict[str, set[str]] = {
                  "legacy_lessons", "corrections_log"},
     "merge": {"methods", "squash_title", "squash_message", "auto_merge", "delete_branch_on_merge",
               "linear_history", "required_checks", "ruleset_name", "up_to_date_required", "manual_paths", "hold",
-              "red_main"},
+              "red_main", "queue_cap"},
     "issues": {"blank_issues", "placeholders", "forms", "labels"},
     "labels": {"description_max", "families", "list"},
     "hygiene": {"report_issue", "sweep", "thresholds"},
@@ -112,6 +112,9 @@ def validate(data: dict[str, Any]) -> list[str]:
         elif red_main["check"] in data.get("merge", {}).get("required_checks", []):
             problems.append("merge.red_main's check stays out of merge.required_checks: a red main is not the pull "
                             "request's failure")
+    cap = data.get("merge", {}).get("queue_cap")
+    if cap is not None and (not isinstance(cap, int) or isinstance(cap, bool) or cap < 0):
+        problems.append("merge.queue_cap must be a whole number, 0 or more")
     trailers = data.get("commits", {}).get("trailers")
     if trailers is not None and not (isinstance(trailers, dict) and isinstance(trailers.get("ai_co_author"), dict)
                                      and trailers["ai_co_author"].get("noreply")):

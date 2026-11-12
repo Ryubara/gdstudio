@@ -5,7 +5,7 @@
   "credits_per_second": 40,
   "min_seconds": 0.5,
   "max_seconds": 30.0,
-  "budget": 4000,
+  "budget": 5000,
   "attribution": "Sounds generated with ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>).",
   "licence_free": "Generated on ElevenLabs' free tier: attribution required, not licensed for commercial use. Replace or\n  relicense before any commercial release.",
   "licence_paid": "Generated on ElevenLabs' paid `{tier}` plan, which allows commercial use under ElevenLabs' Sound\n  Effects terms (<https://elevenlabs.io/sound-effects-terms>, Exhibit 4): the sounds may be used in a game, combined\n  with other material; they may not be sold, licensed or shared on their own as isolated audio files or samples, or\n  put in a sound, sample or effects library.",
@@ -288,6 +288,141 @@
       ],
       "use_takes": [
         1
+      ]
+    },
+    {
+      "name": "ui_hint",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_hint",
+      "takes": 8,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "One soft, low, muted wooden tock of a menu cursor moving in a video game: a single gentle tap on a small wooden block, rounded and warm, very short, dry and close.",
+      "min_seconds": 0.03,
+      "max_seconds": 0.08,
+      "min_files": 3,
+      "measure": "momentary",
+      "target_lufs": -30.0,
+      "tail_db": -30.0,
+      "highpass_hz": 150.0,
+      "take_prompts": {
+        "1": "A single very soft, tiny tick of a menu cursor in a video game: one gentle muted tap of a fingertip on a small plastic key, rounded, warm and low, very short, dry and close.",
+        "2": "A single very soft, tiny tick of a menu cursor in a video game: one gentle muted tap of a fingertip on a small plastic key, rounded, warm and low, very short, dry and close.",
+        "3": "A single very soft, tiny tick of a menu cursor in a video game: one gentle muted tap of a fingertip on a small plastic key, rounded, warm and low, very short, dry and close.",
+        "4": "A single very soft, tiny tick of a menu cursor in a video game: one gentle muted tap of a fingertip on a small plastic key, rounded, warm and low, very short, dry and close.",
+        "5": "A single very soft, tiny tick of a menu cursor in a video game: one gentle muted tap of a fingertip on a small plastic key, rounded, warm and low, very short, dry and close."
+      },
+      "use_takes": [
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "name": "ui_press",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_press",
+      "takes": 5,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A clean, satisfying button click in a video game menu: one crisp press of a small plastic switch with a short, soft wooden body, very short, dry and close.",
+      "min_seconds": 0.06,
+      "max_seconds": 0.2,
+      "min_files": 3,
+      "measure": "momentary",
+      "target_lufs": -30.0,
+      "tail_db": -32.0,
+      "highpass_hz": 150.0,
+      "use_takes": [
+        1,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "ui_confirm",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_confirm",
+      "takes": 4,
+      "seconds": 0.8,
+      "influence": 0.6,
+      "prompt": "A confident confirm sound for the start button of a video game menu: a firm soft click followed at once by a warm, rounded two-note marimba chime that rises and resolves, short, dry and close.",
+      "min_seconds": 0.15,
+      "max_seconds": 0.45,
+      "min_files": 2,
+      "measure": "momentary",
+      "target_lufs": -23.0,
+      "tail_db": -34.0,
+      "highpass_hz": 150.0,
+      "use_takes": [
+        2,
+        3
+      ]
+    },
+    {
+      "name": "ui_move",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_move",
+      "takes": 4,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "A soft mechanical slide-and-click of a small wooden tab moving into place in a video game menu, gentle and rounded, very short, dry and close.",
+      "min_seconds": 0.06,
+      "max_seconds": 0.16,
+      "min_files": 2,
+      "measure": "momentary",
+      "target_lufs": -28.0,
+      "tail_db": -32.0,
+      "highpass_hz": 150.0,
+      "use_takes": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "ui_toggle",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_toggle",
+      "takes": 4,
+      "seconds": 0.5,
+      "influence": 0.6,
+      "prompt": "One small, neat switch flipping in a video game settings menu: a tight, clean plastic snap with a tiny bright tick on top, very short, dry and close.",
+      "min_seconds": 0.05,
+      "max_seconds": 0.16,
+      "min_files": 2,
+      "measure": "momentary",
+      "target_lufs": -28.0,
+      "tail_db": -32.0,
+      "highpass_hz": 150.0,
+      "use_takes": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "ui_swish",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/ui",
+      "prefix": "ui_swish",
+      "takes": 4,
+      "seconds": 1.0,
+      "influence": 0.6,
+      "prompt": "A soft, short airy swish of a menu panel sliding in across a screen in a video game: a smooth gentle breath of air that rises and fades quickly, close and dry.",
+      "min_seconds": 0.2,
+      "max_seconds": 0.45,
+      "min_files": 2,
+      "measure": "momentary",
+      "target_lufs": -34.0,
+      "tail_db": -30.0,
+      "highpass_hz": 200.0,
+      "use_takes": [
+        2,
+        4
       ]
     }
   ],
