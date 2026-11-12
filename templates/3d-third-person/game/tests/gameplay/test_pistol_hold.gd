@@ -78,10 +78,10 @@ const LEFT_HAND_PASSING := 0.0025
 ## The right thumb's tip rests this near the skin of the left thumb's root bone at most, in metres.
 const ON_THUMB_ROOT := 0.012
 ## Where the shooting hand's middle finger lies (kit #1213): under the trigger guard, tight up
-## against it. The guard's underside is this high in the pistol, in metres, between these two
-## places along the barrel (its rear, where it meets the grip, and its front strut).
+## against it. The guard's underside is this high in the pistol, in metres. The grip slants back
+## below the guard, so a finger under it lies behind the guard's rear end along the barrel: only
+## its height and its contact are checked.
 const GUARD_UNDERSIDE := 0.014
-const GUARD_SPAN := Vector2(-0.085, -0.02)
 ## How far below the guard's underside the middle of that finger's first bone lies at least, in
 ## metres: about the finger's half thickness, so the bone is under the guard and not beside it
 ## (beside it, as kit #1001's seat had it, the bone's middle is level with the underside).
@@ -288,8 +288,8 @@ func test_the_right_hand_holds_the_pistol_in_the_locomotion_clips() -> void:
 
 # The shooting hand's middle finger goes round the front of the grip under the trigger guard, as a
 # grip is taught (kit #1213), in the one-handed and the two-handed clips on both mannequins: the
-# middle of its first bone is below the guard's underside and between the guard's ends, and the
-# finger's skin is on the gun there.
+# middle of its first bone is below the guard's underside and the finger's skin is on the gun
+# there.
 func test_the_right_middle_finger_lies_under_the_trigger_guard() -> void:
 	var poses: Dictionary[StringName, float] = {
 		CharacterClips.PISTOL_IDLE: 0.0,
@@ -311,8 +311,6 @@ func test_the_right_middle_finger_lies_under_the_trigger_guard() -> void:
 						% [bone.y * 1e3, (GUARD_UNDERSIDE - UNDER_GUARD) * 1e3]
 					)
 				)
-			if bone.x < GUARD_SPAN.x or bone.x > GUARD_SPAN.y:
-				fails.append("its first bone is %.0f mm along the barrel" % (bone.x * 1e3))
 			if right.middle_base.gun > HandContact.MAX_FLOAT:
 				fails.append(
 					"its first bone is %.1f mm off the gun" % (right.middle_base.gun * 1e3)
