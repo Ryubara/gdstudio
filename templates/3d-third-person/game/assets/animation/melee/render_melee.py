@@ -1,6 +1,6 @@
 """Review sheets of the melee clips (used by `build_melee.py -- --render <folder>`).
 
-For each clip and each mannequin (`female`, `male`), with the pistol in the hand for the pistol clips:
+For each clip and each body (`female`, `male`), with the pistol in the hand for the pistol clips:
 
 - `<clip>_<body>_side.png`, `_front.png`, `_top.png`: every frame, from the striking hand's side, from the front
   and from above (the character faces up the picture);
@@ -159,10 +159,11 @@ def render(rig, clips, actions, out, bodies=("female", "male"), every_frame=True
             female.mesh.hide_render = body is not female
             male.mesh.hide_render = body is not male
 
-            def pose(frame, body=body):
+            def pose(frame, body=body, clip=clip):
                 scene.frame_set(frame)
-                body.pose_from(arm)
-                gun.root.matrix_world = gun.matrix(body.arm.matrix_world @ body.arm.pose.bones["hand_r"].matrix)
+                rig.pose_body(body, clip.weapon == "pistol")
+                hand = body.arm.matrix_world @ body.arm.pose.bones["hand_r"].matrix
+                gun.root.matrix_world = gun.matrix(hand, rig.holds[body.name])
                 bpy.context.view_layer.update()
 
             rows = []
