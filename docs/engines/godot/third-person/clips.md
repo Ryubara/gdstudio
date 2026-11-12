@@ -50,11 +50,17 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   sha256 in the licence entry.
 - **Approach:** Keep the library glbs' import at the defaults (the optimizer and `remove_immutable_tracks` on) and
   read the costs before changing one: `ual1.glb` imports at 1,560 KB with the optimizer off, 752 KB at the defaults
-  and 275 KB with compression ([what the clips cost](../../../tools/blender/own-animation.md#audit-cost)). **Watch out
-  for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
+  and 275 KB with compression ([what the clips cost](../../../tools/blender/library-clip-audit.md#audit-cost)). **Watch
+  out for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
   drops those constant tracks on import, and a body of other proportions that plays them stretches its neck and limbs
   to the mannequin's. **Seen:** gdstudio #1150 (PR #1165), 2026-11-11 (the sizes); gdstudio #1149 and #1151,
   2026-11-11 (the position tracks).
+- **Approach:** When a new library joins the character's `AnimationPlayer` (`prone`, `melee`, `gds`), add a
+  `LIBRARY_*` constant, a constant per clip and every clip name to `CharacterClips.ALL` in the same commit, and raise
+  the count in `test_character_clips.gd`. **Watch out for:** `test_every_listed_clip_exists_and_every_clip_is_listed`
+  counts every clip of every library on the player, so a library added only to `character_dressed.tscn` passes every
+  targeted suite and fails only in the full run. **Seen:** kit #1254, the six melee clips (90 to 96, then 99
+  beside the three vault clips of #1239).
 
 ## The fixed clips {#fixed-clips}
 

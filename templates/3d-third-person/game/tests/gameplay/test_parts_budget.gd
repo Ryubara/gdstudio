@@ -25,7 +25,8 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## The prototype body (kit #1187) has 3 more than the Quaternius female it replaced: three meshes
 ## (its levels of detail) where she had one, and the `MannequinTwist` modifier. The aim layer's
 ## `AimHeadModifier` (kit #1334) is one more.
-const NODES_ALIVE := 61
+## The melee blow (#1254) adds 1: the weapon's `MeleeSound`, an idle player like the other three.
+const NODES_ALIVE := 62
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120
