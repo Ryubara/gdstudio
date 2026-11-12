@@ -316,7 +316,8 @@ which runs into the `slide` loop, and `slide_exit`, played when a slide ends sta
 Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up
 `prone/Prone_To_Crouch` for its `exit_time`. Lying, the weapon is put away (its model hidden, the grip off) because the
 fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male mannequin's,
-kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file.
+kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file; the vault clips come a body the
+same way, from `vault_libraries` (kit #1294).
 Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the locomotion clip drives the
 arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do unarmed) and only the gripping hand
 (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
@@ -429,8 +430,10 @@ says how).
 
 ### Prone and crawl clips {#prone-clips}
 
-`assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
-`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above.
+`assets/animation/prone/` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
+`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above,
+one file a body (`prone_form_female.glb` for the template's body, `prone_form_male.glb` for the enemies', `prone.glb`
+and `prone_male.glb` for the Quaternius mannequins): a clip that rests limbs on the floor fits one body's skin.
 The player does not play them yet (the prone stance is kit #1012); add the library to an `AnimationPlayer` as `prone`
 to use them. The crawl covers 0.618 m/s at its own rate with its elbows and feet planted, the body lies 1.07 m ahead of
 and 1.03 m behind the origin and 0.5 m high, and the clips hold no weapon (both hands are on the floor). The arms move

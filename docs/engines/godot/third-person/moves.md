@@ -36,7 +36,8 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   so an AI is held too), and `PlayerCamera.pitch_limits()` draws the orbit in to the same limits as the body lies down.
 - **The picture.** `Character.State.PRONE` (after `DEAD`, so the snapshot's state byte keeps its old numbers),
   `prone_changed(down)`, the read-only `prone` and `prone_amount`. `CharacterAnimation` has a `prone` state that
-  plays the template's own clips (gdstudio #1009, the library `prone` from `assets/animation/prone/prone.glb`;
+  plays the template's own clips (gdstudio #1009, the library `prone` from `assets/animation/prone/`, one file a
+  body with the same clip names, lengths and crawl speed, kit #1090 and #1293;
   [how they are solved](../../../tools/blender/animation.md#solved-clips)): `prone/Prone_Idle` at `prone_idle_pace`,
   and `prone/Crawl_Fwd`, which replaces the idle over `blend_time` as soon as the body moves and plays at
   `ground speed / crawl_clip_speed` (0.618 m/s, the clip's stride), backwards when the body moves away from the way it
@@ -48,15 +49,17 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the
   pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`), cosmetic and
   never sent.
-- **On the template's bodies.** The clips were solved on the Quaternius female, and the `form` bodies the template
-  wears since kit #1187 play the same file, lower: `tests/gameplay/test_prone_clips.gd` (all four bodies, kit #1286)
-  reads the forearms' skin 33 and 38 mm under the floor on `form_female` (lying and crawling) and 48 and 55 mm on
-  `form_male`, the thighs, knees and feet 15 to 22 mm under lying still, the planted elbows rolling 19 and 32 mm a
-  stride (the feet hold to 2 mm), and the two transitions putting the left shin 17 to 18 mm into the left arm on
-  `form_female` (`prone/bodies_overlap.json`). The arms' angles, the fists and the joins pass on every body. The
-  suite holds those numbers as the `form` bodies' limits until kit #1293 solves the clips on them (as kit #1090
-  does for the Quaternius male); `tools/capture/prone_clips_tour.tscn` films any of the four (`MODEL`, read by
-  `tools/capture/study_body.gd`), and its `PRONE_FISTS` sheet has a row of the legs at the floor.
+- **One clip file a body.** A clip that rests limbs on the floor fits one body's bone lengths and skin, so each of
+  the template's bodies has the four clips solved on itself (kit #1293), and so has each Quaternius mannequin (kit
+  #1090): `character_dressed.tscn` holds `prone_form_female.glb` as the library `prone` (the player, the friendlies
+  and the online puppets wear `form_female.glb`) and its `prone_libraries` names `prone_form_male.glb` for
+  `form_male.glb` (the enemies), `prone.glb` for `mannequin_female.glb` and `prone_male.glb` for
+  `mannequin_male.glb`. In the Quaternius female's file the `form` bodies lay 33 to 55 mm in the floor at the
+  forearms with their planted elbows rolling 19 and 32 mm a stride (kit #1286); in their own files no forearm, hand,
+  thigh, shin or foot is more than 5 mm under it, the planted elbows stay within 2 mm, no limb crosses another by
+  more than 2.2 mm and no frame is a mirror of itself (the wrists stay 96 mm and the shoulders 31 mm from one in the
+  transitions) (`tests/gameplay/test_prone_clips.gd`, each body in its own file; `tools/capture/prone_clips_tour.tscn`
+  films any of the four, `MODEL`, read by `tools/capture/study_body.gd`).
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
 studios; the template's run is 4.0 m/s and its walk 1.7):
