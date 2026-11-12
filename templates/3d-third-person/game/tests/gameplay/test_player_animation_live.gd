@@ -2,6 +2,8 @@
 # on a running player and read back from the tree it builds.
 extends GdUnitTestSuite
 
+const SETTINGS := "res://gameplay/character/gait_settings.tres"
+
 var _arena: PlayArena
 var _player: Player
 var _animation: CharacterAnimation
@@ -86,6 +88,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"shot_hold_time": 0.2,
 		&"blend_time": 0.15,
 		&"action_blend_time": 0.1,
+		&"gait_settings": null,
 	}
 	assert_array(ExportPins.differences(fresh, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(fresh, pins)).is_empty()
@@ -105,13 +108,13 @@ func test_a_clip_changed_while_the_game_runs_is_in_the_tree_and_the_state_goes_o
 	_animation.idle_clip = CharacterClips.WALK
 	_animation.run_clip = CharacterClips.WALK
 	_animation.sprint_clip = CharacterClips.WALK
-	assert_str(_ground().get_blend_point_node(1).animation).is_equal(CharacterClips.SPRINT)
+	assert_str(GaitBlend.clip_of(_ground(), &"walk")).is_equal(CharacterClips.SPRINT)
 	# The idle point is the idle playing and held still under a standing aim (`AimStance`).
 	var idle := _ground().get_blend_point_node(0) as AnimationNodeBlendTree
 	assert_str(idle.get_node(&"Playing").animation).is_equal(CharacterClips.WALK)
 	assert_str(idle.get_node(&"Held").animation).is_equal(CharacterClips.WALK)
-	assert_str(_ground().get_blend_point_node(2).animation).is_equal(CharacterClips.WALK)
-	assert_str(_ground().get_blend_point_node(3).animation).is_equal(CharacterClips.WALK)
+	assert_str(GaitBlend.clip_of(_ground(), &"run")).is_equal(CharacterClips.WALK)
+	assert_str(GaitBlend.clip_of(_ground(), &"sprint")).is_equal(CharacterClips.WALK)
 	assert_str(_clip_of(CharacterAnimation.JUMP)).is_equal(CharacterClips.WALK)
 	assert_str(_clip_of(CharacterAnimation.FALL)).is_equal(CharacterClips.IDLE)
 	assert_str(_clip_of(CharacterAnimation.LAND)).is_equal(CharacterClips.IDLE)
@@ -135,6 +138,11 @@ func test_the_interact_and_hit_clips_are_read_when_the_action_plays() -> void:
 
 
 func test_the_blend_times_reach_the_transitions_and_the_action_layer() -> void:
+	# The body states cross-fade over `blend_time` with the momentum blend off (on, they change at
+	# once: `test_gait_parts.gd`).
+	var settings := (load(SETTINGS) as GaitSettings).duplicate()
+	settings.momentum_blend = false
+	_animation.gait_settings = settings
 	_animation.blend_time = 0.4
 	_animation.action_blend_time = 0.3
 	var machine := _machine()
@@ -149,6 +157,10 @@ func test_the_blend_times_reach_the_transitions_and_the_action_layer() -> void:
 
 
 func test_the_walk_run_and_sprint_points_follow_the_tuning_speeds() -> void:
+	# Without the speed matching; with it they sit at the clips' speeds (`test_gait_parts.gd`).
+	var settings := (load(SETTINGS) as GaitSettings).duplicate()
+	settings.speed_match = false
+	_animation.gait_settings = settings
 	_player.tuning.walk_speed = 2.5
 	_player.tuning.run_speed = 5.0
 	_player.tuning.sprint_speed = 9.0

@@ -59,3 +59,8 @@ name would let any other label replace a failed run. `python/tests/test_hold.py`
   refused, and the coordinator asked for one approve line per number. **Seen:** gdstudio #1191-#1285 holds,
   2026-11-12 (fix: a digitless approving sentence answers the list at any message length, and a negation naming a
   number vetoes it; `test_hook_hold_approval.py`).
+- **Approach:** Read a refusal word in the guard as the maintainer means it, and test every refusal phrase against the
+  label's own name and the usual ways of saying the hold comes off. **Watch out for:** `hold off` was a refusal phrase,
+  and it matched inside an approval that named the label and then "off" with the numbers (`S-hold off 7`, also "take
+  the hold off 7"), so a clear yes was refused. **Seen:** gdstudio #1332, 2026-11-12 (fix: `hold off` refuses only as
+  a verb, not after `S-`, `the`, `that`, `this`, `its` or `their`; `test_hook_hold_approval.py` has both sides).

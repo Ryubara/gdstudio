@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="GaitSettings" format=3]
+
+[ext_resource type="Script" path="res://gameplay/character/gait_settings.gd" id="1_settings"]
+[ext_resource type="Script" path="res://gameplay/character/gait_transition_set.gd" id="2_set"]
+
+[sub_resource type="Resource" id="Resource_clips"]
+script = ExtResource("2_set")
+
+[resource]
+script = ExtResource("1_settings")
+transition_clips = SubResource("Resource_clips")

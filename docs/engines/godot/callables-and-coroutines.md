@@ -99,7 +99,7 @@ instead of the original) had no home -->
   `inf` because the appends went to copies (a plain `Array` in the dictionary is shared). **Seen:** Deadnight,
   2026-11-01 (fix: append to the property; a test caught it); gdstudio #1001, 2026-11-10; gdstudio #1071, 2026-11-11
   (a relay's `_read(from, into: PackedByteArray)` appended to its argument: return the bytes instead); gdstudio
-  #1177, 2026-11-11 (skin points per bone, kept none).
+  #1177, 2026-11-11 (skin points per bone, kept none); #1158, 2026-11-12 (foot places, clip lengths).
 - **Approach:** `duplicate()` a packed array another object keeps appending to before a coroutine reads it across
   frames (a replay of a server's history, a list of samples). **Watch out for:** the other way round from the entry
   above: passed to a function, `peer.history_steps` was the same array, so a replay loop that awaited a frame for each
