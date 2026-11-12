@@ -23,7 +23,7 @@ from mathutils import Vector
 TILE = (400, 540)
 METRES_HIGH = 2.7
 ## The frames looked at close: where the first version of each clip had a leg deepest in the other leg or an arm.
-CLOSE = {"Vault_Low": [7, 12], "Vault_High": [15, 20]}
+CLOSE = {"Vault_Low": [7, 12], "Vault_High": [14, 15, 18, 20]}
 ## The frames the legs cross the front edge in, drawn between the keys as well (`_edge`): `Vault_Low`'s lead foot
 ## crosses between 5 and 6 and its left knee between 7 and 8 (gdstudio #1221).
 EDGE = {"Vault_Low": [(5.0, 6.0), (6.8, 7.8)]}

@@ -1,6 +1,8 @@
-# The vault clips (`assets/animation/vault/vault.glb`, built by `build_vault.py`) carry what the
-# vault code reads from them: three clips of the lengths `vault_clips.json` gives, every track on
-# a bone of both mannequins, only the pelvis moved, the planted hand still on the reference box
+# The vault clips (`assets/animation/vault/`, built by `build_vault.py`, one file for each of the
+# template's bodies: `vault.glb` solved on `CharacterBodies.FEMALE`, `vault_male.glb` on `MALE`,
+# kit #1294) carry what the vault code reads from them: three clips of the lengths
+# `vault_clips.json` gives, the same in both files, every track on a bone of every body, only the
+# pelvis moved, the planted hand still on the reference box
 # while the body is moved at the clip's speed, the feet over the floor, and first and last poses
 # that join the sprint and each other. And what a body can do: the planted arm gives under the
 # weight and pushes off straight, the body falls on the arc of a free fall while nothing touches
@@ -11,13 +13,25 @@ extends GdUnitTestSuite
 const VAULT := "res://assets/animation/vault/vault.glb"
 const UAL1 := "res://assets/animation/universal/ual1.glb"
 const CLIPS := "res://assets/animation/vault/vault_clips.json"
-const FEMALE := "res://assets/characters/mannequin/mannequin_female.glb"
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const FEMALE := CharacterBodies.FEMALE
+const MALE := CharacterBodies.MALE
+## The clip file each body plays (`CharacterAnimation.vault_libraries` in the character's scene)
+## and the numbers the build wrote beside it.
+const FILES: Dictionary[String, String] = {
+	FEMALE: VAULT,
+	MALE: "res://assets/animation/vault/vault_male.glb",
+}
+const SIDECARS: Dictionary[String, String] = {
+	FEMALE: CLIPS,
+	MALE: "res://assets/animation/vault/vault_male_clips.json",
+}
+## What the vault code reads of a clip, which every file holds the same (`SAME` in the build).
+const SAME: Array[String] = [
+	"length", "frames", "speed", "travel", "events", "root_start", "root_at", "obstacle"
+]
 const NAMES: Array[String] = ["Vault_High", "Vault_Land", "Vault_Low"]
 ## The bones a join is measured on: the ends of the limbs, the hips and the head.
 const ENDS: Array[String] = ["pelvis", "Head", "hand_l", "hand_r", "foot_l", "foot_r"]
-## The wrist bone rides this far over a surface the palm lies on (`PALM` in the build).
-const WRIST_OVER_TOP := 0.036
 const GRAVITY := 9.81
 ## How far the centre of mass may be off a free fall's arc in the air (`ARC_LIMIT` in the build
 ## is 0.015; the male's proportions add a little).
@@ -73,10 +87,14 @@ const LEG_BONES: Array[String] = [
 ]
 
 var _file := {}
+# The numbers of each body, by its model's path (`_file` is the default body's).
+var _files := {}
 
 
 func before() -> void:
-	_file = JSON.parse_string(FileAccess.get_file_as_string(CLIPS))
+	for model: String in SIDECARS:
+		_files[model] = JSON.parse_string(FileAccess.get_file_as_string(SIDECARS[model]))
+	_file = _files[FEMALE]
 
 
 func _rig(path: String) -> Dictionary:
@@ -87,7 +105,7 @@ func _rig(path: String) -> Dictionary:
 	player.root_node = player.get_path_to(model)
 	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	player.add_animation_library(&"ual1", load(UAL1))
-	player.add_animation_library(&"vault", load(VAULT))
+	player.add_animation_library(&"vault", load(FILES[path]))
 	var skeleton: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
 	return {"model": model, "player": player, "skeleton": skeleton}
 
@@ -145,23 +163,47 @@ func _farthest(a: Dictionary, b: Dictionary) -> float:
 
 
 func test_the_library_holds_the_three_clips() -> void:
-	var library: AnimationLibrary = load(VAULT)
-	var names: Array[String] = []
-	for clip in library.get_animation_list():
-		names.append(String(clip))
-	names.sort()
-	assert_array(names).is_equal(NAMES)
-	for clip in NAMES:
-		var animation := library.get_animation(clip)
-		var spec: Dictionary = _file.clips[clip]
-		assert_float(animation.length).is_equal_approx(spec.length, 0.001)
-		assert_float(spec.frames / float(_file.fps)).is_equal_approx(spec.length, 0.001)
-		assert_int(animation.loop_mode).is_equal(Animation.LOOP_NONE)
+	for model: String in FILES:
+		var library: AnimationLibrary = load(FILES[model])
+		var names: Array[String] = []
+		for clip in library.get_animation_list():
+			names.append(String(clip))
+		names.sort()
+		assert_array(names).is_equal(NAMES)
+		for clip in NAMES:
+			var animation := library.get_animation(clip)
+			var spec: Dictionary = _files[model].clips[clip]
+			assert_float(animation.length).is_equal_approx(spec.length, 0.001)
+			assert_float(spec.frames / float(_file.fps)).is_equal_approx(spec.length, 0.001)
+			assert_int(animation.loop_mode).is_equal(Animation.LOOP_NONE)
+
+
+# The vault code has one set of numbers (`VaultClip`): every file has the clips at the same
+# lengths, speeds, contact times and root places, and the hands land at the same place.
+func test_every_file_gives_the_vault_code_the_same_numbers() -> void:
+	for model: String in SIDECARS:
+		var theirs: Dictionary = _files[model]
+		assert_str(theirs.model).is_equal(model.get_file())
+		for clip in NAMES:
+			for key in SAME:
+				(
+					assert_str(JSON.stringify(theirs.clips[clip].get(key)))
+					. override_failure_message(
+						"%s: %s differs in %s" % [clip, model.get_file(), key]
+					)
+					. is_equal(JSON.stringify(_file.clips[clip].get(key)))
+				)
+			if not _file.clips[clip].has("hand_place"):
+				continue
+			for key: String in ["left", "forward"]:
+				assert_float(theirs.clips[clip].hand_place[key]).is_equal(
+					_file.clips[clip].hand_place[key]
+				)
 
 
 func test_every_track_finds_a_bone_on_both_mannequins() -> void:
-	var library: AnimationLibrary = load(VAULT)
 	for path: String in [FEMALE, MALE]:
+		var library: AnimationLibrary = load(FILES[path])
 		var rig := _rig(path)
 		var model: Node3D = rig.model
 		var skeleton: Skeleton3D = rig.skeleton
@@ -183,24 +225,32 @@ func test_every_track_finds_a_bone_on_both_mannequins() -> void:
 
 
 func test_only_the_pelvis_is_moved() -> void:
-	var library: AnimationLibrary = load(VAULT)
-	for clip in NAMES:
-		var animation := library.get_animation(clip)
-		var moved: Array[String] = []
-		for track in animation.get_track_count():
-			var kind := animation.track_get_type(track)
-			assert_bool(kind == Animation.TYPE_SCALE_3D).is_false()
-			if kind == Animation.TYPE_POSITION_3D:
-				moved.append(animation.track_get_path(track).get_concatenated_subnames())
-		assert_array(moved).is_equal(["pelvis"])
+	for model: String in FILES:
+		var library: AnimationLibrary = load(FILES[model])
+		for clip in NAMES:
+			var animation := library.get_animation(clip)
+			var moved: Array[String] = []
+			for track in animation.get_track_count():
+				var kind := animation.track_get_type(track)
+				assert_bool(kind == Animation.TYPE_SCALE_3D).is_false()
+				if kind == Animation.TYPE_POSITION_3D:
+					moved.append(animation.track_get_path(track).get_concatenated_subnames())
+			assert_array(moved).is_equal(["pelvis"])
 
 
 # The clips are in place: the game moves the body. Moved at the clip's speed from where the
-# sidecar says the root starts, the planted wrist stays at one place over the reference box.
+# sidecar says the root starts, the planted wrist stays at one place over the reference box, on
+# each of the template's bodies in its own file (kit #1294: in one file keyed on the Quaternius
+# female the wrists slid 18 to 82 mm on the top and rode 29 to 67 mm off their height).
 func test_the_planted_hand_stays_on_the_box() -> void:
-	var rig := _rig(FEMALE)
+	for model: String in [FEMALE, MALE]:
+		_planted_hand_stays_on_the_box(model)
+
+
+func _planted_hand_stays_on_the_box(model: String) -> void:
+	var rig := _rig(model)
 	for clip: String in ["Vault_Low", "Vault_High"]:
-		var spec: Dictionary = _file.clips[clip]
+		var spec: Dictionary = _files[model].clips[clip]
 		var top: float = spec.obstacle.height
 		var first := int(round(spec.events.hand_plant * _file.fps))
 		var last := int(round(spec.events.hand_release * _file.fps))
@@ -210,37 +260,47 @@ func test_the_planted_hand_stays_on_the_box() -> void:
 			var hand: Vector3 = _pose(rig, StringName("vault/" + clip), time, ["hand_l"]).hand_l
 			places.append(hand + Vector3(0, 0, spec.root_start + spec.speed * time))
 		assert_int(places.size()).is_greater_equal(3)
+		var moves := 0.0
+		var height := 0.0
 		for place in places:
-			(
-				assert_float(place.distance_to(places[0]))
-				. override_failure_message(
-					"%s: the planted wrist moves %.3f m" % [clip, place.distance_to(places[0])]
-				)
-				. is_less(0.005)
-			)
-			assert_float(place.y - top).is_equal_approx(WRIST_OVER_TOP, 0.005)
+			moves = maxf(moves, place.distance_to(places[0]))
+			height = maxf(height, absf(place.y - top - spec.hand_place.wrist_above_top))
+		var said := (
+			"%s on %s: the planted wrist moves %.4f m, %.4f m off its height over the top"
+			% [clip, model.get_file(), moves, height]
+		)
+		print("VAULT " + said)
+		assert_float(moves).override_failure_message(said).is_less(0.005)
+		assert_float(height).override_failure_message(said).is_less(0.005)
 		assert_float(places[0].x).is_equal_approx(spec.hand_place.left, 0.005)
 		assert_float(places[0].z).is_equal_approx(spec.hand_place.forward, 0.005)
 
 
 func test_the_feet_stay_over_the_floor() -> void:
-	var rig := _rig(FEMALE)
 	var feet: Array[String] = ["foot_l", "foot_r", "ball_l", "ball_r"]
-	for clip in NAMES:
-		var spec: Dictionary = _file.clips[clip]
-		var lowest := 9.0
-		for frame in int(spec.frames) + 1:
-			var time: float = minf(frame / float(_file.fps), spec.length)
-			var pose := _pose(rig, StringName("vault/" + clip), time, feet)
-			for bone in feet:
-				lowest = minf(lowest, (pose[bone] as Vector3).y)
-		assert_float(lowest).is_between(0.005, 0.05)
+	for model: String in [FEMALE, MALE]:
+		var rig := _rig(model)
+		for clip in NAMES:
+			var spec: Dictionary = _file.clips[clip]
+			var lowest := 9.0
+			for frame in int(spec.frames) + 1:
+				var time: float = minf(frame / float(_file.fps), spec.length)
+				var pose := _pose(rig, StringName("vault/" + clip), time, feet)
+				for bone in feet:
+					lowest = minf(lowest, (pose[bone] as Vector3).y)
+			var said := "%s on %s: lowest foot bone %.3f m" % [clip, model.get_file(), lowest]
+			assert_float(lowest).override_failure_message(said).is_between(0.005, 0.05)
 
 
 # Each vault starts on the sprint's left foot strike (0 s) and ends on its right one (half a
 # cycle), where `Vault_Land` starts; `Vault_Land` ends on the left foot strike again.
 func test_the_clips_join_the_sprint_and_each_other() -> void:
-	var rig := _rig(FEMALE)
+	for model: String in [FEMALE, MALE]:
+		_clips_join_the_sprint_and_each_other(model)
+
+
+func _clips_join_the_sprint_and_each_other(model: String) -> void:
+	var rig := _rig(model)
 	var half: float = (rig.player as AnimationPlayer).get_animation(&"ual1/Sprint").length * 0.5
 	var left_strike := _pose(rig, &"ual1/Sprint", 0.0, ENDS)
 	var right_strike := _pose(rig, &"ual1/Sprint", half, ENDS)
@@ -291,37 +351,48 @@ func test_no_leg_joint_cuts_the_box_between_the_keys() -> void:
 				)
 				. is_less(JOINT_IN_BOX)
 			)
-		var between: Dictionary = _file.clips.Vault_Low.contacts.between_keys
+		var between: Dictionary = _files[model].clips.Vault_Low.contacts.between_keys
 		assert_float(between.samples_a_second).is_greater_equal(60.0)
 
 
 # No limb passes through another: `build_vault.py` measures, on every frame of every clip and on
-# both mannequins' skinned meshes, how deep any body part is inside one no joint joins it to
-# (`assets/animation/limb_overlap.py`), and writes the deepest into the sidecar with the hash of
-# the file it measured. A vault.glb that is not that file any more has not been measured.
+# the skinned mesh of the body the file is for, how deep any body part is inside one no joint
+# joins it to (`assets/animation/limb_overlap.py`), and writes the deepest into the sidecar with
+# the hash of the file it measured. A clip file that is not that file any more has not been
+# measured. (Kit #1294: in one file for every body the prototype bodies' thighs went 34.0 and
+# 23.6 mm into each other in `Vault_High`.)
 func test_no_limb_passes_through_another() -> void:
-	assert_bool(_file.has("measured")).is_true()
-	if not _file.has("measured"):
+	for model: String in FILES:
+		_no_limb_passes_through_another(model)
+
+
+func _no_limb_passes_through_another(model: String) -> void:
+	var file: Dictionary = _files[model]
+	assert_bool(file.has("measured")).is_true()
+	if not file.has("measured"):
 		return
-	var measured: Dictionary = _file.measured
+	var measured: Dictionary = file.measured
 	(
-		assert_str(FileAccess.get_sha256(VAULT))
+		assert_str(FileAccess.get_sha256(FILES[model]))
 		. override_failure_message(
-			"vault.glb is not the file vault_clips.json was measured on: run build_vault.py"
+			(
+				"%s is not the file %s was measured on: run build_vault.py"
+				% [FILES[model].get_file(), SIDECARS[model].get_file()]
+			)
 		)
 		. is_equal(measured.sha256)
 	)
 	assert_float(measured.overlap_limit_mm).is_less_equal(5.0)
 	for clip in NAMES:
-		var overlap: Dictionary = _file.clips[clip].contacts.overlap_mm
-		assert_array(overlap.keys()).contains_exactly_in_any_order(["female", "male"])
+		var overlap: Dictionary = file.clips[clip].contacts.overlap_mm
+		assert_array(overlap.keys()).contains_exactly([file.body])
 		for body: String in overlap:
 			var entry: Dictionary = overlap[body]
 			(
 				assert_float(entry.deepest)
 				. override_failure_message(
 					(
-						"%s on the %s mannequin: %s by %.1f mm at frame %s"
+						"%s on %s: %s by %.1f mm at frame %s"
 						% [clip, body, entry.pair, entry.deepest, entry.frame]
 					)
 				)

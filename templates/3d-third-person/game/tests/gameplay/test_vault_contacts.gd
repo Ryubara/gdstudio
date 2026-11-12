@@ -8,23 +8,22 @@ extends GdUnitTestSuite
 
 const FACE := 2.5
 const DEPTH := 0.4
-## The bodies the vault clips were keyed and measured on, the Quaternius pair: the prototype bodies
-## the template's characters wear (kit #1187) have longer upper arms, so their planted wrists sit
-## lower than these limits; measuring the clips on them is gdstudio #1286.
+## The template's two bodies. Each plays the vault clips solved on its own arms and thighs
+## (`CharacterAnimation.vault_libraries`, kit #1294), so both are held to the same limits.
 const BODIES := {
-	"female": CharacterBodies.QUATERNIUS_FEMALE,
-	"male": CharacterBodies.QUATERNIUS_MALE,
+	"female": CharacterBodies.FEMALE,
+	"male": CharacterBodies.MALE,
 }
 const CLIPS := "res://assets/animation/vault/vault_clips.json"
 ## The heights run: the course's walls, the clips' own boxes and the ends of each clip's range.
 const HEIGHTS: Array[float] = [0.5, 0.8, 0.9, 1.05, 1.2, 1.27]
 ## How far the planted wrist may sit from the height the clip rests it at over the top, and from
-## where the clip puts it along and across the top, in metres. The male mannequin's arms are
-## 0.05 m longer than the female's the clips were keyed on, so its wrist sits lower.
-const WRIST_UP := {"female": 0.02, "male": 0.06}
-const WRIST_ALONG := {"female": 0.03, "male": 0.075}
+## where the clip puts it along and across the top, in metres (the male's wrist rests 0.006 m
+## higher than the `VaultClip`'s number, the female's: his palm is thicker).
+const WRIST_UP := {"female": 0.02, "male": 0.02}
+const WRIST_ALONG := {"female": 0.03, "male": 0.03}
 ## How far a planted wrist may move while it is planted.
-const WRIST_DRIFT := {"female": 0.025, "male": 0.08}
+const WRIST_DRIFT := {"female": 0.025, "male": 0.025}
 ## How far a foot or knee bone may come to the wall's box, and to the floor (the bones sit inside
 ## the leg: an ankle is 0.06 m over the sole).
 const LEG_BONES: Array[StringName] = [
