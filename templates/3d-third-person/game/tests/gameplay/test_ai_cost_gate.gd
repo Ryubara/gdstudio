@@ -1,6 +1,9 @@
-# On the clock: the gate times the AI's step and thinks, held as a ratio of the calibration loop
-# timed between the measured ticks, medians on both sides, so a busy machine slows both
-# (`performance-budgets.md#reading-a-timing-on-a-shared-machine`).
+# On the clock: the gate times the AI's step and thinks, held as a ratio of a ruler loop timed
+# between the measured ticks, medians on both sides, so a busy machine slows both
+# (`performance-budgets.md#reading-a-timing-on-a-shared-machine`). The ruler is GDScript work of
+# the AI's kind (vectors, an array, a dictionary), not the soak's `sin` loop: the C library's
+# `sin` ran 1.65 times faster on the Linux runner than on Windows while the AI's step cost the
+# same, so a limit in `sin` loops failed CI and held loose on the desktop.
 #
 # The AI's cost gate (kit #971): 50, 100 and 200 civilians (the template's `civilian.tscn`) going
 # about a 28 m mesh round a visitor in the player's faction and a raider in the enemy's (seen,
@@ -10,8 +13,8 @@
 # rate, or casts more than `max_rays_per_think` (2) rays a think; the shared budget is never
 # overspent. Time second, loose: the director's step a character a tick, a think, and the server's
 # record of the AI's hit volumes (`AiHitHistory`, the `ai_history_us` of the server's `stats`
-# line) a character, each a median: the step and a think over the median of the calibration
-# loop timed every `CALIBRATE_TICKS` ticks, the history (a section of a few microseconds that a
+# line) a character, each a median: the step and a think over the median of the ruler timed
+# every `CALIBRATE_TICKS` ticks, the history (a section of a few microseconds that a
 # loop of arithmetic does not follow) over the step of the same ticks; limits sit between the
 # highest ratio seen with a second suite loading the machine and twice the lowest, so a step
 # twice as slow fails (the docs table: `third-person/ai-characters.md#cost-gate`). A failure
@@ -24,12 +27,14 @@ const WARM_TICKS := 120
 const TICKS := 300
 ## Metres between two characters of the grid they start on.
 const SPACING := 1.6
-## Ticks between two timings of the calibration loop in the measured window.
+## Ticks between two timings of the ruler in the measured window.
 const CALIBRATE_TICKS := 50
-## The director's step a character a tick (median), microseconds a calibration millisecond
-## (median), at most, by crowd size.
+## Rounds of the ruler loop (about 10 ms on the desktop the limits were set on).
+const RULER_ROUNDS := 60000
+## The director's step a character a tick (median), microseconds a ruler millisecond (median),
+## at most, by crowd size.
 const STEP_RATIO_LIMITS: Dictionary[int, float] = {50: 8.0, 100: 7.5, 200: 6.5}
-## A think (median), microseconds a calibration millisecond, at most, by crowd size (a think
+## A think (median), microseconds a ruler millisecond, at most, by crowd size (a think
 ## grows with the crowd it reads).
 const THINK_RATIO_LIMITS: Dictionary[int, float] = {50: 13.0, 100: 14.0, 200: 18.0}
 ## The hit history's record (median) over the director's step (median) of the same ticks, at
@@ -102,7 +107,8 @@ func _measure(count: int) -> Dictionary:
 		crowd.append(_arena.add_kind(CIVILIAN, spot, TAU * index / count))
 	for _i in WARM_TICKS:
 		await get_tree().physics_frame
-	var calibrations := PackedFloat64Array([AiSoakWatch.calibrate()])
+	var sin_loop := AiSoakWatch.calibrate()
+	var calibrations := PackedFloat64Array([_ruler_ms()])
 	var thinks := PackedInt32Array()
 	var queries := PackedInt32Array()
 	var rays := PackedInt32Array()
@@ -142,7 +148,7 @@ func _measure(count: int) -> Dictionary:
 				if (character.senses as AiSenses).last_rays > character.profile.max_rays_per_think:
 					rays_over += 1
 		if (tick + 1) % CALIBRATE_TICKS == 0:
-			calibrations.append(AiSoakWatch.calibrate())
+			calibrations.append(_ruler_ms())
 	var seconds := float(TICKS) / Engine.physics_ticks_per_second
 	var storms := 0
 	var fast_thinkers := 0
@@ -167,7 +173,8 @@ func _measure(count: int) -> Dictionary:
 	var history_each := _median(histories)
 	return {
 		"count": count,
-		"calibration_ms": snappedf(calibration, 0.01),
+		"ruler_ms": snappedf(calibration, 0.01),
+		"sin_loop_ms": snappedf(sin_loop, 0.01),
 		"step_us_each": snappedf(step_each, 0.01),
 		"think_us": snappedf(think_each, 0.1),
 		"history_us_each": snappedf(history_each, 0.001),
@@ -194,6 +201,22 @@ func _clear_crowd() -> void:
 		if target != null:
 			target.free()
 	AiSensePool.forget()
+
+
+# Milliseconds the ruler takes now: GDScript work of the AI's kind, no C library maths.
+static func _ruler_ms() -> float:
+	var start := Time.get_ticks_usec()
+	var points: Array[Vector3] = []
+	var seen := {}
+	var total := 0.0
+	for index in RULER_ROUNDS:
+		var point := Vector3(index % 17, index % 5, index % 11) * 0.5
+		points.append(point)
+		total += point.length_squared() + point.dot(Vector3.UP)
+		seen[index % 97] = total
+		if points.size() > 64:
+			points.clear()
+	return (Time.get_ticks_usec() - start + int(total * 0.0) + seen.size() * 0) / 1000.0
 
 
 static func _median(values: PackedFloat64Array) -> float:

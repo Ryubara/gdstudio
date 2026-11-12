@@ -138,25 +138,30 @@ soak's director step (180 s, desktop native) was 650 µs mean, 998 p95, with a m
 enemy's (seen and fled from), 300 ticks after a 120-tick warm-up, under the director's shipped budgets with its desktop
 cap raised to 200. Counts are held exactly: no character asks for more paths than its `repath_seconds` allows, thinks
 more often than its `think_rate` or casts more than `max_rays_per_think` (2) rays a think, and the shared budget is
-never overspent. Time is held as medians: the step a character and a think over the median of the calibration loop
-timed every 50 ticks of the window, and the hit history over the step of the same ticks (a section of a few
-microseconds that a loop of arithmetic does not follow: [the ruler](../performance-budgets.md#budgets-counts-tight-time-loose)).
-Each limit sits between the highest ratio of the runs below and twice the lowest, so a step, a think or a record
-twice as slow fails (a run with each made twice as slow by a wait failed every row), and a failure prints the row.
-Native debug build, Windows, 2026-11-11, on the prototype bodies; 11 runs, 5 of them with two or three copies of the
-gate side by side and 4 beside the full template suite; the range of each over the runs (the calibration loop's
-median 11.7 to 23.5 ms):
+never overspent. Time is held as medians: the step a character and a think over the median of a ruler loop timed
+every 50 ticks of the window (GDScript work of the AI's kind: vectors, an array, a dictionary, about 10 ms here), and
+the hit history over the step of the same ticks (a section of a few microseconds that a loop does not follow:
+[the ruler](../performance-budgets.md#budgets-counts-tight-time-loose)). Each limit sits between the highest ratio seen
+and twice the lowest, so a step, a think or a record twice as slow fails (a run with each made twice as slow by a wait
+failed every row), and a failure prints the row. Native debug build, Windows, 2026-11-11, on the prototype bodies;
+the step and think columns are 4 runs with the ruler (2 of them side by side), the history column 11 runs (5 with two
+or three copies of the gate beside it, 4 beside the full template suite):
 
 | Civilians | Step a character a tick | A think | Hit history a character (`ai_history_us`) | Paths / thinks a second each | Rays a think | Walking |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 50 | 53 to 82 us (4.3 to 6.2 a cal. ms; limit 8.0) | 80 to 112 us (6.5 to 8.7; limit 13) | 1.7 to 3.0 us (0.031 to 0.037 of the step; limit 0.055) | 0.60 / 10.0 | 0.17 | 57 % |
-| 100 | 51 to 95 us (3.9 to 6.1; limit 7.5) | 99 to 163 us (5.7 to 10.2; limit 14) | 2.1 to 3.8 us (0.035 to 0.049; limit 0.06) | 0.51 / 6.7 | 0.10 | 50 % |
-| 200 | 46 to 58 us (3.8 to 4.5; limit 6.5) | 136 to 168 us (11.1 to 13.3; limit 18) | 2.6 to 3.5 us (0.057 to 0.063; limit 0.09) | 0.39 / 3.6 | 0.11 | 35 % |
+| 50 | 48 to 56 us (4.6 to 5.1 a ruler ms; limit 8.0) | 72 to 84 us (6.9 to 7.7; limit 13) | 1.7 to 3.0 us (0.031 to 0.038 of the step; limit 0.055) | 0.60 / 10.0 | 0.17 | 57 % |
+| 100 | 44 to 47 us (4.1 to 5.1; limit 7.5) | 91 to 97 us (8.5 to 10.4; limit 14) | 2.1 to 3.8 us (0.034 to 0.049; limit 0.06) | 0.51 / 6.7 | 0.10 | 50 % |
+| 200 | 35 to 40 us (3.3 to 4.0; limit 6.5) | 108 to 119 us (10.0 to 12.2; limit 18) | 2.6 to 3.5 us (0.046 to 0.063; limit 0.09) | 0.39 / 3.6 | 0.11 | 35 % |
 
-- The branch before the prototype bodies (Quaternius's mannequins) read the same in runs taken turn about with these
-  (step 4.8 to 5.1 a cal. ms at 50, a think 91 to 110 us): the body's look is not in the AI's step. The first table
-  of this gate (34.9 us a character at 50, ratio 3.2) was a mean over one calibration on a quieter day.
-- A think grows with the crowd (about 95 us at 50, 150 at 200) where the step a character falls: a frightened
+- The first ruler was the soak's `sin` loop: on the Linux CI runner it took 7.5 ms against 12.5 on this desktop while
+  the AI's step cost the same (60 us a character at 50), so the step read 7.9 to 5.9 loops there against 4.3 to 6.2
+  here and failed CI. The C library's `sin` is not the AI's kind of work; the ruler now is.
+- With the `sin` loop, 11 runs on a loaded machine (two or three copies of the gate, or the full suite, beside it)
+  read the step at 46 to 95 us a character: load moves the microseconds 2 times and the ratio 1.6 times.
+- The branch before the prototype bodies (Quaternius's mannequins), measured turn about with these, read the same: the
+  body's look is not in the AI's step. The first table of this gate (34.9 us a character at 50, ratio 3.2) was a mean
+  over one calibration on a quieter day.
+- A think grows with the crowd (about 80 us at 50, 115 at 200) where the step a character falls: a frightened
   civilian's think walks more beliefs and tellings in a bigger crowd. The calm crowd (no raider) is 31 to 46 us a
   think.
 - The server's record of every AI character's hit volume (`AiHitHistory`, #1198) is 2 to 3.5 us a character a tick:

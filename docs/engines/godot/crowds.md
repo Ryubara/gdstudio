@@ -555,7 +555,7 @@ and 2 at 4x on a machine other agents were using; "before" is #967's navigator w
 
 **The cost gate and the web probe (#971).** `tests/gameplay/test_ai_cost_gate.gd` holds the counts above exactly at
 50, 100 and 200 characters (paths a `repath_seconds`, thinks a `think_rate`, 2 rays a think, the shared budget), the
-step and a think as medians over the calibration loop's, and the server's hit history (`ai_history_us`) as a share of
+step and a think as medians over a ruler loop's, and the server's hit history (`ai_history_us`) as a share of
 the step; `tools/web_smoke/ai.py` reads the soak's web export at 10 to 40 fighting characters, 1x and 4x: the
 section's 10 hold both budgets (0.57 ms, 3.1 ms at 4x), 20 and more fighting fall off the tick cliff at 4x (3.7 to 6.7
 ticks a frame). The tables: [the cost gate](third-person/ai-characters.md#cost-gate).

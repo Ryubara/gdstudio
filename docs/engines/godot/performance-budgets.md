@@ -168,8 +168,9 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   ticks), and set each limit between the highest ratio seen with a second suite beside it and twice the lowest; prove a
   2x wait fails. **Watch out for:** one calibration and means read the AI step at 3.2 one day and 4.5 the next on the
   same code; a 2-microsecond record swung 2.7 times against the loop; a 0.12 ms ruler timed every tick did not follow
-  load at all. **Seen:** gdstudio #1248 (`test_ai_cost_gate.gd`), 2026-11-11 (fix: medians, 14 runs green under load,
-  a 2x wait failing every row).
+  load at all; a `sin` loop ran 1.65 times faster on the Linux runner while the AI cost the same, and CI failed.
+  **Seen:** gdstudio #1248 (`test_ai_cost_gate.gd`), 2026-11-11 (fix: medians, a ruler of vector, array and
+  dictionary work, a 2x wait failing every row).
 
 ## In the editor {#in-the-editor}
 
