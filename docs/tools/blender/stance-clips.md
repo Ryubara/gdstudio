@@ -61,3 +61,9 @@ toolkit of [Animation](animation.md#toolkit). The clips, their variants and thei
   and the two together put the aimed muzzle 6.2 mm from the offset, so the pull request's check went red in a weapon
   suite no clip change had touched. **Seen:** gdstudio #1160 (PR #1285), 2026-11-12 (the offset measured again:
   0.2 mm off).
+- **Approach:** Before pushing a merge, fetch again and run the suites main added since the last merge on the branch's
+  clips; a test that reads a pose (the head on the neck, a muzzle, a hand) was fitted to the clip main plays.
+  **Watch out for:** main (#1353) landed a head test between this branch's local run and its push: on the library's
+  crouch the aimed head rolls under 8 degrees on the neck, on our crouch, whose shoulders turn 17 degrees over a trunk
+  folded 84, it reads 15.4 while level in the world, so 240 assertions failed in CI only. **Seen:** gdstudio #1160
+  (PR #1285), 2026-11-12 (fix: `AimLayer.head_crouch_neck_share`, 0.5: 10.9 each; the crouch's limit is 12).

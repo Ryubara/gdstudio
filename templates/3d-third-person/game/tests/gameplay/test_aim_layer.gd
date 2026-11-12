@@ -225,6 +225,7 @@ func test_every_aim_limit_is_pinned() -> void:
 		&"release_time": 0.12,
 		&"disabled": false,
 		&"head_neck_share": 0.4,
+		&"head_crouch_neck_share": 0.5,
 		&"head_max_turn": 90.0,
 		&"head_disabled": false,
 	}

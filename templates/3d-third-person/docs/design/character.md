@@ -167,10 +167,10 @@ or off, the most to the left and right of the way the body faces, and the most u
 or the shot is refused. Its own inspector: the chain of spine bones and their shares, `converge_distance`,
 `release_time` (how fast it takes over again after a shot's recoil) and `disabled`.
 
-While the character aims, with any weapon (the fists too), the aim layer also holds the head level and looking along
-the aim, on a straight neck, whatever head the clips carry: in its Head group, `head_neck_share` (the neck's share of
-the turn, 0.4), `head_max_turn` (the most the head turns off the line the chest gives it, 90 degrees) and
-`head_disabled`.
+While the character aims, with any weapon (the fists too), the aim layer also holds the head level and looking along the
+aim, on a straight neck, whatever head the clips carry: in its Head group, `head_neck_share` and
+`head_crouch_neck_share` (the neck's share of the turn, 0.4 standing and 0.5 crouched), `head_max_turn` (the most the
+head turns off the line the chest gives it, 90 degrees) and `head_disabled`.
 
 Vaulting and mantling have their own resource, `gameplay/character/vault_settings.tres` (the `Character`'s
 `vault_settings`, in its Traversal group; empty turns them off), described in [Vaulting and mantling](#vaulting).

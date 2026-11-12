@@ -51,6 +51,10 @@ const _HEAD_MODIFIER := &"AimHead"
 @export_group("Head")
 ## The neck's share of the head's turn toward the aim (the head takes the rest).
 @export_range(0.0, 1.0, 0.01) var head_neck_share := 0.4
+## The neck's share in the crouch. Our crouch turns the shoulders over a folded trunk, which the
+## level head has to roll against: shared evenly, neither the neck nor the head takes it alone
+## (10.9 degrees each with the rifle aimed level, where 0.4 gave the head 15.4).
+@export_range(0.0, 1.0, 0.01) var head_crouch_neck_share := 0.5
 ## The most the head may turn off the line the chest gives it, in degrees.
 @export_range(0.0, 120.0, 0.5, "suffix:deg") var head_max_turn := 90.0
 ## On: the head keeps the clips' pose while aiming (as before kit #1334).
@@ -149,7 +153,8 @@ func _refresh_head() -> void:
 		looking.active = share > 0.0
 	if share <= 0.0:
 		return
-	looking.neck_share = head_neck_share
+	var crouched := 0.0 if character.prone else smoothstep(0.0, 1.0, character._crouch_amount)
+	looking.neck_share = lerpf(head_neck_share, head_crouch_neck_share, crouched)
 	looking.max_turn = head_max_turn
 	looking.target = aim_point(Engine.get_physics_interpolation_fraction())
 

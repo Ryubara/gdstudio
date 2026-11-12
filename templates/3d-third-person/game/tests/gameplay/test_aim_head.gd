@@ -17,10 +17,12 @@ const LOOK := 4.0
 ## How far the head may roll on the neck, or the neck on the chest, in degrees.
 const ROLL_ON_NECK := 8.0
 ## The same in the crouch, in degrees. Our crouch idle (`gds/Crouch_Idle`) turns the shoulders 17
-## degrees against the hips over a trunk folded 84, so a head lifted most of the way back up to
-## the aim reads that turn as roll on the neck (15.4 at most, the rifle aimed level) while it is
-## level in the world, which `LEVEL` holds.
-const CROUCH_ROLL_ON_NECK := 17.0
+## degrees against the hips over a trunk folded 84 degrees forward, which is a roll of the chest
+## about the line of the aim: a head level in the world (`LEVEL` holds it) has to roll that much
+## back, and no split of it between the neck and the head puts both under `ROLL_ON_NECK`. Shared
+## evenly (`AimLayer.head_crouch_neck_share`) each takes 10.9 at most (the rifle and the fists
+## aimed level; the library's crouch, which turns nothing, read 1.1 and the pistol's clips 6.7).
+const CROUCH_ROLL_ON_NECK := 12.0
 ## Below this the head's and the neck's pitches count as straight whatever their signs, in degrees.
 const STRAIGHT := 4.0
 ## How far the head may turn between two drawn frames while the aim holds still, in degrees.

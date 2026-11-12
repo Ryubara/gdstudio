@@ -18,15 +18,17 @@ it); the rifle and the fists, whose aim is not a clip, look straight ahead aimin
 floor. The layer makes an `AimHeadModifier` right after the spine's: it works out the turn that takes the head from
 where the chest leaves it (the neck and head at their rest turns on the chest) to looking at the aim point level (no
 roll against the world's up), holds it within `head_max_turn` (90 degrees) of that line, and gives the neck
-`head_neck_share` (0.4) of it and the head the rest about the same axis, so they never bend against each other. It
-writes each bone once (so `influence` fades it, as for the spine) and is on by the aim (the pistol's aim weight, or the
-character's `aim_amount` eased) less a reload, for every weapon, on a puppet too (it reads the same aim ray). Where the
-chest is bent too far for the neck (the crouch and prone clips aiming 20 degrees up), the head turns its whole reach
-toward the aim and stops there. `tests/gameplay/test_aim_head.gd` reads the drawn pose each frame (`HeadPoseProbe`,
-physics at 20 ticks a second so frames fall between ticks): every weapon standing, walking, crouched and lying at -30, 0
-and 20 degrees, the head within 3 degrees of level, 4 of the aim, its roll on the neck and the neck's on the chest under
-8, no zigzag, under 0.5 degrees between frames; with the head off, 1562 checks fail. `test_net_puppet_head.gd` checks a
-puppet with the pistol and the rifle; the capture is `tools/capture/aim_head_tour.tscn` (`AIM_HEAD=0` for before).
+`head_neck_share` (0.4, and `head_crouch_neck_share`, 0.5, in the crouch) of it and the head the rest about the same
+axis, so they never bend against each other. It writes each bone once (so `influence` fades it, as for the spine) and is
+on by the aim (the pistol's aim weight, or the character's `aim_amount` eased) less a reload, for every weapon, on a
+puppet too (it reads the same aim ray). Where the chest is bent too far for the neck (the crouch and prone clips aiming
+20 degrees up), the head turns its whole reach toward the aim and stops there. `tests/gameplay/test_aim_head.gd` reads
+the drawn pose each frame (`HeadPoseProbe`, physics at 20 ticks a second so frames fall between ticks): every weapon
+standing, walking, crouched and lying at -30, 0 and 20 degrees, the head within 3 degrees of level, 4 of the aim, its
+roll on the neck and the neck's on the chest under 8 (under 12 in the crouch, whose turned shoulders over a folded trunk
+roll the chest about the aim: 10.9 each), no zigzag, under 0.5 degrees between frames; with the head off, 1562 checks
+fail. `test_net_puppet_head.gd` checks a puppet with the pistol and the rifle; the capture is
+`tools/capture/aim_head_tour.tscn` (`AIM_HEAD=0` for before).
 
 The body that swings round at the start and end of an aim is not the head: while the aim fades in, the spine's turn
 folded the chest back by up to 47 degrees on main (gdstudio #1318, [the aim layer](shooting.md#aim-layer)). The head
