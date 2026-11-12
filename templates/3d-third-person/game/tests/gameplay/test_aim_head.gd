@@ -16,6 +16,11 @@ const LEVEL := 3.0
 const LOOK := 4.0
 ## How far the head may roll on the neck, or the neck on the chest, in degrees.
 const ROLL_ON_NECK := 8.0
+## The same in the crouch, in degrees. Our crouch idle (`gds/Crouch_Idle`) turns the shoulders 17
+## degrees against the hips over a trunk folded 84, so a head lifted most of the way back up to
+## the aim reads that turn as roll on the neck (15.4 at most, the rifle aimed level) while it is
+## level in the world, which `LEVEL` holds.
+const CROUCH_ROLL_ON_NECK := 17.0
 ## Below this the head's and the neck's pitches count as straight whatever their signs, in degrees.
 const STRAIGHT := 4.0
 ## How far the head may turn between two drawn frames while the aim holds still, in degrees.
@@ -114,7 +119,7 @@ func _every_stance(weapon: String) -> void:
 			await CommandDriver.run(get_tree(), [_player], command, 8)
 			var label := "%s %s, pitch %+.0f" % [weapon, stance, pitch]
 			assert_float(_layer.head_weight()).override_failure_message(label).is_greater(0.99)
-			_check_level(label, 0)
+			_check_level(label, 0, CROUCH_ROLL_ON_NECK if stance == "crouched" else ROLL_ON_NECK)
 			# Lying, the clip shifts the body as it crawls and settles; standing, crouched or walking
 			# a still aim leaves the head still.
 			if stance != "lying":
@@ -137,7 +142,7 @@ func _stand(ticks: int) -> void:
 	await CommandDriver.run(get_tree(), [_player], idle, ticks)
 
 
-func _check_level(label: String, from: int) -> void:
+func _check_level(label: String, from: int, roll_on_neck := ROLL_ON_NECK) -> void:
 	assert_int(_probe.turns.size()).override_failure_message(label + ": no frame").is_greater(from)
 	for index in range(from, _probe.turns.size()):
 		var world := _probe.model_turns[index]
@@ -151,7 +156,8 @@ func _check_level(label: String, from: int) -> void:
 		)
 		# The head faces the aim, or, where the chest the clip leaves is bent too far for that (the
 		# crouch and the prone clips aiming up), it turns as far as it may toward it.
-		var turned := absf(on_neck.x + neck.x)
+		# The reach is a whole angle, so the roll a turned chest asks for counts in it.
+		var turned := Vector2(on_neck.x + neck.x, on_neck.y + neck.y).length()
 		var at_most := turned >= _layer.head_max_turn - 1.0
 		(
 			assert_bool(_probe.misses[index] < LOOK or at_most)
@@ -171,7 +177,7 @@ func _check_level(label: String, from: int) -> void:
 			. override_failure_message(
 				frame + "rolled on the neck %.1f, the neck on the chest %.1f" % [on_neck.y, neck.y]
 			)
-			. is_less(ROLL_ON_NECK)
+			. is_less(roll_on_neck)
 		)
 		# The neck and the head bend the same way, never one against the other.
 		var against := on_neck.x * neck.x < 0.0 and minf(absf(on_neck.x), absf(neck.x)) > STRAIGHT
