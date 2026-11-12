@@ -20,16 +20,17 @@ _GITHUB_URL = re.compile(r"github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?/?$")
 KIT_NAME = "gdstudio"  # the kit's entry in workspace.toml ([repos.gdstudio])
 
 
-def queue_cap(kit: Path) -> int:
+def queue_cap(kit: Path) -> int | None:
     """merge.queue_cap of the kit's conventions (read with a regex: no YAML reader here): while more kit pull requests
-    than this are open, nothing new starts (docs/studio/starting-work.md#parallel). 0, or none set, is no cap."""
+    than this are open, nothing new starts (docs/studio/starting-work.md#parallel); 0 freezes on any open one. None
+    (no key, no file) is no freeze."""
     try:
         found = re.search(
             r"^\s*queue_cap:\s*(\d+)", (kit / ".github" / "conventions.yml").read_text(encoding="utf-8"), re.MULTILINE
         )
     except OSError:
-        return 0
-    return int(found.group(1)) if found else 0
+        return None
+    return int(found.group(1)) if found else None
 
 
 def workspace_repositories(kit: Path) -> list[tuple[str, str]]:
@@ -113,7 +114,7 @@ def idle_issues(workspace: Path, config: dict[str, Any], gh: Any = None) -> list
             window = issues.compute_window(repo, open_issues, prs, size, *([reason] if reason else []))
         except Exception:  # offline, rate limited, bad JSON, no access to the repository: fail open
             continue
-        if name == KIT_NAME and cap and len(prs) > cap:  # the landing freeze: no starts are demanded anywhere
+        if name == KIT_NAME and cap is not None and len(prs) > cap:  # the landing freeze: no starts anywhere
             found = []
             break
         found += [(repo, i.number, i.title, "start") for i in window.allowed]

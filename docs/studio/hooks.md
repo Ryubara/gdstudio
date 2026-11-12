@@ -182,8 +182,9 @@ maintainer were not labelled `S-blocked` and held every slot). `Stop` (the main 
    "May start now" are idle: nobody has them (no `S-in-progress`, no open pull request that closes them) and they are not
    blocked. So are blocked issues whose `Blocked (...)` line waits on issues that have all closed ("Unblocked").
    A paused repository offers only its `P-critical` issues ([Starting work: pausing](starting-work.md#paused)).
-   While the kit has more open pull requests than `merge.queue_cap` (`.github/conventions.yml`), nothing is idle: the
-   landing freeze ([Starting work](starting-work.md#parallel)). The kit is read first, so no game is asked then.
+   While the kit has more open pull requests than `merge.queue_cap` (`.github/conventions.yml`; 0, so any open one),
+   nothing is idle: the landing freeze ([Starting work](starting-work.md#parallel)). The kit is read first, so no game
+   is asked then.
 2. **The refusal** names each idle issue and gives the ways out: `gds issue start <repo>#N --agent <name>` and then an
    agent with the `Issue:`/`Worktree:` lines it prints; or `gds issue block <repo>#N --on <#N|maintainer> --why "<text>"`
    when it waits on the maintainer, or on #N that its body names (its `### Blocked by` section, `Depends on:`,

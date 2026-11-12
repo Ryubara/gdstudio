@@ -250,30 +250,32 @@ def queue_gh(kit_prs: int, calls: list | None = None):
 @pytest.fixture()
 def kit_and_game(monkeypatch):
     patch(monkeypatch, "workspace_repositories", lambda kit: [(DEADNIGHT, "deadnight"), (KIT_REPO, "gdstudio")])
-    patch(monkeypatch, "queue_cap", lambda kit: 3)
+    patch(monkeypatch, "queue_cap", lambda kit: 0)  # the kit's setting: frozen while any kit pull request is open
     PAUSES.clear()
     monkeypatch.setattr(guards.issues_module(guards.KIT), "paused_repositories", lambda kit: dict(PAUSES))
 
 
 def test_above_the_queue_cap_nothing_is_idle_and_the_kit_is_asked_first(workspace, kit_and_game):
     calls: list = []
-    assert REAL_IDLE_ISSUES(workspace, CONFIG, gh=queue_gh(4, calls)) == []  # deadnight #52 waits for the queue
+    assert REAL_IDLE_ISSUES(workspace, CONFIG, gh=queue_gh(1, calls)) == []  # one open kit PR: deadnight #52 waits
     assert all(DEADNIGHT not in args for args in calls)  # the freeze is read before any game is looked at
 
 
-def test_at_or_under_the_queue_cap_issues_are_idle_again(workspace, kit_and_game):
+def test_at_or_under_the_queue_cap_issues_are_idle_again(workspace, kit_and_game, monkeypatch):
+    assert (DEADNIGHT, 52, "ready", "start") in REAL_IDLE_ISSUES(workspace, CONFIG, gh=queue_gh(0))  # queue landed
+    patch(monkeypatch, "queue_cap", lambda kit: 3)
     found = REAL_IDLE_ISSUES(workspace, CONFIG, gh=queue_gh(3))
     assert (DEADNIGHT, 52, "ready", "start") in found
 
 
 def test_no_queue_cap_means_no_freeze(workspace, kit_and_game, monkeypatch):
-    patch(monkeypatch, "queue_cap", lambda kit: 0)
+    patch(monkeypatch, "queue_cap", lambda kit: None)
     assert (DEADNIGHT, 52, "ready", "start") in REAL_IDLE_ISSUES(workspace, CONFIG, gh=queue_gh(40))
 
 
 def test_the_queue_cap_is_read_from_the_kits_conventions(tmp_path):
-    assert guards.queue_cap(guards.KIT) > 0  # merge.queue_cap in .github/conventions.yml
-    assert guards.queue_cap(tmp_path) == 0  # no conventions file: no cap
+    assert guards.queue_cap(guards.KIT) == 0  # merge.queue_cap in .github/conventions.yml: no open kit PR allowed
+    assert guards.queue_cap(tmp_path) is None  # no conventions file: no freeze
     (tmp_path / ".github").mkdir()
     (tmp_path / ".github" / "conventions.yml").write_text("merge:\n  queue_cap: 7\n", encoding="utf-8")
     assert guards.queue_cap(tmp_path) == 7
