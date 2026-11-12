@@ -18,8 +18,8 @@ out of a sprint plays a turn of its own instead of snapping round ([the feel as 
 <!-- new section: nobody had measured the library's clips; a replacement needs the number it has to beat -->
 
 The template plays 27 of the libraries' 86 clips (`CharacterClips`, `pistol.tres`, `fists.tres`), four clips of our
-own (`assets/animation/prone/`) and three vault clips (`assets/animation/vault/`, kit #1016, not yet measured
-here). Every number below is from
+own (`assets/animation/prone/`) and, since kit #1037, our three vault clips (`assets/animation/vault/`, made in
+kit #1016, not yet measured here) in place of `NinjaJump_Start`. Every number below is from
 `templates/3d-third-person/game/assets/animation/audit_clips.py`, which reads the glb itself and measures each frame
 on the skinned mesh; its docstring defines each measure. The body is the library's own (the male mannequin); the
 female, the template's default, is given where she differs. Limbs inside limbs are from `limb_overlap.py`.
@@ -102,7 +102,7 @@ Length is at the clip's own pace. "Join" is the furthest any main joint is from 
 | `Pistol_Reload` 1.67 s | reload | reads as a reload; the head looks down (58 degrees) | hands 22 to 28 mm inside each other; nothing in the clip knows where the magazine is | reload keyed on the weapon's sockets |
 | `Punch_Jab`, `Punch_Cross` 0.87, 1.0 s | the fists' two blows | the chest drives the blow (43 and 57 degrees) and hits in two frames (hand at 4 and 8.9 m/s) | no step or weight transfer (pelvis 2 and 27 mm); ends 631 mm from the idle; the hand is 19 to 28 mm in the head on the female | blows with a step, from a guard pose that the idle blends to |
 | `Slide_Start`, `Slide`, `Slide_Exit` 0.83, 2.0, 0.5 s | the slide | start and exit meet the loop within 9 mm | 12 to 37 mm under the floor; one entry, whichever foot the sprint is on; the exit only stands up | start from each sprint foot, exit into a run or a crouch |
-| `NinjaJump_Start` 0.97 s | stand-in for the vault | tucks the legs | not a vault: no hand on anything | the vault clips of kit #1016, played by #1037 |
+| `NinjaJump_Start` 0.97 s | stood in for the vault until kit #1037 | tucks the legs | not a vault: no hand on anything | the vault clips of kit #1016, played since #1037 |
 | `ClimbUp_1m` 0.67 s | the mantle | quick | the chest is 23 to 32 mm in the thigh; the hands hold nothing; one height | mantles at two heights with planted hands, warped like the vaults |
 
 The pistol clips' hands are closed on the gun by `WeaponHold` after the clip, so their overlap is what the solver

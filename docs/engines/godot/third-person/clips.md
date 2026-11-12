@@ -115,17 +115,21 @@ contact times. Forward 0 is the obstacle's front face.
   [Keyframes](../../../tools/blender/animation.md#keyframes)) and fails over 5 mm; the clips read 0.5 mm at most
   (0.0 mm since the rework of 2026-11-11). `vault_clips.json` carries the numbers and the hash of the
   file they were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off.
-- **What the vault code has to change to play them** (kit #1037; nothing in this section changes the game). The
-  clips carry the body's rise and fall themselves, in the pelvis, over the reference obstacle: the code moves the
-  root level and forward at the clip's speed, and lifts it only by the difference to another height while a hand is
-  on the top. The `Vaultable`'s present path does neither: for the reference wall it takes 1.75 m in 0.45 s and
-  drops the body 0.92 m in the last 0.135 s, where a free fall from rest takes 0.43 s, and it lands 1.04 m past the
-  front face where the clips land 1.87 m (`Vault_Low`) and 1.89 m (`Vault_High`) past it. To fit the clips:
-  `landing_margin` about 1.1 m (from 0.3), the path's height taken from the clip instead of the eased fall,
-  `plant_at` and `clear_at` from `hand_plant` and `push_off` as shares of the part of the clip that is played, and
-  the crossing's time the clip's own from the frame it starts at (0.54 s from the plant to the landing in
-  `Vault_Low`, 0.79 s in `Vault_High`), so `max_vault_time` at 0.9 s holds both.
+- **How the vault plays them** (kit #1037): the `VaultClip` resources `gameplay/character/vault_low.tres` and
+  `vault_high.tres` carry the numbers of `vault_clips.json` (a test holds them equal), and the vault is
+  [timed by the clip](traversal.md#clip-timing): it starts at the frame that fits the distance, the root moves level
+  and forward through the clip's contact places, lifted by the difference to another height while a hand is on the
+  top, and `Vault_Land` follows in the same action. The capsule still goes over the top; only the model is held on
+  the clip's root.
 
+- **Approach:** Check a contact clip at the game's frame rate as well as on its own keys: sample every joint that
+  passes an edge at 60 a second (or finer) between the keys. **Watch out for:** `Vault_Low` moves the left knee 0.5 m
+  in one of its 24 frames a second, from before the front edge to over the top; both keys are clear of the box and
+  the build's checks pass, and the frames Godot draws between them cut the corner by up to 68 mm. A limit for a
+  peak between keys is set over its worst instant, measured at several draw rates (59, 61, 121, 179 and 240 frames
+  a second sweep the instant a frame lands on); one run's frames read anything from 0 to the peak. **Seen:** gdstudio
+  #1037, 2026-11-11 (`test_vault_contacts.gd` allowed 55 mm from runs that read 48 mm, and failed in CI at 66 to
+  68 mm once main's other suites shifted the frames; it allows 75 mm now; the clip's fix is gdstudio #1221).
 - **Approach:** Turn the importer's animation optimizer off for a clip with a contact (`_subresources` in the
   `.import`: `"nodes": {"PATH:AnimationPlayer": {"optimizer/enabled": false}}`), and test the contact in Godot, on
   every planted frame, with the body moved as the game moves it. **Watch out for:** the optimizer dropped the
