@@ -308,11 +308,19 @@ are the body under that.
   from its script, the hands' places from its scenes and the finger poses from their resources, and runs the same
   steps on its own skeleton (the chest turn, the pocket, the pull along the barrel, the two-bone reach, the fingers,
   the reload's way). The body is then shaped round the rifle where the game will draw it, the arms it keys are the
-  hold's, and the same code poses the other mannequin for the checks. A Godot test proves it is the same hold: the
-  clip's own hand against the hold's, on a key (1.2 mm).
+  hold's, and the same code poses the other body for the checks, with the hold solved on that body (its `HoldFit`).
+  A Godot test proves it is the same hold: the clip's own hand against the hold's, on a key (0.9 mm on the
+  prototype female).
+- **Key over the pose the game holds under the clip.** A clip keys each bone in its parent, so arms keyed to reach
+  a place the hold sets in the model's space are right over one pelvis only. The build stands on the game's
+  standing idle at its steadiest frame (the frame `AimStance` holds the legs on under an aim) and writes the clip
+  and the time into its data file, which the Godot test poses before it compares.
+- **Pose the bones the engine drives.** The prototype rig's twist bones are turned by a modifier in the engine and
+  keyed by no clip; the build turns them the same way before it measures or draws the skin, and keys only the
+  bones a clip may key (not the root, a `_leaf`, a twist bone, a socket or an `ik_` target).
 - **Stand the trunk, the neck and the head from the rest pose, not from a library pose.** The library's `Idle` has
   the chest 16 degrees forward and 13 turned, and the head 14 down; turns added on top of it bowed the head 40
-  degrees. The legs and the pelvis are the library's; everything above is stood upright and turned from there, the
+  degrees. The legs and the pelvis are the idle's; everything above is stood upright and turned from there, the
   neck and the head in the character's space, so a breath or a recoil under them does not move the look.
 - **A shot is added, not played over.** A recoil clip made on the level aim replaces an aim up or down while it
   plays. In Godot the one-shot adds (`MIX_MODE_ADD`) an `AnimationNodeSub2` of the clip less the same clip held on
@@ -345,6 +353,23 @@ are the body under that.
   default for every `WeaponDef` export (`shoot_additive`). And a pull request stacked on another carries that one's
   commits: its `Model:` line names every model in their trailers. **Seen:** gdstudio #1267, 2026-11-11 (the
   `template (3d-third-person)` and `commits` checks failed on the first push).
+- **Approach:** When the idle under a clip or the bodies that play it change, rebuild the clip over the new idle on
+  the new bodies and run the test that compares the clip's own hands with the hold's first. **Watch out for:** the
+  clips were keyed over the library's `Idle` on the Quaternius female; the template then moved to its own idle and
+  the prototype bodies, and the clip's own hands stood 68 to 158 mm from the hold's (the pelvis under them tips
+  another way, and each bone is keyed in its parent), while every test of the hands on the rifle still passed,
+  because the hold moves the arms. Only the own-arms test saw it. **Seen:** gdstudio #1267, 2026-11-12 (fix:
+  `BASE_CLIP`, `library_pose()`'s steadiest frame, `base` in `rifle_clips.json`; 0.9 mm).
+- **Approach:** Cut the skin you measure against a weapon where the weapon's own place is: the head for the comb,
+  the neck's base and the chest for the butt, each its own number. **Watch out for:** the limb check's `head` part
+  is the head and the whole neck; on the prototype male one vertex of the neck's base read 9 to 13 mm in the butt's
+  top corner and failed the head's limit, though the head was 0 mm in and no neck angle moves that vertex: it is
+  the hold's pocket. **Seen:** gdstudio #1267, 2026-11-12 (fix: `HEAD_SKIN`, `neck_in_rifle_mm` reported with the
+  chest's).
+- **Approach:** Before blaming a clip for a pose in a game capture, record the same seconds with the clip taken out
+  of the weapon's definition. **Watch out for:** the trunk twists about 70 degrees to the right for three frames as
+  the rifle is drawn after a walk into its pickup; the capture with `main`'s `rifle.tres` (no rifle clip) has the
+  same three frames, so it is the switch's, not the clips'. **Seen:** gdstudio #1267, 2026-11-12.
 
 ## The clip toolkit {#toolkit}
 

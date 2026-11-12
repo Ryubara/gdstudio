@@ -238,6 +238,14 @@ check on the branch's commits since `origin/main` and refuses a `Model:` line th
 guard](pull-requests.md#pr-body)); run it before `gh pr create`. The base's commits stay on the list after the base
 lands (a squash merge makes a new commit on `main`), so the line keeps naming their models.
 
+- **Approach:** When the base has landed as a squash, merge `main` into the stacked branch, put `main`'s whole tree
+  in the merge (`git read-tree --reset -u origin/main` while the merge is open), re-apply only the branch's own
+  change (`git diff <base tip> <branch tip> | git apply --3way`) and resolve what is left. **Watch out for:** a plain
+  merge conflicts in every file of the base that changed before it landed (37 files, most of them the base's own
+  and none of them the stacked branch's), and resolving them by hand risks keeping an old side of the base; the
+  re-applied patch conflicted in 10 files, all the branch's own, and three of those `main` had since taken whole.
+  **Seen:** gdstudio #1267 on #1040, 2026-11-12.
+
 ### The worktree is removed when the work is finished {#sweep}
 
 Nobody removes a worktree by hand: `gds worktree sweep` does it once the pull request merged or the issue closed (and

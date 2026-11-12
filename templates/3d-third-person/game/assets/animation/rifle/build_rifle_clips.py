@@ -1,8 +1,8 @@
 """Build the template's rifle clips and export them to glTF (kit #1082).
 
-GDStudio's own animation, made from nothing on the Quaternius universal rig (the female mannequin's skeleton, CC0),
-because the Universal Animation Library has pistol clips and no rifle clip. Six clips, at the library's 30 frames a
-second:
+GDStudio's own animation, made from nothing on the prototype mannequin rig (`form_female.glb`, the player's body:
+GDStudio's own, with the bone names and rest rotations of Quaternius's universal rig, CC0), because the Universal
+Animation Library has pistol clips and no rifle clip. Six clips, at the library's 30 frames a second:
 
 - `Rifle_Idle` (a loop): the low ready, the head up and looking ahead, a slow breath;
 - `Rifle_Aim_Neutral`, `Rifle_Aim_Up` and `Rifle_Aim_Down` (loops of one length): the rifle at the shoulder with
@@ -12,8 +12,10 @@ second:
 - `Rifle_Reload`: the body through a magazine change and the charging handle, from `Rifle_Idle`'s first pose and
   back to it, the beats at the shares of the reload the game's hold moves the left hand by.
 
-Nothing is copied from another game's or pack's motion. The legs and the pelvis are the library's `Idle` first
-pose, held: the game plays these clips on the upper body only, over its own locomotion.
+Nothing is copied from another game's or pack's motion. The legs and the pelvis are the game's own standing idle
+(`gds/Idle`) on its steadiest frame, held: the game plays these clips on the upper body only, over its own
+locomotion, and holds the legs on that frame under a standing aim (`AimStance`). A clip keys each bone in its
+parent, so the arms it keys are the hold's own over that pelvis.
 
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute:
 
@@ -22,20 +24,23 @@ Run it with the pinned Blender, headless (`gds tool path blender`), every path a
 
 How the hands get on the rifle. In the game the rifle is not carried by a bone: `TwoHandHold`
 (`gameplay/weapon/two_hand_hold.gd`) puts its butt in the shoulder's pocket from the chest bone's place, turns the
-chest, reaches each arm to its place on the rifle and closes the fingers, after the clip, on whichever mannequin
-plays it. This build works the same hold out in Python (`Hold`, from the numbers of the hold's own files, none
+chest, reaches each arm to its place on the rifle and closes the fingers, after the clip, on whichever body plays
+it, with the hands' places and finger poses solved on that body (the scene's own are the female's, the male's are
+a `HoldFit`). This build works the same hold out in Python (`Hold`, from the numbers of the hold's own files, none
 typed here), so the body is shaped round the rifle where the game will draw it, and the arms and fingers it keys
-are the hold's own on the female mannequin: the clip alone shows two hands on the rifle, and the game's hold has
+are the hold's own on the female body: the clip alone shows two hands on the rifle, and the game's hold has
 nothing left to move on her (`tests/gameplay/test_rifle_clips.gd` holds the clip's own hands within millimetres of
-the hold's). On the male mannequin (arms 5 cm longer) the game's reach does the work, and this build measures him
-posed that way.
+the hold's). On the male body (longer arms, bigger hands, his own fit) the game's reach does the work, and this
+build measures him posed that way; the search for the head's place keeps both bodies' heads off the stock.
 
 It works in Godot's axes (the character faces +Z, its left is +X, up is +Y; a bone's pose in its parent is the
 same in Blender and in Godot) and keys every bone's rotation on every frame. It fails before it exports when a
-loop does not close, a clip does not start and end on the pose it joins, an arm cannot reach on either mannequin,
-the eye is off the sight line in an aim clip, the head is in the stock, or a part of the body goes more than
-`OVERLAP_LIMIT` into another on either mannequin (`../limb_overlap.py`). The hands against the rifle are measured
-in Godot (`tests/gameplay/test_rifle_clips.gd`, `tests/gameplay/test_rifle_hold.gd`).
+loop does not close, a clip does not start and end on the pose it joins, an arm cannot reach on either body, the
+eye is off the sight line in an aim clip, the head is in the stock, or a part of the body goes more than
+`OVERLAP_LIMIT` into another on either body (`../limb_overlap.py`; the twist bones are turned as the engine's
+`MannequinTwist` turns them, so the skin measured is the skin drawn). It reports, and does not fail on, how deep
+the neck's base and the chest are in the butt: that is the hold's pocket. The hands against the rifle are
+measured in Godot (`tests/gameplay/test_rifle_clips.gd`, `tests/gameplay/test_rifle_hold.gd`).
 """
 
 import argparse
@@ -56,7 +61,7 @@ import limb_overlap  # noqa: E402
 GAME = Path(__file__).resolve().parents[3]
 FPS = 30
 OVERLAP_LIMIT = 5.0  # millimetres a part of the body may be inside another (`../limb_overlap.py`)
-# A clip may not put a limb deeper in another than the hold alone does on the library's idle pose, plus this.
+# A clip may not put a limb deeper in another than the hold alone does on the idle pose, plus this.
 OVERLAP_OVER_HOLD = 3.0
 REACH_LIMIT = 0.5  # millimetres an arm may stop short of its place on the rifle
 EYE_LIMIT = 80.0  # millimetres the right eye may be off the sight line in an aim clip
@@ -108,10 +113,10 @@ HEAD_SKIN = {}
 AIM_LIMITS = {
     "lean": (-2.0, 12.0),
     "side": (-4.0, 2.0),
-    "np": (-8.0, 24.0),
+    "np": (-8.0, 28.0),
     "ny": (-20.0, 20.0),
     "nr": (-4.0, 10.0),
-    "hp": (-12.0, 12.0),
+    "hp": (-12.0, 20.0),
     "hy": (-20.0, 20.0),
     "hr": (-4.0, 12.0),
 }
@@ -1029,7 +1034,7 @@ def part_points(body, part):
 
 def hold_alone(base, bodies, rigs, holds):
     """What the hold does to a body with no rifle clip under it, as the game showed it before these clips: how
-    deep a limb is in another with the hold run on the library's `Idle` pose, by body, at the low ready and at
+    deep a limb is in another with the hold run on the idle pose, by body, at the low ready and at
     the shoulder with the view level, up and down. The hold brings the grip close to the chest (kit #1177), so
     its own depth is the floor a clip is held to."""
     out = {}
