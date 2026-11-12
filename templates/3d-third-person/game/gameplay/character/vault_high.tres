@@ -14,8 +14,8 @@ land = 1.25
 lower_from = 0.4583
 lower_by = 0.4883
 planted_hands = Dictionary[StringName, Vector3]({
-&"hand_l": Vector3(0.24, 0.036, 0.1),
-&"hand_r": Vector3(-0.24, 0.036, 0.1)
+&"hand_l": Vector3(0.24, 0.022, 0.1),
+&"hand_r": Vector3(-0.24, 0.022, 0.1)
 })
 hand_release = Dictionary[StringName, float]({
 &"hand_l": 0.6667,
