@@ -140,13 +140,15 @@ library's 65 bones: a prototype body's twist bones, sockets and IK targets are n
 
 | Measured in Godot on each body's skin (`test_prone_clips.gd`) | `form_female`, in `prone.glb` (before) | `form_female`, own file | `form_male`, in `prone.glb` (before) | `form_male`, own file |
 | --- | --- | --- | --- | --- |
-| Forearms' lowest skin, lying still and crawling | 33 and 38 mm under the floor | 3.6 and 2.4 mm | 48 and 55 mm | 3.9 and 3.5 mm |
-| Fists' lowest skin, lying still and crawling | 30 and 37 mm | 2.7 and 1.3 mm | 41 and 49 mm | 2.7 and 4.0 mm |
-| Thighs, knees (the shins' skin) and feet, lying still | 15 to 16 mm | 4.1, 3.6 and 1.3 mm | 16 to 22 mm | 2.5, 3.7 and none |
+| Forearms' lowest skin, lying still and crawling | 33 and 38 mm under the floor | 2.3 and 1.3 mm | 48 and 55 mm | 2.4 and 2.0 mm |
+| Fists' lowest skin, lying still and crawling | 30 and 37 mm | 2.4 and 1.1 mm | 41 and 49 mm | 2.3 and 3.6 mm |
+| Thighs, knees (the shins' skin) and feet, lying still | 15 to 16 mm | 4.1, 3.6 and 0.7 mm | 16 to 22 mm | 2.5, 3.7 and none |
 | Thighs, shins and feet at their lowest in any clip | | 4.5, 3.6 and 4.9 mm | | 4.3, 4.5 and 2.3 mm |
 | A planted elbow's roll at the crawl speed | 19 mm | 1.5 mm | 32 mm | 1.7 mm |
 | Lowest bone | a pinky tip 30 mm under | 4 mm over | 42 mm under | 3 mm over |
-| Limbs inside limbs, `Crouch_To_Prone` and `Prone_To_Crouch` | 18.1 and 16.9 mm | 0.0 and 0.3 mm | 0.5 mm | 0.0 mm |
+| Limbs inside limbs, `Crouch_To_Prone` and `Prone_To_Crouch` | 18.1 and 16.9 mm | 0.0 and 0.0 mm | 0.5 mm | 0.0 and 2.2 mm |
+| Wrists from a mirror of each other, at their nearest in the two transitions | 22 mm (six frames of the push up, in the first form files) | 96 mm | 22 mm | 96 mm |
+| Shoulders from a mirror of each other, at their nearest in the two transitions | 0 mm (ten frames going down, eight coming up) | 31 mm | 0 mm | 36 mm |
 
 The build's own numbers (every key, before Godot's import drops keys within half a degree of their neighbours) are
 1 to 2 mm shallower at the forearms and fists (1.2 and 0.8 mm on the female, 1.7 and 1.3 mm on the male) and read
@@ -185,6 +187,20 @@ turned out and a little bent, on the inner edge of its foot, which points 10 deg
 8 cm ahead of the left with its forearm 31 degrees inward against the left's 38; the head is turned 7 degrees to
 the left and tipped 3, and drifts about that. The Quaternius files keep their even legs (their elbows are staggered
 5 cm).
+
+**Neither transition passes through a mirror of itself** on these two bodies (`DOWN_HANDS`, `UP_HANDS`,
+`DOWN_TURN`, `UP_TURN`, `UNDER_KNEE`). The first form files moved both arms from one table with a flipped sign
+under a square chest: the hands landed on the same frame going down, and coming up they pushed 22 mm from a mirror
+of each other for six frames with the shoulders exactly level. Now, going down, the left hand is flat on the floor
+at frame 8 and has rolled onto its fist by 18 while the right, which lies 10 cm further ahead, lands at 11 and
+has rolled by 21; the chest turns 8 degrees to its left and rolls 6 as it dives. Coming up, the left
+hand opens first and is planted 5 cm behind its shoulder's line by frame 7, the right 6 cm ahead of it and 5 cm
+wider by frame 9; the chest turns 8 degrees to its left again and rolls 6 the other way as it pushes, the right
+knee draws in under the body and the left swings wide. The build measures every frame of every clip (each left joint against
+the right one's place mirrored across the body's middle, `mirror` in its report) and fails under 90 mm at the
+wrists and 25 mm at the shoulders (`MIRROR_LIMIT`; a crawl's shoulders pass level twice a stride and are not
+held); `test_prone_clips.gd` holds the same in Godot. The Quaternius files keep their even transitions, byte for
+byte.
 
 ## Weapon
 

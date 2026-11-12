@@ -96,7 +96,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** From a session that sits in the kit's main checkout, commit in a worktree with `git -C <worktree>
   commit ...`, not `cd <worktree> && git commit`. **Watch out for:** the Git guard judges the command from the
   session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would have run in the
-  worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11.
+  worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11; #1293, 2026-11-11 (from a worktree's own agent the
+  guard wants the command to begin with `cd <worktree> &&`: one that sourced a helper file first and changed
+  folder after it was refused as a commit on `main`).
 
 ## Background commands and processes {#background}
 

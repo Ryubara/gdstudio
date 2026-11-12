@@ -56,8 +56,9 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   `form_male.glb` (the enemies), `prone.glb` for `mannequin_female.glb` and `prone_male.glb` for
   `mannequin_male.glb`. In the Quaternius female's file the `form` bodies lay 33 to 55 mm in the floor at the
   forearms with their planted elbows rolling 19 and 32 mm a stride (kit #1286); in their own files no forearm, hand,
-  thigh, shin or foot is more than 5 mm under it, the planted elbows stay within a millimetre and no limb crosses
-  another (`tests/gameplay/test_prone_clips.gd`, each body in its own file; `tools/capture/prone_clips_tour.tscn`
+  thigh, shin or foot is more than 5 mm under it, the planted elbows stay within 2 mm, no limb crosses another by
+  more than 2.2 mm and no frame is a mirror of itself (the wrists stay 96 mm and the shoulders 31 mm from one in the
+  transitions) (`tests/gameplay/test_prone_clips.gd`, each body in its own file; `tools/capture/prone_clips_tour.tscn`
   films any of the four, `MODEL`, read by `tools/capture/study_body.gd`).
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the

@@ -330,6 +330,18 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   **Watch out for:** the prone idle's legs were one call with a flipped sign, so they mirrored each other by
   construction; measuring the anchor in the uneven pose would have carried one side's hip into the crawl.
   **Seen:** gdstudio #1293, 2026-11-11 ([No mirror poses](own-animation.md#feel)).
+- **Approach:** Measure a mirror instead of looking for one: on every frame, the distance from each left joint
+  to the right one's place mirrored across the body's middle, least per clip, held by the build (`MIRROR_LIMIT`)
+  and a Godot test; give each side of a transition its own key frames and places and turn the chest through it.
+  **Watch out for:** between two uneven poses the prone transitions still moved both arms from one loop with a
+  flipped sign under a square trunk: wrists 22 mm from a mirror for six frames of the push up, shoulders at 0 mm
+  for ten frames going down, unseen on a sheet of 28 small frames; delaying the hand that reaches over the front
+  knee put the shin 15 mm into the forearm, so the free hand is the late one; a gait's shoulders pass level twice
+  a stride, so only its wrists are held. **Seen:** gdstudio #1293 (PR #1323), 2026-11-12 (`mirror_numbers`).
+- **Approach:** Render one sheet into one folder at a time, and give the prone tour's `PRONE_FISTS` an existing
+  folder and a run of at least 60 frames. **Watch out for:** two `render_clip_sheets.py` runs into one folder
+  share `_tile_<view>.png` and overwrite each other's tiles; the tour writes no fists sheet, and says nothing,
+  when its folder is missing or the run is shorter. **Seen:** gdstudio #1293, 2026-11-11.
 - **Approach:** Judge two hands that touch with both measures and know how they differ: `limb_overlap.py` (Blender,
   every pair of parts both ways, depth to the other part's nearest skin) and the game's `HandContact.measure(side,
   true)` (the hand of `side` against the weapon and the other hand, one way only); measure each side when the hands
