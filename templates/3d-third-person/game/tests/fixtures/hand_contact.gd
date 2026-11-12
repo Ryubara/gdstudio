@@ -242,6 +242,18 @@ func part_distance_to(side: String, part: String, point: Vector3) -> float:
 	return least
 
 
+## How high the lowest point of the skin of the hand of `side` is, in metres, in the skeleton's
+## space (a model standing at the origin: over the floor), in the pose `snapshot()` copied.
+func lowest(side: String) -> float:
+	var cache := {}
+	var least := INF
+	for part: String in _parts[side]:
+		var list: Array = _parts[side][part]
+		for index in list.size() / 2:
+			least = minf(least, _skinned(list[index * 2], list[index * 2 + 1], cache).y)
+	return least
+
+
 ## The signed distance from a point of the world to the weapon, in metres (negative inside it):
 ## a prop held near the weapon (the new magazine, kit #1052) measured against it.
 func weapon_distance(point: Vector3) -> float:
