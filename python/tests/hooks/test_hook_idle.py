@@ -226,3 +226,54 @@ def test_a_failing_gh_and_a_used_up_budget_raise_instead_of_hanging(tmp_path, mo
 def test_the_hook_reads_the_kits_own_window_code(workspace):
     module = guards.issues_module(guards.KIT)
     assert module is not None and hasattr(module, "compute_window") and hasattr(module, "parse_block")
+
+
+# The landing freeze (docs/studio/starting-work.md#parallel): above merge.queue_cap open kit pull requests, no starts.
+
+KIT_REPO = "Ryubara/gdstudio"
+
+
+def queue_gh(kit_prs: int, calls: list | None = None):
+    """The deadnight window of WINDOW_ISSUES and `kit_prs` open kit pull requests that close nothing."""
+    prs = [{"number": 1000 + n, "title": "open", "body": "", "labels": []} for n in range(kit_prs)]
+
+    def gh(args: list[str]) -> str:
+        if calls is not None:
+            calls.append(args)
+        if args[:2] == ["issue", "list"]:
+            return json.dumps(WINDOW_ISSUES if DEADNIGHT in args else [])
+        return json.dumps(prs if KIT_REPO in args else [])
+
+    return gh
+
+
+@pytest.fixture()
+def kit_and_game(monkeypatch):
+    patch(monkeypatch, "workspace_repositories", lambda kit: [(DEADNIGHT, "deadnight"), (KIT_REPO, "gdstudio")])
+    patch(monkeypatch, "queue_cap", lambda kit: 3)
+    PAUSES.clear()
+    monkeypatch.setattr(guards.issues_module(guards.KIT), "paused_repositories", lambda kit: dict(PAUSES))
+
+
+def test_above_the_queue_cap_nothing_is_idle_and_the_kit_is_asked_first(workspace, kit_and_game):
+    calls: list = []
+    assert REAL_IDLE_ISSUES(workspace, CONFIG, gh=queue_gh(4, calls)) == []  # deadnight #52 waits for the queue
+    assert all(DEADNIGHT not in args for args in calls)  # the freeze is read before any game is looked at
+
+
+def test_at_or_under_the_queue_cap_issues_are_idle_again(workspace, kit_and_game):
+    found = REAL_IDLE_ISSUES(workspace, CONFIG, gh=queue_gh(3))
+    assert (DEADNIGHT, 52, "ready", "start") in found
+
+
+def test_no_queue_cap_means_no_freeze(workspace, kit_and_game, monkeypatch):
+    patch(monkeypatch, "queue_cap", lambda kit: 0)
+    assert (DEADNIGHT, 52, "ready", "start") in REAL_IDLE_ISSUES(workspace, CONFIG, gh=queue_gh(40))
+
+
+def test_the_queue_cap_is_read_from_the_kits_conventions(tmp_path):
+    assert guards.queue_cap(guards.KIT) > 0  # merge.queue_cap in .github/conventions.yml
+    assert guards.queue_cap(tmp_path) == 0  # no conventions file: no cap
+    (tmp_path / ".github").mkdir()
+    (tmp_path / ".github" / "conventions.yml").write_text("merge:\n  queue_cap: 7\n", encoding="utf-8")
+    assert guards.queue_cap(tmp_path) == 7

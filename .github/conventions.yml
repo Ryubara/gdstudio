@@ -145,6 +145,10 @@ merge:
   # on auto-merge for it (`needs-maintainer`). The rules that judge agents are changed only by a person, and so are
   # the pinned tools.
   manual_paths: [.github/conventions.yml, AGENTS.md, .claude/settings.json, .claude/hooks/, tools.toml]
+  # The landing freeze (docs/studio/starting-work.md#parallel): while more kit pull requests than this are open, no
+  # issue starts and no pull request opens, and the coordinator's idle-issue Stop check (docs/studio/hooks.md#idle)
+  # demands no starts. 0 turns the freeze off.
+  queue_cap: 10
 
 learning:
   # What is learned updates the topic page an agent reads for that task, as a short entry in the page's own voice;

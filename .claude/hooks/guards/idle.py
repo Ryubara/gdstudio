@@ -17,6 +17,19 @@ from .workspace import issues_module, kit_root, workspace_of
 IDLE_CACHE = "idle-check.json"  # beside the ledger; `gds issue` commands remove it (gds_tools.issues.IDLE_CACHE)
 IDLE_COUNTER = "cache/idle-check-refusals.json"
 _GITHUB_URL = re.compile(r"github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?/?$")
+KIT_NAME = "gdstudio"  # the kit's entry in workspace.toml ([repos.gdstudio])
+
+
+def queue_cap(kit: Path) -> int:
+    """merge.queue_cap of the kit's conventions (read with a regex: no YAML reader here): while more kit pull requests
+    than this are open, nothing new starts (docs/studio/starting-work.md#parallel). 0, or none set, is no cap."""
+    try:
+        found = re.search(
+            r"^\s*queue_cap:\s*(\d+)", (kit / ".github" / "conventions.yml").read_text(encoding="utf-8"), re.MULTILINE
+        )
+    except OSError:
+        return 0
+    return int(found.group(1)) if found else 0
 
 
 def workspace_repositories(kit: Path) -> list[tuple[str, str]]:
@@ -75,7 +88,8 @@ def idle_issues(workspace: Path, config: dict[str, Any], gh: Any = None) -> list
     """The issues of every repository in workspace.toml that nobody works on and that may start: the window's "May start
     now", plus blocked ones whose blocker closed, as (repository, number, title, kind) with kind `start` or `unblock`.
     A repository GitHub cannot answer for is left out: a check that cannot look finds nothing. A paused repository
-    (`paused` in workspace.toml) offers only its `P-critical` issues, and no unblocked ones."""
+    (`paused` in workspace.toml) offers only its `P-critical` issues, and no unblocked ones. While the kit has more
+    open pull requests than `queue_cap`, the landing freeze is on and nothing is idle: the queue lands first."""
     kit = kit_root(workspace)
     issues = issues_module(kit)
     if issues is None:
@@ -89,7 +103,8 @@ def idle_issues(workspace: Path, config: dict[str, Any], gh: Any = None) -> list
         )
     found: list[tuple[str, int, str, str]] = []
     paused = getattr(issues, "paused_repositories", lambda kit: {})(kit)  # an older kit checkout has none
-    for repo, name in workspace_repositories(kit):
+    cap = queue_cap(kit)
+    for repo, name in sorted(workspace_repositories(kit), key=lambda entry: entry[1] != KIT_NAME):  # the kit first
         try:
             game = workspace / "repos" / name
             size = issues.load_settings(kit, game if game.is_dir() else None).window
@@ -98,6 +113,9 @@ def idle_issues(workspace: Path, config: dict[str, Any], gh: Any = None) -> list
             window = issues.compute_window(repo, open_issues, prs, size, *([reason] if reason else []))
         except Exception:  # offline, rate limited, bad JSON, no access to the repository: fail open
             continue
+        if name == KIT_NAME and cap and len(prs) > cap:  # the landing freeze: no starts are demanded anywhere
+            found = []
+            break
         found += [(repo, i.number, i.title, "start") for i in window.allowed]
         if not getattr(window, "paused", ""):
             found += [(repo, i.number, i.title, "unblock") for i in getattr(window, "unblocked", [])]
