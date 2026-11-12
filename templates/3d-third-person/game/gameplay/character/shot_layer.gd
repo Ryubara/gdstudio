@@ -10,6 +10,8 @@ const BASE_SCALE := "ShootBaseScale"
 const DELTA := "ShootDelta"
 const _P_BASE_SCALE := StringName("parameters/%s/scale" % BASE_SCALE)
 const _P_DELTA := StringName("parameters/%s/sub_amount" % DELTA)
+# The one-shot's own name in the tree is `CharacterAnimation`'s (`Shoot`).
+const _P_REQUEST := &"parameters/Shoot/request"
 
 
 ## Connects the shot's clip (the node `scale`, the clip under its time scale) to the one-shot
@@ -42,3 +44,20 @@ static func drive(tree: AnimationTree, added: bool) -> void:
 	if added:
 		tree.set(_P_BASE_SCALE, 0.0)
 		tree.set(_P_DELTA, 1.0)
+
+
+## Plays the shot's clip once for a shot of the weapon `hold`. A weapon with no shot clip plays
+## nothing: the layer's clip node then holds the idle clip only so the tree has one, and playing
+## it put the idle's upper body over a run, a sprint and a slide for the idle's whole length after
+## every shot (kit #1333, the rifle before it had its own `Rifle_Shoot`).
+static func fire(tree: AnimationTree, hold: WeaponDef) -> void:
+	if hold == null or hold.shoot_clips.is_empty() or hold.shoot_clips[0] == &"":
+		return
+	tree.set(_P_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
+
+## Stops a shot's clip at once: the weapon in the hands changed, and the next one starts with no
+## shot of the last one on the body.
+static func stop(tree: AnimationTree) -> void:
+	if tree != null and tree.tree_root != null:
+		tree.set(_P_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)

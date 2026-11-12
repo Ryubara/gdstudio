@@ -6,6 +6,46 @@
 [sub_resource type="Resource" id="Resource_mew4d"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
+&"index_01_l": Quaternion(0.44325, 0.66931, -0.22809, 0.55093),
+&"index_02_l": Quaternion(0.03272, 0, 0, 0.99946),
+&"index_03_l": Quaternion(0.02181, 0, 0, 0.99976),
+&"middle_01_l": Quaternion(0.27227, 0.56209, -0.42902, 0.65259),
+&"middle_02_l": Quaternion(0.30694, 0.00046, 0.00144, 0.95173),
+&"middle_03_l": Quaternion(0.20151, -0.00023, -0.00111, 0.97949),
+&"pinky_01_l": Quaternion(0.45052, 0.40131, -0.5822, 0.545),
+&"pinky_02_l": Quaternion(0.63417, -0.00053, -0.00064, 0.77319),
+&"pinky_03_l": Quaternion(0.38258, 0.00023, 0.00056, 0.92392),
+&"ring_01_l": Quaternion(-0.50417, -0.45904, 0.53785, -0.49579),
+&"ring_02_l": Quaternion(0.6465, 1e-05, 1e-05, 0.76291),
+&"ring_03_l": Quaternion(0.42742, -0.00046, -0.00096, 0.90405),
+&"thumb_01_l": Quaternion(0.03624, 0.89608, 0.42383, -0.12685),
+&"thumb_02_l": Quaternion(0.40934, -0.03228, -0.07146, 0.90901),
+&"thumb_03_l": Quaternion(0.35044, -0.00011, -0.00053, 0.93659)
+})
+
+[sub_resource type="Resource" id="Resource_u3yc4"]
+script = ExtResource("1_mew4d")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_l": Quaternion(0.5884, 0.56975, -0.4188, 0.39215),
+&"index_02_l": Quaternion(0.03272, 0, 0, 0.99946),
+&"index_03_l": Quaternion(0.02181, 0, 0, 0.99976),
+&"middle_01_l": Quaternion(0.4559, 0.40706, -0.57819, 0.54051),
+&"middle_02_l": Quaternion(0.30694, 0.00046, 0.00144, 0.95173),
+&"middle_03_l": Quaternion(0.20151, -0.00023, -0.00111, 0.97949),
+&"pinky_01_l": Quaternion(0.45052, 0.40131, -0.5822, 0.545),
+&"pinky_02_l": Quaternion(0.63417, -0.00053, -0.00064, 0.77319),
+&"pinky_03_l": Quaternion(0.38258, 0.00023, 0.00056, 0.92392),
+&"ring_01_l": Quaternion(0.45904, 0.41042, -0.57581, 0.53785),
+&"ring_02_l": Quaternion(0.6465, 1e-05, 1e-05, 0.76291),
+&"ring_03_l": Quaternion(0.42742, -0.00046, -0.00096, 0.90405),
+&"thumb_01_l": Quaternion(0.04818, 0.92564, 0.37533, 2e-05),
+&"thumb_02_l": Quaternion(0.487, -0.03839, -0.06837, 0.86987),
+&"thumb_03_l": Quaternion(0.35044, -0.00011, -0.00053, 0.93659)
+})
+
+[sub_resource type="Resource" id="Resource_vcmdo"]
+script = ExtResource("1_mew4d")
+rotations = Dictionary[StringName, Quaternion]({
 &"index_01_r": Quaternion(0.08311, -0.70468, -0.05855, 0.7022),
 &"index_02_r": Quaternion(0.00873, 0, 0, 0.99996),
 &"index_03_r": Quaternion(0, 0, 0, 1),
@@ -26,7 +66,7 @@ turns = Dictionary[StringName, Quaternion]({
 &"hand_r": Quaternion(-0.24271, -0.01531, 0.09833, 0.96498)
 })
 
-[sub_resource type="Resource" id="Resource_u3yc4"]
+[sub_resource type="Resource" id="Resource_k0e3b"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
 &"index_01_l": Quaternion(0.11214, 0.69816, -0.11214, 0.69816),
@@ -46,7 +86,7 @@ rotations = Dictionary[StringName, Quaternion]({
 &"thumb_03_l": Quaternion(0.19105, -2e-05, -0.00054, 0.98158)
 })
 
-[sub_resource type="Resource" id="Resource_vcmdo"]
+[sub_resource type="Resource" id="Resource_6s6wm"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
 &"index_01_l": Quaternion(0.05548, 0.66233, -0.24763, 0.70492),
@@ -66,7 +106,7 @@ rotations = Dictionary[StringName, Quaternion]({
 &"thumb_03_l": Quaternion(0.15883, -1e-05, -0.00054, 0.98731)
 })
 
-[sub_resource type="Resource" id="Resource_k0e3b"]
+[sub_resource type="Resource" id="Resource_obf3k"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
 &"index_01_l": Quaternion(0.17704, 0.66233, -0.24763, 0.68458),
@@ -86,7 +126,7 @@ rotations = Dictionary[StringName, Quaternion]({
 &"thumb_03_l": Quaternion(0.15883, -1e-05, -0.00054, 0.98731)
 })
 
-[sub_resource type="Resource" id="Resource_6s6wm"]
+[sub_resource type="Resource" id="Resource_gvhcx"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
 &"thumb_01_r": Quaternion(-0.6068, 0.73859, 0.26258, -0.13164),
@@ -94,7 +134,7 @@ rotations = Dictionary[StringName, Quaternion]({
 &"thumb_03_r": Quaternion(0.20815, 3e-05, 0.00054, 0.9781)
 })
 
-[sub_resource type="Resource" id="Resource_obf3k"]
+[sub_resource type="Resource" id="Resource_03e2b"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
 &"thumb_01_r": Quaternion(-0.45016, 0.83114, 0.0488, 0.32277),
@@ -102,7 +142,7 @@ rotations = Dictionary[StringName, Quaternion]({
 &"thumb_03_r": Quaternion(0.27588, 7e-05, 0.00054, 0.96119)
 })
 
-[sub_resource type="Resource" id="Resource_gvhcx"]
+[sub_resource type="Resource" id="Resource_exss0"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
 &"index_01_r": Quaternion(0.0647, -0.68381, -0.18003, 0.70414),
@@ -110,7 +150,7 @@ rotations = Dictionary[StringName, Quaternion]({
 &"index_03_r": Quaternion(0.20578, 0, 0, 0.9786)
 })
 
-[sub_resource type="Resource" id="Resource_03e2b"]
+[sub_resource type="Resource" id="Resource_i26lc"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
 &"index_01_r": Quaternion(0.04009, -0.67711, -0.20379, 0.70597),
@@ -125,11 +165,15 @@ seat = Transform3D(-0.17458, -0.06553, -0.98248, -0.93147, -0.31248, 0.18633, -0
 support_hand = Transform3D(0.25184, -0.83474, -0.4897, 0.06206, -0.49101, 0.86888, -0.96576, -0.24925, -0.07184, 0.04706, 0.05392, 0.07058)
 magazine_hand = Transform3D(0.14878, -0.93604, -0.31892, 0.95863, 0.05744, 0.27872, -0.24261, -0.34717, 0.90583, 0.07793, -0.07478, 0.00823)
 support_way = Vector3(-0.00215, -0.03, 0.05192)
-grip_pose = SubResource("Resource_mew4d")
-trigger_pose = SubResource("Resource_gvhcx")
-trigger_way_pose = SubResource("Resource_03e2b")
-thumb_pose = SubResource("Resource_6s6wm")
-thumb_way_pose = SubResource("Resource_obf3k")
-support_pose = SubResource("Resource_k0e3b")
-magazine_pose = SubResource("Resource_u3yc4")
-open_pose = SubResource("Resource_vcmdo")
+grip_pose = SubResource("Resource_vcmdo")
+trigger_pose = SubResource("Resource_exss0")
+trigger_way_pose = SubResource("Resource_i26lc")
+thumb_pose = SubResource("Resource_gvhcx")
+thumb_way_pose = SubResource("Resource_03e2b")
+support_pose = SubResource("Resource_obf3k")
+magazine_pose = SubResource("Resource_k0e3b")
+open_pose = SubResource("Resource_6s6wm")
+carry_pose = SubResource("Resource_u3yc4")
+carry_open_pose = SubResource("Resource_mew4d")
+magazine_approach = Vector3(0.03723, -0.11408, 0)
+carry_release = Vector2(0.3, 0.6)

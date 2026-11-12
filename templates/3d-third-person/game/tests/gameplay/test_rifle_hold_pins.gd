@@ -65,6 +65,10 @@ const MODIFIER_PINS := {
 	&"open_first": [] as Array[StringName],
 	&"open_first_share": 0.5,
 	&"open_together": false,
+	&"third": null,
+	&"third_weight": 0.0,
+	&"third_open": null,
+	&"third_open_weight": 0.0,
 	&"swing_bone": &"",
 	&"swing_degrees": 0.0,
 }

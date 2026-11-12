@@ -100,6 +100,10 @@ var _live_magazine: Node3D
 # the left hand is from the support marker and from the magazine marker.
 var _live_reload: Array[Dictionary] = []
 var _live_contact: HandContact
+# The same measure against the pistol without its magazine, for while it is out (kit #1052), and
+# the pistol's magazine.
+var _live_bare: HandContact
+var _live_gun_magazine: Node3D
 # The deepest the live left hand was in the gun or the right hand, in metres, what was playing
 # then, and how many updates were measured.
 var _live_deepest := 0.0
@@ -235,6 +239,14 @@ func test_the_two_hands_hold_the_pistol_together() -> void:
 func test_the_left_hand_follows_the_reload() -> void:
 	for model in MODELS:
 		var stage := HoldStage.make(_holder, model)
+		# While the pistol's own magazine is out (kit #1052) the hand is measured against the pistol
+		# without it; the new magazine it carries is `test_reload_magazine.gd`'s.
+		var gun_magazine := stage.pistol.get_node("Pistol/Magazine") as Node3D
+		gun_magazine.visible = false
+		var bare := HandContact.new(stage.skeleton)
+		bare.set_weapon(stage.pistol)
+		gun_magazine.visible = true
+		stage.skeleton.skeleton_updated.connect(bare.snapshot)
 		for share in _left_reload_shares():
 			_pose_reload(stage, share, 0.0)
 			await stage.settle()
@@ -247,7 +259,10 @@ func test_the_left_hand_follows_the_reload() -> void:
 			elif share >= RELOAD_MAGAZINE_FROM and share <= RELOAD_MAGAZINE_UNTIL:
 				contacts = HoldStage.MAGAZINE_CONTACTS
 				marker = ^"MagazineHand"
-			var parts := stage.contact.measure("l", true)
+			# Seated, the new magazine in the hand is where the pistol's own is.
+			var seated := gun_magazine.visible or share >= RELOAD_MAGAZINE_FROM
+			var contact := stage.contact if seated else bare
+			var parts := contact.measure("l", true)
 			if marker.is_empty():
 				for part: String in parts:
 					var depth: float = -parts[part].distance
@@ -496,6 +511,7 @@ func test_the_players_left_hand_passes_through_nothing_as_it_reloads_while_aimin
 	_live_magazine = player.get_node("Model/PistolHeld/Pistol/MagazineHand") as Node3D
 	_live_contact = HandContact.new(_live_skeleton)
 	_live_contact.set_weapon(player.get_node("Model/PistolHeld/Pistol") as Node3D)
+	_make_bare(player)
 	_live_deepest = 0.0
 	_live_deepest_at = ""
 	_live_measured = 0
@@ -648,6 +664,7 @@ func _aim_up_and_down(model: String) -> void:
 	_live_magazine = player.get_node("Model/PistolHeld/Pistol/MagazineHand") as Node3D
 	_live_contact = HandContact.new(_live_skeleton)
 	_live_contact.set_weapon(player.get_node("Model/PistolHeld/Pistol") as Node3D)
+	_make_bare(player)
 	_live_deepest = 0.0
 	_live_deepest_at = ""
 	_live_measured = 0
@@ -681,6 +698,15 @@ func _aim_up_and_down(model: String) -> void:
 	AudioDrain.stop_all(arena)
 
 
+# The live measure against the pistol without its magazine (hidden while the contact is made).
+func _make_bare(player: Node) -> void:
+	_live_gun_magazine = player.get_node("Model/PistolHeld/Pistol/Pistol/Magazine") as Node3D
+	_live_gun_magazine.visible = false
+	_live_bare = HandContact.new(_live_skeleton)
+	_live_bare.set_weapon(player.get_node("Model/PistolHeld/Pistol") as Node3D)
+	_live_gun_magazine.visible = true
+
+
 # The hand's bone is read in the skeleton's update; the marker rides the attachment, which moves
 # in the same signal, so the two are compared once every listener ran.
 func _read_left_hand() -> void:
@@ -702,6 +728,7 @@ func _read_reload() -> void:
 # gun's attachment moved too, and only while the hand is within a hand's length of the gun.
 func _read_depth() -> void:
 	_live_contact.snapshot()
+	_live_bare.snapshot()
 	var weight: float = _live_hold.get(&"reload_weight")
 	var tag := (
 		"aim %.2f, reload %.2f at share %.3f"
@@ -721,7 +748,8 @@ func _measure_depth(tag: String) -> void:
 	if gap > LIVE_NEAR:
 		return
 	_live_measured += 1
-	var parts := _live_contact.measure("l", true)
+	var contact := _live_contact if _live_gun_magazine.visible else _live_bare
+	var parts := contact.measure("l", true)
 	for part: String in parts:
 		var depth: float = -parts[part].distance
 		if depth > _live_deepest:
