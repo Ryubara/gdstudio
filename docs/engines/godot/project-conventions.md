@@ -62,7 +62,7 @@ game/
   once; 2026-11-11); #1186 (a
   bench built with `bench-web`, which never checks layout); seven hand-made uids replaced, kit #1129, 2026-11-11; a
   suite added after the first `gds template uids` run failed the full run's layout step, gdstudio #1187, 2026-11-11
-  (run it again after the last new script).
+  (run it again after the last new script); PR #1171, 11-12 (two `-s` tool scripts).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
   a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and
