@@ -8,9 +8,9 @@ library clip each came from, for a game whose bodies the library's suit.
 
 | Clip | From | Swung | Peak | Frames | form_female before, after | form_male | Quaternius female, male |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `Jump_Land` | `ual1` | left upper arm, out | 4.0 degrees | 6 to 19 of 38 | 6.5 mm, 0.0 | 0.0, 0.0 | 3.3 and 0.0, unchanged |
+| `Jump_Land` | `ual1` | left upper arm, out | 4.0 degrees | 6 to 19 of 38 | 6.6 mm, 0.0 | 0.0, 0.0 | 3.3 and 0.0, unchanged |
 | `Slide_Exit` | `ual2` | right upper arm, out | 11.0 degrees | 2 to 14 of 15 | 11.1 mm, 0.0 | 1.0, 1.0 | 0.0 and 0.0, unchanged |
-| `NinjaJump_Land` | `ual2` | left upper arm, out | 4.0 degrees | 6 to 19 of 38 | 12.3 mm, 0.0 | 0.0, 0.0 | 3.3 and 0.0, unchanged |
+| `NinjaJump_Land` | `ual2` | left upper arm, out | 4.0 degrees | 6 to 19 of 38 | 12.2 mm, 0.0 | 0.0, 0.0 | 3.3 and 0.0, unchanged |
 
 Two more clips, which the template does not play, passed one thigh through the other while the body turns a quarter
 in two frames (kit #1320). There a leg is swivelled: turned about the line from its hip to its ankle, so the knee and
@@ -19,8 +19,8 @@ upper arm is then swung 3 degrees, for the hand that was in the thigh on frame 4
 
 | Clip | From | Swivelled | Peak | Frames | form_female before, after | form_male | Quaternius female, male | Foot off the library's |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `Sword_Dash` | `ual2` | left leg | 41.0 degrees | 1 to 4 of 47 | 29.4 mm, 0.0 | 25.5, 0.0 | 8.0 to 2.4, 23.3 to 0.0 | 0.57 mm on the `form` pair, 0.0 on Quaternius's |
-| `Sword_Heavy_Combo` | `ual2` | right leg | 22.0 degrees | 8 to 20 of 130 | 16.8 mm, 0.0 | 5.8, 0.0 | 0.0 and 11.0, unchanged | 0.14 mm, 0.0 |
+| `Sword_Dash` | `ual2` | left leg | 34.0 degrees | 1 to 4 of 47 | 29.4 mm, 0.0 | 25.5, 0.0 | 8.0 to 2.4, 23.3 to 0.9 | 0.48 mm on the `form` pair, 0.0 on Quaternius's |
+| `Sword_Heavy_Combo` | `ual2` | right leg | 28.0 degrees | 8 to 20 of 130 | 16.8 mm, 0.0 | 5.8, 0.0 | 0.0 and 11.0, unchanged | 0.18 mm, 0.0 |
 
 The numbers are the deepest any body part is inside another on any frame, on the skinned mesh
 (`../limb_overlap.py`, limit 5 mm). `fixed_clips.json` has them per clip and body with the swing on every frame and

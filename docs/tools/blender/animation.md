@@ -495,14 +495,14 @@ the two sword clips of kit #1320 turn a leg about its own hip and ankle instead 
   the library gave it in the world. The ankle is on the line, so the foot stays where it was, planted or sliding; only
   the knee and the thigh move (3 to 5 mm of knee a degree on a bent leg, nothing on a straight one). The build
   measures it rather than trusting it: on every body and frame the ankle, the ball and the toe tip are within 1 mm of
-  the library's (0.0 on the Quaternius pair the clips were keyed on, 0.14 to 0.57 on the `form` pair, whose legs have
+  the library's (0.0 on the Quaternius pair the clips were keyed on, 0.18 to 0.48 on the `form` pair, whose legs have
   other lengths). `Sword_Dash` and `Sword_Heavy_Combo` cross their thighs by 17 to 26 mm while the body turns a
   quarter in two frames with both feet sliding on the floor; 30 degrees of thigh swung out does not clear them and
-  moves the foot, a swivel of one leg does (41 degrees of the left on frames 1 to 4 of the dash, 22 of the right on
+  moves the foot, a swivel of one leg does (34 degrees of the left on frames 1 to 4 of the dash, 28 of the right on
   frames 8 to 20 of the combo), and both read 0.0 on the `form` pair after it.
 - Swivel the leg whose knee is further from that line, and try each leg alone on a grid of angles before choosing:
-  on the combo the left leg alone never clears at 45 degrees and the right clears at 20; on the dash the left clears
-  at 39 and the right barely changes the depth.
+  on the combo the left leg alone never clears at 45 degrees and the right clears at 26; on the dash the left clears
+  at 32 and the right barely changes the depth.
 - A crossing in a clip's first frames gets a short ease (no hold, three frames wide on the dash, which crosses on
   frames 2 and 3): the build refuses a swing that reaches the first or last frame, and names the frames that need
   one.

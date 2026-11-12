@@ -62,7 +62,7 @@ and a shin on them (kit #1295); the corrected copies are a library of their own 
 
 `assets/animation/fixed/fixed.glb` is the `AnimationLibrary` `fixed`: `Jump_Land` (from `ual1`), `Slide_Exit` and
 `NinjaJump_Land` (from `ual2`) with one upper arm swung 4 to 11 degrees outward on the frames where its forearm was
-6.5 to 12.3 mm inside the shin on `form_female`, eased in and out; every other key is the library's
+6.6 to 12.2 mm inside the shin on `form_female`, eased in and out; every other key is the library's
 ([how it is built](../../../tools/blender/animation.md#corrected-clips)). `CharacterClips.LAND` and `SLIDE_EXIT` name
 the fixed clips, `CharacterClips.STAND_INS` maps each to the library clip it came from, and
 `tests/assets/test_fixed_clips.gd` holds the file to what the build measured and to the library's keys. The file

@@ -1,6 +1,6 @@
 {
  "measured": {
-  "sha256": "b61db67927c9de93de923667fd9325fa4a17cbe8f9a5257ab92009b65a19eab6",
+  "sha256": "3683b25903f270b0967b142e44d6a9bc60d6f630a7c08095f931dd7c26665574",
   "limit_mm": 5.0,
   "foot_drift_limit_mm": 1.0,
   "clear_on": [
@@ -76,7 +76,7 @@
    ],
    "before": {
     "form_female": {
-     "deepest_mm": 6.5,
+     "deepest_mm": 6.6,
      "frame": 13,
      "pair": "calf_l in lowerarm_l"
     },
@@ -264,7 +264,7 @@
    ],
    "before": {
     "form_female": {
-     "deepest_mm": 12.3,
+     "deepest_mm": 12.2,
      "frame": 13,
      "pair": "calf_l in lowerarm_l"
     },
@@ -317,8 +317,8 @@
      "bone": "thigh_l",
      "way": "swivel",
      "keeps": "foot_l",
-     "keeps_peak_degrees": 41.0,
-     "peak_degrees": 41.0,
+     "keeps_peak_degrees": 34.0,
+     "peak_degrees": 34.0,
      "frames_swung": [
       1,
       4
@@ -329,10 +329,10 @@
      ],
      "degrees": [
       0.0,
-      15.28,
-      41.0,
-      36.15,
-      10.44,
+      12.3,
+      34.0,
+      31.11,
+      9.4,
       0.0,
       0.0,
       0.0,
@@ -481,14 +481,14 @@
      "pair": "chest in lowerarm_l"
     },
     "quaternius_male": {
-     "deepest_mm": 0.0,
-     "frame": null,
-     "pair": null
+     "deepest_mm": 0.9,
+     "frame": 3,
+     "pair": "hand_l in thigh_l"
     }
    },
    "foot_drift_mm": {
-    "form_female": 0.57,
-    "form_male": 0.57,
+    "form_female": 0.48,
+    "form_male": 0.48,
     "quaternius_female": 0.0,
     "quaternius_male": 0.0
    }
@@ -503,8 +503,8 @@
      "bone": "thigh_r",
      "way": "swivel",
      "keeps": "foot_r",
-     "keeps_peak_degrees": 22.0,
-     "peak_degrees": 22.0,
+     "keeps_peak_degrees": 28.0,
+     "peak_degrees": 28.0,
      "frames_swung": [
       8,
       20
@@ -521,19 +521,19 @@
       0.0,
       0.0,
       0.0,
-      0.51,
-      2.36,
-      5.85,
-      10.68,
-      16.03,
-      20.35,
-      22.0,
-      20.35,
-      16.03,
-      10.68,
-      5.85,
-      2.36,
-      0.51,
+      0.65,
+      3.0,
+      7.45,
+      13.6,
+      20.4,
+      25.9,
+      28.0,
+      25.9,
+      20.4,
+      13.6,
+      7.45,
+      3.0,
+      0.65,
       0.0,
       0.0,
       0.0,
@@ -692,8 +692,8 @@
     }
    },
    "foot_drift_mm": {
-    "form_female": 0.14,
-    "form_male": 0.14,
+    "form_female": 0.18,
+    "form_male": 0.18,
     "quaternius_female": 0.0,
     "quaternius_male": 0.0
    }
