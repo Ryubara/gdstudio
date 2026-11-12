@@ -109,6 +109,9 @@ they are rerun, replayed or read from another branch -->
   **Watch out for:** a rerun keeps the original run's `created_at`, so a sweep of "queued since before 20:40" cancelled
   two live reruns (#1040's test job 14 minutes in, and #1239's capture rerun) and could not touch the seven stuck runs
   it was meant for. **Seen:** gdstudio #1040, #1239 and #1245, 2026-11-11.
+- **Approach:** When a run fails uploading an artifact while GitHub reports an Actions incident, wait until its status
+  page shows Actions operational, then rerun once. **Watch out for:** a rerun during the outage failed at the same
+  upload step, spending a run and the branch's slot for nothing. **Seen:** gdstudio #1040, 2026-11-11.
 
 ## Time limits and shards {#shards}
 

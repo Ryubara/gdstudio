@@ -154,3 +154,9 @@ contact times. Forward 0 is the obstacle's front face.
 - **Approach:** Pick a mannequin's skinned mesh by its parent (the armature) or its armature modifier. **Watch out
   for:** `mannequin_female.glb` holds a stray 42-vertex `Icosphere` beside `Mannequin_F`, and it comes first, so a
   build that took the first mesh measured nothing and failed on an empty list. **Seen:** gdstudio #1010, 2026-11-10.
+- **Approach:** Keep the capsule out of geometry through a vault: it goes up and over the top as a body's would, and the
+  model, not the capsule, follows the clip's level root through the crossing (held in the world for the move, with the
+  camera's target moved by the same difference so the view stays level). **Watch out for:** this section said the clip's
+  root goes level through the wall and nothing about the capsule, so it read as moving the body through the wall; the
+  capsule has to stay where the physics world (and a server, stepping the same plan) can move it, so the model leaves it
+  for the crossing. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11 (`VaultAnimation` holds the model).
