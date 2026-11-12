@@ -447,7 +447,10 @@ a library (`vault`) and play `vault/Vault_Low`. `tools/capture/vault_study.tscn`
 
 `assets/animation/fixed/fixed.glb` holds three of the library's clips with one arm swung a few degrees clear of the
 shin it passed through on the template's bodies: `Jump_Land` and `Slide_Exit`, which the character plays
-(`land_clip`, `slide_exit_clip`), and `NinjaJump_Land`. Everything else in them is the library's. To play the
+(`land_clip`, `slide_exit_clip`), and `NinjaJump_Land`. Everything else in them is the library's. It also holds
+`Sword_Dash` and `Sword_Heavy_Combo`, which the template does not play: their thighs passed through each other as
+the body turns, so one leg is turned about the line from its hip to its ankle, which moves the knee and leaves the
+foot where the library has it (`CharacterClips.STAND_INS` names the library's own for these too). To play the
 library's own clip, set the clip in the inspector to the name `CharacterClips.STAND_INS` gives (`ual1/Jump_Land`,
 `ual2/Slide_Exit`). A body of your own with thicker or longer limbs may cross elsewhere: measure it with
 `assets/animation/limb_overlap.py` and add the clip to `assets/animation/fixed/build_fixed_clips.py` (its `README.md`
@@ -477,8 +480,8 @@ and MIT for Phantom Camera. Give them a line on the game's Credits screen. The p
 clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`), and so are the slide
 rack clip (`assets/animation/pistol/LICENSE.md`) and the six rifle clips (`assets/animation/rifle/README.md`): the
 low ready, the aim level, up and down, a shot and a reload, played on the upper body under the two-handed hold, the
-library `rifle`. The fixed clips (`assets/animation/fixed/`) are three of the library's clips with one arm moved,
-CC0 like the library, with their own `LICENSE.md`.
+library `rifle`. The fixed clips (`assets/animation/fixed/`) are five of the library's clips with one arm or one leg
+moved, CC0 like the library, with their own `LICENSE.md`.
 
 ## Testing it in a browser
 

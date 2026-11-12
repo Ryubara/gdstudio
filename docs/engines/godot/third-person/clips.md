@@ -68,10 +68,15 @@ and a shin on them (kit #1295); the corrected copies are a library of their own 
 
 `assets/animation/fixed/fixed.glb` is the `AnimationLibrary` `fixed`: `Jump_Land` (from `ual1`), `Slide_Exit` and
 `NinjaJump_Land` (from `ual2`) with one upper arm swung 4 to 11 degrees outward on the frames where its forearm was
-6.5 to 12.3 mm inside the shin on `form_female`, eased in and out; every other key is the library's
+6.6 to 12.2 mm inside the shin on `form_female`, eased in and out; every other key is the library's
 ([how it is built](../../../tools/blender/animation.md#corrected-clips)). `CharacterClips.LAND` and `SLIDE_EXIT` name
 the fixed clips, `CharacterClips.STAND_INS` maps each to the library clip it came from, and
-`tests/assets/test_fixed_clips.gd` holds the file to what the build measured and to the library's keys. A fixture
+`tests/assets/test_fixed_clips.gd` holds the file to what the build measured and to the library's keys. The file
+also holds, since kit #1320, `Sword_Dash` and `Sword_Heavy_Combo` (from `ual2`, played by nothing in the template), whose
+thighs passed through each other by 17 to 26 mm on both bodies: one leg is swivelled about the line from its hip to
+its ankle (41 and 22 degrees at most) and its foot keyed back to the library's turn, so each foot stays within 0.57 mm
+of the library's on every frame, which the same test checks in Godot's own pose on both bodies. The two clips add
+553 KB to the file (946 KB for five clips). A fixture
 that builds its own `AnimationPlayer` and plays `CharacterClips` constants adds the `fixed` library beside `ual1` and
 `ual2` (`tests/fixtures/pistol_clearance.gd`). `tools/capture/fixed_clips_tour.tscn` films both clips from the game
 camera, and with `LIBRARY_CLIPS=1` the library's.

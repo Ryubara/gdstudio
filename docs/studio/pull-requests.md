@@ -168,6 +168,12 @@ read it prints `commits: cannot tell`, as the docs rule does (kit #1303). The gu
   gdstudio #1016 and #1123, 2026-11-11 (fix: #1131, `--docs-ref origin/main` and closes from `Fixes #N`; PR #1144).
   Again on #1171, 2026-11-12: with `- Fixes #N` as list items the local check finds no closing line and skips
   the rule; a page the branch adds goes in `Lessons:` only.
+- **Approach:** Read a body's closing lines the way GitHub does, list items included (`- Fixes #12`), and when a
+  body passes on the machine and fails in CI, find the input the two read differently before editing the body.
+  **Watch out for:** the local reader took only a bare `Fixes #N` line, so a body whose Summary is a list closed
+  nothing on the machine, the `Read first:` rule never ran, and a stacked pull request naming two sections of its
+  base branch passed `gds pr check-body` and failed `body` after the push. **Seen:** gdstudio #1325 on #1321,
+  2026-11-12 (fix: `body_closes` takes a list item; `Read first:` names only sections of `main`).
 
 - **Approach:** When a required check fails on a pull request's first commit, add `Lessons: <page.md#anchor>` to the
   body in the same push that fixes it, naming the topic section the fix is recorded in. **Watch out for:** the local

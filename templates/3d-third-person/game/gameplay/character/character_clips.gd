@@ -9,7 +9,8 @@ extends RefCounted
 ## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
 ## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
 ## The library `fixed` holds the few library clips that put a limb through another on the
-## template's bodies, with that limb swung clear (gdstudio #1295, `assets/animation/fixed/`).
+## template's bodies, with that limb swung clear (gdstudio #1295 and #1320,
+## `assets/animation/fixed/`).
 ##
 ## When a clip of our own or a fixed clip replaces a library clip its constant moves (`IDLE` is
 ## `gds/Idle`, `LAND` is `fixed/Jump_Land`) and `STAND_INS` names the library clip it replaced,
@@ -96,6 +97,8 @@ const STAND_INS: Dictionary[StringName, StringName] = {
 	&"fixed/Jump_Land": &"ual1/Jump_Land",
 	&"fixed/NinjaJump_Land": &"ual2/NinjaJump_Land",
 	&"fixed/Slide_Exit": &"ual2/Slide_Exit",
+	&"fixed/Sword_Dash": &"ual2/Sword_Dash",
+	&"fixed/Sword_Heavy_Combo": &"ual2/Sword_Heavy_Combo",
 }
 
 # The rifle, held in both hands: the template's own clips.
@@ -211,6 +214,8 @@ const ALL: Array[StringName] = [
 	&"fixed/Jump_Land",
 	&"fixed/NinjaJump_Land",
 	&"fixed/Slide_Exit",
+	&"fixed/Sword_Dash",
+	&"fixed/Sword_Heavy_Combo",
 	&"melee/Melee_Pistol_Backhand",
 	&"melee/Melee_Pistol_Jab",
 	&"melee/Melee_Pistol_Whip",

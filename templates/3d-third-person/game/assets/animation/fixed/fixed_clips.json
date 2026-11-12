@@ -1,7 +1,8 @@
 {
  "measured": {
-  "sha256": "2ee518d2ce85693f4a2a362070572086a97621610c1e8dd5700377f8bb963843",
+  "sha256": "3683b25903f270b0967b142e44d6a9bc60d6f630a7c08095f931dd7c26665574",
   "limit_mm": 5.0,
+  "foot_drift_limit_mm": 1.0,
   "clear_on": [
    "form_female",
    "form_male"
@@ -75,7 +76,7 @@
    ],
    "before": {
     "form_female": {
-     "deepest_mm": 6.5,
+     "deepest_mm": 6.6,
      "frame": 13,
      "pair": "calf_l in lowerarm_l"
     },
@@ -263,7 +264,7 @@
    ],
    "before": {
     "form_female": {
-     "deepest_mm": 12.3,
+     "deepest_mm": 12.2,
      "frame": 13,
      "pair": "calf_l in lowerarm_l"
     },
@@ -304,6 +305,397 @@
      "frame": null,
      "pair": null
     }
+   }
+  },
+  "Sword_Dash": {
+   "library": "ual2.glb",
+   "first_frame": 0,
+   "last_frame": 47,
+   "fps": 30,
+   "swings": [
+    {
+     "bone": "thigh_l",
+     "way": "swivel",
+     "keeps": "foot_l",
+     "keeps_peak_degrees": 34.0,
+     "peak_degrees": 34.0,
+     "frames_swung": [
+      1,
+      4
+     ],
+     "frames_crossing": [
+      2,
+      3
+     ],
+     "degrees": [
+      0.0,
+      12.3,
+      34.0,
+      31.11,
+      9.4,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    {
+     "bone": "upperarm_l",
+     "way": "out",
+     "peak_degrees": 3.0,
+     "frames_swung": [
+      1,
+      6
+     ],
+     "frames_crossing": [
+      3,
+      4
+     ],
+     "degrees": [
+      0.0,
+      0.75,
+      2.25,
+      3.0,
+      3.0,
+      2.25,
+      0.75,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   ],
+   "before": {
+    "form_female": {
+     "deepest_mm": 29.4,
+     "frame": 4,
+     "pair": "hand_l in thigh_l"
+    },
+    "form_male": {
+     "deepest_mm": 25.5,
+     "frame": 2,
+     "pair": "thigh_l in thigh_r"
+    },
+    "quaternius_female": {
+     "deepest_mm": 8.0,
+     "frame": 3,
+     "pair": "thigh_l in thigh_r"
+    },
+    "quaternius_male": {
+     "deepest_mm": 23.3,
+     "frame": 4,
+     "pair": "hand_l in thigh_l"
+    }
+   },
+   "after": {
+    "form_female": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "form_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "quaternius_female": {
+     "deepest_mm": 2.4,
+     "frame": 7,
+     "pair": "chest in lowerarm_l"
+    },
+    "quaternius_male": {
+     "deepest_mm": 0.9,
+     "frame": 3,
+     "pair": "hand_l in thigh_l"
+    }
+   },
+   "foot_drift_mm": {
+    "form_female": 0.48,
+    "form_male": 0.48,
+    "quaternius_female": 0.0,
+    "quaternius_male": 0.0
+   }
+  },
+  "Sword_Heavy_Combo": {
+   "library": "ual2.glb",
+   "first_frame": 0,
+   "last_frame": 130,
+   "fps": 30,
+   "swings": [
+    {
+     "bone": "thigh_r",
+     "way": "swivel",
+     "keeps": "foot_r",
+     "keeps_peak_degrees": 28.0,
+     "peak_degrees": 28.0,
+     "frames_swung": [
+      8,
+      20
+     ],
+     "frames_crossing": [
+      14
+     ],
+     "degrees": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.65,
+      3.0,
+      7.45,
+      13.6,
+      20.4,
+      25.9,
+      28.0,
+      25.9,
+      20.4,
+      13.6,
+      7.45,
+      3.0,
+      0.65,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   ],
+   "before": {
+    "form_female": {
+     "deepest_mm": 16.8,
+     "frame": 14,
+     "pair": "thigh_l in thigh_r"
+    },
+    "form_male": {
+     "deepest_mm": 5.8,
+     "frame": 14,
+     "pair": "thigh_l in thigh_r"
+    },
+    "quaternius_female": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "quaternius_male": {
+     "deepest_mm": 11.0,
+     "frame": 50,
+     "pair": "lowerarm_l in thigh_l"
+    }
+   },
+   "after": {
+    "form_female": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "form_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "quaternius_female": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "quaternius_male": {
+     "deepest_mm": 11.0,
+     "frame": 50,
+     "pair": "lowerarm_l in thigh_l"
+    }
+   },
+   "foot_drift_mm": {
+    "form_female": 0.18,
+    "form_male": 0.18,
+    "quaternius_female": 0.0,
+    "quaternius_male": 0.0
    }
   }
  }
