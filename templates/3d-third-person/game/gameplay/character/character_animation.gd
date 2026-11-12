@@ -80,7 +80,6 @@ const _P_ARMED := StringName("parameters/%s/blend_amount" % _ARMED)
 const _P_AIM := StringName("parameters/%s/blend_amount" % _AIM)
 const _P_AIM_POSE := StringName("parameters/%s/blend_position" % _AIM_POSE)
 const _P_SHOOT_SCALE := StringName("parameters/%s/scale" % _SHOOT_SCALE)
-const _P_SHOOT_REQUEST := StringName("parameters/%s/request" % _SHOOT)
 const _P_SHOOT_ACTIVE := StringName("parameters/%s/active" % _SHOOT)
 const _P_PRONE_MOVE := StringName("parameters/%s/" % _MACHINE + "%s/Move/blend_amount" % PRONE)
 const _P_CRAWL_PACE := StringName("parameters/%s/" % _MACHINE + "%s/CrawlPace/scale" % PRONE)
@@ -758,12 +757,13 @@ func _on_shot(_projectile: Projectile) -> void:
 		# One clip after another shot by shot (a jab, then a cross).
 		_shoot_clip_node.animation = hold.shoot_clips[_shots % hold.shoot_clips.size()]
 	_shots += 1
-	tree.set(_P_SHOOT_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	ShotLayer.fire(tree, hold)
 
 
 func _on_definition_changed(_definition: WeaponDef) -> void:
 	_shots = 0
 	_rebuild()
+	ShotLayer.stop(tree)
 
 
 func _on_reload_started(seconds: float) -> void:

@@ -104,13 +104,16 @@ class Driver:
 		_shot_arm = maxf(_shot_arm, animation.character.aim_amount)
 
 	## Frees the brace, so the next aim makes it again from the model, the bone and the aim clip
-	## there are then; called whenever the tree is built.
+	## there are then, and forgets the last shot; called whenever the tree is built.
 	func build(_animation: CharacterAnimation) -> void:
 		if is_instance_valid(modifier):
 			# Out of the tree at once, so the new one can take the name.
 			modifier.get_parent().remove_child(modifier)
 			modifier.queue_free()
 		modifier = null
+		# A new weapon (or a new model) starts with no shot of the last one holding the arm up.
+		_shot_hold = 0.0
+		_shot_arm = 0.0
 
 	# Makes the brace on the skeleton of `animation`'s model, first of its modifiers (the hands
 	# close on the weapon after it), from the held definition's aim clip.

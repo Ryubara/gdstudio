@@ -3,7 +3,8 @@
 ## bones, weights, bind poses, triangles) and every bone's pose in the clips the pistol is held
 ## in, as Godot plays them; where each arm's shoulder and elbow are in the rifle's space as the
 ## rifle's hold has it at the shoulder and at the low ready (`shoulders`, kit #1187); the pistol's
-## triangles, sockets and seat; and the rifle's near level (triangles and sockets, kit #889). The
+## triangles (all of them, and each moving part's on its own: the magazine the left hand carries,
+## kit #1052), sockets and seat; and the rifle's near level (triangles and sockets, kit #889). The
 ## solvers (`solve_pistol_hold.py`, `solve_rifle_hold.py`) work on this dump, never on a clip
 ## opened in Blender, whose hand sits 2 to 3 cm from Godot's (kit docs, tools/blender/weapons.md).
 ## A body's name after the file (`female`, `male`: `CharacterBodies.BY_NAME`) dumps that body
@@ -197,17 +198,21 @@ func _rifle() -> Dictionary:
 func _weapon(pistol: Node3D) -> Dictionary:
 	var inverse := pistol.global_transform.affine_inverse()
 	var triangles := []
+	var parts := {}
 	for node in pistol.find_children("*", "MeshInstance3D", true, false):
 		var instance := node as MeshInstance3D
 		var to_root := inverse * instance.global_transform
+		var own := []
 		for vertex in instance.mesh.get_faces():
 			var at := to_root * vertex
-			triangles.append([at.x, at.y, at.z])
+			own.append([at.x, at.y, at.z])
+		triangles.append_array(own)
+		parts[instance.name] = own
 	var sockets := {}
 	for node in pistol.find_children("*", "Node3D", true, false):
 		if not node is MeshInstance3D:
 			sockets[node.name] = _xf(inverse * (node as Node3D).global_transform)
-	return {"triangles": triangles, "sockets": sockets}
+	return {"triangles": triangles, "parts": parts, "sockets": sockets}
 
 
 # A transform as twelve numbers: the basis' columns x, y, z, then the origin.
