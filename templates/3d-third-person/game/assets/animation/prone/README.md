@@ -196,8 +196,7 @@ at frame 8 and has rolled onto its fist by 18 while the right, which lies 10 cm 
 has rolled by 21; the chest turns 8 degrees to its left and rolls 6 as it dives. Coming up, the left
 hand opens first and is planted 5 cm behind its shoulder's line by frame 7, the right 6 cm ahead of it and 5 cm
 wider by frame 9; the chest turns 8 degrees to its left again and rolls 6 the other way as it pushes, the right
-knee draws in under the body and the left swings wide. The build measures every frame of every clip (each left joint
-against
+knee draws in under the body and the left swings wide. The build measures every frame of every clip (each left joint against
 the right one's place mirrored across the body's middle, `mirror` in its report) and fails under 90 mm at the
 wrists and 25 mm at the shoulders (`MIRROR_LIMIT`; a crawl's shoulders pass level twice a stride and are not
 held); `test_prone_clips.gd` holds the same in Godot. The Quaternius files keep their even transitions, byte for
@@ -460,21 +459,13 @@ frame's lowest hand, forearm, thigh and shin vertex on both mannequins (`floor_m
 A rebuild writes the same bytes, so `cmp` against the committed file proves a change to the script left a file alone.
 
 ```text
-blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --other <mannequin_male.glb>
---library <ual1.glb> --out <prone.glb>
-blender -b --factory-startup -P build_prone_clips.py -- --body male --model <mannequin_male.glb> --other
-<mannequin_female.glb> --library <ual1.glb> --out <prone_male.glb>
-blender -b --factory-startup -P build_prone_clips.py -- --body form_female --model <form_female.glb> --other
-<form_male.glb> --library <ual1.glb> --out <prone_form_female.glb>
-blender -b --factory-startup -P build_prone_clips.py -- --body form_male --model <form_male.glb> --other
-<form_female.glb> --library <ual1.glb> --out <prone_form_male.glb>
-blender -b --factory-startup -P ../limb_overlap.py -- --clips <prone_form_female.glb> --model <form_female.glb>
---brief --json <prone_form_female_overlap.json>
-blender -b --factory-startup -P render_clip_sheets.py -- --model <mannequin.glb> --clips <prone.glb> --out <folder>
---travel Crawl_Fwd_Loop=0.618
-blender -b --factory-startup -P render_clip_sheets.py -- --model <mannequin.glb> --clips <prone.glb> --out <folder>
---clip Crawl_Fwd_Loop --travel Crawl_Fwd_Loop=0.618 --views top --scale 1.35 --ahead 0.6 --frames 15 --wrap 5 --tile
-420x360
+blender -b --factory-startup -P build_prone_clips.py -- --model <mannequin_female.glb> --other <mannequin_male.glb> --library <ual1.glb> --out <prone.glb>
+blender -b --factory-startup -P build_prone_clips.py -- --body male --model <mannequin_male.glb> --other <mannequin_female.glb> --library <ual1.glb> --out <prone_male.glb>
+blender -b --factory-startup -P build_prone_clips.py -- --body form_female --model <form_female.glb> --other <form_male.glb> --library <ual1.glb> --out <prone_form_female.glb>
+blender -b --factory-startup -P build_prone_clips.py -- --body form_male --model <form_male.glb> --other <form_female.glb> --library <ual1.glb> --out <prone_form_male.glb>
+blender -b --factory-startup -P ../limb_overlap.py -- --clips <prone_form_female.glb> --model <form_female.glb> --brief --json <prone_form_female_overlap.json>
+blender -b --factory-startup -P render_clip_sheets.py -- --model <mannequin.glb> --clips <prone.glb> --out <folder> --travel Crawl_Fwd_Loop=0.618
+blender -b --factory-startup -P render_clip_sheets.py -- --model <mannequin.glb> --clips <prone.glb> --out <folder> --clip Crawl_Fwd_Loop --travel Crawl_Fwd_Loop=0.618 --views top --scale 1.35 --ahead 0.6 --frames 15 --wrap 5 --tile 420x360
 ```
 
 `render_clip_sheets.py` renders any clip file on any of the four bodies the way Godot plays it (a prototype body's
