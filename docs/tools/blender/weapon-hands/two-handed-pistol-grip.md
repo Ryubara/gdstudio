@@ -92,7 +92,7 @@ by hand:
 A solved pose is clear where it holds; the blend the game plays between two of them is not, unless it is solved too.
 
 - **The trigger finger goes by a pose between** (kit #1079, `pistol_trigger_way_pose.tres`,
-  `HandPoseModifier.second_via`). The straight blend from along the frame to the trigger left the guard on the gun's
+  `HandPoseModifier.second_way`). The straight blend from along the frame to the trigger left the guard on the gun's
   far side: 7.3 mm through the left thumb's tip and 7.0 mm through the gun. The pose between (the finger lowered and
   drawn out to its own side, nearly straight) is solved as the nearest to both ends that keeps the finger out of the
   left hand at every twentieth (never nearer than 3 mm now) and as little in the gun as it can be (3.7 mm, above).

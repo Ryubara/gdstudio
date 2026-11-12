@@ -269,7 +269,11 @@ func _build() -> void:
 	_grip.name = _GRIP
 	_grip.pose = grip_pose
 	_grip.second = trigger_pose
-	_grip.second_via = trigger_way_pose
+	# The trigger finger's pose between is a way of one stop (`HandPoseModifier.second_way`).
+	var trigger_way: Array[HandPose] = []
+	if trigger_way_pose != null:
+		trigger_way.append(trigger_way_pose)
+	_grip.second_way = trigger_way
 	_grip.open = thumb_pose
 	_grip.open_via = thumb_way_pose
 	_skeleton.add_child(_grip)

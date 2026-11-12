@@ -152,6 +152,10 @@ func _lay_authored(solved: Dictionary, body: String) -> void:
 func _write_fit(solved: Dictionary, which: String, body: String) -> void:
 	var path := FIT % [which, body]
 	var fit := HoldFit.new()
+	if ResourceLoader.exists(path):
+		# The trigger finger's way is another solver's (`solve_trigger_way.gd`): it is kept, and
+		# solved again after this one.
+		fit.trigger_way = (load(path) as HoldFit).trigger_way
 	fit.body = CharacterBodies.BY_NAME[body].get_file()
 	if solved.has("seat"):
 		fit.seat = _transform(solved.seat)

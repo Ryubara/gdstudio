@@ -193,6 +193,39 @@ func measure(side: String, over_other_hand := false) -> Dictionary:
 	return found
 
 
+## The signed distance from each of `parts` of the hand of `side` to the weapon alone, in metres:
+## `measure()` for a few parts, for a solver that tries many poses (kit #1036).
+func measure_parts(side: String, parts: Array[String]) -> Dictionary:
+	_to_weapon = _weapon.global_transform.affine_inverse() * _skeleton.global_transform
+	var found := {}
+	var cache := {}
+	for part in parts:
+		var list: Array = _parts[side][part]
+		var least := INF
+		for index in list.size() / 2:
+			var at := _skinned(list[index * 2], list[index * 2 + 1], cache)
+			least = minf(least, _gun_distance(_to_weapon * at))
+		found[part] = least
+	return found
+
+
+## Turns the bones `rotations` names ({bone name: rotation in its parent's space}, a finger's
+## chain from the knuckle out) to those rotations over the snapshot, as a `HandPoseModifier`
+## would, with the leaf bones under them following: a solver tries a pose without waiting for the
+## skeleton to update (kit #1036). `snapshot()` puts the skeleton's own pose back.
+func pose_chain(rotations: Dictionary) -> void:
+	for bone_name: StringName in rotations:
+		var bone := _skeleton.find_bone(bone_name)
+		var parent := _skeleton.get_bone_parent(bone)
+		var local := Transform3D(
+			Basis(rotations[bone_name] as Quaternion), _skeleton.get_bone_pose_position(bone)
+		)
+		_poses[bone] = _poses[parent] * local
+		for child in _skeleton.get_bone_children(bone):
+			if not rotations.has(_skeleton.get_bone_name(child)):
+				_poses[child] = _poses[bone] * _skeleton.get_bone_pose(child)
+
+
 ## A bone's pose in the skeleton's space, as `snapshot()` copied it.
 func bone_pose(bone_name: StringName) -> Transform3D:
 	return _poses[_skeleton.find_bone(bone_name)]
