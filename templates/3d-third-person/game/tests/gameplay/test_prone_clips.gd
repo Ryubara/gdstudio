@@ -49,12 +49,10 @@ const CARRIERS := {
 	&"prone/Prone_Idle": ["lowerarm_l", "lowerarm_r", "calf_l", "calf_r", "foot_l", "foot_r"],
 	&"prone/Crawl_Fwd": ["lowerarm_l", "lowerarm_r", "foot_l", "foot_r"],
 }
-## The crossings `prone/bodies_overlap.json` reads over `limb_overlap.py`'s limit (mm): the
-## transitions fold the left leg past the left arm, which the `form` female's limbs fill
-## (kit #1293).
-const KNOWN_OVERLAP_MM := {
-	"Crouch_To_Prone": {"form_female": 18.1}, "Prone_To_Crouch": {"form_female": 16.9}
-}
+## The crossings `prone/bodies_overlap.json` reads over `limb_overlap.py`'s limit (mm): none. The
+## transitions crossed 18.1 and 16.9 mm on the `form` female while they joined a crouch solved on
+## the Quaternius female; on the crouch solved on her own body (kit #1160) they cross nothing.
+const KNOWN_OVERLAP_MM := {}
 
 var _model: Node3D
 var _skeleton: Skeleton3D

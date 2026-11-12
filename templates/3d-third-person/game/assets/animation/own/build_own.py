@@ -13,12 +13,15 @@ part of the `gds` animation library.
 Every clip passes every check of `gdsanim/checks.py` on every body before anything is written, and the file passes
 `../limb_overlap.py` in Blender (`--blender <path>`, the pinned one from `gds tool path blender`; without it the
 build says the check was not run and writes nothing unless `--no-overlap` is given). A failed build leaves the
-last good file in place and exits 1; the last line of a good build is `BUILT <file>`.
+last good file in place and exits 1; the last line of a good build is `BUILT <file>`. A shipped file's limb
+numbers on every body are written beside it as `bodies_overlap.json` with the file's SHA-256, which the Godot
+suite reads (`tests/fixtures/bodies_overlap.gd`): a file that was rebuilt and not measured fails there.
 
 `--check` builds and compares with the files on disk instead of writing: exit 1 when a byte differs.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -61,8 +64,9 @@ GROUPS = {"locomotion": ["Idle", "Crouch_Idle", "Crouch_Walk", "Stand_To_Crouch"
 OVERLAP_MM = 5.0
 
 
-def limb_overlap(blender: str, glb: bytes, bodies: list, report: dict) -> list:
-    """Run `../limb_overlap.py` on a file's bytes in Blender; the failures, with the numbers added to `report`."""
+def limb_overlap(blender: str, glb: bytes, bodies: list, report: dict, brief: dict) -> list:
+    """Run `../limb_overlap.py` on a file's bytes in Blender; the failures, with the numbers added to `report` and,
+    by the clips' names in the file, to `brief`."""
     with tempfile.TemporaryDirectory() as folder:
         clips = Path(folder) / "clips.glb"
         numbers = Path(folder) / "overlap.json"
@@ -80,11 +84,9 @@ def limb_overlap(blender: str, glb: bytes, bodies: list, report: dict) -> list:
         for clip, by_body in json.loads(numbers.read_text(encoding="utf-8")).items():
             name = clip.removesuffix("_Loop")
             for body, entry in by_body.items():
-                report.setdefault(name, {}).setdefault("limbs", {})[body] = {
-                    "deepest_mm": entry["deepest_mm"],
-                    "frame": entry["frame"],
-                    "pair": entry["pair"],
-                }
+                numbers = {key: entry[key] for key in ("deepest_mm", "frame", "pair")}
+                report.setdefault(name, {}).setdefault("limbs", {})[body] = numbers
+                brief.setdefault(clip, {})[body] = numbers
                 if entry["deepest_mm"] > OVERLAP_MM:
                     failures.append(
                         f"{name}: limbs: {entry['pair']} by {entry['deepest_mm']} mm on {body} at frame {entry['frame']}"
@@ -95,8 +97,9 @@ def limb_overlap(blender: str, glb: bytes, bodies: list, report: dict) -> list:
 def make(args, builts: list, frozen: list, rig: Rig, bodies: list, out: Path) -> int:
     result = build.build_file(rig, builts, bodies, frozen)
     failures, report = result["failures"], result["report"]
+    brief = {}
     if args.blender:
-        failures += limb_overlap(args.blender, result["glb"], [body.path for body in bodies], report)
+        failures += limb_overlap(args.blender, result["glb"], [body.path for body in bodies], report, brief)
     elif not args.no_overlap:
         failures.append("limbs: not checked (give --blender <the pinned Blender>, or --no-overlap to write anyway)")
     if args.report:
@@ -110,13 +113,27 @@ def make(args, builts: list, frozen: list, rig: Rig, bodies: list, out: Path) ->
         return 1
     side = out.with_suffix(".json")
     text = json.dumps(result["clips"], indent=1, sort_keys=True) + "\n"
+    # A shipped file's limbs on every body, in the form `../limb_overlap.py --brief` writes.
+    shipped = out.parent == HERE and bool(brief)
+    limbs = out.with_name("bodies_overlap.json")
+    limbs_report = {
+        "clips_file": out.name,
+        "sha256": hashlib.sha256(result["glb"]).hexdigest(),
+        "fps": build.FPS,
+        "limit_mm": OVERLAP_MM,
+        "clips": brief,
+    }
+    limbs_text = json.dumps(limbs_report, indent=1) + "\n"
     if args.check:
         same = out.exists() and out.read_bytes() == result["glb"] and side.read_text(encoding="utf-8") == text
+        same = same and (not shipped or (limbs.exists() and limbs.read_text(encoding="utf-8") == limbs_text))
         print(f"{'SAME' if same else 'DIFFERENT'} {out.name}")
         return 0 if same else 1
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(result["glb"])
     side.write_text(text, encoding="utf-8", newline="\n")
+    if shipped:
+        limbs.write_text(limbs_text, encoding="utf-8", newline="\n")
     print(f"BUILT {out}")
     return 0
 

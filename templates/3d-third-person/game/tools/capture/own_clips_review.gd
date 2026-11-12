@@ -27,7 +27,7 @@
 extends Node
 
 const REVIEW := "res://assets/animation/own/review/%s.glb"
-const MODEL := "res://assets/characters/mannequin/mannequin_female.glb"
+const MODEL := CharacterBodies.FEMALE
 ## Metres between two bodies of the row, and where the row's camera stands from its middle (the
 ## bodies face +Z; the game's camera looks at a character from behind and above).
 const SPACING := 1.1

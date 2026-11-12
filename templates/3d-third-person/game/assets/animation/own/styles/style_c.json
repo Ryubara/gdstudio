@@ -212,11 +212,11 @@
    "Tried: the idle's hand numbers in the walk: the left hand's turn popped 1.4 degrees on a landing frame as the arm was opened round the thigh; the walk has its own wrists and carries the arm 18 degrees out."
   ],
   "stand_to_crouch": [
-   "Sharp: 15 frames, falling for 66 % of the drop; 0.97 of gravity.",
+   "Sharp: 15 frames, falling for 66 % of the drop; 0.93 of gravity.",
    "Could not be done: 13 frames. With a foot in the air the trunk's fold and the step add to the fall: 1.20 of gravity (the limit is 1.05)."
   ],
   "crouch_to_stand": [
-   "Sharp: 15 frames, the legs pushing for the first third; the rise stops at 1.05 of gravity, the limit.",
+   "Sharp: 15 frames, the legs pushing for the first third; the rise stops at 1.00 of gravity (the limit is 1.05).",
    "Could not be done: 14 frames: the rise stopped at 1.24 of gravity."
   ]
  }

@@ -1,21 +1,37 @@
 # GDStudio's own clips (`assets/animation/own/`, kit #1154 and #1160) import as the library `gds`
-# beside the Universal Animation Library and play on both mannequins: the file holds exactly
-# the clips its
-# `clips.json` freezes, every track finds its bone, a clip keys rotations and the pelvis's place
-# and nothing else, the loops close bone by bone, a planted foot stays on its place on the floor,
-# the player plays our clip where the library's played, the library clip still plays as a
-# stand-in, and the imported library stays inside the budget.
+# beside the Universal Animation Library and play on the template's bodies (the prototype `form`
+# pair, `CharacterBodies`, which the clips are solved on) and on the Quaternius pair: the file
+# holds exactly the clips its `clips.json` freezes, every track finds its bone, a clip keys
+# rotations and the pelvis's place and nothing else, the loops close bone by bone, a planted foot
+# stays on its place on the floor with its skin on it, no limb passes through another, the player
+# plays our clip where the library's played, the library clip still plays as a stand-in, and the
+# imported library stays inside the budget.
 extends GdUnitTestSuite
 
 const OWN := "res://assets/animation/own/locomotion.glb"
 const RECORDS := "res://assets/animation/own/locomotion.json"
+## The bodies the clips are checked on: the template's two first (the clips are solved on the
+## first), then the Quaternius pair a game can swap in.
 const MODELS: Array[String] = [
-	"res://assets/characters/mannequin/mannequin_female.glb",
-	"res://assets/characters/mannequin/mannequin_male.glb",
+	CharacterBodies.FEMALE,
+	CharacterBodies.MALE,
+	CharacterBodies.QUATERNIUS_FEMALE,
+	CharacterBodies.QUATERNIUS_MALE,
 ]
-## The furthest a planted foot's joints may move on the floor over a clip, in metres (the build
-## holds the sole to 5 mm; the joints move less, and the import must not add to it).
-const PLANTED := 0.001
+## How far the lowest skin of a planted foot may be from the floor, in metres, on the template's
+## bodies; and on the Quaternius pair, whose toes lie on the floor at rest where the template's
+## curl 7 mm up off it, so a foot that stands on its ball for one sinks that far on the other.
+const SOLE := 0.002
+const SOLE_OTHER_TOES := 0.0095
+## The furthest a planted foot's joints may move on the floor over a clip, in metres. The build
+## holds the sole to 5 mm and the joints to 0.2 mm on the file's own keys; the import's compressed
+## tracks add to that under a pelvis that travels (the idle's goes 73 mm: 1.1 mm at a foot on the
+## body the clips are solved on, 1.4 on the male and 1.5 on the Quaternius pair, whose hips and
+## shins differ by a millimetre or three). And how far the ball's joint may go down as the heel
+## rises over it: the skin under it is shared with the toes, and the foot is set down by what
+## that leaves lowest (4.5 mm on the template's bodies).
+const PLANTED := 0.002
+const BALL_SINKS := 0.006
 ## The imported library's bytes for a second of clip (the plan's budget is 6 KB a second).
 const BYTES_A_SECOND := 6144.0
 
@@ -93,11 +109,14 @@ func test_every_track_finds_its_bone_and_keys_only_what_a_clip_may() -> void:
 					. override_failure_message(where)
 					. is_not_null()
 				)
-				(
-					assert_int(_skeleton.find_bone(bone))
-					. override_failure_message(where)
-					. is_greater_equal(0)
-				)
+				# The foot and hand targets (`ik_foot_l`) are bones of the prototype rig, which the
+				# clips are solved on; the Quaternius skeleton has none, and the track moves nothing.
+				if not (bone.begins_with("ik_") and not model_path.contains("/prototype/")):
+					(
+						assert_int(_skeleton.find_bone(bone))
+						. override_failure_message(where)
+						. is_greater_equal(0)
+					)
 				var type := animation.track_get_type(track)
 				(
 					assert_bool(type != Animation.TYPE_SCALE_3D)
@@ -159,10 +178,52 @@ func test_a_planted_foot_stays_on_its_place_on_the_floor() -> void:
 					assert_float(worst).override_failure_message(where).is_less(PLANTED)
 
 
+# The skin of a planted foot is on the floor on every frame of its contact: flat, on its ball in
+# the crouch, and rolling off its toes in the crouch walk (the build measures the same on the
+# skinned mesh; this is the imported clip on the imported body).
+func test_a_planted_foot_s_skin_is_on_the_floor() -> void:
+	var records := _records()
+	for model_path in MODELS:
+		var measure := BodyMeasure.stage(self, model_path, {&"gds": OWN})
+		var limit := SOLE if model_path.contains("/prototype/") else SOLE_OTHER_TOES
+		# The body's own floor: where its soles are while it stands in the idle.
+		measure.pose(&"gds/Idle", 0.0)
+		var standing := measure.feet_lowest()
+		var floor_height := minf(standing["l"], standing["r"])
+		for clip: String in records.clips:
+			var record: Dictionary = records.clips[clip]
+			for side: String in record.contacts:
+				var worst := 0.0
+				for contact: Array in record.contacts[side]:
+					for frame in range(ceili(contact[0]), floori(contact[1]) + 1):
+						measure.pose(StringName("gds/" + clip), frame / 30.0)
+						var feet := measure.feet_lowest()
+						worst = maxf(worst, absf(feet[side] - floor_height))
+				var where := (
+					"%s, the %s foot's skin on %s: %.1f mm off the floor"
+					% [clip, side, model_path.get_file(), worst * 1000.0]
+				)
+				print(where)
+				assert_float(worst).override_failure_message(where).is_less(limit)
+		measure.free_nodes()
+
+
+# No limb passes through another on any frame of any clip, on any body
+# (`own/bodies_overlap.json`, which the build writes from `limb_overlap.py` in Blender on the
+# skinned meshes, with the hash of the file it measured).
+func test_no_limb_passes_through_another() -> void:
+	var bodies: Array[String] = []
+	for model_path in MODELS:
+		bodies.append(model_path.get_file().get_basename())
+	var found := BodiesOverlap.problems(OWN, bodies, {})
+	assert_array(found).override_failure_message("; ".join(found)).is_empty()
+
+
 # The furthest a foot's joints get from where they were when they came to rest, on the floor the
 # body travels over (the clip is in place: the travel curve of `clips.json` puts it back). The
 # ball of the foot is held from the frame the sole is flat to the end of the contact; the ankle
-# only while the sole is flat (`flat` of `clips.json`): a heel that rises turns about the ball.
+# only while the sole is flat (`flat` of `clips.json`): a heel that rises turns about the ball,
+# whose joint then keeps its place on the floor and may go down by `BALL_SINKS`.
 func _wander(clip: String, record: Dictionary, side: String, contact: Array) -> float:
 	var flat: Array = contact
 	for window: Array in record.get("flat", {}).get(side, []):
@@ -180,7 +241,13 @@ func _wander(clip: String, record: Dictionary, side: String, contact: Array) -> 
 			var place: Vector3 = (pose[bone] as Transform3D).origin + travel
 			if not start.has(bone):
 				start[bone] = place
-			worst = maxf(worst, place.distance_to(start[bone]))
+			var from: Vector3 = start[bone]
+			if frame > floori(flat[1]):
+				var down := from.y - place.y
+				if down < -PLANTED or down > BALL_SINKS:
+					return absf(down)
+				place.y = from.y
+			worst = maxf(worst, place.distance_to(from))
 	return worst
 
 
@@ -224,7 +291,7 @@ func test_a_stance_change_begins_and_ends_on_the_poses_it_joins() -> void:
 						two.basis.get_rotation_quaternion()
 					)
 					assert_float(rad_to_deg(turn)).override_failure_message(where).is_less(0.5)
-	assert_int(joined).is_equal(8)
+	assert_int(joined).is_equal(4 * MODELS.size())
 
 
 func test_the_crouch_clips_fit_the_game() -> void:
