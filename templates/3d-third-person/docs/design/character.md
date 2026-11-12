@@ -477,13 +477,15 @@ a library (`vault`) and play `vault/Vault_Low`. `tools/capture/vault_study.tscn`
 ### Fixed library clips {#fixed-clips}
 
 `assets/animation/fixed/fixed.glb` holds three of the library's clips with one arm swung a few degrees clear of the
-shin it passed through on the template's bodies: `Jump_Land` and `Slide_Exit`, which the character plays
-(`land_clip`, `slide_exit_clip`), and `NinjaJump_Land`. Everything else in them is the library's. It also holds
+shin it passed through on the template's bodies: `Slide_Exit`, which the character plays (`slide_exit_clip`),
+`Jump_Land`, which it played until the landing became GDStudio's own (`gds/Land_Soft`, with the take-off
+`gds/Jump_Start` and the fall `gds/Jump_Fall`: `assets/animation/own/README.md`) and which is now that clip's
+stand-in, and `NinjaJump_Land`. Everything else in them is the library's. It also holds
 `Sword_Dash` and `Sword_Heavy_Combo`, which the template does not play: their thighs passed through each other as
 the body turns, so one leg is turned about the line from its hip to its ankle, which moves the knee and leaves the
 foot where the library has it (`CharacterClips.STAND_INS` names the library's own for these too). To play the
-library's own clip, set the clip in the inspector to the name `CharacterClips.STAND_INS` gives (`ual1/Jump_Land`,
-`ual2/Slide_Exit`). A body of your own with thicker or longer limbs may cross elsewhere: measure it with
+library's own clip, set the clip in the inspector to the name `CharacterClips.STAND_INS` gives (`fixed/Jump_Land`
+for `land_clip`, `ual2/Slide_Exit`). A body of your own with thicker or longer limbs may cross elsewhere: measure it with
 `assets/animation/limb_overlap.py` and add the clip to `assets/animation/fixed/build_fixed_clips.py` (its `README.md`
 says how).
 

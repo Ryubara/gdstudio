@@ -1,4 +1,4 @@
-# GDStudio's own clips (`assets/animation/own/`, kit #1154, #1155 and #1160) import as the library
+# GDStudio's own clips (`assets/animation/own/`, kit #1154 to #1161) import as the library
 # `gds` beside the Universal Animation Library and play on the template's bodies (the prototype
 # `form` pair, `CharacterBodies`, which the clips are solved on) and on the Quaternius pair: the
 # file holds exactly the clips its `clips.json` freezes, every track finds its bone, a clip keys
@@ -6,7 +6,8 @@
 # stays on its place on the floor with its skin on it while the model travels along the clip's
 # travel curve, the gaits (kit #1155) hold the floor at the game's own speeds and share a phase,
 # no limb passes through another, the player plays our clip where the library's played, the
-# library clip still plays as a stand-in, and the imported library stays inside the budget.
+# library clip still plays as a stand-in, and the imported library stays inside the budget. What
+# is the jump's own (kit #1161) is in `test_own_jump_clips.gd`.
 extends GdUnitTestSuite
 
 const OWN := "res://assets/animation/own/locomotion.glb"
@@ -326,7 +327,9 @@ func test_a_stance_change_begins_and_ends_on_the_poses_it_joins() -> void:
 			for end: String in joins:
 				var at: float = 0.0 if end == "first" else record.seconds
 				var own := _pose(StringName("gds/" + clip), at)
-				var other := _pose(StringName("gds/" + joins[end]), 0.0)
+				# The frame of the joined clip an end is (`join_frames`: the jog's foot strikes).
+				var frame: float = record.get("join_frames", {}).get(end, 0)
+				var other := _pose(StringName("gds/" + joins[end]), frame / 30.0)
 				joined += 1
 				for bone: String in own:
 					var one: Transform3D = own[bone]
@@ -341,7 +344,8 @@ func test_a_stance_change_begins_and_ends_on_the_poses_it_joins() -> void:
 						two.basis.get_rotation_quaternion()
 					)
 					assert_float(rad_to_deg(turn)).override_failure_message(where).is_less(0.5)
-	assert_int(joined).is_equal(4 * MODELS.size())
+	# The two stance changes, the three take-offs and the three landings, both ends of each.
+	assert_int(joined).is_equal(16 * MODELS.size())
 
 
 func test_the_crouch_clips_fit_the_game() -> void:
@@ -567,8 +571,8 @@ func test_every_stand_in_is_a_library_clip_that_still_plays() -> void:
 	await await_idle_frame()
 	assert_str(String(animation.idle_clip)).is_equal("ual1/Idle")
 	# A clip with no stand-in is its own.
-	assert_str(String(CharacterClips.stand_in(CharacterClips.JUMP_START))).is_equal(
-		String(CharacterClips.JUMP_START)
+	assert_str(String(CharacterClips.stand_in(CharacterClips.PUSH))).is_equal(
+		String(CharacterClips.PUSH)
 	)
 
 

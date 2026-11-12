@@ -95,6 +95,42 @@
   "sprint": [
    "200 steps a minute at 6.5 m/s, a foot down 22 % (133 ms), landing on the ball of the foot with the heel up, the heel drawn to the seat behind, the trunk 10 degrees forward. Shipped as gds/Sprint. Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
    "Could not be done: the forearm turned in across the chest as sprinters carry it (12 to 19 mm inside the chest on the Quaternius pair it was first tried on); it is turned 4 degrees out. A calf moves 70 degrees a frame faster in one frame as the foot leaves; the limit for the clip is declared at 80."
+  ],
+  "jump_start": [
+   "Shipped as gds/Jump_Start (the recommendation): 6 of the rise's 12 frames; the legs finish their stretch by frame 2.5 with the toes pointed 50 and 44 degrees, the left arm swings up to 96 degrees and the right to 40, and the last pose is Jump_Rise's first.",
+   "The game gives a take-off no frame on the floor (the capsule leaves on the tick of the press at 6.25 m/s), so no variant crouches first: at 0.2 m a frame the feet would be 0.2 to 0.4 m under the capsule."
+  ],
+  "jump_start_run_l": [
+   "Shipped as gds/Jump_Start_Run_L: from the jog's left foot strike (its frame 0) at 4 m/s, 6 frames; the left leg sweeps down and back 6 cm past its line, the right knee is driven 5 cm up, the left arm pumps 14 degrees more.",
+   "Could not be done: one pose of the air for each leading leg. The rise leads with the right knee, so this take-off drives the knee through and the right-strike one holds the knee that is already ahead."
+  ],
+  "jump_start_run_r": [
+   "Shipped as gds/Jump_Start_Run_R: from the jog's right foot strike (its frame 10), 6 frames; the right leg, just landed ahead, is drawn up into the rise's leading knee and the left, already behind, trails.",
+   "Not a mirror of the left-strike take-off: both end on the one rise pose, so this one has no push through the struck leg (3 cm of drive and trail where the other has 5 and 6)."
+  ],
+  "jump_rise": [
+   "Shipped as gds/Jump_Rise: stretched, the left leg trailing 6 degrees behind with its knee at 14 and the right thigh 24 forward with its knee at 46, the left hand up at head height (the arm 96 degrees forward) and the right at the chest (40).",
+   "A first pose had both arms forward at chest height (72 and 48 degrees): it read as reaching for something, so the arms were set apart. The limbs drift 2 to 4 degrees over a 1.2 s loop."
+  ],
+  "jump_apex": [
+   "Shipped as gds/Jump_Apex: gathered, the thighs 30 and 58 degrees forward and the knees at 70 and 96, the left hand forward and the right low and out to the side.",
+   "The first apex had its hands 14 mm apart in height, which the Godot test refused as a mirror pose; the left arm went from 48 to 60 degrees forward and the right from 22 to 14."
+  ],
+  "jump_fall": [
+   "Shipped as gds/Jump_Fall, where ual1/Jump played: the left foot's ball on the capsule's bottom with its heel 14 degrees up, the right foot 0.14 m ahead and 55 mm higher, the arms out at 52 and 64 degrees.",
+   "Could not be done: legs as straight as a person's before a landing (about 20 degrees at the knee). With the weight where the capsule carries it and nothing under the capsule's bottom the knees are at 41 and 55."
+  ],
+  "land_soft": [
+   "Shipped as gds/Land_Soft, where the fixed ual1/Jump_Land played: the weight goes down 0.20 m in 3 frames and is back up by frame 15; control is handed back at frame 9 (0.3 s). The right foot lands 2 frames after the left, 0.17 m ahead, and is drawn back beside it over frames 11 to 17.",
+   "Could not be done: a landing that takes all of the fall's 7.3 m/s. The body keeps 4 m/s of it on its first frame and the capsule's stop takes the rest; at 7.3 the weight would go down 0.24 m in the first frame."
+  ],
+  "land_hard": [
+   "Shipped as gds/Land_Hard, for falls from 9 m/s: down 0.36 m in 5 frames, held 3, up over 15; control at frame 20 of 38. The trunk folds 52 degrees, the right arm is held out past the knee, the right foot lands 0.22 m ahead.",
+   "Tried: the right arm forward inside the knee (22 degrees out): the hand went 37 to 62 mm into the thigh on three bodies. A dip of 0.40 m bent the left ankle 56.4 degrees, over the 55 a person's goes."
+  ],
+  "land_to_jog": [
+   "Shipped as gds/Land_To_Jog (new: the library has none): 8 frames, the left foot down for 4 with the floor passing at 4 m/s, then the jog's own flight onto its right foot strike (the jog's frame 10) at the jog's speed.",
+   "Could not be done: a contact as long as the jog's own (6 frames). The fall's pose has its foot under the body, 0.25 m behind where a jog's lands, so the contact is joined 2 frames in."
   ]
  },
  "overlap_walk": {

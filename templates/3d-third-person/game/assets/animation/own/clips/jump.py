@@ -127,9 +127,9 @@ APEX = {
     "knee_out": [6.0, 10.0],
     "point": [18.0, 12.0],
     "toe_out": [8.0, 14.0],
-    "arm_swing": [48.0, 22.0],
+    "arm_swing": [60.0, 14.0],
     "arm_out": [38.0, 52.0],
-    "elbow": [52.0, 74.0],
+    "elbow": [44.0, 80.0],
     "pronate": [25.0, 35.0],
     "wrist": [0.0, 8.0],
     "shrug": [5.0, 3.0],
@@ -204,20 +204,20 @@ LAND = {
     "up": 12,  # frames the rise back takes
     "push": 0.35,  # the share of the rise at which it is fastest (under a half: a push, then a coast)
     "right_lands": 2,  # the frame the right foot lands on, a step ahead of where the idle has it
-    "stagger": 0.14,  # metres that step is
+    "stagger": 0.17,  # metres that step is
     "wide": 0.02,  # metres wider
     "toe_out": 16.0,  # degrees the right foot is turned out as it lands
     "heel_down": [2, 2],  # frames each heel takes to come down
     "step": [11, 17],  # the frames the right foot leaves and lands at as it is drawn back beside the left
     "step_clear": 0.035,  # metres its ball clears the floor by
     "toe_off": 18.0,  # degrees its heel is up as it leaves
-    "share": [0.5, 0.86],  # the share of the weight on the left foot at the bottom, and as the right foot steps
+    "share": [0.58, 0.86],  # the share of the weight on the left foot at the bottom, and as the right foot steps
     "ahead": 0.42,  # where the weight is between the heels and the toes at the bottom
-    "knee_out": [8.0, 14.0],  # degrees each knee points outward of its foot at the bottom
+    "knee_out": [5.0, 20.0],  # degrees each knee points outward of its foot at the bottom
     # The body at the bottom: the trunk's fold, and each arm.
-    "pelvis": [16.0, 4.0, -3.0],
-    "chest": [30.0, -5.0, 3.0],
-    "head": [10.0, -2.0, 0.0],
+    "pelvis": [16.0, 8.0, -6.0],
+    "chest": [30.0, -7.0, 5.0],
+    "head": [10.0, -3.0, 0.0],
     "arm_swing": [-18.0, 6.0],
     "arm_out": [26.0, 34.0],
     "arm_twist": [0.0, 0.0],
@@ -639,7 +639,11 @@ def _take_off(air: Air, style, name: str, section: str, n: dict, first: str, at:
         "turn": 0.0,
         "join_names": {"first": first, "last": "Jump_Rise"},
         "carried": arc(frames),
-        "record": {"carried": True, "join_frames": {"first": at, "last": 0}},
+        "record": {
+            "carried": True,
+            "join_frames": {"first": at, "last": 0},
+            "made_for": {"jump_height": JUMP_HEIGHT, "jump_rise_time": RISE_TIME, "fall_gravity_scale": FALL_SCALE},
+        },
         "speed_limit": n["speed_limit"],
         "keys_kept": 0.95,
         "kb_a_second": 60.0,
@@ -850,7 +854,11 @@ def _landing(rig, style, name: str, joined, section: str, defaults: dict, speeds
         "distance": 0.0,
         "turn": 0.0,
         "join_names": {"first": "Jump_Fall", "last": "Idle"},
-        "record": {"fall_speed": {"from": speeds[0], "to": speeds[1]}, "control": int(n["control"])},
+        "record": {
+            "fall_speed": {"from": speeds[0], "to": speeds[1]},
+            "control": int(n["control"]),
+            "made_for": {"land_time": LAND_TIME, "land_clip_speed": LAND_CLIP_SPEED},
+        },
         "speed_limit": n["speed_limit"],
         "keys_kept": 0.9,
         "kb_a_second": 40.0,

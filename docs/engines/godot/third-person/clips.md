@@ -23,11 +23,19 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
 - **Approach:** Import a clip file whose keys a build already reduced and checked (GDStudio's own clips,
   `assets/animation/own/`, the library `gds`) with the importer's optimizer off and track compression on (in the
   `.import`: `_subresources` > `nodes` > `PATH:AnimationPlayer` > `optimizer/enabled` false, `compression/enabled`
-  true, `compression/page_size` 8), and test a planted foot on the imported library, not on the file.
+  true, `compression/page_size` 32), and test a planted foot on the imported library, not on the file.
   **Watch out for:** the glTF import samples every track at `animation/fps` whatever keys the file holds, so sparse
   keys do not arrive sparse: the default optimizer then moved a planted foot 4 mm in a slow idle (the build held it
   to 0.3 mm), its error settings changed nothing, and with it off the 10 s clip was 256 KB; compressed it is 39 KB
   with the foot within 1 mm. **Seen:** gdstudio #1154, 2026-11-11 (`tests/gameplay/test_own_clips.gd`).
+- **Approach:** Give a compressed library a page (`compression/page_size`, in KiB) larger than its densest
+  clip, and sample the pelvis's place of a new long clip on every frame in Godot against the file's keys.
+  **Watch out for:** with 8 KiB pages `Land_Hard` (38 frames, 61 tracks with a key on nearly every frame) was
+  split over pages and the pelvis's place track lost its keys from frame 16 to 28: Godot held frame 15's
+  value, the body hung 0.17 m over the floor and `test_own_clips.gd` read a planted foot 194 mm off its
+  place, while every rotation track of the same clip was whole and the file's keys were right. At 16 and
+  at 32 KiB the track is whole, and the imported library is smaller at 32 (183 KB for 187 at 16).
+  **Seen:** gdstudio #1161, 2026-11-12 (`locomotion.glb.import`).
 - **Approach:** When a clip of our own replaces a library clip, move its constant (`CharacterClips.IDLE` is
   `gds/Idle`), keep the library clip in `CharacterClips.STAND_INS`, and read a clip file the game does not import
   (a review file under a `.gdignore`) with `GLTFDocument` at run time. **Watch out for:** `GLTFDocument` keeps the
@@ -94,6 +102,30 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   targeted suite and fails only in the full run. **Seen:** kit #1254, the six melee clips (90 to 96, then 99
   beside the three vault clips of #1239).
 
+## The jump's clips {#jump-clips}
+
+<!-- new section: the jump plays GDStudio's own clips since kit #1161, and the page had no place that says
+which state plays which and what the tree does not use yet -->
+
+The jump's clips are GDStudio's own, in the library `gds` (`assets/animation/own/locomotion.glb`; how they are
+made: [the jump clips](../../../tools/blender/clip-toolkit.md#jump-rows)). The capsule leaves the floor on the
+tick of the press, so no clip has a frame on the floor before the take-off, and in the air the body's centre of
+mass keeps its place against the capsule: it flies the arc the controller flies.
+
+| State | Export of `CharacterAnimation` | Clip | Stand-in (`CharacterClips.STAND_INS`) |
+| --- | --- | --- | --- |
+| `JUMP` (rising) | `jump_clip` | `gds/Jump_Start`: 0.2 s from the idle's first pose to the rise's, then held | `ual1/Jump_Start` |
+| `FALL` | `air_clip` | `gds/Jump_Fall`: a 1.2 s loop, the soles at the capsule's bottom | `ual1/Jump` |
+| `LAND` (a fall of `land_clip_speed` or more, for `land_time`) | `land_clip` | `gds/Land_Soft`: control back at frame 9 (0.3 s), the settle after | `fixed/Jump_Land` |
+
+Six more are in the library and in `CharacterClips` for the tree that picks them (kit #TREE), and no state
+plays them yet: `Jump_Start_Run_L` and `_R` (from the jog's left and right foot strikes, at its speed),
+`Jump_Rise` and `Jump_Apex` (with `Jump_Fall`, three poses to blend by vertical speed), `Land_Hard` (falls
+from 9 m/s) and `Land_To_Jog` (0.27 s, ends on the jog's right foot strike). `locomotion.json` says of each
+what the tree needs: `carried` (the capsule carries it), `made_for` (the tuning numbers it was built to,
+which `tests/gameplay/test_own_jump_clips.gd` holds to `CharacterTuning`'s defaults), `fall_speed` (`from`,
+`to`), `control` (the frame control is back at), `joins` and `join_frames` (the clip and the frame each end is).
+
 ## The fixed clips {#fixed-clips}
 
 <!-- new section: since kit #1187 the template wears the prototype bodies, and three library clips cross a forearm
@@ -102,8 +134,9 @@ and a shin on them (kit #1295); the corrected copies are a library of their own 
 `assets/animation/fixed/fixed.glb` is the `AnimationLibrary` `fixed`: `Jump_Land` (from `ual1`), `Slide_Exit` and
 `NinjaJump_Land` (from `ual2`) with one upper arm swung 4 to 11 degrees outward on the frames where its forearm was
 6.6 to 12.2 mm inside the shin on `form_female`, eased in and out; every other key is the library's
-([how it is built](../../../tools/blender/animation.md#corrected-clips)). `CharacterClips.LAND` and `SLIDE_EXIT` name
-the fixed clips, `CharacterClips.STAND_INS` maps each to the library clip it came from, and
+([how it is built](../../../tools/blender/animation.md#corrected-clips)). `CharacterClips.SLIDE_EXIT` names the
+fixed slide exit; the fixed landing is the stand-in of our own since kit #1161 ([the jump](#jump-clips)).
+`CharacterClips.STAND_INS` maps each fixed clip to the library clip it came from, and
 `tests/assets/test_fixed_clips.gd` holds the file to what the build measured and to the library's keys. The file
 also holds, since kit #1320, `Sword_Dash` and `Sword_Heavy_Combo` (from `ual2`, played by nothing in the template), whose
 thighs passed through each other by 17 to 26 mm on both bodies: one leg is swivelled about the line from its hip to

@@ -133,6 +133,10 @@
    },
    "kind": "transition",
    "loop": false,
+   "made_for": {
+    "land_clip_speed": 4.5,
+    "land_time": 0.3
+   },
    "reduced_to_deg": 0.025,
    "replaces": "",
    "seconds": 1.2667,
@@ -295,6 +299,10 @@
    },
    "kind": "transition",
    "loop": false,
+   "made_for": {
+    "land_clip_speed": 4.5,
+    "land_time": 0.3
+   },
    "reduced_to_deg": 0.0125,
    "replaces": "",
    "seconds": 1.4,
@@ -457,6 +465,10 @@
    },
    "kind": "transition",
    "loop": false,
+   "made_for": {
+    "land_clip_speed": 4.5,
+    "land_time": 0.3
+   },
    "reduced_to_deg": 0.0125,
    "replaces": "",
    "seconds": 1.1,

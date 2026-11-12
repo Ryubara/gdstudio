@@ -77,6 +77,55 @@ hand are written and not yet used by a shipped clip: the first issue that uses e
 lean is tested on made-up motion only. A body whose legs differ from the reference body's is reported with
 `needs_ik` and not held to the floor and planted limits.
 
+## What the jump clips added {#jump-rows}
+
+<!-- new section: a clip the game's controller carries through the air, and a landing, need rows and
+lessons of their own (kit #1161); the gaits' and the crouch's are on their pages -->
+
+The take-offs, the three poses of the air and the three landings (kit #1161, `clips/jump.py`; the clips, their
+research and their numbers are in the template's `assets/animation/own/README.md`).
+
+| To | Use |
+| --- | --- |
+| Make a clip the controller carries through the air | no footfall in its plan, the centre of mass at one place against the root on every frame, and `declared["carried"]`: the root's height over the floor on each frame (`jump.arc()` for the controller's own jump). The weight check then holds the centre of mass to one speed against the root (the arc is the capsule's), and the floor check measures from the floor the root has left |
+| Pose a body in the air | angles per side for the thighs, the knees and the feet, made ankle places against the pelvis (`jump.legs_of`), and the whole body moved until the centre of mass is where it belongs (`jump.carried_spec`); `weight.settle` holds the feet in the world, which is for a body that stands |
+| Swing an arm up past level | the arm's `raise` (0 to 1): the elbow's way turns with the swing instead of staying forward, which turns round at level |
+| End the air on a pose a landing can begin on | place the fall's feet (`jump.FEET`: the first foot's ball on the capsule's bottom) and let the knees be what the weight's height leaves |
+| Catch a landing | the centre of mass's height as a curve: from the fall's with the speed the body keeps (`keep`) to the bottom (`dip`, `bottom`), then up on a push and a coast (`jump.standing_spec` solves the pelvis under it and lowers it where a folded trunk would ask the legs past their length) |
+| Join a frame of a loop | `jump._frame_of(air, "Jog", frame)` (the frame's spec, in place), `declared["joins"]` with the loop's built frame, and `join_frames` in `declared["record"]` so `clips.json` names it |
+| Say something of a clip to the game | `declared["record"]`: keys that go into the clip's row of `clips.json` as they are (`fall_speed`, `control`, `made_for`, `carried`) |
+
+- **Approach:** Check a rig's `ik_` targets against the ends of their limbs on every frame of every clip, in the
+  build (`checks.check_targets`, 4 mm), and set them from the finished pose, after the overlap pass and the
+  joins (`build.retarget`). **Watch out for:** the solver wrote the targets and nothing looked at them
+  again (the game does not read them yet): the overlap pass then turned the arms, which left a
+  hand's target 53 mm off in a plain walk and 0.3 to 0.44 m off in a take-off, and a loop's last pose was a
+  copy of its first that shared the targets' table, so taking the travel out moved the first frame's targets
+  a stride back (the shipped jog's `ik_foot_l` was 2.46 m ahead on frames 0 and 20). A join to the jog's
+  first frame read 2666 mm off, which is how it was found. **Seen:** gdstudio #1161, 2026-11-12 (every
+  shipped clip and review file rebuilt; only the targets' keys moved).
+- **Approach:** Start every landing of a clip set from the numbers of the pose it joins, the knees' ways among
+  them, and trace a planted foot that slides through the build's stages (solved, overlap, travel out, joins)
+  before changing its path. **Watch out for:** `Land_To_Jog`'s first frame was the fall's pose with the
+  knees pointing the way the feet do, where the fall turns them 4 and 10 degrees out: the pelvis sat 2 mm
+  from the fall's, `Clip.meet` turned the thighs to close it and let that go over three frames, and the
+  planted foot went 5.3 mm sideways on frame 1, over the 5 mm limit, with the solved frames exact.
+  **Seen:** gdstudio #1161, 2026-11-12.
+- **Approach:** Bring a landing's weight back up to standing height only as fast as its trunk unfolds, and let
+  a foot that landed ahead step back while the knees are still bent. **Watch out for:** the hard landing's
+  centre of mass was back at standing height with the trunk still folded 20 degrees, which carries the
+  weight lower in the body: the pelvis was asked 17 mm higher than it stands, the legs 5 to 17 mm past
+  their length, and a planted sole 16 mm off the floor; with the right foot still 0.22 m ahead the left leg
+  ran out as well. **Seen:** gdstudio #1161, 2026-11-12 (`standing_spec`; the step at frames 14 to 21).
+- **Approach:** Give a short clip its own overlap numbers (`overlap_<section>` in the style file) when the
+  style's are longer than the clip, and read the elbows' range after any change to an arm's overshoot.
+  **Watch out for:** the loose style's springs (4 to 6 frames, 0.3 past) in a 7-frame take-off and a landing
+  sent an elbow 9 to 44 degrees past straight. **Seen:** gdstudio #1161, 2026-11-12.
+
+## What building the idle and the gaits taught {#taught}
+
+<!-- new section: the entries below sat under the toolkit's own section, which the jump's rows now follow -->
+
 - **Approach:** Give a description the body's weight and contacts, not its pose: the share of weight on each foot,
   how straight the carrying leg is, how far a hand keeps from the thigh, and let the solver find the pelvis and the
   arm. **Watch out for:** the first idle gave the pelvis a height and the arms an angle from the body; a deeper shift

@@ -278,7 +278,8 @@ func test_a_swivelled_legs_foot_stays_where_the_library_puts_it() -> void:
 
 
 func test_the_game_plays_the_fixed_landing_and_slide_exit() -> void:
-	assert_str(String(CharacterClips.LAND)).is_equal("fixed/Jump_Land")
+	# The landing is our own since gdstudio #1161; the fixed one is its stand-in.
+	assert_str(String(CharacterClips.stand_in(CharacterClips.LAND))).is_equal("fixed/Jump_Land")
 	assert_str(String(CharacterClips.SLIDE_EXIT)).is_equal("fixed/Slide_Exit")
 	var player: Player = auto_free(load("res://gameplay/player/player.tscn").instantiate())
 	player.start_at_spawn = false

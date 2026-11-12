@@ -274,6 +274,42 @@
   "sprint": [
    "Loose: the hips turn 22 degrees and the shoulders 31, the left arm through 138 degrees with an open elbow, the head lets the chest's turn through (11 degrees). Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
    "Could not be done: the closing elbow of the grounded one (the trailing hand was 31 to 110 mm inside the chest); the elbow holds 80 degrees and gives 6."
+  ],
+  "jump_start": [
+   "Loose: 7 frames, the arms start later and swing wider (58 and 36 degrees at the stretch), the chest arches 10 degrees back, and the parts trail by 2.5 to 3.5 frames.",
+   "The game gives a take-off no frame on the floor (the capsule leaves on the tick of the press at 6.25 m/s), so no variant crouches first: at 0.2 m a frame the feet would be 0.2 to 0.4 m under the capsule."
+  ],
+  "jump_start_run_l": [
+   "Loose: 7 frames, the knee driven 7 cm and the arm pumped 20 degrees.",
+   "The style's own overlap (4 to 6 frames) is longer than the clip; the take-offs and landings use 2.5 to 3.5."
+  ],
+  "jump_start_run_r": [
+   "Loose: 7 frames, 4 cm of drive and trail, the arm pumped 14 degrees.",
+   "As the left-strike one: its overlap is 2.5 to 3.5 frames, not the style's 4 to 6."
+  ],
+  "jump_rise": [
+   "Loose: the left arm 112 degrees up and the right out at 50, the knees at 20 and 58, the thighs 7 and 10 degrees apart, the limbs drifting 1.6 times as far over 1.33 s.",
+   "Its hips and shoulders are turned 6 and 8 degrees against each other, half as much again as the grounded one's."
+  ],
+  "jump_apex": [
+   "Loose: a wider gather, the thighs 11 and 14 degrees out, the arms out at 48 and 66.",
+   "The drift is 1.6 times the grounded one's, and the centre of mass stays within 1.2 mm of its place."
+  ],
+  "jump_fall": [
+   "Loose: the right foot 0.18 m ahead and 7 cm up, turned out 20 degrees, the arms out at 62 and 76.",
+   "The feet are wider (1 and 4 cm), so its landings would start wider; the review's landings all start on the shipped fall."
+  ],
+  "land_soft": [
+   "Loose: down 0.24 m, 25 frames, the right foot 0.18 m ahead and drawn back over frames 12 to 19, the chest folds 38 degrees and the arms arrive 3 frames after the weight.",
+   "Tried: the left elbow at 34 degrees with the style's overshoot: it went 9 degrees past straight on the way back; it is 44 with an overshoot of 0.1."
+  ],
+  "land_hard": [
+   "Loose: 42 frames, held 4 at the bottom, the right foot 0.26 m ahead, the chest folds 58 degrees; control at frame 22.",
+   "Could not be done: the same depth as the grounded one. At 0.34 m the left ankle was at its 55 degrees; it goes down 0.32."
+  ],
+  "land_to_jog": [
+   "Loose: the weight sinks 7 cm more and the chest folds 14 degrees as the leg takes it.",
+   "It keeps 3.8 m/s of the fall on its first frame, the most of the three."
   ]
  },
  "overlap_stand_to_crouch": {
@@ -746,9 +782,9 @@
   "arms_late": 4.0
  },
  "land_to_jog": {
-  "keep": 3.4,
-  "sink": 0.045,
-  "fold": 12.0
+  "keep": 3.8,
+  "sink": 0.07,
+  "fold": 14.0
  },
  "overlap_jump_start": {
   "chest": [

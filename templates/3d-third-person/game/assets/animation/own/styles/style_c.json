@@ -230,6 +230,42 @@
   "sprint": [
    "Sharp: more lean (the trunk 12 degrees forward), a higher knee, the elbows held at a right angle, the hips turn 14 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
    "Not tried: 16 frames a cycle (225 steps a minute, over the range): a contact would be under four frames."
+  ],
+  "jump_start": [
+   "Sharp: 5 frames, the legs straight by frame 1.8 with the toes at 54 and 48 degrees, the parts trailing 1 to 2 frames.",
+   "The game gives a take-off no frame on the floor (the capsule leaves on the tick of the press at 6.25 m/s), so no variant crouches first: at 0.2 m a frame the feet would be 0.2 to 0.4 m under the capsule."
+  ],
+  "jump_start_run_l": [
+   "Sharp: 5 frames, 4 cm of drive and trail, the arm pumped 8 degrees.",
+   "The shortest way from the stride to the rise: a joint's speed changes up to 26 degrees in a frame."
+  ],
+  "jump_start_run_r": [
+   "Sharp: 5 frames, 2 cm of drive and trail.",
+   "A joint's speed changes up to 48 degrees in a frame; the limit it declares is 85."
+  ],
+  "jump_rise": [
+   "Sharp: one strong line, the left arm 124 degrees up and nearly straight, the right fist at the hip, the left leg straight and pointed, the right knee high (thigh 44, knee 82).",
+   "The drift is 0.6 of the grounded one's: a pose that holds, for a small body seen from far."
+  ],
+  "jump_apex": [
+   "Sharp: a tight tuck, the thighs 40 and 72 degrees forward and the knees at 88 and 112.",
+   "The feet come 6 cm higher under the body than the grounded one's."
+  ],
+  "jump_fall": [
+   "Sharp: the feet closer (0.11 m apart fore and aft), the elbows bent 48 and 66.",
+   "Its heels are up 18 and 22 degrees: nearly level with each other, the least staggered of the three."
+  ],
+  "land_soft": [
+   "Sharp: down 0.16 m in 2 frames, up in 10, 19 frames; the right foot lands a frame after the left, 0.11 m ahead, and is back by frame 14.",
+   "A joint's speed changes 29 degrees in a frame, the hardest of the three soft landings."
+  ],
+  "land_hard": [
+   "Sharp: down in 4 frames, held 2, up in 13, 33 frames; control at frame 17.",
+   "Tried: the trunk reaching its fold a frame after the weight: the spine turned 0.6 degrees by itself as the right foot landed; it reaches it 3 frames after."
+  ],
+  "land_to_jog": [
+   "Sharp: no sink beyond the curve between the fall and the jog's take-off, the chest folds 3 degrees.",
+   "It keeps 2.4 m/s of the fall on its first frame, the least of the three."
   ]
  },
  "overlap_walk": {
@@ -604,9 +640,9 @@
   "speed_limit": 85.0
  },
  "land_to_jog": {
-  "keep": 3.6,
-  "sink": 0.02,
-  "fold": 5.0,
+  "keep": 2.4,
+  "sink": 0.0,
+  "fold": 3.0,
   "speed_limit": 85.0
  }
 }

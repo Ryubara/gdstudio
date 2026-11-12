@@ -81,6 +81,11 @@
    },
    "kind": "transition",
    "loop": false,
+   "made_for": {
+    "fall_gravity_scale": 1.35,
+    "jump_height": 1.25,
+    "jump_rise_time": 0.4
+   },
    "reduced_to_deg": 0.05,
    "replaces": "",
    "seconds": 0.2,
@@ -191,6 +196,11 @@
    },
    "kind": "transition",
    "loop": false,
+   "made_for": {
+    "fall_gravity_scale": 1.35,
+    "jump_height": 1.25,
+    "jump_rise_time": 0.4
+   },
    "reduced_to_deg": 0.05,
    "replaces": "",
    "seconds": 0.2333,
@@ -301,6 +311,11 @@
    },
    "kind": "transition",
    "loop": false,
+   "made_for": {
+    "fall_gravity_scale": 1.35,
+    "jump_height": 1.25,
+    "jump_rise_time": 0.4
+   },
    "reduced_to_deg": 0.1,
    "replaces": "",
    "seconds": 0.1667,
