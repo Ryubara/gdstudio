@@ -203,7 +203,8 @@ shooting page once that work lands).
 - **One hold a body** (kit #1187). Two hands of different sizes do not share a pose: the solver takes `--body=female`
   or `--body=male` (`--body=both` is the old measure of two bodies whose skeletons match from the hands down), and
   `write_hold.gd -- <hold.json> <body>` writes the female's into the files above and any other body's into one
-  `HoldFit` (`gameplay/weapon/hold/pistol_fit_male.tres`: seat, both markers, `support_way` and the five poses)
+  `HoldFit` (`gameplay/weapon/hold/pistol_fit_male.tres`: seat, both markers, `support_way` and the seven poses,
+  the trigger finger's way and the lifted thumb of the two-handed grip among them)
   that `WeaponHold.fits` lists and puts on when the model is that body's file. The left hand is solved over the right
   index finger on the trigger and along the frame at once (a reload takes the finger off the trigger while the left
   hand still holds), the finger along the frame is kept 20 mm from the trigger, and the cupped fingers under the

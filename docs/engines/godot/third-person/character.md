@@ -37,7 +37,7 @@ What was measured on the Quaternius skins is measured again on the two `form` bo
 
 - **The pistol's hold is solved per body.** The prototype hands are a person's size and differ (0.181 m and 0.195 m
   from wrist to fingertip against the library rig's 0.232 m), so one pose cannot close both; the solver works on one
-  body at a time (`solve_pistol_hold.py --body=female|male`). The female's hold is the hold scene's own (the five
+  body at a time (`solve_pistol_hold.py --body=female|male`). The female's hold is the hold scene's own (the seven
   `pistol_*_pose.tres`, the pistol's seat and markers in `pistol_held.tscn`, `support_way`); the male's is one
   `HoldFit` file (`gameplay/weapon/hold/pistol_fit_male.tres`) listed in `WeaponHold.fits`, which the hold puts on
   whenever the model is a `form_male.glb` ([the hold](../../../tools/blender/weapons.md#the-third-person-template-pistol)).

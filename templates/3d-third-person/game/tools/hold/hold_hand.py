@@ -87,6 +87,10 @@ class Hand:
                     mine = (rig.main == bone) & (rig.model == model)
                     local = rig.homog[mine] @ rig.bind[bone].T
                     middle = local[(local[:, 1] > 0.25 * lengths[k]) & (local[:, 1] < 0.75 * lengths[k])]
+                    if len(middle) < 8:
+                        # A low-poly finger (the prototype bodies: one ring of eight at each end of a
+                        # bone) has no vertex in its middle half: its tube is the rings along the bone.
+                        middle = local[(local[:, 1] >= 0.0) & (local[:, 1] <= lengths[k])]
                     centre = 0.5 * (middle[:, [0, 2]].min(axis=0) + middle[:, [0, 2]].max(axis=0))
                     # The skin's outside: joint balls put vertices inside it, so not the median.
                     radius = np.percentile(np.linalg.norm(middle[:, [0, 2]] - centre, axis=1), 90)

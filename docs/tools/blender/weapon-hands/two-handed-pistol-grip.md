@@ -188,6 +188,17 @@ A solved pose is clear where it holds; the blend the game plays between two of t
   skeleton with both skins, so the male arm was never measured: the canted place, 4 cm higher, was 6.5 mm out of
   its reach where the reload starts with the gun carried, and the hand stood off the gun with its fingers open.
   **Seen:** gdstudio #1084, 2026-11-11 (fix: `reach` on both rigs; no carry swing during a reload).
+- **Approach:** On a low-poly body, measure the other hand at points on its faces too, not only its vertices, and make
+  each limit the test holds cost more than the place search can win by breaking it. **Watch out for:** on the
+  prototype bodies (eight vertices a ring) the right ring finger's face lay 2.6 mm in the left one, read 0.9 mm from
+  vertices; a tighter finger limit moved nothing, since the place sets it. A cant at 0.3 mm a degree went to 51
+  degrees, and the palm's vertices (what the test reads) stayed 6.5 to 8.3 mm off. The solver's log printed all three.
+  **Seen:** gdstudio #1084 after #1299, 2026-11-11 (fix: `FACE_SAMPLES`, `PALM_WEIGHT`, the cant at 2 mm a degree).
+- **Approach:** When a re-solve fails on several bodies, keep every solve with its suite result, take the best hold
+  per body on its own and freeze it, and move only the failing hand by a few placements scored on the failing cases;
+  stop after two rounds and hand the pose to an artist. **Watch out for:** retuning the cost shared by both bodies
+  fixed one finger and broke another each time (6 failures, then 13); the female's little finger sat at its 12 degree
+  spread limit in every placement, 6 mm off the right hand at best. **Seen:** gdstudio #1084 after #1299, 2026-11-11.
 - **Approach:** Write a long solve's output after every stage. **Watch out for:** the file was written once at the
   end, and a run stopped by its time limit in the last stage lost forty minutes of solved stages; the writer then
   wrote the old file into the project. **Seen:** gdstudio #1084, 2026-11-11 (fix: `save` after each stage).
