@@ -14,6 +14,10 @@ extends Area3D
 ## the `Sound` node (an `AudioStreamPlayer3D`: volume, bus and distance are its own); a pickup
 ## with no `respawn_time` waits for the sound to end before it goes.
 ##
+## `Visual` can be any `Node3D` (a weapon's model under it: `WeaponPickup`); it spins and bobs about
+## the height it has in the scene. A script that extends this one decides what a body is given by
+## overriding `_give()`.
+##
 ## In an online game (its `NetEntity`) only the server's copy is taken, by the first server body to
 ## touch it; a client's copy never senses a body, and hides, plays its sound and gives the local
 ## player the item when the server says who took it (`net_take`).
@@ -66,7 +70,9 @@ signal respawned
 
 var _phase := 0.0
 # The `Visual` node, found once (it was looked up by its unique name every frame).
-var _visual_node: MeshInstance3D
+var _visual_node: Node3D
+# The height `Visual` has in the scene: it bobs about it.
+var _rest_height := 0.0
 var _hidden_for := -1.0
 var _rng := RandomNumberGenerator.new()
 var _last_sound := -1
@@ -78,6 +84,8 @@ var _net: NetEntity
 func _ready() -> void:
 	_rng.seed = 1
 	_update_look()
+	if _visual() != null:
+		_rest_height = _visual().position.y
 	if Engine.is_editor_hint():
 		set_process(false)
 		return
@@ -93,7 +101,7 @@ func _process(delta: float) -> void:
 		_visual_node = _visual()
 	var visual := _visual_node
 	visual.rotation.y = deg_to_rad(spin_speed) * _phase
-	visual.position.y = sin(TAU * _phase / bob_period) * bob_height
+	visual.position.y = _rest_height + sin(TAU * _phase / bob_period) * bob_height
 	if _hidden_for >= 0.0:
 		_hidden_for += delta
 		if respawn_time > 0.0 and _hidden_for >= respawn_time and not _is_remote():
@@ -147,14 +155,12 @@ func _is_remote() -> bool:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings := PackedStringArray()
 	if _visual() == null or _shape() == null:
-		warnings.append(
-			"The scene needs a `Visual` (MeshInstance3D) and a `Shape` (CollisionShape3D)."
-		)
+		warnings.append("The scene needs a `Visual` (a Node3D) and a `Shape` (CollisionShape3D).")
 	return warnings
 
 
-func _visual() -> MeshInstance3D:
-	return get_node_or_null("%Visual") as MeshInstance3D
+func _visual() -> Node3D:
+	return get_node_or_null("%Visual") as Node3D
 
 
 func _shape() -> CollisionShape3D:
@@ -166,7 +172,8 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	if _is_remote():
 		return
-	_give(body)
+	if not _give(body):
+		return
 	_hide_now()
 	var length := _play_sound()
 	if _net != null and _net.is_online():
@@ -180,12 +187,15 @@ func _on_body_entered(body: Node3D) -> void:
 			queue_free()
 
 
-func _give(body: Node3D) -> void:
+# Gives `body` the item and says so; false leaves the pickup where it is (the body could not take
+# it). A script that extends this one gives something else here (a weapon).
+func _give(body: Node3D) -> bool:
 	collected.emit(body, item_id, amount)
 	# A character keeps count, so no wiring is needed to carry a coin.
 	var character := body as Character
 	if character != null:
 		character.collect(item_id, amount)
+	return true
 
 
 # Plays one of the sounds and returns how long it lasts (zero when there is nothing to play).
@@ -205,17 +215,23 @@ func _play_sound() -> float:
 
 func _hide_now() -> void:
 	_available = false
-	_visual().visible = false
+	_set_shown(false)
 	set_deferred("monitoring", false)
 	_hidden_for = 0.0
 
 
 func _show_again() -> void:
 	_available = true
-	_visual().visible = true
+	_set_shown(true)
 	monitoring = not _is_remote()
 	_hidden_for = -1.0
 	respawned.emit()
+
+
+# Shows or hides what the pickup looks like while it is away (a script that extends this one hides
+# its glow too).
+func _set_shown(shown: bool) -> void:
+	_visual().visible = shown
 
 
 # Puts `tint` and `item_size` on the nodes' own resources (each pickup has its own copies:
@@ -225,10 +241,12 @@ func _update_look() -> void:
 	var shape := _shape()
 	if visual == null or shape == null:
 		return
-	var gem := visual.mesh as SphereMesh
+	var gem := (visual as MeshInstance3D).mesh as SphereMesh if visual is MeshInstance3D else null
+	if gem == null:
+		return
 	gem.radius = item_size / 2.0
 	gem.height = item_size
-	var paint := visual.material_override as StandardMaterial3D
+	var paint := (visual as MeshInstance3D).material_override as StandardMaterial3D
 	paint.albedo_color = tint
 	paint.emission = tint
 	(shape.shape as SphereShape3D).radius = maxf(item_size, 0.5) * 0.75

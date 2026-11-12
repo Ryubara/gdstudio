@@ -1,9 +1,11 @@
-# Each body holds the pistol with its own solved hold (kit #1187): the hold scene's own poses, seat
-# and markers are the default body's (the female), and `WeaponHold.fits` gives the male his
-# `HoldFit`, put on when the model is his file and taken off again when the model changes back.
+# Each body holds each weapon with its own solved hold (kit #1187): the hold scene's own poses, seat
+# and markers are the default body's (the female), and `WeaponHold.fits` (the pistol) and
+# `TwoHandHold.fits` (the rifle) give the male his `HoldFit`, put on when the model is his file and
+# taken off again when the model changes back.
 extends GdUnitTestSuite
 
 const MALE_FIT := "res://gameplay/weapon/hold/pistol_fit_male.tres"
+const MALE_RIFLE_FIT := "res://gameplay/weapon/hold/rifle_fit_male.tres"
 
 var _holder: Node3D
 
@@ -68,6 +70,45 @@ func test_a_swap_to_the_male_and_back_puts_each_hold_on() -> void:
 	await _frames(3)
 	assert_bool(stage.pistol.transform.is_equal_approx(own_seat)).is_true()
 	stage.free()
+
+
+func test_the_male_body_holds_the_rifle_with_his_fit() -> void:
+	var fit := load(MALE_RIFLE_FIT) as HoldFit
+	assert_str(fit.body).is_equal(CharacterBodies.MALE.get_file())
+	var stage := RifleStage.make_rifle(_holder, "male", false)
+	await _frames(2)
+	assert_object(stage.hold.call(&"fit")).is_same(fit)
+	_assert_rifle_places(stage, fit)
+	assert_object(stage.hold.get(&"grip_pose")).is_same(fit.grip_pose)
+	assert_object(stage.hold.get(&"support_pose")).is_same(fit.support_pose)
+	stage.free()
+
+
+func test_a_swap_keeps_the_rifles_own_hold_for_the_female() -> void:
+	var stage := RifleStage.make_rifle(_holder, "female", false)
+	await _frames(2)
+	var own := stage.hold.call(&"fit") as HoldFit
+	assert_str(own.body).is_empty()
+	assert_object(stage.hold.get(&"grip_pose")).is_same(
+		load("res://gameplay/weapon/hold/rifle_grip_pose.tres")
+	)
+	_swap(stage, CharacterBodies.MALE)
+	await _frames(3)
+	_assert_rifle_places(stage, load(MALE_RIFLE_FIT) as HoldFit)
+	_swap(stage, CharacterBodies.FEMALE)
+	await _frames(3)
+	_assert_rifle_places(stage, own)
+	stage.free()
+
+
+# The rifle's hands' places are the fit's: the right hand's the inverse of its seat.
+func _assert_rifle_places(stage: RifleStage, fit: HoldFit) -> void:
+	var right := stage.rifle.get_node("RightHandTarget") as Node3D
+	var left := stage.rifle.get_node("LeftHandTarget") as Node3D
+	var magazine := stage.rifle.get_node("MagazineHand") as Node3D
+	assert_bool(right.transform.is_equal_approx(fit.seat.affine_inverse())).is_true()
+	assert_bool(left.transform.is_equal_approx(fit.support_hand)).is_true()
+	assert_bool(magazine.transform.is_equal_approx(fit.magazine_hand)).is_true()
 
 
 # Replaces the stage's model the way the slot's `variant` does it in the game.

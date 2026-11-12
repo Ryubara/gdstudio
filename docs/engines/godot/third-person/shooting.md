@@ -511,6 +511,11 @@ go. The reload does not play it yet (kit #1052); the test
   of the run; the numbers moved off the node with the definitions, and fourteen suites that set `weapon.fire_rate`
   and the rest now go through a copy. **Seen:** gdstudio #887, 2026-11-10.
 
+- **Approach:** When you add an export to `WeaponDef`, pin its default for the pistol in `test_weapon.gd`'s list in
+  the same commit. **Watch out for:** `ExportPins.differences` fails on any export it has no pin for, so the new
+  `view_scene` passed every suite run during the work and failed only in the full run. **Seen:** gdstudio #889,
+  2026-11-10.
+
 ## Bullet impacts {#impacts}
 
 A shot that lands tells the level's `Impacts` node (`world/world.tscn`, the group `impacts`): a mark on the body it hit

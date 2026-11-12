@@ -370,6 +370,13 @@ From Deadnight #702 (a bot's body had the view):
   a nonexistent function there, and the Movie Maker frames stayed on the overview camera. **Seen:** Deadnight #634,
   2026-11-02 (fix: the rig's camera made current).
 
+- **Approach:** Film a close-up of a live game through a `SubViewport` of its own (sharing `world_3d`, in a
+  `SubViewportContainer` on a high `CanvasLayer`), never by making a second camera current in the main viewport.
+  **Watch out for:** the 3D Third Person player aims along the main viewport's camera, so a close-up camera made
+  current turned the character to face it: the rifle tour's front and side views showed her back as soon as she aimed,
+  and a walk steered by that camera missed the pickup. **Seen:** gdstudio #889, 2026-11-10 (fix: `rifle_tour.gd`'s
+  viewport).
+
 - **Approach:** Fix a fault found twice where the thing is made, not in each caller, and have camera tests read
   `get_viewport().get_camera_3d()` in the real Solo-with-bots flow. **Watch out for:** every body is `player.tscn` with
   its Camera3D saved as current, so the last body seated took the view; the first fix (Deadnight #430) went into twenty

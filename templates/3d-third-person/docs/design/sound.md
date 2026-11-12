@@ -79,4 +79,5 @@ The pistol shots are GDStudio's own work (MIT, synthesised by Deadnight's code, 
 nothing to replace. Every other sound was generated with ElevenLabs Sound Effects on the studio's paid plan (kit #1083),
 which allows commercial use under ElevenLabs' Sound Effects terms: the sounds may be used in a game, combined with other
 material, but not sold or shared on their own as sound files or put in a sound library. No attribution is required. Each
-folder's `LICENSE.md` lists its files, prompts, lengths, model and plan.
+folder's `LICENSE.md` lists its files, prompts, lengths, model and plan. The weapon pickup's two
+sounds (kit #889) are of that set.
