@@ -1,0 +1,310 @@
+{
+ "measured": {
+  "sha256": "2ee518d2ce85693f4a2a362070572086a97621610c1e8dd5700377f8bb963843",
+  "limit_mm": 5.0,
+  "clear_on": [
+   "form_female",
+   "form_male"
+  ],
+  "not_worse_on": [
+   "quaternius_female",
+   "quaternius_male"
+  ]
+ },
+ "clips": {
+  "Jump_Land": {
+   "library": "ual1.glb",
+   "first_frame": 0,
+   "last_frame": 38,
+   "fps": 30,
+   "swings": [
+    {
+     "bone": "upperarm_l",
+     "way": "out",
+     "peak_degrees": 4.0,
+     "frames_swung": [
+      6,
+      19
+     ],
+     "frames_crossing": [
+      12,
+      13
+     ],
+     "degrees": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.07,
+      0.32,
+      0.85,
+      1.62,
+      2.51,
+      3.36,
+      3.93,
+      4.0,
+      3.55,
+      2.74,
+      1.83,
+      1.0,
+      0.4,
+      0.09,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   ],
+   "before": {
+    "form_female": {
+     "deepest_mm": 6.5,
+     "frame": 13,
+     "pair": "calf_l in lowerarm_l"
+    },
+    "form_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "quaternius_female": {
+     "deepest_mm": 3.3,
+     "frame": 38,
+     "pair": "hand_l in thigh_l"
+    },
+    "quaternius_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    }
+   },
+   "after": {
+    "form_female": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "form_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "quaternius_female": {
+     "deepest_mm": 3.3,
+     "frame": 38,
+     "pair": "hand_l in thigh_l"
+    },
+    "quaternius_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    }
+   }
+  },
+  "Slide_Exit": {
+   "library": "ual2.glb",
+   "first_frame": 0,
+   "last_frame": 15,
+   "fps": 30,
+   "swings": [
+    {
+     "bone": "upperarm_r",
+     "way": "out",
+     "peak_degrees": 11.0,
+     "frames_swung": [
+      2,
+      14
+     ],
+     "frames_crossing": [
+      8
+     ],
+     "degrees": [
+      0.0,
+      0.0,
+      0.26,
+      1.18,
+      2.93,
+      5.34,
+      8.01,
+      10.17,
+      11.0,
+      10.17,
+      8.01,
+      5.34,
+      2.93,
+      1.18,
+      0.26,
+      0.0
+     ]
+    }
+   ],
+   "before": {
+    "form_female": {
+     "deepest_mm": 11.1,
+     "frame": 8,
+     "pair": "calf_r in lowerarm_r"
+    },
+    "form_male": {
+     "deepest_mm": 1.0,
+     "frame": 9,
+     "pair": "thigh_l in thigh_r"
+    },
+    "quaternius_female": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "quaternius_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    }
+   },
+   "after": {
+    "form_female": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "form_male": {
+     "deepest_mm": 1.0,
+     "frame": 9,
+     "pair": "thigh_l in thigh_r"
+    },
+    "quaternius_female": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "quaternius_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    }
+   }
+  },
+  "NinjaJump_Land": {
+   "library": "ual2.glb",
+   "first_frame": 0,
+   "last_frame": 38,
+   "fps": 30,
+   "swings": [
+    {
+     "bone": "upperarm_l",
+     "way": "out",
+     "peak_degrees": 4.0,
+     "frames_swung": [
+      6,
+      19
+     ],
+     "frames_crossing": [
+      12,
+      13
+     ],
+     "degrees": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.09,
+      0.4,
+      0.98,
+      1.79,
+      2.69,
+      3.5,
+      4.0,
+      4.0,
+      3.5,
+      2.69,
+      1.79,
+      0.98,
+      0.4,
+      0.09,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   ],
+   "before": {
+    "form_female": {
+     "deepest_mm": 12.3,
+     "frame": 13,
+     "pair": "calf_l in lowerarm_l"
+    },
+    "form_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "quaternius_female": {
+     "deepest_mm": 3.3,
+     "frame": 38,
+     "pair": "hand_l in thigh_l"
+    },
+    "quaternius_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    }
+   },
+   "after": {
+    "form_female": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "form_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    },
+    "quaternius_female": {
+     "deepest_mm": 3.3,
+     "frame": 38,
+     "pair": "hand_l in thigh_l"
+    },
+    "quaternius_male": {
+     "deepest_mm": 0.0,
+     "frame": null,
+     "pair": null
+    }
+   }
+  }
+ }
+}

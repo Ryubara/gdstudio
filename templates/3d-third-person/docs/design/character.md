@@ -426,6 +426,16 @@ that moves the body over an obstacle of another size. No scene uses them yet: ad
 a library (`vault`) and play `vault/Vault_Low`. `tools/capture/vault_study.tscn` plays them over their reference boxes,
 `tests/assets/test_vault_clips.gd` checks them, and the folder's README says how they are rebuilt.
 
+### Fixed library clips {#fixed-clips}
+
+`assets/animation/fixed/fixed.glb` holds three of the library's clips with one arm swung a few degrees clear of the
+shin it passed through on the template's bodies: `Jump_Land` and `Slide_Exit`, which the character plays
+(`land_clip`, `slide_exit_clip`), and `NinjaJump_Land`. Everything else in them is the library's. To play the
+library's own clip, set the clip in the inspector to the name `CharacterClips.STAND_INS` gives (`ual1/Jump_Land`,
+`ual2/Slide_Exit`). A body of your own with thicker or longer limbs may cross elsewhere: measure it with
+`assets/animation/limb_overlap.py` and add the clip to `assets/animation/fixed/build_fixed_clips.py` (its `README.md`
+says how).
+
 ### Prone and crawl clips {#prone-clips}
 
 `assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
@@ -446,7 +456,8 @@ The two mannequins, both animation libraries and Phantom Camera are third-party 
 and MIT for Phantom Camera. Give them a line on the game's Credits screen. The pistol and the rifle are GDStudio's own
 (MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`. The prone and crawl
 clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`), and so is the slide
-rack clip (`assets/animation/pistol/LICENSE.md`).
+rack clip (`assets/animation/pistol/LICENSE.md`). The fixed clips (`assets/animation/fixed/`) are three of the
+library's clips with one arm moved, CC0 like the library, with their own `LICENSE.md`.
 
 ## Testing it in a browser
 
