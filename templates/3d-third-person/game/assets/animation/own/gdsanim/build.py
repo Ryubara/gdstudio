@@ -39,7 +39,7 @@ class Clip:
     - `chains`: the overlap pass's bones, `{bone: (lag, overshoot)}`;
     - `kind`: `stand`, `gait`, `transition` or `action`, which picks the checks that apply;
     - `declared`: the numbers the checks hold the clip to (`lags`, `ranges`, `joins`, `plants`, `distance`,
-      `turn`, `speed_limit`, `ceiling`), each read by the check of that name, and what `clips.json` says beside
+      `turn`, `speed_limit`, `ceiling`, `facing`, `legs_facing`, `legs_by_landing`), each read by the check of that name, and what `clips.json` says beside
       the plan: `heel_up` (the sides whose heel the description raises itself, so no frame of theirs is flat)
       and `join_names` (`{"first": "Idle", "last": "Crouch_Idle"}`, the shipped clips whose first poses the
       ends are);
@@ -213,6 +213,9 @@ def _record(rig: Rig, clip: Clip, kept: dict) -> dict:
         "events": plan.events() + list(clip.events),
         "bones": sorted(kept["rotation"]),
         "reduced_to_deg": kept["tolerance"],
+        # What a description says of its clip beside the plan (`declared["says"]`): the way a gait travels, the
+        # gait it is in step with, what a pose is a difference from.
+        **dict(clip.declared.get("says", {})),
     }
 
 

@@ -264,5 +264,303 @@
   "swing_ease": 1.0,
   "lean_live": 2.0,
   "speed_limit": 45.0
+ },
+ "walk_back": {
+  "left": {
+   "toe_out": 5.0,
+   "arm_fore": 12.0,
+   "arm_back": 10.0
+  },
+  "right": {
+   "toe_out": 10.0,
+   "width": 0.092,
+   "arm_fore": 8.0,
+   "arm_back": 7.0,
+   "elbow": 26.0,
+   "arm_out": 10.0,
+   "roll_out": 3.2,
+   "kick_at": 0.43,
+   "arm_at": 1.0,
+   "curl": [
+    30.0,
+    58.0,
+    68.0,
+    74.0,
+    78.0
+   ]
+  },
+  "hip_turn_rest": 1.0,
+  "hip_tip_rest": 1.0,
+  "chest_tip_rest": 1.5,
+  "head_tip_rest": 1.0,
+  "chest_turn_rest": -2.0,
+  "head_turn_rest": 1.5
+ },
+ "walk_left": {
+  "left": {
+   "toe_out": 5.0,
+   "arm_fore": 10.0,
+   "arm_back": 11.0
+  },
+  "right": {
+   "toe_out": 8.0,
+   "arm_fore": 7.0,
+   "arm_back": 8.0,
+   "elbow": 24.0,
+   "arm_out": 10.0,
+   "roll_out": 5.5,
+   "kick_at": 0.38,
+   "arm_at": 0.52,
+   "curl": [
+    30.0,
+    58.0,
+    68.0,
+    74.0,
+    78.0
+   ]
+  },
+  "hip_turn_rest": 1.0,
+  "hip_tip_rest": 1.0,
+  "chest_tip_rest": 1.5,
+  "head_tip_rest": 1.0,
+  "head_turn_rest": -2.0
+ },
+ "walk_right": {
+  "left": {
+   "toe_out": 4.0,
+   "arm_fore": 11.0,
+   "arm_back": 9.0,
+   "roll_out": 6.4,
+   "kick_at": 0.33
+  },
+  "right": {
+   "toe_out": 9.0,
+   "arm_fore": 6.0,
+   "arm_back": 9.0,
+   "elbow": 25.0,
+   "arm_out": 11.0,
+   "arm_at": 0.52,
+   "curl": [
+    30.0,
+    58.0,
+    68.0,
+    74.0,
+    78.0
+   ]
+  },
+  "hip_turn_rest": 1.0,
+  "hip_tip_rest": 1.0,
+  "chest_tip_rest": 1.5,
+  "head_tip_rest": 1.0,
+  "head_turn_rest": 2.5
+ },
+ "jog_back": {
+  "left": {
+   "toe_out": 4.0,
+   "arm_fore": 18.0,
+   "arm_back": 24.0
+  },
+  "right": {
+   "toe_out": 9.0,
+   "width": 0.082,
+   "arm_fore": 13.0,
+   "arm_back": 19.0,
+   "elbow": 83.0,
+   "arm_out": 16.0,
+   "shrug": 1.5,
+   "roll_out": 2.3,
+   "kick_at": 0.43,
+   "arm_at": 1.0
+  },
+  "hip_turn_rest": 1.0,
+  "hip_tip_rest": 1.0,
+  "chest_tip_rest": 1.5,
+  "head_tip_rest": 1.0,
+  "chest_turn_rest": -2.5,
+  "head_turn_rest": 1.5
+ },
+ "jog_left": {
+  "left": {
+   "toe_out": 4.0,
+   "arm_fore": 20.0,
+   "arm_back": 26.0
+  },
+  "right": {
+   "toe_out": 7.0,
+   "arm_fore": 15.0,
+   "arm_back": 21.0,
+   "elbow": 85.0,
+   "arm_out": 16.0,
+   "shrug": 1.5,
+   "roll_out": 2.8,
+   "kick_at": 0.39,
+   "arm_at": 0.32
+  },
+  "hip_turn_rest": 1.0,
+  "hip_tip_rest": 1.0,
+  "chest_tip_rest": 1.5,
+  "head_tip_rest": 1.0,
+  "head_turn_rest": -2.0,
+  "arm_at": 0.3
+ },
+ "jog_right": {
+  "left": {
+   "toe_out": 3.0,
+   "arm_fore": 21.0,
+   "arm_back": 23.0,
+   "roll_out": 3.2,
+   "kick_at": 0.34
+  },
+  "right": {
+   "toe_out": 8.0,
+   "arm_fore": 14.0,
+   "arm_back": 22.0,
+   "elbow": 86.0,
+   "arm_out": 17.0,
+   "shrug": 1.5,
+   "arm_at": 0.32
+  },
+  "hip_turn_rest": 1.0,
+  "hip_tip_rest": 1.0,
+  "chest_tip_rest": 1.5,
+  "head_tip_rest": 1.0,
+  "head_turn_rest": 2.5,
+  "arm_at": 0.3
+ },
+ "lean_left": {},
+ "lean_right": {},
+ "lean_fwd": {},
+ "lean_back": {},
+ "overlap_walk_back": {
+  "chest": [
+   1.5,
+   0.0
+  ],
+  "head": [
+   2.0,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.5,
+   0.1
+  ],
+  "hand": [
+   1.5,
+   0.15
+  ]
+ },
+ "overlap_walk_left": {
+  "chest": [
+   1.5,
+   0.0
+  ],
+  "head": [
+   2.0,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.5,
+   0.1
+  ],
+  "hand": [
+   1.5,
+   0.15
+  ]
+ },
+ "overlap_walk_right": {
+  "chest": [
+   1.5,
+   0.0
+  ],
+  "head": [
+   2.0,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.5,
+   0.1
+  ],
+  "hand": [
+   1.5,
+   0.15
+  ]
+ },
+ "overlap_jog_back": {
+  "chest": [
+   1.5,
+   0.0
+  ],
+  "head": [
+   2.0,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.6,
+   0.1
+  ],
+  "hand": [
+   1.6,
+   0.15
+  ]
+ },
+ "overlap_jog_left": {
+  "chest": [
+   1.5,
+   0.0
+  ],
+  "head": [
+   2.0,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.6,
+   0.1
+  ],
+  "hand": [
+   1.6,
+   0.15
+  ]
+ },
+ "overlap_jog_right": {
+  "chest": [
+   1.5,
+   0.0
+  ],
+  "head": [
+   2.0,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.6,
+   0.1
+  ],
+  "hand": [
+   1.6,
+   0.15
+  ]
  }
 }

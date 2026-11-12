@@ -34,7 +34,7 @@ HERE = Path(__file__).resolve().parent
 QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 sys.path.insert(0, str(HERE))
 
-from clips import crouch_idle, crouch_walk, gait, idle, stance  # noqa: E402
+from clips import crouch_idle, crouch_walk, directed, gait, idle, lean, stance  # noqa: E402
 from clips.joined import Joined, described  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
@@ -62,6 +62,17 @@ TYPES = {
     "crouch_walk": ("Crouch_Walk", crouch_walk.describe),
     "stand_to_crouch": ("Stand_To_Crouch", stance.describe_down),
     "crouch_to_stand": ("Crouch_To_Stand", stance.describe_up),
+    "walk_back": ("Walk_Back", directed.walk_back),
+    "walk_left": ("Walk_Left", directed.walk_left),
+    "walk_right": ("Walk_Right", directed.walk_right),
+    "jog_back": ("Jog_Back", directed.jog_back),
+    "jog_left": ("Jog_Left", directed.jog_left),
+    "jog_right": ("Jog_Right", directed.jog_right),
+    "lean_left": ("Lean_Left", lean.lean_left),
+    "lean_right": ("Lean_Right", lean.lean_right),
+    "lean_fwd": ("Lean_Fwd", lean.lean_fwd),
+    "lean_back": ("Lean_Back", lean.lean_back),
+    "lean_ref": ("Lean_Ref", lean.reference),
 }
 ## The shipped files: the frozen list of clips each carries.
 GROUPS = {
