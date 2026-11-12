@@ -18,14 +18,56 @@ side is `gameplay/character/character_vault.gd`. Part of [the 3D Third Person te
 | `VaultProbe` | `addons/gds_game/traversal/vault_probe.gd` | Five shape casts, never a single ray: a box as wide as the body cast ahead finds the face; a small sphere cast down past it finds the top; a thin box cast back from a vault's depth beyond finds the far face (only the obstacle's own body counts); a sphere cast down past the far face finds the landing floor; the body's capsule cast along the whole path must touch nothing and fit at the end. A vault needs the obstacle low and thin enough and a landing; otherwise a mantle needs room to stand on top. |
 | `VaultPlan` | `addons/gds_game/traversal/vault_plan.gd` | The crossing: vault, mantle or none (with the reason), the measurements and a path of key points with the share of the time each is reached at. `position_at(share)` is where the feet are. |
 | `CharacterVault` | `gameplay/character/character_vault.gd` | Inside `Character.step`: asks for a plan when the command asks (a buffered jump press, or a sprint with the automatic trigger), then moves the body along the path tick by tick, by numbers alone, and leaves it on the landing with the crossing's speed. Its state (time in, cooldown, the plan's path) is `CharacterState.vault`. |
-| `CharacterAnimation` | Traversal group | Plays the vault or mantle clip (low or high by the plan, or the obstacle's own) over the whole body for the crossing's time. |
+| `VaultClip` | `addons/gds_game/traversal/vault_clip.gd`, 3D Third Person's `gameplay/character/vault_low.tres` and `vault_high.tres` | What a vault clip was keyed on: the reference obstacle, the speed the body was moved at, where the root starts, the contact times, where each planted wrist sits. `VaultSettings.low_clip` and `high_clip` hold one each; with it the vault is timed by the clip (below). |
+| `CharacterAnimation` | Traversal group | Names the clips: `vault_clip`, `vault_high_clip`, `vault_land_clip`, `mantle_clip`, `mantle_high_clip` (or the obstacle's own). |
+| `VaultAnimation` | `gameplay/character/vault_animation.gd` | For a vault timed by its clip: joins the vault clip and the landing step into one animation, holds it to the clip time of the body that is drawn, holds the model where the clip's root belongs, and lets the weapon's two-hand hold go (a clip that needs both hands open hides the weapon). Any other crossing's clip is played to last the crossing's time. |
 | `PuppetVault` | `gameplay/character/puppet_vault.gd` | Online, a body drawn from the network (a player's puppet, an AI replica) plans the crossing itself when its drawn state turns to `VAULT` or `MANTLE`, so the clip plays on every screen with nothing sent ([online](#online)). |
 
-One clip serves every height because the body never follows the clip's root: the clips are in place (the library's
-`ClimbUp_1m` keeps its pelvis where it starts and ends), the path is made for the obstacle measured, and the clip is
-played at the speed that makes it last the crossing. Its contact times line up with the path's key points through
-`plant_at` and `clear_at` (the hand plant over the near edge and the feet past the far edge, as shares of the clip):
-set them to a new clip's own contact times.
+### A vault timed by its clip {#clip-timing}
+
+<!-- new section: kit #1037 put the template's own vault clips into the vault; how one clip is fitted to the obstacle
+     measured and why the model leaves the capsule had no place -->
+
+The vault clips ([the vault clips](clips.md#vault-clips)) carry the body's rise and fall themselves, in the pelvis,
+over a reference obstacle, and were keyed with the root moving forward at a constant speed. A `VaultClip` holds those
+numbers, and the plan fits the clip to the obstacle measured:
+
+- **Where the clip starts.** At the frame whose root is as far before the face as the body is
+  (`VaultClip.start_time()`), so a press 1.3 m away plays the low vault's run-in and a press at the wall skips it;
+  never later than `lead` (0.15 s) before the hand plant, so the clip has blended in when the hand lands.
+- **Where the root is** (`VaultPlan.root_at()`, `VaultClip.forward_at()`): from the body's place to the clip's own
+  place at the hand plant, then at the clip's own speed until the fingers leave (so the planted hand lands where the
+  clip put it and does not slide), then to the landing. The root is level and lifted only by the difference to the
+  clip's reference height while a hand is on the top (`raised()`). For a lower obstacle the body comes down only
+  between `lower_from` and `lower_by`, when the feet have left the ground.
+- **How fast.** The clip plays at the entry speed over its own speed inside `clip_rate_range` (1 to 1.15): the fall
+  in the clips is a real one at 1, so the range stays near it; a sprint slows to the clip's pace for the crossing.
+- **Where it lands.** `landing_margin` past the far face (1.13 m in the template: the clips land 1.47 m past it), or,
+  when that has no floor or no room, the farthest free landing down to `min_landing_margin` (0.3 m); the body is then
+  slower through the air.
+- **The capsule goes over the top, the model does not.** The capsule's feet path (`position_at()`) still rises over
+  the obstacle, so the body is never inside geometry, a hit or a death mid-vault finds it in free space and the
+  step stays the same on a server. The model would rise 0.9 m with it, so for the crossing it is held at
+  `root_at()` instead, and the camera's target is moved by the same difference (`CharacterVault.model_offset()`), so
+  the view stays level. The two paths meet at the start and at the landing.
+- **The landing step.** `vault_land_clip` (`Vault_Land`) follows either vault inside the same action
+  (`VaultAnimation.join()`), since both vaults end in the pose it starts from; a body that lands with no move asked
+  for drops it.
+
+A vault with no `VaultClip` (the addon's default, or an obstacle with a clip of its own) is timed as before: the
+clip is played at the speed that makes it last the crossing, and `plant_at` and `clear_at` (shares of the clip) line
+its hand plant and its clear of the far edge up with the path's key points.
+
+Measured in the game (`tests/gameplay/test_vault_contacts.gd`, the drawn pose on every frame, walls of 0.5, 0.8, 0.9,
+1.05, 1.2 and 1.27 m):
+
+| | Female (the clips' own body) | Male |
+| --- | --- | --- |
+| Planted wrist over the top (the clip rests it at 36 mm) | within 20 mm | within 60 mm (its arms are 50 mm longer) |
+| Planted wrist along and across the top | within 30 mm | within 75 mm (its hands land 60 mm wider) |
+| Planted wrist moves while planted | under 25 mm | under 80 mm |
+| A foot or knee joint inside the wall | up to 68 mm for a frame drawn near 0.307 s of `Vault_Low` (the left knee past the front edge, the clip's own: gdstudio #1221; the test allows 75 mm); none in `Vault_High` | the same |
+| Lowest leg joint against the floor | above -20 mm at every height | the same |
 
 ## What shipped games and engines do, and the defaults {#research}
 
@@ -74,9 +116,10 @@ The defaults (`vault_settings.tres`):
 | min_vault_height | 0.45 m | Above the step height (0.32 m), so kerbs stay steps. |
 | max_vault_height, high_vault_above | 1.3 m, 1.0 m | The two-hand vault's top in #1010's plan; the split between the two clips. |
 | max_vault_depth | 0.9 m | One hand plant crosses a wall or a crate; deeper is mantled, as RVM does. |
-| foot_clearance, landing_margin | 0.12 m, 0.3 m | The feet clear the top; the landing is clear of the far face by the radius and a step. |
+| foot_clearance, landing_margin, min_landing_margin | 0.12 m, 0.3 m (1.13 m in 3D Third Person), 0.3 m | The feet clear the top; the landing is clear of the far face by the radius and a step. The template's vault clips land 1.47 m past the far face, so its settings ask for that and fall back to the nearest free landing. |
 | max_drop | 1.2 m | A parapet over a deeper drop is not vaulted (RVM's no-landing switch, off). |
-| crossing_speed, min/max_vault_time | 4 m/s, 0.45 s, 0.9 s | The crossing keeps the entry speed (Horizon's velocity rule) and never goes slower than a run; the clip is never sped up or slowed past these. |
+| crossing_speed, min/max_vault_time | 4 m/s, 0.45 s, 0.9 s (1.3 s in 3D Third Person) | With no `VaultClip`: the crossing keeps the entry speed (Horizon's velocity rule) and never goes slower than a run; the clip is never sped up or slowed past these. The template's high vault lasts 1.25 s from its first frame. |
+| low_clip, high_clip, clip_rate_range | none, none, 1 to 1.15 | With a `VaultClip` the vault is [timed by the clip](#clip-timing); its fall is a real one at a rate of 1, so a faster entry speeds it up by 15 % at most. |
 | exit_speed_share | 0.85 | The body runs on after the landing, a little slower. |
 | min/max_mantle_height, high_mantle_above | 0.45 m, 2.0 m, 1.25 m | About the standing reach of a 1.8 m body; the ALS low/high split. |
 | mantle_base_time, mantle_time_per_metre | 0.45 s, 0.5 s/m | 0.95 s onto 1 m (ClimbUp_1m is 0.67 s, played at 0.7), 1.45 s onto 2 m. |
@@ -102,7 +145,8 @@ seen only as a title: [Vault, Slide, Mantle: Building Brink's SMART System (GDC)
    over); untick the faces it must not be crossed from (a one-way wall). The node warns when it sits under no body or
    allows nothing.
 4. Size it for what you want: vaulted from 0.45 to 1.3 m high and up to 0.9 m thick with 0.65 m of clear floor past the
-   far side; mantled up to 2.0 m with room for the body to stand on top; anything else is only jumped or walked into.
+   far side (the template's vault lands 1.5 m past the far side when there is room, and nearer when not); mantled up
+   to 2.0 m with room for the body to stand on top; anything else is only jumped or walked into.
    A wall with no landing room (a wall right behind it) is mantled instead.
 5. Run at it and press jump. The map's `VaultCourse` (west of the room) has one of each and a dark wall without the
    component.
@@ -127,15 +171,33 @@ state; the probe is lent the map's layers (an AI puppet's own mask is 0).
 
 Nothing is sent: the TICK, its 12-byte player entry and the AI row are unchanged, so the bandwidth is the same. On the
 course's 0.9 m wall at a run (`test_net_puppet_vault.gd`, loopback), the puppet's plan had the server's top to 0.1 mm,
-its start within 7 cm and its time within 16 ms (0.466 s against 0.482 s). A probe that finds no crossing of the
-server's kind (the map differs on this screen, something stands in the way here) plays no clip, as before. The clip
-tour is `tools/capture/puppet_vault_tour.tscn` (Ada's own screen beside Bo's).
+its start within 7 cm and its time within 16 ms (0.466 s against 0.482 s). With the vault clips (kit #1037) the
+puppet's model is held on the clip's root of its own plan, as on the stepping body, so its planted hand rests on the
+top on the other screen as well. The suite checks it for another player's puppet and for an AI the server runs over the
+wall (kit #1228), on every drawn frame from the plant to the release, against the stepping body's own limits, which it
+reads from `test_vault_contacts.gd` (`WRIST_UP`, `WRIST_ALONG`, `WRIST_DRIFT`) for the mannequin the puppet is drawn
+with: 20, 30 and 25 mm on the female (Ada's puppet), 60, 75 and 80 mm on the male (an AI grunt, kit #1243's looks).
+Ada's puppet read at most 15 mm off the height, 5 mm along, 12 mm across and 15 mm of drift over 8 planted frames; the
+grunt's 58, 40, 27 and 34 mm, as the stepping male body's longer arms sit. With `PuppetVault` taken out, both cases
+fail (no plan, so no clip). A probe that finds no crossing of the server's kind (the map differs on this screen,
+something stands in the way here) plays no clip, as before. The clip tour is `tools/capture/puppet_vault_tour.tscn`
+(Ada's own screen beside Bo's); `puppet_vault_hand.tscn` is Bo's screen alone, close on the 0.9 m wall, with Ada and
+then an AI vaulting it (`gds capture frames ... --fps 60`).
 
 - **Approach:** Work out a puppet's one-off move (a vault's start) from a snapshot place, or set the drawn place down
   on the floor, never from the place drawn the frame before as it is. **Watch out for:** that frame is drawn between
   the last snapshot on the ground and the first one of the move, already part of the way up its path: the puppet's
   vault planned from 0.22 m above the floor and started 0.23 m from the server's. **Seen:** gdstudio #1222,
   2026-11-11 (`PuppetVault._on_floor`; `test_net_puppet_vault.gd`).
+- **Approach:** In a test or a capture that runs a body over one wall of the course, start it 1.3 m before that wall's
+  face (clear of the wall before it) and assert the plan's top is that wall's height before checking anything against
+  its edges. **Watch out for:** the course's walls stand 2.5 m apart: an AI started 2.6 m before the 0.9 m wall vaulted
+  the 0.5 m one in front of it, and the hand checks then read the wrist 2.38 m short of an edge it never reached.
+  **Seen:** gdstudio #1228, 2026-11-11 (`test_net_puppet_vault.gd`, `_check_planted` asserts the top).
+- **Approach:** Take a contact check's limits from the model the puppet is actually drawn with (its rig's scene), never
+  fix one model in the check. **Watch out for:** a change to the looks a puppet is drawn with moves the check's ground:
+  after kit #1243 drew the first AI look on the male mannequin, the AI case failed the female's 20 mm limit at 58 mm,
+  inside the male body's own 60 mm. **Seen:** gdstudio #1264, 2026-11-11 (`_check_planted` reads `MANNEQUINS`).
 
 ## Cost and the web {#cost}
 
@@ -160,6 +222,13 @@ the same walls. The pressed trigger probes only on a press; the automatic one pr
 about 12 µs a body a tick on the desktop and in Chrome and about 90 µs at a 4x throttle (40 sprinting bodies: 3.5 ms a
 tick on a weak machine), so the template keeps the press. Nothing of a crossing is networked beyond the command (the
 jump press): the server and a predicting client step the same plan from the same state.
+
+With the vault timed by its clip (gdstudio #1037; desktop only, two headless runs each on the same machine, the web
+build not measured again): a probe that plans a crossing takes 57 µs where it took 44 (the landing's second cast
+and the clip's timing), and 40 bodies that press jump cost 21 µs a body a tick where they cost 17 (a crossing lasts
+0.7 to 1.25 s instead of 0.45 to 0.9 s, and each of its ticks works out the model's place for the camera's target).
+That is still half of a body blocked by the same walls (42). The join of a vault clip with its landing step is made
+once for each character and clip, on its first vault.
 
 ## Mistakes made building it {#mistakes}
 
@@ -194,3 +263,46 @@ jump press): the server and a predicting client step the same plan from the same
   `Character._move`. **Watch out for:** `character.gd` sits near gdlint's 1000-line cap with three moves landing in
   it the same day; the vault's 40 lines there pushed the merge of the slide to 1028 lines and the commit was refused.
   **Seen:** gdstudio #1013, 2026-11-10 (refreshing on top of #1019).
+
+- **Approach:** Hold a model that leaves its body for a move (level while the capsule goes over the top) in the world
+  yourself, on every drawn frame: `top_level` with `physics_interpolation_mode` off for the move, its place from the
+  time that is drawn (the last tick's less `1 - fraction` of a tick with physics interpolation on), given back with
+  `reset_physics_interpolation()`. **Watch out for:** an offset set in the physics tick was a tick ahead of the
+  interpolated body and one set in `_process` lagged a frame, so while the capsule rose 0.9 m in 0.1 s the model sank
+  0.3 m into the floor for three frames, then rose with the capsule; the suite read
+  `get_global_transform_interpolated()` and saw neither. **Seen:** gdstudio #1037, 2026-11-11 (fix:
+  `VaultAnimation._hold()` and `release()`; `test_vault_contacts.gd` reads the held model's own transform).
+- **Approach:** Set what a frame's pose depends on before the `AnimationTree` runs in that frame: the node that
+  drives the tree gets a `process_priority` under the tree's, and a clip that must match a body's place is held to
+  the body's time with an `AnimationNodeTimeSeek` (`seek_request` every frame), not left to run from a start. Measure
+  the drawn pose in the test on `Skeleton3D.skeleton_updated`, after the tree and the modifiers. **Watch out for:** a
+  node after the tree in the scene sets its parameters a frame late, and with the body moving at 4 m/s a planted
+  wrist read 67 mm off for each frame of lag (200 mm in the first measurement, which also sampled before the frame's
+  own pose). **Seen:** gdstudio #1037, 2026-11-11 (`CharacterAnimation._ready()` sets the priority).
+- **Approach:** Give the tree's gait the pace of a move that carries the body by numbers (a vault sets the capsule's
+  velocity to zero). **Watch out for:** the ground blend read a speed of 0 the moment the vault began, so the action
+  clip blended in from the idle, and the capture showed the runner stand upright for three frames before the hand
+  went out. **Seen:** gdstudio #1037, 2026-11-11 (`VaultAnimation.follow()` returns the crossing's pace).
+- **Approach:** Check a landing under the body's middle as well as under its rim (a second, small sphere cast down;
+  the two heights must agree), and when the landing asked for is blocked, try nearer ones before refusing. **Watch out
+  for:** the wide sphere cast down for the landing came to rest on the top edge of the next wall, 0.3 m to the
+  side, so a vault with a longer landing ended 0.79 m up in the air beside that wall and the next press found nothing
+  ahead; with the old 0.3 m landing no test had a wall near enough. **Seen:** gdstudio #1037, 2026-11-11 (the chain
+  case of `test_character_vault.gd`; `VaultProbe.LEVEL`, `VaultSettings.min_landing_margin`).
+- **Approach:** Lower a clip's root for a lower obstacle only once the feet are off the ground and rising, and
+  measure the lowest leg joint on every drawn frame at the lowest height the clip serves. **Watch out for:** the lift
+  to another height began 0.04 s before the takeoff, which is harmless upward and put the takeoff foot 93 mm under the
+  floor at a 0.5 m wall (100 mm at 1.05 m with the high clip, whose foot leaves as the hands land). **Seen:** gdstudio
+  #1037, 2026-11-11 (`VaultClip.lower_from` and `lower_by`; the high vault's hands reach a lower top 0.03 s late).
+- **Approach:** After gdformat has rewritten a file on Windows, check its line ends before the commit (`grep -l $'\r'`
+  over the staged scripts) and convert them (`sed -i 's/\r$//'`). **Watch out for:** gdformat wrote CRLF into the
+  five files it reformatted, a new suite among them, and the folder scan skips a suite with CRLF ends
+  ([Running GdUnit](../running-gdunit.md#command-line)). **Seen:** gdstudio #1037, 2026-11-11.
+- **Approach:** End a clip's blend-in two frames before its first contact at the fastest rate it plays at
+  (`VaultClip.lead` against `action_blend_time`), and prove a new suite inside the whole run (`gds template test`),
+  not only alone. **Watch out for:** `Engine.get_physics_interpolation_fraction()` is 0 in a short `--fixed-fps` run
+  and 0.9999999 after some minutes of suites, so the same press started the vault a frame apart; with a lead of
+  0.125 s and a 0.1 s blend at a rate of 1.15 the high vault's hands were 36 mm short of their place on the first
+  planted frame in the full run and on it in every run of the suite alone. **Seen:** gdstudio #1037, 2026-11-11
+  (`test_vault_contacts.gd` failed 42 times in two full runs and passed alone, in its folder and after the folders
+  before it; fix: a lead of 0.15 s).

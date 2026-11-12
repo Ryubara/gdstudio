@@ -14,7 +14,9 @@ extends Node3D
 ## there.
 ##
 ## It spawns only where the AI runs: offline, and on a game server only with `on_server` (a client
-## draws what the server sends). Everything runs on the physics clock, so a run repeats.
+## draws what the server sends). The players that wake it and lead its friendlies are the bodies of
+## `player_group` in its own world: on a game server, the players' bodies (`NetServer`'s
+## `ai_sees_players`). Everything runs on the physics clock, so a run repeats.
 ##
 ## Docs: the kit's `docs/engines/godot/third-person/ai-characters.md`.
 
@@ -104,10 +106,22 @@ var _prewarming := false
 
 
 ## True when AI characters are spawned in this tree: offline play, or a game server with
-## `on_server` (never a client of a remote server). `args` are the command line's.
-static func spawns_here(tree: SceneTree, server_too := false, args := NetArgs.new()) -> bool:
+## `on_server` (never a client of a remote server). `args` are the command line's; `from`, the
+## spawner, decides by the map it is in when one process holds a server's map and clients' maps
+## (a test, a capture): under a `NetServer` it is a server's, beside a `NetClient` a client's.
+static func spawns_here(
+	tree: SceneTree, server_too := false, args := NetArgs.new(), from: Node = null
+) -> bool:
 	if args.has("connect"):
 		return false
+	var at := from
+	while at != null:
+		if at is NetServer:
+			return server_too
+		for child in at.get_children():
+			if child is NetClient:
+				return false
+		at = at.get_parent()
 	var root := tree.current_scene if tree != null else null
 	if root != null:
 		for child in root.get_children():
@@ -120,7 +134,7 @@ static func spawns_here(tree: SceneTree, server_too := false, args := NetArgs.ne
 
 func _ready() -> void:
 	_pool = AiPool.new(scene)
-	_runs = spawns_here(get_tree(), on_server) and AiAuthority.runs_here(self)
+	_runs = spawns_here(get_tree(), on_server, NetArgs.new(), self) and AiAuthority.runs_here(self)
 	set_physics_process(_runs)
 	if not _runs or scene == null:
 		return
@@ -216,7 +230,8 @@ func _wire(character: AiCharacter) -> void:
 	mind.patrol_route = patrol_route
 	mind.leader = null
 	if leader_group != &"":
-		mind.leader = get_tree().get_first_node_in_group(leader_group) as Node3D
+		var leaders := _bodies_of(leader_group)
+		mind.leader = leaders[0] if not leaders.is_empty() else null
 
 
 # A spawn again starts with the weapon it starts with, full.
@@ -301,8 +316,19 @@ func _heading_of(basis_of: Basis) -> float:
 
 func _player_within(reach: float) -> bool:
 	var at := global_position
-	for node in get_tree().get_nodes_in_group(player_group):
-		var body := node as Node3D
-		if body != null and body.global_position.distance_to(at) <= reach:
+	for body in _bodies_of(player_group):
+		if body.global_position.distance_to(at) <= reach:
 			return true
 	return false
+
+
+# The bodies of `group` in this spawner's world, in tree order: a player in another viewport's
+# world (a client's map in the same process as the server's) is somebody else's.
+func _bodies_of(group: StringName) -> Array[Node3D]:
+	var found: Array[Node3D] = []
+	var world := get_world_3d()
+	for node in get_tree().get_nodes_in_group(group):
+		var body := node as Node3D
+		if body != null and body.is_inside_tree() and body.get_world_3d() == world:
+			found.append(body)
+	return found

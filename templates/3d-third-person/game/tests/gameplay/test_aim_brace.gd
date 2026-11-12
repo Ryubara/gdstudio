@@ -67,11 +67,28 @@ func test_the_pistol_points_along_the_view_standing_and_walking() -> void:
 
 
 func test_without_the_brace_the_pistol_turns_with_the_pelvis() -> void:
-	# The fault the brace is for, so the test above measures it.
+	# The fault the brace is for, so the test above measures it. The aim layer (kit #1253) turns
+	# the spine onto the aim after the clips and covers the same fault, so it is off here: this
+	# measures the clips and the brace alone.
+	(_player.get_node("AimLayer") as AimLayer).disabled = true
 	_animation.aim_brace = false
 	await CommandDriver.run(get_tree(), _players, _aiming(), 44)
 	assert_object(_brace()).is_null()
 	assert_float(absf(_off_the_view().x)).is_greater(10.0)
+	_animation.aim_brace = true
+	await CommandDriver.run(get_tree(), _players, _aiming(), 4)
+	assert_float(_off_the_view().length()).is_less(ALONG_THE_VIEW)
+
+
+func test_with_the_aim_layer_on_the_pistol_points_along_the_view_with_or_without_the_brace(
+) -> void:
+	# The two overlap: either one alone puts the barrel on the view over the square idle.
+	_animation.aim_brace = false
+	await CommandDriver.run(get_tree(), _players, _aiming(), 44)
+	var loose := _off_the_view()
+	assert_float(loose.length()).override_failure_message("no brace: %s" % loose).is_less(
+		ALONG_THE_VIEW
+	)
 	_animation.aim_brace = true
 	await CommandDriver.run(get_tree(), _players, _aiming(), 4)
 	assert_float(_off_the_view().length()).is_less(ALONG_THE_VIEW)

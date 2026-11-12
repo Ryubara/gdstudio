@@ -9,8 +9,8 @@ extends Node3D
 const PISTOL_HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
 const MODELS: Dictionary[String, String] = {
-	"female": "res://assets/characters/mannequin/mannequin_female.glb",
-	"male": "res://assets/characters/mannequin/mannequin_male.glb",
+	"female": CharacterBodies.FEMALE,
+	"male": CharacterBodies.MALE,
 }
 const LIBRARIES: Dictionary[String, String] = {
 	"ual1": "res://assets/animation/universal/ual1.glb",

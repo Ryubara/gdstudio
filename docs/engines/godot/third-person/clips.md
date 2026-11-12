@@ -132,22 +132,35 @@ contact times. Forward 0 is the obstacle's front face.
   keyed on the female, the template's default. On the male the planted wrist moves 35 mm in `Vault_Low` and 71 mm in
   `Vault_High` while it should be still, and sits up to 49 mm low. The vault code puts the hand on the edge by IK if
   that shows; the clip cannot be right for both.
+- **On the template's bodies** (the prototype `form` pair, `CharacterBodies`, since kit #1187; measured in kit #1286
+  by `tests/assets/test_vault_clips.gd`, which poses all four bodies): the planted wrist slides 18 and 72 mm on
+  `form_female` (low and high vault) and 35 and 82 mm on `form_male`, and rides 29 to 67 mm off its height over the
+  top (on `form_male` up to 31 mm into the box); `Vault_High` puts the thighs 34.0 mm (`form_female`) and 23.6 mm
+  (`form_male`) into each other where the legs come over together. The feet, the joins to the sprint and to
+  `Vault_Land`, the free arm, the push and the legs' spread pass on every body. The suite holds those numbers as the
+  bodies' limits (`PER_BODY`, `KNOWN_OVERLAP_MM`) until kit #1294 solves them.
 - **No limb passes through another**, on either mannequin: the build measures every frame of every clip on both
   skinned meshes (`assets/animation/limb_overlap.py`, the approach under
   [Keyframes](../../../tools/blender/animation.md#keyframes)) and fails over 5 mm; the clips read 0.5 mm at most
   (0.0 mm since the rework of 2026-11-11). `vault_clips.json` carries the numbers and the hash of the
-  file they were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off.
-- **What the vault code has to change to play them** (kit #1037; nothing in this section changes the game). The
-  clips carry the body's rise and fall themselves, in the pelvis, over the reference obstacle: the code moves the
-  root level and forward at the clip's speed, and lifts it only by the difference to another height while a hand is
-  on the top. The `Vaultable`'s present path does neither: for the reference wall it takes 1.75 m in 0.45 s and
-  drops the body 0.92 m in the last 0.135 s, where a free fall from rest takes 0.43 s, and it lands 1.04 m past the
-  front face where the clips land 1.87 m (`Vault_Low`) and 1.89 m (`Vault_High`) past it. To fit the clips:
-  `landing_margin` about 1.1 m (from 0.3), the path's height taken from the clip instead of the eased fall,
-  `plant_at` and `clear_at` from `hand_plant` and `push_off` as shares of the part of the clip that is played, and
-  the crossing's time the clip's own from the frame it starts at (0.54 s from the plant to the landing in
-  `Vault_Low`, 0.79 s in `Vault_High`), so `max_vault_time` at 0.9 s holds both.
+  file they were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off. The template's bodies
+  are measured beside them in `vault/bodies_overlap.json` (`limb_overlap.py --brief`,
+  [Limbs inside limbs](../../../tools/blender/body-crossings.md#library-clips)), read by the same suite.
+- **How the vault plays them** (kit #1037): the `VaultClip` resources `gameplay/character/vault_low.tres` and
+  `vault_high.tres` carry the numbers of `vault_clips.json` (a test holds them equal), and the vault is
+  [timed by the clip](traversal.md#clip-timing): it starts at the frame that fits the distance, the root moves level
+  and forward through the clip's contact places, lifted by the difference to another height while a hand is on the
+  top, and `Vault_Land` follows in the same action. The capsule still goes over the top; only the model is held on
+  the clip's root.
 
+- **Approach:** Check a contact clip at the game's frame rate as well as on its own keys: sample every joint that
+  passes an edge at 60 a second (or finer) between the keys. **Watch out for:** `Vault_Low` moves the left knee 0.5 m
+  in one of its 24 frames a second, from before the front edge to over the top; both keys are clear of the box and
+  the build's checks pass, and the frames Godot draws between them cut the corner by up to 68 mm. A limit for a
+  peak between keys is set over its worst instant, measured at several draw rates (59, 61, 121, 179 and 240 frames
+  a second sweep the instant a frame lands on); one run's frames read anything from 0 to the peak. **Seen:** gdstudio
+  #1037, 2026-11-11 (`test_vault_contacts.gd` allowed 55 mm from runs that read 48 mm, and failed in CI at 66 to
+  68 mm once main's other suites shifted the frames; it allows 75 mm now; the clip's fix is gdstudio #1221).
 - **Approach:** Turn the importer's animation optimizer off for a clip with a contact (`_subresources` in the
   `.import`: `"nodes": {"PATH:AnimationPlayer": {"optimizer/enabled": false}}`), and test the contact in Godot, on
   every planted frame, with the body moved as the game moves it. **Watch out for:** the optimizer dropped the
@@ -172,3 +185,9 @@ contact times. Forward 0 is the obstacle's front face.
 - **Approach:** Pick a mannequin's skinned mesh by its parent (the armature) or its armature modifier. **Watch out
   for:** `mannequin_female.glb` holds a stray 42-vertex `Icosphere` beside `Mannequin_F`, and it comes first, so a
   build that took the first mesh measured nothing and failed on an empty list. **Seen:** gdstudio #1010, 2026-11-10.
+- **Approach:** Keep the capsule out of geometry through a vault: it goes up and over the top as a body's would, and the
+  model, not the capsule, follows the clip's level root through the crossing (held in the world for the move, with the
+  camera's target moved by the same difference so the view stays level). **Watch out for:** this section said the clip's
+  root goes level through the wall and nothing about the capsule, so it read as moving the body through the wall; the
+  capsule has to stay where the physics world (and a server, stepping the same plan) can move it, so the model leaves it
+  for the crossing. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11 (`VaultAnimation` holds the model).

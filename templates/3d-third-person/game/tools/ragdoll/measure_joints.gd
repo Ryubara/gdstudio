@@ -17,8 +17,8 @@
 extends SceneTree
 
 const MODELS := [
-	"res://assets/characters/mannequin/mannequin_female.glb",
-	"res://assets/characters/mannequin/mannequin_male.glb",
+	CharacterBodies.FEMALE,
+	CharacterBodies.MALE,
 ]
 const LIBRARIES: Dictionary[StringName, String] = {
 	&"ual1": "res://assets/animation/universal/ual1.glb",

@@ -69,9 +69,9 @@ static func stance_of(
 
 
 ## What `CharacterAnimation` does with the brace, kept here so the tree's script stays one size:
-## makes it on the model's skeleton and weighs it by the aim. The brace holds on the ground state
-## only: the crouch, the air and the other states keep the aim on their own pelvis. It weighs the
-## legs' stance under the aim too (`stance`, kit #1206).
+## makes it on the model's skeleton, weighs it by the aim and holds the arm up after a shot. The
+## brace holds on the ground state only: the crouch, the air and the other states keep the aim on
+## their own pelvis. It weighs the legs' stance under the aim too (`stance`, kit #1206).
 class Driver:
 	extends RefCounted
 	## The brace on the model's skeleton now, or null: it is made the first time the character
@@ -82,6 +82,25 @@ class Driver:
 
 	# How far the body is on the ground state's clips, whose stance the aim poses were made on.
 	var _share := 1.0
+	# Seconds the arm has left up after a shot, and how far the shot alone holds it up.
+	var _shot_hold := 0.0
+	var _shot_arm := 0.0
+
+	## How far the arm is up (the aim the brace and the aim pose follow): the character's aim
+	## amount, or the shot's own hold when that is more. After a shot it goes on rising for
+	## `shot_hold_time` and then comes down at the speed of the aim (`aim_pose_time`).
+	func arm(animation: CharacterAnimation, delta: float) -> float:
+		var tuning := animation.character.tuning
+		var aim_time := tuning.aim_pose_time if tuning != null else 0.15
+		_shot_hold = maxf(_shot_hold - delta, 0.0)
+		var target := 1.0 if _shot_hold > 0.0 else 0.0
+		_shot_arm = move_toward(_shot_arm, target, delta / maxf(aim_time, 0.001))
+		return maxf(animation.character.aim_amount, _shot_arm)
+
+	## A shot: the arm stays up `shot_hold_time` from where it is now.
+	func shot(animation: CharacterAnimation) -> void:
+		_shot_hold = animation.shot_hold_time
+		_shot_arm = maxf(_shot_arm, animation.character.aim_amount)
 
 	## Frees the brace, so the next aim makes it again from the model, the bone and the aim clip
 	## there are then; called whenever the tree is built.
