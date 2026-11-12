@@ -86,6 +86,13 @@ def walk_clip(rig, arms: float = 1.0, lags: dict | None = None, late: float = 0.
     return Clip("Walk_Test", n, plan, spec, chains=chains, kind="gait", declared=declared)
 
 
+def moved(built, rig, frame_no, by: np.ndarray) -> None:
+    """Move a built clip's whole body on some frames (the pelvis and, on a rig that has them, the `ik_` targets,
+    which are the root's children as it is): `by` is in the root's axes."""
+    for name in ["pelvis"] + [bone for bone in built.kept["place"] if bone.startswith("ik_")]:
+        built.translation[frame_no, rig.index[name]] += by
+
+
 def hop_built(rig, solver, arc: bool):
     """A stand whose feet leave the floor for frames 8 to 22 while the pelvis rises and falls: on a free fall's arc
     when `arc`, on straight lines when not."""
@@ -110,7 +117,7 @@ def hop_built(rig, solver, arc: bool):
     # The pelvis's translation is in the root's axes, where up is the root's -Z.
     up = rig.rest_rot[rig.parent["pelvis"]].T @ maths.Y
     for k, height in enumerate(heights):
-        built.translation[7 + k, pelvis] += up * height
+        moved(built, rig, 7 + k, up * height)
     return built
 
 
@@ -264,6 +271,11 @@ def run(rig, solver, bodies) -> int:
     short = dense(walk)
     short.clip.declared["distance"] = 0.5
     case("the root does not travel the declared distance", "travel", walk, short)
+    # targets: an `ik_` target left a stride behind its foot (only a rig that has the targets shows it).
+    if "ik_foot_l" in walk.kept["place"]:
+        left = dense(walk)
+        left.translation[0, rig.index["ik_foot_l"]] += np.array([0.0, 0.5, 0.0])
+        case("an ik target is not at its foot", "targets", walk, left)
     # limits: a knee bent backward; a jump in a joint's speed.
     case("a knee bends backward", "limits", walk, turned(walk, rig, "calf_l", range(8, 12), 35.0))
     case("a joint jumps", "limits", stand, turned(stand, rig, "upperarm_l", [15], 40.0))

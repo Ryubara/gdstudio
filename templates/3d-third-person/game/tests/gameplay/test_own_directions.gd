@@ -46,6 +46,9 @@ const LEGS := 0.0035
 const ADDED_PLACE := 0.002
 const ADDED_TURN := 0.5
 const SOLE := 0.002
+## How far the compressed import may move a bone's place (m) and turn (degrees) from the file's.
+const IMPORT_PLACE := 0.01
+const IMPORT_TURN := 2.0
 
 var _model: Node3D
 var _skeleton: Skeleton3D
@@ -376,6 +379,62 @@ func test_no_lean_is_another_flipped() -> void:
 		worst = maxf(worst, a.distance_to(b))
 	print("Lean_Left against Lean_Right flipped: %.0f mm" % (worst * 1000))
 	assert_float(worst).is_greater(0.01)
+
+
+func test_the_import_keeps_the_directions_and_the_leans() -> void:
+	# Godot's compressed import cuts the library into pages (`compression/page_size` in the
+	# `.import`, KiB); the own clips' branches import at 32 (kit docs,
+	# third-person/clips.md#animation-libraries). Every bone's place and turn in the imported
+	# directions and leans, frame by frame, against the same file read uncompressed.
+	var state := GLTFState.new()
+	assert_int(GLTFDocument.new().append_from_file(OWN, state)).is_equal(OK)
+	var scene: Node = auto_free(GLTFDocument.new().generate_scene(state))
+	var raw: AnimationPlayer = scene.find_children("*", "AnimationPlayer", true, false)[0]
+	var imported: AnimationLibrary = load(OWN)
+	var clips: Array = DIRECTED.keys() + LEANS.keys() + [REFERENCE]
+	for clip: String in clips:
+		assert_bool(imported.has_animation(clip)).override_failure_message(clip).is_true()
+		var packed := imported.get_animation(clip)
+		# The file names a loop `<name>_Loop`; the importer takes the suffix off.
+		var named := clip if raw.has_animation(clip) else clip + "_Loop"
+		assert_bool(raw.has_animation(named)).override_failure_message(clip).is_true()
+		var source := raw.get_animation(named)
+		var tracks := {}
+		for track in source.get_track_count():
+			var bone := source.track_get_path(track).get_concatenated_subnames()
+			tracks["%s %d" % [bone, source.track_get_type(track)]] = track
+		var worst_place := 0.0
+		var worst_turn := 0.0
+		var where := ""
+		for track in packed.get_track_count():
+			var kind := packed.track_get_type(track)
+			var key := "%s %d" % [packed.track_get_path(track).get_concatenated_subnames(), kind]
+			if not tracks.has(key):
+				continue
+			var from: int = tracks[key]
+			for frame in int(round(packed.length * 30.0)) + 1:
+				var at := minf(frame / 30.0, packed.length)
+				if kind == Animation.TYPE_POSITION_3D:
+					var off := packed.position_track_interpolate(track, at).distance_to(
+						source.position_track_interpolate(from, at)
+					)
+					if off > worst_place:
+						worst_place = off
+						where = "%s frame %d" % [key, frame]
+				elif kind == Animation.TYPE_ROTATION_3D:
+					var turn := rad_to_deg(
+						packed.rotation_track_interpolate(track, at).angle_to(
+							source.rotation_track_interpolate(from, at)
+						)
+					)
+					worst_turn = maxf(worst_turn, turn)
+		var message := (
+			"%s: a place %.2f mm off (%s), a turn %.3f degrees off"
+			% [clip, worst_place * 1000.0, where, worst_turn]
+		)
+		print(message)
+		assert_float(worst_place).override_failure_message(message).is_less(IMPORT_PLACE)
+		assert_float(worst_turn).override_failure_message(message).is_less(IMPORT_TURN)
 
 
 func test_the_tree_adds_a_lean_s_difference_to_its_reference_and_the_soles_stay_down() -> void:

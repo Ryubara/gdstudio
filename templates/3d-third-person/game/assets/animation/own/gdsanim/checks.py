@@ -61,6 +61,9 @@ FALL = 1.05
 ## Joins: a transition's first and last pose against the poses it joins (m, degrees), and its speed there (share).
 JOIN_PLACE = 0.001
 JOIN_TURN = 0.5
+## Targets: the furthest an `ik_` target may be from the end of the limb it is the target of (m): the reducer's
+## limit on each of the two, and the few millimetres the ends of a joined clip are moved by (`Clip.meet`).
+TARGET = 0.004
 ## Limits: hinges in degrees (straight is 0), the furthest a joint turns from its standing rest (degrees), and the
 ## largest change of a joint's speed in one frame (degrees a frame, per frame).
 HINGES = {"elbow": (-5.0, 150.0), "knee": (-5.0, 140.0)}
@@ -556,6 +559,25 @@ def check_travel(built, played: dict) -> tuple:
     return {"travel": numbers}, failures
 
 
+def check_targets(built, played: dict) -> tuple:
+    """Each `ik_` target a clip keys is where its limb's end is (`ik_foot_l` at `foot_l`'s joint) on every frame,
+    within `TARGET`, on the reference body."""
+    body = next(iter(played.values()))
+    rig, worst, where = body.rig, 0.0, ""
+    for bone in built.kept["place"]:
+        if not bone.startswith("ik_") or bone[3:] not in rig.index:
+            continue
+        gap = np.linalg.norm(rig.joint(body.world, bone) - rig.joint(body.world, bone[3:]), axis=1)
+        if gap.max() > worst:
+            worst, where = float(gap.max()), f"{bone} at frame {int(gap.argmax())}"
+    if not where:
+        return {}, []
+    failures = []
+    if worst > TARGET:
+        failures.append(f"targets: {where} is {worst * 1000:.1f} mm from its limb's end")
+    return {"target_off_mm": round(worst * 1000, 2)}, failures
+
+
 def hinge_angles(body: Played) -> dict:
     """The elbows' and knees' bend on every frame, degrees (0 is straight, negative bends backward)."""
     rig, world = body.rig, body.world
@@ -698,6 +720,7 @@ CHECKS = [
     check_weight,
     check_joins,
     check_travel,
+    check_targets,
     check_limits,
     check_cost,
     check_reduction,
