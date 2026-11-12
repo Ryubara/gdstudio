@@ -1,15 +1,13 @@
 # Prone and crawl clips
 
 Four clips for a character that lies down and crawls, made by GDStudio from nothing (kit #1009) because the Universal
-Animation Library has none, and three that aim the pistol lying down
-([Prone aim clips](#prone-aim-clips)). Each prone clip file here holds the four, and Godot imports it as an
-`AnimationLibrary` the same way as `assets/animation/universal/`: add one to an `AnimationPlayer` as the library
-`prone` and the clips are
-`prone/Prone_Idle`, `prone/Crawl_Fwd`, `prone/Crouch_To_Prone` and `prone/Prone_To_Crouch` (the import drops `_Loop`
-from a looping clip's name and makes it loop). The character scene
-(`gameplay/character/character_dressed.tscn`) holds them: the `AnimationPlayer` has `prone_form_female.glb`, the
-file of the body the scene wears, as its library `prone`, and the `Animation` node's `prone_libraries` names the
-file of each other body, swapped in when the game sets that model (kit #1012, #1090, #1293).
+Animation Library has none, and three that aim the pistol lying down ([Prone aim clips](#prone-aim-clips)). Each `prone`
+file here holds the four, and Godot imports it as an `AnimationLibrary` the same way as `assets/animation/universal/`:
+add one to an `AnimationPlayer` as the library `prone` and the clips are `prone/Prone_Idle`, `prone/Crawl_Fwd`,
+`prone/Crouch_To_Prone` and `prone/Prone_To_Crouch` (the import drops `_Loop` from a looping clip's name and makes it
+loop). The character scene (`gameplay/character/character_dressed.tscn`) holds them: the `AnimationPlayer` has
+`prone_form_female.glb`, the file of the body the scene wears, as its library `prone`, and the `Animation` node's
+`prone_libraries` names the file of each other body, swapped in when the game sets that model (kit #1012, #1090, #1293).
 
 **One file a body** (kit #1090, #1293). The library is always named `prone` and holds the same four clip names,
 lengths and crawl speed; which file it is loaded from follows the model:
@@ -266,10 +264,14 @@ the Godot suite reads the same poses to 0.1 mm):
   solved on it. **When a body's prone idle changes (kit #1293 solves the prone clips on the prototype bodies), build
   its aim clips again with the new file**, or the hands ride higher or lower by what the pelvis moved.
   The files here are built on `prone_form_female.glb` and `prone_form_male.glb` (kit #1323 lowered the `form`
-  female's pelvis 42 mm; on the old aim and reload files the live reload then read the left hand 14 mm and the
-  magazine 28 mm under the floor), and the reload after the aim, since it joins the aim's first pose. They hold the
-  library's 65 bones: the twist bones are turned for every measure and never keyed (the game's `MannequinTwist`
-  turns them after the clip).
+  female's pelvis 42 mm; on the files built on `prone.glb` the live prone reload of gdstudio #1265 read the left
+  hand 14 mm and the magazine 28 mm under the floor). They hold the library's 65 bones: the twist bones are turned
+  for every measure and never keyed (the game's `MannequinTwist` turns them after the clip).
+  They were built again on the two-handed grip of gdstudio #1171 (the `SupportHand` marker moved and the right thumb
+  rests on the left thumb's root): on the old files the left elbow moved 18 mm (`form_female`) and 45 mm
+  (`form_male`) to reach the new marker. And again on the seat of gdstudio #1262 (the middle finger under the guard):
+  on the files before it, a little finger went 6.4 to 9.0 mm under the floor.
+  The reload is built after the aim, since it joins the aim's first pose.
 - **Past 25 degrees down** the pose stays on the down clip and the aim layer stops there too
   (`ProneTuning.aim_limits`, `pitch_down` 25): turned on to the 40 degrees of the look-down limit, the spine put the
   muzzle 21 cm under the floor.
@@ -492,7 +494,7 @@ The motion is GDStudio's own work, under this repository's licence; nothing in i
 capture. The skeleton in `prone.glb` and in `prone_male.glb` (bone names, parents and rest pose) is the Quaternius
 universal rig's, CC0, taken from `assets/characters/mannequin/mannequin_female.glb` and `mannequin_male.glb` (their
 `LICENSE.md` has the source); the one in the `form` files is GDStudio's prototype rig's 65 library bones (the same
-names, parents and rest rotations, the bodies' own bone lengths), from `assets/characters/prototype/`.
-The skeletons in `prone_aim.glb`, `prone_aim_male.glb`, `prone_reload.glb` and `prone_reload_male.glb` are those
-prototype bodies' too. The timing was set after
+names, parents and rest rotations, the bodies' own bone lengths), from `assets/characters/prototype/`; so are those in
+`prone_aim.glb`, `prone_aim_male.glb`, `prone_reload.glb` and `prone_reload_male.glb`.
+The timing was set after
 studying how shipped games and the army's low crawl are described (kit pull request of #1009).

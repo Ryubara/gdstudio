@@ -4,8 +4,9 @@
 key a body for a weapon that the game's own modifiers place after the clip (the 3D Third Person rifle, kit #1082) -->
 
 How a clip is keyed for a weapon the game carries after the clip, which [Animation](animation.md#solved-clips) left
-when it passed 50 KB: the body under a hold that places the weapon (the rifle), and a clip whose hands hold the weapon
-where the game's hold has them (the pistol lying down).
+when it passed 50 KB.
+A clip solved with the weapon already in the hands, from the hold's seat and markers on each body (the prone aim),
+is under [Solving a held pose](#solved-holds).
 
 ## The body under the hold {#body-under-the-hold}
 
@@ -96,15 +97,17 @@ are the body under that.
   the rifle is drawn after a walk into its pickup; the capture with `main`'s `rifle.tres` (no rifle clip) has the
   same three frames, so it is the switch's, not the clips'. **Seen:** gdstudio #1267, 2026-11-12.
 
-## Solving on the game's hold {#on-the-games-hold}
+## Solving a held pose {#solved-holds}
 
-<!-- new section: the rifle's section is a body under a hold that reaches the arms itself; nothing said how a clip is
-solved whose own hands hold the weapon on the seat the game uses (the 3D Third Person pistol's prone aim and prone
-reload, gdstudio #1111 and #1185). These entries left animation.md#solved-clips when it passed 50 KB -->
+<!-- new section: folded in from held-clips.md, which gdstudio #1191 split from animation.md#solved-clips at the same
+time as this page; a clip solved with the weapon in the hands on each body, from the hold's seat and markers (the
+prone aim, gdstudio #1111) -->
 
-A clip in which the hands hold a weapon is solved like any [clip solved from targets](animation.md#solved-clips), with
-the weapon's hold taken from the game. The entries come from the 3D Third Person pistol's prone aim and prone reload
-(`templates/3d-third-person/game/assets/animation/prone/build_prone_aim_clips.py` and `build_prone_reload_clip.py`).
+The 3D Third Person prone aim clips (`templates/3d-third-person/game/assets/animation/prone/build_prone_aim_clips.py`)
+are solved from the pistol's hold as Godot dumps it (`tools/hold/dump_aim_seat.gd`), one file a body; how the game plays
+them is under [Prone and the crawl](../../engines/godot/third-person/moves.md#prone).
+The prone reload (`build_prone_reload_clip.py`, gdstudio #1185) is solved the same way, from the hold's own reload: its
+entries, folded in from that pull request's `held-weapon-clips.md`, follow the aim's.
 
 - **Approach:** Solve a clip that holds a weapon from the hold the game uses: dump the weapon's seat on the hand
   bone, the other hand's marker and the hand bones' rests from Godot (`tools/hold/dump_aim_seat.gd`), and put each
@@ -121,13 +124,6 @@ the weapon's hold taken from the game. The entries come from the 3D Third Person
   pistol, the elbow moved 58 to 100 mm and the magazine 8 to 26 mm under the floor; the build's skin had open
   fingers, so its floor numbers were not the game's. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11 (fix:
   `--body` and `--idle` in `build_prone_aim_clips.py`; 1.2 mm in at most, Godot's skin within 0.1 mm of the build's).
-- **Approach:** When a clip is solved again on another body, take nothing typed for the old one: rest each arm on
-  the floor frame by frame (turn the elbow's pole up until the skin is over it), search the elbow's direction for a
-  wrist the hold turns (bend and overlap together), and lift the weapon while a hand leaves it down its grip.
-  **Watch out for:** the reload solved on the Quaternius female left the prototype bodies' left hand 8 and 25 mm
-  off its place; its typed elbow height and pole then put the thinner right arm 16 mm and the left hand 13 mm
-  under the floor; the pole that bent the returning wrist least put the upper arm 28 to 49 mm through the head.
-  **Seen:** gdstudio #1185 (PR #1265), 2026-11-12 (one file a body; `Reload.frame`, `pole_return`, `let_go_lift`).
 - **Approach:** When a held pose gets its two sides' own numbers, turn the support side ahead (the shoulder of the
   hand that reaches round the other), keep the firing arm the straighter one, and read both arms' stretch after
   every change of the trunk. **Watch out for:** the first uneven prone aim pushed the firing shoulder ahead, which
@@ -135,6 +131,25 @@ the weapon's hold taken from the game. The entries come from the 3D Third Person
   from above the first try (the pistol 12 mm off the middle, the chest turned 5 degrees) still read as a mirror
   until the pistol was 35 mm off and the chest turned 8. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11 (the
   build fails under 30 mm between the left elbow and the right one's reflection).
+- **Approach:** Keep the poses of one blend near each other and a reaching arm short of straight, and test the
+  blend between them in the game, not only each clip. **Watch out for:** the game blends bone rotations, not hand
+  places: with the up pose 14 cm higher than the level one and the left arm at 0.99 of its length, the blend at 12
+  degrees left the hand 16 mm short of its marker and the barrel 4 degrees off; at 7 cm and 0.97 both are inside
+  the limits. **Seen:** gdstudio #1111, 2026-11-11 (`test_prone_aim.gd`).
+- **Approach:** After merging main, read its diff for the hold a clip is solved from (the seat, the markers, a hand
+  pose) and dump the hold and build the clip again when any of them moved. **Watch out for:** the hold moves the
+  hands onto the weapon whatever the clip does, so the posed suites barely notice; a changed marker shows as an elbow
+  pulled off the place the clip planted, and a new finger rule as a contact test written for the old one.
+  **Seen:** gdstudio #1191, 2026-11-12 (after #1171's grip the left elbow moved 18 and 45 mm and the right thumb read
+  7.5 and 10.1 mm off the gun, where it now rests on the left hand; rebuilt, 0.5 mm); again after #1262's seat (a
+  little finger 6.4 to 9.0 mm under the floor and the left elbow off; rebuilt, `test_prone_aim_hold.gd` green).
+- **Approach:** When a clip is solved again on another body, take nothing typed for the old one: rest each arm on
+  the floor frame by frame (turn the elbow's pole up until the skin is over it), search the elbow's direction for a
+  wrist the hold turns (bend and overlap together), and lift the weapon while a hand leaves it down its grip.
+  **Watch out for:** the reload solved on the Quaternius female left the prototype bodies' left hand 8 and 25 mm
+  off its place; its typed elbow height and pole then put the thinner right arm 16 mm and the left hand 13 mm
+  under the floor; the pole that bent the returning wrist least put the upper arm 28 to 49 mm through the head.
+  **Seen:** gdstudio #1185 (PR #1265), 2026-11-12 (one file a body; `Reload.frame`, `pole_return`, `let_go_lift`).
 - **Approach:** Solve a clip that shares a hand with a game modifier from the modifier's own plan (ported, its
   numbers dumped from Godot): the bone on the modifier's place where its weight is 1, and a pose right by itself
   where the weight is between, since the game blends the two there. **Watch out for:** the clip kept a fist until
@@ -149,16 +164,6 @@ the weapon's hold taken from the game. The entries come from the 3D Third Person
   its curled fingers 50 to 105 mm inside the pelvis and the thigh, which is wider than the waist. **Seen:** gdstudio
   #1185, 2026-11-11 (`BELT_SWING`, `hand_free`, the belt measured over the hand's span; the limb check found all
   three before any render).
-- **Approach:** Run the whole suite before the pull request opens when a clip or an export is added: the template
-  pins the number of clips and every export of the pistol's definition. **Watch out for:** the related suites
-  passed and the pull request was opened while the full run was still going; it then failed on the clip count (93,
-  now 94) and on the pistol's pins, which lacked `prone_reload_clip`. **Seen:** gdstudio #1185, 2026-11-11
-  (`test_character_clips.gd`, `test_weapon.gd`).
-- **Approach:** Keep the poses of one blend near each other and a reaching arm short of straight, and test the
-  blend between them in the game, not only each clip. **Watch out for:** the game blends bone rotations, not hand
-  places: with the up pose 14 cm higher than the level one and the left arm at 0.99 of its length, the blend at 12
-  degrees left the hand 16 mm short of its marker and the barrel 4 degrees off; at 7 cm and 0.97 both are inside
-  the limits. **Seen:** gdstudio #1111, 2026-11-11 (`test_prone_aim.gd`).
 - **Approach:** When the clip under a layered clip is rebuilt (the prone idle under the aim and the reload), build
   every clip solved on it again in the order they join (the aim, then the reload), and compare a file read back with
   a solved pose over the bones the file keys only. **Watch out for:** the merge of main's prone clips for the
