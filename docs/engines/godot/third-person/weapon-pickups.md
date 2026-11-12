@@ -42,7 +42,10 @@ pickup is a scene that inherits it and puts the model under `Visual`: the templa
 Tests: `test_weapon_pickup.gd` (walking into it gives the rifle and its rounds, it comes back after its time, with the
 rifle carried it gives only rounds, with a full reserve it stays, the rifle fires while the button is held, a body with
 no loadout leaves it, both hands reach their places and let go when it is put away, the step state takes a given
-weapon back) and `test_rifle_hold.gd` ([the rifle in both hands](#rifle-hands)). Captures:
+weapon back), `test_rifle_hold.gd` ([the rifle in both hands](#rifle-hands)) and `test_rifle_run_state.gd` (the run,
+the sprint and the slide with the rifle are the same fresh, after a switch, after a burst, after a reload and after
+going unarmed, and the pistol's run the same after the rifle, on both bodies; `tools/capture/rifle_run_tour.tscn`
+films it from the game camera with a side view). Captures:
 `tools/capture/rifle_tour.tscn` from the game camera (the floating rifle, taking it, the low ready, a walk, the aim, a
 burst, the aim up and down, the reload, hip fire, a crouch, a switch to the pistol and back) and
 `tools/capture/rifle_hands.tscn` (six close-ups at once in every state).
@@ -98,7 +101,9 @@ are named as such.
   body's own torso triangles on the rest pose, one a `skin_spacing` (3 cm) cell and each ridden by its nearest
   corner's main bone, so the butt comes to the skin of whichever body holds it (kit #1177). The chest stands turned
   `chest_turn` (-30 degrees) from the model's front: `two_hand_stance.gd` takes the clip's own turn of the chest off
-  first, so a walk or a run that swings the shoulders keeps the left shoulder forward; while the gun is up a chest
+  first, so a walk or a run that swings the shoulders keeps the left shoulder forward, and turns the neck back by
+  what it turned the chest, so the head keeps the facing the locomotion clip gives it (kit #1333); while the gun is
+  up a chest
   leaning more than `aim_lean_limit` (25 degrees, a crouch's hunch) is raised toward it, so the head is over the
   stock and not in it. When the hand guard is still farther from the left shoulder than `arm_stretch` (0.97) of the
   arm, the left collarbone turns toward it (`reach_turn`, up to 55 degrees: the shoulder comes forward to the
@@ -248,6 +253,20 @@ model). Captures: `tools/capture/rifle_stock.tscn` (both bodies from the right a
   the chest, hidden from the game camera, and fixed offsets tuned on one body left the other 4 to 7 cm off its chest.
   **Seen:** gdstudio #1177, 2026-11-11 (fix: the butt pushed to the skin, the stock collapsed, the collarbone's
   reach; 0 mm in).
+- **Approach:** Fire a layer's one-shot only when the held definition names a clip for it (`ShotLayer.fire()`), and
+  prove every gait against itself after each thing that can come before it (a switch, a burst, a reload, unarmed),
+  on the layers' weights and the body, over whole strides of its clip (`test_rifle_run_state.gd`). **Watch out
+  for:** the rifle has no shot clip, so its layer's node held the idle clip as a stand-in, and every rifle shot
+  played that idle over the upper body for 6.25 s: the run stood 13 degrees more upright after a shot, and a sprint
+  and a slide in that time kept the idle's chest, which read as a pose the switch from the pistol had broken and a
+  shot repaired; a mean over a window that is not whole strides moved the pistol's hand 30 mm between two readings.
+  **Seen:** gdstudio #1333, 2026-11-12 (fix: no shot clip, no one-shot; readings equal to 0.1 degrees and 1 mm).
+- **Approach:** When a modifier takes a clip's turn off one bone (the chest's swing in a run), give the bones above
+  it the turn back, and measure the head's turn through a whole stride with the weapon against the same stride with
+  empty hands. **Watch out for:** a run counters the shoulders' swing in the neck, so with the chest held at
+  `chest_turn` the head alone swung 109 degrees from side to side at every stride of the rifle run (95 in the
+  sprint) and stood 30 degrees off the view at rest; from straight behind it read as a head craned about. **Seen:**
+  gdstudio #1333, 2026-11-12 (fix: `two_hand_stance.gd` turns `neck_01` back; 0.4 degrees, as unarmed).
 - **Approach:** Sample a skin for a run-time contact over its triangles at the spacing you thin to, not at its
   vertices alone, take only the nearest level of detail (`CharacterBodies.near_meshes`), and measure again on every
   body the template wears when the bodies change. **Watch out for:** the push to the skin was built on the

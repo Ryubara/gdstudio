@@ -210,7 +210,7 @@ enum Kind {
 		aim_down_clip = value
 		emit_changed()
 ## The clips of a shot (a recoil, a punch), played on the upper body, one after another shot by
-## shot (a jab, then a cross).
+## shot (a jab, then a cross). None: a shot plays no clip (the rifle, whose hold kicks the gun).
 @export var shoot_clips: Array[StringName] = []:
 	set(value):
 		shoot_clips = value
