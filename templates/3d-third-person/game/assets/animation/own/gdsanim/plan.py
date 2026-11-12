@@ -79,6 +79,9 @@ class ContactPlan:
     ## Metres the longest toes of the bodies that play the clip reach past the reference body's: the swinging foot
     ## is lifted until toes that long clear the floor too.
     toe_reach: float = 0.0
+    ## Whether a foot turned up over its toes is set down by its own lowest skin (`_state`). A description that
+    ## sets the skin on the floor itself, frame by frame, turns it off (`clips/gait.py`, `settle_height`).
+    tread: bool = True
 
     def stride(self) -> np.ndarray:
         """The root's travel over one cycle."""
@@ -201,7 +204,7 @@ class ContactPlan:
         if pivot == "ball":
             hinge = at + (sole["hinge"] - sole["ball"])
             ankle = hinge + turn @ (sole["ankle"] - sole["hinge"])
-            if pitch > 0.0:
+            if pitch > 0.0 and self.tread:
                 # The toes stay flat and the rest of the foot turns over them; the skin between the two is shared.
                 # Move the foot by how far that leaves its lowest skin from where the flat sole's is, so a body whose
                 # toes curl up off the floor at rest stands on the ball of its foot and not 3 mm over it. The move
@@ -218,6 +221,11 @@ class ContactPlan:
             lowest = float((share * (rest @ turn.T) + (1.0 - share) * rest)[:, 1].min()) + ankle[1]
             ankle[1] += sole["floor"] - lowest
         return {"ankle": ankle, "foot": (pitch, yaw, 0.0), "toe": max(pitch, 0.0)}
+
+    def state(self, rig: Rig, side: str, pivot: str, at: np.ndarray, pitch: float, yaw: float) -> dict:
+        """The leg spec of a foot turned about a point of its sole (`_state`), for a description that writes a
+        foot's path itself: a landing on the ball of the foot, a heel drawn up behind a runner."""
+        return self._state(rig, side, pivot, at, pitch, yaw)
 
     def _ball(self, rig: Rig, side: str, fall: Footfall, shift: np.ndarray) -> np.ndarray:
         return np.array([fall.place[0], rig.sole[side]["floor"], fall.place[1]]) + shift

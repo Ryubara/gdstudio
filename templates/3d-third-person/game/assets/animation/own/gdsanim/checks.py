@@ -37,6 +37,8 @@ TOES_SAME = 0.002
 ## Planted feet: the furthest a planted sole wanders in one contact (m), and how far the planted sole's measured
 ## speed may be from the speed `clips.json` gives, as a share.
 WANDER = 0.005
+## The least share of a sole vertex's weight that is the foot's and the toes' for it to count as the planted sole.
+FIRM = 0.95
 SPEED_SHARE = 0.02
 ## Planted hands, forearms and knees: the furthest one drifts in the world while planted (m).
 PLANT_DRIFT = 0.001
@@ -95,6 +97,15 @@ class Played:
             bones = (f"foot_{side}", f"ball_{side}", f"ball_leaf_{side}")
             self._feet[side] = self.rig.skin(self.world, bones)
         return self._feet[side]
+
+    def firm(self, side: str) -> np.ndarray:
+        """Which of `foot(side)`'s vertices follow the foot and the toes alone. The skin of the heel is shared
+        with the shin, which swings over a planted foot (25 degrees a frame in a run) and drags that skin a
+        millimetre a frame over the floor while no bone of the foot moves."""
+        rig = self.rig
+        bones = (f"foot_{side}", f"ball_{side}", f"ball_leaf_{side}")
+        share = sum(rig._weight(bone) for bone in bones if bone in rig.index)
+        return share[np.isin(rig.owner, bones)] >= FIRM
 
 
 def _travel(built, count: int) -> tuple:
@@ -201,12 +212,16 @@ def check_planted(built, played: dict) -> tuple:
     for name, body in played.items():
         worst, speeds = 0.0, []
         for s, _ in SIDES:
-            local = body.foot(s)
+            local = body.foot(s)[:, body.firm(s)]
             verts = _in_world(local, places * body.rig.motion_scale, yaws)
             for first, last in _contact_frames(built, s):
                 drift = [np.zeros(2)]
                 for f in range(first, last):
-                    patch = verts[f, :, 1] <= verts[f, :, 1].min() + 0.01
+                    # The patch that is on the floor on both frames: skin that a rising heel takes off the
+                    # floor between them is not planted, and a run's heel rises 20 degrees a frame.
+                    patch = (verts[f, :, 1] <= verts[f, :, 1].min() + 0.01) & (
+                        verts[f + 1, :, 1] <= verts[f + 1, :, 1].min() + 0.01
+                    )
                     step = (verts[f + 1, patch] - verts[f, patch])[:, [0, 2]].mean(axis=0)
                     drift.append(drift[-1] + step)
                     speeds.append(

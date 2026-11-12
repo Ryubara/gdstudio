@@ -218,6 +218,206 @@
   "crouch_to_stand": [
    "Sharp: 15 frames, the legs pushing for the first third; the rise stops at 1.04 of gravity (the limit is 1.05).",
    "Could not be done: 14 frames: the rise stopped at 1.24 of gravity."
+  ],
+  "walk": [
+   "Sharp: a quiet trunk (the hips turn 6 degrees and tip 5, 34 mm of rise), a higher step, elbows bent 26 degrees, each side its own numbers at four fifths of the grounded one's and its own timing, parts trail under a frame.",
+   "Not tried: held keys with fewer in-betweens; every change is still eased, so it is quieter, not snappier, than the grounded one. Its keys are 23.7 KB a second in the file, the most of the three."
+  ],
+  "jog": [
+   "Sharp: the knee lifts higher (the foot passes 13 cm over its straight path), the front hand comes higher than the back one goes, the hips turn 9 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
+   "Not tried: a shorter contact than the grounded one's six frames (five is 25 % of the cycle, under what people run with at this speed)."
+  ],
+  "sprint": [
+   "Sharp: more lean (the trunk 12 degrees forward), a higher knee, the elbows held at a right angle, the hips turn 14 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
+   "Not tried: 16 frames a cycle (225 steps a minute, over the range): a contact would be under four frames."
   ]
+ },
+ "overlap_walk": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.5,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.15
+  ],
+  "hand": [
+   1.0,
+   0.2
+  ]
+ },
+ "walk": {
+  "hip_turn": 3.0,
+  "hip_tip": 2.5,
+  "counter_turn": 5.0,
+  "arm_fore": 24.0,
+  "arm_back": 20.0,
+  "elbow": 26.0,
+  "elbow_live": 14.0,
+  "bob": 0.032,
+  "kick": 0.045,
+  "uneven": 0.4,
+  "left": {
+   "toe_out": 4.4,
+   "arm_fore": 26.4,
+   "arm_back": 21.6,
+   "elbow": 27.6
+  },
+  "right": {
+   "toe_out": 9.2,
+   "width": 0.083,
+   "arm_fore": 20.8,
+   "arm_back": 17.6,
+   "elbow": 30.8,
+   "arm_out": 8.6,
+   "pronate": 18.8,
+   "curl": [
+    28.8,
+    56.0,
+    66.0,
+    72.4,
+    76.8
+   ],
+   "roll_out": 7.05,
+   "kick_at": 0.32,
+   "arm_at": 0.495
+  },
+  "hip_turn_rest": 0.8,
+  "hip_tip_rest": 0.8,
+  "chest_turn_rest": -1.6,
+  "chest_tip_rest": 1.2,
+  "head_turn_rest": 1.2,
+  "head_tip_rest": 0.8,
+  "swing_early": 0.2
+ },
+ "overlap_jog": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.0,
+   0.05
+  ],
+  "upperarm": [
+   0.8,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.15
+  ],
+  "hand": [
+   1.0,
+   0.2
+  ]
+ },
+ "jog": {
+  "counter_turn": 7.0,
+  "arm_fore": 40.0,
+  "arm_back": 34.0,
+  "elbow": 92.0,
+  "kick": 0.26,
+  "carry_height": 0.13,
+  "bob": 0.052,
+  "lean": 6.5,
+  "uneven": 0.4,
+  "arm_twist": 8.0,
+  "hip_turn": 4.5,
+  "hip_tip": 2.5,
+  "left": {
+   "toe_out": 3.2,
+   "width": 0.053,
+   "arm_fore": 43.2,
+   "arm_back": 36.4
+  },
+  "right": {
+   "toe_out": 7.2,
+   "width": 0.058,
+   "arm_fore": 36.0,
+   "arm_back": 30.8,
+   "elbow": 95.2,
+   "arm_twist": 5.6,
+   "shrug": 1.2,
+   "roll_out": 3.29,
+   "kick_at": 0.38,
+   "arm_at": 0.255
+  },
+  "hip_turn_rest": 0.8,
+  "hip_tip_rest": 0.8,
+  "chest_turn_rest": -2.0,
+  "chest_tip_rest": 1.2,
+  "head_turn_rest": 1.2,
+  "head_tip_rest": 0.8
+ },
+ "overlap_sprint": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.0,
+   0.05
+  ],
+  "upperarm": [
+   0.8,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.15
+  ],
+  "hand": [
+   1.0,
+   0.2
+  ]
+ },
+ "sprint": {
+  "lean": 11.0,
+  "pelvis_pitch": 5.0,
+  "kick": 0.34,
+  "carry_height": 0.1,
+  "arm_fore": 58.0,
+  "arm_back": 54.0,
+  "elbow": 94.0,
+  "bob": 0.043,
+  "counter_turn": 10.0,
+  "uneven": 0.4,
+  "arm_twist": -6.0,
+  "hip_turn": 7.0,
+  "hip_tip": 2.5,
+  "left": {
+   "toe_out": 2.2,
+   "arm_fore": 61.2,
+   "arm_back": 57.2,
+   "elbow": 90.8
+  },
+  "right": {
+   "toe_out": 5.4,
+   "width": 0.055,
+   "arm_fore": 54.0,
+   "arm_back": 50.0,
+   "elbow": 98.0,
+   "arm_out": 13.6,
+   "shrug": 3.2,
+   "kick": 0.32,
+   "roll_out": 2.35,
+   "kick_at": 0.36,
+   "arm_at": 0.255
+  },
+  "hip_turn_rest": 0.8,
+  "hip_tip_rest": 0.64,
+  "chest_turn_rest": -1.6,
+  "chest_tip_rest": 1.2,
+  "head_turn_rest": 0.8,
+  "head_tip_rest": 0.8
  }
 }

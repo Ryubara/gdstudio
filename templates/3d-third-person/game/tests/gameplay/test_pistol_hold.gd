@@ -50,12 +50,12 @@ const LIVE_NEAR := 0.2
 ## The equal parts of the trigger finger's way between the frame and the trigger that are
 ## measured (kit #1079).
 const TRIGGER_WAY_STEPS := 20
-## How deep the trigger finger may graze the trigger guard between its two places, in metres: the
-## mannequin's finger is as thick as the guard's opening is long (20 mm in 21), and the best way
-## in the solver found passes 3.7 mm through the guard's front strut (kit #1079; the guard's
-## opening is kit #1212). At its two places and against the left hand the limit is the
-## usual one.
-const TRIGGER_GUARD_GRAZE := 0.004
+## How deep the trigger finger may graze the trigger guard between its two places, in metres: as it
+## swings in on the male body, the last bone's tip rubs the inner face of the guard's front strut,
+## 1.9 mm at the deepest hundredth of the way (kit #1273, on kit #1213's seat; the female body's
+## way no longer touches it; a way that clears it is kit #1272). At its two places and against the
+## left hand the limit is the usual one.
+const TRIGGER_GUARD_GRAZE := 0.0025
 ## The equal parts of the right thumb's way between the frame and the left thumb's root that are
 ## measured (kit #1084): the plan's `on` from `SupportHandPlan.ARM_UNTIL` to `WAY_FROM`.
 const THUMB_WAY_STEPS := 40
@@ -493,9 +493,24 @@ func test_the_players_left_hand_goes_to_the_magazine_and_back_when_it_reloads() 
 # #1051: the posed stage knows no fade), its thumb's tip included while the reload fades and the
 # right trigger finger leaves the trigger beside it (kit #1079).
 func test_the_players_left_hand_passes_through_nothing_as_it_reloads_while_aiming() -> void:
+	await _reload_while_aiming(false)
+
+
+# The same held in one hand (kit #1085): the left hand comes from the free arm for the reload
+# alone and goes back to it, through nothing on the way.
+func test_the_one_handed_players_left_hand_passes_through_nothing_as_it_reloads() -> void:
+	await _reload_while_aiming(true)
+
+
+func _reload_while_aiming(one_handed: bool) -> void:
 	var arena: PlayArena = auto_free(PlayArena.new())
 	add_child(arena)
 	var player := arena.add_player(Vector3.ZERO)
+	if one_handed:
+		var pistol := player.weapon.definition.duplicate() as WeaponDef
+		pistol.one_handed = true
+		player.loadout.slots[0] = pistol
+		player.weapon.definition = pistol
 	var view := Camera3D.new()
 	view.position = Vector3(0.0, 1.3, 3.0)
 	arena.add_child(view)
@@ -528,8 +543,13 @@ func test_the_players_left_hand_passes_through_nothing_as_it_reloads_while_aimin
 	await InputSim.ticks(get_tree(), 2)
 	InputSim.release_all()
 	assert_int(player.weapon.ammo).is_equal(12)
-	assert_int(_live_measured).override_failure_message("the hand was never measured").is_greater(
-		60
+	# One-handed the hand is near the gun only from the reach to the return (60 updates since the
+	# reload fetches the new magazine from the belt, kit #1052); two-handed the aim adds the rest.
+	var least := 40 if one_handed else 60
+	(
+		assert_int(_live_measured)
+		. override_failure_message("the hand was measured %d times" % _live_measured)
+		. is_greater(least)
 	)
 	(
 		assert_float(_live_deepest)

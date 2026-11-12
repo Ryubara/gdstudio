@@ -159,7 +159,8 @@ read it prints `commits: cannot tell`, as the docs rule does (kit #1303). The gu
   `origin/main`, not only the ones this task wrote. **Watch out for:** a stacked pull request carried its base
   branch's commits by another model; `gds pr check-body` passed its body and the CI `commits` job refused it after the
   push. **Seen:** gdstudio #1264 and #1274, 2026-11-11 (fix: kit #1303, `gds pr check-body` and the guard run
-  `check-commits --body` on the branch's commits).
+  `check-commits --body` on the branch's commits); gdstudio #1273, 2026-11-11 (pushed before kit #1303's check: the
+  `Model:` line named one of the two models of its commits, stacked on #1171).
 - **Approach:** Make a local check read its input from where CI reads it: the base branch's docs for what existed
   before the branch (`Read first:`), the branch for what it writes (`Lessons:`), and check that its refusal words
   the fault as CI's does for the same body. **Watch out for:** `gds pr check-body`

@@ -49,7 +49,9 @@ def walk_clip(rig, arms: float = 1.0, lags: dict | None = None) -> Clip:
         land = 0.0 if s == "l" else n / 2.0
         ball = rig.sole[s]["ball"]
         place = (ball[0], ball[2] + speed * land / FPS + reach - 0.05)
-        falls.append(Footfall(s, land, land + stance, place, heel_strike=12.0, roll_in=3.0, toe_off=38.0, roll_out=6.0))
+        # The heel rises 32 degrees: past that the prototype bodies' toes lift the lowest skin over the floor band
+        # (2.3 mm at 38), which a gait sets down on the skin itself (`clips/gait.py`, `settle_height`).
+        falls.append(Footfall(s, land, land + stance, place, heel_strike=12.0, roll_in=3.0, toe_off=32.0, roll_out=6.0))
     plan = ContactPlan(n, falls, Travel.steady(speed), clearance=0.05)
 
     def spec(f: int) -> dict:

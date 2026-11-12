@@ -35,6 +35,38 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   asserted in a test (`ALL.size()`) moves with every clip added. **Seen:** gdstudio #1154, 2026-11-11
   (`tools/capture/own_clips_review.gd`); gdstudio #1160, 2026-11-11 (the crouch clips: `CROUCH_IDLE` and
   `CROUCH_WALK` moved to `gds/`, and the count test failed at 91 for 95, as this entry warns).
+- **Approach:** Test a gait of our own by what holds for a rolling foot and a run: the patch of the sole on the
+  floor stays put along the travel curve (the toes' joint, after the first quarter of the contact, which is the
+  roll onto it; the ankle travels), each arm goes with the other side's leg, the
+  two feet land half a cycle apart, and the clip's `speed` is the game's. **Watch out for:** the first
+  tests held the ankle still through a contact, which a heel-to-toe roll moves, and looked for the arms
+  widest on the landing frame, which is true of a walk and not of a run; a footstep count asserted for the
+  library's walk (90 steps a minute) is wrong for ours (138). **Seen:** gdstudio #1155,
+  2026-11-11 (`tests/gameplay/test_own_clips.gd`, `test_footsteps.gd`).
+- **Approach:** Hold a rolling foot's joint along the floor and in height apart, on the bodies the game wears
+  (`CharacterBodies`), and give a limit the import's own share: measure the same joint with
+  `compression/enabled` off before blaming the clip. **Watch out for:** on the prototype bodies the toes' joint
+  stays within 0.4 mm along the floor and comes down 5.2 to 5.7 mm as the foot rolls off (the build sets the
+  turned-up sole's skin on the floor), which one distance read as a 5 mm slide; and the idle's planted joints
+  move 0.2 mm in the build and 1.1 to 1.4 mm in Godot, the rest being the compressed tracks' rounding (0.2 to
+  0.5 mm with compression off), over the test's first 1 mm. **Seen:** gdstudio #1155 (PR #1275), 2026-11-11
+  (`ROLLING` 1 mm, `ROLL_DROP` 7 mm, `PLANTED` 1.5 mm).
+- **Approach:** After a gait changes, run every suite that measures a pose over the gait, not only the gait's
+  own: an action that fades in over it (the vault, `test_vault_contacts.gd`), the carried weapon
+  (`test_pistol_clearance.gd`) and a shot at a running body (`test_net_ai_rewind.gd`). **Watch out for:** the
+  ground blend space plays its loops out of step (`sync` advances them by the same time, not the same phase), so
+  between the walk's and the jog's speeds a foot is a mix of two strides: with our own gaits the ball of a foot
+  was 20 mm under the floor as a vault began and 43 mm under half way into its 0.1 s fade, where the library's
+  shorter strides stayed inside the test's 20 mm. The vault's floor check counts from the end of the fade; the
+  phases are kit #1158's. **Seen:** gdstudio #1155, 2026-11-11.
+- **Approach:** After rebuilding the idle, measure the aiming muzzle again and move `Weapon.no_muzzle_offset` (and
+  its copy in `test_weapon.gd`) to it: `test_weapon_ray.gd` prints the muzzle from the eye in the view's axes.
+  Run the weapon suites after every merge of main as well as after a rebuild. **Watch out for:** the offset is
+  where the pistol's muzzle is while the character aims standing on the idle, so the idle solved again on the
+  prototype bodies put it 6.2 mm from the real muzzle, over the test's 5 mm; the full run before the merge had
+  passed, because main's steady stance under the aim, which set the offset to main's idle, landed in between.
+  **Seen:** gdstudio #1155 (PR #1275), 2026-11-11 (the offset's z from -0.716 to -0.722) and 2026-11-12 (main's
+  pistol seat, #1262, moved the muzzle and the line conflicted: taking main's -0.728 failed by 6 mm; it is -0.734).
 - **Approach:** When a `CharacterClips` constant moves to another library, grep for every table that lists libraries
   by name (`grep -rn LIBRARIES`, `universal/ual1`: `tests/fixtures/hold_stage.gd`, `pistol_clearance.gd`,
   `tools/ragdoll/measure_joints.gd`) and add the library, then run the weapon and hold suites (`test_weapon*.gd`,

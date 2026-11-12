@@ -1,17 +1,18 @@
-## Measures what the weapon holds cost (kit #1001, #1178): 40 mannequins play the pistol's aim clip,
-## each with `pistol_held.tscn` on its hand, in one of the runs named by the user argument (or by
-## `?run=` in the web build's address): `no_hold` (no hold scene), `carried` (the grip's finger
-## pose, the wrist's turn and the arm's swing) or `aimed` (those and the left arm's reach and the
-## left fingers); or with `rifle_held.tscn` in the model's space: `rifle` (aimed: the stance, both
-## arms' reach and both hands' fingers), `rifle_low` (the same at the low ready) or `rifle_reload`
-## (aimed, 0.3 of a reload: the left hand taking the magazine out). A camera looks on from
-## `NEAR_CAMERA` (every figure inside the rifle hold's `fingers_far_distance`, as the player's
-## own character and those near it); `no_hold_far` and `rifle_far` from `FAR_CAMERA` (past it,
-## the holds told so as the animation throttle tells them in a game).
-## A game always has a camera, and what the hold moves costs more with one looking. The figures
-## wear one of the template's own bodies, named by the second user argument (or `?body=`):
-## `female` (the default, the player's; the holds' own places and poses) or `male` (the enemies';
-## the holds' `fits` solved on it).
+## Measures what the weapon holds cost (kit #1001, #1178): 40 mannequins play the pistol's aim
+## clip, each with `pistol_held.tscn` on its hand, in one of the runs named by the user argument
+## (or by `?run=` in the web build's address): `no_hold` (no hold scene), `carried` (the grip's
+## finger pose, the wrist's turn and the arm's swing), `aimed` (those and the left arm's reach and
+## the left fingers) or `one_handed` (the grip and the one-handed stance of kit #1085: the chest's
+## turn and the right arm's reach); or with `rifle_held.tscn` in the model's space: `rifle` (aimed:
+## the stance, both arms' reach and both hands' fingers), `rifle_low` (the same at the low ready)
+## or `rifle_reload` (aimed, 0.3 of a reload: the left hand taking the magazine out). A camera
+## looks on from `NEAR_CAMERA` (every figure inside the rifle hold's `fingers_far_distance`, as the
+## player's own character and those near it); `no_hold_far` and `rifle_far` from `FAR_CAMERA` (past
+## it, the holds told so as the animation throttle tells them in a game). A game always has a
+## camera, and what the hold moves costs more with one looking. The figures wear one of the
+## template's own bodies, named by the second user argument (or `?body=`): `female` (the default,
+## the player's; the holds' own places and poses) or `male` (the enemies'; the holds' `fits` solved
+## on it).
 ##
 ## A frame's work is the span from the `_process` of the first node to process to the end of the
 ## deferred calls that follow the last one (the skeletons run their modifiers there), the same
@@ -46,6 +47,7 @@ const RUNS: Dictionary[String, Dictionary] = {
 	"no_hold": {"hold": false, "aim": 0.0, "camera": NEAR_CAMERA},
 	"carried": {"hold": true, "aim": 0.0, "camera": NEAR_CAMERA},
 	"aimed": {"hold": true, "aim": 1.0, "camera": NEAR_CAMERA},
+	"one_handed": {"hold": true, "aim": 1.0, "one_handed": true, "camera": NEAR_CAMERA},
 	"rifle": {"rifle": true, "aim": 1.0, "camera": NEAR_CAMERA},
 	"rifle_low": {"rifle": true, "aim": 0.0, "camera": NEAR_CAMERA},
 	"rifle_reload": {"rifle": true, "aim": 1.0, "reload": 0.3, "camera": NEAR_CAMERA},
@@ -182,6 +184,7 @@ func _figure(run: Dictionary) -> Node3D:
 		hold.set(&"model", slot)
 		hold.set(&"seat", seat)
 		hold.set(&"aim_weight", run.aim)
+		hold.set(&"one_handed", run.get("one_handed", false))
 		figure.add_child(hold)
 	return figure
 

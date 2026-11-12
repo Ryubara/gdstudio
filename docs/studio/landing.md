@@ -174,11 +174,15 @@ force push, which is the maintainer's decision: open the same change from a new 
   `gds check scripts` (or the template's test) before pushing. **Watch out for:** a merge of `main` doubled a step in a
   test; `main` retyping a shared property (the loadout's `slots` to `Array[Resource]`) leaves the branch's lines
   on the old type, unparsable; suites picked by name miss a test `main` added over what the branch changed:
-  grep the tests for it (`fists.tres`) and run each hit.
-  **Seen:** Deadnight, 2026-11-01 (the night suite caught it); gdstudio #1258, 2026-11-11 (an
-  inventory test from #1040 still typed `Array[WeaponDef]`; fix: retyped after the template check failed;
-  then a new export met the pins test `main` had added since); gdstudio #1315, 2026-11-12 (the online
-  fire count expected the fists, now a blow, to shoot; fix: counted `melee_started`).
+  grep the tests for it (`fists.tres`) and run each hit; a total both sides raised to one number merges with no
+  diff and is wrong: recount it.
+  **Seen:** Deadnight, 2026-11-01; gdstudio #1258, 2026-11-11 (an inventory test from #1040 still typed
+  `Array[WeaponDef]`); gdstudio #1315, 2026-11-12 (the online fire count expected the fists, now a blow, to
+  shoot); #1275, 2026-11-12 (a clip count of 97 on both sides, 100 merged).
+- **Approach:** After a merge with no conflict in a test, read the assertions that name an example ("a clip with no
+  stand-in") against what the branch changed. **Watch out for:** `main` moved such an example from the walk to the
+  crouch walk, which the branch had just given a stand-in; git merged it cleanly. **Seen:** gdstudio #1285 on #1275,
+  2026-11-12 (`test_own_clips.gd`; it now names `JUMP_START`).
 - **Approach:** When a branch moves a shared asset path (a body, a model), grep the merged tree for the old path after
   `gds merge-main`, in tests and in scenes, and run the full template suite, not only the suites the branch touched.
   **Watch out for:** a scene and a suite that landed on `main` after the branch started still use the old path, so

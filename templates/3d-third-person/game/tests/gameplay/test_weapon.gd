@@ -115,6 +115,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"clips_upright": false,
 		&"grip_clip": CharacterClips.PISTOL_IDLE,
 		&"grip_bones": [&"hand_r"] as Array[StringName],
+		&"one_handed": false,
 		&"aim_clip": CharacterClips.PISTOL_AIM,
 		&"aim_up_clip": CharacterClips.PISTOL_AIM_UP,
 		&"aim_down_clip": CharacterClips.PISTOL_AIM_DOWN,

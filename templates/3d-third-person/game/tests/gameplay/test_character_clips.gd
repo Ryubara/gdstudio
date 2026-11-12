@@ -24,7 +24,7 @@ func test_every_listed_clip_exists_and_every_clip_is_listed() -> void:
 		var library := animation_player.get_animation_library(library_name)
 		in_libraries += library.get_animation_list().size()
 	assert_int(in_libraries).is_equal(CharacterClips.ALL.size())
-	assert_int(CharacterClips.ALL.size()).is_equal(119)
+	assert_int(CharacterClips.ALL.size()).is_equal(122)
 
 
 func test_every_constant_names_a_listed_clip() -> void:

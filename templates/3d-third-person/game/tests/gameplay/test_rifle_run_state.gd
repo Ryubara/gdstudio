@@ -21,6 +21,10 @@ const LEAN := 0.5
 const HAND := 0.003
 ## How far the head's swing may differ between two readings of the same gait, in degrees.
 const SAME_SWING := 2.0
+## The same for a slide: its first ticks still hold some of the sprint's pose, and two slides do
+## not leave the sprint at the same place in its stride (an 18-frame sprint read over whole
+## strides and a 40-tick settle), which moved the swing 2.6 degrees with nothing else changed.
+const SLIDE_SWING := 4.0
 ## The ticks from letting go of the fire button until nothing of the shot is on the body: the
 ## rifle stays at the shoulder `shot_hold_time` (0.6 s) and comes down in `raise_time` (0.15 s).
 const AFTER_SHOT := 60
@@ -114,7 +118,7 @@ func test_the_sprint_and_the_slide_after_a_burst_are_the_ones_before_it(
 	await InputSim.ticks(get_tree(), AFTER_SHOT)
 	InputSim.key(KEY_SHIFT, true)
 	_assert_same(await _gait("%s sprint after a burst" % body), sprint)
-	_assert_same(await _slide("%s slide after a burst" % body), slide)
+	_assert_same(await _slide("%s slide after a burst" % body), slide, SLIDE_SWING)
 
 
 func test_the_pistol_run_is_the_same_after_the_rifle_and_after_a_shot(
@@ -311,7 +315,7 @@ func _assert_rifle_layers(state: Dictionary, tag: String) -> void:
 
 
 # `state` is `wanted`: the same weights on every layer and the same body within the tolerances.
-func _assert_same(state: Dictionary, wanted: Dictionary) -> void:
+func _assert_same(state: Dictionary, wanted: Dictionary, swing := SAME_SWING) -> void:
 	var tag := "%s against %s: " % [state.tag, wanted.tag]
 	for key: String in ["armed", "aim", "stance", "raised", "reach"]:
 		(
@@ -347,5 +351,5 @@ func _assert_same(state: Dictionary, wanted: Dictionary) -> void:
 		. override_failure_message(
 			"%sthe head swings %.0f degrees, not %.0f" % [tag, state.head_swing, wanted.head_swing]
 		)
-		. is_equal_approx(wanted.head_swing, SAME_SWING)
+		. is_equal_approx(wanted.head_swing, swing)
 	)

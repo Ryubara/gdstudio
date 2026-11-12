@@ -94,3 +94,11 @@ feet cover a known ground speed and the new clips blend in step with the old. Le
   reuses the planted foot's function with the ball lifted, so it snapped the swinging foot back down and through
   the floor by 29 mm; the planted frames read perfect. **Seen:** gdstudio #1160 (PR #1285), 2026-11-11 (fix: the
   move is the lowest skin's change against the hinge, `plan._state`).
+- **Approach:** When two branches of the clip toolkit meet, rebuild every review and shipped file and compare each
+  with the parent that last built it, bytes first, then key by key; give a description that sets its own skin on the
+  floor a way out of the plan's (`ContactPlan.tread`), and name the bodies a gait's feet are set down for
+  (`build_own.GAIT_BODIES`). **Watch out for:** every check passed with the gaits changed: the plan's settle of a
+  raised foot ran under the gait's own (the knee 3 degrees and the foot's target 5 mm off on the frame after the
+  toes leave), and feet set down for the Quaternius pair as well stood 3.3 to 3.9 mm off the floor on the template's
+  bodies. **Seen:** gdstudio #1160 (PR #1285) on #1275, 2026-11-12 (the jog and the sprint are main's bytes again;
+  the walk's arms open 0.4 degrees more to clear four bodies).

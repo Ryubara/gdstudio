@@ -262,6 +262,18 @@
   "crouch_to_stand": [
    "Kept for review (shipped first, then the maintainer chose A on 2026-11-12). Loose: 20 frames, the right foot landing at frame 16, the trunk unfolding last; the rise stops at 0.50 of gravity.",
    "Tried: the foot landing at frame 18: the head and the left forearm kicked 0.8 and 1.1 degrees on the landing frame as the ends were let go; it lands at 16 and the ends are let go over 4 frames."
+  ],
+  "walk": [
+   "Loose: a longer step (129 steps a minute), the hips turn 12 degrees and tip 9, the pelvis sways 64 mm, the left arm goes through 65 degrees and the forearm and the hand trail two frames and swing past. Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
+   "Tried and held back: an overshoot of 0.25 to 0.3 on the forearm and the hand. At a gait's pace the spring rings: the elbow went 21 degrees past straight and the hand 100 degrees from the forearm; it is 0.15 and 0.2. The hands keep 22 cm from the thigh's line to clear the hips."
+  ],
+  "jog": [
+   "Loose: the hips turn 16 degrees and the shoulders 25, the pelvis sways 52 mm, the hands are half open and the left arm goes through 108 degrees, trailing a frame and a half. Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
+   "Could not be done: the hands as near the hips as the grounded one's (62 mm inside the pelvis on the male with the wider swing); the elbows go 18 degrees out as they pass back."
+  ],
+  "sprint": [
+   "Loose: the hips turn 22 degrees and the shoulders 31, the left arm through 138 degrees with an open elbow, the head lets the chest's turn through (11 degrees). Each side has its own numbers and its own timing: the right arm is held tighter with its shoulder lower and comes forward later, the right foot turns out more and its heel comes up later.",
+   "Could not be done: the closing elbow of the grounded one (the trailing hand was 31 to 110 mm inside the chest); the elbow holds 80 degrees and gives 6."
   ]
  },
  "overlap_stand_to_crouch": {
@@ -295,5 +307,210 @@
    1.5,
    0.3
   ]
+ },
+ "overlap_walk": {
+  "chest": [
+   2.5,
+   0.1
+  ],
+  "head": [
+   3.0,
+   0.15
+  ],
+  "upperarm": [
+   1.5,
+   0.15
+  ],
+  "forearm": [
+   2.0,
+   0.15
+  ],
+  "hand": [
+   2.0,
+   0.2
+  ]
+ },
+ "walk": {
+  "frames": 28,
+  "duty": 0.5714285714285714,
+  "hip_turn": 6.0,
+  "hip_tip": 4.5,
+  "counter_turn": 6.0,
+  "sway": 0.022,
+  "bob": 0.042,
+  "arm_fore": 22.0,
+  "arm_back": 28.0,
+  "elbow_live": 16.0,
+  "wrist_live": 9.0,
+  "finger_live": 6.0,
+  "uneven": 1.6,
+  "lean": 2.0,
+  "elbow": 24.0,
+  "arm_clear": 0.22,
+  "arm_out": 11.0,
+  "left": {
+   "toe_out": 3.2,
+   "arm_fore": 26.2,
+   "arm_back": 30.8,
+   "elbow": 26.8
+  },
+  "right": {
+   "toe_out": 11.6,
+   "width": 0.089,
+   "arm_fore": 16.4,
+   "arm_back": 23.8,
+   "elbow": 32.4,
+   "arm_out": 13.8,
+   "pronate": 22.4,
+   "curl": [
+    32.4,
+    62.0,
+    72.0,
+    77.2,
+    80.4
+   ],
+   "roll_out": 6.53,
+   "kick_at": 0.34,
+   "arm_at": 0.51
+  },
+  "hip_turn_rest": 1.4,
+  "hip_tip_rest": 1.4,
+  "chest_turn_rest": -2.8,
+  "chest_tip_rest": 2.1,
+  "head_turn_rest": 2.1,
+  "head_tip_rest": 1.4,
+  "pelvis_waves": 3,
+  "swing_early": 0.0,
+  "swing_ease": 1.0,
+  "speed_limit": 24.0
+ },
+ "overlap_jog": {
+  "chest": [
+   2.0,
+   0.1
+  ],
+  "head": [
+   2.0,
+   0.15
+  ],
+  "upperarm": [
+   1.2,
+   0.15
+  ],
+  "forearm": [
+   1.5,
+   0.1
+  ],
+  "hand": [
+   1.5,
+   0.15
+  ]
+ },
+ "jog": {
+  "hip_turn": 8.0,
+  "hip_tip": 5.5,
+  "counter_turn": 13.0,
+  "sway": 0.012,
+  "bob": 0.07,
+  "arm_fore": 34.0,
+  "arm_back": 50.0,
+  "elbow": 76.0,
+  "elbow_live": 14.0,
+  "wrist_live": 10.0,
+  "curl": [
+   45.0,
+   110.0,
+   120.0,
+   128.0,
+   134.0
+  ],
+  "uneven": 1.6,
+  "arm_out_back": 18.0,
+  "arm_out": 15.0,
+  "left": {
+   "toe_out": 2.6,
+   "width": 0.056,
+   "arm_fore": 39.6,
+   "arm_back": 54.2
+  },
+  "right": {
+   "toe_out": 9.6,
+   "width": 0.064,
+   "arm_fore": 27.0,
+   "arm_back": 44.4,
+   "elbow": 81.6,
+   "arm_twist": 9.8,
+   "shrug": 2.1,
+   "roll_out": 3.04,
+   "kick_at": 0.4,
+   "arm_at": 0.27
+  },
+  "hip_turn_rest": 1.4,
+  "hip_tip_rest": 1.4,
+  "chest_turn_rest": -3.5,
+  "chest_tip_rest": 2.1,
+  "head_turn_rest": 2.1,
+  "head_tip_rest": 1.4
+ },
+ "overlap_sprint": {
+  "chest": [
+   1.5,
+   0.1
+  ],
+  "head": [
+   2.0,
+   0.15
+  ],
+  "upperarm": [
+   1.2,
+   0.15
+  ],
+  "forearm": [
+   1.4,
+   0.1
+  ],
+  "hand": [
+   1.5,
+   0.15
+  ]
+ },
+ "sprint": {
+  "hip_turn": 11.0,
+  "hip_tip": 5.0,
+  "counter_turn": 16.0,
+  "arm_fore": 46.0,
+  "arm_back": 66.0,
+  "elbow_live": 6.0,
+  "bob": 0.055,
+  "uneven": 1.5,
+  "lean": 6.0,
+  "arm_twist": 0.0,
+  "elbow": 80.0,
+  "arm_out": 16.0,
+  "left": {
+   "toe_out": 1.6,
+   "arm_fore": 51.6,
+   "arm_back": 71.6,
+   "elbow": 74.4
+  },
+  "right": {
+   "toe_out": 7.2,
+   "width": 0.058,
+   "arm_fore": 39.0,
+   "arm_back": 59.0,
+   "elbow": 87.0,
+   "arm_out": 18.8,
+   "shrug": 4.1,
+   "kick": 0.285,
+   "roll_out": 2.17,
+   "kick_at": 0.38,
+   "arm_at": 0.27
+  },
+  "hip_turn_rest": 1.4,
+  "hip_tip_rest": 1.12,
+  "chest_turn_rest": -2.8,
+  "chest_tip_rest": 2.1,
+  "head_turn_rest": 1.4,
+  "head_tip_rest": 1.4
  }
 }

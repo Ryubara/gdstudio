@@ -34,7 +34,7 @@ HERE = Path(__file__).resolve().parent
 QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 sys.path.insert(0, str(HERE))
 
-from clips import crouch_idle, crouch_walk, idle, stance  # noqa: E402
+from clips import crouch_idle, crouch_walk, gait, idle, stance  # noqa: E402
 from clips.joined import Joined, described  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
@@ -50,16 +50,32 @@ BODIES = [
     ASSETS / "characters/mannequin/mannequin_female.glb",
     ASSETS / "characters/mannequin/mannequin_male.glb",
 ]
+## The bodies a gait's feet are set down for (`gait.play_on`): the template's own.
+GAIT_BODIES = {path.resolve() for path in BODIES[:2]}
 ## A clip type's description, by its name in lower case.
 TYPES = {
     "idle": ("Idle", idle.describe),
+    "walk": ("Walk", gait.walk),
+    "jog": ("Jog", gait.jog),
+    "sprint": ("Sprint", gait.sprint),
     "crouch_idle": ("Crouch_Idle", crouch_idle.describe),
     "crouch_walk": ("Crouch_Walk", crouch_walk.describe),
     "stand_to_crouch": ("Stand_To_Crouch", stance.describe_down),
     "crouch_to_stand": ("Crouch_To_Stand", stance.describe_up),
 }
 ## The shipped files: the frozen list of clips each carries.
-GROUPS = {"locomotion": ["Idle", "Crouch_Idle", "Crouch_Walk", "Stand_To_Crouch", "Crouch_To_Stand"]}
+GROUPS = {
+    "locomotion": [
+        "Idle",
+        "Walk",
+        "Jog",
+        "Sprint",
+        "Crouch_Idle",
+        "Crouch_Walk",
+        "Stand_To_Crouch",
+        "Crouch_To_Stand",
+    ]
+}
 ## The deepest a limb may be inside another part of the body, on every body (mm).
 OVERLAP_MM = 5.0
 
@@ -153,6 +169,10 @@ def main() -> int:
     rig = Rig(args.model)
     bodies = [rig] + [Rig(path) for path in (args.body or BODIES) if Path(path).resolve() != args.model.resolve()]
     solver = Solver(rig, bodies[1:])
+    # Set down for the Quaternius pair as well, whose toes rest 7 mm lower, a gait's soles stand 3 to 4 mm off
+    # the floor on the template's bodies (the band is 2).
+    template = [body for body in bodies if body.path.resolve() in GAIT_BODIES]
+    gait.play_on(template or bodies)
     if args.what == "self-test":
         return selftest.run(rig, solver, bodies)
     styles = {one.letter: one for one in style.load_all(HERE / "styles")}

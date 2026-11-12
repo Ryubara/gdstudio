@@ -21,7 +21,7 @@ const CLIPS: Array[StringName] = [
 	CharacterClips.LAND,
 	CharacterClips.PUSH,
 ]
-const SAMPLES := 8
+const SAMPLES := 24
 ## How far a pistol point may be inside the body, in metres (none).
 const TOLERANCE := 0.0
 
