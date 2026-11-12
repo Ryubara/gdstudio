@@ -18,6 +18,12 @@ signal flinch_ended
 
 ## The bodies a flinch never takes: the legs keep their clip.
 const LEGS: Array[StringName] = [&"thigh_l", &"calf_l", &"foot_l", &"thigh_r", &"calf_r", &"foot_r"]
+## A flinching body farther than this from the clip's pose (metres) or faster (m/s) has left its
+## joints: the flinch ends at once and the clip takes the skeleton back, before the solver can
+## carry it on to NaN. A flinch at its strongest reads 0.36 m and 5 m/s; an arm that left its
+## joints in the AI soak read 1 m, then 500 m/s a tick later (gdstudio #1326).
+const FLINCH_STRAY := 0.6
+const FLINCH_TOO_FAST := 15.0
 ## The body a flinch starts from when the pelvis or a leg is hit (the pelvis would take the whole
 ## body with it).
 const TRUNK := &"spine_01"
@@ -49,6 +55,10 @@ const TRUNK := &"spine_01"
 @export var flinch_enabled := true
 ## How hard the flinch's push is, as a share of the hit's strength.
 @export_range(0.0, 10.0, 0.05, "or_greater") var flinch_push := 0.6
+## The most speed the flinch's push gives the body it pushes, in m/s. The push lands on the
+## body's middle: a light hand or forearm pushed off its middle at the shot's strength spun at the
+## engine's limit about its own length and dragged its arm away at 500 m/s (gdstudio #1326).
+@export_range(0.0, 20.0, 0.1, "or_greater", "suffix:m/s") var flinch_most_speed := 3.0
 ## How much of the physical pose shows at the flinch's height (0 none, 1 all of it); it then
 ## blends back to the clip.
 @export_range(0.0, 1.0, 0.01) var flinch_strength := 0.85
@@ -164,27 +174,32 @@ func _flinch(record: HitRecord) -> void:
 	if is_flinching():
 		# A new hit starts the flinch again, on its own part.
 		simulator.physical_bones_stop_simulation()
+	_lift_braces()
 	_place_bodies(bones)
 	simulator.influence = flinch_strength
 	simulator.active = true
 	simulator.physical_bones_start_simulation(bones)
+	_still_bodies()
+	_out_of_the_world(bones)
 	var hit_body := body_for(record.bone)
 	var pushed := ragdoll.body(hit_body if bones.has(hit_body) else bones[0])
 	if flinch_push > 0.0 and record.strength > 0.0:
-		pushed.apply_impulse(record.direction * record.strength * flinch_push, _arm(pushed, record))
+		var push := record.direction * record.strength * flinch_push
+		pushed.apply_central_impulse(push.limit_length(pushed.mass * flinch_most_speed))
 	_flinch_bones = bones
 	_flinch_left = flinch_time
 	set_physics_process(true)
 	flinched.emit(bones)
 
 
-# Puts every body of the ragdoll at the clip's pose in the physics server, at once, before a
-# flinch starts. The bodies the flinch leaves out turn kinematic and follow the clip from where
-# the server has them, and while the simulator rests nothing moves them there (a node's transform
-# does not reach the server then): they wait where the last death or flinch left them, metres
-# away once the character has walked on. Their first kinematic move was that whole way in one
-# tick, 60 m/s into the bones joined to them, and now and then more than the solver holds: bones
-# at NaN (gdstudio #1326). A kinematic body is made static for the move, so the move is a jump.
+# Puts every body of the ragdoll at the clip's pose in the physics server, at rest, at once,
+# before a flinch starts. The bodies the flinch leaves out turn kinematic and follow the clip from
+# where the server has them, and while the simulator rests nothing moves them there (a node's
+# transform does not reach the server then): they wait where the last death or flinch left them,
+# metres away once the character has walked on, and an arm the last flinch threw keeps its speed
+# as a kinematic body. Their first move was that whole way in one tick, or that speed, 60 to 480
+# m/s into the bones joined to them, and now and then more than the solver holds: bones at NaN
+# (gdstudio #1326). A kinematic body is made static for the move, so the move is a jump.
 func _place_bodies(flinching: Array[StringName]) -> void:
 	for entry: Dictionary in CharacterRagdoll.BODIES:
 		var key: StringName = entry.bone
@@ -204,6 +219,36 @@ func _place_bodies(flinching: Array[StringName]) -> void:
 		if flinching.has(key):
 			body.linear_velocity = Vector3.ZERO
 			body.angular_velocity = Vector3.ZERO
+	_still_bodies()
+
+
+# Every body's speed in the server to nothing (again once the engine has made the bodies the flinch
+# leaves out kinematic: the switch keeps a speed the server had).
+func _still_bodies() -> void:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
+		var body := ragdoll.body(entry.bone)
+		if body == null:
+			continue
+		var rid := body.get_rid()
+		PhysicsServer3D.body_set_state(
+			rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO
+		)
+		PhysicsServer3D.body_set_state(
+			rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO
+		)
+
+
+# The bodies the flinch leaves out off every layer while it runs. The engine leaves them kinematic
+# on the ragdoll's layers, following the clip: an arm that flinched against the trunk was pressed
+# between the trunk's body and its own joint, both moved by the clip and immovable to it, and
+# spun at the engine's limit until it left at 500 m/s (gdstudio #1326). Off the layers, shots and
+# the aim's ray also meet the living body's hit zones there, not its bones (as #876 wants).
+func _out_of_the_world(flinching: Array[StringName]) -> void:
+	for entry: Dictionary in CharacterRagdoll.BODIES:
+		var body := ragdoll.body(entry.bone)
+		if body != null and not flinching.has(entry.bone):
+			PhysicsServer3D.body_set_collision_layer(body.get_rid(), 0)
+			PhysicsServer3D.body_set_collision_mask(body.get_rid(), 0)
 
 
 func _tick_flinch(delta: float) -> void:
@@ -214,12 +259,50 @@ func _tick_flinch(delta: float) -> void:
 		# The character died meanwhile: the ragdoll has the whole skeleton now.
 		_stop_flinch(false)
 		return
+	if _flinch_broke():
+		_stop_flinch(true)
+		return
 	_flinch_left = maxf(_flinch_left - delta, 0.0)
 	var done := 1.0 - _flinch_left / maxf(flinch_time, 0.001)
 	var left := 1.0 - smoothstep(flinch_hold, 1.0, done)
 	ragdoll.simulator().influence = flinch_strength * left
 	if _flinch_left <= 0.0:
 		_stop_flinch(true)
+
+
+# True when a flinching body has left its joints (`FLINCH_STRAY`, `FLINCH_TOO_FAST`), or is not
+# finite.
+func _flinch_broke() -> bool:
+	for key in _flinch_bones:
+		var body := ragdoll.body(key)
+		if body == null:
+			continue
+		var rid := body.get_rid()
+		var at := (
+			PhysicsServer3D.body_get_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM) as Transform3D
+		)
+		var speed: Vector3 = PhysicsServer3D.body_get_state(
+			rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY
+		)
+		var away := at.origin.distance_to(ragdoll.animated_body(key).origin)
+		if not (away < FLINCH_STRAY and speed.length() < FLINCH_TOO_FAST):
+			return true
+	return false
+
+
+# The ragdoll's extra joints (`RagdollBraces`, copies of each joint that hold a limp body's limbs)
+# go while a flinch runs. Against a parent the clip moves (a kinematic body, as heavy as the world
+# to the solver) six copies of a joint turned a light arm at the engine's limit of 47 rad/s in a
+# tick, and the arm left its joints at 500 m/s; with one joint the AI soak's seeds ran clean
+# (gdstudio #1326). `CharacterRagdoll` is at its line limit, so its braces are reached here.
+func _lift_braces() -> void:
+	ragdoll._braces.free_all()
+
+
+# The extra joints again, after the bones' own (Jolt solves them in the order they were made).
+func _restore_braces() -> void:
+	if ragdoll != null and ragdoll._braces.is_empty() and ragdoll._braces.has_plan():
+		ragdoll._braces.remake()
 
 
 # Ends the flinch; `release` hands the skeleton back to the clip (off when the ragdoll took it).
@@ -233,6 +316,7 @@ func _stop_flinch(release: bool) -> void:
 		simulator.influence = 1.0
 	_flinch_left = 0.0
 	_flinch_bones = []
+	_restore_braces()
 	set_physics_process(false)
 	flinch_ended.emit()
 

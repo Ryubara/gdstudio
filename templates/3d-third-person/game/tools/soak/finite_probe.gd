@@ -15,6 +15,8 @@ var _flinch := {}
 var _flinches := 0
 var _restarts := 0
 var _wild := 0
+var _dumped := false
+var _dump_now := false
 
 
 class Trace:
@@ -68,6 +70,8 @@ func _collect(node: Node) -> void:
 
 
 func _on_added(node: Node) -> void:
+	if node is PhysicalBone3D:
+		PhysicsServer3D.body_set_max_contacts_reported(node.get_rid(), 6)
 	if node is Character and not node.hit_received.is_connected(_on_hit):
 		node.hit_received.connect(_on_hit.bind(node))
 	if node is HitReaction and not node.flinched.is_connected(_on_flinched):
@@ -121,10 +125,20 @@ func _physics_process(_delta: float) -> void:
 func _record_flinches() -> void:
 	for node in get_tree().get_nodes_in_group(AiCharacter.GROUP):
 		var reaction := node.find_child("HitReaction", true, false)
-		if reaction == null or not reaction.is_flinching():
+		if reaction == null:
 			continue
 		var ragdoll: CharacterRagdoll = reaction.ragdoll
 		var sim := ragdoll.simulator()
+		if sim == null or not (reaction.is_flinching() or ragdoll.is_limp()):
+			continue
+		var fastest := 0.0
+		for entry: Dictionary in CharacterRagdoll.BODIES:
+			var b := ragdoll.body(entry.bone)
+			if b != null:
+				var vel: Vector3 = PhysicsServer3D.body_get_state(
+					b.get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY
+				)
+				fastest = maxf(fastest, vel.length()) if vel.is_finite() else INF
 		var state: Dictionary = _flinch.get(reaction.get_instance_id(), {})
 		var most := 0.0
 		var worst := &""
@@ -153,38 +167,64 @@ func _record_flinches() -> void:
 					]
 				)
 			)
+		if (most > 2.0 or fastest > 30.0) and not _dumped:
+			_dumped = true
+			for old: String in _rings.get(node.get_instance_id(), []):
+				print("FINITE_PROBE wildring " + old)
+			_dump_now = true
 		var line := (
-			"f=%d infl=%.3f active=%s simulating=%s skel_scale=%s"
-			% [
-				Engine.get_physics_frames(),
-				sim.influence,
-				sim.active,
-				sim.is_simulating_physics(),
-				ragdoll.model.skeleton().global_transform.basis.get_scale()
-			]
+			("limp " if ragdoll.is_limp() else "")
+			+ (
+				"f=%d infl=%.3f active=%s simulating=%s skel_scale=%s"
+				% [
+					Engine.get_physics_frames(),
+					sim.influence,
+					sim.active,
+					sim.is_simulating_physics(),
+					ragdoll.model.skeleton().global_transform.basis.get_scale()
+				]
+			)
 		)
 		for entry: Dictionary in CharacterRagdoll.BODIES:
 			var bone := ragdoll.body(entry.bone)
 			if bone == null:
 				continue
 			var anim := ragdoll.animated_body(entry.bone)
+			var touching := PackedStringArray()
+			var direct := PhysicsServer3D.body_get_direct_state(bone.get_rid())
+			if direct != null:
+				for c in direct.get_contact_count():
+					var other := direct.get_contact_collider_object(c)
+					touching.append(
+						(
+							"%s@%s"
+							% [other.name if other is Node else "?", direct.get_contact_impulse(c)]
+						)
+					)
+			var rid := bone.get_rid()
+			var lin: Vector3 = PhysicsServer3D.body_get_state(
+				rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY
+			)
+			var ang: Vector3 = PhysicsServer3D.body_get_state(
+				rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY
+			)
 			line += (
-				"\n   %s sim=%s at=%s q=%s det=%.6f v=%s w=%s anim_at=%s anim_det=%.6f"
+				" %s:m%d,o%.2f,v%.0f,w%.0f,t%s"
 				% [
 					entry.bone,
-					bone.is_simulating_physics(),
-					bone.global_position,
-					bone.global_basis.get_rotation_quaternion(),
-					bone.global_basis.determinant(),
-					bone.linear_velocity,
-					bone.angular_velocity,
-					anim.origin,
-					anim.basis.determinant()
+					PhysicsServer3D.body_get_mode(rid),
+					bone.global_position.distance_to(anim.origin),
+					lin.length(),
+					ang.length(),
+					touching
 				]
 			)
+		if _dump_now:
+			_dump_now = false
+			print("FINITE_PROBE wildring now " + line)
 		var ring: Array = _rings.get(node.get_instance_id(), [])
 		ring.append(line)
-		if ring.size() > 4:
+		if ring.size() > 40:
 			ring.remove_at(0)
 		_rings[node.get_instance_id()] = ring
 

@@ -160,6 +160,63 @@ func test_a_flinch_after_getting_up_starts_from_the_clip_pose() -> void:
 	assert_float(await _flinch_spread(6)).is_less(0.1)
 
 
+# gdstudio #1326: the push landed where the shot did, so a forearm (a thin capsule of a kilogram)
+# spun at the engine's limit (47 rad/s; a swing at 3 m/s is about 25) and, in the AI soak, its
+# arm left at 500 m/s. It lands on the body's middle and gives it at most `flinch_most_speed`.
+func test_a_flinch_push_moves_a_light_limb_and_does_not_spin_it() -> void:
+	var line := HitRange.line_to(_target, _zones.zone(&"forearm_l"))
+	await HitRange.shoot(get_tree(), _arena, line[0], line[1])
+	assert_bool(_reaction.is_flinching()).is_true()
+	var spin := 0.0
+	var speed := 0.0
+	for tick in 3:
+		for key in _reaction.flinch_bones():
+			var rid := _ragdoll.body(key).get_rid()
+			var turning: Vector3 = PhysicsServer3D.body_get_state(
+				rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY
+			)
+			var moving: Vector3 = PhysicsServer3D.body_get_state(
+				rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY
+			)
+			spin = maxf(spin, turning.length())
+			speed = maxf(speed, moving.length())
+		await get_tree().physics_frame
+	assert_float(spin).is_less(35.0)
+	assert_float(speed).is_less(_reaction.flinch_most_speed + 1.0)
+
+
+# gdstudio #1326: the bodies a flinch leaves out follow the clip as kinematic bodies; on the
+# ragdoll's layers they pressed a flinching arm against its own joint until it flew off.
+func test_the_bodies_a_flinch_leaves_out_touch_nothing() -> void:
+	var line := HitRange.line_to(_target, _zones.zone(&"forearm_l"))
+	await HitRange.shoot(get_tree(), _arena, line[0], line[1])
+	assert_bool(_reaction.is_flinching()).is_true()
+	var flinching := _reaction.flinch_bones()
+	for entry: Dictionary in CharacterRagdoll.BODIES:
+		var rid := _ragdoll.body(entry.bone).get_rid()
+		var layers := PhysicsServer3D.body_get_collision_layer(rid)
+		var mask := PhysicsServer3D.body_get_collision_mask(rid)
+		if flinching.has(entry.bone):
+			assert_int(layers).override_failure_message(String(entry.bone)).is_not_equal(0)
+		else:
+			assert_int(layers | mask).override_failure_message(String(entry.bone)).is_equal(0)
+
+
+# gdstudio #1326: the copies of the joints that hold a limp body's limbs (`RagdollBraces`) turned a
+# flinching arm, hung from a body the clip moves, at the engine's limit; they go for the flinch
+# and come back after it.
+func test_a_flinch_lifts_the_extra_joints_and_gives_them_back() -> void:
+	assert_int(_ragdoll.body_count()).is_greater(0)
+	var braced := _ragdoll.hinge_count() + _ragdoll.cone_count()
+	var line := HitRange.line_to(_target, _zones.zone(&"forearm_l"))
+	await HitRange.shoot(get_tree(), _arena, line[0], line[1])
+	assert_bool(_reaction.is_flinching()).is_true()
+	assert_int(_ragdoll.hinge_count() + _ragdoll.cone_count()).is_less(braced)
+	await InputSim.ticks(get_tree(), ceili(_reaction.flinch_time * 60.0) + 3)
+	assert_bool(_reaction.is_flinching()).is_false()
+	assert_int(_ragdoll.hinge_count() + _ragdoll.cone_count()).is_equal(braced)
+
+
 func test_a_shot_on_a_lying_body_pushes_the_bone_and_leaves_a_mark_that_goes_with_it() -> void:
 	var impacts := ImpactShots.impacts_of(_arena)
 	_target.die()
@@ -209,6 +266,7 @@ func test_the_hit_reaction_and_the_health_pin_their_exports() -> void:
 		&"lying_push": 0.5,
 		&"flinch_enabled": true,
 		&"flinch_push": 0.6,
+		&"flinch_most_speed": 3.0,
 		&"flinch_strength": 0.85,
 		&"flinch_time": 0.45,
 		&"flinch_hold": 0.25,
