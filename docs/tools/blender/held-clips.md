@@ -41,3 +41,9 @@ gdstudio #1111) are the first; how the game plays them is under
   places: with the up pose 14 cm higher than the level one and the left arm at 0.99 of its length, the blend at 12
   degrees left the hand 16 mm short of its marker and the barrel 4 degrees off; at 7 cm and 0.97 both are inside
   the limits. **Seen:** gdstudio #1111, 2026-11-11 (`test_prone_aim.gd`).
+- **Approach:** After merging main, read its diff for the hold a clip is solved from (the seat, the markers, a hand
+  pose) and dump the hold and build the clip again when any of them moved. **Watch out for:** the hold moves the
+  hands onto the weapon whatever the clip does, so the posed suites barely notice; a changed marker shows as an elbow
+  pulled off the place the clip planted, and a new finger rule as a contact test written for the old one.
+  **Seen:** gdstudio #1191, 2026-11-12 (after #1171's grip the left elbow moved 18 and 45 mm and the right thumb read
+  7.5 and 10.1 mm off the gun, where it now rests on the left hand; rebuilt, 0.5 mm).
