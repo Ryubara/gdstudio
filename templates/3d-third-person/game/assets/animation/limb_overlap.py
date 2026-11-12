@@ -162,6 +162,40 @@ def apply_twist(arm):
     bpy.context.view_layer.update()
 
 
+def roll_about(turn, axis):
+    """The part of `turn` that is a roll about `axis` (a unit vector): the swing-twist split."""
+    along = Vector((turn.x, turn.y, turn.z)).dot(axis)
+    roll = Quaternion((turn.w, *(axis * along)))
+    if roll.magnitude < 1e-6:
+        return Quaternion()
+    return roll.normalized()
+
+
+def twist_bones(rest_rel):
+    """The twist bones of a prototype body, which no clip keys and the game turns from the limbs' pose
+    (`assets/characters/prototype/mannequin_twist.gd`): `[twist bone, the limb it follows, that limb's length axis in
+    the limb's (for a hand, the forearm's) own frame, take the limb's roll out (True) or copy the hand's (False)]`.
+    Empty on a body without them."""
+    out = []
+    for side in "lr":
+        for limb, child in (("upperarm", "lowerarm"), ("thigh", "calf")):
+            if f"{limb}_twist_01_{side}" in rest_rel:
+                axis = rest_rel[f"{child}_{side}"].translation.normalized()
+                out.append((f"{limb}_twist_01_{side}", f"{limb}_{side}", axis, True))
+        if f"lowerarm_twist_01_{side}" in rest_rel:
+            axis = rest_rel[f"hand_{side}"].translation.normalized()
+            out.append((f"lowerarm_twist_01_{side}", f"hand_{side}", axis, False))
+    return out
+
+
+def twist_roll(rest_rel, source, rel, axis, counter):
+    """The roll a twist bone takes, in its limb's frame: `rel` is the followed bone's rotation from its parent."""
+    rest = rest_rel[source].to_quaternion()
+    if counter:
+        return roll_about(rest.inverted() @ rel, axis).inverted()
+    return roll_about(rel @ rest.inverted(), axis)
+
+
 class Body:
     """A mannequin: its armature, its skinned mesh, and the mesh cut into parts."""
 

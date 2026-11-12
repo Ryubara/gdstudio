@@ -17,6 +17,11 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   only where it starts an argument; inside `Title=/c/...` it converted for one model and not the next (`Ray=` against
   `"Ray gun="`), and Blender failed with `Please select a file`. **Seen:** Deadnight, 2026-11-01; Deadnight #797,
   2026-11-03 (fix: `render_sheet.py --model` is given `C:/` paths).
+- **Approach:** Run a build with `--python-exit-code 1` before `-P`, and prove a rebuild by the line the script
+  prints when it has written its file, never by the exit code alone. **Watch out for:** Blender exits 0 when the
+  script raises: after a refactor cut an attribute, three builds "passed" with exit 0 and the committed files'
+  hashes unchanged, because nothing had been written. **Seen:** gdstudio #1294, 2026-11-11 (`build_vault.py`; the
+  `AttributeError` was in the log).
 - **Approach:** Edit a script that a running batch or loop reads only between runs, or run a copy and edit the
   original; land a change that has to be whole (a use and its import) in one write, and read every log of a background
   loop for `Traceback`, not only its exit code. **Watch out for:** bash reads a script as it runs, so an edit shifted
@@ -94,6 +99,9 @@ on the same frames as the build, at the rate it reads from the file's key times
 ([how it samples](animation.md#solved-clips)); after a change to the script, run `test_limb_overlap.py` beside it
 with the pinned Blender (it keys a clip, measures it both ways at 30 and 24 frames a second and exits 1 on a
 difference).
+
+A clip that passes an obstacle is also read between its keys, as a game draws it
+([A clip that touches the world](animation.md#contacts)).
 
 - **Approach:** Make a build script fail on its triangle budget and on its lowest vertex before it exports, read the
   count on the first build, and chamfer only what is big and seen: parts under about 0.2 m on an asset seen from afar

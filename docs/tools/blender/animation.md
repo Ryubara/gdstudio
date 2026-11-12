@@ -90,8 +90,11 @@ reads them (the template's `assets/animation/vault/build_vault.py` and `vault_cl
 The build checks, on every frame and on the skinned mesh, before it exports: the lowest vertex against the floor, the
 deepest vertex inside the obstacle (12 mm allowed, as wide as a wall so the legs must clear the top), the planted
 palm's gap to the surface, how far each planted wrist or ankle moves in the world while planted (0.5 mm on the vault
-clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on either mannequin
-([Keyframes](#keyframes); 5 mm allowed). It also checks what the body does between its contacts: its centre of mass
+clips), that the body is never jerked to keep a hand in reach, and that no limb is inside another on the body the file
+is for
+([Keyframes](#keyframes); 5 mm allowed). It reads the legs and the skin against the obstacle **between the keys**
+as well, ten times a frame, since two keys that are clear of an edge say nothing of the path between them. It also
+checks what the body does between its contacts: its centre of mass
 on the arc of a free fall while nothing touches it, the planted arm giving and then straight, the landing leg reaching,
 an arm that has let go staying under its shoulder's height and gaining speed without a snap, the legs going over
 together with no leg astride, folded shut, snapped or held
@@ -142,6 +145,14 @@ together with no leg astride, folded shut, snapped or held
   `spine_01`, which read the rest pose as 87 mm of chest in thigh. **Seen:** gdstudio #1016, 2026-11-10 (fix:
   `limb_overlap.py` closes the rims; its `--self-test` reads 0 on the rest pose and a crossing on swung legs).
 
+- **Approach:** Measure a clip against what it must not touch between its keys, as a game draws it: set every baked
+  key's interpolation to `LINEAR` (a loop over the action's curves after the last `keyframe_insert`), then
+  `scene.frame_set(whole, subframe=part)` ten times a frame with the root moved to that time, and read each joint of
+  every mannequin and the skin (`check_between` in `build_vault.py`), a planted hand's own skin with a limit of its
+  own. **Watch out for:** a check on whole frames passes a limb that crosses an edge between two keys (a knee 60 mm
+  inside a wall); Blender joins a script's new keys with Bezier curves whatever the preference
+  `keyframe_new_interpolation_type` says; a planted palm sinks 16 mm into the top between keys that read 4 mm.
+  **Seen:** gdstudio #1221, 2026-11-11 (`Vault_Low`; the build asserts that every key is linear).
 - **Approach:** Let a planted hand pull the pelvis toward itself when the arm cannot reach, smooth that pull over a
   few frames, and keep the planted arm a little bent (0.94 of its length) so the arm takes up what the smoothing
   leaves. **Watch out for:** a pull applied only on the frames that needed it moved the body 30 to 45 mm for single
@@ -285,6 +296,18 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   import drops keys within half a degree, so a planted hand is up to 3 mm lower in the game than in the build
   (1.5 mm under the floor there, 4.1 mm here); a shin counted with its foot read the toes; two renders into one
   folder lost a sheet, since the tiles share a name. **Seen:** gdstudio #1090, 2026-11-11.
+- **Approach:** Key only the bones the clip library has, and measure the skin with the body's other bones where
+  the game puts them: the prototype bodies' six twist bones are turned by a modifier in Godot
+  (`mannequin_twist.gd`), so `limb_overlap.py` turns them the same way before it reads the skin
+  (`twist_bones`, `twist_roll`; `build_vault.py` keys them for its own measures and strips them from the file).
+  **Watch out for:** a build that keys every bone of a prototype body writes tracks the Quaternius bodies have no
+  bone for, and a build that leaves the twist bones at rest measures thighs and forearms wrung as no player sees
+  them near the camera (beyond 9 m the game rests them). **Seen:** gdstudio #1294, 2026-11-11 (the tool and the
+  build read the same 4.5 and 4.6 mm on the two `form` bodies).
+- **Approach:** Turn the twist bones in `limb_overlap.py` with `apply_twist` (the roll about the bone's own Y axis,
+  as `MannequinTwist` takes it). **Watch out for:** `twist_roll`, landed beside it for the vault, reads the roll about
+  the child bone's direction and parts from `apply_twist` by up to 1.6 degrees on extreme poses. **Seen:** gdstudio
+  #1323, 2026-11-12 (both kept when the prone and vault branches met).
 - **Approach:** Run the limb overlap check on both mannequins inside the build, and when a transition crosses, move
   the keys of the limb that can leave first in time before changing its path. **Watch out for:** the transitions
   passed their own checks with the chest 25 to 50 mm in the front thigh going down and the left arm 51 mm in the
