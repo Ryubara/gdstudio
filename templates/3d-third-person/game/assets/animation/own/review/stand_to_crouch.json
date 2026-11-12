@@ -114,7 +114,7 @@
    },
    "kind": "transition",
    "loop": false,
-   "reduced_to_deg": 0.05,
+   "reduced_to_deg": 0.025,
    "replaces": "",
    "seconds": 0.5333,
    "speed": 0.0,

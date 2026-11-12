@@ -1,9 +1,9 @@
 {
  "picks": {
   "Idle": "A",
-  "Crouch_Idle": "A",
+  "Crouch_Idle": "B",
   "Crouch_Walk": "B",
-  "Stand_To_Crouch": "A",
-  "Crouch_To_Stand": "A"
+  "Stand_To_Crouch": "B",
+  "Crouch_To_Stand": "B"
  }
 }

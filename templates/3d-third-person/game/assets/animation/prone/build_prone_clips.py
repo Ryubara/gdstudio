@@ -110,7 +110,7 @@ OVERLAP_LIMIT = 5.0  # millimetres a part of the body may be inside another (`..
 # Coming up, where each hand and elbow wait beside the place they have in the crouch (forward, out to their own side
 # and up, in metres) while the knee comes forward under them.
 HAND_WAIT = {
-    "l": ((0.0, 0.22, 0.10), (-0.05, 0.24, 0.10)),
+    "l": ((0.0, 0.30, 0.10), (-0.05, 0.34, 0.10)),
     "r": ((0.0, 0.18, 0.08), (-0.04, 0.20, 0.08)),
 }
 HAND_WAIT_FRAMES = {

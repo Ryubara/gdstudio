@@ -17,7 +17,9 @@
 ## `OWN_TYPE=<type>` picks the clip type (default `idle`) and `OWN_SLOT=<export>` the
 ## `CharacterAnimation` export the variants are played through (default `idle_clip`).
 ## `OWN_ONLY=<clip>` (`Idle_A`, or `Library`) films part 2 for that one clip and nothing else:
-## nine seconds, short enough for a GIF.
+## nine seconds, short enough for a GIF. `OWN_ONLY=Shipped` films the clip the game ships in the
+## slot (`gds/Crouch_Walk`), which is not always a variant's bytes: a clip that is carried like
+## another is built on the variant picked for that one.
 ## `OWN_CROUCH=1` holds the crouch button through part 2, for the crouch clips (gdstudio #1160).
 ## `OWN_SLOT=none` is for a clip type the tree has no export for yet (the stance changes, until
 ## gdstudio #1158): only part 1 is filmed, with no library body, and a clip that plays once is
@@ -79,6 +81,9 @@ func _ready() -> void:
 	var only := OS.get_environment("OWN_ONLY")
 	if only != "":
 		var wanted := _clips[-1] if only == "Library" else StringName("review/" + only)
+		if only == "Shipped":
+			wanted = _rig.player.get_node("Animation").get(_slot)
+			_clips.append(wanted)
 		assert(_clips.has(wanted), "no clip %s in the review file" % only)
 		_clips = [wanted]
 		_part = 1
@@ -202,7 +207,9 @@ func _build_row() -> void:
 
 func _name_of(clip: StringName) -> String:
 	var text := String(clip)
-	return text.trim_prefix("review/") if text.begins_with("review/") else "library %s" % text
+	if text.begins_with("review/"):
+		return text.trim_prefix("review/")
+	return ("shipped %s" if text.begins_with("gds/") else "library %s") % text
 
 
 # Reads a clip file the game does not import: the clips of a glb as a library, a `_Loop` clip

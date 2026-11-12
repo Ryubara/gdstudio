@@ -43,6 +43,8 @@ DOWN = {
     "chest": [0.1, 1.0],  # the trunk's fold
     "head": [0.2, 1.0],  # the head
     "arms": [0.0, 0.55],  # the arms' carriage: forward of the thighs before the thighs come up under them
+    # Each arm (left, right) that lies on a thigh in the crouch; an empty window moves it with the trunk.
+    "rest_arms": [[0.0, 0.0], [0.0, 0.0]],
     "step": [0.2, 0.64],  # the foot that steps back: the shares of the clip it leaves the floor and lands at
     "step_clear": 0.05,  # metres the ball of that foot clears the floor by
     "toe_off": 20.0,  # degrees its heel is up as its toes leave
@@ -60,6 +62,8 @@ UP = {
     "chest": [0.18, 1.0],
     "head": [0.0, 0.7],
     "arms": [0.45, 1.0],  # late: the arms hang back beside the thighs once the thighs are down
+    # A hand that lies inside its knee has to be out over it before the stepping leg swings up under it.
+    "rest_arms": [[0.0, 0.0], [0.0, 0.0]],
     "step": [0.36, 0.88],  # the foot that steps up beside the other: it leaves once the legs have begun to push
     "step_clear": 0.05,
     "toe_off": 0.0,  # it leaves from its ball: the heel is already up
@@ -159,8 +163,12 @@ def _between(rig, style, name: str, joined, section: str, defaults: dict, first:
             "chest": window(u, n["chest"]),
             "head": window(u, n["head"]),
             "arms": window(u, n["arms"]),
+            "rest": [window(u, own if own[1] > own[0] else n["chest"]) for own in n["rest_arms"]],
             "weight": window(u, n["weight"]),
         }
+
+    def arm_share(t: dict, s: str) -> float:
+        return t["rest"][crouch_idle.AT[s]] if s in rests else t["arms"]
 
     def spec(f: int) -> dict:
         t = shares(f)
@@ -178,12 +186,12 @@ def _between(rig, style, name: str, joined, section: str, defaults: dict, first:
             "ribs": mix(one["ribs"], other["ribs"], t["chest"]),
             "head": mix(tuple(one["head"]), tuple(other["head"]), t["head"]),
             "clavicle": mix(one["clavicle"], other["clavicle"], t["arms"]),
-            "arm": {s: mix(arms["a"][s], arms["b"][s], t["chest" if s in rests else "arms"]) for s, _ in SIDES},
+            "arm": {s: mix(arms["a"][s], arms["b"][s], arm_share(t, s)) for s, _ in SIDES},
             "fingers": mix(one["fingers"], other["fingers"], t["arms"]),
             "leg": legs,
         }
         for s, _ in SIDES:
-            middle = math.sin(math.pi * t["chest" if s in rests else "arms"])
+            middle = math.sin(math.pi * arm_share(t, s))
             out["arm"][s]["out"] += n["arm_wide"][crouch_idle.AT[s]] * middle
             out["arm"][s]["swing"] += n["arm_fore"][crouch_idle.AT[s]] * middle
         return out

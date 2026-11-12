@@ -46,7 +46,7 @@ DEFAULTS = {
     "heel_rise": 1.0,  # the share of the contact the heel takes to get there (1: it starts to rise as the foot lands)
     "clearance": 0.045,  # metres the ball of the foot clears the floor by in its swing
     "toe_reach": 0.026,  # metres the male mannequin's toes are longer than the reference body's (24 mm, measured)
-    "lift": 0.056,  # metres the pelvis is carried higher than in the crouch idle
+    "lift": 0.032,  # metres the pelvis is carried higher than in the crouch idle
     "dip": 0.016,  # metres the pelvis goes down and up, twice a stride
     "dip_at": 0.22,  # where in a step (0 landing, 1 the next landing) the pelvis is lowest
     "shift": 0.3,  # how far the weight goes toward the planted foot (1 is over it)
@@ -54,13 +54,13 @@ DEFAULTS = {
     "hip_turn": 7.0,  # degrees the pelvis turns with the leg that swings forward
     "hip_tip": 3.0,  # degrees the free leg's hip drops
     "chest_turn": 6.0,  # degrees the shoulders turn against the hips
-    "chest_more": 8.0,  # degrees the trunk folds further than in the crouch idle
+    "chest_more": 3.0,  # degrees the trunk folds further than in the crouch idle
     "stance": 0.5,  # the share of the crouch idle's turn and tilt (pelvis, chest and head) the walk keeps
     "arm_swing": [10.0, 18.0],  # degrees each upper arm swings to each side of its hang
     "arm_bend": [0.3, 0.6],  # degrees each elbow closes for each degree its arm swings forward
     "elbow": [74.0, 36.0],  # degrees each elbow bends
-    "arm_out": [18.0, 10.0],  # degrees each arm is carried wider than in the crouch idle, outside the thigh that rises to it
-    "arm_fore": [-24.0, -20.0],  # degrees each arm hangs further forward than in the crouch idle
+    "arm_out": [25.0, 18.0],  # degrees each arm is carried wider than in the crouch idle, outside the thigh that rises to it
+    "arm_fore": [-24.0, -50.0],  # degrees each arm hangs further forward than in the crouch idle
     "wrist": [8.0, 5.0],  # degrees each wrist bends toward the palm (the idle's resting hand droops further)
     "arm_twist": 0.0,  # the share of the crouch idle's inward turn each upper arm keeps
     "arm_clear": [0.10, 0.10],  # metres each hand keeps from its thigh's line

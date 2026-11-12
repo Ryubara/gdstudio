@@ -1,6 +1,6 @@
 {
  "clips_file": "locomotion.glb",
- "sha256": "252931745a858b87e82244c7d7e07a5546026cf39fee1ef4cd066a8eedb27017",
+ "sha256": "af69c0b4902805ad8c783e46e88c1e834f9dbd4600c7207562323f7dde6ac9ca",
  "fps": 30,
  "limit_mm": 5.0,
  "clips": {
@@ -21,9 +21,9 @@
     "pair": null
    },
    "mannequin_male": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
+    "deepest_mm": 4.3,
+    "frame": 228,
+    "pair": "lowerarm_l in thigh_l"
    }
   },
   "Crouch_To_Stand": {

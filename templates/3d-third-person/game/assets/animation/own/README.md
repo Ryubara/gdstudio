@@ -227,12 +227,12 @@ body.
 | Shoulders turned the other way | 11 degrees | 17 | 6 | 1 |
 | The trunk folds, the head looks down | 78, 22 degrees | 84, 26 | 76, 20 | 80, 39 |
 | The left arm | forearm on the left thigh, elbow 57 degrees, the hand drooping inside the knee | the same with the elbow at 73 (at 58 the forearm lay 15 mm inside the form female's knee), the hand drooping further | the same, elbow 65, the fingers closed further | hangs outside the knee, elbow 47 |
-| The right arm | hangs 24 degrees out from the body, outside the low knee, elbow 17 degrees, wrist 0.34 m up | the hand lies on the low knee, elbow 45, wrist 0.35 m up | bent 63 degrees, the hand held outside the knee at 0.39 m | held ahead of the knee, elbow 74 |
+| The right arm | hangs 24 degrees out from the body, outside the low knee, elbow 17 degrees, wrist 0.34 m up | the hand held over the low thigh, 0.06 m higher than a hand lying on the knee (lying there, the pistol it holds sat 32 mm inside the form female's thigh), elbow 43 | bent 63 degrees, the hand held outside the knee at 0.39 m | held ahead of the knee, elbow 74 |
 | Length | 8 s | 10.7 s | 8 s | 2.9 s |
 | Pelvis side to side, hips turn, head turns | 31 mm, 3, 7 degrees | 33 mm, 6, 14 | 18 mm, 3, 29 (looks, holds, looks back) | 6 mm, 1, 4 |
-| Highest vertex, `form_female`, `form_male` and the Quaternius male | 1.035, 1.071, 1.0996 m | 1.034, 1.069, 1.098 | 1.030, 1.067, 1.095 | 1.045 on the Quaternius female |
+| Highest vertex, `form_female`, `form_male` and the Quaternius male | 1.035, 1.071, 1.0996 m | 1.033, 1.068, 1.097 | 1.030, 1.067, 1.095 | 1.045 on the Quaternius female |
 | A planted sole off the floor, `form_female` and `form_male` | 0.1, 0.4 mm | 0.1, 0.6 | 0.1, 0.3 | |
-| Limbs inside limbs, the four bodies | 0 mm | 0 on the template's two, 4.0 on the Quaternius male | 0 | none |
+| Limbs inside limbs, the four bodies | 0 mm | 0 on the template's two, 4.3 on the Quaternius male | 0 | none |
 
 | `Crouch_Walk` | A, grounded | B, loose | C, sharp | `ual1/Crouch_Fwd` |
 | --- | --- | --- | --- | --- |
@@ -246,26 +246,28 @@ body.
 | The feet turned out, left and right; the right tracks wider by | 4, 11 degrees; 18 mm | the same | the same | 3, 3 at landing |
 | The arms swing, left and right | 10, 18 degrees | 13, 22 | 7, 13 | the arms hold still |
 | The elbows, left and right | 74, 36 degrees | the same | the same | 47, 75 |
-| The left arm carried out from the body | 18 degrees | 25 (at 18 the hand went 10 to 30 mm into the form female's calf) | 18 | |
-| Arm with the other side's leg | 0.82 and 0.86 | 0.81 and 0.86 | 0.82 and 0.85 | none |
-| Highest vertex, `form_male` and the Quaternius male | 1.068, 1.0970 m | 1.068, 1.0963 | 1.068, 1.0971 | 1.127 on the Quaternius female |
+| The arms carried out from the idle's, left and right | 25, 18 degrees (at 18 the left hand went 10 to 30 mm into the form female's calf) | the same | the same | |
+| Arm with the other side's leg | 0.83 | 0.82 | 0.83 | none |
+| Highest vertex, `form_male` and the Quaternius male | 1.066, 1.0955 m | 1.066, 1.0950 | 1.066, 1.0956 | 1.127 on the Quaternius female |
 | Limbs inside limbs, the four bodies | 0 mm | 0 | 0 | none |
 
 | Stance changes | A, grounded | B, loose | C, sharp |
 | --- | --- | --- | --- |
-| `Stand_To_Crouch` | 16 frames, 0.88 of gravity; the right foot in the air from frame 3 to 10 | 20 frames, 0.57; 4 to 13 | 15 frames, 0.93; 3 to 10 |
-| `Crouch_To_Stand` | 16 frames, stops at 0.93 of gravity; the right foot in the air from frame 6 to 14 | 20 frames, 0.52; 7 to 16 | 15 frames, 1.00; 4.5 to 12 |
+| `Stand_To_Crouch` | 16 frames, 0.85 of gravity; the right foot in the air from frame 3 to 10 | 20 frames, 0.54; 4 to 13 | 15 frames, 0.91; 3 to 10 |
+| `Crouch_To_Stand` | 16 frames, stops at 0.94 of gravity; the right foot in the air from frame 6 to 14 | 20 frames, 0.50; 7 to 16 | 15 frames, 1.04; 4.5 to 12 |
 | First and last pose against the idles' | 0.2 mm at most, 0.09 degrees | the same | the same |
 | A planted sole wanders, `form_female` | 1.1 and 0.3 mm | 1.2 and 0.0 | 1.2 and 0.0 |
 | A planted sole off the floor, `form_female` and `form_male` | 0.0, 0.3 mm | 0.1, 0.3 | 0.1, 0.3 |
 | Limbs inside limbs, the four bodies | 0 mm | 0 | 0 |
 
-**B is shipped for `Crouch_Walk`** (`picks.json`): the maintainer's choice, 2026-11-11. **A is shipped for
-`Crouch_Idle`, `Stand_To_Crouch` and `Crouch_To_Stand`** as the recommendation until the maintainer picks; their B
-and C stay in the review files. Every variant of a stance change joins the
-shipped idles, so the letters can be picked apart: a `Crouch_Idle` of another letter rebuilds the stance changes
-and the prone transitions on its pose. In every variant the left foot keeps its standing place, so one step of the
-right foot makes the stance.
+**B is shipped for all four** (`picks.json`): the maintainer's choice, `Crouch_Walk` on 2026-11-11 and
+`Crouch_Idle`, `Stand_To_Crouch` and `Crouch_To_Stand` on 2026-11-12; A and C stay in the review files. Every
+variant of a stance change joins the shipped idles and every variant of the walk is carried like the shipped
+crouch idle, so the tables above are A, B and C on idle B's pose, and the walk's default carriage
+(`clips/crouch_walk.py`: `lift`, `chest_more`, `arm_out`, `arm_fore`) is the one that fits it: on the carriage
+tuned for idle A the walk's forearm went 50 to 70 mm into a thigh or the pelvis. A `Crouch_Idle` of another letter
+rebuilds the walk, the stance changes and the prone transitions on its pose. In every variant the left foot keeps
+its standing place, so one step of the right foot makes the stance.
 
 ### The crouch's numbers for the code
 
