@@ -197,10 +197,10 @@ state costs against synchronizers is [below](#template-network-costs). Measured 
 | --- | ---: | ---: |
 | HELLO with an 8-character name | 16 (8 + name; the world hash and the client's flags travel in it) | 3 + name |
 | WELCOME, 1 player, no world parts | 30 | about 40 |
-| WELCOME, longest (8 players with 16-byte names, 128 parts of 12 bytes) | 2295 | |
+| WELCOME, longest (8 players aiming, with 16-byte names, 128 parts of 12 bytes) | 2303 | |
 | REFUSED | 3 | 3 |
 | COMMAND / with a shot block | 15 / 27 | 15 / 27 |
-| TICK, 8 players, no events, no moving prop, no AI | 109 (the AI block's mode is 1 byte) | 107 |
+| TICK, 8 players, no events, no moving prop, no AI | 109 (the AI block's mode is 1 byte); 117 with all of them aiming | 107 |
 | TICK, longest (32 events of 20 bytes, 8 players, 8 moving props) | 868 | |
 | A moving prop in a TICK (streamed row, `PropState`) | 14 | |
 | An AI character in a TICK: a row, a move (`AiSnapshot`) | 14, 7 | 13 (Deadnight) |
@@ -225,7 +225,9 @@ and the rows of the moving props, and a world part's state may be 12 bytes
 ([pushed props online](third-person/net-world.md#props)). `NetWire.VERSION` 6 (#970): a TICK ends with the AI block
 for its client (`AiSnapshot`: none, full or a delta of rows, moves and the ids that left), a HELLO carries a flags
 byte (`F_WEB`: the client is a browser), an `AI` event (id, what happened, a point, a direction) and a HIT names an AI
-as `NetHits.AI_BASE + id` ([the AI online](third-person/ai-online.md#replication)). The socket buffers are 1 MB since: five
+as `NetHits.AI_BASE + id` ([the AI online](third-person/ai-online.md#replication)). `NetWire.VERSION` 7 (#1277): an
+aiming player's entry ends with one signed byte, the aim's heading off the body
+([puppets](third-person/online-client.md#puppets)). The socket buffers are 1 MB since: five
 seconds of a full AI snapshot of 120 characters every TICK is 252 KB.
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
@@ -278,7 +280,8 @@ WebSocket framing): a server walks N players and sends their state at 20 Hz to o
 | `SceneMultiplayer.send_bytes`, the same buffer | 0.66 (33) | 2.10 (105) | 4.06 (203) | 4.08 (204) | 4.06 (203) |
 | `send_bytes`, only the players that changed | 0.66 (33) | 2.10 (105) | 4.06 (203) | **1.14 (57)** | 0.18 (9) |
 
-- A player's state is 12 bytes as one entry (slot, position in centimetres `s16` x3, yaw `u16`, state, flags, pitch),
+- A player's state is 12 bytes as one entry (slot, position in centimetres `s16` x3, yaw `u16`, state, flags, pitch;
+  13 while aiming since #1277),
   43 with five synchronized properties (Variant headers) and 23 packed in one property. A packet adds 6 bytes of
   header and 2 of WebSocket frame. `send_bytes` costs 3 bytes a packet over the payload: the peer layer is as cheap as a
   raw `WebSocketPeer`; the cost of the high-level API is the synchronizers.

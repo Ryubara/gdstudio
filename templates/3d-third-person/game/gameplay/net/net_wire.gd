@@ -9,8 +9,8 @@ extends RefCounted
 ##                length (<= NAME_BYTES), the name in UTF-8. 8 bytes + the name
 ## WELCOME  S->C  u8 type=2, u8 version, u8 slot, u8 tick rate, u32 server tick, u32 world hash,
 ##                u16 entity count, then per world part: u16 id, u8 kind, u8 state length, the
-##                state; u8 player count, then per player: its 12-byte entry and u8 name length,
-##                the name (`SnapshotCodec.welcome`)
+##                state; u8 player count, then per player: its entry (12 or 13 bytes), u8 name
+##                length, the name (`SnapshotCodec.welcome`)
 ## REFUSED  S->C  u8 type=3, u8 reason (`Refusal`), u8 the server's version; the server closes
 ##                the connection after it. 3 bytes
 ## COMMAND  C->S  u8 type=4, u32 seq, s8 move x, s8 move y, u16 yaw, s16 pitch, u16 flags, u8
@@ -18,7 +18,7 @@ extends RefCounted
 ##                flag a shot block follows: s16 origin x/y/z (cm),
 ##                u16 shot yaw, s16 shot pitch, u16 view tick (27 bytes in all; `CommandCodec`)
 ## TICK     S->C  u8 type=5, u32 server tick, u32 ack (the last command seq applied for this
-##                client), u8 event count, the events, u8 player count, the 12-byte player
+##                client), u8 event count, the events, u8 player count, the player
 ##                entries, u8 streamed part count, then per moving prop: u16 id, u8 state length,
 ##                the state, then the AI block for this client (`AiSnapshot`: u8 mode, and for a
 ##                full or a delta the rows of the AI characters) (`SnapshotCodec.tick`, events in
@@ -28,7 +28,8 @@ extends RefCounted
 ## PONG     S->C  u8 type=7, the same u32 and u16, u32 server tick. 11 bytes
 ##
 ## A player entry: u8 slot, s16 x/y/z (cm), u16 yaw, u8 state, u8 flags (crouch, aim, sprint,
-## air, rising, dead), s8 pitch (`SnapshotCodec`).
+## air, rising, dead), s8 pitch, and with the aim flag s8 the aim's heading off the body
+## (`SnapshotCodec`). 12 bytes, 13 while aiming.
 ##
 ## Every decoder checks each length before it reads, answers null (or -1) for a packet that is
 ## not exactly one message, and counts why in a `NetDrops` (never silent). The version is read
@@ -44,9 +45,9 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## reload, next, previous, the empty hands); 4: a SHOT carries the weapon and a HIT the health
 ## it left (gdstudio #906); 5: a TICK ends with the streamed parts (moving props), a world part's
 ## state may be 12 bytes (gdstudio #1073); 6: a TICK ends with the AI block, a HELLO carries the
-## client's flags, an AI event and a HIT on an AI (gdstudio #970); 7: gdstudio #1277's (pull request
-## #1300); 8: a COMMAND's byte 13 carries the melee press, a MELEE event and an AI event's `MELEE`
-## code (gdstudio #1254).
+## client's flags, an AI event and a HIT on an AI (gdstudio #970); 7: an aiming player's entry
+## ends with the aim's heading off the body (gdstudio #1277); 8: a COMMAND's byte 13 carries
+## the melee press, a MELEE event and an AI event's `MELEE` code (gdstudio #1254).
 const VERSION := 8
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
