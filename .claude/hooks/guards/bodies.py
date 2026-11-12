@@ -272,6 +272,8 @@ def check_body(
         result = module.check_body(repo, body, titles[0] if titles else None, kit=KIT, changed=None if why else changed)
         if result.ok and repo == here_checkout(cwd):  # the docs rule reads the branch checked out here
             result = module.check_docs(repo, body, kit=KIT)  # (`unknown` is not a refusal: pr-rules judges it)
+        if result.ok and repo == here_checkout(cwd) and hasattr(module, "check_commits"):  # the branch's models
+            result = module.check_commits(repo, body, kit=KIT)
     except Exception:  # the checker is missing, slow or broken: let the command through
         return []
     if result.ok:

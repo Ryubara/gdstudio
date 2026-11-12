@@ -153,7 +153,7 @@ func test_a_weapon_with_no_muzzle_fires_from_beside_its_shooter() -> void:
 		)
 	)
 	assert_float(held_start.distance_to(bare.global_position)).is_less(offset.length())
-	assert_float(held_start.distance_to(bare.global_position)).is_less(0.05)
+	assert_float(held_start.distance_to(bare.global_position)).is_less(0.005)
 	assert_float(rad_to_deg(held_way.angle_to(bare.velocity.normalized()))).is_less(0.2)
 
 
@@ -271,7 +271,8 @@ func test_the_step_state_puts_back_the_cooldown_and_the_spreads_place() -> void:
 	weapon.tick(0.1)
 	var kept: Array = []
 	weapon.save_step_state(kept)
-	assert_array(kept).has_size(5)
+	# Five of the gun's, eight of the melee blow's (gdstudio #1254).
+	assert_array(kept).has_size(13)
 	assert_float(kept[0]).is_equal_approx(0.15, 0.0001)
 	weapon.make_ready()
 	var first := weapon.fire().velocity
@@ -284,7 +285,8 @@ func test_the_step_state_puts_back_the_cooldown_and_the_spreads_place() -> void:
 	assert_vector(weapon.fire().velocity).is_equal(first)
 	# The same array is written again, not a new one.
 	weapon.save_step_state(kept)
-	assert_array(kept).has_size(5)
+	# Five of the gun's, eight of the melee blow's (gdstudio #1254).
+	assert_array(kept).has_size(13)
 	# An empty state (a character that had no weapon) changes nothing.
 	var cooling := weapon._cooldown
 	weapon.load_step_state([])

@@ -13,10 +13,10 @@ extends Node
 ## for actions (interact, hit, and any clip a game asks for with `play_clip()`). Dead, the tree is
 ## off and the ragdoll holds the skeleton; on getting up it starts again from the ground.
 ##
-## The clips come from the Universal Animation Library 1 and 2 and the template's own prone and
-## vault clips, the `AnimationPlayer`'s libraries `ual1`, `ual2`, `prone` and `vault`. Pick another
-## clip for a state in the inspector; `CharacterClips` names them all. A model whose body needs
-## prone clips of its own gets them from `prone_libraries`.
+## The clips come from the Universal Animation Library 1 and 2 and the template's own clips, the
+## `AnimationPlayer`'s libraries `ual1`, `ual2`, `prone`, `vault` and `gds`. Pick another clip for a
+## state in the inspector; `CharacterClips` names them all. A model whose body needs prone or vault
+## clips of its own gets them from `prone_libraries` and `vault_libraries`.
 ##
 ## It is a `@tool` script so the editor shows the tree too: opening the character scene builds the
 ## same tree, so the AnimationTree panel shows its graph and the node has no warning. Only the
@@ -80,11 +80,8 @@ const _P_ARMED := StringName("parameters/%s/blend_amount" % _ARMED)
 const _P_AIM := StringName("parameters/%s/blend_amount" % _AIM)
 const _P_AIM_POSE := StringName("parameters/%s/blend_position" % _AIM_POSE)
 const _P_SHOOT_SCALE := StringName("parameters/%s/scale" % _SHOOT_SCALE)
-const _P_SHOOT_REQUEST := StringName("parameters/%s/request" % _SHOOT)
+const _PRONE_STATE := "parameters/%s/" % _MACHINE + "%s/" % PRONE
 const _P_SHOOT_ACTIVE := StringName("parameters/%s/active" % _SHOOT)
-const _P_PRONE_MOVE := StringName("parameters/%s/" % _MACHINE + "%s/Move/blend_amount" % PRONE)
-const _P_CRAWL_PACE := StringName("parameters/%s/" % _MACHINE + "%s/CrawlPace/scale" % PRONE)
-const _P_PRONE_IDLE_PACE := StringName("parameters/%s/" % _MACHINE + "%s/IdlePace/scale" % PRONE)
 const _P_RELOAD_ACTIVE := StringName("parameters/%s/active" % _RELOAD)
 const _P_RELOAD_REQUEST := StringName("parameters/%s/request" % _RELOAD)
 const _P_RELOAD_SCALE := StringName("parameters/%s/scale" % _RELOAD_SCALE)
@@ -190,13 +187,14 @@ const _RELOAD_FADE_OUT := 0.2
 @export var vault_high_clip: StringName = CharacterClips.VAULT_HIGH
 ## The step out of a vault's landing, played straight after either vault. Empty: none.
 @export var vault_land_clip: StringName = CharacterClips.VAULT_LAND
+## Vault clips a model plays instead of the `vault` library, by its scene file (`prone_libraries`).
+@export var vault_libraries: Dictionary[String, AnimationLibrary] = {}
 ## The climb onto an obstacle; played to last the mantle's time.
 @export var mantle_clip: StringName = CharacterClips.CLIMB_UP
 ## The climb onto an obstacle from `VaultSettings.high_mantle_above` up.
 @export var mantle_high_clip: StringName = CharacterClips.CLIMB_UP
-## The fastest and slowest a traversal clip is played against its own speed, so a very short or
-## very long crossing does not show a clip blurred or crawling (the body's path keeps its time; the
-## clip then ends early or is cut by the next state).
+## The slowest and fastest a traversal clip is played against its own speed, so no crossing shows
+## it crawling or blurred (the body's path keeps its time; the clip ends early or is cut).
 @export var traversal_speed_range := Vector2(0.5, 2.0)
 
 @export_group("Prone")
@@ -223,12 +221,19 @@ const _RELOAD_FADE_OUT := 0.2
 ## Getting up to crouch, played over the whole body for the tuning's `exit_time`, from the prone
 ## idle's first pose to the crouch idle's. Empty: no clip.
 @export var to_crouch_clip: StringName = CharacterClips.TO_CROUCH
+## Degrees the muzzle jumps up at a shot fired lying down (the prone aim has no shot clip: the
+## look it is posed for is kicked up and settles), and the seconds it takes to settle.
+@export_range(0.0, 20.0, 0.5, "suffix:deg") var prone_shot_kick := 7.0
+@export_range(0.02, 1.0, 0.01, "suffix:s") var prone_shot_kick_time := 0.22
 ## Prone clips a model plays instead of the `AnimationPlayer`'s own `prone` library, by the model's
 ## scene file (`res://assets/characters/mannequin/mannequin_male.glb`): a body whose limbs differ
 ## lies on the floor with clips solved on it. The library must hold the same clip names. Swapped
-## in the game when the model is set or replaced, never in the editor (the scene keeps the shared
-## library).
+## in the game when the model is set or replaced, never in the editor (the scene keeps its own).
 @export var prone_libraries: Dictionary[String, AnimationLibrary] = {}
+## The same for the `prone_aim` library: the hands of each body are solved on its own arms.
+@export var prone_aim_libraries: Dictionary[String, AnimationLibrary] = {}
+## The same for the library `prone_reload`: a reload lying down is solved a body, as the aim is.
+@export var prone_reload_libraries: Dictionary[String, AnimationLibrary] = {}
 
 @export_group("Weapon")
 ## How the weapon is carried while the character is not aiming or firing. The clips are the held
@@ -246,6 +251,8 @@ const _RELOAD_FADE_OUT := 0.2
 ## Holds the upper body's turn on the aim poses' stance while aiming on the ground state
 ## (`AimBrace`); off, the weapon points where the pelvis of the legs' clip is turned.
 @export var aim_brace := true
+## Holds the legs still under a standing aim: the idle on its steadiest pose (`AimStance`).
+@export var aim_stance := true
 ## How far the character looks up or down for the full aim up or aim down pose.
 @export_range(5.0, 80.0, 0.5, "suffix:deg") var aim_pitch_range := 45.0:
 	set(value):
@@ -269,13 +276,13 @@ const _RELOAD_FADE_OUT := 0.2
 		action_blend_time = value
 		_rebuild()
 
+var melee := MeleeLayer.new()  # The melee blow's one-shot (gdstudio #1254).
 var _machine: AnimationNodeStateMachine
 var _ground: AnimationNodeBlendSpace1D
 var _crouch: AnimationNodeBlendSpace1D
-# The tuning whose speeds the blend spaces show (its `changed` is connected).
-var _tuning: CharacterTuning
-# The crawl's share and pace, the weapon put away lying, and a model's own prone clips.
-var _prone_look := ProneAnimation.new()
+var _tuning: CharacterTuning  # its speeds are the blend spaces' (its `changed` is connected)
+var _prone_look := ProneAnimation.new()  # the crawl, the weapon put away, a model's own clips
+var _weights := Vector2.ZERO
 var _vault_look := VaultAnimation.new()  # a vault timed by its clip and its landing step
 var _shoot_scale_node: AnimationNodeTimeScale
 var _shoot_clip_node: AnimationNodeAnimation
@@ -303,7 +310,9 @@ func _ready() -> void:
 	if model != null:
 		model.rig_changed.connect(_on_rig_changed)
 		_follow_rig()
-	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_libraries)
+	var own := [prone_libraries, prone_aim_libraries, prone_reload_libraries]
+	_prone_look.use_body_clips(animation_player, _rig_or_null(), own)
+	_vault_look.use_model_clips(animation_player, _rig_or_null(), vault_libraries)
 	_build()
 	_follow_tuning()
 	if Engine.is_editor_hint():
@@ -405,10 +414,9 @@ func advance(delta: float) -> void:
 # The tree's own processing, in its callback mode, on or off (with its mode and state kept).
 func _tree_runs_itself(on: bool) -> void:
 	var mode := tree.callback_mode_process
-	var idle := on and tree.active and mode == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
-	var physics := (
-		on and tree.active and mode == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
-	)
+	var running := on and tree.active
+	var idle := running and mode == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
+	var physics := running and mode == AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
 	if tree.is_processing_internal() != idle:
 		tree.set_process_internal(idle)
 	if tree.is_physics_processing_internal() != physics:
@@ -421,7 +429,7 @@ func _drive(delta: float) -> void:
 	var speed := _vault_look.follow(character, self, action_blend_time, delta)
 	tree.set(_P_GROUND_SPEED, speed)
 	tree.set(_P_CROUCH_SPEED, speed)
-	_drive_prone(speed, delta)
+	_prone_look.step_crawl_share(speed, blend_time, delta)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
 	HitLayer.follow(tree, active and _action_clip == hit_clip, body_state())
@@ -461,12 +469,16 @@ func play_clip(clip: StringName, duration: float = 0.0) -> void:
 	action_started.emit(clip)
 
 
-## How much of the upper body the pistol holds (0 none, 1 all of it): the holding pose, then the
-## aim over it.
+## How far the weapon is held (x: 0 away, 1 in the hand) and aimed (y: 0 carried, 1 the arm up),
+## standing or lying, the aim less during a melee blow.
 func pistol_weights() -> Vector2:
-	if tree == null:
-		return Vector2.ZERO
-	return Vector2(tree.get(_P_ARMED), tree.get(_P_AIM))
+	return melee.weigh(tree, _weights) if tree != null else Vector2.ZERO
+
+
+## How far the body lies with a weapon that has a prone aim (0 up, 1 lying): by this much the
+## prone aim clips stand in for the standing weapon layer.
+func prone_hold_share() -> float:
+	return _prone_look.lies
 
 
 ## Where the aim pose is on its pitch axis, in degrees (negative looks down).
@@ -545,7 +557,9 @@ func _on_rig_changed(_rig: Node3D) -> void:
 			tree.active = false
 		return
 	_follow_rig()
-	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_libraries)
+	var own := [prone_libraries, prone_aim_libraries, prone_reload_libraries]
+	_prone_look.use_body_clips(animation_player, _rig_or_null(), own)
+	_vault_look.use_model_clips(animation_player, _rig_or_null(), vault_libraries)
 	tree.anim_player = NodePath()
 	if not Engine.is_editor_hint():
 		tree.active = _fits(model.rig()) and not _dead
@@ -636,23 +650,31 @@ func _sync_ground_speeds() -> void:
 # tap of the fire button shows the arm up and never pops.
 func _drive_pistol(delta: float) -> void:
 	var hold := held_definition()
-	var up_share := 1.0
+	var up_share := ProneAnimation.upright_share(character, hold)
 	if character.loadout != null:
-		up_share = 1.0 - character.loadout.lowered_amount()
-	var lying := ProneAnimation.stow_share(character)
-	var stow := maxf(lying, _vault_look.hands)
-	var hidden := lying > 0.5 or _vault_look.away
+		up_share *= 1.0 - character.loadout.lowered_amount()
+	var stowed := ProneAnimation.stow_share(character, reload_progress().x)
+	var stow := maxf(stowed, _vault_look.hands)
+	var hidden := stowed > 0.5 or _vault_look.away
 	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, hidden)
 	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
 	var arm := _brace.arm(self, delta)
-	tree.set(_P_ARMED, armed)
-	tree.set(_P_AIM, arm * aims)
-	_brace.drive(self, arm * aims, delta)
+	# Lying with a prone aim, its clips (in the prone state) stand in for the standing layers.
+	var lying := _prone_look.lying(character, hold)
+	if is_reloading() and _prone_look.reload_misplaced():
+		stop_reload()
+	_weights = Vector2(armed, arm * aims)
+	tree.set(_P_ARMED, minf(armed, 1.0 - lying))
+	tree.set(_P_AIM, arm * aims * (1.0 - lying))
+	_brace.drive(self, arm * aims * (1.0 - lying), delta)
 	tree.set(_P_SHOOT_SCALE, shoot_speed)
 	ShotLayer.drive(tree, _shot_added)
 	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
 	tree.set(_P_AIM_POSE, clampf(up, -aim_pitch_range, aim_pitch_range))
+	var paces := Vector2(crawl_pace(), prone_idle_pace)
+	up += _prone_look.step_kick(prone_shot_kick, prone_shot_kick_time, delta)
+	_prone_look.drive(tree, _PRONE_STATE, paces, arm * aims * lying, up)
 
 
 # How far up the character looks, in degrees, `fraction` of the way from the step before the last
@@ -702,15 +724,6 @@ func _on_state_changed(state: Character.State) -> void:
 			_travel(PRONE)
 
 
-# The prone state follows the crawl (`ProneAnimation`): the crawl replaces the idle over
-# `blend_time` as soon as the body moves and plays at the pace of its stride, backwards while the
-# body moves away from the way it faces; the idle plays at its own pace.
-func _drive_prone(speed: float, delta: float) -> void:
-	tree.set(_P_PRONE_MOVE, _prone_look.step_crawl_share(speed, blend_time, delta))
-	tree.set(_P_CRAWL_PACE, crawl_pace())
-	tree.set(_P_PRONE_IDLE_PACE, prone_idle_pace)
-
-
 ## How fast and which way the crawl clip plays now (1 its own pace; below zero backwards).
 func crawl_pace() -> float:
 	return ProneAnimation.crawl_pace(character, crawl_clip_speed)
@@ -758,21 +771,23 @@ func _on_shot(_projectile: Projectile) -> void:
 		# One clip after another shot by shot (a jab, then a cross).
 		_shoot_clip_node.animation = hold.shoot_clips[_shots % hold.shoot_clips.size()]
 	_shots += 1
-	tree.set(_P_SHOOT_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	if not _prone_look.kick():
+		ShotLayer.fire(tree, hold)
 
 
 func _on_definition_changed(_definition: WeaponDef) -> void:
 	_shots = 0
 	_rebuild()
+	ShotLayer.stop(tree)
 
 
 func _on_reload_started(seconds: float) -> void:
-	var hold := held_definition()
-	if hold == null or hold.reload_clip == &"":
+	var clip := _prone_look.reload_clip(character, held_definition())
+	if clip == &"" or not animation_player.has_animation(clip):
 		return
-	if not animation_player.has_animation(hold.reload_clip):
-		return
-	var length := animation_player.get_animation(hold.reload_clip).length
+	var root := tree.tree_root as AnimationNodeBlendTree
+	(root.get_node(_RELOAD_CLIP) as AnimationNodeAnimation).animation = clip
+	var length := animation_player.get_animation(clip).length
 	tree.set(_P_RELOAD_SCALE, length / maxf(seconds, 0.01))
 	tree.set(_P_RELOAD_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
@@ -799,7 +814,7 @@ func _build_root() -> AnimationNodeBlendTree:
 	HitLayer.prepare(action, _bone_paths([upper_body_bone]))
 	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
-	root.connect_node(_ACTION, 0, _RELOAD)
+	root.connect_node(_ACTION, 0, MeleeLayer.NODE)
 	root.connect_node(_ACTION, 1, _ACTION_SCALE)
 	root.connect_node(&"output", 0, _ACTION)
 	return root
@@ -811,9 +826,7 @@ func _build_root() -> AnimationNodeBlendTree:
 # it (`ShotLayer`) and `Reload` the reload clip, both on the upper body. An empty clip is idle.
 func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	var hold := held_definition()
-	var grip_bones: Array[StringName] = []
-	if hold != null:
-		grip_bones = hold.grip_bones
+	var grip_bones: Array = hold.grip_bones if hold != null else []
 	var upper := _bone_paths([upper_body_bone])
 	var held := _bone_paths(grip_bones) if carry == Carry.HAND_ONLY else upper
 	var armed := AnimationNodeBlend2.new()
@@ -830,9 +843,10 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	reload.filter_enabled = true
 	for path in held:
 		armed.set_filter_path(path, true)
+	var free := _bone_paths(hold.free_bones() if hold != null else [])
 	for path in upper:
-		aim.set_filter_path(path, true)
-		shoot.set_filter_path(path, true)
+		aim.set_filter_path(path, not free.has(path))
+		shoot.set_filter_path(path, not free.has(path))
 		reload.set_filter_path(path, true)
 	var pose := AnimationNodeBlendSpace1D.new()
 	pose.min_space = -aim_pitch_range
@@ -867,6 +881,7 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	root.connect_node(_RELOAD_SCALE, 0, _RELOAD_CLIP)
 	root.connect_node(_RELOAD, 0, _SHOOT)
 	root.connect_node(_RELOAD, 1, _RELOAD_SCALE)
+	melee.add_to(self, root, _RELOAD, upper, _clip(_or_idle(MeleeLayer.first_clip(hold))))
 
 
 # The clip node of the hold's `property` (`aim_clip`), or of the idle clip when the hold leaves it
@@ -914,7 +929,9 @@ func _build_machine() -> AnimationNodeStateMachine:
 	_machine.add_node(LAND, _clip(land_clip), Vector2(400, 100))
 	_machine.add_node(PUSH, _clip(push_clip), Vector2(200, 160))
 	_machine.add_node(CROUCH, _build_crouch(), Vector2(0, 160))
-	_machine.add_node(PRONE, _build_prone(), Vector2(0, 320))
+	var upper := _bone_paths([upper_body_bone])
+	var prone := ProneAnimation.build(prone_idle_clip, crawl_clip, held_definition(), upper)
+	_machine.add_node(PRONE, prone, Vector2(0, 320))
 	_machine.add_node(SLIDE_START, _clip(slide_start_clip), Vector2(-200, 0))
 	_machine.add_node(SLIDE, _clip(slide_clip), Vector2(-200, 160))
 	_machine.add_node(SLIDE_EXIT, _clip(slide_exit_clip), Vector2(-200, -100))
@@ -956,7 +973,7 @@ func _build_ground() -> AnimationNodeBlendSpace1D:
 	space.min_space = 0.0
 	space.max_space = tuning.sprint_speed
 	space.sync = true
-	space.add_blend_point(_clip(idle_clip), 0.0, -1, &"idle")
+	space.add_blend_point(_brace.stance.idle_point(self, idle_clip), 0.0, -1, &"idle")
 	space.add_blend_point(_clip(walk_clip), tuning.walk_speed, -1, &"walk")
 	space.add_blend_point(_clip(run_clip), tuning.run_speed, -1, &"run")
 	space.add_blend_point(_clip(sprint_clip), tuning.sprint_speed, -1, &"sprint")
@@ -974,22 +991,6 @@ func _build_crouch() -> AnimationNodeBlendSpace1D:
 	space.add_blend_point(_clip(crouch_walk_clip), tuning.crouch_speed, -1, &"walk")
 	_crouch = space
 	return space
-
-
-# The prone state: the prone idle and the crawl, each with its own pace, blended by ground speed.
-func _build_prone() -> AnimationNodeBlendTree:
-	var blend := AnimationNodeBlendTree.new()
-	blend.add_node(&"Idle", _clip(prone_idle_clip), Vector2(0, 0))
-	blend.add_node(&"IdlePace", AnimationNodeTimeScale.new(), Vector2(200, 0))
-	blend.add_node(&"Crawl", _clip(crawl_clip), Vector2(0, 200))
-	blend.add_node(&"CrawlPace", AnimationNodeTimeScale.new(), Vector2(200, 200))
-	blend.add_node(&"Move", AnimationNodeBlend2.new(), Vector2(400, 100))
-	blend.connect_node(&"IdlePace", 0, &"Idle")
-	blend.connect_node(&"CrawlPace", 0, &"Crawl")
-	blend.connect_node(&"Move", 0, &"IdlePace")
-	blend.connect_node(&"Move", 1, &"CrawlPace")
-	blend.connect_node(&"output", 0, &"Move")
-	return blend
 
 
 func _clip(clip: StringName) -> AnimationNodeAnimation:

@@ -1,0 +1,36 @@
+{
+ "clips_file": "prone.glb",
+ "sha256": "7ea451f4a719ba59b1fb02b8fb9ad39b8d484780aca8ade108314d47b54d3f45",
+ "fps": 30,
+ "limit_mm": 5.0,
+ "clips": {
+  "Crawl_Fwd_Loop": {
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
+  "Crouch_To_Prone": {
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
+  "Prone_Idle_Loop": {
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
+  "Prone_To_Crouch": {
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  }
+ }
+}

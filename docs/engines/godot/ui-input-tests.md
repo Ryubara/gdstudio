@@ -38,6 +38,15 @@ covered it -->
   lands between ticks on two consecutive ticks, and pairing it with an `_unhandled_input` flag counted the same press
   again, so one key press gave two shoulder swaps. **Seen:** Deadnight, 2026-11-01 (fix: the player's own edge, the
   same code headless, where GdUnit4 carries actions but no mouse motion).
+- **Approach:** Count a press from the controller's flag, and from the held button going down when no flag came with
+  it; then a flag that comes after a press already counted from the button is no second press
+  (`Character.fire_press`, kept in the step state). Test a one-frame click and a tap under the shot interval with
+  `InputSim`, counting shots. **Watch out for:** with `InputSim`
+  events and `PlayerInput.sample()`, `is_action_pressed(&"fire")` was true a tick before
+  `is_action_just_pressed(&"fire")`, so an automatic weapon fired on the held button and its late flag buffered a
+  second shot: one click, two shots. Counting only the button going down dropped a release and press within one tick
+  (`test_character_state.gd` caught it).
+  **Seen:** gdstudio #1335, 2026-11-12 (tests `test_fire_count.gd`, `test_net_fire_count.gd`).
 - **Approach:** Read each edge source once per tick of a test loop, on every tick, and run a new edge action's row
   through two bindings in a row before trusting it. **Watch out for:** the controller keeps the last state of each
   button (`_edge`, `_was_down`), so a test that called `command()` a second time to learn the facing took the press
@@ -71,6 +80,14 @@ another order; the menus-under-test entry covers the router alone -->
   so a pad test failed after the touch suite; a scan for `Input.action_press(` missed three suites that pressed with
   events and never released. **Seen:** Deadnight #456, 2026-11-02; Deadnight, 2026-11-05 (fix: `free_all` releases
   the mouse, `InputFixture.release_all()`, and the scan counts events).
+- **Approach:** A release-all records what the fixture pressed and lets go of exactly that, never a typed list of the
+  usual keys; when CI shuffles the suite order, name what is down before guessing (a probe suite run last that prints
+  each pressed key, action, mouse mask and pad button), then run `[leaker, victim]`. **Watch out for:** the kit's
+  `InputSim.release_all()` released ten named keys, so a suite that held Y left it down though it released in
+  `after_test`, and `Input.is_anything_pressed()` failed 141 times in a suite 58 places later, on two unrelated pull
+  requests and on `main` in that order; two suites that pressed with `Input.action_press` were suspected first and
+  were clean. **Seen:** gdstudio #1274 and #1171, 2026-11-12 (`test_player_input.gd` before `test_character_split.gd`;
+  fix: `InputSim` keeps what it pressed); gdstudio #1315, 2026-11-12 (the same pair on a CI rerun).
 - **Approach:** A helper that writes a static or a global (the device as touch, the opener a stub replaced, the join
   address a lobby fills) restores it in the same change that adds the write, and a suite that stubs the step which
   would consume a static clears it in `after_test`. **Watch out for:** `UiFitRun.set_window` set the device as touch

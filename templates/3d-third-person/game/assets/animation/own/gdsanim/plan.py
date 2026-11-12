@@ -61,6 +61,8 @@ class Footfall:
     roll_in: float = 0.0
     toe_off: float = 0.0
     roll_out: float = 0.0
+    ## Degrees the heel is held up over the toes for the whole contact: a foot that stands on its ball.
+    heel: float = 0.0
 
 
 @dataclass
@@ -74,6 +76,12 @@ class ContactPlan:
     loop: bool = True
     ## Metres the ball of the foot clears the floor by at the top of its swing.
     clearance: float = 0.06
+    ## Metres the longest toes of the bodies that play the clip reach past the reference body's: the swinging foot
+    ## is lifted until toes that long clear the floor too.
+    toe_reach: float = 0.0
+    ## Whether a foot turned up over its toes is set down by its own lowest skin (`_state`). A description that
+    ## sets the skin on the floor itself, frame by frame, turns it off (`clips/gait.py`, `settle_height`).
+    tread: bool = True
 
     def stride(self) -> np.ndarray:
         """The root's travel over one cycle."""
@@ -103,6 +111,21 @@ class ContactPlan:
                 out.append([round(start, 3), round(end, 3)])
         return out
 
+    def flat(self, side: str, heel_up: bool = False) -> list:
+        """The frames of each contact in which the whole sole lies flat, `[[from, to], ...]`: after the heel has
+        rolled in and before it rises over the toes. With `heel_up` (a description that holds or raises the heel
+        itself, `raised`) no frame is, and each entry is the contact's first frame twice. The ball of the foot
+        stays on its place from an entry's first frame to the end of its contact."""
+        out = []
+        for fall, _ in self._falls(side):
+            start, end = max(fall.land, 0.0), min(fall.lift, float(self.frames))
+            if end <= start:
+                continue
+            first = min(max(fall.land + fall.roll_in, start), end)
+            last = first if heel_up or fall.heel > 0.0 else max(min(fall.lift - fall.roll_out, end), first)
+            out.append([round(first, 3), round(last, 3)])
+        return out
+
     def planted(self, side: str, f: float) -> bool:
         return any(fall.land <= f <= fall.lift for fall, _ in self._falls(side))
 
@@ -122,11 +145,12 @@ class ContactPlan:
         return best
 
     def events(self) -> list:
-        """A footstep on every landing inside the clip."""
+        """A footstep on every landing inside the clip. A foot that is already down as a clip that plays once
+        begins did not land in it."""
         out = []
         for side, _ in SIDES:
             for fall, _ in self._falls(side):
-                whole = fall.land <= 0.0 and fall.lift >= self.frames
+                whole = fall.land <= 0.0 and (fall.lift >= self.frames or not self.loop)
                 if 0.0 <= fall.land < self.frames and not whole:
                     out.append({"frame": round(fall.land, 3), "name": "footstep", "foot": side})
         return sorted(out, key=lambda event: event["frame"])
@@ -162,6 +186,14 @@ class ContactPlan:
             return self._planted(rig, side, before[-1][0], before[-1][1], before[-1][0].lift)
         return self._swing(rig, side, before[-1], after[0], f)
 
+    def raised(self, rig: Rig, side: str, f: float, heel: float) -> dict:
+        """A planted foot's leg spec at a frame with its heel held `heel` degrees up over its toes, which stay
+        where they stand (a crouch on the ball of a foot, a heel that comes up as the knee goes down)."""
+        for fall, shift in self._falls(side):
+            if fall.land <= f <= fall.lift:
+                return self._state(rig, side, "ball", self._ball(rig, side, fall, shift), heel, fall.yaw)
+        raise AssertionError(f"the {side} foot is not planted at frame {f}")
+
     def _state(self, rig: Rig, side: str, pivot: str, at: np.ndarray, pitch: float, yaw: float) -> dict:
         """The leg spec of a foot turned by `pitch` and `yaw` about a point of its sole. `pivot` is `ball` (the
         point `at` is where the ball of the foot stands; a heel that rises turns about the toes' hinge over it,
@@ -172,6 +204,15 @@ class ContactPlan:
         if pivot == "ball":
             hinge = at + (sole["hinge"] - sole["ball"])
             ankle = hinge + turn @ (sole["ankle"] - sole["hinge"])
+            if pitch > 0.0 and self.tread:
+                # The toes stay flat and the rest of the foot turns over them; the skin between the two is shared.
+                # Move the foot by how far that leaves its lowest skin from where the flat sole's is, so a body whose
+                # toes curl up off the floor at rest stands on the ball of its foot and not 3 mm over it. The move
+                # is measured from the hinge, so a foot in the air keeps its height.
+                rest = sole["tread"] - sole["hinge"]
+                toes = sole["tread_toes"]
+                lowest = float((toes * rest[:, 1] + (1.0 - toes) * (rest @ turn.T)[:, 1]).min())
+                ankle[1] += (sole["floor"] - sole["hinge"][1]) - lowest
         else:
             ankle = at + turn @ (sole["ankle"] - sole["heel"])
             # The heel's skin is shared with the shin, which does not turn with the foot: blend as the skin does.
@@ -180,6 +221,11 @@ class ContactPlan:
             lowest = float((share * (rest @ turn.T) + (1.0 - share) * rest)[:, 1].min()) + ankle[1]
             ankle[1] += sole["floor"] - lowest
         return {"ankle": ankle, "foot": (pitch, yaw, 0.0), "toe": max(pitch, 0.0)}
+
+    def state(self, rig: Rig, side: str, pivot: str, at: np.ndarray, pitch: float, yaw: float) -> dict:
+        """The leg spec of a foot turned about a point of its sole (`_state`), for a description that writes a
+        foot's path itself: a landing on the ball of the foot, a heel drawn up behind a runner."""
+        return self._state(rig, side, pivot, at, pitch, yaw)
 
     def _ball(self, rig: Rig, side: str, fall: Footfall, shift: np.ndarray) -> np.ndarray:
         return np.array([fall.place[0], rig.sole[side]["floor"], fall.place[1]]) + shift
@@ -194,8 +240,8 @@ class ContactPlan:
             return self._state(rig, side, "heel", heel, -fall.heel_strike * share, fall.yaw)
         if fall.roll_out > 0.0 and f > fall.lift - fall.roll_out:
             share = maths.smooth((f - (fall.lift - fall.roll_out)) / fall.roll_out)
-            return self._state(rig, side, "ball", ball, fall.toe_off * share, fall.yaw)
-        return self._state(rig, side, "ball", ball, 0.0, fall.yaw)
+            return self._state(rig, side, "ball", ball, fall.heel + (fall.toe_off - fall.heel) * share, fall.yaw)
+        return self._state(rig, side, "ball", ball, fall.heel, fall.yaw)
 
     def _swing(self, rig: Rig, side: str, before: tuple, after: tuple, f: float) -> dict:
         sole = rig.sole[side]
@@ -209,16 +255,19 @@ class ContactPlan:
         end = heel + land_turn @ (sole["ball"] - sole["heel"])
         ball = start + (end - start) * go
         ball[1] += self.clearance * math.sin(math.pi * u) ** 2
-        pitch_a = a.toe_off if a.roll_out > 0.0 else 0.0
-        pitch_b = -b.heel_strike if b.roll_in > 0.0 else 0.0
+        pitch_a = a.toe_off if a.roll_out > 0.0 else a.heel
+        pitch_b = -b.heel_strike if b.roll_in > 0.0 else b.heel
         # The heel stays up through the first half of the swing, then the toes come up for the landing.
         pitch = pitch_a + (pitch_b - pitch_a) * maths.smooth((u - 0.15) / 0.7)
         yaw = a.yaw + (b.yaw - a.yaw) * go
         out = self._state(rig, side, "ball", ball, pitch, yaw)
-        out["toe"] = max(pitch_a, 0.0) * (1.0 - maths.smooth(u / 0.3))
+        # The toes straighten as the foot leaves, and bend again before a landing on the ball of the foot.
+        out["toe"] = max(pitch_a, 0.0) * (1.0 - maths.smooth(u / 0.3)) + max(pitch_b, 0.0) * maths.smooth((u - 0.25) / 0.75)
         # The toes hang under a foot whose heel is still up: lift the foot until their tip clears the floor.
         hinge = ball + (sole["hinge"] - sole["ball"])
-        tip = hinge + body_turn(pitch - out["toe"], yaw, 0.0) @ (sole["toe"] - sole["hinge"])
+        toes = sole["toe"] - sole["hinge"]
+        toes = toes * (1.0 + self.toe_reach / max(float(np.linalg.norm(toes)), 1e-9))
+        tip = hinge + body_turn(pitch - out["toe"], yaw, 0.0) @ toes
         out["ankle"][1] += max(sole["floor"] + 0.004 - tip[1], 0.0) * math.sin(math.pi * min(u / 0.5, 1.0) ** 0.5)
         return out
 

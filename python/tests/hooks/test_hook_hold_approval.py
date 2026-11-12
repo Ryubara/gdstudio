@@ -236,12 +236,32 @@ def test_a_negation_condition_question_or_other_number_does_not_approve(workspac
         ("Lift S-hold on #7?", "yes, 9"),  # the answer names a number, so only that number counts
         ("Lift S-hold on #7?", "no"),
         ("Lift S-hold on #7?", "yes but not yet"),
-        ("Lift S-hold on #7?", "yes " + "really " * 25),  # too long to be a plain yes
+        ("Lift S-hold on #7?", "Not yet. Ask me again tomorrow."),  # no sentence says yes
     ],
 )
 def test_a_yes_counts_only_as_a_plain_answer_to_a_list_with_the_hold(workspace, reply, text):
     path = transcript(workspace, said(reply), typed(text))
     assert run(workspace, LIFT, path) != ""
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "No need for a set phrase. I approve every one of those. The walk should use variant A.",
+        "Looked at them all tonight, and the captures read well to me, so they are approved from my side.",
+        "I don't want to repeat myself each time.\nGo ahead with all of them.",
+    ],
+)
+def test_an_approval_in_any_words_answers_the_list_however_long_the_message(workspace, text):
+    path = transcript(workspace, said("Waiting on your approval: #7 and #9."), typed(text))
+    assert run(workspace, LIFT, path) == ""
+    assert run(workspace, "gh issue edit 9 --remove-label S-hold", path) == ""
+
+
+def test_a_number_named_with_a_negation_is_vetoed_by_the_rest_of_the_message(workspace):
+    path = transcript(workspace, said("Lift S-hold on #7 and #9?"), typed("Yes to all of them. Don't lift 9 yet."))
+    assert run(workspace, LIFT, path) == ""
+    assert run(workspace, "gh issue edit 9 --remove-label S-hold", path) != ""
 
 
 def test_a_qualified_number_needs_the_repository_to_be_known(workspace):

@@ -25,7 +25,8 @@ Open pull requests come before new work: each one left open goes stale against `
   pull requests landed unrefreshed and `main` went red: a shorter reload met a test added after its last run; on
   2026-11-10 #972 and #977 landed past unrelated-looking commits, and #954 nearly did the same with #986 and #989.
 - **Not on a red main.** While a `CI failing on the default branch` issue is open, only its fix forward (a body
-  saying `Fixes #<that issue>`) lands; the merge guard refuses the rest ([Red main](hooks-red-main.md#red-main)).
+  saying `Fixes #<that issue>`) lands; the merge guard refuses the rest ([Red main](hooks-red-main.md#red-main)), and
+  the required `main-green` check stops auto-merge too, then turns green when the issue closes ([CI](ci.md#main-runs)).
   Refreshing a branch with `gds merge-main` still works, and is the step before landing once the fix is on `main`.
 - **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
   rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
@@ -38,7 +39,9 @@ Open pull requests come before new work: each one left open goes stale against `
   **Watch out for:** a branch that was green meets what `main` gained meanwhile: a new clock for the suites, a new
   main menu in front of the probe. **Seen:** gdstudio #903 (PR #935), 2026-11-10: the local run on the real clock
   passed 876 cases while CI failed 5 socket cases, and the web probe stopped at the new menu (fix: the command
-  defaults to the CI clock, a test pins it against `ci.yml`, kit #976).
+  defaults to the CI clock, a test pins it against `ci.yml`, kit #976); gdstudio #1191, 2026-11-12: CLEAN and green
+  after #1353 landed, the merge failed `test_aim_head.gd` lying with the prone aim (head 8.9 degrees on the neck,
+  limit 8), which neither branch had alone (fix: `head_prone_neck_share`).
 
 - **Approach:** Look up the owner of any pull request red for over 30 minutes and assign one at once if none is live;
   when an agent is moved to other work, hand each pull request it leaves to someone. **Watch out for:** every open pull
@@ -167,31 +170,49 @@ force push, which is the maintainer's decision: open the same change from a new 
   land the oldest, and land a flake's fix first. **Watch out for:** with many agents CI is the bottleneck: with 21 open,
   20 jobs running and 33 queued, every push restarted a 15-minute run and about ten workflows. **Seen:** Deadnight #447,
   2026-11-02 (fix: the rule above).
-- **Approach:** After a conflicted merge, read the diff of every test file against `main` before rerunning the suites.
-  **Watch out for:** a merge of `main` doubled a step in a test, so the branch failed for a reason the change never had.
-  **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge).
+- **Approach:** After a merge of `main`, conflicted or not, read the diff of every test file against `main` and run
+  `gds check scripts` (or the template's test) before pushing. **Watch out for:** a merge of `main` doubled a step in a
+  test; `main` retyping a shared property (the loadout's `slots` to `Array[Resource]`) leaves the branch's lines
+  on the old type, unparsable; suites picked by name miss a test `main` added over what the branch changed:
+  grep the tests for it (`fists.tres`) and run each hit; a total both sides raised to one number merges with no
+  diff and is wrong: recount it.
+  **Seen:** Deadnight, 2026-11-01; gdstudio #1258, 2026-11-11 (an inventory test from #1040 still typed
+  `Array[WeaponDef]`); gdstudio #1315, 2026-11-12 (the online fire count expected the fists, now a blow, to
+  shoot); #1275, 2026-11-12 (a clip count of 97 on both sides, 100 merged).
+- **Approach:** After a merge with no conflict in a test, read the assertions that name an example ("a clip with no
+  stand-in") against what the branch changed. **Watch out for:** `main` moved such an example from the walk to the
+  crouch walk, which the branch had just given a stand-in; git merged it cleanly. **Seen:** gdstudio #1285 on #1275,
+  2026-11-12 (`test_own_clips.gd`; it now names `JUMP_START`).
 - **Approach:** When a branch moves a shared asset path (a body, a model), grep the merged tree for the old path after
   `gds merge-main`, in tests and in scenes, and run the full template suite, not only the suites the branch touched.
   **Watch out for:** a scene and a suite that landed on `main` after the branch started still use the old path, so
   the merge is clean but they fail. **Seen:** gdstudio #1298 on #1187, 2026-11-11 (the online enemy look and
   `test_net_ai_section.gd` from #1243 still used the Quaternius male).
 
-- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, with the whole message from a file and
-  nothing after the trailer, through `gds merge-main`; run `uvx pre-commit run --files <resolved files>` before
-  `--continue`, run `--continue` unpiped, and check that `git log -1` shows the merge before rebuilding or pushing.
-  **Watch out for:** a hand-written title (`ui: Merge main into x`) is refused because `Merge` is not on the verb list,
-  so the merge stayed open; `--continue` commits through pre-commit and a licence line of 155 characters met the 120
-  limit there; a merge left staged for hours (248 files, `MERGE_HEAD` set) first met `gdlint` at commit time, when
-  `main`'s growth had put a file at 1,016 lines. **Seen:** Deadnight #539, 2026-11-02;
-  Deadnight #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (another branch merged with `--no-edit`).
+- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, through `gds merge-main` (the message
+  from a file, nothing after the trailer); run `uvx pre-commit run --files <resolved files>` before `--continue`, run it
+  unpiped, and check that `git log -1` shows the merge before rebuilding or pushing. **Watch out for:** a hand-written
+  title (`ui: Merge main into x`) is refused (`Merge` is not a verb on the list); `--continue` commits through
+  pre-commit, where a 155-character licence line met the 120 limit, a merge staged for hours met `gdlint` at 1,016
+  lines, and two `Seen:` lists joined in a conflict passed the 900-character rule limit. **Seen:** Deadnight #539,
+  #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (merged with `--no-edit`); gdstudio #1256, 2026-11-11;
+  gdstudio #1323, 2026-11-12 (plain `git merge --no-edit`: no trailer).
 - **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
   after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
   HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply
   --3way mine.patch`; a pull request stacked on a hand-merged sync one takes its own side of the synced files, runs `gds
   sync <game>` and `gds sync --check`, and says what it is stacked on. **Watch out for:** a squash merge writes a commit
   no branch contains, so 17 files conflicted with none of the agent's own lines, and `.claude/gds-sync.json` and
-  `groundwork.py` conflicted on identical content. **Seen:** Deadnight #230 on #643, 2026-11-03; Deadnight #575 on #571,
-  2026-11-02.
+  `groundwork.py` conflicted on identical content. **Seen:** Deadnight #230 on
+  #643, 2026-11-03; Deadnight #575 on #571, 2026-11-02; gdstudio #1291 on #1040, 2026-11-11.
+- **Approach:** When the pull request a branch was stacked on has landed as a squash, merge each file against the
+  stacked tip the branch started from, not against git's merge base: start `gds merge-main`, restore every file
+  the branch's own commits did not touch from `origin/main` (`git restore --source=origin/main --staged --worktree
+  -- .`), and for each file of `git diff --name-only <stacked tip> HEAD` run `git merge-file <ours> <the stacked
+  tip's copy> <main's copy>`; then `gds merge-main --continue`. **Watch out for:** git's base was the commit
+  before the whole stack, so 32 files conflicted and a line the stacked branch later removed would have come back
+  without a conflict; against the stacked tip 4 files conflicted, each where both sides really changed.
+  **Seen:** gdstudio #1285 on #1195, 2026-11-11.
 - **Approach:** After every `gds merge-main`, diff the branch against `origin/main` for each file it shares with a
   merged pull request (`git diff origin/main -- <file>`), delete the branch's own copy of a fix `main` landed, and drop
   a workaround whose blocking issue has closed. **Watch out for:** a clean textual merge hid a second copy: a stub

@@ -73,6 +73,9 @@ func test_every_sound_file_is_used_by_a_scene() -> void:
 		"res://gameplay/weapon/weapon.tscn",
 		"res://gameplay/weapon/pistol.tres",
 		"res://gameplay/weapon/fists.tres",
+		"res://gameplay/weapon/categories/unarmed.tres",
+		"res://gameplay/weapon/categories/pistol.tres",
+		"res://gameplay/weapon/categories/rifle.tres",
 	]:
 		text += FileAccess.get_file_as_string(path)
 	for folder in ["coin", "footsteps", "pistol", "fists", "wind"]:

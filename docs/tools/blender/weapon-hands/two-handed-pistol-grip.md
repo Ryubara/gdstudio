@@ -1,0 +1,452 @@
+# The two-handed pistol grip
+
+<!-- new section: nothing said how two hands hold a pistol together; the 3D Third Person pistol's hands each met
+     their own targets and sat beside each other (gdstudio #1084) -->
+
+How a pistol is held in two hands as it is taught today (the thumbs-forward grip), what each finger does, and how the
+3D Third Person template's pistol hold was rebuilt to it (kit #1084). The rules every held model meets are on
+[Weapons: hands on the weapon](../weapons.md#hands-on-the-weapon); the hold's parts in the game are on
+[Weapons: the template's pistol](../weapons.md#the-third-person-template-pistol).
+
+## How the grip is formed {#how-the-grip-is-formed}
+
+<!-- new section: the research the rebuilt hold follows, finger by finger, with its sources (gdstudio #1084) -->
+
+A hold solved one hand at a time puts the second hand where the first leaves room, beside it. A real grip is built the
+other way round: the support hand is laid **over** the shooting hand, and every part of it has a place that the
+shooting hand makes for it.
+
+| Part | What it does | Source |
+| --- | --- | --- |
+| Shooting hand, web | High on the backstrap, under the tang; a hand set too low is the most common fault | [American Rifleman][ar] |
+| Shooting hand, three fingers | Round the front strap, the middle finger tight under the trigger guard; the middle and ring fingers do most of the gripping | [Outdoor Life][ol], [Shooting Illustrated][si] |
+| Shooting hand, index finger | Straight along the frame until the shot, then on the trigger | [Shooting Illustrated][si] |
+| Shooting hand, thumb | Forward and high; with the support hand on the gun it rests on the root of the support thumb | [American Rifleman][ar], [Outdoor Life][ol] |
+| The open side | The shooting hand leaves a gap on the grip's other panel, between its fingertips and the heel of its palm | [Shooting Illustrated][si] |
+| Support hand, heel of the palm | Fills that gap: the pad under the thumb is rolled onto the bare panel | [Shooting Illustrated][si], [Outdoor Life][ol] |
+| Support hand, four fingers | Wrap over the shooting hand's fingers, round the front of the grip, tight up against the trigger guard | [Outdoor Life][ol], [American Rifleman][ar] |
+| Support hand, index finger | Under the trigger guard, as high as it goes; never hooked round the guard's front | [Athlon Outdoors][ao], [Outdoor Life][ol] |
+| Support hand, cant | The wrist is bent forward (the little finger toward the ground), which puts the hand at about 45 degrees to the barrel and points the thumb at the target | [Athlon Outdoors][ao], [American Rifleman][ar] |
+| Support hand, thumb | Forward along the frame under the slide, ahead of and below the shooting thumb; the thumbs never cross | [American Rifleman][ar], [Outdoor Life][ol] |
+
+Sources differ on small things (how hard each hand squeezes, whether the support thumb presses on the frame); none
+teaches the two hands side by side, the support fingers on the grip itself, or a support hand held like the shooting
+hand mirrored.
+
+[si]: https://www.shootingillustrated.com/articles/2011/11/18/thumbs-forward-handgun-grip
+[ar]: https://www.americanrifleman.org/articles/2019/7/16/pro-shooter-advice-proper-handgun-grip
+[ol]: https://www.outdoorlife.com/guns/how-to-hold-a-pistol
+[ao]: https://athlonoutdoors.com/article/proper-pistol-grip-max-michel/
+
+## The 3D Third Person pistol's hold {#the-template-pistols-hold}
+
+<!-- new section: what of the taught grip the mannequin's hands do on the template's pistol, with the numbers
+     (gdstudio #1084) -->
+
+The pistol is the template's own (692 triangles, the muzzle along -X, up +Y, the gun's left +Z). The grip was
+rebuilt on kit #1001's seat (kit #1084, the numbers below), and the seat then moved so the shooting hand's middle
+finger lies under the trigger guard (kit #1213, [below](#the-seat-under-the-guard)); each body has a seat of its
+own, and both hands, the rack's hand on the slide among them, were solved again on it:
+
+| Part | In the template | Measured (female, male) |
+| --- | --- | --- |
+| Support hand, cant | Its knuckle line is 43 degrees from the gun's own down (16 before, the right hand mirrored); the wrist is 4 cm higher, level with the frame | `test_the_two_hands_hold_the_pistol_together`: 25 to 50 degrees |
+| Support hand, four fingers | Over the right hand's ring and little fingers and round the front of the grip, their tips on the gun's right | each middle and last bone within 5 mm of the right hand's skin (at most 1.4 mm off it) |
+| Support hand, index finger | Under the trigger guard, on the gun | at most 1.9 mm off the guard |
+| Support hand, palm | On the right hand's fingertips, which cover the left panel; the heel reaches the bare panel on the male mannequin only (0.8 mm; the female's thinner palm is 13 mm off it) | 2.4 mm (female) and 1.8 mm (male) off the right hand |
+| Support hand, thumb | Forward along the frame above the trigger guard, under the slide, its last joint 108 mm ahead of the right thumb's | 1.1 mm off the gun (female), 0.9 mm in (male) |
+| Shooting hand, thumb | Lifted off the frame onto the root of the left thumb while the left hand is on the gun (`pistol_thumb_pose.tres`; the female body's is set by hand); on the frame when the gun is held in one hand | on the prototype bodies 0.9 mm in the left hand (female) and 0.4 mm off it (male), 4.7 and 4.1 mm from the skin of its thumb root (the test allows 12) |
+| Depth | Each hand against the gun and against the other hand, both ways | at most 1.6 mm in |
+
+What the rig cannot do, and where it differs from the taught grip:
+
+- **Two-handed, on the male body the trigger finger grazes the inside of the guard's front strut as it swings in** (on
+  kit #1213's seat, swept at every hundredth of its way: 1.9 mm deep at 0.68, over 1 mm from 0.66 to 0.80, the last
+  bone's tip on the strut's inner face near its lower corner). On the female body the way no longer touches the guard
+  (0.1 mm at most until 0.95, then 0.6 to 0.75 mm on the trigger itself as it arrives). Half-way the finger is drawn out
+  to the gun's right side, its middle bone 7 mm (female) and 16 mm (male) off the frame. Against the left hand it is
+  never more than 0.4 mm in (male, at the frame end of the way). One-handed the finger has a way of its own
+  ([one-handed](../../../engines/godot/third-person/one-handed.md#one-handed)). On kit #1001's seat the graze was 1.4 mm
+  (female) and 2.2 mm (male) from 0.69 to 0.81 of the way (kit #1273); on the earlier bodies the solved way crossed the
+  strut whole (3.7 mm, the most a point can read inside that 8 mm bar), and moving the strut 6, 12 and 18 mm forward did
+  not clear it (kit #1212); the guard is unchanged.
+
+**Poses set by hand** (kit #1084, on the prototype bodies of kit #1187). Where the solver's search ended in a pose
+that passed no test or did not read as a hand, the finger's angles are set by hand in
+`tools/hold/pistol_authored.json` (`{body: {pose: {finger: [angles]}}}`, the solver's own angles: a finger's spread
+and three bends, the thumb's six), and `write_hold.gd` lays them over the solved hold, so a new solve keeps them
+(`tools/hold/lay_authored.py` lays them into the solve's own file, for a stage run after it).
+`tools/hold/pose_bench.gd` puts such a file on the tests' own stage and prints the game's measure in the tests' words
+(every part against the gun and the other hand with `PARTS=1`, a bone's place in the gun's space with `JOINTS=`, an
+OBJ of both hands and the gun with `OBJ=` for a look in Blender from any side), about ten seconds a look. What is set
+by hand:
+
+| Body | Pose | Fingers | Why |
+| --- | --- | --- | --- |
+| female, male | `support` | left index | The solver closed its tip onto the right index finger as it lies along the frame, which is on the trigger in the aim: the tip was 9.6 mm off there. It is set under the guard, on the gun |
+| female, male | `grip` | right index | Along the frame, 20 mm or more from the trigger and clear of the left index finger set under the guard |
+| male | `grip` | right little | Spread 8 degrees down the grip: the solver's tip was 2 to 4 mm inside the left hand under the magazine |
+| female | `grip` | right thumb | High on the frame, where the two-handed pose leaves from: the solver's was 6.4 to 6.7 mm inside the left hand as it let go and came back (reload shares 0.04 and 0.86) |
+| female, male | `thumb` | right thumb | On the root of the left thumb, within the test's 12 mm of its skin |
+| female, male | `thumb_way` | right thumb | The pose between its two places ([below](#between-the-poses)) |
+| female, male | `one_hand`, `one_hand_way` | right hand | Not set by hand: one-handed, every body's fingers are fitted to the female's placement on the gun by `fit_one_hand.gd` ([one-handed](../../../engines/godot/third-person/one-handed.md#one-handed)) |
+
+The poses set by hand on kit #1001's seat (the female's left middle, ring and little fingers, her right little
+finger) put the fingers 3 to 8 mm inside on the new seat and are gone: those fingers are the solver's again and
+pass. Every row passes the hold suite's limits (2 mm in, 5 mm off; the way poses 1.2 mm).
+
+### The seat under the guard {#the-seat-under-the-guard}
+
+<!-- new section: the seat moved after the grip was rebuilt, and what a moved seat costs every other solved thing
+     had no place (gdstudio #1213) -->
+
+Kit #1001's seat had the web under the tang and the middle finger beside the trigger guard, hooked round its front:
+the hand is 41 mm from the web to the top of the middle finger where the gun is 63 mm from the tang to the guard's
+underside. The seat of kit #1213 tips the hand instead of sliding it down the grip, so the web stays high:
+
+| | female | male |
+| --- | --- | --- |
+| Seat, as a move from the reference (`SEAT`, `SEAT_MALE`: metres, then degrees) | 0.016, -0.025, 0.0069; 3, -8.5, -29 | 0.010, -0.021, 0.0075; -6, -12, -28 |
+| Middle of the right middle finger's first bone, up the gun (the guard's underside is at 14 mm; the test wants 8 or less) | 5.5 mm (20.1 before) | 5.3 mm (about 42 before, inside the guard) |
+| Thumb's root up the gun (the web under the tang) | 62 mm (64 before) | 63 mm (69 before) |
+| Wrist bend | 31 degrees | 30 degrees |
+| Left arm to spare at the worst pose | 9.3 mm | 7.3 mm |
+| Right hand, one-handed (deepest in, farthest holding part off) | 1.0 mm, 3.1 mm | 1.2 mm, none off |
+| Right hand, aim and shoot clips | 1.4 mm, 0.7 mm | 1.2 mm, 1.2 mm |
+| Left hand, aim and shoot clips | 1.5 mm, 2.2 mm | 1.1 mm, 3.5 mm |
+| Either hand at the reload's filmed shares (deepest in) | 1.5 mm | 1.6 mm |
+| Either hand through the rack, every half frame (deepest in) | 1.5 mm | 2.3 mm |
+
+A moved seat is a new hold: the left hand's place (the gun is 10 to 14 mm farther from the left shoulder), every
+finger of both hands, the hand under the magazine, the way off the gun, the hand-set poses, the rack's hand on the
+slide and its clip, `Weapon.no_muzzle_offset` (the muzzle moved 15 mm) and the carried pose of anything that hangs
+on the hold were all solved or built again, in that order. The rifle's hold has its own solve and did not move.
+
+## Between the poses {#between-the-poses}
+
+<!-- new section: what moves between the solved poses of the two-handed hold, and how each move is kept clear
+     (gdstudio #1078, #1079, #1084) -->
+
+A solved pose is clear where it holds; the blend the game plays between two of them is not, unless it is solved too.
+
+- **The trigger finger goes by a pose between** (kit #1079, `pistol_trigger_way_pose.tres`,
+  `HandPoseModifier.second_way`). The straight blend from along the frame to the trigger left the guard on the gun's
+  far side: 7.3 mm through the left thumb's tip and 7.0 mm through the gun. The pose between (the finger lowered and
+  drawn out to its own side, nearly straight) is solved as the nearest to both ends that keeps the finger out of the
+  left hand at every twentieth (0.4 mm in at the most now) and as little in the gun as it can be (1.9 mm on the
+  strut's inner face on the male body, above).
+- **The right thumb makes room while the left hand waits** (kit #1084, `SupportHandPlan.room`). The left thumb's
+  root takes the right thumb's place on the frame, so the right thumb is lifted onto it; blended while the left hand
+  came in, it was 16 mm inside that hand. The plan now has a step for it: the hold's arm takes the left hand to the
+  far end of its way (the plan's `on` to 0.3), the hand waits there while the thumb moves (0.3 to 0.6), then comes in
+  (0.6 to 1); the way's far end is solved clear of the thumb everywhere between its two poses.
+- **The right thumb goes by a pose between too** (`pistol_thumb_way_pose.tres`, `HandPoseModifier.open_via`,
+  `WeaponHold.thumb_way_pose`). Its two places are on either side of the frame's rear edge, and on the prototype
+  bodies the straight blend took its middle bone 3.8 mm (male) and 2.6 mm (female; 5.2 mm to her hand-set place)
+  through that edge; no end pose met both the way and the 12 mm to the left thumb's root. The pose between lifts the
+  thumb clear first (set by hand: started at the middle of the two ends' angles and moved until the deepest of
+  fifteen steps of the way read under 1 mm in the game's measure, going round by no more than that takes): 1.2 mm
+  (male) and 1.0 mm (female) at every fortieth of the way
+  (`test_the_right_thumb_passes_through_nothing_on_its_way_to_the_left_thumb`). A reload plays the whole move
+  inside two hundredths of the clip (shares 0.064 to 0.082 on the way off), so the reload's samples see one moment
+  of it.
+- **The left hand's fingers press the right hand as they open and close** over it: 2.1 mm at the right little
+  finger's tip on both mannequins, for two hundredths of a reload (it is 1.5 mm in the palm that lies on it while both
+  hold). The test allows 2.5 mm there by name (`LEFT_HAND_PASSING`), and only while the fingers are between their
+  two poses.
+- **An arm too short backs the hand off along its way** (kit #1078, `HoldArm.retreat`). While the aim comes up the
+  gun is still out to the side and the left arm 6 to 16 cm short of the hand's place; the hand stopped short with the
+  place's turn, its fingers 13 to 18 mm through the gun and the right hand. The arm now puts the hand on the line of
+  its way, at the first place it reaches, opened (`HoldArm.backed_off`), so it comes in only as far as the arm
+  reaches: 0.8 mm (female) and 0.9 mm (male) deep at most on the live player, every update, both mannequins.
+- **The gun is not held out during a reload.** `carry_arm_out` (8 degrees, for the thigh) stayed on through a reload
+  started with the gun carried and took the gun 13 mm out of the male mannequin's reach from the new place; it now
+  fades with the reload's weight as it does with the aim's.
+
+## The left hand through the reload {#the-left-hand-through-the-reload}
+
+<!-- new section: moved from the weapons page, which is near the size limit (gdstudio #1084) -->
+
+- **The left hand follows the reload** (kit #1031). `Pistol_Reload` (1.67 s, stretched to the weapon's
+  `reload_time`) has the left hand on the gun for its first 4 hundredths, down at the left hip for the new magazine at
+  a quarter, under the grip from 0.54 to 0.71 and back on the gun from 0.88. After the solved seat moved the pistol
+  about 10 cm in the hand, the clip's own left hand was 16 to 22 mm inside the gun or the right hand for a third of the
+  clip on the female and 20 to 23 mm at its ends on the male, and under the grip it stood beside the gun's right side,
+  not under the magazine. `WeaponHold` now takes the hand through the clip's steps by the clip's own time
+  (`CharacterAnimation.reload_progress()`: how much of the body the one-shot holds, and the share played): on the
+  `SupportHand` marker, opened and let go to the clip's arm (0.04 to 0.10), brought to the line under the magazine
+  (0.30 to 0.40) one magazine's length down the grip, pushed up it (0.40 to 0.54) to the `MagazineHand` marker, where
+  the heel of the palm is on the magazine's base as a real reload seats one, then down, round the grip's foot and
+  onto the gun (0.71 to 0.88). Where the hand holds, it is within the 2 mm and 5 mm (the palm 1.6 to 3.1 mm off the
+  base, nothing more than 1.2 mm in). The trigger finger is off the trigger for the whole reload. Where the hand
+  should be at each moment was decided from the clip and from how a reload is taught: the magazine is fetched at the
+  belt, guided in and seated firmly with the support palm, and the
+  grip is taken again ([Shooting Illustrated](https://www.shootingillustrated.com/articles/2012/10/25/semi-automatic-handgun-reloading),
+  [AmmoLand](https://www.ammoland.com/2023/03/4-pistol-reload-methods-9-magazine-tips)). The clip has no rack of the
+  slide and no magazine in the hand; the magazines and the slide are the hold's
+  ([below](#the-magazine-through-the-reload)).
+- **The left hand has one way on and off the gun** (kit #1051). #1031 let the hand go by fading its arm to the
+  clip's, so it left along whatever line lay between its place and the clip's hand, its little finger still on the
+  grip: 5.1 to 5.2 mm through the gun at shares 0.05 to 0.055 on the female mannequin, and 9.1 mm (female) and 5.7 mm
+  (male) at 0.7875 on the swing back from the magazine, between two hundredths. Now the fingers open where the hand
+  holds (`pistol_open_pose.tres`: each finger the nearest pose that lifts it 5 mm off every surface with nothing
+  deeper than 1 mm in the sixteen poses between, blended as the game blends them; the little finger, which lies on
+  the grip's left panel, curls its middle joint in), then the opened hand leaves along a straight 6 cm line
+  (`WeaponHold.support_way`: of the directions 10 degrees apart in which the whole hand stays clear, and its
+  neighbours too, the one nearest the way to the belt; 26 degrees off it, down, back and to the left), and only at
+  the line's far end does the clip's arm take it. Coming on is the same way backwards, for the aim and from the
+  magazine alike: from under the magazine the hand drops, crosses to the line's far end bowed 4 cm down and out
+  (`return_clearance`) while its fingers open, and comes in. `SupportHandPlan` holds this as one number (how far on
+  the gun the hand is) and the reload's phases (`HELD`, `LET_GO`, `AWAY`, `REACH`, `INSERT`, `SEATED`, `RETURN`), for
+  whatever moves with the hand next. Measured at every hundredth of the reload and at every quarter of a hundredth
+  of the moving spans, the left hand is at most 1.2 mm in on both mannequins; on the live player reloading while it
+  aims, on every update, the same (before: 5.9 to 8.5 mm over five frames of the let-go and 7.4 mm on the way back).
+  Two faults the live measure found were not the left hand's way: the arm too short while the aim comes up (kit
+  #1078) and the trigger finger through the left thumb (kit #1079), both [above](#between-the-poses).
+
+## The magazine and the slide through the reload {#the-magazine-through-the-reload}
+
+<!-- new section: the left hand acted out a reload with nothing in it and the pistol's magazine never left the grip;
+     nothing said how a held part moves with a hand or what the slide does (gdstudio #1052) -->
+
+What moves on and with the pistol through `Pistol_Reload` (kit #1052). All of it is `WeaponHold`'s, cosmetic and never
+sent; the rounds still go in at the end of `reload_time`.
+
+- **The old magazine drops when the reload's first sound plays** (the weapon definition's `reload_sound_at[0]`, 0.2 of
+  the clip): the pistol's `Magazine` node is hidden and a body with its mesh (`DroppedMagazine`, a box of the mesh's
+  size, on no physics layer and meeting the world and props, continuous collision) leaves the grip down its line at
+  0.5 m/s plus the gun's own motion, falls about a metre and lies on the floor for `dropped_life` (8 s). One a
+  character: the next reload takes the same body back, so a long fight leaves no pile.
+- **The new magazine rides the left hand's bone** from the belt (0.25 of the clip, behind the hip from the player's
+  camera) to the end of the way in: a `BoneAttachment3D` on `hand_l` with the pistol's magazine mesh, placed as the
+  pistol's own magazine is seen from the `MagazineHand` marker. The hand's bone sits on that marker once the
+  magazine is in, so in the hand it is exactly where the pistol's will be, and at the end of `INSERT` the hold swaps
+  the two with nothing moving. The way in (`magazine_approach`) is the grip's own line (the `Grip` socket's -Y, 18
+  degrees back from the gun's down), 12 cm: the magazine's length and its top 1.6 cm clear of the well, since the
+  arm arriving at the line's start is a few millimetres off it (at 11 cm the top went 2.1 mm into the grip's foot).
+  The hand and the magazine go up it together, the magazine within 1.5 mm of the line and 1 degree of the grip.
+- **The fingers take it, carry it and let it go, three solved poses a body** (`tools/hold/solve_pistol_hold.py
+  --body=<name> --carry-only`, on that body's solved hold; the female's are the scene's own files, the male's are in
+  `pistol_fit_male.tres` with the rest of its `HoldFit`). At the belt the hold takes the fingers from the clip and opens
+  them (`pistol_carry_open_pose.tres`), then closes them on it (`pistol_carry_pose.tres`): the index, middle and ring
+  fingers' tips and the thumb on the magazine (within 1.2 mm in in the solver; the male body's middle fingertip 1.6 mm
+  off), the base in the fist, its
+  top out of the thumb side, as a magazine is held to be guided in; each finger is solved with the palm's vertices it
+  moves measured too (a thumb measured alone pressed the palm by its root 3.5 mm into the magazine). The little finger
+  does not reach it from the hand's place under the base (13.5 mm off on the female body, 15.7 mm on the male). As the
+  grip's foot comes down over the fingers they open off the magazine over `carry_release` of the way in, come up past
+  the right hand's fingers opened, and go on to the pose under the magazine over `carry_arrive`. The two are searched
+  apart (before the arrival starts only the release moves the fingers, after it only the arrival): the latest release
+  and the longest arrival after it that pass no deeper than the solver's 1.2 mm or the least found. On the seat of kit
+  #1213 that is 0.1 to 0.8 and 0.8 to 1.0 on the female body (1.1 mm), 0.3 to 0.6 and 0.6 to 1.0 on the male (1.2 mm).
+  The opened pose is the pose between, so it is held clear on both legs (from the carry to it and from it on to the
+  pose under the magazine) and of the gun and the right hand along the way in, where the fingers have it. A finger that
+  no opened pose gets clear is closed again with its two end joints as the pose under the magazine has them, so only
+  the knuckle moves and the curled finger swings off as one piece (both bodies' middle finger on that seat); a thumb
+  that none gets clear is closed again from the pose under the magazine, so it stays on that pose's side of the
+  magazine (both bodies').
+- **Back off the seated magazine the hand goes straight down** (`WeaponHold.return_down`, the gun's -Y, 4 cm of it), not
+  back down the way in, which leans 18 degrees with the grip: the two-hand grip's hold was measured with that retreat,
+  and down the grip's line the female body's curled index finger passed 2.2 mm deep posed and 2.5 mm on the live player.
+  `SupportHandPlan.down_back` is that part of `down`.
+- **A reload cut short leaves the pistol whole**: with no reload weight the plan has the pistol's magazine in its grip
+  and none in the hand, whatever share the clip was at (`SupportHandPlan.magazine_in_gun`, `magazine_in_hand`).
+- **The slide: moved by the hold, not by a hand.** The clip has no rack and the library no other pistol reload; the rack
+  clip of the template's own (kit #1081) is not played by the reload yet (kit #1337). Of the two ways open until it is,
+  a release by the right thumb does not fit this model: its slide stop lever is on the gun's right side, under the right
+  hand's fingers, and the right thumb lies high on the left side (on the left thumb's root while both hands hold). So
+  the `Slide` node stands back 4 cm (`slide_travel`) while the pistol is empty, as a pistol's slide locks open on its
+  last round, and runs forward when the reload's last sound plays (0.85, the slide's sound): the slide released. With
+  rounds left it stays forward and only the sound plays. The hold writes the node only when its lock changes, so the
+  rack clip can drive the same node (`slide_part`) with the left hand between.
+
+Tests: `tests/gameplay/test_reload_magazine.gd` (the magazine's place, the fingers on it and the magazine against the
+gun at every hundredth of the reload on both mannequins; the drop, the cut-short reload and the slide on the live
+player), `test_support_hand_plan.gd` (the plan's magazines) and `test_hand_pose_modifier.gd` (the carried pose over
+the others). Close-ups: `tools/capture/pistol_hold_study.tscn`
+with `HOLD_ONLY=reload` also films the hand and the magazine at the belt from the body's left, ahead, above and the
+player's camera (`*_carry_*.png`).
+
+- **Approach:** Measure a hand against the weapon as it is at that moment: while a part of it is out (a magazine in
+  the other hand), against the weapon without it, and the part on its own. **Watch out for:** the tests' contact was
+  made once with the pistol's magazine seated, so the left hand carrying the new magazine up the grip read 2.9 to
+  3.6 mm inside a magazine that was no longer there. **Seen:** gdstudio #1052, 2026-11-11 (fix: a second contact
+  made with the magazine hidden, used while it is out).
+- **Approach:** Give a hand that closes on something an opened pose solved against it, and go to and from the closed
+  pose by it: opened at the far end of a straight blend, closed only on the thing. **Watch out for:** blended
+  straight from the clip's fist the fingers went 3 to 7 mm through the new magazine as they closed on it, and from
+  the carry to the pose under the magazine 1.7 to 2.8 mm, whatever share of the way in the change was put at.
+  **Seen:** gdstudio #1052, 2026-11-11 (fix: `pistol_carry_open_pose.tres` both ways; 1.0 mm at most).
+- **Approach:** Hold a pose between two others clear on both of its legs, and when no such pose exists change an end
+  pose so that fewer joints move between the two. **Watch out for:** the opened carry was only measured from the carry
+  to it; on the female body's new hold its index finger then crossed 3.9 mm of the magazine's corner on the way on to
+  the pose under the magazine, whatever share the change was put at, and 2.2 mm once both legs were measured (the finger
+  was hooked round the corner: every way off it crossed it). **Seen:** gdstudio #1052 on #1171's hold, 2026-11-12 (fix:
+  `open_finger(then=)`, and the hooked finger closed from the knuckle only: 1.2 mm).
+- **Approach:** Measure a pose a hand passes something in against what it passes, at the places it has the pose, and
+  give each change of pose its own span of the way. **Watch out for:** after the seat moved (kit #1213) the opened
+  carry, solved against the magazine alone, stood 5.9 mm in the right hand on the way in; the pose under the magazine,
+  had from early on the way, scraped the female body's index fingertip 2.7 mm through the right middle finger over the
+  last 3 cm, and had late, took the thumb 5.5 mm through the frame (its carry was on the magazine's other side, 8.0 mm
+  on the male body); one span for both changes had no clear share, and three tests failed by under a millimetre.
+  **Seen:** gdstudio #1052 merged with #1262, 2026-11-12 (fix: `open_finger(along=)`, `carry_arrive` beside
+  `carry_release`, the thumb closed again from the pose under the magazine: 1.1 and 1.2 mm).
+- **Approach:** After the hold a carried part depends on has moved (a seat, the hand's place under the magazine, a
+  per-body split), solve the part's poses again on each body and run the hold's own suite as well as the part's, with
+  every line the hand moves along looked at again. **Watch out for:** the carry solved on the old seat read 3.3 to 4.8
+  mm inside the magazine on the female body and 19 to 30 mm off it on the male after the merge; and the hand's retreat
+  off the seated magazine, which had shared the way in's line since the magazine got one, passed 2.2 to 2.5 mm deep on
+  the new hold though the magazine's own suite was green. **Seen:** gdstudio #1052 merged with #1171, 2026-11-12 (fix:
+  `--carry-only` a body, the carry in `HoldFit`, `return_down`).
+- **Approach:** Put a mesh that rides the character (a prop in a hand) in the model slot, as the weapon's seat is, a
+  `BoneAttachment3D` with its skeleton path set before it enters the tree, so the slot puts it on the body's render
+  layers. **Watch out for:** the new magazine's attachment added under the skeleton after the slot had sorted its meshes
+  stayed on layer 1: the minimap would have drawn it and the inventory's preview missed it (six cases of the full suite
+  failed). **Seen:** gdstudio #1052, 2026-11-11.
+- **Approach:** Make a test's prop measure from the node whose children are the meshes. **Watch out for:**
+  `HandContact.set_weapon()` takes the meshes under the node it is given, not the node itself: given the magazine's
+  `MeshInstance3D`, it measured nothing and every finger read 30 mm off. **Seen:** gdstudio #1052, 2026-11-11 (fix:
+  the `BoneAttachment3D` that holds the mesh).
+- **Approach:** Write a part of the weapon that something else may move too (the slide, which a rack pulls) only when
+  the state you keep for it changes, and run the suites of whatever else moves it after a merge. **Watch out for:**
+  the hold put the `Slide` node at rest on every frame, so once the rack clip's stage was on the same branch the
+  slide stayed forward while the hand pulled: the fingertips read 20 to 59 mm from the serrations (11 failures in
+  `test_pistol_rack.gd`, none in either branch alone). **Seen:** gdstudio #1052 merged with #1103, 2026-11-12 (fix:
+  `WeaponHold` writes the slide when its lock changes).
+
+## Solving two hands against each other {#solving-two-hands}
+
+<!-- new section: what the solver had to learn to measure one hand against the other (gdstudio #1084) -->
+
+- **Approach:** Research how a real grip is formed, finger by finger with sources, before solving a second hand, and
+  give the solver a cost for each thing the grip teaches (the cant, the fingers over the other hand's and round to
+  the far side, the index finger under the guard, the thumbs). **Watch out for:** a second hand solved as the first one
+  mirrored and moved until its fingers touched something met every contact limit and sat beside the first hand, its
+  thumb along the trigger guard's opening; the maintainer's look at the game found it, the numbers did not.
+  **Seen:** gdstudio #1084, 2026-11-11 (fix: the table above; cant 16 to 43 degrees).
+- **Approach:** Measure each hand against the other, both ways, in the solver and in the test, and sample a part
+  with large faces (the palm: 199 triangles, edges to 5 cm) all over its faces, not only at its vertices; measure the
+  other hand's vertices against a finger taken as three capsules. **Watch out for:** the left hand's vertices against
+  the right hand's skin read 1.2 mm while the right little finger's tip was 3.3 mm inside the left palm, and at the
+  first canted place the right thumb's tip 17.5 mm; a capsule's middle line is 4 to 9 mm off the bone's, and its
+  radius is the outer vertices' (the median is pulled in by the joint balls inside). **Seen:** gdstudio #1084,
+  2026-11-11 (fix: `Hand.palm_points`, `Hand.finger_depth`, `measure("r", true)` in the test).
+- **Approach:** Say in the cost where a finger must end, not only what it must touch. **Watch out for:** asked to
+  lie on the other hand, the support fingers curled into their own palm (they touched the other hand's fingertips
+  there), and the shooting thumb crossed to the gun's far side to lie on the support hand's fingertips, a place it
+  could only reach through the gun. **Seen:** gdstudio #1084, 2026-11-11 (fix: the support fingers' last bones on the
+  gun's far side, the thumb's on its own).
+- **Approach:** Close a hand's skin where its selection ends before counting a point inside or out of it, each
+  ring of open edges joined to its own middle, in the solver and in the game's measure alike, and look at the hold
+  from above after every solve. **Watch out for:** the palm's piece is open at the wrist, and the shooting thumb
+  turned sideways behind the gun and put its tip in that opening: the solver read it 0.7 mm off, the game's measure
+  2.2 mm off in the level aim and 19.4 mm in once the aim turned the hands up (two of its three rays left through
+  the hole). One fan for all the hand's open edges joins its pieces into one, where a point inside two counts as
+  outside. **Seen:** gdstudio #1084, 2026-11-11 (fix: `hold_field.ring_caps`, `HandContact._open_rings`; the test
+  checks the thumb's tip within 12 mm of the left thumb's root).
+- **Approach:** Search a finger's pose from many starts (the grid, then some thousands of random ones, the best four
+  refined each on its own), and aim it at a place a wide search proved it reaches. **Watch out for:** refined from the
+  grid's best start alone, four different targets gave the same sideways thumb; a target the thumb could not reach
+  (3 cm ahead of where its joints end) pulled it there as well. Its root is behind the grip, so its tip gets no
+  further forward than the left thumb's root joint. **Seen:** gdstudio #1084, 2026-11-11 (fix: `solve_finger`'s
+  `wide`, `THUMB_OVER`).
+- **Approach:** Trace every blend the game plays between two solved poses at twentieths against the gun and the
+  other hand before wiring it, and give a part that must move through another's place a step of the plan in which
+  that other is away. **Watch out for:** the thumb's straight blend between its two poses passed 16.9 mm through the
+  gun (the poses were on opposite sides); lifted as the other hand came in, it was 16 mm inside that hand at two
+  hundredths of the reload. **Seen:** gdstudio #1084, 2026-11-11 (fix: `SupportHandPlan.room`).
+- **Approach:** Measure a way's room by sweeping the part along the way the game blends, and read where its deepest
+  point lies against the thickness of what it is in: a depth near half a thin part's thickness is a crossing, not a
+  graze. Before changing a model for room, move the obstacle in the solver's data and solve again. **Watch out for:**
+  the trigger finger read 3.6 mm into the guard's 8 mm strut, taken for a finger too thick for the opening; with the
+  strut 6 to 18 mm further forward it read the same, in the strut's middle. **Seen:** gdstudio #1079 and #1212,
+  2026-11-11 (the guard left as it was; the way is kit #1272); gdstudio #1273, 2026-11-12 (the prototype bodies'
+  hold: 1.4 and 2.2 mm on the strut's inner face, a graze; on kit #1213's seat 1.9 mm, male only; the test's
+  allowance cut to 2.5 mm).
+- **Approach:** Measure the other arm's reach on each mannequin's own skeleton, in the reload clip's first pose as
+  well as the aim poses, after moving a hand's place. **Watch out for:** the solver's merged rig is the female
+  skeleton with both skins, so the male arm was never measured: the canted place, 4 cm higher, was 6.5 mm out of
+  its reach where the reload starts with the gun carried, and the hand stood off the gun with its fingers open.
+  **Seen:** gdstudio #1084, 2026-11-11 (fix: `reach` on both rigs; no carry swing during a reload).
+- **Approach:** Measure the left arm's reach again after the right hand's seat moves, and make the last
+  millimetres of reach cost far more than contact wins. **Watch out for:** the seat under the guard holds the gun
+  10 to 14 mm farther from the left shoulder: the male's old left place was 0.6 mm from the arm's end, and a search
+  that paid a millimetre for a millimetre took one 4.6 mm out of reach for the palm's sake. **Seen:** gdstudio
+  #1213, 2026-11-12 (fix: `REACH_LEAST`, `REACH_SHORT`; 7.3 mm to spare).
+- **Approach:** On a low-poly body, measure the other hand at points on its faces too, not only its vertices, and make
+  each limit the test holds cost more than the place search can win by breaking it. **Watch out for:** on the
+  prototype bodies (eight vertices a ring) the right ring finger's face lay 2.6 mm in the left one, read 0.9 mm from
+  vertices; a tighter finger limit moved nothing, since the place sets it. A cant at 0.3 mm a degree went to 51
+  degrees, and the palm's vertices (what the test reads) stayed 6.5 to 8.3 mm off. The solver's log printed all three.
+  **Seen:** gdstudio #1084 after #1299, 2026-11-11 (fix: `FACE_SAMPLES`, `PALM_WEIGHT`, the cant at 2 mm a degree).
+- **Approach:** When a re-solve fails on several bodies, keep every solve with its suite result, take the best hold
+  per body on its own and freeze it, and move only the failing hand by a few placements scored on the failing cases;
+  stop after two rounds and hand the pose to an artist. **Watch out for:** retuning the cost shared by both bodies
+  fixed one finger and broke another each time (6 failures, then 13); the female's little finger sat at its 12 degree
+  spread limit in every placement, 6 mm off the right hand at best. **Seen:** gdstudio #1084 after #1299, 2026-11-11.
+- **Approach:** Trace a blend at every step the game can show (forty parts of its own weight, not shares of a clip
+  that plays it in a moment), with the game's blend (a slerp of rotations) and the game's measure, in a test of its
+  own. **Watch out for:** the right thumb's move was checked half-way, then at fifths, then at tenths of the angles'
+  straight line, and each finer check found it deeper nearer an end (1.9, then 2.8, then 3.7 to 4.8 mm); the reload
+  test sampled it once, at 0.07 of its way, and read 2.7 mm where the deepest was 3.8. **Seen:** gdstudio #1084
+  after #1299, 2026-11-11 (fix: the thumb's own way test, forty steps; the pose between).
+- **Approach:** Take a limit's measure from the test's own code: the same point, the same surface, the same
+  vertices. **Watch out for:** the solver held the thumb's tip bone within 11 mm of the left thumb's root bone line;
+  the test measures from whichever skin point of the tip is nearest any surface to the nearest vertex of the root's
+  skin, and read 12.5 to 15.4 mm on poses the solver had passed. **Seen:** gdstudio #1084 after #1299, 2026-11-11
+  (fix: poses judged on `pose_bench.gd`, which calls `HandContact` as the test does); gdstudio #1213, 2026-11-12
+  (the cost for the middle finger under the guard read another point of the finger than the test, and at a
+  millimetre a millimetre the seat search stopped 0.5 mm over the test's limit; fix: the middle of the first bone
+  between its two joints, as the test has it, at `UNDER` 3).
+- **Approach:** After running one stage of a solve again, run every hold suite again, and keep the file from before
+  beside the new one. **Watch out for:** the way-out stage run again for one finger wrote a new opened pose and a new
+  line off the gun, and reload cases that had passed failed; nothing but the full suites showed it. **Seen:**
+  gdstudio #1084 after #1299, 2026-11-11 (fix: each solve kept with its suite result; hand-set poses live in their
+  own file and are laid over whatever the solve wrote).
+- **Approach:** When a finger will not reach a surface, look at which layer its neighbours lie in before turning it
+  further, and compare with a body on which the same grip passes. **Watch out for:** the female body's left little
+  finger was pushed toward the right hand until it sank into its own ring finger (at 30 degrees three fingers
+  showed); the ring finger lay on the grip between the two, where the male body's lies over the right little
+  finger. Lifting the ring finger out made the place. **Seen:** gdstudio #1084 after #1299, 2026-11-12.
+- **Approach:** After changing one hand's pose for the two-handed grip, measure every other pose that hand is in:
+  one-handed, the reload's shares, the other hand at the magazine. **Watch out for:** the right little finger spread
+  6 degrees for the left one's sake was 2.4 mm inside the left hand under the magazine for a fifth of the reload;
+  2.25 degrees holds both. **Seen:** gdstudio #1084 after #1299, 2026-11-12 (the bench's `reload:0:1:0.01`).
+- **Approach:** Give a posing search a place said in the weapon's own space (where the tip and the last joint should
+  be, in millimetres) and many starts, then look at the result from above. **Watch out for:** walked downhill from
+  the solved pose on the test's limits alone, the female thumb met them with its tip bend changed by 16 degrees and
+  still hooked down behind the palm. **Seen:** gdstudio #1084 after #1299, 2026-11-12.
+- **Approach:** When a hold's plan gains a step, build again every clip that hands a hand to that hold, key the
+  clip's own hand where the plan gives it up (the far end of the hand's way, not the grip), and measure both
+  hands, each against the other, on every passing frame. **Watch out for:** the slide rack (#1103) had its left
+  hand at the support grip on the frames the hold lets it go; this hold takes the hand out along its way, then
+  lays the right thumb back on the frame, so the hand snapped back under the thumb (7.1 to 8.0 mm, female, arm
+  in). The rack's test measured only the left hand; its right-hand case read the thumb on the left thumb's root
+  as 7.5 to 10.1 mm off the gun. **Seen:** gdstudio #1084 after #1103, 2026-11-12 (fix: `build_pistol_rack.py`'s
+  `ARM_UNTIL` keys; `test_pistol_rack.gd` measures the right hand against the left).
+- **Approach:** After the seat or a pose of the hand that keeps the grip changes, solve again every other grip
+  that was solved against that hand, then build its clip. **Watch out for:** the rack's hand on the slide is solved
+  against the right hand: with the female's right thumb set higher on the frame, the left thumb was 4.0 mm in it
+  while the slide was pulled (frames 12 to 13). **Seen:** gdstudio #1213, 2026-11-12 (`solve_rack_hand.py` for
+  each body, then `build_pistol_rack.py`; 1.5 mm at most).
+- **Approach:** Rest a support finger on a surface that is there in every pose the hands hold: the gun, or a part
+  of the other hand that does not move. **Watch out for:** the shooting hand is a surface with its trigger finger
+  in both places at once (along the frame and on the trigger), and the left index fingertip was closed onto the
+  finger along the frame; in the aim that finger is on the trigger, and the tip read 9.6 mm off (female) in
+  every aim and shoot clip. **Seen:** gdstudio #1213, 2026-11-12 (the left index finger set by hand under the
+  guard on both bodies, `pistol_authored.json`).
+- **Approach:** Lay the hand-set poses into the solve's own file before a later stage runs on it
+  (`tools/hold/lay_authored.py`, then `--magazine-only` or `--way-only`). **Watch out for:** `write_hold.gd` lays
+  them over the files it writes, which the solver never reads: the way off the gun was solved round the solver's
+  right thumb, and the opened left hand went 5.7 mm through the hand-set one at reload shares 0.04 and 0.86
+  (female). **Seen:** gdstudio #1213, 2026-11-12.
+- **Approach:** Read the other hand's skin against a finger's own skin (`Hand.skin_field`: a distance grid in each
+  bone's space), at every point of it, and once a pose is solved measure both hands' meshes against each other,
+  each way, before taking a pose from an older solve. **Watch out for:** a capsule's end is round where a low-poly
+  fingertip is blunt, and every other point of a hand whose knuckle is one vertex leaves that vertex out: the
+  male's right little knuckle lay 4.8 mm inside the left middle fingertip under the magazine (5.0 in the game),
+  0.6 mm in its capsule on all the points and outside it on every other one. **Seen:** gdstudio #1213, 2026-11-12
+  (fix: `Hand.finger_depth` reads the skin; the male magazine hand is the solver's again).
+- **Approach:** Write a long solve's output after every stage. **Watch out for:** the file was written once at the
+  end, and a run stopped by its time limit in the last stage lost forty minutes of solved stages; the writer then
+  wrote the old file into the project. **Seen:** gdstudio #1084, 2026-11-11 (fix: `save` after each stage).

@@ -131,6 +131,7 @@ class Rig:
         middle = float(np.median(low[:, 0]))
         floor = float(verts[:, 1].min())
         heel = (self.owner == f"foot_{side}") & (self.verts[:, 1] <= floor + 0.05)
+        toes = (self._weight(f"ball_{side}") + self._weight_or_none(f"ball_leaf_{side}"))[pick]
         return {
             "heel": np.array([middle, floor, float(low[:, 2].min())]),
             "ball": np.array([middle, floor, float(self.rest_pos[f"ball_{side}"][2])]),
@@ -141,7 +142,20 @@ class Rig:
             # The skin of the heel and the arch with its weight to the foot bone, for a foot that rolls on it.
             "skin": self.verts[heel],
             "skin_weight": self._weight(f"foot_{side}")[heel],
+            # The skin of the whole foot with its weight to the toe bones, for a foot that stands on its ball: the
+            # toes of one body lie on the floor at rest and another's curl up off it (the prototype bodies' by
+            # 7 mm), so what touches the floor under a raised heel is read off the skin, not assumed.
+            "tread": verts,
+            "tread_toes": toes,
+            # How far the toes' own skin (weighted to nothing else) is off the floor at rest.
+            "toes_up": float(verts[toes >= 0.95][:, 1].min()) - floor if (toes >= 0.95).any() else 0.0,
         }
+
+    def _weight_or_none(self, bone: str) -> np.ndarray:
+        """Each vertex's weight to a bone, or zeros when the skin has no such joint."""
+        if bone not in self.index or self.index[bone] not in self.body.joints:
+            return np.zeros(len(self.verts))
+        return self._weight(bone)
 
     def _find_rig_json(self) -> Path | None:
         body = self.path.stem.rsplit("_", 1)[-1]
@@ -157,7 +171,7 @@ class Rig:
         self.motion_scale = float(data.get("motion_scale", self.motion_scale))
         for side, points in data.get("sole", {}).items():
             for key, value in points.items():
-                if not key.startswith("skin"):
+                if not key.startswith(("skin", "tread", "toes")):
                     self.sole[side][key] = np.array(value, dtype=float)
         for name, row in data.get("masses", {}).items():
             self.masses[name] = tuple(row)

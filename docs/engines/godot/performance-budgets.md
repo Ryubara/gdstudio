@@ -99,13 +99,16 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   ticks (the 95th), print the 99th and the worst without judging them, and compare medians to tell the code from the
   machine. **Watch out for:** a "worst tick under 1.5 ms" passed alone and read 3 to 70 ms with other jobs running, and
   a 99th percentile failed too: bots think one tick in six, so it lands on preempted think ticks. **Seen:** Deadnight
-  (bot server cost), 2026-11-02 (fix: the 95th judged, with the reason in the test's header).
+  (bot server cost), 2026-11-02 (fix: the 95th judged, with the reason in the test's header); gdstudio #1111,
+  2026-11-11 (`test_net_server_cost.gd` read 10.3 ms against its 6 ms budget in a full template run while the same
+  agent ran eight Movie Maker captures beside it, and passed alone: start captures after the full run ends).
 - **Approach:** Before putting a slower page on the machine's load, compare it with a control in the same page (a cell
   the change cannot touch, measured in the same rounds) and with a run where the machine was quieter. **Watch out
   for:** browser pages whose every skinned body read twice its cost were put down to 100 % processor load for an
   hour; the same pages on a quieter machine still read twice, and the cause was a GL buffer state the bench set in
   some pages and not others ([the buffer hint](web-export.md#skin-buffer-hint)). **Seen:** gdstudio #1260,
-  2026-11-11.
+  2026-11-11; gdstudio #1323, 2026-11-12 (three template time budgets red locally with about nine Godot runs up;
+  `origin/main` in a detached worktree failed the same ones in the same hour, so the branch went to CI).
 
 ## A leak is read as a count at the same crowd, round after round {#leak-count}
 
@@ -163,6 +166,20 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   per minute of the night it was 0.4 to 0.6 on all six nights. **Seen:** Deadnight #1319, 2026-11-06 (fix:
   `leak_budget.json` has `fixed_fps: 60` and the limit is back at 1.5; `tools/perf/test_check_budget.py` runs a flat
   night and 1.2 and 0.5 times each limit on a fast and a slow runner).
+- **Approach:** In a cost gate, time the calibration loop several times inside the measured window, hold the median
+  of the section over the median of the loop (a few-microsecond section as a share of a frame-sized one on the same
+  ticks), and set each limit between the highest ratio seen with a second suite beside it and twice the lowest; prove a
+  2x wait fails. **Watch out for:** one calibration and means read the AI step at 3.2 one day and 4.5 the next on the
+  same code; a 2-microsecond record swung 2.7 times against the loop; a 0.12 ms ruler timed every tick did not follow
+  load at all; a `sin` loop ran 1.65 times faster on the Linux runner while the AI cost the same, and CI failed.
+  **Seen:** gdstudio #1248 (`test_ai_cost_gate.gd`), 2026-11-11 (fix: medians, a ruler of vector, array and
+  dictionary work, a 2x wait failing every row).
+
+- **Approach:** Make a part that only some characters use (a weapon's model in the hand) when it is first needed (a
+  `WeaponDef.view_scene` the loadout instances on `give()`), not as a node of the shared character scene. **Watch out
+  for:** the rifle's hold put in `character_dressed.tscn` added 32 nodes (the two levels of the rifle, its sockets,
+  the markers) to every living character, rifle or not, and `test_parts_budget.gd` refused 78 against 46. **Seen:**
+  gdstudio #889, 2026-11-10 (fix: `rifle.tres`'s `view_scene`).
 
 ## In the editor {#in-the-editor}
 

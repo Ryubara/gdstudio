@@ -41,5 +41,6 @@ grenade or a ray gun reuses it.
   `test_impact_effects.gd`, `test_impacts_exports.gd`, `test_impacts_in_the_map.gd` and
   `tests/audio/test_impact_sounds.gd` (real projectiles in a small arena, and in the map);
   `tools/capture/impacts_tour.tscn` plays the pistol through a wall, a pushed cube and the fade (`gds capture frames`,
-  and `--rendering-method gl_compatibility` for the web look). The sounds are made by `tools/audio/impact_sounds.py`
-  (synthesised, MIT).
+  and `--rendering-method gl_compatibility` for the web look). The sounds are generated with ElevenLabs Sound Effects
+  by `tools/audio/sfx.py` (kit #1083; [Sound effects](../../gamedev/audio/sound-effects.md)); the synthesised set
+  they replaced is still made by `tools/audio/impact_sounds.py` (MIT).

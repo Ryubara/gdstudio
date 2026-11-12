@@ -71,12 +71,14 @@ static func stance_of(
 ## What `CharacterAnimation` does with the brace, kept here so the tree's script stays one size:
 ## makes it on the model's skeleton, weighs it by the aim and holds the arm up after a shot. The
 ## brace holds on the ground state only: the crouch, the air and the other states keep the aim on
-## their own pelvis.
+## their own pelvis. It weighs the legs' stance under the aim too (`stance`, kit #1206).
 class Driver:
 	extends RefCounted
 	## The brace on the model's skeleton now, or null: it is made the first time the character
 	## aims, so a character that never aims (most of a crowd) carries no node for it.
 	var modifier: AimBrace
+	## The still legs under a standing aim: the ground state's idle point, held by the aim.
+	var stance := AimStance.new()
 
 	# How far the body is on the ground state's clips, whose stance the aim poses were made on.
 	var _share := 1.0
@@ -85,15 +87,16 @@ class Driver:
 	var _shot_arm := 0.0
 
 	## How far the arm is up (the aim the brace and the aim pose follow): the character's aim
-	## amount, or the shot's own hold when that is more. After a shot it goes on rising for
-	## `shot_hold_time` and then comes down at the speed of the aim (`aim_pose_time`).
+	## amount (none while it is up only for a melee blow, `MeleeLayer.aim_of`), or the shot's own
+	## hold when that is more. After a shot it goes on rising for `shot_hold_time` and then comes
+	## down at the speed of the aim (`aim_pose_time`).
 	func arm(animation: CharacterAnimation, delta: float) -> float:
 		var tuning := animation.character.tuning
 		var aim_time := tuning.aim_pose_time if tuning != null else 0.15
 		_shot_hold = maxf(_shot_hold - delta, 0.0)
 		var target := 1.0 if _shot_hold > 0.0 else 0.0
 		_shot_arm = move_toward(_shot_arm, target, delta / maxf(aim_time, 0.001))
-		return maxf(animation.character.aim_amount, _shot_arm)
+		return maxf(animation.melee.aim_of(animation.character), _shot_arm)
 
 	## A shot: the arm stays up `shot_hold_time` from where it is now.
 	func shot(animation: CharacterAnimation) -> void:
@@ -101,13 +104,16 @@ class Driver:
 		_shot_arm = maxf(_shot_arm, animation.character.aim_amount)
 
 	## Frees the brace, so the next aim makes it again from the model, the bone and the aim clip
-	## there are then; called whenever the tree is built.
+	## there are then, and forgets the last shot; called whenever the tree is built.
 	func build(_animation: CharacterAnimation) -> void:
 		if is_instance_valid(modifier):
 			# Out of the tree at once, so the new one can take the name.
 			modifier.get_parent().remove_child(modifier)
 			modifier.queue_free()
 		modifier = null
+		# A new weapon (or a new model) starts with no shot of the last one holding the arm up.
+		_shot_hold = 0.0
+		_shot_arm = 0.0
 
 	# Makes the brace on the skeleton of `animation`'s model, first of its modifiers (the hands
 	# close on the weapon after it), from the held definition's aim clip.
@@ -141,6 +147,7 @@ class Driver:
 		var standing := 1.0 if animation.body_state() == CharacterAnimation.GROUND else 0.0
 		_share = move_toward(_share, standing, delta / maxf(animation.blend_time, 0.001))
 		var weight := aim * _share if animation.aim_brace else 0.0
+		stance.drive(animation.tree, aim, animation.aim_stance)
 		if weight > 0.0 and not is_instance_valid(modifier):
 			_make(animation)
 		weigh(weight)

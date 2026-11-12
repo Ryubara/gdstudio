@@ -1,12 +1,12 @@
 # The inventory screen over a player in a small world, through the real input path: the `inventory`
 # key (I) and the pad's right shoulder open it on the host and close it, the weapons are the
-# loadout's (a second weapon of the test's own shows), a weapon chosen with the pad comes up once
-# the game runs again, the d-pad and the arrows reach every slot, a stack is picked up and put down
-# with keys and with mouse clicks, Drop leaves a pickup in front of the player and refuses a coin,
-# the player's option keeps the game running with the player's own keys off, and the preview draws
-# the live model and follows a mesh dropped into the model slot. The screen keeps every part's
-# rectangle while the pointer goes over every slot at desktop and phone sizes, and the details area
-# holds the longest text the template ships.
+# loadout's (a second weapon of the test's own shows, and one given while it is open), a weapon
+# chosen with the pad comes up once the game runs again, the d-pad and the arrows reach every slot,
+# a stack is picked up and put down with keys and with mouse clicks, Drop leaves a pickup in front
+# of the player and refuses a coin, the player's option keeps the game running with the player's own
+# keys off, and the preview draws the live model and follows a mesh dropped into the model slot. The
+# screen keeps every part's rectangle while the pointer goes over every slot at desktop and phone
+# sizes, and the details area holds the longest text the template ships.
 extends GdUnitTestSuite
 
 const HOST_SCENE := preload("res://ui/menus/screen_host.tscn")
@@ -214,6 +214,27 @@ func test_the_weapons_are_the_loadouts_with_the_one_in_the_hands_marked() -> voi
 	assert_str(cells[0].count_text()).is_equal("12/36")
 	assert_str(cells[1].count_text()).is_equal("30/60")
 	assert_str(cells[2].count_text()).is_empty()
+
+
+func test_a_weapon_given_while_it_is_open_shows_and_its_rounds_count() -> void:
+	# The rifle pickup's path (kit #889): `give()` while the screen is up redraws it at once.
+	var slots: Array[Resource] = [_player.loadout.slots[0]]
+	_player.loadout.slots = slots
+	var screen := await _open()
+	assert_int(screen.weapon_cells().size()).is_equal(2)
+	var rifle := load("res://gameplay/weapon/rifle.tres") as WeaponDef
+	assert_int(_player.loadout.give(rifle, 60)).is_equal(WeaponLoadout.Given.WEAPON)
+	var cells := screen.weapon_cells()
+	(
+		assert_array(cells.map(func(c: InventoryCell) -> int: return c.slot))
+		. is_equal([0, 1, WeaponLoadout.UNARMED])
+	)
+	assert_str(cells[1].tooltip_text).is_equal(rifle.display_name)
+	assert_str(cells[1].count_text()).is_equal("30/60")
+	# The game is paused behind the screen, so the pistol is still in the hands: more rounds go
+	# to the stowed rifle, and its cell counts them.
+	assert_int(_player.loadout.give(rifle, 30)).is_equal(WeaponLoadout.Given.AMMO)
+	assert_str(screen.weapon_cells()[1].count_text()).is_equal("30/90")
 
 
 func test_a_weapon_chosen_with_the_pad_comes_up_when_the_game_runs_again() -> void:

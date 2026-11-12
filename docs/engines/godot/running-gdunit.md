@@ -65,6 +65,8 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   so four suites did not load; `gds check scripts` and `gds template test` name them at parse. **Seen:** gdstudio #881
   (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965 (`next_up`), #1047, all 2026-11-10; #906, #907,
   #909, #1127 (`before`), #970 (a loop's `var before`), 2026-11-11; #1013, #1047, #909 and #970 after reading this.
+  A game script meets the same rule: gdstudio #1336, 2026-11-12 (a static function's parameter `amount` in a class
+  with an `amount()`, and a test's local `free`, which is `Object.free`; the import named both).
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
   `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
@@ -81,8 +83,10 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form
   of a filter here, nor is `x.gd:test_y`: nothing ran and the exit code was 0 in 2 s, and no failure reads as a
-  pass; `-i` (ignore) ran the whole suite. **Seen:** Deadnight, 2026-11-04 (fix: run the suite and read the count);
-  gdstudio #1252, 2026-11-11 (`:` and `-i`).
+  pass; `-i` (ignore) ran the whole suite. To run one case of a long suite, copy the suite in the game under a new
+  name with every other `func test_` renamed to a plain function, and run that file. **Seen:** Deadnight, 2026-11-04
+  (fix: run the suite and read the count); gdstudio #1252, 2026-11-11 (`:` and `-i`); gdstudio #1213, 2026-11-11 (one
+  case of the 9-minute pistol hold suite).
 
 - **Approach:** After a full run, find each new suite by name in its list (`gds template test` prints one line a
   suite), and write a new test file with LF line ends. **Watch out for:** two new suites written with CRLF ends ran and
@@ -104,6 +108,13 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   loop of fresh games for one suite spent minutes a turn; a kept game holds the code of when it was made, so the last
   run starts from the working tree again. **Seen:** gdstudio #1252 (PR #1269), #1085 (PR #1274), #1100 (PR #1261),
   2026-11-11.
+
+- **Approach:** To score a change on a few suites in a kept game, give each suite its own `-a` on the one command
+  line, remove `reports/` first, and read the failures from the `<failure>` entries of
+  `reports/report_1/results.xml`; make a new kept game after `gds merge-main`. **Watch out for:** the console log
+  of five suites is 20 KB with the failure lines cut short, and a kept game three merges old ran tests that the
+  merged branch no longer has in that form. **Seen:** gdstudio #1084 (PR #1171), 2026-11-11 and 11-12 (five hold
+  suites scored each solve in 4 minutes).
 
 - **Approach:** When a run ends with no failure and no tests, read the top of the log for a `Parse Error` first, fix
   the one script, and check that the executed-suite count matches the folder; before moving constants into a resource,
@@ -196,7 +207,8 @@ game](new-game.md#proof), gdstudio #830 and #917).
   `pipefail`, so the job fails; GdUnit counts a case's orphans before `after_test`, so freeing them there is too late.
   1710 cases passed and the exit was 101 from the spawner's parked pools in the net suites, which load the map ([the
   spawner](third-person/ai-characters.md#spawner): it now makes its pool on the approach). **Seen:** kit #969,
-  2026-11-11; PR #1233, 11-11 (`after_test` too late).
+  2026-11-11; PR #1233, 11-11 (`after_test` too late); PR #1248, 11-11 (a member `Late.new()` added in `_ready`:
+  freed at `NOTIFICATION_PREDELETE`).
 - **Approach:** Judge a `leaked at exit` line against `main` only from a full run of both; a run of a few `--suite`s
   that ends with one is run on `main` with the same suites before it counts against the change. **Watch out for:** a
   subset run can end with "leaked at exit" on `main` too (which scripts load, and in what order, depends on what ran:

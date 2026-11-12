@@ -62,6 +62,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"vault_clip": CharacterClips.VAULT_LOW,
 		&"vault_high_clip": CharacterClips.VAULT_HIGH,
 		&"vault_land_clip": CharacterClips.VAULT_LAND,
+		&"vault_libraries": {},
 		&"mantle_clip": CharacterClips.CLIMB_UP,
 		&"mantle_high_clip": CharacterClips.CLIMB_UP,
 		&"traversal_speed_range": Vector2(0.5, 2.0),
@@ -72,9 +73,14 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"to_prone_clip": CharacterClips.TO_PRONE,
 		&"to_crouch_clip": CharacterClips.TO_CROUCH,
 		&"prone_libraries": {},
+		&"prone_aim_libraries": {},
+		&"prone_reload_libraries": {},
+		&"prone_shot_kick": 7.0,
+		&"prone_shot_kick_time": 0.22,
 		&"carry": CharacterAnimation.Carry.HAND_ONLY,
 		&"upper_body_bone": &"spine_01",
 		&"aim_brace": true,
+		&"aim_stance": true,
 		&"aim_pitch_range": 45.0,
 		&"shoot_speed": 1.6,
 		&"shot_hold_time": 0.2,
@@ -100,7 +106,10 @@ func test_a_clip_changed_while_the_game_runs_is_in_the_tree_and_the_state_goes_o
 	_animation.run_clip = CharacterClips.WALK
 	_animation.sprint_clip = CharacterClips.WALK
 	assert_str(_ground().get_blend_point_node(1).animation).is_equal(CharacterClips.SPRINT)
-	assert_str(_ground().get_blend_point_node(0).animation).is_equal(CharacterClips.WALK)
+	# The idle point is the idle playing and held still under a standing aim (`AimStance`).
+	var idle := _ground().get_blend_point_node(0) as AnimationNodeBlendTree
+	assert_str(idle.get_node(&"Playing").animation).is_equal(CharacterClips.WALK)
+	assert_str(idle.get_node(&"Held").animation).is_equal(CharacterClips.WALK)
 	assert_str(_ground().get_blend_point_node(2).animation).is_equal(CharacterClips.WALK)
 	assert_str(_ground().get_blend_point_node(3).animation).is_equal(CharacterClips.WALK)
 	assert_str(_clip_of(CharacterAnimation.JUMP)).is_equal(CharacterClips.WALK)

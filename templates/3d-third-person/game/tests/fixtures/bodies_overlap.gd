@@ -7,9 +7,13 @@ extends RefCounted
 ## the crossings it knows of (each with the issue that solves it).
 
 
-## The report beside `clips` (a `res://` glb), or an empty one when there is none.
+## The report beside `clips` (a `res://` glb), or an empty one when there is none: the clip file's
+## own (`<name>_overlap.json`, for a folder with one clip file a body, kit #1293) or the folder's
+## `bodies_overlap.json`.
 static func read(clips: String) -> Dictionary:
-	var path := clips.get_base_dir().path_join("bodies_overlap.json")
+	var path := clips.get_basename() + "_overlap.json"
+	if not FileAccess.file_exists(path):
+		path = clips.get_base_dir().path_join("bodies_overlap.json")
 	if not FileAccess.file_exists(path):
 		return {}
 	return JSON.parse_string(FileAccess.get_file_as_string(path))
@@ -22,10 +26,10 @@ static func read(clips: String) -> Dictionary:
 static func problems(clips: String, bodies: Array[String], known: Dictionary) -> Array[String]:
 	var report := read(clips)
 	if report.is_empty():
-		return ["%s has no bodies_overlap.json beside it" % clips]
+		return ["%s has no overlap report beside it" % clips]
 	var out: Array[String] = []
 	if FileAccess.get_sha256(clips) != report.sha256:
-		out.append("%s is not the file its bodies_overlap.json measured" % clips.get_file())
+		out.append("%s is not the file its overlap report measured" % clips.get_file())
 	var limit: float = report.limit_mm
 	for clip: String in report.clips:
 		var measured: Dictionary = report.clips[clip]

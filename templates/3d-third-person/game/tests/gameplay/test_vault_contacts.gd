@@ -8,23 +8,22 @@ extends GdUnitTestSuite
 
 const FACE := 2.5
 const DEPTH := 0.4
-## The bodies the vault clips were keyed and measured on, the Quaternius pair: the prototype bodies
-## the template's characters wear (kit #1187) have longer upper arms, so their planted wrists sit
-## lower than these limits; measuring the clips on them is gdstudio #1286.
+## The template's two bodies. Each plays the vault clips solved on its own arms and thighs
+## (`CharacterAnimation.vault_libraries`, kit #1294), so both are held to the same limits.
 const BODIES := {
-	"female": CharacterBodies.QUATERNIUS_FEMALE,
-	"male": CharacterBodies.QUATERNIUS_MALE,
+	"female": CharacterBodies.FEMALE,
+	"male": CharacterBodies.MALE,
 }
 const CLIPS := "res://assets/animation/vault/vault_clips.json"
 ## The heights run: the course's walls, the clips' own boxes and the ends of each clip's range.
 const HEIGHTS: Array[float] = [0.5, 0.8, 0.9, 1.05, 1.2, 1.27]
 ## How far the planted wrist may sit from the height the clip rests it at over the top, and from
-## where the clip puts it along and across the top, in metres. The male mannequin's arms are
-## 0.05 m longer than the female's the clips were keyed on, so its wrist sits lower.
-const WRIST_UP := {"female": 0.02, "male": 0.06}
-const WRIST_ALONG := {"female": 0.03, "male": 0.075}
+## where the clip puts it along and across the top, in metres (the male's wrist rests 0.006 m
+## higher than the `VaultClip`'s number, the female's: his palm is thicker).
+const WRIST_UP := {"female": 0.02, "male": 0.02}
+const WRIST_ALONG := {"female": 0.03, "male": 0.03}
 ## How far a planted wrist may move while it is planted.
-const WRIST_DRIFT := {"female": 0.025, "male": 0.08}
+const WRIST_DRIFT := {"female": 0.025, "male": 0.025}
 ## How far a foot or knee bone may come to the wall's box, and to the floor (the bones sit inside
 ## the leg: an ankle is 0.06 m over the sole).
 const LEG_BONES: Array[StringName] = [
@@ -195,6 +194,18 @@ func test_the_settings_clips_carry_the_numbers_the_clips_were_built_with() -> vo
 	assert_str(str(_animation.vault_land_clip)).is_equal(str(CharacterClips.VAULT_LAND))
 
 
+# A planted hand is on the top only on the arms its clips were solved for (kit #1294), so each
+# body plays its own file: the character's `vault` library follows the model.
+func test_each_body_plays_the_vault_clips_solved_on_it() -> void:
+	var files := {"female": "vault.glb", "male": "vault_male.glb"}
+	var player := _player.get_node("AnimationPlayer") as AnimationPlayer
+	for model: String in ["male", "female"]:
+		await _reset(model)
+		player = _player.get_node("AnimationPlayer") as AnimationPlayer
+		var library := player.get_animation_library(CharacterClips.LIBRARY_VAULT)
+		assert_str(library.resource_path.get_file()).is_equal(files[model])
+
+
 func test_each_planted_hand_sits_on_the_top_and_stays_there() -> void:
 	for model: String in ["female", "male"]:
 		for height in HEIGHTS:
@@ -257,10 +268,19 @@ func test_no_leg_goes_into_the_wall_or_under_the_floor() -> void:
 			var deepest := 0.0
 			var lowest := 9.0
 			var where := ""
+			var low := ""
+			var start: float = samples[0].time if not samples.is_empty() else 0.0
 			for sample in samples:
 				for bone in LEG_BONES:
 					var at: Vector3 = sample[bone]
-					lowest = minf(lowest, at.y)
+					# The floor counts once the clip has faded in over the gait: until then the
+					# pose is partly the gait's own blend of two loops out of step, which put
+					# the ball of a foot 0.02 m under the floor before the vault began and
+					# 0.043 m under half way into the fade with our own walk and jog (kit
+					# #1155; matching the gaits' phases is kit #1158).
+					if sample.time - start >= _animation.action_blend_time and at.y < lowest:
+						low = "%s at %.3f s" % [bone, sample.time]
+						lowest = at.y
 					# How far inside the wall's box the joint is: under the top and past both faces.
 					var inside := minf(height - at.y, minf(-FACE - at.z, at.z + FACE + DEPTH))
 					if inside > deepest:
@@ -275,7 +295,7 @@ func test_no_leg_goes_into_the_wall_or_under_the_floor() -> void:
 			)
 			(
 				assert_float(lowest)
-				. override_failure_message("%s: a leg bone is at %.3f m" % [label, lowest])
+				. override_failure_message("%s: %s is at %.3f m" % [label, low, lowest])
 				. is_greater(-FLOOR_SLACK)
 			)
 

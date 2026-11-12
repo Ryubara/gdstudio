@@ -37,10 +37,14 @@ What was measured on the Quaternius skins is measured again on the two `form` bo
 
 - **The pistol's hold is solved per body.** The prototype hands are a person's size and differ (0.181 m and 0.195 m
   from wrist to fingertip against the library rig's 0.232 m), so one pose cannot close both; the solver works on one
-  body at a time (`solve_pistol_hold.py --body=female|male`). The female's hold is the hold scene's own (the five
+  body at a time (`solve_pistol_hold.py --body=female|male`). The female's hold is the hold scene's own (the eight
   `pistol_*_pose.tres`, the pistol's seat and markers in `pistol_held.tscn`, `support_way`); the male's is one
   `HoldFit` file (`gameplay/weapon/hold/pistol_fit_male.tres`) listed in `WeaponHold.fits`, which the hold puts on
   whenever the model is a `form_male.glb` ([the hold](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
+- **The rifle's hold is solved per body too** (kit #1040): `solve_rifle_hold.py --body=female|male`, the female's in
+  `rifle_held.tscn` and the five `rifle_*_pose.tres`, the male's in `rifle_fit_male.tres`, listed in
+  `TwoHandHold.fits`. The smaller hands also needed a place of their own on the grip
+  ([the rifle in both hands](weapon-pickups.md#rifle-hands)).
 - **The hit zones** (`character_dressed.tscn`'s `HitZones`) are sized from `tools/mannequin/measure_segments.gd`: the
   arms are longer and thinner than the Quaternius female's (upper arm 0.26 to 0.28 m long and 0.047 to 0.057 m
   round, against 0.22 and 0.068) and the calves thinner, so the arm zones are longer and narrower, the thigh and pelvis
@@ -48,6 +52,10 @@ What was measured on the Quaternius skins is measured again on the two `form` bo
 - **The ragdoll's capsules** (`RagdollBodies`) were within both bodies' skin already; only the calves are thinner
   (0.055 m). Its joints and limits read rotations from the clips, which the bodies share with the library rig, so
   they stand ([Ragdoll](../ragdoll.md#template)).
+- **The prone clips are solved per body** (kit #1293): `prone_form_female.glb` is the dressed character's
+  library `prone` and `prone_libraries` names `prone_form_male.glb` for `form_male.glb` and the Quaternius files
+  for the Quaternius mannequins ([prone and the crawl](moves.md#prone)). In the Quaternius female's file the `form`
+  bodies lay 3.3 to 5.5 cm in the floor at the forearms.
 - **The pistol stays on `hand_r`**, not the rig's `socket_hand_r`: the hold is solved in the hand bone's space and
   the Quaternius mannequins, which a game can still swap in, have no sockets.
 
@@ -64,6 +72,8 @@ which would have renamed and re-ordered things). The sha256 of the source and of
 (everyone) or set `variant` in a character's scene, point `CharacterBodies` at it, and solve the hold for it: dump
 the rig, run `solve_pistol_hold.py --body=<name> --search-seat --search-left` and `write_hold.gd -- <hold.json>
 <name>` (`tools/hold/`). A body with no fit keeps the hold scene's own, which closes a hand of another size badly.
+Give it prone clips of its own as well (`build_prone_clips.py --body <name>` with its numbers in `BODIES`, the file
+named in `prone_libraries`), or the file of the body whose upper arm is nearest in length.
 Then run `measure_segments.gd` and size the hit zones, and run the hold, ragdoll and hit zone suites.
 `tests/assets/test_prototype_mannequins.gd` proves the bodies and `tools/capture/mannequin_parade.tscn` films them on a
 0.25 m grid: `PARADE_LOOK` chooses the look, `PARADE_VIEW` the front, quarter, side or close view, `PARADE_CLIP` loops
@@ -210,7 +220,8 @@ The enemies of [the AI section](ai-characters.md#parts) set the male body (`form
   source for `Input.`, `get_camera_3d(` and `get_viewport(`. **Watch out for:** the body read `Input` in 14 places and
   the camera in 2, so a second `player.tscn` walked in step with the first and died on the same key, and a headless
   server could not move one. **Seen:** gdstudio #901, 2026-11-10 (`test_two_characters.gd`, bit-equal in
-  `test_command_stream.gd`); gdstudio #1138, 2026-11-11 (the grep caught a camera-reading throttle put there).
+  `test_command_stream.gd`); gdstudio #1138 and #1258, 2026-11-11 (a throttle,
+  then a rifle hold).
 - **Approach:** Keep out of the step what only its owner or its picture knows: call `step` inside a physics frame with
   the physics step, show `facing` on the model through one null-safe method called in the tick, and on a fall out of
   the map say `fell` once and let the owner answer. **Watch out for:** `move_and_slide()` moves by the engine's own

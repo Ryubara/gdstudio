@@ -203,11 +203,15 @@ func test_every_aim_limit_is_pinned() -> void:
 	sliding.merge(
 		{&"yaw_left": 75.0, &"yaw_right": 75.0, &"pitch_up": 50.0, &"pitch_down": 70.0}, true
 	)
+	# Lying, the weapon stops at the look the prone down clips are made for (kit #1111).
+	var lying := standing.duplicate()
+	lying[&"pitch_down"] = 25.0
 	var pinned := [
 		[tuning.aim_limits, standing],
 		[tuning.crouch_aim_limits, standing],
 		[CharacterTuning.new().aim_limits, standing],
-		[prone.aim_limits, standing],
+		[prone.aim_limits, lying],
+		[ProneTuning.new().aim_limits, lying],
 		[slide.aim_limits, sliding],
 		[SlideTuning.new().aim_limits, sliding],
 	]
@@ -225,6 +229,11 @@ func test_every_aim_limit_is_pinned() -> void:
 		&"release_time": 0.12,
 		&"drawn_from": 0.9,
 		&"disabled": false,
+		&"head_neck_share": 0.4,
+		&"head_crouch_neck_share": 0.5,
+		&"head_prone_neck_share": 0.5,
+		&"head_max_turn": 90.0,
+		&"head_disabled": false,
 	}
 	assert_array(ExportPins.differences(_layer, layer)).is_empty()
 	assert_array(ExportPins.wrong_values(_layer, layer)).is_empty()

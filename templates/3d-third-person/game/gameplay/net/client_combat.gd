@@ -7,11 +7,14 @@ extends RefCounted
 ## - SHOT: the shooter's puppet fires a cosmetic shot from its own muzzle along the server's
 ##   heading (`Weapon.fire_cosmetic`: the flash, the sound, a projectile that hits nothing), with
 ##   the weapon the event names in its hands.
+## - MELEE (gdstudio #1254): the thrower's puppet plays its blow (`Weapon.melee` played
+##   cosmetic: the swing and the clip, which each screen picks); what the blow met comes as a HIT.
 ## - HIT: the impact of the surface at the server's point (`Impacts`: the mark, the effect, the
-##   sound), a cosmetic projectile on its way there ends there, the health the server left is put
-##   on the player or target hit (`Health.set_wire_value`: a target at zero falls), and a player hit
-##   flinches on the part this screen finds at the point. A camera near the point shakes
-##   (`NearHitShake`, from the impact or, with no surface found, called here); never sent.
+##   sound), a cosmetic projectile (or a hitscan tracer) on its way there ends there, the health
+##   the server left is put on the player or target hit (`Health.set_wire_value`: a target at zero
+##   falls), and a player hit flinches on the part this screen finds at the point. A camera near
+##   the point shakes (`NearHitShake`, from the impact or, with no surface found, called here);
+##   never sent.
 ## - DIED: the body takes the event's velocity and dies into its own ragdoll from the pose it is
 ##   in. REVIVED: it gets up where the server says (`Character.revive_at`), the pose blending there.
 ## - AI (gdstudio #970): played on the AI's puppet (`AiReplica.play_event`) when the puppets are
@@ -25,8 +28,10 @@ extends RefCounted
 ## server time of its TICK (`RemotePlayers.drawn_time`), so a puppet's shot leaves where the puppet
 ## is drawn and its hit lands as the cosmetic projectile gets there.
 
-## A puppet fired (`projectile` is null for a ray or a blow).
+## A puppet fired (`projectile` is null for a ray).
 signal shot_played(slot: int, projectile: Projectile)
+## A puppet threw a melee blow (gdstudio #1254).
+signal melee_played(slot: int)
 ## A HIT was played on `collider` (null when this screen found nothing at the point).
 signal hit_played(event: NetEvent, collider: Object)
 ## A player died or got up on this screen.
@@ -37,6 +42,8 @@ signal shot_rejected(seq: int, reason: int)
 
 ## Metres from a HIT's point within which a cosmetic projectile heading there ends there.
 const STOP_RADIUS := 0.75
+## Metres off the server's ray within which a HIT is that ray's (the event's numbers are rounded).
+const ON_RAY := 0.1
 ## How hard a flinch pushes (newton seconds): the HIT carries no strength.
 const FLINCH_STRENGTH := 40.0
 ## Metres either side of a hit point along the shot where a body's hit zones are looked for.
@@ -45,6 +52,7 @@ const ZONE_REACH := 0.6
 var client: NetClient
 ## Events played since the start, by kind.
 var shots := 0
+var melees := 0
 var hits := 0
 var deaths := 0
 var revives := 0
@@ -56,6 +64,9 @@ var worst_us := {}
 var _pending: Array[NetEvent] = []
 var _due: PackedFloat64Array = []
 var _cosmetic: Array[Projectile] = []
+# The points of the HITs played this frame: a hitscan shot's HIT comes before its SHOT.
+var _hits_now := PackedVector3Array()
+var _hits_frame := -1
 
 
 func _init(owner: NetClient = null) -> void:
@@ -67,12 +78,10 @@ func on_tick(tick: SnapshotCodec.Tick) -> void:
 	var at := float(tick.server_tick) / NetLimits.TICK_RATE
 	for event in tick.events:
 		match event.kind:
-			NetEvent.Kind.SHOT, NetEvent.Kind.HIT, NetEvent.Kind.DIED, NetEvent.Kind.REVIVED:
-				if _is_local(event) or client.remote_players == null:
-					play(event)
-				else:
-					_pending.append(event)
-					_due.append(at)
+			NetEvent.Kind.SHOT, NetEvent.Kind.MELEE, NetEvent.Kind.HIT:
+				_play_or_wait(event, at)
+			NetEvent.Kind.DIED, NetEvent.Kind.REVIVED:
+				_play_or_wait(event, at)
 			NetEvent.Kind.REJECTED:
 				play(event)
 			NetEvent.Kind.AI:
@@ -89,6 +98,15 @@ func on_tick(tick: SnapshotCodec.Tick) -> void:
 				if client.remote_players != null and client.map_parts.plays_with_puppets(event):
 					_pending.append(event)
 					_due.append(at)
+
+
+# The local player's event plays now; another waits for the puppets to be drawn at `at`.
+func _play_or_wait(event: NetEvent, at: float) -> void:
+	if _is_local(event) or client.remote_players == null:
+		play(event)
+	else:
+		_pending.append(event)
+		_due.append(at)
 
 
 ## Plays every waiting event whose TICK is not later than `drawn` (server seconds; a negative time
@@ -132,6 +150,8 @@ func _play(event: NetEvent) -> void:
 	match event.kind:
 		NetEvent.Kind.SHOT:
 			_play_shot(event)
+		NetEvent.Kind.MELEE:
+			_play_melee(event)
 		NetEvent.Kind.HIT:
 			_play_hit(event)
 		NetEvent.Kind.DIED:
@@ -187,12 +207,28 @@ func _play_shot(event: NetEvent) -> void:
 		puppet.loadout.equip_now(event.amount - 1)
 	var projectile := puppet.weapon.fire_cosmetic(event.point, event.direction)
 	track(projectile)
+	if projectile == null and puppet.weapon.definition.tracer != null:
+		_end_tracer(event)
 	shots += 1
 	shot_played.emit(event.slot, projectile)
 
 
+func _play_melee(event: NetEvent) -> void:
+	var puppet := body_of(event.slot)
+	if puppet == null or puppet == client.player or puppet.weapon == null or puppet.is_dead():
+		return
+	var chest := puppet.global_position + Vector3.UP * puppet.body_height() * 0.7
+	puppet.weapon.melee(chest, Vector3.ZERO, true)
+	melees += 1
+	melee_played.emit(event.slot)
+
+
 func _play_hit(event: NetEvent) -> void:
 	hits += 1
+	if _hits_frame != Engine.get_process_frames():
+		_hits_frame = Engine.get_process_frames()
+		_hits_now.clear()
+	_hits_now.append(event.point)
 	var collider: Object = null
 	match event.code:
 		NetHits.Kind.PLAYER:
@@ -307,6 +343,28 @@ func _stop_cosmetic_at(point: Vector3) -> void:
 		var off_line := (to_point - heading * ahead).length()
 		if off_line <= STOP_RADIUS:
 			shot.stop_at(point)
+	# A puppet's hitscan tracer ends at the server's point too.
+	var tracers := TracerPool.find(client)
+	if tracers != null:
+		tracers.end_near(point, STOP_RADIUS)
+
+
+# A puppet's hitscan tracer ends at the HIT of its shot, which the server sent first in the same
+# TICK: the HIT played this frame that lies on the server's ray (from the SHOT's point along its
+# heading).
+func _end_tracer(event: NetEvent) -> void:
+	if _hits_frame != Engine.get_process_frames() or _hits_now.is_empty():
+		return
+	var tracers := TracerPool.find(client)
+	if tracers == null or tracers.active_count() == 0:
+		return
+	var heading := event.direction.normalized()
+	for point in _hits_now:
+		var to_point := point - event.point
+		var ahead := to_point.dot(heading)
+		if ahead > 0.0 and (to_point - heading * ahead).length() <= ON_RAY:
+			tracers.end_newest_at(point)
+			return
 
 
 func _space() -> PhysicsDirectSpaceState3D:

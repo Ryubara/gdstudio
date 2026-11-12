@@ -18,7 +18,7 @@ The spec (every key but `pelvis` and `leg` may be left out):
 | `ribs` | degrees the chest lifts with a breath (the upper spine opens backward, on top of `chest`) |
 | `head` | `(pitch, yaw, lean)`: the head's turn; the neck goes `neck` of the way (default a half) from the chest |
 | `clavicle` | per side `(lift, forward)` degrees from the chest |
-| `arm` | per side, a hanging arm: `swing` forward, `out` from the body, `twist` inward about the upper arm, `bend` of the elbow, `pronate` (the thumb turned inward about the forearm), `wrist` flexed toward the palm, `clear` (metres the wrist, the knuckles and the curled fingers' tips keep from the thigh's line, on every body: `out` grows until they do) and `carry`, the share of the chest's tilt the arm takes (0 hangs straight down whatever the chest does, 1 is fixed to the chest); or a placed hand: `wrist_at` (a point), `pole` (the way the elbow points) and `palm` (the way the palm faces) |
+| `arm` | per side, a hanging arm: `swing` forward, `out` from the body, `twist` inward about the upper arm, `bend` of the elbow, `pronate` (the thumb turned inward about the forearm), `wrist` flexed toward the palm, `clear` (metres the wrist, the knuckles and the curled fingers' tips keep from the thigh's line, on every body: `out` grows until they do), `rest` (`{"on": a side, "gap": metres, "hand": metres}`: the arm is lowered from forward until its forearm's line is `gap` from that side's thigh's and shin's and its hand's line `hand` from them, on every body: a forearm laid on a knee; the degrees added are left in `rest_by`) and `carry`, the share of the chest's tilt the arm takes (0 hangs straight down whatever the chest does, 1 is fixed to the chest); or a placed hand: `wrist_at` (a point), `pole` (the way the elbow points) and `palm` (the way the palm faces) |
 | `leg` | per side: `ankle` (the ankle joint), `foot` `(pitch, yaw, lean)` (pitch puts the toes down), `toe` (degrees the toes bend up), `knee` (the way the knee points; default the way the foot does) |
 | `fingers` | per side, degrees each finger curls over its three joints together: `{"index": 60, ..., "thumb": 20}`, each joint taking the share in `FINGER_SHARE`; `thumb_out` lifts the thumb from under the palm (where the rest pose has it, 47 degrees down) toward the palm's own plane |
 """
@@ -62,6 +62,7 @@ class Solver:
                 )
                 for body in [rig] + list(bodies or [])
             ]
+        self._bodies = [rig] + list(bodies or [])
         self._finger_hinge = {}
         for s, sign in SIDES:
             for finger in FINGERS:
@@ -72,6 +73,18 @@ class Solver:
                     # toward the index finger, in the palm's plane.
                     hinge = sign * Y if finger == "thumb" else unit(np.cross(rest[:, 1], -Y))
                     self._finger_hinge[name] = rest.T @ hinge
+
+    def _joint_on(self, body: Rig, world: dict, name: str) -> np.ndarray:
+        """Where a joint is on another body that plays this pose: the solved bones' turns with that body's own
+        bone lengths, its pelvis's place scaled to it (as the game plays a clip on it)."""
+        chain = []
+        while name != "pelvis":
+            chain.append(name)
+            name = self.rig.parent[name]
+        at = world["pelvis"][:3, 3] / self.rig.motion_scale * body.motion_scale
+        for bone in reversed(chain):
+            at = at + world[self.rig.parent[bone]][:3, :3] @ body.local_pos[bone]
+        return at
 
     def _place(self, world: dict, name: str, rot: np.ndarray) -> None:
         rig = self.rig
@@ -139,14 +152,16 @@ class Solver:
             # Where a curled finger's tip is from its knuckle: about two thirds of its curl along the way.
             curl = math.radians(0.65 * max((curls.get(finger, 0.0) for finger in FINGERS[1:]), default=0.0))
 
-            def hang(out_deg: float) -> tuple:
-                swing, out = math.radians(arm.get("swing", 0.0)), math.radians(out_deg)
+            def hang(out_deg: float, swing_by: float = 0.0) -> tuple:
+                swing, out = math.radians(arm.get("swing", 0.0) + swing_by), math.radians(out_deg)
                 way = [sign * math.sin(out), -math.cos(out) * math.cos(swing), math.cos(out) * math.sin(swing)]
                 aim_u = base @ unit(np.array(way))
                 bend_dir = axis_angle(aim_u, sign * arm.get("twist", 0.0)) @ square_to(base @ Z, aim_u, base @ Y)
                 bend = math.radians(arm.get("bend", 0.0))
                 aim_f = math.cos(bend) * aim_u + math.sin(bend) * bend_dir
-                neutral = square_to(bend_dir, aim_f, fallback=-aim_u)
+                # The thumb's way with no pronation: square to the forearm in the arm's own plane. Written out,
+                # not `square_to(bend_dir, aim_f)`, which turns round as the elbow passes a right angle.
+                neutral = math.cos(bend) * bend_dir - math.sin(bend) * aim_u
                 pronate = arm.get("pronate", 0.0)
                 thumb_f = axis_angle(aim_f, sign * 0.5 * pronate) @ neutral
                 thumb = axis_angle(aim_f, sign * pronate) @ neutral
@@ -178,7 +193,52 @@ class Solver:
                     middle = 0.5 * (low + high)
                     low, high = (middle, high) if gap(middle) < clear else (low, middle)
                 out_deg = high
-            aim_u, bend_dir, aim_f, thumb_f, thumb = hang(out_deg)
+            rest = arm.get("rest")
+            swing_by = 0.0
+            if rest:
+                # A forearm laid on a thigh: the arm comes down from further forward until the forearm's line is
+                # `gap` from the thigh's and the shin's and the hand's line `hand` from them, on every body.
+                on = rest.get("on", s)
+                # Each body's own shoulder, hip, knee and ankle: longer legs put a knee somewhere else.
+                joints = [
+                    [self._joint_on(body, world, bone) for bone in (upper, "thigh_" + on, "calf_" + on, "foot_" + on)]
+                    for body in self._bodies
+                ]
+                want = float(rest["gap"])
+                slack = want - float(rest.get("hand", want))
+
+                def apart(by: float) -> float:
+                    aim_u, _, aim_f, _, thumb = hang(out_deg, by)
+                    palm = sign * np.cross(aim_f, thumb)
+                    fingers = math.cos(flex) * aim_f + math.sin(flex) * palm
+                    least = math.inf
+                    for (_, upper_len, fore_len, hand_len), (top, hip, knee, ankle) in zip(
+                        self._arms[s], joints, strict=True
+                    ):
+                        elbow = top + upper_len * aim_u
+                        wrist = elbow + fore_len * aim_f
+                        tip = wrist + hand_len * fingers
+                        for top, bottom in ((hip, knee), (knee, ankle)):
+                            least = min(least, maths.segment_gap(elbow, wrist, top, bottom))
+                            least = min(least, maths.segment_gap(wrist, tip, top, bottom) + slack)
+                    return least
+
+                high = 30.0
+                low = high - 2.0
+                while low > -40.0 and apart(low) > want:
+                    high, low = low, low - 2.0
+                if apart(high) < want:
+                    swing_by = high
+                elif apart(low) > want:
+                    swing_by = low
+                else:
+                    for _ in range(16):
+                        middle = 0.5 * (low + high)
+                        low, high = (middle, high) if apart(middle) < want else (low, middle)
+                    swing_by = high
+                # What the rest added, for a clip that joins this pose with a plain arm.
+                arm["rest_by"] = swing_by
+            aim_u, bend_dir, aim_f, thumb_f, thumb = hang(out_deg, swing_by)
         rest_u = unit(rig.rest_pos[lower] - rig.rest_pos[upper])
         rest_f = unit(rig.rest_pos[hand] - rig.rest_pos[lower])
         rest_g = unit(rig.rest_pos["middle_01_" + s] - rig.rest_pos[hand])
@@ -226,8 +286,10 @@ class Solver:
         rig = self.rig
         world, turns, miss = {}, {}, {}
         self._trunk(spec, world, turns)
-        for s, sign in SIDES:
+        # Both legs first: an arm may rest on either thigh.
+        for s, _ in SIDES:
             self._leg(spec, world, s, miss)
+        for s, sign in SIDES:
             self._arm(spec, world, turns, s, sign, miss)
         local = {}
         fingers = spec.get("fingers", {})

@@ -28,3 +28,9 @@ bus = &"SFX"
 unique_name_in_owner = true
 volume_db = -10.0
 bus = &"SFX"
+
+[node name="MeleeSound" type="AudioStreamPlayer3D" parent="."]
+unique_name_in_owner = true
+volume_db = -27.0
+max_polyphony = 2
+bus = &"SFX"

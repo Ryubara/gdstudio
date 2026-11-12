@@ -12,22 +12,31 @@
 - `assets/characters/mannequin/` is Quaternius's two mannequins (`mannequin_female.glb` and
   `mannequin_male.glb`, on the same rig) and `assets/animation/universal/` the Universal Animation
   Library 1 and 2 (CC0, each with a `LICENSE.md`): the clip checks' bodies and the character's 86 clips.
+- `assets/animation/rifle/` is GDStudio's own rifle clips (`Rifle_Idle`, three aims, `Rifle_Shoot`, `Rifle_Reload`;
+  MIT, keyed from scratch by `build_rifle_clips.py` round the two-handed hold; its `README.md` has the numbers).
+- `assets/animation/pistol/` is GDStudio's own pistol slide-rack clip (`Pistol_Rack`; MIT, keyed from scratch by
+  `build_pistol_rack.py` on the player's body's rig, with a `LICENSE.md`), an `AnimationLibrary` like the two packs; its
+  README has the beats, the numbers and why it is an overhand rack.
 - `assets/animation/vault/` is GDStudio's own vault clips (`Vault_Low`, `Vault_High`, `Vault_Land`; MIT, keyed from
   scratch by `build_vault.py` on the mannequin's rig, with a `LICENSE.md`), an `AnimationLibrary` like the two packs,
   and `vault_clips.json`, each clip's reference obstacle and contact times.
+- `assets/animation/fixed/` is five library clips with a limb moved clear of the limb it passed through on the
+  prototype bodies (an arm in `Jump_Land`, `Slide_Exit` and `NinjaJump_Land`, a leg in `Sword_Dash` and
+  `Sword_Heavy_Combo`; CC0 as the library, changed by
+  `build_fixed_clips.py`, with a `LICENSE.md` and a `README.md`), the `AnimationLibrary` `fixed`.
 - `assets/animation/limb_overlap.py` measures, with the pinned Blender, how deep any limb is inside another on every
   frame of a clip, on both mannequins' skinned meshes; a build that keys clips runs it before it exports. From the
   command line it reads a clip file at the file's own frame rate (`test_limb_overlap.py` proves both ways agree).
 - `assets/weapons/pistol/` is GDStudio's own pistol (MIT, from Deadnight's build script, with a `LICENSE.md`), and
   `pistol_held.tscn` puts it in the mannequin's right hand for the pistol clips (the folder's README).
-- `assets/audio/coin/` (a coin pickup, four variants) and `assets/audio/footsteps/` (four soft steps) are generated
-  with ElevenLabs Sound Effects on the free tier, like the base's wind: attribution required, not licensed for
-  commercial use. **Temporary: replace or relicense them before any commercial release**, and name ElevenLabs on the
-  Credits screen until then.
-- `assets/audio/pistol/` is five pistol shots synthesised by Deadnight's code (MIT, GDStudio's own, with a
-  `LICENSE.md`): no attribution and nothing to replace.
-- `assets/audio/impacts/` is nine bullet impact sounds (default, wood and metal, three each) synthesised by the kit's
-  `tools/audio/impact_sounds.py` (MIT, GDStudio's own, with a `LICENSE.md`); `assets/shaders/impacts/` and
+- `assets/audio/coin/` (a coin pickup, four variants), `assets/audio/footsteps/` (four soft steps),
+  `assets/audio/fists/` (three punch whooshes), `assets/audio/weapon_pickup/` (the weapon pickup, two variants),
+  `assets/audio/impacts/` (nine bullet impacts: default, wood and metal, three each) and the pistol's empty click,
+  reload and draw in `assets/audio/pistol/` are generated with ElevenLabs
+  Sound Effects on the studio's paid plan, like the base's wind: commercial use in a game allowed, no attribution
+  required, not to be shared on their own as sound files (each folder's `LICENSE.md`).
+- The five pistol shots in `assets/audio/pistol/` are synthesised by Deadnight's code (MIT, GDStudio's own; the
+  folder's `LICENSE.md`): no attribution and nothing to replace. `assets/shaders/impacts/` and
   `assets/materials/impacts/` are the mark's shader and its default material (original).
 - `assets/ui/minimap/` is the minimap's six icon shapes (dot, ring, square, diamond, arrow, triangle: white on
   clear, 64 px, GDStudio's own, drawn by `tools/minimap/make_icons.py`; a marker tints them). The scripts and scenes
