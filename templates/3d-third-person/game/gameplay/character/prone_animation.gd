@@ -28,7 +28,7 @@ var aim_look := 0.0
 var lies := 0.0
 
 # The `prone` library the scene holds, put back for a model with no library of its own.
-var _shared: AnimationLibrary
+var _shared: Dictionary[StringName, AnimationLibrary] = {}
 # What is left of the last shot's kick (1 just fired, 0 none).
 var _kick := 0.0
 # The looks the held weapon's prone down and up clips are made for (`WeaponDef.prone_aim_angles`).
@@ -158,16 +158,19 @@ func stow_view(model: Node3D, hold: WeaponDef, away: bool) -> void:
 	stowed = away
 
 
-## Gives `player` the prone library `libraries` names for `rig`'s scene file, or the scene's
-## shared one. Only in the game: a library swapped in the editor would be saved with the scene.
-func use_model_clips(player: AnimationPlayer, rig: Node3D, libraries: Dictionary) -> void:
+## Gives `player` the prone library (the prone aim library when `aim`) that `libraries` names for
+## `rig`'s scene file, or the scene's shared one. Only in the game: a library swapped in the
+## editor would be saved with the scene.
+func use_model_clips(
+	player: AnimationPlayer, rig: Node3D, libraries: Dictionary, aim := false
+) -> void:
 	if Engine.is_editor_hint() or player == null or rig == null:
 		return
-	var library := CharacterClips.LIBRARY_PRONE
+	var library := CharacterClips.LIBRARY_PRONE_AIM if aim else CharacterClips.LIBRARY_PRONE
 	var has := player.has_animation_library(library)
-	if _shared == null and has:
-		_shared = player.get_animation_library(library)
-	var wanted: AnimationLibrary = libraries.get(rig.scene_file_path, _shared)
+	if not _shared.has(library) and has:
+		_shared[library] = player.get_animation_library(library)
+	var wanted: AnimationLibrary = libraries.get(rig.scene_file_path, _shared.get(library))
 	if wanted == null or (has and player.get_animation_library(library) == wanted):
 		return
 	if has:

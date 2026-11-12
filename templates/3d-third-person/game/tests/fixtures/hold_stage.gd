@@ -16,6 +16,7 @@ const LIBRARIES: Dictionary[String, String] = {
 	"ual1": "res://assets/animation/universal/ual1.glb",
 	"ual2": "res://assets/animation/universal/ual2.glb",
 	"prone_aim": "res://assets/animation/prone/prone_aim.glb",
+	"prone_aim_male": "res://assets/animation/prone/prone_aim_male.glb",
 	"gds": "res://assets/animation/own/locomotion.glb",
 }
 
@@ -56,6 +57,8 @@ var hold: Node
 var contact: HandContact
 
 var _libraries := {}
+# The body on the stage (`female` or `male`): a library solved a body is read from its own file.
+var _model := ""
 var _updates := 0
 
 
@@ -65,6 +68,7 @@ var _updates := 0
 static func make(holder: Node, model: String, with_hold := true, measured := true) -> HoldStage:
 	var stage := HoldStage.new()
 	holder.add_child(stage)
+	stage._model = model
 	stage.slot = CharacterModel.new()
 	stage.add_child(stage.slot)
 	stage.slot.add_child((load(MODELS[model]) as PackedScene).instantiate())
@@ -86,11 +90,15 @@ static func make(holder: Node, model: String, with_hold := true, measured := tru
 	return stage
 
 
-## The clip `clip_name` (`ual1/Walk`) as an animation.
+## The clip `clip_name` (`ual1/Walk`) as an animation, from the stage's body's own file of the
+## library when it has one (`prone_aim` on the male is `prone_aim_male.glb`, as the character
+## scene's `prone_aim_libraries` gives it).
 func clip(clip_name: StringName) -> Animation:
 	var parts := String(clip_name).split("/")
 	if not _libraries.has(parts[0]):
-		_libraries[parts[0]] = load(LIBRARIES[parts[0]]) as AnimationLibrary
+		var own := "%s_%s" % [parts[0], _model]
+		var file: String = LIBRARIES.get(own, LIBRARIES[parts[0]])
+		_libraries[parts[0]] = load(file) as AnimationLibrary
 	return (_libraries[parts[0]] as AnimationLibrary).get_animation(parts[1])
 
 
