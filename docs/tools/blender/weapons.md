@@ -238,12 +238,12 @@ shooting page once that work lands).
   hand bone's place in the pistol's space on every frame it is near the slide, the fingers closed on the slide and
   opened over it, the slide's travel and the beats. What plays the clip reaches the left hand there with a `HoldArm`,
   puts the fingers on with a `HandPoseModifier` (`SlideRack.set_fingers()`) and moves the `Slide` node. Measured on
-  every frame on both bodies: the right hand 1.2 mm in and 1.0 mm off at most, the left hand on the slide 1.0 mm in
+  every frame on both bodies: the right hand 1.2 mm in and 3.1 mm off at most, the left hand on the slide 1.4 mm in
   with the palm and every fingertip on the surface, 0.0 mm from its place, at most 2.3 mm in on its way at any half
-  frame with the pistol carried and 4.8 mm with the pistol where the clip has it, and no limb in another where the
-  rack moves the hand (on the two-handed grip of kit #1084, for which the clip was built again: its own left hand
-  is at the far end of the hold's way where the hold lets it go,
-  [solving two hands](weapon-hands/two-handed-pistol-grip.md#solving-two-hands)). Before the per-body solve (the
+  frame, the pistol carried or where the clip has it, and no limb more than 1.7 mm in another where the rack moves
+  the hand (on the two-handed grip of kit #1084 and the seat of kit #1213, for each of which the hand on the slide
+  was solved and the clip built again: its own left hand is at the far end of the hold's way where the hold lets
+  it go, [solving two hands](weapon-hands/two-handed-pistol-grip.md#solving-two-hands)). Before the per-body solve (the
   Quaternius hands' place and curls on these
   bodies) the palms were 12.3 to 13.9 mm off the slide and the index fingertips 13.1 to 18.9 mm inside it.
 - **Search order.** The seat first (the palm brought to the surface along the pistol's own Z, then a coordinate
