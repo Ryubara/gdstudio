@@ -62,6 +62,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"vault_clip": CharacterClips.VAULT_LOW,
 		&"vault_high_clip": CharacterClips.VAULT_HIGH,
 		&"vault_land_clip": CharacterClips.VAULT_LAND,
+		&"vault_libraries": {},
 		&"mantle_clip": CharacterClips.CLIMB_UP,
 		&"mantle_high_clip": CharacterClips.CLIMB_UP,
 		&"traversal_speed_range": Vector2(0.5, 2.0),
