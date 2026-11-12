@@ -38,9 +38,10 @@ a branch fresh are in [Landing a pull request](landing.md#landing).
   name every model of its commits on the `Model:` line in the same step (`git log
   --format=%(trailers:key=Co-Authored-By) origin/main..HEAD`) and check the body before you push. **Watch out for:** the
   `commits` check matches each commit's `Co-Authored-By` model against that line; a coordinator cherry-picking a Sonnet
-  agent's commit, merging main to settle a conflict, or finishing a handed-over branch wrote only one model. **Seen:**
-  gdstudio #207 and #208, 2026-11-02; Deadnight #553, 2026-11-02 (fix: every model listed, checked before the push);
-  gdstudio #1254, 2026-11-11 (a Fable helper's clip commit in a handed-over branch; the line named it without a version).
+  agent's commit, merging main to settle a conflict, or finishing a handed-over branch wrote only one model. A stacked
+  pull request carries its base's commits, which `gds pr check-body` does not read (`groundwork.py check-commits` does).
+  **Seen:** gdstudio #207, #208 and Deadnight #553, 11-02 (fix: every model listed, checked before the push); gdstudio
+  #1264 (stacked on #1239), #1311 (stacked on #1172), #1268 and #1254 (a helper's commit), 11-11.
 - **Approach:** Name the model that wrote the commits on the `Model:` line and in each `Co-Authored-By` trailer (`Claude
   Opus 5.5`, `Claude Sonnet 5.5`), never the harness that ran the session or an alias. **Watch out for:** an
   attribution line that names a tool (`Claude Code`) is not a model name; when a machine maps an alias to another
@@ -74,8 +75,9 @@ A clip is a GIF or an MP4 by the rule on [GIF or MP4](capture.md#gif-or-mp4), an
   `--attach` swaps in the upload address and GitHub draws it as an image that plays inline and loops. It counts as the
   capture on its line.
 - **An MP4 is its bare upload address on its own line**, with a blank line on each side: only then does GitHub draw a
-  player. `![x](./<name>.mp4)` becomes a plain link after the upload, so attach with that reference, then replace the
-  link with the address alone and `gh pr edit --body-file` again
+  player. `![x](./<name>.mp4)` becomes a plain link after the upload (or, written alone on its own line, the bare
+  address already: `gh` 2.102 on gdstudio #1172, so read the body back first), so attach with that reference, then
+  replace any link left with the address alone and `gh pr edit --body-file` again
   ([Sound](capture.md#sound-a-clip-you-can-listen-to)); put a still or a sheet on the `After:` line beside it.
 
 - **Approach:** Make the reference and the `--attach` path one file: `cd` into the images' folder and write `--attach

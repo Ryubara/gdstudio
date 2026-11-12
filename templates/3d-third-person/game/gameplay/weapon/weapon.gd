@@ -218,7 +218,7 @@ func can_fire() -> bool:
 		return false
 	if _uses_ammo() and _magazine <= 0:
 		return false
-	if definition.kind == WeaponDef.Kind.PROJECTILE and definition.projectile_scene == null:
+	if definition.shot_kind() == WeaponDef.Kind.PROJECTILE and definition.projectile_scene == null:
 		return false
 	return muzzle != null or shooter != null
 
@@ -368,7 +368,7 @@ func fire_cosmetic(origin: Vector3, heading: Vector3) -> Projectile:
 	var start := muzzle.global_position if muzzle != null and muzzle.is_inside_tree() else origin
 	last_origin = start
 	last_heading = heading.normalized()
-	if definition.kind == WeaponDef.Kind.PROJECTILE and definition.projectile_scene != null:
+	if definition.shot_kind() == WeaponDef.Kind.PROJECTILE and definition.projectile_scene != null:
 		var was := authoritative
 		authoritative = false
 		_launch(start, last_heading)
@@ -487,6 +487,7 @@ func load_step_state(kept: Array) -> void:
 
 
 func _shoot(origin: Vector3, direction: Vector3) -> void:
+	_last_projectile = null
 	var marker: Node3D = muzzle if muzzle != null else self
 	var aimed := _is_ray(origin, direction)
 	var along := direction.normalized() if aimed else -marker.global_basis.z
@@ -504,11 +505,10 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 	if _uses_ammo():
 		_magazine -= 1
 	_cooldown = definition.shot_interval()
-	match definition.kind:
-		WeaponDef.Kind.PROJECTILE:
-			_launch(start, heading, _rewind_flight(start, heading))
-		WeaponDef.Kind.HITSCAN:
-			_scan(start, heading, definition.aim_range, _rewind_ray(start, heading))
+	if definition.shot_kind() == WeaponDef.Kind.PROJECTILE:
+		_launch(start, heading, _rewind_flight(start, heading))
+	else:
+		_scan(start, heading, definition.ray_reach(), _rewind_ray(start, heading))
 	_play(_player(&"ShotSound"), start)
 	_flash()
 	if _uses_ammo():
@@ -546,7 +546,7 @@ func _rewind_flight(start: Vector3, heading: Vector3) -> ShotRewind:
 func _rewind_ray(start: Vector3, heading: Vector3) -> ShotRewind:
 	if rewind == null or not authoritative:
 		return null
-	return rewind.for_shot(start, heading, definition.aim_range)
+	return rewind.for_shot(start, heading, definition.ray_reach())
 
 
 # The blow's ray on a tick of its window: from the chest (where it started, moved with the body)
@@ -640,7 +640,7 @@ func _scan(
 	var found := {}
 	var record: HitRecord = null
 	for _attempt in 3:
-		found = _cast(start, start + heading * reach, skip)
+		found = _cast(start, start + heading * reach, skip, definition.ray_mask(aim_mask))
 		if shot_rewind != null:
 			found = shot_rewind.nearer(start, start + heading * reach, found, age)
 		if found.is_empty():
@@ -718,10 +718,10 @@ func _scan(
 	return true
 
 
-func _cast(start: Vector3, end: Vector3, skip: Array[RID] = []) -> Dictionary:
+func _cast(start: Vector3, end: Vector3, skip: Array[RID] = [], mask := -1) -> Dictionary:
 	if not is_inside_tree():
 		return {}
-	var query := PhysicsRayQueryParameters3D.create(start, end, aim_mask)
+	var query := PhysicsRayQueryParameters3D.create(start, end, aim_mask if mask < 0 else mask)
 	var excluded: Array[RID] = skip.duplicate()
 	if shooter != null:
 		excluded.append(shooter.get_rid())
@@ -880,13 +880,13 @@ func _get_configuration_warnings() -> PackedStringArray:
 	if definition == null:
 		warnings.append("Set `definition`: the WeaponDef this weapon fires.")
 		return warnings
-	if muzzle == null and shooter == null and definition.kind != WeaponDef.Kind.MELEE:
+	if muzzle == null and shooter == null and definition.shot_kind() != WeaponDef.Kind.MELEE:
 		(
 			warnings
 			. append(
 				"Set `muzzle` (the marker the shots leave from) or, for a body with no model, `shooter`."
 			)
 		)
-	if definition.kind == WeaponDef.Kind.PROJECTILE and definition.projectile_scene == null:
+	if definition.shot_kind() == WeaponDef.Kind.PROJECTILE and definition.projectile_scene == null:
 		warnings.append("The definition has no `projectile_scene`: the scene made for each shot.")
 	return warnings

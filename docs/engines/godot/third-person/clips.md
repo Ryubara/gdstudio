@@ -32,6 +32,12 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   drops those constant tracks on import, and a body of other proportions that plays them stretches its neck and limbs
   to the mannequin's. **Seen:** gdstudio #1150 (PR #1165), 2026-11-11 (the sizes); gdstudio #1149 and #1151,
   2026-11-11 (the position tracks).
+- **Approach:** When a new library joins the character's `AnimationPlayer` (`prone`, `melee`, `gds`), add a
+  `LIBRARY_*` constant, a constant per clip and every clip name to `CharacterClips.ALL` in the same commit, and raise
+  the count in `test_character_clips.gd`. **Watch out for:** `test_every_listed_clip_exists_and_every_clip_is_listed`
+  counts every clip of every library on the player, so a library added only to `character_dressed.tscn` passes every
+  targeted suite and fails only in the full run. **Seen:** kit #1254, the six melee clips (90 to 96, then 99
+  beside the three vault clips of #1239).
 
 ## The vault clips {#vault-clips}
 
@@ -154,3 +160,9 @@ contact times. Forward 0 is the obstacle's front face.
 - **Approach:** Pick a mannequin's skinned mesh by its parent (the armature) or its armature modifier. **Watch out
   for:** `mannequin_female.glb` holds a stray 42-vertex `Icosphere` beside `Mannequin_F`, and it comes first, so a
   build that took the first mesh measured nothing and failed on an empty list. **Seen:** gdstudio #1010, 2026-11-10.
+- **Approach:** Keep the capsule out of geometry through a vault: it goes up and over the top as a body's would, and the
+  model, not the capsule, follows the clip's level root through the crossing (held in the world for the move, with the
+  camera's target moved by the same difference so the view stays level). **Watch out for:** this section said the clip's
+  root goes level through the wall and nothing about the capsule, so it read as moving the body through the wall; the
+  capsule has to stay where the physics world (and a server, stepping the same plan) can move it, so the model leaves it
+  for the crossing. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11 (`VaultAnimation` holds the model).

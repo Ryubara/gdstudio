@@ -38,8 +38,12 @@ enum Kind {
 @export var display_name := "Weapon"
 ## The picture a HUD or an inventory shows. Empty: none.
 @export var icon: Texture2D
-## How a shot travels: a projectile, a hitscan ray or a melee blow.
-@export var kind := Kind.PROJECTILE
+## How a shot travels: a projectile, a hitscan ray or a melee blow. The `hitscan` toggle below
+## turns a projectile weapon into a hitscan one without changing this.
+@export var kind := Kind.PROJECTILE:
+	set(value):
+		kind = value
+		notify_property_list_changed()
 
 @export_group("Fire")
 ## On: holding the fire button keeps shooting. Off: one shot a press.
@@ -54,7 +58,7 @@ enum Kind {
 ## What one hit takes from what it hits. The weapon hands it on (`Projectile.damage`, the hit
 ## record's `damage`); the template's `Target` counts hits, and a game's health reads this.
 @export_range(0.0, 1000.0, 0.5, "or_greater") var damage := 34.0
-## How far the aim ray (and a hitscan shot) looks for something to hit.
+## How far the aim ray looks for something to hit (a hitscan shot reaches `hitscan_range`).
 @export_range(5.0, 500.0, 1.0, "suffix:m") var aim_range := 100.0
 ## The push a hit gives a physics body (newton seconds).
 @export_range(0.0, 500.0, 0.5, "suffix:N·s") var impulse := 40.0
@@ -98,6 +102,21 @@ enum Kind {
 ## Moves the view while zoomed in, when `override_zoom` is on: x further to the side of the chosen
 ## shoulder (mirrored on the left one), y up. It blends in with the zoom.
 @export_custom(PROPERTY_HINT_RANGE, "-1,1,0.01,suffix:m") var zoom_offset := Vector2.ZERO
+
+@export_group("Hitscan")
+## On: the weapon fires one instant ray from the aim instead of a projectile (a `PROJECTILE` weapon
+## becomes a `HITSCAN` one, `shot_kind()`). Nothing is made for the shot: the muzzle flash, the
+## shot sound and the impact where the ray hits are all there is, and online the shot costs only
+## its SHOT and HIT events. Read at each shot, so it switches live. No effect on a melee weapon.
+@export var hitscan := false:
+	set(value):
+		hitscan = value
+		notify_property_list_changed()
+## How far a hitscan shot reaches.
+@export_range(5.0, 1000.0, 1.0, "or_greater", "suffix:m") var hitscan_range := 100.0
+## What a hitscan shot can hit (physics layers): by default what every shot meets
+## (`PhysicsLayers.SHOT_MASK`: the level, characters, props, ragdoll bones and hit zones).
+@export_flags_3d_physics var hitscan_mask := PhysicsLayers.SHOT_MASK
 
 @export_group("Ammo")
 ## Rounds in a full magazine. Zero: the weapon needs no ammunition (fists, a blade) and shows no
@@ -246,6 +265,32 @@ enum Kind {
 @export_range(0.1, 4.0, 0.05, "or_greater", "suffix:x") var muzzle_flash_size := 1.0
 
 
+## How a shot of this weapon travels now: `MELEE` for a melee weapon, `HITSCAN` when `hitscan` is
+## on or `kind` says so, else `PROJECTILE`. The weapon reads this, never `kind` alone.
+func shot_kind() -> Kind:
+	if kind == Kind.MELEE:
+		return Kind.MELEE
+	if hitscan or kind == Kind.HITSCAN:
+		return Kind.HITSCAN
+	return Kind.PROJECTILE
+
+
+## True when a shot is a ray (a hitscan shot or a blow) and makes no projectile.
+func shoots_rays() -> bool:
+	return shot_kind() != Kind.PROJECTILE
+
+
+## The physics layers a shot's ray looks in: `hitscan_mask` for a hitscan shot, else `fallback`
+## (the weapon's `aim_mask`).
+func ray_mask(fallback: int) -> int:
+	return hitscan_mask if shot_kind() == Kind.HITSCAN else fallback
+
+
+## How far a shot's ray reaches: `melee_reach` for a blow, `hitscan_range` for a hitscan shot.
+func ray_reach() -> float:
+	return melee_reach if shot_kind() == Kind.MELEE else hitscan_range
+
+
 ## True when the weapon uses ammunition (a magazine of at least one round).
 func uses_ammo() -> bool:
 	return magazine_size > 0
@@ -307,3 +352,11 @@ func blow_clips() -> Array[StringName]:
 ## How fast the blow's clips play.
 func blow_clip_speed() -> float:
 	return category.melee_clip_speed if category != null else 1.0
+
+
+# The hitscan numbers are read-only in the inspector while the toggle is off (a `HITSCAN` kind
+# reads them too).
+func _validate_property(property: Dictionary) -> void:
+	var field: String = property["name"]
+	if field in ["hitscan_range", "hitscan_mask"] and shot_kind() != Kind.HITSCAN:
+		property["usage"] |= PROPERTY_USAGE_READ_ONLY
