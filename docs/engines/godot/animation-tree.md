@@ -299,3 +299,10 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
   **Seen:** gdstudio #1158, 2026-11-12 (the lean's base pose, three errors for four poses).
+- **Approach:** Start a transition clip only while the character's own state is one the transition plays over
+  (standing, walking, running), and end one that plays when the state leaves those; test the tree with real clips
+  in the libraries, not only made-up ones in a test library. **Watch out for:** a push, a vault or a hit begins on a
+  frame the state machine is still in `ground`: with our starts in the library (#1156) the tree picked a start on
+  that frame and held the body in it, so the push clip never played and the vault's hands left the top by 0.3 m;
+  the transition tests passed, since their clips existed only in their own suite. **Seen:** gdstudio #1156,
+  2026-11-12 (`GaitTransitions.on_foot`; `test_player_actions.gd`, `test_push_cubes.gd`, `test_vault_contacts.gd`).
