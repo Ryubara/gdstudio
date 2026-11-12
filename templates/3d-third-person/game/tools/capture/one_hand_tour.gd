@@ -6,10 +6,11 @@
 ## `gds capture frames --project game --scene res://tools/capture/one_hand_tour.tscn --seconds 9
 ## --fps 30`, or `gds godot -- --path game --fixed-fps 60 --write-movie <folder>/f.png
 ## res://tools/capture/one_hand_tour.tscn`. `ONE_HAND_VIEW=side` films the body from its right,
-## `front` from ahead and to the right, `hand` the shooting hand up close; `MODEL=male` holds it on
-## the male mannequin. It prints a `KICK` line a physics tick: the hold's aim weight, the one-hand
-## kick and the barrel's pitch in degrees, so the recoil of the two holds can be compared. It lives
-## in tools/, which the export leaves out.
+## `front` from ahead and to the right, `hand` the shooting hand up close, `right` square on from
+## the gun's right (the trigger finger), `thumb` from its left, `above` and `below`; `MODEL=male`
+## holds it on the male mannequin. It prints a `KICK` line a physics tick: the hold's aim weight,
+## the one-hand kick and the barrel's pitch in degrees, so the recoil of the two holds can be
+## compared. It lives in tools/, which the export leaves out.
 extends Node
 
 const FLOOR_AT := Vector3(0.0, 300.0, 0.0)
@@ -18,6 +19,10 @@ const START := Vector3(0.0, 300.1, 0.0)
 ## character's space (+Z its front, +X its left).
 const VIEWS: Dictionary = {
 	"hand": Vector3(-0.35, 0.12, 0.35),
+	"right": Vector3(-0.7, 0.03, 0.06),
+	"thumb": Vector3(0.7, 0.03, 0.06),
+	"above": Vector3(0.0, 0.7, 0.06),
+	"below": Vector3(0.0, -0.7, 0.06),
 	"side": Vector3(-3.2, 0.3, 0.6),
 	"front": Vector3(-1.6, 0.2, 2.6),
 }
@@ -69,7 +74,7 @@ func _ready() -> void:
 	_player.teleport(START, PI)
 	if VIEWS.has(_view):
 		_camera = Camera3D.new()
-		_camera.fov = 30.0 if _view == "hand" else 40.0
+		_camera.fov = _fov()
 		_camera.near = 0.05
 		_camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 		add_child(_camera)
@@ -114,7 +119,7 @@ func _process(_delta: float) -> void:
 func _follow(skeleton: Skeleton3D) -> void:
 	var model_basis := _player.model.get_global_transform_interpolated().basis.orthonormalized()
 	var target := _player.model.get_global_transform_interpolated().origin + Vector3.UP * 1.3
-	if _view == "hand":
+	if not _view in ["side", "front"]:
 		target = (
 			(
 				skeleton.get_global_transform_interpolated()
@@ -122,8 +127,16 @@ func _follow(skeleton: Skeleton3D) -> void:
 			)
 			. origin
 		)
+		if _view != "hand":
+			target += model_basis * Vector3(0.0, 0.03, 0.06)
 	_camera.global_position = target + model_basis * (VIEWS[_view] as Vector3)
-	_camera.look_at(target, Vector3.UP)
+	_camera.look_at(target, model_basis.z if _view in ["above", "below"] else Vector3.UP)
+
+
+func _fov() -> float:
+	if _view in ["side", "front"]:
+		return 40.0
+	return 30.0 if _view == "hand" else 20.0
 
 
 func _report() -> void:

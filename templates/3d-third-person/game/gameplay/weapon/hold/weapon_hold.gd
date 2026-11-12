@@ -113,6 +113,10 @@ const KICK_RISE := 0.08
 		one_handed = value
 		if is_node_ready():
 			_build()
+## The right hand's bones that take another place while it aims one-handed, over the trigger
+## finger's pose: the thumb laid forward along the frame, where the two-handed grip has the left
+## thumb's root. Null: the grip's own (a body whose solved thumb already lies there).
+@export var one_hand_pose: HandPose
 ## The arm that holds the weapon out: the upper arm, the forearm and the hand.
 @export var shooting_arm: Array[StringName] = [&"upperarm_r", &"lowerarm_r", &"hand_r"]
 ## How far the chest turns side-on while aiming one-handed, in degrees (the right shoulder
@@ -314,6 +318,12 @@ func modifiers() -> Array[SkeletonModifier3D]:
 	return found
 
 
+## The modifier that closes the gripping hand and turns its wrist (the `AimLayer` runs right after
+## it: the stance and the wrist's turn move the muzzle it reads), or null.
+func grip_modifier() -> HandPoseModifier:
+	return _grip if _grip != null and is_instance_valid(_grip) else null
+
+
 ## How far the left hand stopped from its place on the last update, in metres.
 func support_shortfall() -> float:
 	return _arm.shortfall if _arm != null and is_instance_valid(_arm) else 0.0
@@ -358,11 +368,11 @@ func _build() -> void:
 	_grip = HandPoseModifier.new()
 	_grip.name = _GRIP
 	_grip.pose = grip_pose
-	_grip.second = trigger_pose
+	_grip.second = _with_one_hand(trigger_pose, one_hand_pose)
 	# The trigger finger's pose between is a way of one stop (`HandPoseModifier.second_way`).
 	var trigger_way: Array[HandPose] = []
 	if trigger_way_pose != null:
-		trigger_way.append(trigger_way_pose)
+		trigger_way.append(_with_one_hand(trigger_way_pose, thumb_way_pose))
 	_grip.second_way = trigger_way
 	_grip.open = thumb_pose
 	_grip.open_via = thumb_way_pose
@@ -412,6 +422,7 @@ func _fit_body() -> void:
 		_own.support_pose = support_pose
 		_own.magazine_pose = magazine_pose
 		_own.open_pose = open_pose
+		_own.one_hand_pose = one_hand_pose
 	var chosen := fit()
 	weapon.transform = chosen.seat
 	if support != null:
@@ -427,6 +438,20 @@ func _fit_body() -> void:
 	support_pose = chosen.support_pose
 	magazine_pose = chosen.magazine_pose
 	open_pose = chosen.open_pose
+	one_hand_pose = chosen.one_hand_pose
+
+
+# A pose the aim blends over the grip (the trigger finger's, or its pose between), and for a
+# one-handed body with a `one_hand_pose` the thumb's bones of `thumb` with it: its place along
+# the frame, or the pose it passes through on the way (`thumb_way_pose`, clear of the frame's edge).
+func _with_one_hand(pose: HandPose, thumb: HandPose) -> HandPose:
+	if not one_handed or one_hand_pose == null or pose == null or thumb == null:
+		return pose
+	var both := HandPose.new()
+	var rotations := pose.rotations.duplicate()
+	rotations.merge(thumb.rotations, true)
+	both.rotations = rotations
+	return both
 
 
 # Tells the stance where the barrel points in the hand bone as the clip leaves it: the weapon's

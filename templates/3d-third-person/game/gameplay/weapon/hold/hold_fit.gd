@@ -27,6 +27,8 @@ extends Resource
 @export var support_pose: HandPose
 @export var magazine_pose: HandPose
 @export var open_pose: HandPose
+## `WeaponHold.one_hand_pose` for this body, or none (the pistol's: kit #1085).
+@export var one_hand_pose: HandPose
 ## The poses the trigger finger passes through between `grip_pose` and `trigger_pose` on this
 ## body (`TwoHandHold.trigger_way`, written by `tools/hold/solve_trigger_way.gd`). None: the
 ## straight way.

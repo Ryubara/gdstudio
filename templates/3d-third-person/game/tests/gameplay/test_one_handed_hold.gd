@@ -16,8 +16,8 @@ const AIMED: Dictionary[StringName, Array] = {
 	CharacterClips.PISTOL_AIM_DOWN: [0.0],
 	CharacterClips.PISTOL_SHOOT: [0.0, 0.1, 0.2],
 }
-## The bone whose chain keeps the locomotion while one-handed (`CharacterAnimation`'s default).
-const FREE_ARM := &"clavicle_l"
+## The bone whose chain keeps the locomotion while one-handed.
+const FREE_ARM := WeaponDef.FREE_ARM_BONE
 ## The left hand's bone is at least this far from the support marker while it is free, in metres.
 const FREE := 0.15
 ## The right elbow is at least this straight, in degrees (180 locked; the default reach, 0.96 of
@@ -27,6 +27,12 @@ const STRAIGHT := 140.0
 const SAME_LINE := 1.0
 ## How far the chest turns from the two-handed hold, in degrees, at the default `side_on`.
 const SIDE_ON := Vector2(28.0, 42.0)
+## The right thumb's last bone points within this of the barrel while aiming one-handed, in
+## degrees, and its way there is measured at this many steps of the aim.
+const THUMB_ALONG := 35.0
+const THUMB_STEPS := 20
+## How far the muzzle may point off the aim's point on the live player, in degrees.
+const AIM_MISS := 3.0
 ## How far the left hand's bone may stop from its marker, in metres.
 const REACH := 0.005
 
@@ -157,6 +163,36 @@ func test_the_left_hand_comes_in_only_for_the_reload() -> void:
 		stage.free()
 
 
+# In two hands the left thumb's root has the frame under the slide; in one the right thumb lies
+# there, forward along the barrel (the female body's solved grip folds it down the grip panel),
+# and it goes there through nothing as the aim comes up.
+func test_the_right_thumb_lies_forward_along_the_frame_in_one_hand() -> void:
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		stage.hold.set(&"one_handed", true)
+		for step in THUMB_STEPS + 1:
+			var aim := float(step) / THUMB_STEPS
+			stage.pose(CharacterClips.PISTOL_AIM, 0.0, aim, &"ual1/Idle", [FREE_ARM])
+			await stage.settle()
+			var parts := stage.contact.measure("r", false)
+			for part: String in parts.keys():
+				if not part.begins_with("thumb"):
+					parts.erase(part)
+			var fails := HandContact.failures("%s aim %.2f r:" % [model, aim], parts, [])
+			assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
+		var tip := stage.skeleton.global_basis * stage.contact.bone_pose(&"thumb_03_r").basis
+		var along := stage.skeleton.get_bone_pose_position(stage.skeleton.find_bone(&"thumb_03_r"))
+		var off := rad_to_deg((tip * along).normalized().angle_to(_barrel(stage)))
+		(
+			assert_float(off)
+			. override_failure_message(
+				"%s: the thumb's tip points %.0f degrees off the barrel" % [model, off]
+			)
+			. is_less(THUMB_ALONG)
+		)
+		stage.free()
+
+
 # The player's own scene: the definition's `one_handed` switched while it aims puts the stance on
 # and takes the left hand off the gun, a shot kicks, and switched back the left hand is on again.
 func test_one_handed_switches_live_on_the_player() -> void:
@@ -186,6 +222,16 @@ func test_one_handed_switches_live_on_the_player() -> void:
 	assert_int(hold.modifiers().size()).is_equal(4)
 	assert_bool(hold.modifiers()[0] is OneHandStance).is_true()
 	assert_float(_gap).is_greater(FREE)
+	# The aim layer reads the muzzle after the stance and the grip's wrist turn (it ran between
+	# them and left the barrel 24 degrees under the aim).
+	var muzzle := player.weapon.muzzle
+	var toward := (player.get_node("AimLayer") as AimLayer).aim_point(1.0) - muzzle.global_position
+	var miss := rad_to_deg((-muzzle.global_basis.z).angle_to(toward))
+	(
+		assert_float(miss)
+		. override_failure_message("one-handed, the muzzle is %.1f degrees off the aim" % miss)
+		. is_less(AIM_MISS)
+	)
 	var kicks := 0
 	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
 	for _tick in 20:

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="HandPose" format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose.gd" id="1_2fno2"]
+
+[resource]
+script = ExtResource("1_2fno2")
+rotations = Dictionary[StringName, Quaternion]({
+&"thumb_01_r": Quaternion(-0.41566, 0.72671, 0.28801, 0.46494),
+&"thumb_02_r": Quaternion(0.15977, 0.04107, 0.2448, 0.95544),
+&"thumb_03_r": Quaternion(0.30094, 8e-05, 0.00054, 0.95364)
+})

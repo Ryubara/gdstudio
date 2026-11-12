@@ -12,6 +12,8 @@
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_thumb_way_pose.tres" id="11_thumb_way"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_fit_male.tres" id="10_fit_male"]
 
+[ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_one_hand_pose.tres" id="12_one_hand"]
+
 [node name="WeaponHold" type="Node"]
 script = ExtResource("1_hold")
 grip_pose = ExtResource("2_grip")
@@ -22,5 +24,6 @@ thumb_way_pose = ExtResource("11_thumb_way")
 support_pose = ExtResource("4_support")
 magazine_pose = ExtResource("5_magazine")
 open_pose = ExtResource("6_open")
+one_hand_pose = ExtResource("12_one_hand")
 support_way = Vector3(0.00828, -0.03, 0.0513)
 fits = Array[ExtResource("9_fit")]([ExtResource("10_fit_male")])

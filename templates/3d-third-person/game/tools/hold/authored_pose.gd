@@ -18,6 +18,7 @@ const SIDES: Dictionary[String, String] = {
 	"trigger_way": "r",
 	"thumb": "r",
 	"thumb_way": "r",
+	"one_hand": "r",
 	"support": "l",
 	"magazine": "l",
 	"open": "l",
