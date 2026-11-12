@@ -22,8 +22,9 @@ the command of its last step: the command's shot block when it has one (the huma
 `PlayerInput`), else from the character's eye (its camera target) along the command's `yaw` and `pitch`, which is how
 an AI or a test shoots. The body calls `Weapon.fire(origin, direction)`; `fire()` with no ray shoots straight out of
 the muzzle. A `Weapon` with no `muzzle` and a `shooter` (a body with no model, as a server has) fires from
-`no_muzzle_offset` beside the ray's point at the shooter (the default is where the pistol's muzzle is while aiming:
-6 mm off in the test). The cooldown is counted in `Weapon.tick(delta)`: a weapon alone ticks itself (`self_ticking`),
+`no_muzzle_offset` beside the ray's point at the shooter (the default is the middle of where the pistol's
+muzzle is while aiming on the template's idle: 34 mm off in the test, since the muzzle follows the idle's weight
+shift). The cooldown is counted in `Weapon.tick(delta)`: a weapon alone ticks itself (`self_ticking`),
 a `Character` turns that off and ticks its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown and
 the spread's place for `restore()`.
 
@@ -33,6 +34,21 @@ the spread's place for `restore()`.
   **Watch out for:** a probe as wide as the capsule that starts at the floor touches the floor and the walls at the
   sides and never lets the character stand; a capsule cannot be shorter than two radii, so `crouch_height` is clamped
   to `2 * radius + 0.01`. **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** Hold the upper body's turn under an aim pose that is layered from the spine up: a
+  `SkeletonModifier3D` before the hands' modifiers puts the first upper-body bone on the turn its parent has in the
+  aim clip (`AimBrace`, weighed by the aim blend, on the ground state only). Test the barrel's angle to the aim ray
+  standing through the idle's whole loop and walking, with the modifier off as the failing case.
+  **Watch out for:** a filtered layer rides the pelvis of the clip under it, and the library's pistol poses were
+  made on a pelvis turned 13.3 degrees: over our own idle, which stands square, the pistol pointed 14 to 18.5
+  degrees off the view, and over the library's own walk 13 to 17. The brace holds the turn only: the muzzle still
+  moves with the pelvis (34 mm each way with our idle's weight shift). **Seen:** gdstudio #1154, 2026-11-11
+  (`tests/gameplay/test_aim_brace.gd`).
+- **Approach:** When a clip is replaced, measure every layer that plays over it, in every state it plays in, and
+  take a test's reference point from a bone of the pose. **Watch out for:** the aim's only measure was taken
+  standing on the library idle, so the walk's fault went unseen and the swap of the idle was the first to fail it;
+  a point fixed in the model's space (the middle of the library idle's torso) was outside the body of an idle that
+  stands 65 mm further forward. **Seen:** gdstudio #1154, 2026-11-11 (`test_weapon_ray.gd`,
+  `test_pistol_clearance.gd`).
 - **Approach:** Layer a held weapon on the upper body only: an `AnimationNodeBlend2` and a one-shot with
   `filter_enabled` and filter paths for `spine_01` and every bone under it (`Armature/Skeleton3D:<bone>`), the aim pose
   over it by the look's pitch in a blend space (`Pistol_Aim_Down` -45, `_Neutral` 0, `_Up` 45) and the recoil last;

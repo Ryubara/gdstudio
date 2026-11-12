@@ -57,12 +57,22 @@ func test_the_pistol_stays_out_of_the_body_in_every_locomotion_clip_on_both_mann
 
 
 # The measure itself works: with the pistol seat moved into the torso, a point is found inside.
+# The point is the middle of the torso in the pose (the spine's second bone), wherever the idle
+# stands: a place fixed in the model's space was the library idle's torso, and our own idle
+# stands 65 mm further forward (kit #1154).
 func test_the_measure_finds_a_pistol_inside_the_body() -> void:
 	var holder := Node3D.new()
 	add_child(holder)
 	var clearance := PistolClearance.new(holder, MODELS[0])
-	clearance.pose(clearance.clip(CharacterClips.IDLE), 0.0)
-	assert_float(clearance.depth_at(Vector3(0.0, 1.14, -0.06))).is_greater(0.01)
-	assert_float(clearance.depth_at(Vector3(0.0, 1.14, 0.6))).is_less(0.0)
+	for clip: StringName in [CharacterClips.IDLE, CharacterClips.stand_in(CharacterClips.IDLE)]:
+		clearance.pose(clearance.clip(clip), 0.0)
+		var skeleton := clearance.skeleton
+		var torso := HandPoseModifier.global_pose(skeleton, skeleton.find_bone(&"spine_02")).origin
+		assert_float(clearance.depth_at(torso)).override_failure_message(clip).is_greater(0.01)
+		(
+			assert_float(clearance.depth_at(torso + Vector3(0.0, 0.0, 0.6)))
+			. override_failure_message(clip)
+			. is_less(0.0)
+		)
 	clearance.free_rig()
 	holder.free()
