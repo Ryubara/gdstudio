@@ -28,7 +28,8 @@ are measured on its skin.
 Copy a body in `bodies.py`, change its numbers (keep the leg's proportions: one `leg` scale), add it to `BODIES` and
 run `build_mannequins.py -- --body <name>`. The build fails before it keeps a file whose rest is not the library's,
 whose levels are over budget, whose feet are off the floor or whose weights are wrong. Then run
-`tools/mannequin/measure_bodies.gd` with the new file in its list.
+`tools/mannequin/measure_bodies.gd` with the new file in its list, and `tools/bench/mannequin_draw_bench.tscn` (in
+the web build) for what a browser pays to draw it.
 
 The skeleton keeps the bone names, parents and rest rotations of Quaternius's Universal Animation Library rig (CC0),
 which is what lets its clips play here unchanged; the rest is the kit page `docs/tools/blender/mannequin-rig.md`.
