@@ -162,3 +162,36 @@ func test_it_passes_connected_and_counts_bytes() -> void:
 	assert_int(_client.packets_out).is_equal(1)
 	assert_int(_client.waiting()).is_equal(0)
 	assert_object(_client.inner()).is_not_null()
+
+
+# The online rigs' clock is the physics frame count over the tick rate (`SocketRig.frame_clock`):
+# 150 ms is 9 ticks, and `frame / 60.0 + 0.15` lands a hair past `(frame + 9) / 60.0` at about one
+# frame count in five (13, 31, 69146...), so a packet sent then was held 10. Which packets took 10
+# hung on how many frames the process had run before the suite: the AI rewind suite's shot missed
+# in a full run and hit alone (gdstudio #1310).
+func test_a_hold_of_whole_ticks_on_a_frame_clock_passes_on_its_tick_at_every_frame_count() -> void:
+	var ends := LoopbackLink.pair()
+	var frame := [0]
+	var link := LinkConditioner.new(ends[0], 0.15, 0.0, 1)
+	link.clock = func() -> float: return frame[0] / 60.0
+	var held: Dictionary[int, int] = {}
+	link.packet_received.connect(
+		func(data: PackedByteArray) -> void:
+			var sent := data.decode_u32(0)
+			var took: int = frame[0] - sent
+			held[took] = held.get(took, 0) + 1
+	)
+	var server: LoopbackLink = ends[1]
+	for start in [0, 60000, 120000]:
+		frame[0] = start
+		for _i in 2000:
+			server.send(SocketRig.numbered(frame[0]))
+			frame[0] += 1
+			server.poll()
+			link.poll()
+		for _i in 20:
+			frame[0] += 1
+			server.poll()
+			link.poll()
+	# Each packet: the loopback's one frame to reach the conditioner, then its 9.
+	assert_dict(held).is_equal({10: 6000})

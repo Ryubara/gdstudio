@@ -33,7 +33,7 @@ The server's inspector (`net_server.tscn`, group AI; the lag compensation's two 
 character's look on the wire is the index of its profile here: `grunt.tres`, `ally.tres`, `civilian.tres`,
 `shooter.tres`), `ai_sees_players` (the players' bodies join the group `player` with the faction `player`, so the AI
 sees, fights and measures its tiers from them). The client's (`AiReplica`, group Drawing): `interp_delay`,
-`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes` (the male mannequin's
+`extrapolate_seconds`, `glide_max_jump`, `extrapolate_mask`, `section_origin`, `variant_scenes` (the male body's
 `character_dressed_male.tscn` for the grunt and the shooter, the female `character_dressed.tscn` for the ally and the
 civilian, as offline); group Making puppets: `puppets_per_frame`, `puppet_budget_usec`, `puppets_shown_per_frame`,
 `viewer`.
@@ -48,7 +48,7 @@ The prototype map's AI section ([its population](ai-characters.md#parts)) runs o
 and frees their pools), and the server's spawners wake when a player's body on the server comes within `wake_range`
 (the bodies join the group `player` with `ai_sees_players`). The allies follow the server's body of the first player
 in their world. Each character reaches every client as a row like any other, drawn in its own look: the grunt and the
-shooter in the male mannequin, the ally and the civilian in the female (`ai_variants` and `variant_scenes` at the same
+shooter in the male body, the ally and the civilian in the female (`ai_variants` and `variant_scenes` at the same
 index). A body the spawner takes back to the pool leaves the tree, so its row stops and the client frees its puppet; a
 spawn from the pool keeps its wire id and is a new puppet on the client.
 
@@ -102,8 +102,10 @@ Proof (`tests/gameplay/test_net_ai_rewind.gd`, two clients over the real socket 
 screen draws on a running guard's chest hits on the server and flinches the guard's puppet on Bo's screen; with
 `ai_rewind_seconds` at 0 the same shot misses (it missed on main); a shot led to where the server will have the guard
 misses, and hits with the rewind off; the drawn guard is 1.8 mm on average (3.6 mm at worst) from the history at the
-tick its shot is met at. `tests/gameplay/test_shot_rewind.gd`: the history, the 16-bit tick across its wrap, the ray
-against a capsule, and the costs below. The clip `tools/capture/ai_rewind_tour.tscn` shows the server's world beside
+tick its shot is met at, the same at every frame count the process has run (the rig's 150 ms is 9 ticks on every
+packet since #1310: [one clock per test](../test-speed.md#one-clock-per-test)).
+`tests/gameplay/test_shot_rewind.gd`: the history, the 16-bit tick across its wrap, the ray against a capsule, and the
+costs below. The clip `tools/capture/ai_rewind_tour.tscn` shows the server's world beside
 Ada's screen: three shots with the rewind off miss, three with it on hit, a ghost capsule on the server's half where
 each was met.
 
