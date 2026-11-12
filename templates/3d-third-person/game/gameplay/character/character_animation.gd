@@ -71,8 +71,6 @@ const _RELOAD := "Reload"
 # The tree's parameters the game sets or reads, made once (a path formatted every frame was seven
 # strings and seven name lookups a character a frame).
 const _P_PLAYBACK := StringName("parameters/%s/playback" % _MACHINE)
-const _P_GROUND_SPEED := StringName("parameters/%s/" % _MACHINE + "%s/blend_position" % GROUND)
-const _P_CROUCH_SPEED := StringName("parameters/%s/" % _MACHINE + "%s/blend_position" % CROUCH)
 const _P_ACTION_ACTIVE := StringName("parameters/%s/active" % _ACTION)
 const _P_ACTION_REQUEST := StringName("parameters/%s/request" % _ACTION)
 const _P_ACTION_SCALE := StringName("parameters/%s/scale" % _ACTION_SCALE)
@@ -265,7 +263,8 @@ const _RELOAD_FADE_OUT := 0.2
 @export_range(0.0, 1.0, 0.01, "suffix:s") var shot_hold_time := 0.2
 
 @export_group("Blending")
-## Seconds the body states take to blend into each other.
+## Seconds the body states take to blend into each other, when the momentum blend is off
+## (`GaitSettings.momentum_blend`; on, a new state shows at once and its difference dies away).
 @export_range(0.0, 1.0, 0.01, "suffix:s") var blend_time := 0.15:
 	set(value):
 		blend_time = value
@@ -275,11 +274,16 @@ const _RELOAD_FADE_OUT := 0.2
 	set(value):
 		action_blend_time = value
 		_rebuild()
+## How the gaits fit the body's motion: the speed matching, the transitions, the momentum blend
+## that replaces `blend_time`'s cross-fade, the lean (`GaitSettings`). Empty: its defaults.
+@export var gait_settings: GaitSettings:
+	set(value):
+		gait_settings = value
+		_rebuild()
 
 var melee := MeleeLayer.new()  # The melee blow's one-shot (gdstudio #1254).
+var gait := CharacterGait.new()  # speed matching, transitions, momentum, lean (gdstudio #1158)
 var _machine: AnimationNodeStateMachine
-var _ground: AnimationNodeBlendSpace1D
-var _crouch: AnimationNodeBlendSpace1D
 var _tuning: CharacterTuning  # its speeds are the blend spaces' (its `changed` is connected)
 var _prone_look := ProneAnimation.new()  # the crawl, the weapon put away, a model's own clips
 var _weights := Vector2.ZERO
@@ -427,8 +431,7 @@ func _tree_runs_itself(on: bool) -> void:
 func _drive(delta: float) -> void:
 	_follow_tuning()
 	var speed := _vault_look.follow(character, self, action_blend_time, delta)
-	tree.set(_P_GROUND_SPEED, speed)
-	tree.set(_P_CROUCH_SPEED, speed)
+	gait.drive(self, _playback, speed, delta)
 	_prone_look.step_crawl_share(speed, blend_time, delta)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
@@ -586,7 +589,10 @@ func _get_configuration_warnings() -> PackedStringArray:
 func _build() -> void:
 	_watch_hold()
 	tree.anim_player = tree.get_path_to(animation_player)
-	tree.tree_root = _build_root()
+	var root := _build_root()
+	gait.decorate(self, root, _machine)
+	tree.tree_root = root
+	gait.after_build(self)
 	_brace.build(self)
 
 
@@ -629,18 +635,11 @@ func _follow_tuning() -> void:
 	_sync_ground_speeds()
 
 
-# Moves the walk, run and sprint points of the ground blend space (and the crouch walk point) to
-# the tuning's speeds; the tuning says `changed` when one of them changes.
+# Moves the gait points of the ground and crouch blend spaces to their speeds (`GaitBlend`): the
+# clips' with the speed matching, else the tuning's, which says `changed` when one changes.
 func _sync_ground_speeds() -> void:
-	if _ground == null or character == null or character.tuning == null:
-		return
-	var tuning := character.tuning
-	var speeds := [tuning.walk_speed, tuning.run_speed, tuning.sprint_speed]
-	_ground.max_space = tuning.sprint_speed
-	for index in 3:
-		_ground.set_blend_point_position(index + 1, speeds[index])
-	_crouch.max_space = tuning.crouch_speed
-	_crouch.set_blend_point_position(1, tuning.crouch_speed)
+	if character != null:
+		gait.blend.place_points(character.tuning)
 
 
 # The pistol layer follows the character: held (or not), how far the arm is up, and how far up or
@@ -794,7 +793,7 @@ func _on_reload_started(seconds: float) -> void:
 
 func _travel(state: StringName) -> void:
 	if _playback != null:
-		_playback.travel(state)
+		_playback.travel(gait.route(state))
 
 
 func _build_root() -> AnimationNodeBlendTree:
@@ -955,42 +954,25 @@ func _build_machine() -> AnimationNodeStateMachine:
 
 func _link(from: StringName, to: StringName) -> void:
 	var transition := AnimationNodeStateMachineTransition.new()
-	transition.xfade_time = blend_time
+	transition.xfade_time = gait.xfade(self)
 	_machine.add_transition(from, to, transition)
 
 
 func _link_at_end(from: StringName, to: StringName) -> void:
 	var transition := AnimationNodeStateMachineTransition.new()
-	transition.xfade_time = blend_time
+	transition.xfade_time = gait.xfade(self)
 	transition.switch_mode = AnimationNodeStateMachineTransition.SWITCH_MODE_AT_END
 	transition.advance_mode = AnimationNodeStateMachineTransition.ADVANCE_MODE_AUTO
 	_machine.add_transition(from, to, transition)
 
 
+# The ground state: the idle point (`AimStance`) and the gaits, speed matched (`GaitBlend`).
 func _build_ground() -> AnimationNodeBlendSpace1D:
-	var tuning := character.tuning if character.tuning != null else CharacterTuning.new()
-	var space := AnimationNodeBlendSpace1D.new()
-	space.min_space = 0.0
-	space.max_space = tuning.sprint_speed
-	space.sync = true
-	space.add_blend_point(_brace.stance.idle_point(self, idle_clip), 0.0, -1, &"idle")
-	space.add_blend_point(_clip(walk_clip), tuning.walk_speed, -1, &"walk")
-	space.add_blend_point(_clip(run_clip), tuning.run_speed, -1, &"run")
-	space.add_blend_point(_clip(sprint_clip), tuning.sprint_speed, -1, &"sprint")
-	_ground = space
-	return space
+	return gait.build_ground(self, _brace.stance.idle_point(self, idle_clip))
 
 
 func _build_crouch() -> AnimationNodeBlendSpace1D:
-	var tuning := character.tuning if character.tuning != null else CharacterTuning.new()
-	var space := AnimationNodeBlendSpace1D.new()
-	space.min_space = 0.0
-	space.max_space = tuning.crouch_speed
-	space.sync = true
-	space.add_blend_point(_clip(crouch_idle_clip), 0.0, -1, &"idle")
-	space.add_blend_point(_clip(crouch_walk_clip), tuning.crouch_speed, -1, &"walk")
-	_crouch = space
-	return space
+	return gait.build_crouch(self)
 
 
 func _clip(clip: StringName) -> AnimationNodeAnimation:
