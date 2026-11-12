@@ -1,6 +1,6 @@
 """Review sheets of the melee clips (used by `build_melee.py -- --render <folder>`).
 
-For each clip and each mannequin (`female`, `male`), with the pistol in the hand for the pistol clips:
+For each clip and each body (`female`, `male`), with the pistol in the hand for the pistol clips:
 
 - `<clip>_<body>_side.png`, `_front.png`, `_top.png`: every frame, from the striking hand's side, from the front
   and from above (the character faces up the picture);

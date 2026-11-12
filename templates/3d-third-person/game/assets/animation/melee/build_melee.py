@@ -1,7 +1,7 @@
 """Build the template's melee clips and export them as an animation library (kit #1254).
 
-GDStudio's own clips, keyed from scratch on Quaternius's universal rig (the template's mannequins and the Universal
-Animation Library share it): three blows of the fists (`Melee_Unarmed_Jab`, `Melee_Unarmed_Cross`,
+GDStudio's own clips, keyed from scratch on the bodies the template's characters wear (the prototype `form` pair,
+`assets/characters/prototype/`, on the Universal Animation Library's 65 bones; kit #1319): three blows of the fists (`Melee_Unarmed_Jab`, `Melee_Unarmed_Cross`,
 `Melee_Unarmed_Hook`) and three of the pistol in the right hand (`Melee_Pistol_Whip`, `Melee_Pistol_Backhand`,
 `Melee_Pistol_Jab`). Nothing is copied from another clip but the first and last poses, which are frame 0 of the
 library's `Idle_Loop` (fists) and `Pistol_Idle_Loop` (pistol), so a blow leaves and rejoins the pose the game stands
@@ -25,6 +25,12 @@ collarbones and the arms. A clip is a table of keys on a few controls:
   fist (the fists of the prone clips, `FIST_CURL`) or, for the pistol's hand, the grip the game's `WeaponHold` puts
   on after the clip (`gameplay/weapon/hold/pistol_grip_pose.tres`, read here, never typed).
 
+Two bodies play the one file. The clips are keyed on the female and every check runs on both skinned meshes, the
+male posed as Godot plays the clip on him (each bone's rotation in its parent, on his bone lengths) with his own
+hold: his seat, his wrist's turn and his fingers on the grip (`pistol_fit_male.tres`), which `WeaponHold` puts on
+after the clip. The prototype rig's 17 bones the library lacks (twist bones, sockets, IK targets) get no key and are
+not in the file; the twist bones are turned as the game's `MannequinTwist` turns them before any skin is read.
+
 Smooth curves through the keys (`Channel`) give every frame, a two-bone solver turns the wrists into arm rotations,
 and every bone is keyed on every frame.
 
@@ -40,7 +46,6 @@ import argparse
 import hashlib
 import json
 import math
-import re
 import struct
 import sys
 from pathlib import Path
@@ -76,7 +81,7 @@ FILE_CLIPS = [
 IDLE = "Idle_Loop"
 PISTOL_IDLE = "Pistol_Idle_Loop"
 
-## How deep one body part may be inside another that no joint joins it to (mm), on either mannequin, on any frame.
+## How deep one body part may be inside another that no joint joins it to (mm), on either body, on any frame.
 OVERLAP_LIMIT = 5.0
 ## How deep the pistol may be inside the body, or the body inside the pistol (mm); the hand that holds it aside.
 GUN_LIMIT = 5.0
@@ -115,11 +120,12 @@ SNAP_LIMIT = {
 ## further from the forearm's line than this (degrees), as the game shows it.
 ARM_LIMIT = 0.975
 WRIST_LIMIT = 40.0
-## A closed fist: every fingertip within this distance of the wrist joint (m): curled back onto the palm (0.09 on
-## these hands). An open finger's tip is 0.20 from it, a half-closed one's 0.15.
+## A closed fist: every fingertip within this distance of the wrist joint (m): curled back onto the palm (0.07 on
+## these hands).
 FIST_TIP_LIMIT = 0.105
-## The pistol clips join the library's two-handed pose, whose left hand is wrapped round the right one (26 mm
-## inside it on the mesh, and in the grip): two hands that start inside each other cannot part without crossing.
+## The pistol clips join the library's two-handed pose, whose left hand is wrapped round the right one (14 mm
+## inside it on the female's mesh, 8 mm on the male's and 8 mm in his grip): two hands that start inside each other
+## cannot part without crossing.
 ## So while the game fades the clip in and out (its first `FADE_IN` and last `FADE_OUT` frames; the game holds the
 ## left hand on the pistol by its own solver until then), the left arm against the right hand, forearm and pistol
 ## is held to the joined pose's own depth and `JOINED_SLACK` more (mm), not to the limits above. Every other pair,
@@ -149,14 +155,15 @@ FINGERS = ["thumb", "index", "middle", "ring", "pinky"]
 TRUNK = ["spine_01", "spine_02", "spine_03"]
 ## The chest's turn is shared out over the three spine bones, most at the top.
 TRUNK_SHARE = (0.25, 0.35, 0.40)
-## The fist of the prone clips (`../prone/build_prone_clips.py`, kit #1020: measured there on both mannequins):
-## degrees each finger joint bends from the knuckle to the tip, and the way each thumb bone points on the left
-## hand in the rest pose's axes (mirrored for the right), which lays the thumb across the index and middle fingers.
+## The fist of the prone clips (`../prone/build_prone_clips.py`, its `form_female` numbers, kit #1293: measured
+## there on the prototype hands): degrees each finger joint bends from the knuckle to the tip, and the way each
+## thumb bone points on the left hand in the rest pose's axes (mirrored for the right), which lays the thumb across
+## the index and middle fingers.
 FIST_CURL = {
-    "index": (75.0, 88.0, 25.0),
-    "middle": (75.0, 88.0, 20.0),
-    "ring": (75.0, 88.0, 25.0),
-    "pinky": (75.0, 98.0, 25.0),
+    "index": (80.0, 100.0, 52.0),
+    "middle": (80.0, 100.0, 40.0),
+    "ring": (80.0, 98.0, 43.0),
+    "pinky": (80.0, 105.0, 45.0),
 }
 FIST_THUMB = (
     (0.660, -0.472, -0.585),
@@ -417,7 +424,8 @@ class Gun:
 # The rig
 # ---------------------------------------------------------------------------------------------------------------
 class Rig:
-    """The mannequin's armature, its rest pose, poses read from the library's clips, and the hands' closed poses."""
+    """The keyed body's armature, its rest pose, poses read from the library's clips, the hands' closed poses, and
+    both bodies with their holds."""
 
     def __init__(self):
         bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -835,14 +843,14 @@ def unarmed_hook(rig):
     c.hand(8, "l", at=(-0.17, 0.42, 1.46), elbow=(1.0, 0.6, -0.15), palm=DOWN)
     c.hand(13, "l", at=(0.27, 0.17, 1.14), elbow=(0.6, -0.5, -1.0), palm=(-1.0, 0.0, -0.3))
     c.hand(2, "r", at=c.from_shoulder(2, "r", -0.08, 0.20, -0.30), elbow=(-0.6, -0.5, -1.0), palm=(1.0, 0.2, -0.1))
-    guard(c, "r", (4, 5, 6, 7, 8, 10, 12), 16)
+    guard(c, "r", (5, 6, 7, 8, 10, 12), 16)
     return c
 
 
 def left_off(c, out, back):
     """The pistol clips join a two-handed pose: the left hand leaves the pistol sideways by `out` and comes back
     to it sideways from `back`, never through the right hand or the grip."""
-    aside = c.base["hand_l"].translation + P(0.10, -0.03, -0.04)
+    aside = c.base["hand_l"].translation + P(0.12, 0.02, -0.02)
     c.key("hand_l_pos", out, aside)
     c.key("hand_l_pos", back, aside)
 
@@ -935,10 +943,10 @@ def pistol_backhand(rig):
     c.hand(
         8,
         "r",
-        at=(-0.12, 0.43, 1.44),
+        at=(-0.12, 0.44, 1.44),
         elbow=(-1.0, -0.2, -0.6),
         palm=(1.0, 0.0, 0.0),
-        cock=20,
+        cock=8,
     )
     c.hand(
         11,
@@ -1112,7 +1120,7 @@ def check(rig, clip, action, shown):
             problems.append(f"the {label} pose is {join[label][0]} mm from {clip.joins} at {worst}")
     report["join_mm"] = join
 
-    # As the game shows it, on every frame, on both mannequins' skinned meshes.
+    # As the game shows it, on every frame, on both bodies' skinned meshes.
     import limb_overlap
 
     play(rig, shown)
@@ -1452,7 +1460,7 @@ def export(rig, actions, out):
 
 def strip(path):
     """Keep only what a clip should drive: every bone's rotation and the pelvis's place. The exporter also writes
-    each bone's rest translation and scale, which would press this rig's bone lengths onto the other mannequin."""
+    each bone's rest translation and scale, which would press this rig's bone lengths onto the other body."""
     data = path.read_bytes()
     length = struct.unpack_from("<I", data, 12)[0]
     gltf = json.loads(data[20 : 20 + length])

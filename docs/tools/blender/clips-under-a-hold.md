@@ -92,6 +92,14 @@ are the body under that.
   top corner and failed the head's limit, though the head was 0 mm in and no neck angle moves that vertex: it is
   the hold's pocket. **Seen:** gdstudio #1267, 2026-11-12 (fix: `HEAD_SKIN`, `neck_in_rifle_mm` reported with the
   chest's).
+- **Approach:** When one clip file plays on two bodies under a hold solved per body, key it with the keyed body's
+  hold and measure the other body with its own on the same keys: its wrist's turn, its fingers, its seat
+  (`Rig.pose_body` in `build_melee.py`, read with `tools/hold/hold_files.py`). **Watch out for:** the melee build
+  read one seat and one grip and posed both bodies with them; once the hold was solved again for the prototype
+  hands its self-test read a hand 14 mm in the grip and nothing could be rebuilt. On the new bodies the pistol sits
+  more upright, so the backhand's striking point was 0.52 m out (the blow needs 0.55), and the male's returning
+  left hand went 14.3 mm into the right one. **Seen:** gdstudio #1319, 2026-11-12 (four numbers changed; the same
+  bytes twice).
 - **Approach:** Before blaming a clip for a pose in a game capture, record the same seconds with the clip taken out
   of the weapon's definition. **Watch out for:** the trunk twists about 70 degrees to the right for three frames as
   the rifle is drawn after a walk into its pickup; the capture with `main`'s `rifle.tres` (no rifle clip) has the
