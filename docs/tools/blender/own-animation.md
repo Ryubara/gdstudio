@@ -109,6 +109,14 @@ Length is at the clip's own pace. "Join" is the furthest any main joint is from 
 The pistol clips' hands are closed on the gun by `WeaponHold` after the clip, so their overlap is what the solver
 starts from, not what the player sees.
 
+### Limbs inside limbs on the template's bodies {#audit-bodies}
+
+<!-- new section: the audit measured the Quaternius bodies; since kit #1187 the template wears the prototype form
+bodies, and a replacement has to beat the library on those -->
+
+Every clip's deepest crossing on the prototype `form` bodies beside the Quaternius pair (kit #1286) is on its own page,
+[Clip crossings on the template's bodies](body-crossings.md#library-clips), which this page left when it neared 50 KB.
+
 ### What the clips cost {#audit-cost}
 
 <!-- new section: the web build's cost of the libraries had one number (the pck); the plan needs it per clip -->
