@@ -8,12 +8,12 @@
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
 ## `gds capture frames --project game --scene res://tools/capture/vault_tour.tscn --seconds 42
 ## --fps 30`. `WALLS=Vault09` films only that wall (a comma list of the course's node names),
-## `VIEWS=player,close` only those views, `MODEL=male` the male mannequin.
+## `VIEWS=player,close` only those views, `MODEL=male` the template's male body.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
 const COURSE := "World/Level/VaultCourse/"
-const MALE := "res://assets/characters/mannequin/mannequin_male.glb"
+const MALE := CharacterBodies.MALE
 ## How far before a wall's face the run starts and the jump is pressed, and for how long.
 const RUN_IN := 1.7
 const PRESS_BEFORE := 0.6

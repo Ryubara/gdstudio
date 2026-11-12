@@ -43,6 +43,8 @@ const FIELDS: Array[StringName] = [
 	&"_wants_crouch",
 	&"_crouch_amount",
 	&"_fire_buffer",
+	&"_fire_was",
+	&"_fire_echo",
 ]
 
 ## Where the body is, metres.
