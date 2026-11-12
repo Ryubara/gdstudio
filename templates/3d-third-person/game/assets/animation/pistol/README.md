@@ -67,11 +67,15 @@ Measured in Godot on the skinned meshes of the two bodies the template's charact
 | Left hand on the slide (frames 9 to 13): deepest part | 1.0 mm in (the thumb's tip) | 0.9 mm in |
 | Left hand on the slide: the palm, the four fingertips and the thumb's tip | all on the surface (0.6 to 1.0 mm in) | all on the surface (0.7 to 0.9 mm in) |
 | Index finger's pad and thumb's pad from the middle of the serrations (limit 20 mm) | within it | within it |
-| Left hand on its support grip (the ends) | 1.1 mm in, 0.1 mm off | 1.0 mm in, 0.2 mm off |
-| Left hand on the way, every half frame, the pistol carried (deepest in the gun or the right hand) | 1.1 mm | 2.3 mm (as it lets go, frame 13.5) |
-| The same with the pistol where the clip has it (the arm in, as when aiming) | 4.4 mm (frame 4.5, off the support grip) | 4.2 mm (frame 25.5, back onto it) |
+| Left hand on its support grip (the ends) | 1.3 mm in, 1.9 mm off | 0.9 mm in, 2.2 mm off |
+| Either hand on the way, every half frame, the pistol carried (deepest in the gun or the other hand) | 1.0 mm | 2.3 mm (as it lets go, frame 13.5) |
+| The same with the pistol where the clip has it (the arm in, as when aiming) | 4.8 mm (frame 4.5, the left index fingertip off the support grip) | 2.3 mm (frame 13.5) |
 | Left hand's bone from its place on the slide | 0.0 mm | 0.0 mm |
-| Limbs through each other where the rack moves the hand (`../limb_overlap.py`, the build; limit 5 mm) | 4.5 mm (frame 2, the fingers leaving the right hand's) | 0.0 mm |
+| Limbs through each other where the rack moves the hand (`../limb_overlap.py`, the build; limit 5 mm) | 0.0 mm | 0.0 mm |
+
+These are on the two-handed grip of kit #1084 (the support hand canted over the shooting hand, the right thumb on
+the left thumb's root while that hand holds). On the clip's ends the right thumb is therefore 7.5 mm (female) and
+10.1 mm (male) off the gun, on the left hand, and the test measures the right hand against the left one there.
 
 Before each body had its own hand (the place and the fingers solved on the Quaternius mannequins' hands, 0.232 m,
 played on these bodies): the female's palm was 13.9 mm off the slide, her index fingertip 18.9 mm inside it and her
@@ -79,10 +83,13 @@ thumb's tip 6.0 mm off; the male's palm 12.3 mm off, his index fingertip 13.1 mm
 off.
 
 The limb check does not judge the frames on which the hold has the left hand on its support grip (0, 1, 27 and 28):
-there the hands touch by the hold's own solve, which the check reads as 7.8 mm (female) and 6.6 mm (male) and the
-hold's test as 1.1 and 1.0 mm. The left wrist bends 32 to 36 degrees from the forearm's line while it grips (the
-build fails over 45) and is held to 40 over the slide; on the two frames it leaves the support grip along the hold's
-clear line, turned as it held, it bends 66 to 71 degrees (60 on the way back).
+there the hands touch by the hold's own solve, which the check reads as 6.7 mm (female) and 5.9 mm (male) and the
+hold's test as 1.8 and 1.3 mm. The left wrist bends 32 to 36 degrees from the forearm's line while it grips (the
+build fails over 45) and is held to 40 over the slide; on the frames it leaves the support grip along the hold's
+clear line, turned as it held, it bends 71 to 94 degrees (frames 2 to 4; 83 at most on the way back). The canted
+support hand of kit #1084 costs that: on the grip before it the same frames bent 66 to 71 degrees. Easing the
+wrist from the way's far end instead of from the clear line's end brought it to 81 and put the left fingertips
+18 mm into the right hand, so it is not done.
 
 ## Why an overhand rack
 
@@ -136,7 +143,12 @@ the pistol changes.
 `build_pistol_rack.py` keys the clip in the pinned Blender on `form_female`'s skeleton from a few targets (the
 pistol's way, the left hand's way in the pistol's space, where the elbows point, the beats above) and solves both
 arms to them; the only pose read from the library is the last frame of `Pistol_Reload`. The hand leaves the support
-grip along the line the hold solved clear for that body (`WeaponHold.support_way`). It fails before it exports when
+grip along the line the hold solved clear for that body (`WeaponHold.support_way`), and the clip's own hand is at
+that line's far end on the frames the hold gives it to the clip's arm and takes it back (`ARM_UNTIL`, the hold's
+`SupportHandPlan`): the hold takes the hand out there itself and only then lays the right thumb back on the frame,
+so a clip that had the hand at the support grip on those frames put it under the thumb (7.1 to 8.0 mm on the
+female with the arm in). Build the clip again after the hold's plan, its way or its poses change. It fails before
+it exports when
 the clip does not start and end on that pose, an arm cannot reach, the left wrist bends more than 45 degrees while
 it grips, the clip's own hand is off the slide on the body it is keyed on, or a part of the body goes more than 5 mm
 into another on either body posed as the game draws it, each with its own hold, place and fingers

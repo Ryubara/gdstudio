@@ -79,6 +79,16 @@ SLAM = 1.0
 FOLLOW = 17.0
 RETURNED = 25.5
 BACK = (25.5, 27.0)
+# The hold's own plan for the left hand (`SupportHandPlan`, the game's): how far the hand is on the weapon is the
+# rack's `support_weight`. From 1 down to `WAY_FROM` the hold opens the fingers (the first `UNHOOK` of the way)
+# and takes the hand out along `WeaponHold.support_way`; down to `ARM_UNTIL` the hand waits at the way's far end
+# while the right thumb leaves the left thumb's root for the frame (kit #1084); below it the hold's arm gives the
+# hand to the clip's. So the clip's own hand is at the way's far end, not at the support grip, on the frames the
+# hold lets it go and takes it: at the grip it lay under the thumb as it came down (5.8 mm in the game on the
+# female at frame 2.5, 6.7 mm at frame 25).
+ARM_UNTIL = 0.3
+WAY_FROM = 0.6
+UNHOOK = 0.45
 
 # Godot's axes to Blender's: (x, y, z) to (x, -z, y).
 C = np.array([[1.0, 0, 0, 0], [0, 0, -1.0, 0], [0, 1.0, 0, 0], [0, 0, 0, 1.0]])
@@ -136,6 +146,22 @@ BODY_KEYS = [(0.0, 0.0), (8.0, 1.0), (16.0, 1.0), (28.0, 0.0)]
 def smoothstep(a, b, x):
     t = min(max((x - a) / (b - a), 0.0), 1.0)
     return t * t * (3.0 - 2.0 * t)
+
+
+def frame_at(span, share):
+    """The frame between `span`'s two at which a smoothstep over it is `share`."""
+    low, high = 0.0, 1.0
+    for _ in range(40):
+        mid = (low + high) / 2.0
+        low, high = (mid, high) if mid * mid * (3.0 - 2.0 * mid) < share else (low, mid)
+    return span[0] + (span[1] - span[0]) * low
+
+
+def hold_plan(on):
+    """`SupportHandPlan` for a hand `on` the weapon by 0 to 1: how far the hold's arm has it, how far out along
+    its way it is and how far its fingers are opened."""
+    way = 1.0 - min(max((on - WAY_FROM) / (1.0 - WAY_FROM), 0.0), 1.0)
+    return min(max(on / ARM_UNTIL, 0.0), 1.0), smoothstep(UNHOOK, 1.0, way), smoothstep(0.0, UNHOOK, way)
 
 
 def axis_angle(axis, degrees):
@@ -374,10 +400,15 @@ class Rack:
         # Back the way it came: the way off the support grip is clear of the right hand, a shorter one is not.
         swing_back = swing_in
         clear = moved(self.support, self.way_off * CLEAR_FAR)
+        # The way's far end, where the hold has the hand as it lets it go and as it takes it again.
+        far = moved(self.support, self.way_off)
+        let_go_at = frame_at(LEAVE, 1.0 - ARM_UNTIL)
+        taken_at = frame_at(BACK, ARM_UNTIL)
         way_in = [
             (0.0, self.left0, True),
             (AT_SUPPORT, self.support, True),
-            (LEAVE[1], self.support, True),
+            (let_go_at, far, True),
+            (LEAVE[1], far, True),
             (CLEAR_AT, clear, False),
             (SWING_IN_AT, swing_in, False),
             (OVER, over, True),
@@ -390,7 +421,8 @@ class Rack:
             (FOLLOW, follow, False),
             (SWING_BACK_AT, swing_back, False),
             (CLEAR_BACK_AT, clear, False),
-            (RETURNED, self.support, True),
+            (RETURNED, far, True),
+            (taken_at, far, True),
             (BACK[1], self.support, True),
             (float(FRAMES), self.left0, True),
         ]
@@ -682,11 +714,14 @@ def held(body, rack, frame):
     gun = np.linalg.inv(C) @ np.array(bones["hand_r"].matrix) @ rack.seat
     on_support = rack.support_weight(frame)
     off = body_reach(body, gun @ rack.place(frame), LEFT_ELBOW, 0.0)
-    if on_support > 0.0:
-        body_reach(body, gun @ rack.support, SUPPORT_ELBOW, on_support)
+    # The hold's plan: its arm has the hand on the grip or out along its way, the fingers opened on the way.
+    arm, way, opened = hold_plan(on_support)
+    if arm > 0.0:
+        body_reach(body, gun @ moved(rack.support, rack.way_off * way), SUPPORT_ELBOW, arm)
         for name, rotation in rack.support_grip.items():
-            turn_to(body, name, rotation, on_support)
+            turn_to(body, name, slerp(rotation, rack.let_go[name], opened) if name in rack.let_go else rotation, arm)
     if on_support < 1.0:
+        # The rack's own fingers come after the hold's, by what the hold does not have the hand on its grip.
         for name in rack.grip:
             turn_to(body, name, rack.fingers(frame, name), 1.0 - on_support)
     body_reach(body, gun @ rack.place(frame), LEFT_ELBOW, rack.hand_weight(frame))
