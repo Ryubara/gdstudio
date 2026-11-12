@@ -42,6 +42,7 @@ var clip: StringName = &""
 var serial := 0
 
 var _node: AnimationNodeAnimation
+var _any := false
 var _time := 0.0
 var _length := 0.0
 var _from := Vector3.ZERO
@@ -65,9 +66,22 @@ func build_state() -> AnimationNodeBlendTree:
 	return node
 
 
-## Holds the state's clip still but for the seek: once, after the tree is built.
-func hold(tree: AnimationTree) -> void:
+## Holds the state's clip still but for the seek, and notes whether `player` holds any of the
+## set's clips (with none, a frame asks nothing of the body): once, after the tree is built.
+func hold(tree: AnimationTree, player: AnimationPlayer) -> void:
 	tree.set(_P_HOLD, 0.0)
+	_any = false
+	var clips := settings.transition_clips if settings != null else null
+	if clips == null or player == null:
+		return
+	var bases: Array[StringName] = [clips.turn_quarter, clips.turn_half]
+	for table: Dictionary[StringName, StringName] in [
+		clips.starts, clips.stops, clips.reversals, clips.pivots
+	]:
+		bases.append_array(table.values())
+	for base in bases:
+		for side in ["", "l", "r"]:
+			_any = _any or GaitTransitionSet.pick(player, base, side) != &""
 
 
 ## True while a transition clip plays.
@@ -100,7 +114,12 @@ func step(
 	if playback.get_current_node() == STATE:
 		playback.travel(CharacterAnimation.GROUND)  # Left there by a rebuild of the tree.
 		return
-	if settings == null or not settings.transitions or settings.transition_clips == null:
+	if (
+		not _any
+		or settings == null
+		or not settings.transitions
+		or settings.transition_clips == null
+	):
 		return
 	if playback.get_current_node() != CharacterAnimation.GROUND or animation.is_acting():
 		return

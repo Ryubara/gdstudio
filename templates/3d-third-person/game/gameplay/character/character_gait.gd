@@ -63,7 +63,7 @@ func decorate(
 ## After the tree is set to `root`: the parameters set once.
 func after_build(animation: CharacterAnimation) -> void:
 	if animation.tree != null and animation.tree.tree_root != null:
-		transitions.hold(animation.tree)
+		transitions.hold(animation.tree, animation.animation_player)
 
 
 ## One frame: the spaces' speed and paces, the transitions and the lean.

@@ -95,7 +95,7 @@ func place_points(tuning: CharacterTuning) -> void:
 ## Sets the speed of each space and the pace of each of its gaits for this frame.
 func drive(animation: CharacterAnimation, speed: float, delta: float) -> void:
 	var tree := animation.tree
-	var skeleton := animation.model.skeleton()
+	var skeleton := animation.model.skeleton() if is_instance_valid(animation.model) else null
 	var scale := GaitClips.leg_scale(skeleton, animation.character)
 	if not is_equal_approx(scale, leg):
 		leg = scale
