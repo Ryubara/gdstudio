@@ -263,6 +263,12 @@ other style files stay in the repository, so a game picks another vision by rebu
   the sheet's notes. **Watch out for:** the sheets print the checks' default limits even where a clip declares its own,
   so a 0.42 or a 17.99 (keys kept, key bytes a second, on a 22-frame stride) looks like a failure that passes. **Seen:**
   gdstudio #1160 (PR #1285), 2026-11-11.
+- **Approach:** When the pick changes, measure the newly picked variant with `fluidity.py` beside the library's
+  clip before `ship`, and give it every fix the review asked of the old pick, with limits of its own. **Watch out
+  for:** a fix made after review is written into the picked variant's style section only; the walk's pick moved
+  from B to A, and A still had the jolt the review had asked out (pelvis path harmonic 3.69 against the library's
+  1.88, the calf's speed changing 36.9 degrees in a frame) with every check green. **Seen:** gdstudio #1155
+  (PR #1275), 2026-11-12 (fix: A's walk given `pelvis_waves`, `swing_ease`, no `swing_early` and a 27 degree limit).
 
 ## How a chosen clip replaces the library's {#replacing}
 
