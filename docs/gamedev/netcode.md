@@ -125,7 +125,7 @@ says where it was learned (Deadnight, the first game).
   change widens the flags field first. **Watch out for:** prone took bit 15 and a version bump while the weapon
   presses' branch held bits 11 to 14, so the two were settled only at the merge; after them no flag bit is free.
   **Seen:** gdstudio #1012 (PR #1021) and #887, 2026-11-10
-  ([the template's packets](../engines/godot/multiplayer.md#template-packets)); gdstudio #1254, 2026-11-11 (byte 13 of
+  ([the template's packets](../engines/godot/multiplayer.md#template-packets)); gdstudio #1254, 2026-11-11 (the
   the command's byte 13 was spare; it and #1277 both took version 7, so #1254, landing second, took 8).
 - **Approach:** When you raise the protocol version, search the tests for the old number pinned as a literal
   (`grep -rn "is_equal(<old>)" tests`, the join suite's refusal case) and change it with the bump, before the full
