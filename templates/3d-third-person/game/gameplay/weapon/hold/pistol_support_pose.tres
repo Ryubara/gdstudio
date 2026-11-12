@@ -5,19 +5,19 @@
 [resource]
 script = ExtResource("1_78jkk")
 rotations = Dictionary[StringName, Quaternion]({
-&"index_01_l": Quaternion(-0.06317, 0.70001, -0.09994, 0.70428),
-&"index_02_l": Quaternion(0.37663, 0, 0, 0.92636),
-&"index_03_l": Quaternion(0.46561, 0, 0, 0.88499),
-&"middle_01_l": Quaternion(0.24209, 0.67446, -0.21238, 0.66437),
-&"middle_02_l": Quaternion(0.36244, 0.00055, 0.00141, 0.93201),
-&"middle_03_l": Quaternion(0.16935, -0.00019, -0.00111, 0.98556),
-&"pinky_01_l": Quaternion(0.49631, 0.56899, -0.41982, 0.50366),
-&"pinky_02_l": Quaternion(0.68835, -0.00057, -0.00061, 0.72537),
-&"pinky_03_l": Quaternion(0.47332, 0.00029, 0.00054, 0.88089),
-&"ring_01_l": Quaternion(0.32491, 0.5599, -0.43188, 0.62803),
-&"ring_02_l": Quaternion(0.13053, 0, 1e-05, 0.99144),
-&"ring_03_l": Quaternion(0.03926, -4e-05, -0.00107, 0.99923),
-&"thumb_01_l": Quaternion(-0.14272, 0.98314, 0.1012, -0.05323),
-&"thumb_02_l": Quaternion(0.00201, 0.0003, 0.16294, 0.98663),
-&"thumb_03_l": Quaternion(0.03951, 6e-05, -0.00054, 0.99922)
+&"index_01_l": Quaternion(0.04471, 0.70673, 0.02314, 0.70569),
+&"index_02_l": Quaternion(0.49811, 0, 0, 0.86711),
+&"index_03_l": Quaternion(0.33175, 0, 0, 0.94337),
+&"middle_01_l": Quaternion(0.24933, 0.57672, -0.40915, 0.66169),
+&"middle_02_l": Quaternion(0.33381, 0.00051, 0.00143, 0.94264),
+&"middle_03_l": Quaternion(0.24192, -0.00027, -0.0011, 0.9703),
+&"pinky_01_l": Quaternion(0.28002, 0.55207, -0.44184, 0.6493),
+&"pinky_02_l": Quaternion(0.22708, -0.00019, -0.00081, 0.97388),
+&"pinky_03_l": Quaternion(0.14781, 9e-05, 0.0006, 0.98902),
+&"ring_01_l": Quaternion(0.33854, 0.59205, -0.38662, 0.6208),
+&"ring_02_l": Quaternion(0.22708, 0, 1e-05, 0.97388),
+&"ring_03_l": Quaternion(0.14997, -0.00016, -0.00105, 0.98869),
+&"thumb_01_l": Quaternion(-0.0463, 0.92034, 0.37692, -0.09361),
+&"thumb_02_l": Quaternion(0.16244, -0.01037, -0.06232, 0.98469),
+&"thumb_03_l": Quaternion(0.11345, 2e-05, -0.00054, 0.99354)
 })

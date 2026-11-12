@@ -6,6 +6,8 @@
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_support_pose.tres" id="4_support"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_magazine_pose.tres" id="5_magazine"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_open_pose.tres" id="6_open"]
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hold_fit.gd" id="7_fit"]
+[ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_fit_male.tres" id="8_fit_male"]
 
 [node name="WeaponHold" type="Node"]
 script = ExtResource("1_hold")
@@ -14,4 +16,5 @@ trigger_pose = ExtResource("3_trigger")
 support_pose = ExtResource("4_support")
 magazine_pose = ExtResource("5_magazine")
 open_pose = ExtResource("6_open")
-support_way = Vector3(0.01838, -0.03, 0.0486)
+support_way = Vector3(-0.00111, -0.03857, 0.04595)
+fits = Array[ExtResource("7_fit")]([ExtResource("8_fit_male")])

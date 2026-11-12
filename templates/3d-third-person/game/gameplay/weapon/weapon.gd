@@ -76,8 +76,8 @@ const AIM_PASSES := 4
 ## Where a shot starts when there is no `muzzle`: this far from the point of the aim ray that is
 ## beside the shooter, in the ray's own axes (x to its right, y up, z back toward the shooter,
 ## so a negative z is out in front). The default is about where the pistol's muzzle is when the
-## character aims.
-@export var no_muzzle_offset := Vector3(0.07, -0.09, -0.65)
+## character aims (measured on the template's female body, kit #1187).
+@export var no_muzzle_offset := Vector3(0.09, -0.15, -0.68)
 ## What the aim ray hits (physics layers): what a shot meets (`PhysicsLayers.SHOT_MASK`: the
 ## level, characters, props, ragdoll bones and hit zones), so the crosshair's point is on what the
 ## shot will hit.
