@@ -19,6 +19,7 @@ const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
 const LIBRARIES: Dictionary[StringName, String] = {
 	&"ual1": "res://assets/animation/universal/ual1.glb",
 	&"ual2": "res://assets/animation/universal/ual2.glb",
+	&"fixed": "res://assets/animation/fixed/fixed.glb",
 	&"gds": "res://assets/animation/own/locomotion.glb",
 }
 
