@@ -1,5 +1,6 @@
-## Plays the prone and crawl clips (`assets/animation/prone/prone.glb`, kit #1009) on a body of
-## the template, on a floor of 0.25 m squares: the library's crouch idle, down to prone, the prone
+## Plays the prone and crawl clips (kit #1009; one file a body in `assets/animation/prone/`, kit
+## #1090 and #1293: `PRONE`) on a body of the template, on a floor of 0.25 m squares: the
+## library's crouch idle, down to prone, the prone
 ## idle, a crawl at the speed the clip was made for, the prone idle again and back up to the
 ## crouch. It plays the round four times: from the right side, from the front quarter, from
 ## behind and above, where the game's camera sits, and close over the arms from straight above
@@ -21,7 +22,13 @@ extends Node3D
 
 const STUDY_BODY := preload("res://tools/capture/study_body.gd")
 const UAL1 := "res://assets/animation/universal/ual1.glb"
-const PRONE := "res://assets/animation/prone/prone.glb"
+## The file each body of `study_body.gd` plays as the library `prone`.
+const PRONE := {
+	"female": "res://assets/animation/prone/prone_form_female.glb",
+	"male": "res://assets/animation/prone/prone_form_male.glb",
+	"quaternius_female": "res://assets/animation/prone/prone.glb",
+	"quaternius_male": "res://assets/animation/prone/prone_male.glb",
+}
 ## Metres a second the crawl clip covers with its elbows and feet planted (the clip's README).
 const CRAWL_SPEED := 0.618
 ## Seconds the crawl takes to reach its speed and to stop, and the clips to blend.
@@ -80,7 +87,8 @@ func _ready() -> void:
 	_player.root_node = _player.get_path_to(model)
 	_player.add_animation_library(&"ual1", load(UAL1))
 	var clips := OS.get_environment("PRONE_CLIPS")
-	_player.add_animation_library(&"prone", load(clips if clips != "" else PRONE))
+	var own: String = PRONE[STUDY_BODY.chosen()]
+	_player.add_animation_library(&"prone", load(clips if clips != "" else own))
 	_camera = Camera3D.new()
 	add_child(_camera)
 	var layer := CanvasLayer.new()
