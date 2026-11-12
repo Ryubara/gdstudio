@@ -8,7 +8,10 @@ box stands still as it does in a game.
 For a clip with an obstacle, also `<clip>_over.png`: the frames over the top (from the hand plant to five frames
 after the release), larger, from the front (upper rows) and from the character's left (lower rows), which is where
 legs that pass through each other show; and `<clip>_close_<frame>.png` for the frames in `CLOSE`, the legs from
-the front and from the right.
+the front and from the right; and `<clip>_edge.png` for the stretches in `EDGE`: the legs at the obstacle's front
+edge **between the keys**, five poses a frame (120 a second) with the keys joined as a game joins them, from the
+character's left with the box as lines (upper rows: a leg under the top line and past the front line is in the
+wall) and from ahead and to the right over the solid box (lower rows: a leg that cuts the edge sinks into it).
 """
 
 import math
@@ -20,7 +23,11 @@ from mathutils import Vector
 TILE = (400, 540)
 METRES_HIGH = 2.7
 ## The frames looked at close: where the first version of each clip had a leg deepest in the other leg or an arm.
-CLOSE = {"Vault_Low": [7, 12], "Vault_High": [15, 20]}
+CLOSE = {"Vault_Low": [7, 12], "Vault_High": [14, 15, 18, 20]}
+## The frames the legs cross the front edge in, drawn between the keys as well (`_edge`): `Vault_Low`'s lead foot
+## crosses between 5 and 6 and its left knee between 7 and 8 (gdstudio #1221).
+EDGE = {"Vault_Low": [(5.0, 6.0), (6.8, 7.8)]}
+EDGE_STEPS = 5
 
 
 def _material(name, colour):
@@ -195,6 +202,30 @@ def render(rig, clips, actions, out):
                     _aim(camera, place, target, 1.25)
                     tiles.append(_shot(out / "tile.png", (640, 640)))
                 _sheet(tiles, 2, out / f"{clip.name}_close_{frame:02d}.png")
+            if clip.name in EDGE:
+                solid = _box(clip, -1.5, 1.5, "BoxSolid", False)
+                steps = [
+                    first + i / EDGE_STEPS
+                    for first, last in EDGE[clip.name]
+                    for i in range(int(round((last - first) * EDGE_STEPS)) + 1)
+                ]
+                tiles = []
+                for view in ("side", "quarter"):
+                    show(view == "side", False, False)
+                    solid.hide_render = view == "side"
+                    for frame in steps:
+                        whole = math.floor(frame)
+                        scene.frame_set(whole, subframe=frame - whole)
+                        arm.location.y = -clip.forward(frame)
+                        target = Vector((0.0, -0.05, clip.box_height + 0.2))
+                        offset = Vector((6.0, 0.0, 0.0)) if view == "side" else Vector((-3.2, -4.4, 2.4))
+                        _aim(camera, tuple(target + offset), tuple(target), 1.3)
+                        tiles.append(_shot(out / "tile.png", (480, 480)))
+                    while len(tiles) % 6:
+                        tiles.append(np.ones_like(tiles[0]))
+                _sheet(tiles, 6, out / f"{clip.name}_edge.png")
+                bpy.data.objects.remove(solid, do_unlink=True)
+                scene.frame_set(0)
 
         # The whole path in one picture: a copy of the skinned body where the root is, every second frame.
         show(True, True, False)
