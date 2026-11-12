@@ -1252,7 +1252,8 @@ def body_closes(conv: dict[str, Any], body: str) -> list[int]:
     closing = conv["pull_requests"].get("closing")
     if not closing:
         return []
-    found = re.findall(rf"^\s*{re.escape(closing['keyword'])} #(\d+)\s*$", body, flags=re.MULTILINE)
+    # A list item closes too (`- Fixes #12`): GitHub's own list, which CI reads, counts it.
+    found = re.findall(rf"^\s*(?:[-*+]\s+)?{re.escape(closing['keyword'])} #(\d+)\s*$", body, flags=re.MULTILINE)
     return list(dict.fromkeys(int(n) for n in found))
 
 

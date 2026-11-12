@@ -323,5 +323,8 @@ def test_the_body_closing_lines_stand_in_for_the_api_list():
     rules["pull_requests"]["closing"] = {"keyword": "Fixes", "form": "Fixes #N"}
     text = body("Fixes #12", "Fixes #7", "Fixes #12", "Not Fixes #9", "Fixes 3")
     assert groundwork.body_closes(rules, text) == [12, 7]
+    # A closing line written as a list item closes on GitHub, so it counts here too (kit #1325).
+    listed = body("- Fixes #12", "* Fixes #7", "  - Fixes #4", "- Not Fixes #9", "- see Fixes #3")
+    assert groundwork.body_closes(rules, listed) == [12, 7, 4]
     del rules["pull_requests"]["closing"]
     assert groundwork.body_closes(rules, text) == []

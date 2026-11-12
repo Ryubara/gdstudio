@@ -416,12 +416,7 @@ uv run --with numpy --with pillow python -B review_sheet.py <type> --blender <b>
 | Put the weight somewhere | `Clip.balance` (the floor point the centre of mass is over; `weight.support_point` for a share between the feet) and `Clip.stretch` (how straight the straighter leg is): the pelvis is solved from them. `weight.free_fall` and `weight.lean_for` for the air and for a change of speed |
 | Make parts trail | `Clip.chains` from the style's `overlap` numbers (`overlap.chains_from`): each bone follows the part it hangs from with a lag in frames and an overshoot, closed round a loop. `overlap.follow` does the same to one number |
 | Make the other side | `build.mirrored(rig, built, name, half_cycle=...)` |
-| Join another clip | `clips/joined.py` (`Joined`: the picked variant of another clip, its first frame as a spec and its solved pose), `Clip.meet` (the exact end poses, with the frames the difference is let go over) and `declared["joins"]`: the pose and the speed a first or last frame must meet |
-| Hold or raise a heel | `Footfall.heel` for a foot that stands on its ball for a whole contact (the swing lands on it with the toes already bent), or `ContactPlan.raised(rig, side, frame, heel)` for a heel that moves; name the side in `declared["heel_up"]` so `clips.json`'s `flat` says no frame of it is flat. The foot is set down by the lowest of its own skin (the rig's `tread`), so the ball's joint may go down a few millimetres as the heel rises |
-| Give each side its own pose | a pair `[left, right]` for every number of a description that a side could own (foot place and turn, heel, knee, each arm's numbers, each hand's curl), read with `AT[side]`; a description never shares one number between two limbs |
-| Lay a forearm on a thigh | the arm's `rest` (`{"on": side, "gap": metres, "hand": metres}`): the arm comes down until its forearm's line is `gap` from that thigh's and shin's on every body, measured at each body's own joints; leave that arm out of `Clip.chains` |
-| Step a foot inside a transition | two `Footfall`s of that side with the step between them (`clips/stance.py`, `stance_plan`): the plan swings the foot, and `toe_reach` clears the longest toes |
-| Take a body down or up | `Clip.stretch` as a function of the frame; the weight check fails a drop over 1.05 of gravity with a foot down; `declared["ceiling"]` holds a crouched clip under its capsule on every body |
+| Join another clip | `declared["joins"]`: the pose and the speed a first or last frame must meet |
 
 **What the build does** (`build.build_clip`, `build.build_file`): solves every frame in the world, runs the overlap
 pass, takes the root's travel out (the clip is in place, the travel is a curve in `clips.json`), reduces the keys and
@@ -432,13 +427,10 @@ their limits; `selftest.py` breaks a clip for each one.
 
 **What is proved and what is not.** `Idle` went through all of it. The contact plan, the foot's roll, the travel and
 the gait checks are proved by the self-test's plain walk (planted soles within 5 mm at its speed on both mannequins),
-which is not a clip anyone has looked at for style. The joins are proved by the stance changes (kit #1160: both ends
-within 0.2 mm and 0.09 degrees of the idles' first poses), which also prove a step inside a transition, and the
-contact plan by `Crouch_Walk`; the crouch idle proves `rest` and a foot held on its ball. Mirroring and the placed
-hand are written and not yet used by a shipped clip: the first issue that uses each proves it. The `ik_` targets
-are keyed in every shipped clip since the reference body has them, and nothing in the game reads them yet. The
-weight check's lean and the free fall's arc are tested on made-up motion only. A body whose legs differ from the
-reference body's is reported with `needs_ik` and not held to the floor and planted limits.
+which is not a clip anyone has looked at for style. Mirroring and the placed hand are
+written and not yet used by a shipped clip ([the crouch's rows](stance-clips.md#toolkit-rows)). The weight check's
+lean and the free fall's arc are tested on made-up motion only. A body whose legs differ from the reference body's is
+reported with `needs_ik` and not held to the floor and planted limits.
 
 - **Approach:** Give a description the body's weight and contacts, not its pose: the share of weight on each foot,
   how straight the carrying leg is, how far a hand keeps from the thigh, and let the solver find the pelvis and the
@@ -475,7 +467,6 @@ reference body's is reported with `needs_ik` and not held to the floor and plant
   printed. Sparse keys can be whole frames at a lower rate too, so a rate guessed from them can be wrong.
   **Seen:** gdstudio #1154, 2026-11-11 (measured again at 30 after #1035: our idles still 0, 1.3 and 0 mm; the
   library's walk 11 to 12 mm, `Death01` 41 mm on the male, `ClimbUp_1m` 23 to 26 mm).
-- What the crouch and stance clips taught: [Crouch and stance clips](stance-clips.md#crouch).
 
 ## The clip eval {#eval}
 
@@ -495,11 +486,28 @@ the bodies it has to be clear on. The angles get a margin (2 degrees), a hold of
 raised-cosine ease nine frames wide, and are written over the library's keys of that one bone. The build then
 measures every body again, fails over 5 mm on the bodies it fixes and on anything deeper than before on the bodies
 the clip was keyed on, checks the first and last pose are still the library's, and exports only the corrected clips
-with a one-triangle skin. On the three clips of kit #1295 the swing peaks at 4 to 11 degrees and nothing else moves.
+with a one-triangle skin. On the three clips of kit #1295 the swing peaks at 4 to 11 degrees and nothing else moves;
+the two sword clips of kit #1320 turn a leg about its own hip and ankle instead (below).
 
-- A correction has a ceiling (30 degrees there). `Sword_Dash` and `Sword_Heavy_Combo` cross their thighs by 17 to 29
-  mm while the body turns a quarter in two frames, 30 degrees of thigh does not clear them, and a swung thigh moves
-  a planted foot: that is a pose to key again, and those clips were left as the library's.
+- A swing has a ceiling (30 degrees there): past it the fix is a new pose, and the build stops.
+- A leg whose foot is on the floor is swivelled, not swung (kit #1320): the whole leg turns about the line from its
+  hip to its ankle, the way that takes the knee from the other hip, and the foot bone is then keyed back to the turn
+  the library gave it in the world. The ankle is on the line, so the foot stays where it was, planted or sliding; only
+  the knee and the thigh move (3 to 5 mm of knee a degree on a bent leg, nothing on a straight one). The build
+  measures it rather than trusting it: on every body and frame the ankle, the ball and the toe tip are within 1 mm of
+  the library's (0.0 on the Quaternius pair the clips were keyed on, 0.18 to 0.48 on the `form` pair, whose legs have
+  other lengths). `Sword_Dash` and `Sword_Heavy_Combo` cross their thighs by 17 to 26 mm while the body turns a
+  quarter in two frames with both feet sliding on the floor; 30 degrees of thigh swung out does not clear them and
+  moves the foot, a swivel of one leg does (34 degrees of the left on frames 1 to 4 of the dash, 28 of the right on
+  frames 8 to 20 of the combo), and both read 0.0 on the `form` pair after it.
+- Swivel the leg whose knee is further from that line, and try each leg alone on a grid of angles before choosing:
+  on the combo the left leg alone never clears at 45 degrees and the right clears at 26; on the dash the left clears
+  at 32 and the right barely changes the depth.
+- A crossing in a clip's first frames gets a short ease (no hold, three frames wide on the dash, which crosses on
+  frames 2 and 3): the build refuses a swing that reaches the first or last frame, and names the frames that need
+  one.
+- Solve a clip's swings in order, each on the clip as the ones before left it: after the dash's leg was swivelled its
+  hand needed 1 degree of upper arm to leave the thigh, not the 4 it needed on the library's pose.
 - The corrected file is a changed copy of a third-party clip: it gets its own licence entry naming the source, and
   the pull request is held for the maintainer.
 
@@ -508,10 +516,14 @@ with a one-triangle skin. On the three clips of kit #1295 the swing peaks at 4 t
   track path was `Armature_004/Skeleton3D:<bone>` and no track found a node in the game; the Blender measure, which
   reads the file back by bone name, passed. **Seen:** gdstudio #1295, 2026-11-11 (caught by
   `test_character_clips.gd`'s walk of every track; fix: the rename and its assert in `export()`).
-- **Approach:** Compare a rebuilt clip's rotations with the source clip's in Godot with a limit over 0.1 degrees, or
-  compare the quaternions' components. **Watch out for:** `Quaternion.angle_to` of two single-precision quaternions
-  that are equal to the last bit or two reads 0.03 to 0.09 degrees, so a 0.05 degree limit failed 251 times on keys
-  that were the same. **Seen:** gdstudio #1295, 2026-11-11 (`tests/assets/test_fixed_clips.gd`, limit 0.2).
+- **Approach:** Compare a rebuilt clip's rotations with the source clip's in Godot after `normalized()`, with a limit
+  over 0.1 degrees; when two tracks read differently, print both files' values on that frame before guessing why.
+  **Watch out for:** `Quaternion.angle_to` of two equal single-precision quaternions reads 0.03 to 0.09 degrees (a
+  0.05 degree limit failed 251 times), and 0.29 to 0.35 where the importer dropped keys: the value between two kept
+  keys is a few millionths short of length one. **Seen:** gdstudio #1295, 2026-11-11
+  (`tests/assets/test_fixed_clips.gd`, limit 0.2); gdstudio #1320, 2026-11-11 (eleven finger tracks of
+  `Sword_Heavy_Combo`; first guessed as key times rounded differently and the test changed for nothing; fix:
+  `normalized()` before `angle_to`).
 - **Approach:** Before filming a clip from the game camera, check that the stage you film plays it: read the state
   the character is in on those frames, and film a stage made for the clip. **Watch out for:** the slide tour's jump
   is a jump out of a slide with crouch held, which lands crouched and never plays the landing clip, so the first

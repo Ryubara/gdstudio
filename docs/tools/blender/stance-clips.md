@@ -12,6 +12,23 @@ limb crossing per clip and body is written beside it as `bodies_overlap.json` wi
 `tests/gameplay/test_own_clips.gd` reads. What one file cannot do for two bodies is under
 [Clips on other proportions](mannequin-rig.md#proportions).
 
+## What the toolkit gained for them {#toolkit-rows}
+
+<!-- new section: animation.md is at its size limit, so the rows the crouch clips added live here -->
+
+Rows of [the toolkit's table](animation.md#toolkit) that the crouch and stance clips added and prove (kit #1160:
+both ends of a stance change within 0.2 mm and 0.09 degrees of the idles' first poses). The `ik_` targets are keyed
+in every shipped clip since the reference body has them, and nothing in the game reads them yet.
+
+| To | Use |
+| --- | --- |
+| Join another clip | `clips/joined.py` (`Joined`: the picked variant of another clip, its first frame as a spec and its solved pose), `Clip.meet` (the exact end poses, with the frames the difference is let go over) and `declared["joins"]`: the pose and the speed a first or last frame must meet |
+| Hold or raise a heel | `Footfall.heel` for a foot that stands on its ball for a whole contact (the swing lands on it with the toes already bent), or `ContactPlan.raised(rig, side, frame, heel)` for a heel that moves; name the side in `declared["heel_up"]` so `clips.json`'s `flat` says no frame of it is flat. The foot is set down by the lowest of its own skin (the rig's `tread`), so the ball's joint may go down a few millimetres as the heel rises |
+| Give each side its own pose | a pair `[left, right]` for every number of a description that a side could own (foot place and turn, heel, knee, each arm's numbers, each hand's curl), read with `AT[side]`; a description never shares one number between two limbs |
+| Lay a forearm on a thigh | the arm's `rest` (`{"on": side, "gap": metres, "hand": metres}`): the arm comes down until its forearm's line is `gap` from that thigh's and shin's on every body, measured at each body's own joints; leave that arm out of `Clip.chains` |
+| Step a foot inside a transition | two `Footfall`s of that side with the step between them (`clips/stance.py`, `stance_plan`): the plan swings the foot, and `toe_reach` clears the longest toes |
+| Take a body down or up | `Clip.stretch` as a function of the frame; the weight check fails a drop over 1.05 of gravity with a foot down; `declared["ceiling"]` holds a crouched clip under its capsule on every body |
+
 ## What the crouch clips taught {#crouch}
 
 <!-- new section: animation.md's toolkit section reached the page's size limit; a crouch needs these -->

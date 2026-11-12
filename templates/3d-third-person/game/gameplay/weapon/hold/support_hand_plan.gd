@@ -27,8 +27,17 @@ extends RefCounted
 ##   it, and the fingers close;
 ## - `HELD` again from `back.y`.
 ##
-## Whatever moves with the hand (a magazine, kit #1052) reads `phase` and the outputs below; a new
-## step of the reload is a new phase here, with its line in this list.
+## Whatever moves with the hand reads `phase` and the outputs below; a new step of the reload is a
+## new phase here, with its line in this list.
+##
+## The magazines (kit #1052) follow the same shares: the pistol's own magazine leaves the grip at
+## `drop` (the reload's first sound, the magazine out), during `AWAY`; the new one is in the left
+## hand from `take` (the hand down at the belt) until the end of `INSERT`, when it is the pistol's
+## own again (`magazine_in_gun`, `magazine_in_hand`). At the belt the hold takes the fingers from
+## the clip (`fingers`): they open (`carry` with `carry_open`) over `TAKE_CLOSE` before `take`,
+## close on the magazine over `TAKE_CLOSE` after it and hold it until the grip's foot comes down
+## over them: they open off it over `carry_release` of the way in, stay opened past the other
+## hand's fingers, and go to the pose under the magazine over `carry_arrive`.
 
 enum Phase { HELD, LET_GO, AWAY, REACH, INSERT, SEATED, RETURN }
 
@@ -47,6 +56,9 @@ const LET_GO_WAY := 0.55
 const BACK_DOWN := Vector2(0.0, 0.3)
 const BACK_DOWN_SHARE := 0.4
 const BACK_ACROSS := Vector2(0.12, 0.62)
+## The share of the reload clip over which the fingers open before `take`, and close on the new
+## magazine after it (the clip's fist would close through it).
+const TAKE_CLOSE := 0.04
 
 ## The shares of the reload clip between which the hand lets go, comes under the magazine, pushes
 ## it in and goes back to the weapon (`WeaponHold`'s `reload_leave` and the rest).
@@ -54,6 +66,15 @@ var leave := Vector2(0.02, 0.1)
 var reach := Vector2(0.3, 0.4)
 var insert := Vector2(0.4, 0.54)
 var back := Vector2(0.71, 0.88)
+## The share of the reload clip at which the pistol's magazine leaves the grip, and the one at which
+## the left hand takes the new one at the belt (`WeaponHold`'s `reload_drop` and `reload_take`).
+var drop := 0.2
+var take := 0.25
+## The shares of the way in (0 the magazine's top at the well, 1 seated) over which the fingers
+## open off the magazine they hold (`WeaponHold.carry_release`, solved), and those over which
+## they go on from there to the pose under it (`carry_arrive`, never before they are open).
+var carry_release := Vector2(0.4, 0.6)
+var carry_arrive := Vector2(0.6, 1.0)
 
 ## The reload's phase now (`HELD` when no reload plays).
 var phase := Phase.HELD
@@ -69,6 +90,9 @@ var off := 0.0
 ## How far down the magazine's approach line the hand is below its place under the magazine
 ## (1 the whole `magazine_approach`).
 var down := 0.0
+## The part of `down` that is the way back off the seated magazine (0 until the return): the hold
+## takes it along `WeaponHold.return_down`, the rest along the magazine's own way in.
+var down_back := 0.0
 ## How far the hand is across from the magazine to the way's far end (0 to 1 and it bows out by
 ## `WeaponHold.return_clearance` between).
 var across := 0.0
@@ -77,6 +101,18 @@ var across := 0.0
 ## out at the far end of its way or beyond: 0 while the clip's arm has a share of the hand, 1
 ## before the hand comes in along its way, and back the same way.
 var room := 0.0
+## Whether the pistol's own magazine is in its grip (false from `drop` to the end of `INSERT`), and
+## whether the new one is in the left hand (from `take` to the end of `INSERT`).
+var magazine_in_gun := true
+var magazine_in_hand := false
+## How far the left hand's fingers are on the pose that carries the new magazine (from the grab at
+## the belt until the grip's foot comes down over them), and how far that pose is opened (1 before
+## the fingers close on the magazine): they hold it by `carry * (1 - carry_open)`.
+var carry := 0.0
+var carry_open := 0.0
+## How far the hold has the left hand's fingers by itself while the clip's arm has the hand: from
+## the grab at the belt on, opened (`opened`) and then closed on the magazine (`carry`).
+var fingers := 0.0
 
 
 ## Works the plan out: `aim` how far the weapon is aimed, `weight` how much of the body the reload
@@ -86,7 +122,13 @@ func update(aim: float, weight: float, share: float) -> void:
 	at_magazine = 0.0
 	magazine_fingers = 0.0
 	down = 0.0
+	down_back = 0.0
 	across = 0.0
+	magazine_in_gun = true
+	magazine_in_hand = false
+	carry = 0.0
+	carry_open = 0.0
+	fingers = 0.0
 	# How far the hand is on the weapon, along its one way: 0 the clip's arm has it, `WAY_FROM`
 	# the hold's arm has it at the way's far end, 1 it holds. Aiming is that number as it is, and
 	# a reload blends its own with it by its weight, so the hand is on the way whatever the blend.
@@ -94,6 +136,7 @@ func update(aim: float, weight: float, share: float) -> void:
 	var magazine_arm := 0.0
 	if weight > 0.0:
 		phase = phase_at(share)
+		_magazines(weight, share)
 		var on_reload := 0.0
 		if share < reach.x:
 			# Letting go: the way first, then the clip's arm.
@@ -110,9 +153,8 @@ func update(aim: float, weight: float, share: float) -> void:
 			magazine_arm = smoothstep(reach.x, reach.y, share) * weight
 			at_magazine = 1.0 - across
 			magazine_fingers = 1.0 if across < 1.0 else 0.0
-			down = (
-				1.0 - inserted + BACK_DOWN_SHARE * smoothstep(BACK_DOWN.x, BACK_DOWN.y, returned)
-			)
+			down_back = BACK_DOWN_SHARE * smoothstep(BACK_DOWN.x, BACK_DOWN.y, returned)
+			down = 1.0 - inserted + down_back
 			if across >= 1.0:
 				# At the way's far end: the other hand makes room, then in along the way.
 				on_reload = lerpf(ARM_UNTIL, 1.0, smoothstep(BACK_ACROSS.y, 1.0, returned))
@@ -127,6 +169,26 @@ func update(aim: float, weight: float, share: float) -> void:
 		# hand makes room once it is there.
 		opened = across
 		room = 0.0
+
+
+# Where the two magazines are at a share of the reload clip, and how far the fingers hold the new
+# one.
+func _magazines(weight: float, share: float) -> void:
+	magazine_in_gun = share < drop or share >= insert.y
+	magazine_in_hand = share >= take and share < insert.y
+	if share >= insert.y:
+		return
+	if share < take - TAKE_CLOSE:
+		return
+	fingers = weight * smoothstep(take - TAKE_CLOSE, take, share)
+	# The fingers let go of the magazine as they took it: they open off it over `carry_release`,
+	# then go to the pose under the magazine over `carry_arrive`.
+	var inserted := smoothstep(insert.x, insert.y, share)
+	carry_open = maxf(
+		1.0 - smoothstep(take, take + TAKE_CLOSE, share),
+		smoothstep(carry_release.x, carry_release.y, inserted) if share >= insert.x else 0.0
+	)
+	carry = weight * (1.0 - smoothstep(carry_arrive.x, carry_arrive.y, inserted))
 
 
 ## The reload's phase at a share of the reload clip.

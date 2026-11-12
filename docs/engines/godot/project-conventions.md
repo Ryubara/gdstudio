@@ -61,7 +61,7 @@ game/
   silently. **Seen:** gdstudio #845, #868, #872, #925 (2026-11-08 to 11-10); #910, #1074, #1091, #968 (36 at
   once; 2026-11-11); #1186 (a
   bench built with `bench-web`, which never checks layout); seven hand-made uids replaced, kit #1129, 2026-11-11; a
-  suite added after the first `gds template uids` run failed the full run's layout step, gdstudio #1187, 2026-11-11
+  suite added after the first `gds template uids` run failed the full run's layout step, gdstudio #1187, #1052, 11-11
   (run it again after the last new script); PR #1171, 11-12 (two `-s` tool scripts).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load

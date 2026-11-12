@@ -1,4 +1,4 @@
-"""Build `fixed.glb`: library clips with a limb swung clear of the limb it passed through (kit #1295).
+"""Build `fixed.glb`: library clips with a limb swung clear of the limb it passed through (kit #1295, #1320).
 
 The Universal Animation Library's clips were keyed on Quaternius's mannequins. On the template's own bodies (the
 prototype `form` pair, kit #1187) a few of them put a forearm through a shin, because those bodies' shins and
@@ -25,6 +25,13 @@ the `CLEAR` bodies (`limb_overlap.py`'s measure on the skinned meshes). That giv
 library's pose is already clear. The angles get `MARGIN` degrees more, are held for `HOLD` frames either side and
 eased with a raised-cosine window `EASE` frames wide, so the limb leaves and comes back with the motion and never
 on one frame.
+
+A leg whose foot is on the floor is not swung, it is swivelled (`swivel`, kit #1320): the whole leg turns about the
+line from its hip to its ankle, which moves the knee and the thigh and leaves the ankle where it was, and the foot
+bone is then given the library's own turn in the world again. So the foot stays the library's, standing or sliding,
+and the build proves it: on every body and frame, the ankle, the ball and the toe tip of a swivelled leg are within
+`DRIFT_MM` of where the library's clip puts them. A swivel only answers a leg in the other leg; the knee goes away
+from the other hip, up to `MAX_SWIVEL`.
 """
 
 import argparse
@@ -65,16 +72,26 @@ HOLD = 2
 EASE = 9
 ## The most a limb may be swung, degrees: past this the fix is a new pose, not a correction, and the build fails.
 MAX_SWING = 30.0
+## The most a leg may be swivelled about the line from its hip to its ankle, degrees. It is more than a swing may
+## be: the foot does not move, so only the knee's place changes (3 to 5 mm a degree on a bent leg).
+MAX_SWIVEL = 45.0
+## The furthest the ankle, ball or toe tip of a swivelled leg may be from the library's, on any body and frame, mm.
+## On the rig the clips were keyed on it is 0; a body with other leg lengths reads up to 0.7 at 45 degrees.
+DRIFT_MM = 1.0
 RATE = 30
 
 ## clip: (library file, [(bone, limb end bone, way)]). The limb is the bone and everything under it; a swing may
-## end with its own hold and ease, in frames. Tried and left out: `Sword_Dash` and `Sword_Heavy_Combo` (ual2), whose
-## thighs pass through each other while the body turns a quarter in two frames: 30 degrees of thigh does not clear
-## them, so they need their step keyed again, not a correction (the template plays neither).
+## end with its own hold and ease, in frames. The swings of a clip are solved in order, each on the clip as the ones
+## before left it. `Sword_Dash` and `Sword_Heavy_Combo` (kit #1320) pass a thigh through the other while the body
+## turns a quarter in two frames, with the feet sliding on the floor: 30 degrees of thigh swung out does not clear
+## them and moves the foot, a swivel of one leg does (the leg whose knee is further from the line, so a degree
+## moves it further). The dash crosses on its frames 2 and 3, so its eases are short: frame 0 is the library's.
 FIXES = {
     "Jump_Land": ("ual1.glb", [("upperarm_l", "hand_l", "out")]),
     "Slide_Exit": ("ual2.glb", [("upperarm_r", "hand_r", "out")]),
     "NinjaJump_Land": ("ual2.glb", [("upperarm_l", "hand_l", "out")]),
+    "Sword_Dash": ("ual2.glb", [("thigh_l", "foot_l", "swivel", 0, 3), ("upperarm_l", "hand_l", "out", 1, 3)]),
+    "Sword_Heavy_Combo": ("ual2.glb", [("thigh_r", "foot_r", "swivel")]),
 }
 ARM = ("upperarm", "lowerarm", "hand")
 LEG = ("thigh", "calf", "foot")
@@ -96,6 +113,12 @@ def swing_axis(source, bone, end, way):
     """The axis, in the armature's space, about which turning `bone` moves the limb's end `way`."""
     pose = source.pose.bones
     along = pose[end].head - pose[bone].head
+    if way == "swivel":
+        # The line from the hip to the ankle, turned the way that takes the knee away from the other hip.
+        other = bone[:-1] + ("r" if bone.endswith("l") else "l")
+        axis = along.normalized()
+        knee_goes = axis.cross(pose[bone].tail - pose[bone].head)
+        return axis if knee_goes.dot(pose[bone].head - pose[other].head) >= 0.0 else -axis
     side = 1.0 if source.data.bones[bone].head_local.x > 0.0 else -1.0
     want = {"out": Vector((side, 0, 0)), "up": Vector((0, 0, 1)), "fwd": Vector((0, -1, 0))}[way]
     axis = along.cross(want)
@@ -103,22 +126,49 @@ def swing_axis(source, bone, end, way):
     return axis.normalized()
 
 
-def swing(source, bone, axis, degrees, rest):
-    """Turn the pose bone about `axis` through its own joint by `degrees` from `rest`, its matrix on this frame."""
+def swing(source, bone, axis, degrees, rest, keep=None):
+    """Turn the pose bone about `axis` through its own joint by `degrees` from `rest`, its matrix on this frame.
+    `keep` is a bone under it and the matrix that bone has to have afterwards (a swivelled leg's foot)."""
     pivot = Matrix.Translation(rest.translation)
     source.pose.bones[bone].matrix = pivot @ Matrix.Rotation(math.radians(degrees), 4, axis) @ pivot.inverted() @ rest
     bpy.context.view_layer.update()
+    if keep:
+        source.pose.bones[keep[0]].matrix = keep[1]
+        bpy.context.view_layer.update()
 
 
-def crossing(bodies, source, parts):
-    """The deepest any of `parts` is inside a part outside them, over `bodies`, in mm."""
+def crossing(bodies, source, parts, legs_only=False):
+    """The deepest any of `parts` is inside a part outside them, over `bodies`, in mm. `legs_only` counts a leg in
+    the other leg and nothing else."""
     deepest = 0.0
     for body in bodies:
         body.pose_from(source)
         for (a, b), (depth, _place) in body.overlaps().items():
+            if legs_only and limb_overlap.pair_class(a, b) != "leg/leg":
+                continue
             if (a in parts) != (b in parts):
                 deepest = max(deepest, depth * 1000.0)
     return deepest
+
+
+def foot_points(sides, frames, source, action, bodies):
+    """Where each body's ankle, ball and toe tip of `sides` are on every frame of `action`:
+    `{body name: an array of frames x points x 3}`, metres."""
+    scene = bpy.context.scene
+    source.animation_data.action = action
+    source.animation_data.action_slot = action.slots[0]
+    out = {body.name: [] for body in bodies}
+    for frame in frames:
+        scene.frame_set(frame)
+        for body in bodies:
+            body.pose_from(source)
+            bones, world = body.arm.pose.bones, body.arm.matrix_world
+            points = []
+            for side in sides:
+                foot, ball = bones[f"foot_{side}"], bones[f"ball_{side}"]
+                points += [world @ foot.head, world @ ball.head, world @ ball.tail]
+            out[body.name].append([tuple(p) for p in points])
+    return {name: np.array(points) for name, points in out.items()}
 
 
 def ease(raw, hold=HOLD, width=EASE):
@@ -142,54 +192,67 @@ def solve(source, action, bodies, bone, end, way, hold=HOLD, width=EASE):
     scene = bpy.context.scene
     first, last = (round(f) for f in action.frame_range)
     parts = limb_parts(bone)
+    swivel = way == "swivel"
+    most = MAX_SWIVEL if swivel else MAX_SWING
     raw, axes = [], []
     for frame in range(first, last + 1):
         scene.frame_set(frame)
         rest = source.pose.bones[bone].matrix.copy()
+        keep = (end, source.pose.bones[end].matrix.copy()) if swivel else None
         axis = swing_axis(source, bone, end, way)
         axes.append(axis)
         degrees = 0.0
-        while crossing(bodies, source, parts) > 0.0:
+        while crossing(bodies, source, parts, swivel) > 0.0:
             degrees += 1.0
-            if degrees > MAX_SWING:
-                sys.exit(f"{action.name} frame {frame}: {bone} is not clear {MAX_SWING} degrees {way}")
-            swing(source, bone, axis, degrees, rest)
+            if degrees > most:
+                sys.exit(f"{action.name} frame {frame}: {bone} is not clear {most} degrees {way}")
+            swing(source, bone, axis, degrees, rest, keep)
         raw.append(degrees)
     swings = ease(raw, hold, width)
-    assert swings[0] == 0.0 and swings[-1] == 0.0, f"{action.name}: {bone} is swung on its first or last frame"
-    assert swings.max() <= MAX_SWING, f"{action.name}: {bone} swung {swings.max():.1f} degrees"
+    needed = {first + i: d for i, d in enumerate(raw) if d > 0.0}
+    assert swings[0] == 0.0 and swings[-1] == 0.0, (
+        f"{action.name}: {bone} is swung on its first or last frame (degrees to clear, by frame: {needed})"
+    )
+    assert swings.max() <= most, f"{action.name}: {bone} swung {swings.max():.1f} degrees"
     return raw, swings, axes
 
 
-def key(source, action, bone, swings, axes):
-    """Write the swung rotation of `bone` over the library's keys, on the frames it is swung."""
+def key(source, action, bone, swings, axes, kept=None):
+    """Write the swung rotation of `bone` over the library's keys, on the frames it is swung, and with it the
+    rotation that leaves the bone `kept` (a swivelled leg's foot) turned as the library has it. Returns the most
+    the kept bone's own rotation changes, degrees."""
     scene = bpy.context.scene
     first = round(action.frame_range[0])
-    path = f'pose.bones["{bone}"].rotation_quaternion'
-    curves = sorted((c for c in channels(action) if c.data_path == path), key=lambda c: c.array_index)
-    assert len(curves) == 4, f"{action.name}: {bone} has {len(curves)} rotation curves"
-    values = {}
+    written = [bone] + ([kept] if kept else [])
+    values = {name: {} for name in written}
     for offset, degrees in enumerate(swings):
         if degrees == 0.0:
             continue
         frame = first + offset
         scene.frame_set(frame)
-        pose = source.pose.bones[bone]
-        before = pose.rotation_quaternion.copy()
-        swing(source, bone, axes[offset], float(degrees), pose.matrix.copy())
-        after = pose.rotation_quaternion.copy()
-        if after.dot(before) < 0.0:  # the same turn, on the library's side of the sphere
-            after.negate()
-        values[frame] = after
-    for curve in curves:
-        for point in curve.keyframe_points:
-            frame = round(point.co.x)
-            if frame in values:
-                point.co.y = values[frame][curve.array_index]
-                point.handle_left.y = point.handle_right.y = point.co.y
-        curve.update()
-    assert len(values) == sum(1 for d in swings if d > 0.0)
+        pose = source.pose.bones
+        before = {name: pose[name].rotation_quaternion.copy() for name in written}
+        keep = (kept, pose[kept].matrix.copy()) if kept else None
+        swing(source, bone, axes[offset], float(degrees), pose[bone].matrix.copy(), keep)
+        for name in written:
+            after = pose[name].rotation_quaternion.copy()
+            if after.dot(before[name]) < 0.0:  # the same turn, on the library's side of the sphere
+                after.negate()
+            values[name][frame] = (after, math.degrees(after.rotation_difference(before[name]).angle))
+    for name in written:
+        path = f'pose.bones["{name}"].rotation_quaternion'
+        curves = sorted((c for c in channels(action) if c.data_path == path), key=lambda c: c.array_index)
+        assert len(curves) == 4, f"{action.name}: {name} has {len(curves)} rotation curves"
+        for curve in curves:
+            for point in curve.keyframe_points:
+                frame = round(point.co.x)
+                if frame in values[name]:
+                    point.co.y = values[name][frame][0][curve.array_index]
+                    point.handle_left.y = point.handle_right.y = point.co.y
+            curve.update()
+        assert len(values[name]) == sum(1 for d in swings if d > 0.0)
     scene.frame_set(first)
+    return max((turn for _q, turn in values[kept].values()), default=0.0) if kept else 0.0
 
 
 def brief(result):
@@ -291,14 +354,18 @@ def main():
         frames = range(first, last + 1)
         was = limb_overlap.measure(arm, action, frames, clear + keep)
         ends = end_poses(arm, action)
+        sides = sorted({bone[-1] for bone, _end, way, *_timing in swings_of if way == "swivel"})
+        feet_were = foot_points(sides, frames, arm, action, clear + keep) if sides else {}
         entry = {"library": file, "first_frame": first, "last_frame": last, "fps": RATE, "swings": []}
         for bone, end, way, *timing in swings_of:
             raw, swings, axes = solve(arm, action, clear, bone, end, way, *timing)
-            key(arm, action, bone, swings, axes)
+            kept = end if way == "swivel" else None
+            kept_turn = key(arm, action, bone, swings, axes, kept)
             entry["swings"].append(
                 {
                     "bone": bone,
                     "way": way,
+                    **({"keeps": kept, "keeps_peak_degrees": round(kept_turn, 2)} if kept else {}),
                     "peak_degrees": round(float(swings.max()), 2),
                     "frames_swung": [first + int(np.flatnonzero(swings)[0]), first + int(np.flatnonzero(swings)[-1])]
                     if swings.any()
@@ -318,6 +385,18 @@ def main():
             off = max((pose[name].translation - want[name].translation).length for name in pose)
             assert off < 1e-6, f"{clip}: the {label} pose moved {off * 1000:.3f} mm from the library's"
         entry["before"], entry["after"] = brief(was), brief(now)
+        if sides:
+            feet_are = foot_points(sides, frames, arm, action, clear + keep)
+            entry["foot_drift_mm"] = {}
+            for body in clear + keep:
+                off = np.linalg.norm(feet_are[body.name] - feet_were[body.name], axis=2) * 1000.0
+                drift = round(float(off.max()), 2)
+                entry["foot_drift_mm"][body.name] = drift
+                at = first + int(np.unravel_index(off.argmax(), off.shape)[0])
+                verdict = "ok" if drift <= DRIFT_MM else "MOVED"
+                if verdict != "ok":
+                    failed.append(f"{clip} on {body.name}: a swivelled leg's foot is {drift} mm off at frame {at}")
+                print(f"FOOT {clip} {body.name}: {drift} mm from the library's at most (frame {at}) {verdict}")
         for body in clear + keep:
             before_mm, after_mm = was[body.name]["deepest_mm"], now[body.name]["deepest_mm"]
             limit = LIMIT_MM if body in clear else max(LIMIT_MM, before_mm + KEEP_SLACK_MM)
@@ -331,7 +410,7 @@ def main():
         report[clip] = entry
         fixed.append(action)
     if failed:
-        sys.exit("limbs still pass through each other:\n" + "\n".join(failed))
+        sys.exit("limbs still pass through each other, or a foot moved:\n" + "\n".join(failed))
     if args.only:
         print("--only: nothing written")
         return
@@ -348,6 +427,7 @@ def main():
         "measured": {
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             "limit_mm": LIMIT_MM,
+            "foot_drift_limit_mm": DRIFT_MM,
             "clear_on": sorted(CLEAR),
             "not_worse_on": sorted(KEEP),
         },
