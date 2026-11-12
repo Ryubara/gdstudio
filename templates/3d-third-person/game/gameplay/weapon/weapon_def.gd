@@ -20,6 +20,9 @@ enum PastAimLimit {
 }
 
 ## How a shot travels.
+## What the head does while the weapon is aimed (`AimHeadModifier`): level and along the aim, or
+## brought to the weapon's sights, a cheek on the stock.
+enum AimHead { LEVEL, SIGHT }
 enum Kind {
 	## A body (`projectile_scene`) flies from the muzzle and hits what it touches: it can be seen
 	## and dodged, and it costs a physics body while it flies.
@@ -69,6 +72,14 @@ enum Kind {
 ## the body along the slide): the body turns so the aim is within reach again, or the shot is
 ## refused until it is.
 @export var past_aim_limit := PastAimLimit.TURN_BODY
+## The head while aiming: level and looking along the aim (a pistol, the fists), or with the eye
+## brought behind the sights, which tilts the head onto the stock (a shouldered weapon: it needs
+## `aim_eye`).
+@export var aim_head := AimHead.LEVEL
+## Where the aiming eye belongs on the weapon, for `AimHead.SIGHT`: a marker under the character's
+## `Model` slot, like `muzzle` (the rifle's `RifleHeld/Pivot/Rifle/AimEye`), its -Z along the sight
+## line.
+@export var aim_eye: NodePath
 
 @export_group("Aim and zoom")
 ## What a press of aim or fire does with this weapon in the hands. The character and the camera

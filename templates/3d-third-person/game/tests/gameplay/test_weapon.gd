@@ -100,6 +100,8 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"projectile_bounces": 0,
 		&"projectile_bounce_keep": 0.6,
 		&"melee_reach": 1.1,
+		&"aim_head": WeaponDef.AimHead.LEVEL,
+		&"aim_eye": NodePath(),
 		&"view": NodePath("PistolHeld"),
 		&"view_scene": null,
 		&"muzzle": NodePath("PistolHeld/Pistol/Pistol/Muzzle"),

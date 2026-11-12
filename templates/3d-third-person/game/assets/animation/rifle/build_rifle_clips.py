@@ -96,10 +96,11 @@ X, Y, Z = np.eye(3)
 # character's rest space: metres left, up, forward. The bodies have a visor and no face; this is half the
 # distance between a person's pupils to the right, and an eye's depth behind the brow.
 EYE_FROM_SOCKET = np.array([-0.032, 0.0, -0.018])
-# Where the eye belongs on the rifle, in the rifle's own space (the muzzle is -X, up +Y, its left +Z): on the line
-# over the carry handle's sight and the front sight post, this far behind the rear sight.
-SIGHT_EYE = np.array([0.085, 0.232, 0.0])
-SIGHT_AHEAD = np.array([-1.0, -0.02, 0.0])  # the way the line runs to the front sight
+# Where the eye belongs on the rifle, in the rifle's own space (the muzzle is -X, up +Y, its left +Z), and the
+# way the sight line runs from there to the front sight: the `AimEye` marker of `rifle_held.tscn`, its origin and
+# its -Z, which the game's head goes to as well (`WeaponDef.aim_eye`). Filled in from the scene.
+SIGHT_EYE = np.zeros(3)
+SIGHT_AHEAD = -X
 # The stock in the rifle's space, for the head's place: its comb's top, its half width and where it starts.
 STOCK_TOP = 0.167
 RECEIVER_TOP = 0.18  # the receiver's tail and the charging handle, ahead of the comb
@@ -477,6 +478,9 @@ class Hold:
         self.right = read_transform(held, "RightHandTarget")
         self.left = read_transform(held, "LeftHandTarget")
         self.on_magazine = read_transform(held, "MagazineHand")
+        global SIGHT_EYE, SIGHT_AHEAD
+        sights = read_transform(held, "AimEye")
+        SIGHT_EYE, SIGHT_AHEAD = sights[:3, 3], -sights[:3, 2]
         base = weapon / "two_hand_hold.tscn"
         self.poles = {"r": read_transform(base, "RightPole")[:3, 3], "l": read_transform(base, "LeftPole")[:3, 3]}
         if (held.read_text(encoding="utf-8")).count('[node name="RightPole"'):
@@ -775,7 +779,7 @@ def shape(rig, base, hold, state, body):
         rig.face(pose, bone, axis_angle(Y, yaw) @ axis_angle(X, pitch) @ axis_angle(Z, roll))
     held = hold.apply(rig, pose, state)
     if "look" in body:
-        level_head(rig, pose, body["look"])
+        sight_head(rig, pose, body["look"], held["gun"])
     return pose, held
 
 
@@ -822,6 +826,74 @@ def head_rolls(rig, pose):
         )
         out.append(math.degrees(math.atan2(turned[1, 0], turned[1, 1])))
     return out
+
+
+def sight_rule():
+    """The numbers of `AimHeadModifier`'s sight rule, from its script: the steps, and what the eye along the line,
+    a nod, a turned face and a cant weigh, and the most the head turns from the level look, degrees."""
+    script = (GAME / "gameplay/character/aim/aim_head_modifier.gd").read_text(encoding="utf-8")
+    found = dict(re.findall(r"^(?:@export\S*(?:\([^\n]*\))? var|const) (_?\w+) := ([\d.]+)$", script, re.M))
+    return {name.lower().lstrip("_"): float(found[name]) for name in found if "sight" in name.lower()}
+
+
+def sight_head(rig, pose, pitch, gun):
+    """The neck and the head as the game's `AimHeadModifier` sets them for a weapon aimed down its sights
+    (`WeaponDef.AimHead.SIGHT`, the rifle's): from the level look along the aim (`level_head`), turned on so
+    the right eye comes toward its place on the weapon (`AimEye`) for what a nod, a turned face and a cant
+    cost. One turn, shared between the neck and the head as the level look's is; the same steps of least
+    squares as the game's, with its numbers."""
+    share, most = head_rule()
+    rule = sight_rule()
+    chest_at = rig.chain(pose, rig.parent["neck_01"])
+    chest = chest_at[:3, :3]
+    neck_line = chest @ rig.rest["neck_01"][:3, :3]
+    neck_origin = (chest_at @ rig.rest["neck_01"])[:3, 3]
+    lined = neck_line @ rig.rest["Head"][:3, :3]
+    head_from_neck = rig.rest["Head"][:3, 3]
+    p = math.radians(pitch)
+    look = np.array([[1.0, 0.0, 0.0], [0.0, math.cos(p), math.sin(p)], [0.0, -math.sin(p), math.cos(p)]])
+    rest_head = rig.rest_world["Head"][:3, :3]
+    level = Matrix((look @ rest_head @ lined.T).tolist()).to_quaternion()
+    eye_local = rest_head.T @ rig.eye
+    place = (gun @ np.append(SIGHT_EYE, 1.0))[:3]
+    line = gun[:3, :3] @ (SIGHT_AHEAD / np.linalg.norm(SIGHT_AHEAD))
+    upward = Y - (Y @ line) * line
+    upward /= np.linalg.norm(upward)
+    side = np.cross(upward, line)
+
+    def posed(r):
+        angle = float(np.linalg.norm(r))
+        extra = Quaternion(Vector(r / angle), angle) if angle > 1e-9 else Quaternion()
+        turn = extra @ level
+        if turn.angle > math.radians(most) and turn.angle > 1e-4:
+            turn = Quaternion().slerp(turn, math.radians(most) / turn.angle)
+        neck_world = np.array(Quaternion().slerp(turn, share).to_matrix()) @ neck_line
+        head_world = np.array(turn.to_matrix()) @ lined
+        return neck_world, head_world
+
+    def residual(r):
+        neck_world, head_world = posed(r)
+        eye = neck_origin + neck_world @ head_from_neck + head_world @ eye_local
+        off = eye - place
+        along = off @ line
+        turned = [(r @ side) * rule["sight_nod"], (r @ upward) * rule["sight_face"], (r @ line) * rule["sight_cant"]]
+        return np.concatenate([off - along * line, [along * rule["sight_along"]], turned])
+
+    r = np.zeros(3)
+    for _ in range(int(rule["sight_passes"])):
+        now = residual(r)
+        jac = np.empty((len(now), 3))
+        for i in range(3):
+            step = r.copy()
+            step[i] += rule["sight_step"]
+            jac[:, i] = (residual(step) - now) / rule["sight_step"]
+        r = r + np.linalg.solve(jac.T @ jac + 1e-9 * np.eye(3), -jac.T @ now)
+        size = float(np.linalg.norm(r))
+        if size > math.radians(rule["sight_tilt"]):
+            r *= math.radians(rule["sight_tilt"]) / size
+    neck_world, head_world = posed(r)
+    pose["local"]["neck_01"] = chest.T @ neck_world
+    pose["local"]["Head"] = neck_world.T @ head_world
 
 
 def eye_of(rig, pose):
@@ -874,7 +946,6 @@ def solve_aim(rig, base, hold, state, body, others=()):
         pose, held, _ = build(v)
         clear = body.get("clear", HEAD_CLEAR)
         deepest = [stock_depth(rig, pose, held["gun"], clear)]
-        rolls = head_rolls(rig, pose)
         for other, others_hold in others:
             # The clip on the other body: the same turns in each bone's parent, then that body's hold.
             posed = whole(other, {"local": dict(pose["local"]), "pelvis": pose["pelvis"]})
@@ -882,7 +953,7 @@ def solve_aim(rig, base, hold, state, body, others=()):
         return np.concatenate(
             [
                 np.array(deepest) * 1500.0,
-                np.maximum(np.abs(rolls) - ROLL_SOFT, 0.0) * 1.5,
+                [eye_off(rig, pose, held)[0] * 0.05],  # the trunk leans the eye toward the line too
                 (v - centre) / soft,
                 np.maximum(v - centre - high, 0.0) * 4.0,
                 np.maximum(low - (v - centre), 0.0) * 4.0,
@@ -1425,9 +1496,10 @@ def main():
             print(f"    the eye from its place (back, up, left) {entry['eye_from_place_mm']} mm, the butt pushed {entry['butt_push_mm']} mm")
             rolls = [max(abs(r) for r in pair) for pair in zip(*(head_rolls(rig, pose) for pose in frames))]
             entry["head_roll_deg"], entry["neck_roll_deg"] = round(rolls[0], 1), round(rolls[1], 1)
-            print(f"    the head rolled {rolls[0]:.1f} degrees on the neck, the neck {rolls[1]:.1f} on the chest")
-            if max(rolls) > ROLL_LIMIT:
-                failures.append(f"{name}: the head rolls {rolls[0]:.1f} degrees on the neck, the neck {rolls[1]:.1f}")
+            head_face, head_up = face_of(rig, frames[0])
+            level_side = np.cross(Y, head_face)
+            entry["head_cant_deg"] = round(90.0 - angle_between(head_up, level_side), 1)
+            print(f"    the head rolled {rolls[0]:.1f} degrees on the neck, the neck {rolls[1]:.1f}; canted {entry['head_cant_deg']}")
         if clip["loop"]:
             gap = pose_gap(frames[0], frames[-1])
             entry["loop_gap_deg"] = round(gap, 4)
