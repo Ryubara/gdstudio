@@ -173,10 +173,21 @@ Cost, headless on the desktop (`tools/bench/hold_cost.tscn -- rifle`, 40 mannequ
 a machine other agents were loading): the rifle's hold 77 microseconds a character a frame against 35 for the
 pistol's aimed hold in the same session, so about 2.2 times it (the pistol's figure on a quiet machine is 12.6). It
 is five modifiers and the hold's own `_process`; it is worked out on each machine from `aim_amount`, `view_pitch`,
-the shots, the reload and the loadout's switch, never sent. Not measured in a browser yet. Bringing the butt to the
-skin (kit #1177: 191 skin points on the female, 194 on the male, twice an update while the left collarbone reaches)
-costs about three times the hold before it: the least of three interleaved runs on a loaded machine read 3.7 ms a
-frame for 40 characters before and 6.4 after, against 2.4 with no hold (about 35 and 100 microseconds a character).
+the shots, the reload and the loadout's switch, never sent.
+
+In Chrome (kit #1178, `gds template bench-web 3d-third-person hold_cost --run`, then `hold_cost.py <build> 1 "" male`
+for the male body; 40 of the template's own bodies, a camera on every run, two rounds of main and the branch in
+turns, microseconds a character a frame, female / male): before the cut the rifle at the ready 49 / 52, low 46 / 50,
+reloading 51 / 52, past `fingers_far_distance` 50 / 49, the pistol aimed 26 / 23 and carried 16 / 12; after it 31 /
+34, 29 / 34, 37 / 39, 27 / 27, 14 / 15 and 8 / 8. The bench's frame for the rifle went from 2.7 to 2.0 ms on both
+bodies (far: 2.6 to 1.6), the frame with no hold unchanged (0.7 ms). At 4x the male's rifle went from 24.5 to 18.5 ms;
+the female's single round there was within the noise (18.7 and 20.4). The cut finds the hold's nodes and bones once,
+works the chest and shoulder out from the local poses, writes the pivot once a frame, puts the left hand and the
+magazine back only when a reload ends, keeps its weapon definition until the slots change, lays the hand poses out
+into arrays, and past `fingers_far_distance` (set by `CharacterAnimationThrottle`, which already measures the
+distance; the hold reads no camera) leaves the fingers on the clip's fist. Every bone came out the same on both
+bodies in twelve poses (aimed, low, the reload at four shares), the pivot and the magazine within 2e-7 m.
+SKINCOST
 
 The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
 body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
