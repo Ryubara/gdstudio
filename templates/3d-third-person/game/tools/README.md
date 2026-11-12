@@ -58,6 +58,10 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/capture/rifle_hold_study.tscn` holds the rifle on the mannequin five ways with the clips the template has
   (the pistol clip, left-hand IK, shouldered with both hands on IK, aimed up, low ready), prints how far each hand stops
   from its target and, with a window and `HOLD_OUT`, saves the renders (the header says how to run it).
+- `tools/capture/rifle_clip_closeups.tscn` pictures the rifle clips (`assets/animation/rifle/`) pose by pose on both
+  bodies, eight views at once (the body from the right, above, the front and the player's camera; the grip hand
+  and the support hand from both their sides, from cameras that ride the rifle), with the hold told what the game
+  tells it (`CLOSEUPS_OUT=<folder>`); it prints each hand's gap and depth.
 - `tools/capture/vault_study.tscn` plays the vault clips (`assets/animation/vault/`) on the mannequin over each clip's
   reference box, with a sprint in and out, from four views; headless it prints how still the planted hand stays
   (`MODEL=male`, `VIEWS`, `SLOW`, `LOW_HEIGHT` and `HIGH_HEIGHT` are in the header).

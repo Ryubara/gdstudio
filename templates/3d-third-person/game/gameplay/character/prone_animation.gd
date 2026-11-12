@@ -42,6 +42,20 @@ static func stow_share(body: Character) -> float:
 	return smoothstep(0.0, 1.0, body.prone_amount) * (1.0 - body.aim_amount)
 
 
+## How much of a weapon's clips a body plays for how far it lies (1 all, 0 none): less than 1 only
+## for a weapon whose clips stand the trunk from the pelvis (`WeaponDef.clips_upright`, the
+## rifle's). Lying, the prone clips keep the body and the weapon's hold alone carries it.
+static func upright_share(body: Character, hold: WeaponDef) -> float:
+	if hold == null or not hold.clips_upright or body == null:
+		return 1.0
+	return 1.0 - smoothstep(0.0, 1.0, body.prone_amount)
+
+
+## True when `body` lies too far for `hold`'s clips to play (a reload plays no clip then).
+static func lies_past_clips(body: Character, hold: WeaponDef) -> bool:
+	return upright_share(body, hold) < 0.5
+
+
 ## Hides the model of the weapon in the hands (`hold.view` under `model`) while `away`, and shows
 ## it again after; the loadout shows the model of a weapon switched to while lying, so it is
 ## hidden again.

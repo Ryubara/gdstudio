@@ -638,9 +638,9 @@ func _sync_ground_speeds() -> void:
 # tap of the fire button shows the arm up and never pops.
 func _drive_pistol(delta: float) -> void:
 	var hold := held_definition()
-	var up_share := 1.0
+	var up_share := ProneAnimation.upright_share(character, hold)
 	if character.loadout != null:
-		up_share = 1.0 - character.loadout.lowered_amount()
+		up_share *= 1.0 - character.loadout.lowered_amount()
 	var lying := ProneAnimation.stow_share(character)
 	var stow := maxf(lying, _vault_look.hands)
 	var hidden := lying > 0.5 or _vault_look.away
@@ -770,7 +770,7 @@ func _on_definition_changed(_definition: WeaponDef) -> void:
 
 func _on_reload_started(seconds: float) -> void:
 	var hold := held_definition()
-	if hold == null or hold.reload_clip == &"":
+	if hold == null or hold.reload_clip == &"" or ProneAnimation.lies_past_clips(character, hold):
 		return
 	if not animation_player.has_animation(hold.reload_clip):
 		return

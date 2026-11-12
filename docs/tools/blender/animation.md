@@ -372,6 +372,14 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   and `measure("l", true)` reads the left hand into the right, never the right into the left. **Seen:** gdstudio
   #1081 (PR #1103), 2026-11-11.
 
+### Clips under a hold that carries the weapon {#clips-under-a-hold}
+
+<!-- new section: the solved clips above carry nothing; nothing said how to key a body for a weapon that the game's
+own modifiers place after the clip (the 3D Third Person rifle, kit #1082) -->
+
+Keying a body for a weapon that `TwoHandHold` places after the clip (the 3D Third Person rifle's six clips) is on its
+own page, [Clips under a hold](clips-under-a-hold.md#body-under-the-hold), which this page left when it passed 50 KB.
+
 ## The clip toolkit {#toolkit}
 
 <!-- new section: clips had been solved one build script at a time (prone, vault); the toolkit every clip of our own
