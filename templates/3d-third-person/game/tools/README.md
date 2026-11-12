@@ -17,7 +17,10 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   own fist).
 - `tools/hold/` solves the pistol hold: `dump_hold_rig.gd` writes the rig as Godot plays it,
   `solve_pistol_hold.py` (numpy and scipy; `hold_rig.py`, `hold_field.py` and `hold_hand.py` are its parts) closes
-  both hands on the pistol for both mannequins, and `write_hold.gd` writes the seat and the three `HandPose` files.
+  both hands on the pistol for both mannequins, and `write_hold.gd` writes the seat and the `HandPose` files, with the
+  finger poses set by hand
+  (`pistol_authored.json`, read by `authored_pose.gd`) laid over them; `pose_bench.gd` measures such a file on the
+  tests' stage before it is written (`PARTS=1`, `JOINTS=`, `OBJ=`).
 - `tools/bench/hold_cost.tscn` times 40 mannequins with no hold, the carried hold or the aimed one (the run is its
   user argument, one run a process).
 - `tools/capture/walkthrough.tscn` plays the character through the map by pressing the input actions, for a clip.
