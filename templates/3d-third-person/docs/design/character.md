@@ -167,10 +167,12 @@ or off, the most to the left and right of the way the body faces, and the most u
 or the shot is refused. Its own inspector: the chain of spine bones and their shares, `converge_distance`,
 `release_time` (how fast it takes over again after a shot's recoil) and `disabled`.
 
-While the character aims, with any weapon (the fists too), the aim layer also holds the head level and looking along the
-aim, on a straight neck, whatever head the clips carry: in its Head group, `head_neck_share` and
+While the character aims, with any weapon (the fists too), the aim layer also holds the head level and looking along
+the aim, on a straight neck, whatever head the clips carry: in its Head group, `head_neck_share` and
 `head_crouch_neck_share` (the neck's share of the turn, 0.4 standing and 0.5 crouched), `head_max_turn` (the most the
-head turns off the line the chest gives it, 90 degrees) and `head_disabled`.
+head turns off the line the chest gives it, 90 degrees) and
+`head_disabled`. A weapon whose definition says `aim_head` `SIGHT` (the rifle) has the head brought on from there
+toward its sights, the eye to the weapon's `aim_eye` marker: a cheek on the stock.
 
 Vaulting and mantling have their own resource, `gameplay/character/vault_settings.tres` (the `Character`'s
 `vault_settings`, in its Traversal group; empty turns them off), described in [Vaulting and mantling](#vaulting).
@@ -463,9 +465,11 @@ The two mannequins, both animation libraries and Phantom Camera are third-party 
 (`assets/characters/mannequin/`, `assets/animation/universal/`, `addons/phantom_camera/`): CC0 for the Quaternius files
 and MIT for Phantom Camera. Give them a line on the game's Credits screen. The pistol and the rifle are GDStudio's own
 (MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`. The prone and crawl
-clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`), and so is the slide
-rack clip (`assets/animation/pistol/LICENSE.md`). The fixed clips (`assets/animation/fixed/`) are three of the
-library's clips with one arm moved, CC0 like the library, with their own `LICENSE.md`.
+clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`), and so are the slide
+rack clip (`assets/animation/pistol/LICENSE.md`) and the six rifle clips (`assets/animation/rifle/README.md`): the
+low ready, the aim level, up and down, a shot and a reload, played on the upper body under the two-handed hold, the
+library `rifle`. The fixed clips (`assets/animation/fixed/`) are three of the library's clips with one arm moved,
+CC0 like the library, with their own `LICENSE.md`.
 
 ## Testing it in a browser
 

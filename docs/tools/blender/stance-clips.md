@@ -6,6 +6,12 @@ What making GDStudio's own crouch idle, crouch walk and the two stance changes t
 toolkit of [Animation](animation.md#toolkit). The clips, their variants and their numbers are in the template's
 `assets/animation/own/README.md`; what a gait's feet taught is on [Gaits](gaits.md#what-broke).
 
+**The bodies.** Clips are solved on `form_female`, the body the template's player wears (`REFERENCE` in
+`build_own.py`), and checked on `form_male` and the Quaternius pair as well (`BODIES`). A shipped file's deepest
+limb crossing per clip and body is written beside it as `bodies_overlap.json` with the file's SHA-256, which
+`tests/gameplay/test_own_clips.gd` reads. What one file cannot do for two bodies is under
+[Clips on other proportions](mannequin-rig.md#proportions).
+
 ## What the crouch clips taught {#crouch}
 
 <!-- new section: animation.md's toolkit section reached the page's size limit; a crouch needs these -->

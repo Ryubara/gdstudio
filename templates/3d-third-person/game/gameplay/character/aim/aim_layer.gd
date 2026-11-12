@@ -20,7 +20,9 @@ extends Node
 ## It makes an `AimHeadModifier` after it too (kit #1334): with any weapon, the fists among them,
 ## the head looks along the aim, level, with the neck on its line, whatever head the clips carry.
 ## It is on by the aim (the pistol's aim pose, or the character's `aim_amount` eased), less a
-## reload.
+## reload. A weapon whose definition says `AimHead.SIGHT` (the rifle) has the head brought to its
+## sights instead, the eye toward the definition's `aim_eye` marker; the head's modifier then
+## runs after the stance of the hold that places that weapon.
 
 const _MODIFIER := &"AimOffset"
 const _HEAD_MODIFIER := &"AimHead"
@@ -62,6 +64,9 @@ const _HEAD_MODIFIER := &"AimHead"
 
 var _modifier: AimOffsetModifier
 var _head: AimHeadModifier
+# The weapon whose `aim_eye` was looked up last, and the marker found (null: a level head).
+var _eye_of: WeaponDef
+var _eye: Node3D
 var _ray_before := PackedVector3Array()
 var _ray_now := PackedVector3Array()
 
@@ -157,6 +162,28 @@ func _refresh_head() -> void:
 	looking.neck_share = lerpf(head_neck_share, head_crouch_neck_share, crouched)
 	looking.max_turn = head_max_turn
 	looking.target = aim_point(Engine.get_physics_interpolation_fraction())
+	looking.eye = _sight_eye(looking)
+
+
+# The marker the head's eye goes to with the weapon in the hands, or null for a level head. The
+# weapon is placed by its hold's stance in the same update, so the head's modifier is moved after
+# it.
+func _sight_eye(looking: AimHeadModifier) -> Node3D:
+	var definition := character.weapon.definition if character.weapon != null else null
+	if definition != _eye_of or (_eye != null and not is_instance_valid(_eye)):
+		_eye_of = definition
+		_eye = null
+		if definition != null and definition.aim_head == WeaponDef.AimHead.SIGHT and model != null:
+			_eye = model.get_node_or_null(definition.aim_eye) as Node3D
+	if _eye == null:
+		return null
+	var skeleton := looking.get_parent()
+	for index in range(looking.get_index() + 1, skeleton.get_child_count()):
+		var after := skeleton.get_child(index)
+		if after is SkeletonModifier3D and after.get_script() == TwoHandHold.STANCE_SCRIPT:
+			skeleton.move_child(looking, index)
+			break
+	return _eye
 
 
 ## The point the muzzle is turned toward, `fraction` of the way from the step before the last to
@@ -181,6 +208,8 @@ func _build() -> void:
 			made.queue_free()
 	_modifier = null
 	_head = null
+	_eye_of = null
+	_eye = null
 	var skeleton := model.skeleton() if model != null else null
 	if skeleton == null:
 		return

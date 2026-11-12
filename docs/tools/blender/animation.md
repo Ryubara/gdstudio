@@ -372,6 +372,14 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   and `measure("l", true)` reads the left hand into the right, never the right into the left. **Seen:** gdstudio
   #1081 (PR #1103), 2026-11-11.
 
+### Clips under a hold that carries the weapon {#clips-under-a-hold}
+
+<!-- new section: the solved clips above carry nothing; nothing said how to key a body for a weapon that the game's
+own modifiers place after the clip (the 3D Third Person rifle, kit #1082) -->
+
+Keying a body for a weapon that `TwoHandHold` places after the clip (the 3D Third Person rifle's six clips) is on its
+own page, [Clips under a hold](clips-under-a-hold.md#body-under-the-hold), which this page left when it passed 50 KB.
+
 ## The clip toolkit {#toolkit}
 
 <!-- new section: clips had been solved one build script at a time (prone, vault); the toolkit every clip of our own
@@ -421,12 +429,6 @@ checks the reduced clip against the full one on the body, runs [every check](own
 skinned mesh, and writes nothing when one fails (the last line of a good build is `BUILT <file>`). A clip keys
 rotations and the pelvis's place, and the `ik_` targets on a rig that has them. The checks are in `checks.py` with
 their limits; `selftest.py` breaks a clip for each one.
-
-**The bodies.** Clips are solved on `form_female`, the body the template's player wears (`REFERENCE` in
-`build_own.py`), and checked on `form_male` and the Quaternius pair as well (`BODIES`). A shipped file's deepest
-limb crossing per clip and body is written beside it as `bodies_overlap.json` with the file's SHA-256, which
-`tests/gameplay/test_own_clips.gd` reads. What one file cannot do for two bodies is under
-[Clips on other proportions](mannequin-rig.md#proportions).
 
 **What is proved and what is not.** `Idle` went through all of it. The contact plan, the foot's roll, the travel and
 the gait checks are proved by the self-test's plain walk (planted soles within 5 mm at its speed on both mannequins),
