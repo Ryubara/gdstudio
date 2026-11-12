@@ -3,7 +3,8 @@ extends RefCounted
 ## The names of every clip the character can play: the Universal Animation Library 1 and 2
 ## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
 ## `ual2`, so a clip is `ual1/Idle`, the template's own prone and crawl clips (gdstudio
-## #1009, `assets/animation/prone/`), the library `prone`, its own melee blows (gdstudio #1254,
+## #1009, `assets/animation/prone/`), the library `prone`, with its prone aim clips (gdstudio
+## #1111), the library `prone_aim`, its own melee blows (gdstudio #1254,
 ## `assets/animation/melee/`), the library `melee`, its own rifle clips (gdstudio #1082,
 ## `assets/animation/rifle/`), the library `rifle`, and GDStudio's own clips that replace
 ## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
@@ -25,6 +26,7 @@ extends RefCounted
 const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
+const LIBRARY_PRONE_AIM := &"prone_aim"
 const LIBRARY_OWN := &"gds"
 const LIBRARY_VAULT := &"vault"
 const LIBRARY_RIFLE := &"rifle"
@@ -75,6 +77,9 @@ const PRONE_IDLE := &"prone/Prone_Idle"
 const CRAWL := &"prone/Crawl_Fwd"
 const TO_PRONE := &"prone/Crouch_To_Prone"
 const TO_CROUCH := &"prone/Prone_To_Crouch"
+const PRONE_AIM := &"prone_aim/Prone_Aim_Neutral"
+const PRONE_AIM_UP := &"prone_aim/Prone_Aim_Up"
+const PRONE_AIM_DOWN := &"prone_aim/Prone_Aim_Down"
 # Vaulting: the template's own clips (gdstudio #1010, `assets/animation/vault/`), the library
 # `vault`. What each was keyed on is a `VaultClip` (`gameplay/character/vault_low.tres`,
 # `vault_high.tres`).
@@ -204,6 +209,9 @@ const ALL: Array[StringName] = [
 	&"prone/Crouch_To_Prone",
 	&"prone/Prone_Idle",
 	&"prone/Prone_To_Crouch",
+	&"prone_aim/Prone_Aim_Down",
+	&"prone_aim/Prone_Aim_Neutral",
+	&"prone_aim/Prone_Aim_Up",
 	&"gds/Idle",
 	&"gds/Jog",
 	&"gds/Sprint",
