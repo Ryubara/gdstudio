@@ -167,6 +167,11 @@ Studied for the mechanics and the timing only; nothing was traced or copied.
 
 ## What they do not do
 
+- **The build is still on the Quaternius mannequins, and stops since the template wears the prototype bodies**
+  (kit #1299, which solved the pistol's hold again for their hands): its self-test reads the old female's hand
+  14.8 mm in the grip and it writes nothing. `melee.glb` here was built just before that change, with every check
+  passing; it plays on the prototype bodies (the game's suites and captures), but the numbers on this page are the
+  old mannequins'. Moving the build to the prototype bodies is kit #1319.
 - **No step and no weight shift in the legs**: the game plays the upper body over its own legs. A blow thrown
   standing still would be stronger with a step, and that would be a full-body clip of its own.
 - **The pistol's left hand crosses the right while the clip fades** (above). A pose to join in which the hands do not
