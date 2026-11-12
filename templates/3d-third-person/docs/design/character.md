@@ -167,6 +167,11 @@ or off, the most to the left and right of the way the body faces, and the most u
 or the shot is refused. Its own inspector: the chain of spine bones and their shares, `converge_distance`,
 `release_time` (how fast it takes over again after a shot's recoil) and `disabled`.
 
+While the character aims, with any weapon (the fists too), the aim layer also holds the head level and looking along
+the aim, on a straight neck, whatever head the clips carry: in its Head group, `head_neck_share` (the neck's share of
+the turn, 0.4), `head_max_turn` (the most the head turns off the line the chest gives it, 90 degrees) and
+`head_disabled`.
+
 Vaulting and mantling have their own resource, `gameplay/character/vault_settings.tres` (the `Character`'s
 `vault_settings`, in its Traversal group; empty turns them off), described in [Vaulting and mantling](#vaulting).
 
@@ -439,8 +444,10 @@ says how).
 
 ### Prone and crawl clips {#prone-clips}
 
-`assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
-`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above.
+`assets/animation/prone/` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
+`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above,
+one file a body (`prone_form_female.glb` for the template's body, `prone_form_male.glb` for the enemies', `prone.glb`
+and `prone_male.glb` for the Quaternius mannequins): a clip that rests limbs on the floor fits one body's skin.
 The player does not play them yet (the prone stance is kit #1012); add the library to an `AnimationPlayer` as `prone`
 to use them. The crawl covers 0.618 m/s at its own rate with its elbows and feet planted, the body lies 1.07 m ahead of
 and 1.03 m behind the origin and 0.5 m high, and the clips hold no weapon (both hands are on the floor). The arms move
