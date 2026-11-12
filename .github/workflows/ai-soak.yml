@@ -64,14 +64,15 @@ jobs:
           godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
           mkdir -p ai_soak
           failed=0
-          for seed in 26 26 26 26 26 26; do
+          for index in $(seq 0 9); do
+            seed=$((SHARD * 10 + index + 1))
             if ! "$godot" --headless --path repos/template-check/game --fixed-fps 60 res://tools/soak/ai_soak.tscn \
               -- --seconds 120 --seed "$seed" --lines --finite > "ai_soak/seed_$seed.log" 2>&1; then
               failed=$((failed + 1))
               echo "Seed $seed broke a gate:"
               grep "^AI_SOAK_GATE" "ai_soak/seed_$seed.log" | cut -c1-600 || tail -20 "ai_soak/seed_$seed.log"
             fi
-            grep -A12 "^FINITE_PROBE" "ai_soak/seed_$seed.log" | cut -c1-900 | head -80 || true
+            grep -E "^FINITE_PROBE (bad|flinches|error)" "ai_soak/seed_$seed.log" | cut -c1-400 | head -5 || true
             grep "^AI_SOAK_CHARACTER " "ai_soak/seed_$seed.log" | sed 's/^AI_SOAK_CHARACTER //' >> "ai_soak/characters_$SHARD.jsonl"
             grep "^AI_SOAK {" "ai_soak/seed_$seed.log" | sed "s/^AI_SOAK /Seed $seed: /" | cut -c1-400 >> "$GITHUB_STEP_SUMMARY"
           done
