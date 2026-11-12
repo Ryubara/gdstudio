@@ -144,6 +144,8 @@ func _read_options() -> void:
 	character_lines = character_lines or options.has("lines")
 	if options.has("faults"):
 		_faults.faults = AiSoakFaults.parse(String(options.faults))
+	if options.has("finite"):
+		add_child.call_deferred(FiniteProbe.new())
 
 
 # `--name value` pairs of the command line after `--`, or the page's query in a browser.
