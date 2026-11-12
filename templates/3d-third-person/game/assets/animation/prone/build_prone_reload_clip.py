@@ -53,6 +53,8 @@ from pathlib import Path
 
 import bpy
 import numpy as np
+from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_prone_aim_clips as aim  # noqa: E402
@@ -64,16 +66,23 @@ CLIP = "Prone_Reload_Pistol"
 AIM_CLIP = "Prone_Aim_Neutral_Loop"
 
 # `SupportHandPlan`'s constants (gameplay/weapon/hold/support_hand_plan.gd); the Godot test compares the two.
+ARM_UNTIL = 0.3
 WAY_FROM = 0.6
 UNHOOK = 0.45
 LET_GO_WAY = 0.55
 BACK_DOWN = (0.0, 0.3)
 BACK_DOWN_SHARE = 0.4
 BACK_ACROSS = (0.12, 0.62)
+TAKE_CLOSE = 0.04
 
 # The pistol through the clip, as shares of it: it leaves the aim, is in the reload's place, leaves that, aims.
 PISTOL_IN = (0.0, 0.22)
 PISTOL_OUT = (0.74, 0.96)
+# The magazine well is canted toward the left hand between these shares only: after the left hand is off the pistol,
+# and back before it comes on again down its way, which a canted pistol turns up over the pistol (the wrist then
+# bent 86 to 90 degrees to come down onto it).
+CANT_IN = (0.07, 0.26)
+CANT_OUT = (0.7, 0.83)
 SEAT_KICK = 0.006  # metres the pistol gives up its grip as the magazine seats
 BELT_SHARES = (0.215, 0.255)  # the shares of the clip the hand is at the belt
 TRIGGER_OFF = 0.06  # the share of the clip over which the index finger leaves the trigger, and comes back to it
@@ -87,15 +96,16 @@ HAND_FLOOR = -1.0  # millimetres a hand's skin may be under the floor (pressed o
 ARM_FLOOR = aim.ARM_FLOOR  # millimetres an arm's skin may be
 CHEST_FLOOR = -6.0  # millimetres the chest's may be (it rests `aim.CHEST_SINK` in the floor at both ends)
 OVERLAP_LIMIT = base.OVERLAP_LIMIT
+MAGAZINE_FLOOR = 2.0  # millimetres the new magazine in the left hand stays over the floor
 ARM_PARTS = ("upperarm", "lowerarm")
 
 # What each body's reload is made of. The clip is one-sided by what it is (the right arm props, the left one works),
 # and each body has its own numbers where its arms and hands ask for them.
 SHARED = {
-    "cant": 45.0,  # degrees the magazine well is canted toward the left hand
+    "cant": 65.0,  # degrees the magazine well is canted toward the left hand
     "muzzle_up": 24.0,  # degrees the muzzle points up while the pistol is reloaded
     "muzzle_in": 8.0,  # degrees it points to the left of straight ahead
-    "forearm_up": 20.0,  # degrees the propped right forearm rises from the floor
+    "forearm_up": 26.0,  # degrees the propped right forearm rises from the floor
     "forearm_in": 22.0,  # degrees it points inward of straight ahead
     "elbow_out": 35.0,  # degrees outward of straight ahead the propped elbow lies from its shoulder
     "roll": 11.0,  # degrees the chest rolls onto the firing side
@@ -118,7 +128,6 @@ SHARED = {
     # wrist least of the ways that pass through nothing (lifted or tucked back beside the chest, the upper arm
     # passed 26 to 49 mm through the head)
     "pole_return": (-0.4, 0.6, -0.5),
-    "grasp": 0.8,  # how far the left hand closes on the new magazine, from its opened pose to its closed one
     # metres the pistol rises as the left hand lets go, so the hand's way off it (which leads down the grip) stays
     # over the floor, and the shares of the clip over which it rises and comes back down into the reload's place
     "let_go_lift": 0.02,
@@ -126,7 +135,8 @@ SHARED = {
 }
 BODIES = {
     "female": dict(SHARED),
-    "male": dict(SHARED),
+    # The male's hand holds the new magazine lower at the belt: 7 mm under the floor and 4 mm in the hip with the female's place.
+    "male": dict(SHARED, belt=(0.2, 0.09, 0.145)),
 }
 
 
@@ -157,8 +167,15 @@ class ReloadHold(aim.Hold):
             name: {bone: aim.quat_matrix(q) for bone, q in pose.items()} for name, pose in body["poses"].items()
         }
         reload = data["reload"]
-        self.approach = np.array(reload["approach"])
+        self.approach = np.array(body["approach"])
+        self.return_down = np.array(reload["return_down"])
         self.clearance = np.array(reload["clearance"])
+        self.take = reload["take"]
+        self.carry_release, self.carry_arrive = tuple(body["carry_release"]), tuple(body["carry_arrive"])
+        # The new magazine in the left hand, as `WeaponHold` hangs it on the hand's bone: the pistol's own seen
+        # from the `MagazineHand` marker. Its mesh's corners, in the hand bone's space.
+        seen = np.linalg.inv(self.magazine)
+        self.magazine_box = [seen[:3, :3] @ np.array(corner) + seen[:3, 3] for corner in data["magazine_box"]]
         self.leave, self.reach, self.insert, self.back = (
             tuple(reload[k]) for k in ("leave", "reach", "insert", "back")
         )
@@ -166,7 +183,7 @@ class ReloadHold(aim.Hold):
     def plan(self, share):
         """`SupportHandPlan.update(1, 1, share)`: where the left hand is at a share of a reload played while the
         weapon is aimed."""
-        on, magazine_arm, at_magazine, down, across = 0.0, 0.0, 0.0, 0.0, 0.0
+        on, magazine_arm, at_magazine, down, down_back, across = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         if share < self.reach[0]:
             gone = clamp01(inverse_lerp(self.leave[0], self.leave[1], share))
             on = (1.0 + (WAY_FROM - 1.0) * smoothstep(0.0, LET_GO_WAY, gone)) * (
@@ -178,19 +195,35 @@ class ReloadHold(aim.Hold):
             across = smoothstep(BACK_ACROSS[0], BACK_ACROSS[1], returned)
             magazine_arm = smoothstep(self.reach[0], self.reach[1], share)
             at_magazine = 1.0 - across
-            down = 1.0 - inserted + BACK_DOWN_SHARE * smoothstep(BACK_DOWN[0], BACK_DOWN[1], returned)
+            down_back = BACK_DOWN_SHARE * smoothstep(BACK_DOWN[0], BACK_DOWN[1], returned)
+            down = 1.0 - inserted + down_back
             if across >= 1.0:
-                on = WAY_FROM + (1.0 - WAY_FROM) * smoothstep(BACK_ACROSS[1], 1.0, returned)
+                on = ARM_UNTIL + (1.0 - ARM_UNTIL) * smoothstep(BACK_ACROSS[1], 1.0, returned)
         way = 1.0 - clamp01(inverse_lerp(WAY_FROM, 1.0, on))
-        return {
-            "arm": max(clamp01(on / WAY_FROM), magazine_arm),
+        plan = {
+            "arm": max(clamp01(on / ARM_UNTIL), magazine_arm),
             "at_magazine": at_magazine,
             "off": smoothstep(UNHOOK, 1.0, way),
             "down": down,
+            "down_back": down_back,
             "across": across,
             "opened": across if at_magazine > 0.0 else smoothstep(0.0, UNHOOK, way),
             "magazine_fingers": 1.0 if share >= self.reach[0] and across < 1.0 else 0.0,
+            # `SupportHandPlan._magazines`: the new magazine in the hand, and the fingers on it.
+            "in_hand": self.take <= share < self.insert[1],
+            "fingers": 0.0,
+            "carry": 0.0,
+            "carry_open": 0.0,
         }
+        if self.take - TAKE_CLOSE <= share < self.insert[1]:
+            inserted = smoothstep(self.insert[0], self.insert[1], share)
+            plan["fingers"] = smoothstep(self.take - TAKE_CLOSE, self.take, share)
+            plan["carry_open"] = max(
+                1.0 - smoothstep(self.take, self.take + TAKE_CLOSE, share),
+                smoothstep(*self.carry_release, inserted) if share >= self.insert[0] else 0.0,
+            )
+            plan["carry"] = 1.0 - smoothstep(*self.carry_arrive, inserted)
+        return plan
 
     def left_place(self, plan):
         """The left hand's bone in the pistol's space for a plan (`WeaponHold.refresh`)."""
@@ -198,7 +231,7 @@ class ReloadHold(aim.Hold):
         place[:3, 3] += self.way * plan["off"]
         if plan["at_magazine"] > 0.0:
             under = self.magazine.copy()
-            under[:3, 3] += self.approach * plan["down"]
+            under[:3, 3] += self.approach * (plan["down"] - plan["down_back"]) + self.return_down * plan["down_back"]
             mixed = np.eye(4)
             mixed[:3, :3] = base.slerp(place[:3, :3], under[:3, :3], plan["at_magazine"])
             mixed[:3, 3] = place[:3, 3] + (under[:3, 3] - place[:3, 3]) * plan["at_magazine"]
@@ -208,12 +241,18 @@ class ReloadHold(aim.Hold):
 
     def left_fingers(self, plan):
         """The left hand's fingers as the game's hold has them for a plan (`HandPoseModifier`): on the pistol,
-        under the magazine by `magazine_fingers`, opened by `opened`."""
+        under the magazine by `magazine_fingers`, opened by `opened`, and on the new magazine by `carry` (that
+        pose opened by `carry_open`)."""
         support, magazine, opened = self.poses["support"], self.poses["magazine"], self.poses["open"]
+        carry, carry_open = self.poses["carry"], self.poses["carry_open"]
         out = {}
-        for bone, turn in support.items():
-            turn = base.slerp(turn, magazine.get(bone, turn), plan["magazine_fingers"])
-            out[bone] = base.slerp(turn, opened.get(bone, turn), plan["opened"])
+        for bone, own in support.items():
+            turn = base.slerp(own, magazine.get(bone, own), plan["magazine_fingers"])
+            turn = base.slerp(turn, opened.get(bone, own), plan["opened"])
+            if bone in carry and plan["carry"] > 0.0:
+                held = base.slerp(carry[bone], carry_open.get(bone, carry[bone]), plan["carry_open"])
+                turn = base.slerp(turn, held, plan["carry"])
+            out[bone] = turn
         return out
 
     def right_fingers(self, on_trigger):
@@ -255,6 +294,21 @@ class ReloadHold(aim.Hold):
 
     def point(self, pistol, marker):
         return aim.TO_BLENDER @ (pistol @ marker)[:3, 3]
+
+    def magazine_points(self, rig, world):
+        """The new magazine as the left hand of a pose carries it (Blender's axes): its mesh's eight corners, the
+        middles of its twelve edges and of its six sides."""
+        hand = world["hand_l"]
+        turn = hand[:3, :3] @ rig.rest_rot["hand_l"].T
+        corners = [hand[:3, 3] + turn @ (aim.TO_BLENDER @ (self.rest["l"] @ c)) for c in self.magazine_box]
+        points = list(corners)
+        for a in range(8):
+            for b in range(a + 1, 8):
+                # Godot's `AABB.get_endpoint` numbers a corner by its three sides: one bit apart is an edge, two a
+                # side's diagonal.
+                if bin(a ^ b).count("1") in (1, 2):
+                    points.append((corners[a] + corners[b]) / 2)
+        return np.array(points)
 
 
 def mix(a, b, w):
@@ -305,6 +359,11 @@ class Reload:
         if rolled["l"][2] < rolled["r"][2]:
             self.roll_sign = -1.0
         self.belt = self.belt_place()
+        # The share at which the hold's arm starts to give the hand to the clip's (`SupportHandPlan.ARM_UNTIL`:
+        # until then the hand waits at the far end of its way while the right thumb comes back onto the frame).
+        self.gone_at = hold.leave[0]
+        while hold.plan(self.gone_at + 1e-4)["arm"] >= 1.0:
+            self.gone_at += 1e-4
         # The chest rests on the floor in the reload's place too, the propped arm's skin rests on it, and the prop
         # and the pistol follow from both.
         self.elbow_up = 0.045
@@ -362,9 +421,13 @@ class Reload:
         self.prop = shoulder + base.vec(out * math.cos(a), -out * math.sin(a), -drop)
         up, inward = math.radians(n["forearm_up"]), math.radians(n["forearm_in"])
         along = base.vec(math.cos(up) * math.cos(inward), math.cos(up) * math.sin(inward), math.sin(up))
-        wrist = self.prop + rig.len["lowerarm_r"] * along
-        turn = self.hold.basis(n["muzzle_up"], n["cant"], n["muzzle_in"])
-        self.pistol_reload = self.hold.pistol_for_wrist(wrist, turn)
+        self.wrist_reload = self.prop + rig.len["lowerarm_r"] * along
+
+    def pistol_reload(self, canted=1.0):
+        """The pistol in the reload's place, its magazine well `canted` of the way to the left hand."""
+        n = self.n
+        turn = self.hold.basis(n["muzzle_up"], n["cant"] * canted, n["muzzle_in"])
+        return self.hold.pistol_for_wrist(self.wrist_reload, turn)
 
     def rest_chest(self):
         """Degrees the spine gives so that the rolled chest's skin rests on the floor."""
@@ -407,7 +470,8 @@ class Reload:
     def pistol(self, t):
         """The pistol at a share of the clip."""
         s = self.share(t)
-        pistol = mix_xf(self.pistol_aim, self.pistol_reload, s)
+        canted = smoothstep(*CANT_IN, t) * (1.0 - smoothstep(*CANT_OUT, t))
+        pistol = mix_xf(self.pistol_aim, self.pistol_reload(canted), s)
         # The magazine seats: the pistol gives a little up its own grip and comes back.
         seat = self.hold.insert[1]
         after = max(t - seat, 0.0) / 0.012
@@ -432,23 +496,27 @@ class Reload:
         returned = inverse_lerp(hold.back[0], hold.back[1], t)
         lifted = smoothstep(0.1, 0.5, returned) * (1.0 - smoothstep(0.85, 1.3, returned))
         pole_work = mix(pole_work, base.unit(base.vec(*n["pole_return"])), lifted)
-        gone_at = hold.leave[0] + (hold.leave[1] - hold.leave[0]) * LET_GO_WAY
+        gone_at = self.gone_at
         if t <= gone_at or t >= hold.reach[1]:
             return near, pole_work, 0.0, held
         belt_place, belt_turn = self.belt
-        opened = hold.poses["open"]
-        grasp = {bone: base.slerp(opened[bone], turn, n["grasp"]) for bone, turn in hold.poses["support"].items()}
+        # The fingers are the hold's from the grab at the belt on (`SupportHandPlan.fingers`: opened to take the
+        # new magazine, closed on it, and open off it as it goes in), so the clip keys the hold's own pose there
+        # and the blend of the two is that pose at any weight; before, on the way to the belt, they go from the
+        # opened hand that left the pistol to the hand opened for the magazine.
+        grab = hold.take - TAKE_CLOSE
+        fingers = held
+        if t < grab:
+            taking = hold.left_fingers(hold.plan(grab))
+            ready = smoothstep(gone_at, grab, t)
+            fingers = {bone: base.slerp(turn, taking[bone], ready) for bone, turn in held.items()}
         if t < BELT_SHARES[1]:
             w = smoothstep(gone_at, BELT_SHARES[0], t)
             far = near
-            close = smoothstep(BELT_SHARES[0] - 0.04, BELT_SHARES[0] + 0.01, t)
-            fingers = {bone: base.slerp(opened[bone], turn, close) for bone, turn in grasp.items()}
         else:
             # Back from the belt to the line under the magazine, where the hold takes the hand again.
             w = 1.0 - smoothstep(BELT_SHARES[1], hold.reach[1], t)
             far = hold.hands_of(pistol, hold.left_place(hold.plan(max(t, hold.reach[0]))))["l"]
-            under = smoothstep(hold.reach[0], hold.reach[1], t)
-            fingers = {bone: base.slerp(turn, hold.poses["magazine"][bone], under) for bone, turn in grasp.items()}
         place = (1.0 - w) ** 2 * far[0] + 2.0 * w * (1.0 - w) * base.vec(*n["belt_swing"]) + w**2 * belt_place
         turn = base.slerp(far[1], belt_turn, w)
         pole = mix(pole_work, base.unit(base.vec(*n["pole_belt"])), w)
@@ -574,6 +642,7 @@ def main():
 
     worst = {"place": 0.0, "prop": 0.0, "bend_l": 0.0, "bend_r": 0.0, "stretch_l": 0.0, "stretch_r": 0.0}
     lowest = {}  # part: [millimetres over the floor, frame]
+    magazine = {}  # the new magazine in the hand: its lowest over the floor, its deepest in the body, each with a frame
     held = [f for f in range(FRAMES + 1) if PISTOL_IN[1] <= f / FRAMES <= PISTOL_OUT[0]]
     for f, pose in enumerate(frames):
         t = f / FRAMES
@@ -624,6 +693,27 @@ def main():
         entry["chest_mm"] = round(rig.lowest(skinned, ("spine", "clavicle", "neck", "Head")) * 1e3, 1)
         if "chest" not in lowest or entry["chest_mm"] < lowest["chest"][0]:
             lowest["chest"] = [entry["chest_mm"], f]
+        if plan["in_hand"]:
+            # The new magazine in the left hand: over the floor, and in no part of the body but the hands (the
+            # nearest skin's side tells in from out).
+            points = hold.magazine_points(rig, world)
+            entry["magazine_mm"] = round(float(points[:, 2].min()) * 1e3, 1)
+            tree = BVHTree.FromPolygons([Vector(v) for v in skinned], [tuple(t) for t in rig.tris])
+            deepest, where = 0.0, ""
+            for point in points:
+                near, normal, index, far = tree.find_nearest(Vector(point))
+                part = str(rig.owner[rig.tris[index][0]])
+                # The right hand's fingers lie on the grip the magazine goes into: the hold's, measured in Godot.
+                in_hand = part.startswith(aim.HAND_PARTS)
+                if not in_hand and (Vector(point) - near).dot(normal) < 0.0 and far > deepest:
+                    deepest, where = far, part
+            entry["magazine_in_mm"] = [round(deepest * 1e3, 1), where]
+            for key, value in (("floor", [entry["magazine_mm"], f]), ("in", [entry["magazine_in_mm"], f])):
+                worse = key not in magazine or (
+                    value[0] < magazine[key][0] if key == "floor" else value[0][0] > magazine[key][0][0]
+                )
+                if worse:
+                    magazine[key] = value
         report["frames"].append(entry)
         if plan["arm"] >= 1.0:
             worst["place"] = max(worst["place"], off)
@@ -636,6 +726,11 @@ def main():
                 failures.append(f"frame {f}: the pistol's {part} is {up:.3f} m over the floor")
     report["worst"] = {k: round(v * (1000.0 if k in ("place", "prop") else 1.0), 3) for k, v in worst.items()}
     report["floor_mm"] = lowest
+    report["magazine"] = magazine
+    if magazine["floor"][0] < MAGAZINE_FLOOR:
+        failures.append(f"the new magazine is {magazine['floor'][0]} mm over the floor at frame {magazine['floor'][1]}")
+    if magazine["in"][0][0] > OVERLAP_LIMIT:
+        failures.append(f"the new magazine is {magazine['in'][0]} in the body at frame {magazine['in'][1]}")
     for part, (up, f) in lowest.items():
         if up < {"hand": HAND_FLOOR, "arm_": ARM_FLOOR, "ches": CHEST_FLOOR}[part[:4]]:
             failures.append(f"the skin of {part} is {-up} mm under the floor at frame {f}")

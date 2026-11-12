@@ -35,6 +35,10 @@ const JOINS := 0.5
 ## The lowest a hand or finger bone may be over the floor, in metres, and the pistol's parts.
 const BONE_FLOOR: Dictionary[String, float] = {"female": 0.008, "male": 0.004}
 const PISTOL_FLOOR := 0.0
+## The lowest the new magazine in the left hand may be over the floor, in metres, and how far off
+## its line up the grip it may be while it goes in (`test_reload_magazine.gd`'s, standing).
+const MAGAZINE_FLOOR := 0.005
+const ON_LINE := 0.0015
 
 var _holder: Node3D
 
@@ -114,9 +118,18 @@ func test_the_right_hand_holds_the_pistol_through_the_prone_reload() -> void:
 		for step in ceili(1.0 / STEP) + 1:
 			var share := minf(step * STEP, 1.0)
 			await _pose(stage, share)
-			var parts := stage.contact.measure("r")
+			# Against the gun and the other hand: the right thumb rests on the left thumb's root
+			# while that hand is on the pistol (kit #1171), as standing.
+			var parts := stage.contact.measure("r", true)
 			var tag := "%s prone reload at %.2f r:" % [model, share]
-			var fails := HandContact.failures(tag, parts, HoldStage.RIGHT_CONTACTS)
+			# The thumb holds only on the frame (no room asked) or with the left hand closed under
+			# it: between the two it is in the air, as `test_pistol_hold.gd` has it standing.
+			var contacts := HoldStage.RIGHT_CONTACTS
+			var plan := (stage.hold as WeaponHold).left_hand()
+			var under := plan.room >= 1.0 and plan.off <= 0.0 and plan.opened <= 0.0
+			if plan.room > 0.0 and not under:
+				contacts = contacts.filter(func(part: String) -> bool: return part != "thumb_tip")
+			var fails := HandContact.failures(tag, parts, contacts)
 			assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
 		stage.free()
 
@@ -227,4 +240,54 @@ func test_the_hands_and_the_pistol_stay_over_the_floor() -> void:
 					)
 					. is_greater(PISTOL_FLOOR)
 				)
+		stage.free()
+
+
+# The new magazine (kit #1052) rides the left hand through the prone reload as it does standing:
+# in the hand from the belt, over the floor all the way, and up the grip's own line as it goes in.
+func test_the_new_magazine_stays_over_the_floor_and_goes_up_the_grips_line() -> void:
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		var hold := stage.hold as WeaponHold
+		await _pose(stage, 0.0)
+		var gun_magazine := stage.pistol.get_node("Pistol/Magazine") as Node3D
+		var rest := WeaponHold._in(gun_magazine, stage.pistol)
+		var line := hold.magazine_approach.normalized()
+		var held := hold.held_magazine()
+		var mesh := held.get_child(0) as MeshInstance3D
+		var box := mesh.mesh.get_aabb()
+		var carried := 0
+		for step in 101:
+			var share := step * 0.01
+			await _pose(stage, share)
+			var tag := "%s prone reload at %.2f" % [model, share]
+			assert_bool(held.visible).override_failure_message(tag).is_equal(
+				share >= hold.reload_take and share < hold.reload_insert.y
+			)
+			if not held.visible:
+				continue
+			carried += 1
+			var lowest := INF
+			for corner in 8:
+				lowest = minf(lowest, (mesh.global_transform * box.get_endpoint(corner)).y)
+			(
+				assert_float(lowest)
+				. override_failure_message(
+					"%s: the new magazine is %.1f mm over the floor" % [tag, lowest * 1e3]
+				)
+				. is_greater(MAGAZINE_FLOOR)
+			)
+			if share < hold.reload_insert.x:
+				continue
+			var place := stage.pistol.global_transform.affine_inverse() * mesh.global_transform
+			var off := place.origin - rest.origin
+			var aside := (off - line * off.dot(line)).length()
+			(
+				assert_float(aside)
+				. override_failure_message(
+					"%s: the magazine %.1f mm off the grip's line" % [tag, aside * 1e3]
+				)
+				. is_less(ON_LINE)
+			)
+		assert_int(carried).override_failure_message("%s: never carried" % model).is_greater(20)
 		stage.free()

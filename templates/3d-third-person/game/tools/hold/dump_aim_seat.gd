@@ -9,8 +9,11 @@
 ## there. For a clip that reloads (kit #1185, `build_prone_reload_clip.py`) it also writes, for
 ## each body, the `MagazineHand` marker, the way its opened hand leaves the weapon (`way`) and the
 ## magazine and open finger poses, and once the rest of the left hand's way through a reload as
-## `WeaponHold` has it (`reload`: the approach under the magazine, the bow of the way back and the
-## four pairs of shares).
+## `WeaponHold` has it (`reload`: the way down off the seated magazine, the bow of the way back,
+## the four pairs of shares and the share at which the hand takes the new magazine). Since the new
+## magazine rides the left hand (kit #1052) it writes each body's approach under the magazine, its
+## carry poses (closed on the new magazine, and opened to take it) and the shares of the way in
+## over which the fingers let go of it, and once the corners of the magazine's mesh in the pistol.
 ##
 ## `<godot> --headless --path game -s res://tools/hold/dump_aim_seat.gd -- <out.json>`
 extends SceneTree
@@ -49,6 +52,11 @@ func _initialize() -> void:
 		var way := hold.support_way
 		var under := hold.magazine_pose
 		var open := hold.open_pose
+		var carry := hold.carry_pose
+		var carry_open := hold.carry_open_pose
+		var approach := hold.magazine_approach
+		var release := hold.carry_release
+		var arrive := hold.carry_arrive
 		for fit in hold.fits:
 			if fit != null and fit.body == (MODELS[model] as String).get_file():
 				seat = fit.seat
@@ -60,17 +68,28 @@ func _initialize() -> void:
 				way = fit.support_way
 				under = fit.magazine_pose
 				open = fit.open_pose
+				carry = fit.carry_pose
+				carry_open = fit.carry_open_pose
+				approach = fit.magazine_approach
+				release = fit.carry_release
+				arrive = fit.carry_arrive
 		body["seat"] = _xf(seat)
 		body["support"] = _xf(support)
 		if magazine_node != null:
 			body["magazine"] = _xf(magazine)
 			body["way"] = _v(way)
+			body["approach"] = _v(approach)
+			body["carry_release"] = [release.x, release.y]
+			body["carry_arrive"] = [arrive.x, arrive.y]
 		var turn: Quaternion = grip.turns[bone]
 		body["turn"] = [turn.x, turn.y, turn.z, turn.w]
 		body["poses"] = {"grip": _quats(grip), "trigger": _quats(trigger), "support": _quats(left)}
 		if under != null and open != null:
 			body["poses"]["magazine"] = _quats(under)
 			body["poses"]["open"] = _quats(open)
+		if carry != null and carry_open != null:
+			body["poses"]["carry"] = _quats(carry)
+			body["poses"]["carry_open"] = _quats(carry_open)
 		var rests := {}
 		for index in skeleton.get_bone_count():
 			rests[skeleton.get_bone_name(index)] = _quat(skeleton.get_bone_rest(index).basis)
@@ -81,9 +100,17 @@ func _initialize() -> void:
 	var muzzle := pistol.find_child("Muzzle", true, false) as Node3D
 	out["muzzle"] = _xf(_within(muzzle, pistol))
 	# The magazine's origin is its foot: the lowest point of the grip.
-	out["foot"] = _xf(_within(pistol.find_child("Magazine", true, false) as Node3D, pistol))
+	var magazine_mesh := pistol.find_child("Magazine", true, false) as MeshInstance3D
+	out["foot"] = _xf(_within(magazine_mesh, pistol))
+	# The eight corners of the magazine's mesh in the pistol, for the new one in the left hand.
+	var box := magazine_mesh.mesh.get_aabb()
+	var corners := []
+	for index in 8:
+		corners.append(_v(_within(magazine_mesh, pistol) * box.get_endpoint(index)))
+	out["magazine_box"] = corners
 	out["reload"] = {
-		"approach": _v(hold.magazine_approach),
+		"return_down": _v(hold.return_down),
+		"take": hold.reload_take,
 		"clearance": _v(hold.return_clearance),
 		"leave": [hold.reload_leave.x, hold.reload_leave.y],
 		"reach": [hold.reload_reach.x, hold.reload_reach.y],
