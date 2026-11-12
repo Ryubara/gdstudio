@@ -28,6 +28,17 @@ def square_to(v: np.ndarray, axis: np.ndarray, fallback: np.ndarray = Y) -> np.n
     return unit(out)
 
 
+def segment_gap(a0: np.ndarray, a1: np.ndarray, b0: np.ndarray, b1: np.ndarray) -> float:
+    """The least distance between two line segments."""
+    u, v, w = a1 - a0, b1 - b0, a0 - b0
+    uu, uv, vv, uw, vw = np.dot(u, u), np.dot(u, v), np.dot(v, v), np.dot(u, w), np.dot(v, w)
+    den = uu * vv - uv * uv
+    s = float(np.clip((uv * vw - vv * uw) / den, 0.0, 1.0)) if den > 1e-12 else 0.0
+    t = float(np.clip((uv * s + vw) / vv, 0.0, 1.0)) if vv > 1e-12 else 0.0
+    s = float(np.clip((uv * t - uw) / uu, 0.0, 1.0)) if uu > 1e-12 else 0.0
+    return float(np.linalg.norm(w + s * u - t * v))
+
+
 def axis_angle(axis: np.ndarray, degrees: float) -> np.ndarray:
     """The rotation of `degrees` about `axis` (right-handed)."""
     x, y, z = unit(axis)

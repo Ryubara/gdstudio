@@ -89,7 +89,7 @@
    "joins": {},
    "kind": "stand",
    "loop": true,
-   "reduced_to_deg": 0.0125,
+   "reduced_to_deg": 0.025,
    "replaces": "ual1/Crouch_Idle",
    "seconds": 8.0,
    "speed": 0.0,

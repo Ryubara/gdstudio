@@ -61,6 +61,8 @@ class Footfall:
     roll_in: float = 0.0
     toe_off: float = 0.0
     roll_out: float = 0.0
+    ## Degrees the heel is held up over the toes for the whole contact: a foot that stands on its ball.
+    heel: float = 0.0
 
 
 @dataclass
@@ -117,7 +119,7 @@ class ContactPlan:
             if end <= start:
                 continue
             first = min(max(fall.land + fall.roll_in, start), end)
-            last = first if heel_up else max(min(fall.lift - fall.roll_out, end), first)
+            last = first if heel_up or fall.heel > 0.0 else max(min(fall.lift - fall.roll_out, end), first)
             out.append([round(first, 3), round(last, 3)])
         return out
 
@@ -220,8 +222,8 @@ class ContactPlan:
             return self._state(rig, side, "heel", heel, -fall.heel_strike * share, fall.yaw)
         if fall.roll_out > 0.0 and f > fall.lift - fall.roll_out:
             share = maths.smooth((f - (fall.lift - fall.roll_out)) / fall.roll_out)
-            return self._state(rig, side, "ball", ball, fall.toe_off * share, fall.yaw)
-        return self._state(rig, side, "ball", ball, 0.0, fall.yaw)
+            return self._state(rig, side, "ball", ball, fall.heel + (fall.toe_off - fall.heel) * share, fall.yaw)
+        return self._state(rig, side, "ball", ball, fall.heel, fall.yaw)
 
     def _swing(self, rig: Rig, side: str, before: tuple, after: tuple, f: float) -> dict:
         sole = rig.sole[side]
@@ -235,13 +237,14 @@ class ContactPlan:
         end = heel + land_turn @ (sole["ball"] - sole["heel"])
         ball = start + (end - start) * go
         ball[1] += self.clearance * math.sin(math.pi * u) ** 2
-        pitch_a = a.toe_off if a.roll_out > 0.0 else 0.0
-        pitch_b = -b.heel_strike if b.roll_in > 0.0 else 0.0
+        pitch_a = a.toe_off if a.roll_out > 0.0 else a.heel
+        pitch_b = -b.heel_strike if b.roll_in > 0.0 else b.heel
         # The heel stays up through the first half of the swing, then the toes come up for the landing.
         pitch = pitch_a + (pitch_b - pitch_a) * maths.smooth((u - 0.15) / 0.7)
         yaw = a.yaw + (b.yaw - a.yaw) * go
         out = self._state(rig, side, "ball", ball, pitch, yaw)
-        out["toe"] = max(pitch_a, 0.0) * (1.0 - maths.smooth(u / 0.3))
+        # The toes straighten as the foot leaves, and bend again before a landing on the ball of the foot.
+        out["toe"] = max(pitch_a, 0.0) * (1.0 - maths.smooth(u / 0.3)) + max(pitch_b, 0.0) * maths.smooth((u - 0.25) / 0.75)
         # The toes hang under a foot whose heel is still up: lift the foot until their tip clears the floor.
         hinge = ball + (sole["hinge"] - sole["ball"])
         toes = sole["toe"] - sole["hinge"]

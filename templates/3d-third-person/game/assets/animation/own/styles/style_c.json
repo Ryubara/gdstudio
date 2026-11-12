@@ -46,24 +46,111 @@
   "sway": 0.002
  },
  "crouch_idle": {
+  "fold": 0.535,
+  "foot_ahead": [
+   0.0,
+   -0.4
+  ],
+  "foot_wide": [
+   0.0,
+   0.02
+  ],
+  "heel": [
+   0.0,
+   38.0
+  ],
+  "knee_out": [
+   2.0,
+   8.0
+  ],
+  "share": 0.6,
+  "shift": 0.04,
+  "sway": 0.002,
+  "pelvis": [
+   18.0,
+   -6.0,
+   -3.0
+  ],
+  "chest": [
+   76.0,
+   4.0,
+   2.0
+  ],
+  "head": [
+   20.0,
+   -6.0,
+   2.0
+  ],
   "head_sharp": 0.5,
   "head_yaw": 16.0,
-  "shift": 0.05,
-  "finger_live": 3.0,
-  "sway": 0.002
+  "arm_swing": [
+   52.0,
+   8.0
+  ],
+  "arm_out": [
+   6.0,
+   16.0
+  ],
+  "arm_twist": [
+   38.0,
+   10.0
+  ],
+  "elbow": [
+   66.0,
+   62.0
+  ],
+  "pronate": [
+   40.0,
+   30.0
+  ],
+  "wrist": [
+   8.0,
+   0.0
+  ],
+  "carry": [
+   0.5,
+   0.4
+  ],
+  "arm_rest": [
+   0.115,
+   0.0
+  ],
+  "arm_clear": [
+   0.0,
+   0.1
+  ],
+  "curl_more": [
+   16.0,
+   20.0
+  ],
+  "finger_live": [
+   2.0,
+   2.5
+  ],
+  "hand_rest": [
+   0.075,
+   0.0
+  ],
+  "foot_turn": [
+   0.0,
+   9.0
+  ]
  },
  "crouch_walk": {
   "frames": 20,
   "dip": 0.008,
   "hip_turn": 5.0,
   "chest_turn": 4.0,
-  "arm_swing": 11.0
+  "arm_swing": [
+   7.0,
+   13.0
+  ]
  },
  "stand_to_crouch": {
-  "frames": 13,
-  "fall": 0.72,
+  "frames": 15,
+  "fall": 0.66,
   "chest": [
-   0.0,
+   0.1,
    1.0
   ],
   "drop": [
@@ -73,17 +160,21 @@
   "meet": 3
  },
  "crouch_to_stand": {
-  "frames": 14,
-  "fall": 0.32,
+  "frames": 15,
+  "fall": 0.34,
   "drop": [
    0.0,
    1.0
   ],
   "chest": [
-   0.05,
+   0.1,
    1.0
   ],
-  "meet": 3
+  "meet": 3,
+  "step": [
+   0.3,
+   0.78
+  ]
  },
  "overlap_crouch_walk": {
   "chest": [
