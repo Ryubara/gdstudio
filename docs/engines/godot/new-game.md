@@ -159,7 +159,7 @@ every exit, kept with `--keep`, two calls at once).
   checkout whose `python` folder `--project` names, not the folder you stand in, so `--project` names the worktree's
   (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
   **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
-  gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template).
+  gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template); #1274.
 - **Approach:** Give a new script or shader its `.uid` before `gds template test` with `gds template uids
   <template>` (the template's name, or a folder holding `project.godot`): it writes each missing file in Godot's form
   and leaves every valid one alone. A new asset's `.import` still comes from the kept game (`gds template game
@@ -327,7 +327,7 @@ Every template sound but the pistol shots is generated with ElevenLabs Sound Eff
   2026-11-11 (fix: `gds template test --keep`, the tour copied into the kept game, `gds template clean` after);
   gdstudio #1320, 2026-11-11 (a probe script run with `--path` at the kept folder the command prints, which is the
   game's repository: the Godot project is its `game/` folder, the script found no resource, did not quit and held
-  the shell for its ten minutes; run every such probe under `timeout 120`).
+  the shell for its ten minutes; run every such probe under `timeout 120`); #1274, 2026-11-12.
 
 ## What every template is built and reviewed against {#template-checklist}
 

@@ -228,11 +228,12 @@ const _RELOAD_FADE_OUT := 0.2
 ## Prone clips a model plays instead of the `AnimationPlayer`'s own `prone` library, by the model's
 ## scene file (`res://assets/characters/mannequin/mannequin_male.glb`): a body whose limbs differ
 ## lies on the floor with clips solved on it. The library must hold the same clip names. Swapped
-## in the game when the model is set or replaced, never in the editor (the scene keeps the shared
-## library).
+## in the game when the model is set or replaced, never in the editor (the scene keeps its own).
 @export var prone_libraries: Dictionary[String, AnimationLibrary] = {}
 ## The same for the `prone_aim` library: the hands of each body are solved on its own arms.
 @export var prone_aim_libraries: Dictionary[String, AnimationLibrary] = {}
+## The same for the library `prone_reload`: a reload lying down is solved a body, as the aim is.
+@export var prone_reload_libraries: Dictionary[String, AnimationLibrary] = {}
 
 @export_group("Weapon")
 ## How the weapon is carried while the character is not aiming or firing. The clips are the held
@@ -309,8 +310,8 @@ func _ready() -> void:
 	if model != null:
 		model.rig_changed.connect(_on_rig_changed)
 		_follow_rig()
-	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_libraries)
-	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_aim_libraries, true)
+	var own := [prone_libraries, prone_aim_libraries, prone_reload_libraries]
+	_prone_look.use_body_clips(animation_player, _rig_or_null(), own)
 	_vault_look.use_model_clips(animation_player, _rig_or_null(), vault_libraries)
 	_build()
 	_follow_tuning()
@@ -469,11 +470,9 @@ func play_clip(clip: StringName, duration: float = 0.0) -> void:
 
 
 ## How far the weapon is held (x: 0 away, 1 in the hand) and aimed (y: 0 carried, 1 the arm up),
-## standing or lying, less the aim during a melee blow.
+## standing or lying, the aim less during a melee blow.
 func pistol_weights() -> Vector2:
-	if tree == null:
-		return Vector2.ZERO
-	return Vector2(_weights.x, _weights.y * (1.0 - melee.share(tree)))
+	return melee.weigh(tree, _weights) if tree != null else Vector2.ZERO
 
 
 ## How far the body lies with a weapon that has a prone aim (0 up, 1 lying): by this much the
@@ -558,8 +557,8 @@ func _on_rig_changed(_rig: Node3D) -> void:
 			tree.active = false
 		return
 	_follow_rig()
-	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_libraries)
-	_prone_look.use_model_clips(animation_player, _rig_or_null(), prone_aim_libraries, true)
+	var own := [prone_libraries, prone_aim_libraries, prone_reload_libraries]
+	_prone_look.use_body_clips(animation_player, _rig_or_null(), own)
 	_vault_look.use_model_clips(animation_player, _rig_or_null(), vault_libraries)
 	tree.anim_player = NodePath()
 	if not Engine.is_editor_hint():
@@ -654,7 +653,7 @@ func _drive_pistol(delta: float) -> void:
 	var up_share := ProneAnimation.upright_share(character, hold)
 	if character.loadout != null:
 		up_share *= 1.0 - character.loadout.lowered_amount()
-	var stowed := ProneAnimation.stow_share(character)
+	var stowed := ProneAnimation.stow_share(character, reload_progress().x)
 	var stow := maxf(stowed, _vault_look.hands)
 	var hidden := stowed > 0.5 or _vault_look.away
 	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, hidden)
@@ -663,6 +662,8 @@ func _drive_pistol(delta: float) -> void:
 	var arm := _brace.arm(self, delta)
 	# Lying with a prone aim, its clips (in the prone state) stand in for the standing layers.
 	var lying := _prone_look.lying(character, hold)
+	if is_reloading() and _prone_look.reload_misplaced():
+		stop_reload()
 	_weights = Vector2(armed, arm * aims)
 	tree.set(_P_ARMED, minf(armed, 1.0 - lying))
 	tree.set(_P_AIM, arm * aims * (1.0 - lying))
@@ -770,9 +771,8 @@ func _on_shot(_projectile: Projectile) -> void:
 		# One clip after another shot by shot (a jab, then a cross).
 		_shoot_clip_node.animation = hold.shoot_clips[_shots % hold.shoot_clips.size()]
 	_shots += 1
-	if _prone_look.kick():
-		return
-	ShotLayer.fire(tree, hold)
+	if not _prone_look.kick():
+		ShotLayer.fire(tree, hold)
 
 
 func _on_definition_changed(_definition: WeaponDef) -> void:
@@ -782,12 +782,12 @@ func _on_definition_changed(_definition: WeaponDef) -> void:
 
 
 func _on_reload_started(seconds: float) -> void:
-	var hold := held_definition()
-	if hold == null or hold.reload_clip == &"" or _prone_look.plays_no_reload(character, hold):
+	var clip := _prone_look.reload_clip(character, held_definition())
+	if clip == &"" or not animation_player.has_animation(clip):
 		return
-	if not animation_player.has_animation(hold.reload_clip):
-		return
-	var length := animation_player.get_animation(hold.reload_clip).length
+	var root := tree.tree_root as AnimationNodeBlendTree
+	(root.get_node(_RELOAD_CLIP) as AnimationNodeAnimation).animation = clip
+	var length := animation_player.get_animation(clip).length
 	tree.set(_P_RELOAD_SCALE, length / maxf(seconds, 0.01))
 	tree.set(_P_RELOAD_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
@@ -826,9 +826,7 @@ func _build_root() -> AnimationNodeBlendTree:
 # it (`ShotLayer`) and `Reload` the reload clip, both on the upper body. An empty clip is idle.
 func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	var hold := held_definition()
-	var grip_bones: Array[StringName] = []
-	if hold != null:
-		grip_bones = hold.grip_bones
+	var grip_bones: Array = hold.grip_bones if hold != null else []
 	var upper := _bone_paths([upper_body_bone])
 	var held := _bone_paths(grip_bones) if carry == Carry.HAND_ONLY else upper
 	var armed := AnimationNodeBlend2.new()
@@ -845,9 +843,10 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	reload.filter_enabled = true
 	for path in held:
 		armed.set_filter_path(path, true)
+	var free := _bone_paths(hold.free_bones() if hold != null else [])
 	for path in upper:
-		aim.set_filter_path(path, true)
-		shoot.set_filter_path(path, true)
+		aim.set_filter_path(path, not free.has(path))
+		shoot.set_filter_path(path, not free.has(path))
 		reload.set_filter_path(path, true)
 	var pose := AnimationNodeBlendSpace1D.new()
 	pose.min_space = -aim_pitch_range

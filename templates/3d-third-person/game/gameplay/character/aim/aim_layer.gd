@@ -143,7 +143,7 @@ func refresh() -> void:
 	aim.muzzle = character.weapon.muzzle
 	aim.limits = character.aim_limits
 	aim.target = aim_point(Engine.get_physics_interpolation_fraction())
-	aim.hold_turn = animation.is_shooting()
+	aim.hold_turn = animation.is_shooting() or animation.is_reloading()
 	aim.release_time = release_time
 
 
@@ -233,9 +233,9 @@ func _build() -> void:
 func _place(skeleton: Skeleton3D) -> void:
 	var at := 0
 	if hold != null:
-		var made := hold.modifiers()
-		if not made.is_empty():
-			at = made[0].get_index() + 1
+		var grip := hold.grip_modifier()
+		if grip != null:
+			at = grip.get_index() + 1
 	if _modifier.get_index() > at:
 		skeleton.move_child(_modifier, at)
 	elif _modifier.get_index() < at:

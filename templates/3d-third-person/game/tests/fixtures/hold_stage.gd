@@ -16,6 +16,8 @@ const LIBRARIES: Dictionary[String, String] = {
 	"ual1": "res://assets/animation/universal/ual1.glb",
 	"ual2": "res://assets/animation/universal/ual2.glb",
 	"prone_aim": "res://assets/animation/prone/prone_aim.glb",
+	"prone_reload": "res://assets/animation/prone/prone_reload.glb",
+	"prone_reload_male": "res://assets/animation/prone/prone_reload_male.glb",
 	"prone_aim_male": "res://assets/animation/prone/prone_aim_male.glb",
 	"pistol": "res://assets/animation/pistol/pistol_rack.glb",
 	"gds": "res://assets/animation/own/locomotion.glb",

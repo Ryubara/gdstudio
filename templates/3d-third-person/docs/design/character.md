@@ -337,9 +337,14 @@ Animation's `prone_shot_kick` (7 degrees), which settles over `prone_shot_kick_t
 `prone_aim_clip` is empty aims lying down with its standing clips. Each body plays the aim clips solved on its own
 arms and hands: the scene's `prone_aim` library is `form_female`'s, and the Animation's `prone_aim_libraries` gives
 `form_male` its own file, as `prone_libraries` does for the prone clips. The aim layer stops at the down clip's 25
-degrees lying down (`ProneTuning.aim_limits`), so the pistol never turns into the floor. A reload lying down keeps
-the prone aim (the
-standing reload clip is not played on a lying body; a prone reload clip is kit #1185). The camera frames it with its
+degrees lying down (`ProneTuning.aim_limits`), so the pistol never turns into the floor. A reload lying down plays the weapon's
+`prone_reload_clip` (the pistol's is `prone_reload/Prone_Reload_Pistol`) on the reload layer, never the standing
+`reload_clip`: the body rolls a little onto its right side, the right arm props on its elbow with the pistol canted
+in front of the face, and the left hand fetches the magazine at the belt, pushes it in and takes the pistol again,
+at the standing reload's shares, so the `WeaponHold` follows it as it is. Each body plays the reload solved on it
+(`prone_reload_libraries`, as the aim's files). A reload with the pistol put away brings
+it out for the reload, a body that gets up stops the lying clip, and a weapon with no `prone_reload_clip` shows no
+clip lying down. The camera frames it with its
 Prone aim group
 (`PlayerCamera`: `prone_aim_view`, `prone_aim_distance` 1.8 m, `prone_aim_ahead` 0.55 m, `prone_aim_rise` 0 m,
 `prone_aim_shoulder` 0.7 m, `prone_aim_fov` 50 degrees): the view turns about the shoulders, not the hips, and sits
@@ -387,8 +392,9 @@ both mannequins: `tests/gameplay/test_pistol_clearance.gd` measures it on the sk
 `character_dressed.tscn`), after the clips: the library's fist is one pose for every weapon and does not fit this one.
 It makes three modifiers under the model's `Skeleton3D` and makes them again when the model is replaced. It reads the
 pistol layer's weights (`CharacterAnimation.pistol_weights()`) and where the reload clip is (`reload_progress()`), so it
-follows the carry, the aim, a reload and a death with no wiring of its own. Lying with a prone aim (`prone_hold_share()`),
-its left arm keeps the elbow the clip gives it (`support_keep_elbow`). Through a reload the left hand is on the
+follows the carry, the aim, a reload and a death with no wiring of its own. Lying with a prone aim
+(`prone_hold_share()`), its left arm keeps the elbow the clip gives it (`support_keep_elbow`). Through a reload the
+left hand is on the
 pistol, away with the clip's arm for the new magazine, under the magazine while it goes in, and on the pistol again. The
 magazines go with it: the pistol's own `Magazine` drops out of the grip and falls to the floor when the reload's first
 sound plays, a new one is in the left hand from the belt (the fingers open, then close on it), comes up the grip's own
@@ -401,8 +407,9 @@ where it holds, the opened hand leaves along a line that passes through nothing,
 clip's arm take it; it waits there while the right thumb makes room, and an arm too short for the hand's place (the aim
 coming up) backs the hand off along that line. `SupportHandPlan` (`gameplay/weapon/hold/support_hand_plan.gd`) works
 that out and names the reload's phases (`HELD`, `LET_GO`, `AWAY`, `REACH`, `INSERT`, `SEATED`, `RETURN`); read
-`WeaponHold.left_hand()` for whatever should move with the hand. Everything is tuned in its inspector while the game
-runs:
+`WeaponHold.left_hand()` for whatever should move with the hand. Held in one hand (`one_handed`, kit #1085) a fourth
+modifier turns the body side-on and reaches the right arm out, and the left hand comes in only to reload. Everything
+is tuned in its inspector while the game runs:
 
 | Property | Default | What it does |
 | --- | --- | --- |
@@ -424,7 +431,11 @@ runs:
 | `reload_take`, `reload_drop` | 0.25, 0.2 | The share of the reload clip at which the hand takes the new magazine at the belt, and the one at which the old magazine drops when the weapon definition gives none (its first reload sound does). |
 | `drop_speed`, `dropped_life`, `dropped_mask` | 0.5 m/s, 8 s, World and Props | How fast the old magazine leaves the grip down its line (the weapon's own motion is added), how long it lies in the world (one a character), and what it falls onto; it is on no layer, so no shot and no camera meets it. |
 | `slide_part`, `slide_travel`, `reload_slide` | `Pistol/Slide`, 0.04 m, 0.85 | The Slide group: the weapon's slide, how far it stands back while the weapon is empty, and the share at which it runs forward when the definition gives none (its last reload sound does). |
-| `held_weight`, `aim_weight`, `reload_weight`, `reload_share` | from the animation | How far the hold, its aim and a reload are on, and the share of the reload clip played, for a character posed by hand (no `animation` set). |
+| `one_handed` | off (the held `WeaponDef.one_handed`) | Aim and shoot in the right hand alone: the chest side-on, the arm out along the barrel, the left arm on the locomotion clip and a little out, and the left hand on the pistol only for a reload. Switches while the game runs. |
+| `one_hand_pose`, `one_hand_way_pose` | `pistol_one_hand_pose.tres`, `pistol_one_hand_way_pose.tres` (the male's in its fit) | One-handed, the right hand's fingers while it aims (the trigger finger on the trigger, the grip fingers round the grip, the thumb forward along the frame) and the trigger finger half-way there. Every body's lands where the female's does on the gun (`tools/hold/fit_one_hand.gd`; only the seat and the knuckles are the body's own). It comes with the aim over the trigger finger's pose and goes for a reload. |
+| `shooting_arm`, `side_on`, `one_hand_reach`, `one_hand_elbow`, `one_hand_offset`, `free_arm_out` | the right arm, 35 deg, 0.96, (-0.5, -1, 0), (0, 0, 0), 10 deg | One-handed: the arm that holds the pistol out, how far the chest turns (the head turns back), how straight the arm is (a share of its length), where its elbow points and where the wrist sits from the barrel's line through the shoulder (model space), and how far the free arm is held out. |
+| `kick_climb`, `kick_back`, `kick_up`, `kick_time` | 10 deg, 0.05 m, 0.03 m, 0.4 s | One-handed, each shot: the muzzle climbs at the wrist, the wrist comes back (the elbow bends) and up, at the kick's height; it rises in the first 8 percent of `kick_time` and settles by its end, on top of the shot clip. |
+| `held_weight`, `aim_weight`, `reload_weight`, `reload_share`, `shot_kick` | from the animation | How far the hold, its aim and a reload are on, and the share of the reload clip played, for a character posed by hand (no `animation` set). |
 
 The ten poses, the two markers, the way and the pistol's seat are solved, and where the solver's pose did not read
 as a hand a finger is set by hand in `tools/hold/pistol_authored.json` (angles, laid over the solved hold when it is
@@ -481,10 +492,12 @@ says how).
 `Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above,
 one file a body (`prone_form_female.glb` for the template's body, `prone_form_male.glb` for the enemies', `prone.glb`
 and `prone_male.glb` for the Quaternius mannequins): a clip that rests limbs on the floor fits one body's skin.
-The dressed character's `AnimationPlayer` holds `prone_form_female.glb` as the library `prone`, and `prone_aim.glb`
-beside it as `prone_aim` (solved on `form_female`; `prone_aim_male.glb` is `form_male`'s): three clips that aim the
-pistol lying down (`Prone_Aim_Neutral`, `Prone_Aim_Up` at 20 degrees, `Prone_Aim_Down` at 25), flat behind the pistol
-with both arms stretched ahead and both hands on it. The crawl covers 0.618 m/s at its own rate
+The dressed character's `AnimationPlayer` holds the library as `prone`, `prone_reload.glb` as `prone_reload` (the
+pistol's reload lying down, `Prone_Reload_Pistol`, 1.67 s, solved on `form_female`; `prone_reload_male.glb` is
+`form_male`'s), and `prone_aim.glb` beside it as `prone_aim`
+(solved on `form_female`; `prone_aim_male.glb` is `form_male`'s):
+three clips that aim the pistol lying down (`Prone_Aim_Neutral`, `Prone_Aim_Up` at 20 degrees, `Prone_Aim_Down` at 25),
+flat behind the pistol with both arms stretched ahead and both hands on it. The crawl covers 0.618 m/s at its own rate
 with its elbows and feet planted, the body lies 1.07 m ahead of
 and 1.03 m behind the origin and 0.5 m high, and the clips hold no weapon (both hands are on the floor). The arms move
 the way people crawl: the forearms point inward and rest on their outer edges, rolled 45 degrees, the hands are

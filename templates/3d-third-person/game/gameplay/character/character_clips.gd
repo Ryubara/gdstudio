@@ -4,9 +4,10 @@ extends RefCounted
 ## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
 ## `ual2`, so a clip is `ual1/Idle`, the template's own prone and crawl clips (gdstudio
 ## #1009, `assets/animation/prone/`), the library `prone`, with its prone aim clips (gdstudio
-## #1111), the library `prone_aim`, its own melee blows (gdstudio #1254,
-## `assets/animation/melee/`), the library `melee`, its own rifle clips (gdstudio #1082,
-## `assets/animation/rifle/`), the library `rifle`, and GDStudio's own clips that replace
+## #1111), the library `prone_aim`, its prone reload (gdstudio #1185), the library
+## `prone_reload`, its own melee blows (gdstudio #1254, `assets/animation/melee/`), the library
+## `melee`, its own rifle clips (gdstudio #1082, `assets/animation/rifle/`), the library `rifle`,
+## and GDStudio's own clips that replace
 ## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
 ## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
 ## The library `fixed` holds the few library clips that put a limb through another on the
@@ -27,6 +28,7 @@ const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
 const LIBRARY_PRONE_AIM := &"prone_aim"
+const LIBRARY_PRONE_RELOAD := &"prone_reload"
 const LIBRARY_OWN := &"gds"
 const LIBRARY_VAULT := &"vault"
 const LIBRARY_RIFLE := &"rifle"
@@ -80,6 +82,7 @@ const TO_CROUCH := &"prone/Prone_To_Crouch"
 const PRONE_AIM := &"prone_aim/Prone_Aim_Neutral"
 const PRONE_AIM_UP := &"prone_aim/Prone_Aim_Up"
 const PRONE_AIM_DOWN := &"prone_aim/Prone_Aim_Down"
+const PRONE_RELOAD := &"prone_reload/Prone_Reload_Pistol"
 # Vaulting: the template's own clips (gdstudio #1010, `assets/animation/vault/`), the library
 # `vault`. What each was keyed on is a `VaultClip` (`gameplay/character/vault_low.tres`,
 # `vault_high.tres`).
@@ -117,7 +120,7 @@ const RIFLE_AIM_DOWN := &"rifle/Rifle_Aim_Down"
 const RIFLE_SHOOT := &"rifle/Rifle_Shoot"
 const RIFLE_RELOAD := &"rifle/Rifle_Reload"
 
-## Every clip of the seven libraries, with its library.
+## Every clip of the ten libraries, with its library.
 const ALL: Array[StringName] = [
 	&"ual1/A_TPose",
 	&"ual1/Crouch_Fwd",
@@ -212,6 +215,7 @@ const ALL: Array[StringName] = [
 	&"prone_aim/Prone_Aim_Down",
 	&"prone_aim/Prone_Aim_Neutral",
 	&"prone_aim/Prone_Aim_Up",
+	&"prone_reload/Prone_Reload_Pistol",
 	&"gds/Idle",
 	&"gds/Jog",
 	&"gds/Sprint",

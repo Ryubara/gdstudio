@@ -109,6 +109,13 @@ they are rerun, replayed or read from another branch -->
   stayed `IN_PROGRESS` in the rollup while its run had finished green, so a loop over `gh pr checks` waited on a check
   that would never change, with the pull request already `CLEAN`. **Seen:** gdstudio #1000, 2026-11-10 (run
   42893048440).
+- **Approach:** Judge a check on a commit by its newest run alone (`pr_status.py`'s `newest_runs`: by start time,
+  then id), and when a status label disagrees with `gh pr checks`, list the commit's check runs with their suites.
+  **Watch out for:** `check-runs?filter=latest` is the latest run of each check per check suite, and every event
+  of a pull request (opened, edited, pushed to) makes its own suite, so `commits`, failed twice on a description
+  whose Model line lacked a model and passed after the edit, came back three times and `S-ci-failing` stayed on a
+  pull request whose only red check was `hold`. **Seen:** gdstudio #1265, 2026-11-12
+  (`test_a_check_that_passed_after_the_description_was_edited_is_not_failing`).
 
 ## Reruns {#reruns}
 
@@ -169,7 +176,8 @@ they are rerun, replayed or read from another branch -->
   --allow-escape-sequences repos/<o>/<r>/actions/jobs/<id>/logs`, since `--log-failed` waits for the whole run. **Watch
   out for:** a report blamed one job's time limit for the whole run while a second job was red on a count 2,610 over
   2,600, and it reached the coordinator as a surprise on the next push. **Seen:** Deadnight #1086, 2026-11-04 (fix: the
-  list of jobs read before any explanation).
+  list of jobs read before any explanation); gdstudio #1274, 2026-11-11 (a red `build-ok` handed over unread: the
+  template job's `gdlint` on a suite the branch never touched, red on `main`, fixed there by #1282).
 - **Approach:** Before auto-merge on a branch that is behind, `gds merge-main`, then run the tests that other merges
   added or changed since the branch's base (`git diff --name-only <base>..origin/main -- 'game/tests/**/test_*.gd'`)
   beside the branch's own; the pull request that moves data rewrites a list of known failures keyed by it; reproduce a
