@@ -447,12 +447,35 @@ def check_weight(built, played: dict) -> tuple:
     accel = np.gradient(speed) * FPS
     if np.abs(accel).max() > 0.5 and built.clip.kind == "transition":
         worst = 0.0
+        over = int(built.clip.declared.get("lean_over", 0))
+        off = {}
         for f in range(1, count - 1):
-            if not down[f] or abs(accel[f]) < 0.5:
+            if not down[f] or (abs(accel[f]) < 0.5 and not over):
                 continue
-            feet = np.mean([rig.sole_points(world[f : f + 1], s)["ball"][0] for s in down[f]], axis=0)
-            lean = math.degrees(math.atan2(com[f, 2] - feet[2], com[f, 1] - feet[1]))
-            worst = max(worst, abs(lean - weight.lean_for(accel[f])))
+            want = weight.lean_for(accel[f])
+            if not over:
+                feet = np.mean([rig.sole_points(world[f : f + 1], s)["ball"][0] for s in down[f]], axis=0)
+                lean = math.degrees(math.atan2(com[f, 2] - feet[2], com[f, 1] - feet[1]))
+                worst = max(worst, abs(lean - want))
+                continue
+            # A body that steps passes over each foot, from behind it to ahead of it, and presses anywhere under
+            # the soles that are down: the lean it can hold on a frame is a range, from over the foremost point
+            # on the floor to over the rearmost, and what counts is how far the acceleration's lean is outside
+            # that range over a step (`lean_over`, the frames of one), not on a frame.
+            leans = []
+            for s in down[f]:
+                points = rig.sole_points(world[f : f + 1], s)
+                floor = rig.sole[s]["floor"]
+                for key in ("heel", "ball", "toe"):
+                    at = points[key][0]
+                    if key == "ball" or at[1] < floor + 0.015:
+                        leans.append(math.degrees(math.atan2(com[f, 2] - at[2], com[f, 1] - at[1])))
+            off[f] = want - max(leans) if want > max(leans) else min(want - min(leans), 0.0)
+        if over:
+            for first in range(1, count - over):
+                frames = [f for f in range(first, first + over) if f in off]
+                if len(frames) >= max(over // 2, 2):
+                    worst = max(worst, abs(float(np.mean([off[f] for f in frames]))))
         numbers["lean_off_deg"] = round(worst, 1)
         limit = built.clip.declared.get("lean_limit", LEAN)
         if worst > limit:

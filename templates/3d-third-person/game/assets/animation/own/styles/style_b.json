@@ -512,5 +512,101 @@
   "chest_tip_rest": 2.1,
   "head_turn_rest": 1.4,
   "head_tip_rest": 1.4
+ },
+ "idle_to_walk": {
+  "prep": [
+   12,
+   9
+  ],
+  "swing": 13,
+  "lean": 0.9,
+  "lean_lag": [
+   3.0,
+   0.2
+  ],
+  "dip": 0.025,
+  "arms": [
+   0.15,
+   0.95
+  ],
+  "shift": [
+   0.06,
+   0.02
+  ],
+  "lean_limit": 9.0
+ },
+ "idle_to_jog": {
+  "prep": [
+   7,
+   5
+  ],
+  "swing": 9,
+  "steps": [
+   10,
+   10,
+   10
+  ],
+  "lean": 0.8,
+  "lean_lag": [
+   3.0,
+   0.2
+  ],
+  "dip": 0.04,
+  "arms": [
+   0.02,
+   0.7
+  ]
+ },
+ "idle_to_sprint": {
+  "prep": [
+   6,
+   4
+  ],
+  "swing": 9,
+  "steps": [
+   10,
+   9,
+   9,
+   9,
+   9
+  ],
+  "lean": 0.8,
+  "lean_lag": [
+   3.0,
+   0.2
+  ],
+  "dip": 0.06
+ },
+ "walk_stop": {
+  "steps": [
+   12,
+   12
+  ],
+  "halt": 7,
+  "settle": 14,
+  "lean_lag": [
+   3.0,
+   0.3
+  ],
+  "dip": 0.03
+ },
+ "jog_stop": {
+  "settle": 14,
+  "lean_lag": [
+   3.0,
+   0.3
+  ],
+  "dip": 0.05,
+  "halt": 4
+ },
+ "sprint_stop": {
+  "settle": 14,
+  "lean_lag": [
+   3.0,
+   0.3
+  ],
+  "dip": 0.065,
+  "halt": 4,
+  "lean_limit": 17.0
  }
 }

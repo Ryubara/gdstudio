@@ -264,5 +264,11 @@
   "swing_ease": 1.0,
   "lean_live": 2.0,
   "speed_limit": 45.0
- }
+ },
+ "idle_to_walk": {},
+ "idle_to_jog": {},
+ "idle_to_sprint": {},
+ "walk_stop": {},
+ "jog_stop": {},
+ "sprint_stop": {}
 }

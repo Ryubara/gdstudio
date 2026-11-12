@@ -34,7 +34,7 @@ HERE = Path(__file__).resolve().parent
 QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 sys.path.insert(0, str(HERE))
 
-from clips import crouch_idle, crouch_walk, gait, idle, stance  # noqa: E402
+from clips import crouch_idle, crouch_walk, gait, idle, moves, stance  # noqa: E402
 from clips.joined import Joined, described  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
@@ -63,6 +63,18 @@ TYPES = {
     "stand_to_crouch": ("Stand_To_Crouch", stance.describe_down),
     "crouch_to_stand": ("Crouch_To_Stand", stance.describe_up),
 }
+## The types that are a family of clips (kit #1156: a start or a stop on the left foot and on the right): a review
+## file holds every clip of the family once per style, and one letter of `picks.json` picks them all.
+FAMILIES = {
+    "idle_to_walk": ("Idle_To_Walk", moves.family("walk", True)),
+    "idle_to_jog": ("Idle_To_Jog", moves.family("jog", True)),
+    "idle_to_sprint": ("Idle_To_Sprint", moves.family("sprint", True)),
+    "walk_stop": ("Walk_Stop", moves.family("walk", False)),
+    "jog_stop": ("Jog_Stop", moves.family("jog", False)),
+    "sprint_stop": ("Sprint_Stop", moves.family("sprint", False)),
+}
+## Every clip of a family by its own name, with the name `picks.json` picks it under.
+MEMBERS = {name: (pick, describe) for pick, members in FAMILIES.values() for name, describe in members}
 ## The shipped files: the frozen list of clips each carries.
 GROUPS = {
     "locomotion": [
@@ -74,6 +86,18 @@ GROUPS = {
         "Crouch_Walk",
         "Stand_To_Crouch",
         "Crouch_To_Stand",
+        "Idle_To_Walk_L",
+        "Idle_To_Walk_R",
+        "Idle_To_Jog_L",
+        "Idle_To_Jog_R",
+        "Idle_To_Sprint_L",
+        "Idle_To_Sprint_R",
+        "Walk_Stop_L",
+        "Walk_Stop_R",
+        "Jog_Stop_L",
+        "Jog_Stop_R",
+        "Sprint_Stop_L",
+        "Sprint_Stop_R",
     ]
 }
 ## The deepest a limb may be inside another part of the body, on every body (mm).
@@ -179,6 +203,14 @@ def main() -> int:
     picks = json.loads((HERE / "picks.json").read_text(encoding="utf-8"))["picks"]
     # The clips a description joins are the picked ones: a variant of a stance change ends on the shipped crouch.
     joined = Joined(rig, solver, styles, picks, TYPES)
+    if args.what == "review" and args.name in FAMILIES:
+        _, members = FAMILIES[args.name]
+        builts, frozen = [], []
+        for letter, one in styles.items():
+            for name, describe in members:
+                builts.append(build.build_clip(rig, solver, described(describe, rig, one, f"{name}_{letter}", joined)))
+                frozen.append(f"{name}_{letter}")
+        return make(args, builts, frozen, rig, bodies, HERE / "review" / f"{args.name}.glb")
     if args.what == "review":
         name, describe = TYPES[args.name]
         builts = [
@@ -189,8 +221,8 @@ def main() -> int:
         return make(args, builts, frozen, rig, bodies, HERE / "review" / f"{args.name}.glb")
     builts = []
     for name in GROUPS[args.name]:
-        _, describe = TYPES[name.lower()]
-        builts.append(build.build_clip(rig, solver, described(describe, rig, styles[picks[name]], name, joined)))
+        pick, describe = MEMBERS[name] if name in MEMBERS else TYPES[name.lower()]
+        builts.append(build.build_clip(rig, solver, described(describe, rig, styles[picks[pick]], name, joined)))
     return make(args, builts, GROUPS[args.name], rig, bodies, HERE / f"{args.name}.glb")
 
 

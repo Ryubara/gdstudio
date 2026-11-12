@@ -46,6 +46,8 @@ class Clip:
     - `bones`: the bones it keys; None is every bone a clip may key;
     - `replaces`: the library clip it replaces (`ual1/Idle`), for `clips.json` and the review sheet;
     - `events`: events beside the plan's footsteps, `[{"frame", "name"}]`.
+    - `lead`: frames before frame 0 that are solved for the overlap pass and then dropped (`spec` is asked for
+      frames under 0): a clip that begins inside a gait starts with its arms and its chest already trailing.
     """
 
     name: str
@@ -63,6 +65,7 @@ class Clip:
     replaces: str = ""
     events: list = field(default_factory=list)
     style: str = ""
+    lead: int = 0
 
 
 @dataclass
@@ -107,7 +110,7 @@ def solve_frames(rig: Rig, solver: Solver, clip: Clip) -> tuple:
     """The clip's poses in the world, one a frame, and the furthest any target was out of reach."""
     frames, miss = [], {}
     count = clip.frames if clip.loop else clip.frames + 1
-    for f in range(count):
+    for f in range(-clip.lead, count):
         spec = clip.spec(f)
         legs = spec.setdefault("leg", {})
         for s, _ in SIDES:
@@ -127,8 +130,13 @@ def solve_frames(rig: Rig, solver: Solver, clip: Clip) -> tuple:
 def build_clip(rig: Rig, solver: Solver, clip: Clip) -> Built:
     frames, miss = solve_frames(rig, solver, clip)
     if clip.loop:
+        # The seam's pose is a copy of its own: the root's travel is taken out of each (`unroot`), and a table the
+        # two shared had it taken out twice, which left a loop's `ik_` targets a stride behind on its first frame.
         frames.append({**frames[0], "local": dict(frames[0]["local"])})
+        if "places" in frames[0]:
+            frames[-1]["places"] = dict(frames[0]["places"])
     overlap.apply(rig, frames, clip.chains, clip.loop)
+    frames = frames[clip.lead :]
     for f, pose in enumerate(frames):
         place, yaw = clip.plan.travel.at(float(f))
         unroot(rig, pose, place, yaw)
