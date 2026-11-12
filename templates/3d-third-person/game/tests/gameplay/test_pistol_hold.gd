@@ -543,8 +543,13 @@ func _reload_while_aiming(one_handed: bool) -> void:
 	await InputSim.ticks(get_tree(), 2)
 	InputSim.release_all()
 	assert_int(player.weapon.ammo).is_equal(12)
-	assert_int(_live_measured).override_failure_message("the hand was never measured").is_greater(
-		60
+	# One-handed the hand is near the gun only from the reach to the return (60 updates since the
+	# reload fetches the new magazine from the belt, kit #1052); two-handed the aim adds the rest.
+	var least := 40 if one_handed else 60
+	(
+		assert_int(_live_measured)
+		. override_failure_message("the hand was measured %d times" % _live_measured)
+		. is_greater(least)
 	)
 	(
 		assert_float(_live_deepest)

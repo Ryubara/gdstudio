@@ -14,8 +14,9 @@
 ## The pistol's finger poses set by hand (kit #1084, `tools/hold/pistol_authored.json`, read by
 ## `authored_pose.gd`) are laid over the solved ones here, on the body's own skeleton, so a new
 ## solve keeps them: a finger the file names takes its angles, in the pose it names. The thumb's
-## pose between (`thumb_way`) and its place in a one-handed aim (`one_hand`, kit #1085) exist only
-## there.
+## pose between (`thumb_way`) and the right hand's fingers in a one-handed aim and on its way
+## (`one_hand`, `one_hand_way`, kit #1085; fitted to the default body's placement by
+## `fit_one_hand.gd`, kit #1274) exist only there.
 ##
 ## Each body has its own hold of each weapon (kit #1187). The default body's (`female`,
 ## `CharacterBodies.FEMALE`) goes into the files above; another body's into one `HoldFit` file,
@@ -41,6 +42,7 @@ const WEAPONS: Dictionary[String, Dictionary] = {
 			"thumb": "res://gameplay/weapon/hold/pistol_thumb_pose.tres",
 			"thumb_way": "res://gameplay/weapon/hold/pistol_thumb_way_pose.tres",
 			"one_hand": "res://gameplay/weapon/hold/pistol_one_hand_pose.tres",
+			"one_hand_way": "res://gameplay/weapon/hold/pistol_one_hand_way_pose.tres",
 			"support": "res://gameplay/weapon/hold/pistol_support_pose.tres",
 			"magazine": "res://gameplay/weapon/hold/pistol_magazine_pose.tres",
 			"open": "res://gameplay/weapon/hold/pistol_open_pose.tres",

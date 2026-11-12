@@ -31,14 +31,27 @@ made: the stance is put on the two-handed aim clips after the tree.
 - **The aim layer** ([aim layer](shooting.md#aim-layer)) runs right after the grip (`WeaponHold.grip_modifier()`), so it
   reads the muzzle where the stance and the wrist's turn left it and turns the spine by what is left: the muzzle is on
   the aim one-handed as in two hands (5.7 degrees under level at the tour's level look in both).
-- **The thumb** (`WeaponHold.one_hand_pose`, `pistol_one_hand_pose.tres`; `HoldFit.one_hand_pose` for another body): in
-  two hands the left thumb's root has the frame under the slide and the right thumb rests on it; in one hand the right
-  thumb lies there itself, forward along the barrel. The pose is laid over the trigger finger's (the grip modifier's
-  `second`), so it comes with the aim and goes for a reload, and it passes through the two-handed grip's
-  `thumb_way_pose` on the way, clear of the frame's rear edge. The female body's is set by hand
-  (`tools/hold/pistol_authored.json`, `one_hand`: 1.0 mm off the frame at the tip, 23 degrees off the barrel; her solved
-  grip folds the thumb down the grip panel, 71 degrees off); the male body's solved grip already lies there (21
-  degrees), so its fit has none.
+- **The fingers: one placement for both bodies** (`WeaponHold.one_hand_pose`, `pistol_one_hand_pose.tres`, and
+  `one_hand_way_pose`; `HoldFit.one_hand_pose` and `one_hand_way_pose` for another body): the trigger finger on the
+  trigger, the grip fingers round the grip and the thumb forward along the frame under the slide (in two hands the
+  left thumb's root lies there and the right thumb rests on it). The female body's placement is the one target. Each
+  other body is fitted to it by `tools/hold/fit_one_hand.gd`: the female hand is measured in the gun's own space
+  (every finger's middle and last joints and tip, `tools/hold/one_hand_match.gd`), then each finger of the other hand
+  is turned (its spread and bends, as `tools/hold/pistol_authored.json` holds them) until those points land on the
+  same places, holding the gun to the suite's limits. On the male body the last joints and tips are within 2.2 to 4.6
+  mm of the female's (before: the thumb's tip 21 mm, the little finger's 16 mm). Two things stay the body's own,
+  because the hand's size puts them there: the seat (the male palm is thicker and sits 8 mm farther out on the grip,
+  so its knuckles are 3.5 to 6 mm from hers) and the middle joints (its first finger bones are longer, 8 to 10 mm
+  apart). The pose is laid over the trigger finger's (the grip modifier's `second`), so it comes with the aim and
+  goes for a reload. On the way up the trigger finger passes `one_hand_way_pose`, fitted to the female finger's stop
+  the same way with both legs held clear of the gun, and the thumb passes its own body's `thumb_way_pose`, clear of
+  the frame's rear edge: it leaves from that body's carried grip, whose thumb lies elsewhere on each body (kit
+  #1262), and fitted to the female stop the male thumb went 6 mm into the frame. Neither finger grazes the trigger
+  guard in one hand: at most 1.5 mm in, at the trigger (the male finger's own way rubbed it 2.1 mm deep; the
+  two-handed graze is [between the poses](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses)).
+  Separate poses existed before because each body's hold is solved on its own (kit #1187), and the one-handed pose
+  only patched a body whose solved thumb did not lie along the frame: the female's was set by hand, the male's solved
+  thumb was kept, and nothing compared the two hands on the gun.
 - **The kick**: each shot of the character's weapon (`Weapon.fired`) starts `WeaponHold.shot_kick`, which rises over the
   first 8 percent of `kick_time` (0.4 s) and eases back by its end (`WeaponHold.kick_at`); at its height the wrist turns
   the muzzle up `kick_climb` (10 degrees) and the wrist comes back `kick_back` (5 cm, the elbow bends) and up `kick_up`
@@ -51,7 +64,8 @@ made: the stance is put on the two-handed aim clips after the tree.
 - **Proof and captures**: `tests/gameplay/test_one_handed_hold.gd` (off by default and the two-handed hold unchanged;
   the right hand within 2 mm in and 5 mm off in the aim, up, down and shoot clips on both mannequins; the left hand at
   least 15 cm from the gun; the chest turned 28 to 42 degrees; the kick; the magazine; the thumb within 35 degrees of
-  the barrel and no more than 2 mm in at twenty steps of the aim coming up; switched live on the player, where the
+  the barrel, the thumb and the trigger finger no more than 2 mm in at twenty steps of the aim coming up; the two
+  bodies' last joints and tips within 5 mm of each other on the gun; switched live on the player, where the
   muzzle is within 3 degrees of the aim) and `test_pistol_hold.gd`'s one-handed reload while aiming, measured on every
   update. `tools/capture/one_hand_tour.tscn` films the aim, three shots, the look up and down, a reload and the let-go
   (`ONE_HAND=0` two-handed, `ONE_HAND_VIEW=side|front|hand|right|thumb|above|below`, `MODEL=male`) and prints the
@@ -66,6 +80,14 @@ made: the stance is put on the two-handed aim clips after the tree.
   it held; the first stance walked the skeleton up from every bone it turned and cost about twice the two-handed hold
   until the chain's poses were carried along; `character_animation.gd` was 7 lines under gdlint's 1,000, so the kick's
   timing moved into `WeaponHold` (keep new weapon logic out of that file). **Seen:** gdstudio #1085, 2026-11-11.
+- **Approach:** Give every body one placement on the weapon: fit each body's fingers to the default body's points in
+  the weapon's space within the hold's limits (`fit_one_hand.gd`), keep per body only what hand size forces (seat,
+  knuckles, middle joints), and test the bodies against each other (`PLACEMENT`). **Watch out for:** poses solved or
+  set on each body alone drift apart unseen, since each passes its own limits: the thumb set by hand on the female
+  and solved on the male held the gun 16 to 29 mm apart until the maintainer compared close-ups; a seat moved under a
+  hand-set pose (kit #1262) put the female thumb 2.6 mm into the frame (refit after a seat change); a way stop fitted
+  alone sent the male thumb 6 mm into the frame from its own grip (fit a stop with its legs). **Seen:** gdstudio
+  #1274, 2026-11-12 (the maintainer's review; fix: the female placement fitted onto the male hand).
 - **Approach:** When a pose is built from several skeleton modifiers, prove it on the live player too (the muzzle
   against the aim point, as `test_aim_layer.gd` reads it), and after a merge that brings in another modifier, film the
   game and read the frames before trusting the staged suite. Place a modifier by the one it must follow

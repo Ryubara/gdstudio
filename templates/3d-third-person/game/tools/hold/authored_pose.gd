@@ -3,7 +3,9 @@ extends RefCounted
 ## solver's search ends in a pose that does not read as a hand (a little finger that reaches under
 ## the other hand, a thumb whose way crosses the frame), an artist sets the finger's angles, looks
 ## at it and measures it with `tools/hold/pose_bench.gd`, and `write_hold.gd` lays the result over
-## the solved hold, so a new solve keeps it.
+## the solved hold, so a new solve keeps it. The one-handed poses (`one_hand`, `one_hand_way`) are
+## not set by hand: `fit_one_hand.gd` writes them, every body's fitted to the default body's
+## placement on the gun (kit #1274).
 ##
 ## The file is `{body: {pose: {finger: [angles]}}}`, in degrees, as `hold_hand.py` takes them: a
 ## finger's spread at the knuckle and its three bends from the knuckle out; the thumb's root about
@@ -19,6 +21,7 @@ const SIDES: Dictionary[String, String] = {
 	"thumb": "r",
 	"thumb_way": "r",
 	"one_hand": "r",
+	"one_hand_way": "r",
 	"support": "l",
 	"magazine": "l",
 	"open": "l",

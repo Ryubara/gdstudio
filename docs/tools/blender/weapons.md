@@ -225,10 +225,11 @@ shooting page once that work lands).
   Through the reload the old magazine drops, the new one rides the left hand up the grip's line in solved fingers, and
   the slide locked open on an empty pistol is released (kit #1052,
   [the magazine and the slide](weapon-hands/two-handed-pistol-grip.md#the-magazine-through-the-reload)).
-- **Or one hand** (kit #1085): with the definition's `one_handed` the right hand's grip is the same pose on the
-  same seat, the index finger on the trigger while aiming and the thumb forward along the frame where the left
-  thumb's root would be (`one_hand_pose`, set by hand for the female body), and the left hand is off the gun but for
-  the reload; the arm, the chest and the kick are [One-handed](../../engines/godot/third-person/one-handed.md#one-handed).
+- **Or one hand** (kit #1085): with the definition's `one_handed` the right hand sits on the same seat, the index
+  finger on the trigger while aiming and the thumb forward along the frame where the left thumb's root would be, with
+  one finger placement for every body (`one_hand_pose`: the female's, fitted onto the male hand by
+  `tools/hold/fit_one_hand.gd`, kit #1274), and the left hand is off the gun but for the reload; the arm, the chest
+  and the kick are [One-handed](../../engines/godot/third-person/one-handed.md#one-handed).
 - **The slide is racked by a clip of our own** (kit #1081, `assets/animation/pistol/`). `Pistol_Rack` (0.93 s, 28
   frames) is an overhand rack: the left hand over the top of the slide just in front of the rear sight, the palm on
   the top, four fingers down the right side with the index finger's pad on the serrations and the thumb's pad on the

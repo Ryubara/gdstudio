@@ -134,10 +134,16 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 		one_handed = value
 		if is_node_ready():
 			_build()
-## The right hand's bones that take another place while it aims one-handed, over the trigger
-## finger's pose: the thumb laid forward along the frame, where the two-handed grip has the left
-## thumb's root. Null: the grip's own (a body whose solved thumb already lies there).
+## The right hand's fingers while it aims one-handed, over the trigger finger's pose: the trigger
+## finger on the trigger, the grip fingers round the grip and the thumb laid forward along the
+## frame (where the two-handed grip has the left thumb's root). Every body's lands on the gun
+## where the default body's does (kit #1274, `tools/hold/fit_one_hand.gd`). Null: the trigger
+## finger's pose alone.
 @export var one_hand_pose: HandPose
+## The trigger finger half-way to `one_hand_pose` as the one-handed aim comes up (the way's one
+## stop, as `trigger_way_pose` is in two hands), fitted the same way; the thumb goes by
+## `thumb_way_pose`, clear of the frame's rear edge. Null: the two-handed trigger finger's way.
+@export var one_hand_way_pose: HandPose
 ## The arm that holds the weapon out: the upper arm, the forearm and the hand.
 @export var shooting_arm: Array[StringName] = [&"upperarm_r", &"lowerarm_r", &"hand_r"]
 ## How far the chest turns side-on while aiming one-handed, in degrees (the right shoulder
@@ -655,7 +661,8 @@ func _build() -> void:
 	# The trigger finger's pose between is a way of one stop (`HandPoseModifier.second_way`).
 	var trigger_way: Array[HandPose] = []
 	if trigger_way_pose != null:
-		trigger_way.append(_with_one_hand(trigger_way_pose, thumb_way_pose))
+		var thumb_way := _with_one_hand(trigger_way_pose, thumb_way_pose)
+		trigger_way.append(_with_one_hand(thumb_way, one_hand_way_pose))
 	_grip.second_way = trigger_way
 	_grip.open = thumb_pose
 	_grip.open_via = thumb_way_pose
@@ -741,6 +748,7 @@ func _fit_body() -> void:
 		_own.magazine_pose = magazine_pose
 		_own.open_pose = open_pose
 		_own.one_hand_pose = one_hand_pose
+		_own.one_hand_way_pose = one_hand_way_pose
 		_own.carry_pose = carry_pose
 		_own.carry_open_pose = carry_open_pose
 		_own.magazine_approach = magazine_approach
@@ -762,6 +770,7 @@ func _fit_body() -> void:
 	magazine_pose = chosen.magazine_pose
 	open_pose = chosen.open_pose
 	one_hand_pose = chosen.one_hand_pose
+	one_hand_way_pose = chosen.one_hand_way_pose
 	carry_pose = chosen.carry_pose
 	carry_open_pose = chosen.carry_open_pose
 	magazine_approach = chosen.magazine_approach
@@ -769,15 +778,14 @@ func _fit_body() -> void:
 	carry_arrive = chosen.carry_arrive
 
 
-# A pose the aim blends over the grip (the trigger finger's, or its pose between), and for a
-# one-handed body with a `one_hand_pose` the thumb's bones of `thumb` with it: its place along
-# the frame, or the pose it passes through on the way (`thumb_way_pose`, clear of the frame's edge).
-func _with_one_hand(pose: HandPose, thumb: HandPose) -> HandPose:
-	if not one_handed or one_hand_pose == null or pose == null or thumb == null:
+# A pose the aim blends over the grip (the trigger finger's, or its pose between), and one-handed
+# the bones of `over` with it (`one_hand_pose`; on the way `thumb_way_pose`, `one_hand_way_pose`).
+func _with_one_hand(pose: HandPose, over: HandPose) -> HandPose:
+	if not one_handed or pose == null or over == null:
 		return pose
 	var both := HandPose.new()
 	var rotations := pose.rotations.duplicate()
-	rotations.merge(thumb.rotations, true)
+	rotations.merge(over.rotations, true)
 	both.rotations = rotations
 	return both
 

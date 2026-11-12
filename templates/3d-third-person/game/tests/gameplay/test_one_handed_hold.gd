@@ -8,6 +8,7 @@
 # which the stage stands in for with the idle clip on the left arm.
 extends GdUnitTestSuite
 
+const Match := preload("res://tools/hold/one_hand_match.gd")
 const MODELS: Array[String] = ["female", "male"]
 ## The aim's look range and the shot, with the times sampled.
 const AIMED: Dictionary[StringName, Array] = {
@@ -35,6 +36,26 @@ const THUMB_STEPS := 20
 const AIM_MISS := 3.0
 ## How far the left hand's bone may stop from its marker, in metres.
 const REACH := 0.005
+## Both bodies hold the pistol with one finger placement, the female body's (kit #1274): each of
+## these points (the last joint and the tip of every finger, the thumb's middle joint too) is
+## within `PLACEMENT` of the same point of the other body, in the gun's space. That is the float a
+## holding part is allowed (`HandContact.MAX_FLOAT`). The knuckles and the fingers' middle joints
+## are left out: they are where the hand's size puts them (the male palm sits 8 mm farther out on
+## the grip and its first finger bones are longer, 8 to 10 mm apart at the middle joints).
+const PLACEMENT := 0.005
+const PLACED: Array[String] = [
+	"index_3",
+	"index_tip",
+	"middle_3",
+	"middle_tip",
+	"ring_3",
+	"ring_tip",
+	"pinky_3",
+	"pinky_tip",
+	"thumb_2",
+	"thumb_3",
+	"thumb_tip",
+]
 
 var _holder: Node3D
 # The live left hand's distance from the support marker, read where the modifiers' pose is.
@@ -165,7 +186,8 @@ func test_the_left_hand_comes_in_only_for_the_reload() -> void:
 
 # In two hands the left thumb's root has the frame under the slide; in one the right thumb lies
 # there, forward along the barrel (the female body's solved grip folds it down the grip panel),
-# and it goes there through nothing as the aim comes up.
+# and it goes there through nothing as the aim comes up, nor does the trigger finger on its way
+# to the trigger (kit #1274: the male finger's own way rubbed the guard 2.1 mm deep).
 func test_the_right_thumb_lies_forward_along_the_frame_in_one_hand() -> void:
 	for model in MODELS:
 		var stage := HoldStage.make(_holder, model)
@@ -176,7 +198,7 @@ func test_the_right_thumb_lies_forward_along_the_frame_in_one_hand() -> void:
 			await stage.settle()
 			var parts := stage.contact.measure("r", false)
 			for part: String in parts.keys():
-				if not part.begins_with("thumb"):
+				if not part.begins_with("thumb") and not part.begins_with("index"):
 					parts.erase(part)
 			var fails := HandContact.failures("%s aim %.2f r:" % [model, aim], parts, [])
 			assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
@@ -191,6 +213,27 @@ func test_the_right_thumb_lies_forward_along_the_frame_in_one_hand() -> void:
 			. is_less(THUMB_ALONG)
 		)
 		stage.free()
+
+
+# One finger placement for both bodies (kit #1274): the trigger finger, the thumb and the grip
+# fingers of the male hand land where the female hand's do on the gun (`fit_one_hand.gd` fitted
+# them), not where a separate male pose put them (the thumb 23 mm and the little finger 16 mm
+# apart before).
+func test_both_bodies_hold_the_pistol_with_one_finger_placement() -> void:
+	var places := {}
+	for model in MODELS:
+		var stage := HoldStage.make(_holder, model)
+		stage.hold.set(&"one_handed", true)
+		stage.pose(CharacterClips.PISTOL_AIM, 0.0, 1.0, &"ual1/Idle", [FREE_ARM])
+		await stage.settle()
+		places[model] = Match.places(stage)
+		stage.free()
+	var fails: Array[String] = []
+	for point in PLACED:
+		var apart: float = (places.female[point] as Vector3).distance_to(places.male[point])
+		if apart > PLACEMENT:
+			fails.append("%s %.1f mm apart" % [point, apart * 1e3])
+	assert_array(fails).override_failure_message("\n".join(fails)).is_empty()
 
 
 # The player's own scene: the definition's `one_handed` switched while it aims puts the stance on

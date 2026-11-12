@@ -86,6 +86,34 @@ rotations = Dictionary[StringName, Quaternion]({
 &"thumb_03_l": Quaternion(0.19105, -2e-05, -0.00054, 0.98158)
 })
 
+[sub_resource type="Resource" id="Resource_pauhu"]
+script = ExtResource("1_mew4d")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(0.03393, -0.67799, -0.20083, 0.70629),
+&"index_02_r": Quaternion(0.42854, 0, 0, 0.90352),
+&"index_03_r": Quaternion(-0.00654, 0, 0, 0.99998),
+&"middle_01_r": Quaternion(-0.03982, -0.70444, 0.06136, 0.70598),
+&"middle_02_r": Quaternion(0.61738, -0.00093, -0.00119, 0.78666),
+&"middle_03_r": Quaternion(0.26093, 0.00029, 0.00109, 0.96536),
+&"pinky_01_r": Quaternion(-0.14455, -0.70711, 0.00057, 0.69217),
+&"pinky_02_r": Quaternion(0.55012, 0.00046, 0.0007, 0.83509),
+&"pinky_03_r": Quaternion(0.19723, -0.00012, -0.0006, 0.98036),
+&"ring_01_r": Quaternion(-0.01105, -0.70674, -0.02289, 0.70702),
+&"ring_02_r": Quaternion(0.61394, -1e-05, -1e-05, 0.78935),
+&"ring_03_r": Quaternion(0.22708, 0.00024, 0.00104, 0.97388),
+&"thumb_01_r": Quaternion(-0.36623, 0.77692, 0.29891, 0.41584),
+&"thumb_02_r": Quaternion(0.18295, 0.04574, 0.23751, 0.9529),
+&"thumb_03_r": Quaternion(0.29469, 8e-05, 0.00053, 0.95559)
+})
+
+[sub_resource type="Resource" id="Resource_278gp"]
+script = ExtResource("1_mew4d")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.01234, -0.66757, -0.23313, 0.707),
+&"index_02_r": Quaternion(0.48672, 0, 0, 0.87356),
+&"index_03_r": Quaternion(-0.35429, 0, 0, 0.93514)
+})
+
 [sub_resource type="Resource" id="Resource_6s6wm"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
@@ -173,6 +201,8 @@ thumb_way_pose = SubResource("Resource_03e2b")
 support_pose = SubResource("Resource_obf3k")
 magazine_pose = SubResource("Resource_k0e3b")
 open_pose = SubResource("Resource_6s6wm")
+one_hand_pose = SubResource("Resource_pauhu")
+one_hand_way_pose = SubResource("Resource_278gp")
 carry_pose = SubResource("Resource_u3yc4")
 carry_open_pose = SubResource("Resource_mew4d")
 magazine_approach = Vector3(0.03723, -0.11408, 0)
