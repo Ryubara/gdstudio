@@ -151,7 +151,11 @@ real-sized mannequin animated by the Universal Animation Library -->
 
 The 3D Third Person template's pistol (kit #834, `templates/3d-third-person/game/assets/weapons/pistol/`) is
 Deadnight's service pistol on Quaternius's mannequin (1.8 m, a real-sized hand), held in the Universal Animation
-Library's six pistol clips on the `hand_r` bone.
+Library's six pistol clips on the `hand_r` bone. Since kit #1187 the template's characters wear GDStudio's prototype
+bodies (`form_female.glb`, `form_male.glb`, [the bodies](../../engines/godot/third-person/character.md#mannequins)),
+whose hands are a person's size (0.181 m and 0.195 m wrist to fingertip, against the library rig's 0.232 m): the
+hold below is solved on each of them, one body at a time, and the numbers in this section from before that were
+measured on the Quaternius pair.
 
 The two mannequins' skins differ at the fingertips: the female's are weighted up to half to the fingertip leaf bones
 (`index_04_leaf_r` and its like), the male's are not. A hold solver or a contact test that moves or sorts the skin by
@@ -196,6 +200,16 @@ shooting page once that work lands).
   the skeleton from the hands down, but their skins differ by up to 3.3 mm in the same pose (in both directions), so
   the solver measures both skins in every step and presses the nearer one 0.8 mm into the surface; the other is then
   up to 2.5 mm off it. A hold solved on one mannequin put the other 2.7 mm into the grip.
+- **One hold a body** (kit #1187). Two hands of different sizes do not share a pose: the solver takes `--body=female`
+  or `--body=male` (`--body=both` is the old measure of two bodies whose skeletons match from the hands down), and
+  `write_hold.gd -- <hold.json> <body>` writes the female's into the files above and any other body's into one
+  `HoldFit` (`gameplay/weapon/hold/pistol_fit_male.tres`: seat, both markers, `support_way` and the five poses)
+  that `WeaponHold.fits` lists and puts on when the model is that body's file. The left hand is solved over the right
+  index finger on the trigger and along the frame at once (a reload takes the finger off the trigger while the left
+  hand still holds), the finger along the frame is kept 20 mm from the trigger, and the cupped fingers under the
+  magazine are measured along the magazine's line too, which they ride up and down. On the two bodies: right hand at
+  most 1.2 mm in, holding parts at most 1.0 mm off in the solver; the whole hold suite passes for both
+  (`tests/gameplay/test_pistol_hold.gd`).
 - **The two hands hold it together, and the left hand follows the reload** (kit #1084, #1031, #1051, #1078, #1079).
   The left hand is laid over the right one as a two-handed grip is taught, goes on and off the gun one way, and the
   trigger finger has a solved way to the trigger: [The two-handed pistol grip](weapon-hands/two-handed-pistol-grip.md).

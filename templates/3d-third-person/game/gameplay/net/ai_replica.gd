@@ -28,7 +28,7 @@ signal event_played(event: NetEvent, puppet: Character)
 
 const SNAP_SECONDS := 0.3
 const CLOCK_PULL := 0.1
-## The dressed character of the male mannequin and of the female, with no AI part: the default
+## The dressed character of the male body and of the female, with no AI part: the default
 ## looks (`variant_scenes`).
 const MALE := preload("res://gameplay/character/character_dressed_male.tscn")
 const FEMALE := preload("res://gameplay/character/character_dressed.tscn")

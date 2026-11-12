@@ -131,8 +131,7 @@ class HandSkin:
 
 func _init(skeleton: Skeleton3D) -> void:
 	_skeleton = skeleton
-	for node in skeleton.find_children("*", "MeshInstance3D", true, false):
-		var instance := node as MeshInstance3D
+	for instance in CharacterBodies.near_meshes(skeleton):
 		if instance.skin == null or instance.mesh == null:
 			continue
 		for surface in instance.mesh.get_surface_count():
