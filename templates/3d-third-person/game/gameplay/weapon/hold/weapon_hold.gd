@@ -294,12 +294,8 @@ func _build() -> void:
 
 ## The fit in use now: the one whose `body` is the model's file, or the scene's own.
 func fit() -> HoldFit:
-	var rig := model.rig() if model != null else null
-	var file := rig.scene_file_path.get_file() if rig != null else ""
-	for each in fits:
-		if each != null and each.body == file:
-			return each
-	return _own
+	var found := HoldFit.chosen(fits, model)
+	return found if found != null else _own
 
 
 # Puts the fit of the model's body on the weapon's seat and markers and on this node's poses and

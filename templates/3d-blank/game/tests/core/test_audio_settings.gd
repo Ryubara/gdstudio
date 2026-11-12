@@ -69,10 +69,11 @@ func _wind() -> AudioStreamOggVorbis:
 	return load("res://assets/audio/wind/wind_soft_1.ogg")
 
 
-func test_the_wind_is_a_seamless_loop_between_ten_and_twelve_seconds() -> void:
+## Long enough that its gusts are not heard repeating (kit sound-effects.md#wind).
+func test_the_wind_is_a_seamless_loop_between_twenty_and_sixty_seconds() -> void:
 	var wind := _wind()
 	assert_object(wind).is_not_null()
-	assert_float(wind.get_length()).is_between(10.0, 12.0)
+	assert_float(wind.get_length()).is_between(20.0, 60.0)
 	assert_bool(wind.loop).is_true()
 
 

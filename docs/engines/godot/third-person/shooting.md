@@ -17,14 +17,15 @@ Aim button) turns the body to the camera's heading and raises the pistol; fire (
 button) aims too and shoots once the arm is half up. The numbers are in the Crouch and Aim groups of the tuning and in
 the `Weapon`'s inspector (a game's `docs/design/character.md` lists them).
 
-The weapon and the aim pose read no camera (gdstudio #901). `Character.aim_ray()` is the ray a character aims along, from
-the command of its last step: the command's shot block when it has one (the human's crosshair, written by
-`PlayerInput`), else from the character's eye (its camera target) along the command's `yaw` and `pitch`, which is how
-an AI or a test shoots. The body calls `Weapon.fire(origin, direction)`; `fire()` with no ray shoots straight out of
-the muzzle. A `Weapon` with no `muzzle` and a `shooter` (a body with no model, as a server has) fires from
-`no_muzzle_offset` beside the ray's point at the shooter (the default is where the pistol's muzzle is while aiming:
-6 mm off in the test). The cooldown is counted in `Weapon.tick(delta)`: a weapon alone ticks itself (`self_ticking`),
-a `Character` turns that off and ticks its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown and
+The weapon and the aim pose read no camera (gdstudio #901). `Character.aim_ray()` is the ray a character aims along,
+from the command of its last step: the command's shot block when it has one (the human's crosshair, written by
+`PlayerInput`), else from the character's eye (its camera target) along the command's `yaw` and `pitch`, which is how an
+AI or a test shoots. The body calls `Weapon.fire(origin, direction)`; `fire()` with no ray shoots straight out of the
+muzzle. A `Weapon` with no `muzzle` and a `shooter` (a body with no model, as a server has) fires from
+`no_muzzle_offset` beside the ray's point at the shooter (the default is where the pistol's muzzle is while aiming
+standing on the template's idle, which `AimStance` holds still: under 0.3 mm off on the player's body in
+`test_weapon_ray.gd`). The cooldown is counted in `Weapon.tick(delta)`: a weapon alone ticks itself (`self_ticking`), a
+`Character` turns that off and ticks its weapon last in every `step`, and `CharacterState.weapon` holds the cooldown and
 the spread's place for `restore()`.
 
 - **Approach:** Stand a crouched `CharacterBody3D` up only after a shape query above it comes back empty, with a probe a
@@ -33,6 +34,29 @@ the spread's place for `restore()`.
   **Watch out for:** a probe as wide as the capsule that starts at the floor touches the floor and the walls at the
   sides and never lets the character stand; a capsule cannot be shorter than two radii, so `crouch_height` is clamped
   to `2 * radius + 0.01`. **Seen:** gdstudio #836, 2026-11-08.
+- **Approach:** Hold the upper body's turn under an aim pose that is layered from the spine up: a
+  `SkeletonModifier3D` before the hands' modifiers puts the first upper-body bone on the turn its parent has in the
+  aim clip (`AimBrace`, weighed by the aim blend, on the ground state only). Test the barrel's angle to the aim ray
+  standing through the idle's whole loop and walking, with the modifier off as the failing case.
+  **Watch out for:** a filtered layer rides the pelvis of the clip under it, and the library's pistol poses were
+  made on a pelvis turned 13.3 degrees: over our own idle, which stands square, the pistol pointed 14 to 18.5
+  degrees off the view, and over the library's own walk 13 to 17. The brace holds the turn only: the muzzle still
+  moves with the pelvis (34 mm each way with our idle's weight shift). **Seen:** gdstudio #1154, 2026-11-11
+  (`tests/gameplay/test_aim_brace.gd`).
+- **Approach:** Stand a standing aim on a still pose: the ground blend space's idle point is a blend tree of the idle
+  playing and the same clip held on one frame (`AnimationNodeAnimation`, `use_custom_timeline` on, `timeline_length` 0,
+  `stretch_time_scale` off, no loop, `start_offset` the frame), blended by the aim weight (`AimStance`). Find the frame
+  in the clip (its pelvis nearest its mean place) each time the tree is built, and measure the muzzle through the idle's
+  whole loop (`test_aim_stance.gd`). **Watch out for:** a test that read point 0 as a clip (`.animation`) broke; a fixed
+  time suits one idle only; the settle to the middle takes the aim's rise (40 mm of pelvis in 0.15 s) and moves the feet
+  2.2 mm. **Seen:** gdstudio #1206, 2026-11-11 (34.6 mm each way without it, 0.0 with it); #1256 (the `form`
+  bodies: 33.2 mm without, 0.0 with on both).
+- **Approach:** When a clip is replaced, measure every layer that plays over it, in every state it plays in, and
+  take a test's reference point from a bone of the pose. **Watch out for:** the aim's only measure was taken
+  standing on the library idle, so the walk's fault went unseen and the swap of the idle was the first to fail it;
+  a point fixed in the model's space (the middle of the library idle's torso) was outside the body of an idle that
+  stands 65 mm further forward. **Seen:** gdstudio #1154, 2026-11-11 (`test_weapon_ray.gd`,
+  `test_pistol_clearance.gd`).
 - **Approach:** Layer a held weapon on the upper body only: an `AnimationNodeBlend2` and a one-shot with
   `filter_enabled` and filter paths for `spine_01` and every bone under it (`Armature/Skeleton3D:<bone>`), the aim pose
   over it by the look's pitch in a blend space (`Pistol_Aim_Down` -45, `_Neutral` 0, `_Up` 45) and the recoil last;
@@ -291,8 +315,9 @@ weapon is a new `.tres`; nothing else changes.
 **Hitscan, a toggle on any weapon** (gdstudio #1252). `WeaponDef.hitscan` (the Hitscan group, with `hitscan_range`,
 100 m, and `hitscan_mask`, `PhysicsLayers.SHOT_MASK`) turns a projectile weapon into an instant ray from the aim:
 nothing is made for the shot, the muzzle flash, the shot sound and the impact where the ray hits are all there is, and
-no tracer is drawn. It is read at each shot (`WeaponDef.shot_kind()`: `MELEE` stays a blow, `hitscan` or a `HITSCAN`
-kind is a ray, else a projectile), so it switches live; the range and the mask are greyed out while it is off. The
+a tracer only when the definition names one (`WeaponDef.tracer`, below). It is read at each shot
+(`WeaponDef.shot_kind()`: `MELEE` stays a blow, `hitscan` or a `HITSCAN` kind is a ray, else a projectile), so it
+switches live; the range and the mask are greyed out while it is off. The
 ray goes through the same aim as a projectile (`Weapon.aim_point()`: the muzzle toward what the aim ray meets) and
 the same hit (`HitZones.shot` and `deliver`, so the part, its multiplier and a refused friend's shot are the same, or a
 `Health`). Online it costs only its `SHOT` and `HIT` (15 bytes each, in the same TICK), and the server meets it with
@@ -332,6 +357,59 @@ machine's load more than the weapon (a second hitscan run at 8 players read 2.52
 bench above, where the modes take turns, is the server's cost of a shot: a hitscan shot about a twentieth of a
 projectile's. A `--shoot` bot puts a shot block on every command, so its up rate (about 1.9 KB/s) is not a client's
 and the run does not judge it.
+
+**A tracer, optional on a hitscan weapon** (gdstudio #1270). `WeaponDef.tracer` (the Hitscan group, empty by default,
+greyed out while the shot is not hitscan) names a `TracerDef` (`gameplay/effects/tracer_def.gd`; a ready-made one is
+`gameplay/weapon/pistol_tracer.tres`, which no weapon holds): `color` and `energy` (additive, so it never darkens),
+`width` (0.03 m, turned to the camera), `speed` (320 m/s, 0 shows the whole line at once), `length` (3 m),
+`fade_time` (0.1 s) and `start_offset` (0.1 m out of the flash). A hitscan shot then draws a streak from the muzzle
+to where its ray ended (`Weapon._scan` answers the point, or the reach): it leaves the muzzle at its full length, so
+the frame of the shot shows it, runs to the end and its last `length` metres fade there. The level's `TracerPool`
+(`Tracers` in `world/world.tscn`, `gameplay/effects/tracer_pool.tscn`, the shader
+`assets/shaders/effects/tracer.gdshader`) draws every streak of the map with one `MultiMesh`: one draw call however
+many show, no node per shot, a cap of 32 (16 on the web) that cuts the oldest, hidden with its `_process` off when
+nothing shows. It is cosmetic and costs nothing on the wire: the server's weapon has `effects` off and draws none,
+the shooter's screen draws its own from its ray, and a puppet's is drawn from the puppet's muzzle along the SHOT's
+heading and ended at the HIT on the server's ray ([shots online](online-shots.md#template-shots)). Its warm-up draws
+one unseen streak through the `EffectEmitter`'s warm-up, so the first streak links no program in the web build.
+`tests/gameplay/test_tracer.gd` and `test_tracer_online.gd` hold it; `tools/capture/hit_tour.tscn` with
+`HIT_HITSCAN=1 HIT_TRACER=1` films it.
+
+What it costs (`tools/bench/tracer_cost.tscn`: the pistol hitscan with its flash, light and impacts, a run of 5 s after
+1 s, 1280 x 720, vsync off; Windows, Godot 4.7.2, an RTX 5080, other agents on the machine; the web build in headless
+Chrome on the GPU through `tracer_cost.py`, whose frames are held near 4.17 ms, so its means cannot show a change):
+
+| Run | Compatibility: frame ms, draw calls | Forward+: frame ms, draw calls | Web: frame ms, draw calls, programs linked |
+| --- | ---: | ---: | ---: |
+| hitscan, 4 shots a second | 1.98, 274.7 | 1.67, 417.3 | 4.17, 275.2, 7 (the first shot's, without a tracer) |
+| hitscan and tracer, 4 a second | 2.04, 275.3 | 1.70, 417.7 | 4.17, 275.5, 0 (2 and a 37 ms frame before the warm-up waited for the emitter's) |
+| hitscan, 30 a second | 2.49, 533.5 | 2.05, 624.8 | 4.17, 549.1, 0 |
+| hitscan and tracer, 30 a second | 2.66, 534.2 | 1.74, 622.8 | 4.17, 547.7, 0 (most streaks at once: 4) |
+
+| Script cost (µs) | Desktop | Web |
+| --- | ---: | ---: |
+| `TracerPool.draw` (the write waits for the frame's step) | 1.1 | 1.05 to 1.45 |
+| a step with 4 streaks (what 30 shots a second keep) | 14.3 | 14.2 to 15.1 |
+| a step with the pool full (32 desktop, 16 web) | 104 | 53 to 55 |
+| a step with none (its `_process` is off then) | 1.0 | 1.2 |
+
+A streak is a draw call while it shows (the means moved by less than the machine's noise); the frame pays its step,
+about 3.5 µs a streak, and nothing while none shows. The web build linked 3 programs more while the level started
+(150 to 153), the streak's.
+
+- **Approach:** Keep a fast streak on screen for whole frames: start it at its full length and let its last stretch
+  fade at the end for 0.1 s or more. **Watch out for:** a streak whose tail ran on past the end before it faded lived
+  0.02 s on a 7 m shot, less than a frame at 30 fps, and the first capture from the game camera showed no tracer in any
+  frame although every test passed. **Seen:** gdstudio #1270, 2026-11-11 (`hit_tour.tscn`, 30 fps).
+- **Approach:** Write a pool's `MultiMesh` once a frame from one `PackedFloat32Array`
+  (`RenderingServer.multimesh_set_buffer`), marking it dirty on a draw. **Watch out for:** `set_instance_transform`,
+  `_color` and `_custom_data` for each streak, rewritten on every draw, cost 87 to 96 µs a call with the pool full; the
+  buffer and the deferred write took a draw to 1.1 µs. **Seen:** gdstudio #1270, 2026-11-11 (`tracer_cost.tscn`).
+- **Approach:** Warm a `MultiMesh` effect's program by keeping an unseen instance drawn until the `EffectEmitter`'s
+  warm-up (and its probe tour) is over (`warmed`), then a few frames more. **Watch out for:** three frames of an
+  unseen streak at the level's start still left the first streak 2 programs and a 37 ms frame in Chrome: it had been
+  drawn before the probes the camera sees had their first faces. **Seen:** gdstudio #1270, 2026-11-11
+  (`tracer_cost.py`).
 
 - **`Weapon`** (one node of the character) fires the definition it holds: `pull(origin, direction)` fires, clicks on
   an empty magazine (`dry_fired`) or does nothing (cooling down, reloading, put away), and `fire()` is the same with
@@ -425,6 +503,11 @@ arm is short are on [The two-handed pistol grip](../../../tools/blender/weapon-h
   every weapon that holds it, so a suite that sets the fire rate on the shared pistol changes it for every later suite
   of the run; the numbers moved off the node with the definitions, and fourteen suites that set `weapon.fire_rate`
   and the rest now go through a copy. **Seen:** gdstudio #887, 2026-11-10.
+
+- **Approach:** When you add an export to `WeaponDef`, pin its default for the pistol in `test_weapon.gd`'s list in
+  the same commit. **Watch out for:** `ExportPins.differences` fails on any export it has no pin for, so the new
+  `view_scene` passed every suite run during the work and failed only in the full run. **Seen:** gdstudio #889,
+  2026-11-10.
 
 ## Bullet impacts {#impacts}
 

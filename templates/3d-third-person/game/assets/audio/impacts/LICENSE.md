@@ -1,16 +1,21 @@
-# Bullet impact sounds
+# Sounds generated with ElevenLabs Sound Effects
 
-- Source: GDStudio's own work, synthesised by code (`tools/audio/impact_sounds.py` in the kit), nothing sampled and
-  nothing third-party. Three seeded variants of each of three surfaces; the seed is the file's name, so the command
-  writes the same files again.
-- Licence: MIT, Copyright (c) 2026 GDStudio contributors, the licence of the kit. No attribution is required and
-  nothing here needs replacing before a commercial release.
+- Generator: ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>), plan `starter`,
+  generated 2026-11-10 to 2026-11-11 with `tools/audio/sfx.py` in the kit (the model of each file is in the table).
+- Licence: Generated on ElevenLabs' paid `starter` plan, which allows commercial use under ElevenLabs' Sound
+  Effects terms (<https://elevenlabs.io/sound-effects-terms>, Exhibit 4): the sounds may be used in a game, combined
+  with other material; they may not be sold, licensed or shared on their own as isolated audio files or samples, or
+  put in a sound, sample or effects library.
+- Attribution: not required.
 
-| Files | What it is | Seconds |
+| File | Prompt | Seconds |
 | --- | --- | ---: |
-| `impact_default_1..3.ogg` | a round into stone: a dry smack, a puff of grit and a short low thud | 0.22 |
-| `impact_wood_1..3.ogg` | a round into a crate: a hollow knock and a splinter's tick | 0.26 |
-| `impact_metal_1..3.ogg` | a round into sheet metal: a click, a ringing ping and a short ricochet whine | 0.45 |
-
-Made with `uv run --with numpy --with scipy python tools/audio/impact_sounds.py --ffmpeg <pinned ffmpeg>`; each file is
-peak-normalised to -6 dBFS (the level in the game is the `volume_db` of the surface's `Sound` node).
+| `impact_default_1.ogg` | A bullet striking a concrete wall: one sharp, dry crack with a puff of grit and small chips of stone, short, close. (requested 0.5 s, `eleven_text_to_sound_v3`) | 0.16 |
+| `impact_default_2.ogg` | A bullet striking a concrete wall: one sharp, dry crack with a puff of grit and small chips of stone, short, close. (requested 0.5 s, `eleven_text_to_sound_v3`) | 0.22 |
+| `impact_default_3.ogg` | A bullet striking a concrete wall: one sharp, dry crack with a puff of grit and small chips of stone, short, close. (requested 0.5 s, `eleven_text_to_sound_v3`) | 0.20 |
+| `impact_wood_1.ogg` | A single bullet slamming into a thick wooden plank: an instant, sharp, dry wooden crack and knock, very short, close. (requested 0.5 s, `eleven_text_to_sound_v3`) | 0.27 |
+| `impact_wood_2.ogg` | A single bullet slamming into a thick wooden plank: an instant, sharp, dry wooden crack and knock, very short, close. (requested 0.5 s, `eleven_text_to_sound_v3`) | 0.24 |
+| `impact_wood_3.ogg` | A single bullet slamming into a thick wooden plank: an instant, sharp, dry wooden crack and knock, very short, close. (requested 0.5 s, `eleven_text_to_sound_v3`) | 0.31 |
+| `impact_metal_1.ogg` | A single bullet ricochet off a steel plate: an instant, loud, bright metallic ping with a sharp attack and a short ring, close. (requested 0.5 s, `eleven_text_to_sound_v3`) | 0.21 |
+| `impact_metal_2.ogg` | A single bullet ricochet off a steel plate: an instant, loud, bright metallic ping with a sharp attack and a short ring, close. (requested 0.5 s, `eleven_text_to_sound_v3`) | 0.23 |
+| `impact_metal_3.ogg` | A single bullet ricochet off a steel plate: an instant, loud, bright metallic ping with a sharp attack and a short ring, close. (requested 0.5 s, `eleven_text_to_sound_v3`) | 0.30 |

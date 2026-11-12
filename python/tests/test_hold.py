@@ -294,7 +294,7 @@ def test_a_ruleset_without_the_pin_is_drift():
 
 
 def test_a_game_with_no_hold_yet_keeps_its_ruleset():
-    merge = {k: v for k, v in CONVENTIONS["merge"].items() if k != "hold"}
+    merge = {k: v for k, v in CONVENTIONS["merge"].items() if k not in ("hold", "red_main")}
     assert required_checks({"merge": merge}) == [{"context": c} for c in merge["required_checks"]]
 
 
