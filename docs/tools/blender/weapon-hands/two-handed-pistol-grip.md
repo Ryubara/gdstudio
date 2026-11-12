@@ -88,6 +88,7 @@ by hand:
 | female | `grip` | right thumb | High on the frame, where the two-handed pose leaves from: the solver's was 6.4 to 6.7 mm inside the left hand as it let go and came back (reload shares 0.04 and 0.86) |
 | female, male | `thumb` | right thumb | On the root of the left thumb, within the test's 12 mm of its skin |
 | female, male | `thumb_way` | right thumb | The pose between its two places ([below](#between-the-poses)) |
+| female, male | `one_hand`, `one_hand_way` | right hand | Not set by hand: one-handed, every body's fingers are fitted to the female's placement on the gun by `fit_one_hand.gd` ([one-handed](../../../engines/godot/third-person/one-handed.md#one-handed)) |
 
 The poses set by hand on kit #1001's seat (the female's left middle, ring and little fingers, her right little
 finger) put the fingers 3 to 8 mm inside on the new seat and are gone: those fingers are the solver's again and

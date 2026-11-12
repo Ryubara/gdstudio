@@ -225,6 +225,11 @@ shooting page once that work lands).
   Through the reload the old magazine drops, the new one rides the left hand up the grip's line in solved fingers, and
   the slide locked open on an empty pistol is released (kit #1052,
   [the magazine and the slide](weapon-hands/two-handed-pistol-grip.md#the-magazine-through-the-reload)).
+- **Or one hand** (kit #1085): with the definition's `one_handed` the right hand sits on the same seat, the index
+  finger on the trigger while aiming and the thumb forward along the frame where the left thumb's root would be, with
+  one finger placement for every body (`one_hand_pose`: the female's, fitted onto the male hand by
+  `tools/hold/fit_one_hand.gd`, kit #1274), and the left hand is off the gun but for the reload; the arm, the chest
+  and the kick are [One-handed](../../engines/godot/third-person/one-handed.md#one-handed).
 - **Lying down the same hold holds** (kit #1111). The prone aim clips are solved from this hold
   (`tools/hold/dump_aim_seat.gd` writes the seat, the `SupportHand` marker and the wrist turn for the clip build), so
   the right hand's bone is where the seat carries the pistol along the look and the left hand's bone on its marker,

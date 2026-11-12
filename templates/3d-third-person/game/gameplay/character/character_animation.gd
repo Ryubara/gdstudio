@@ -826,9 +826,7 @@ func _build_root() -> AnimationNodeBlendTree:
 # it (`ShotLayer`) and `Reload` the reload clip, both on the upper body. An empty clip is idle.
 func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	var hold := held_definition()
-	var grip_bones: Array[StringName] = []
-	if hold != null:
-		grip_bones = hold.grip_bones
+	var grip_bones: Array = hold.grip_bones if hold != null else []
 	var upper := _bone_paths([upper_body_bone])
 	var held := _bone_paths(grip_bones) if carry == Carry.HAND_ONLY else upper
 	var armed := AnimationNodeBlend2.new()
@@ -845,9 +843,10 @@ func _add_pistol_layer(root: AnimationNodeBlendTree) -> void:
 	reload.filter_enabled = true
 	for path in held:
 		armed.set_filter_path(path, true)
+	var free := _bone_paths(hold.free_bones() if hold != null else [])
 	for path in upper:
-		aim.set_filter_path(path, true)
-		shoot.set_filter_path(path, true)
+		aim.set_filter_path(path, not free.has(path))
+		shoot.set_filter_path(path, not free.has(path))
 		reload.set_filter_path(path, true)
 	var pose := AnimationNodeBlendSpace1D.new()
 	pose.min_space = -aim_pitch_range
