@@ -8,10 +8,11 @@
 ## `MagazineHand`). No number of a hold is typed by hand: change the model or the solver, run both
 ## again, then the hold's test (`tests/gameplay/test_pistol_hold.gd`, `test_rifle_hold.gd`).
 ##
-## Each body has its own pistol hold (kit #1187). The default body's (`female`,
+## Each body has its own hold of each weapon (kit #1187). The default body's (`female`,
 ## `CharacterBodies.FEMALE`) goes into the files above; another body's into one `HoldFit` file,
-## `gameplay/weapon/hold/pistol_fit_<body>.tres`, which `weapon_hold.tscn` lists in `fits`. The
-## rifle has no fit of its own yet, so it takes the default body only.
+## `gameplay/weapon/hold/<weapon>_fit_<body>.tres`, which the weapon's hold lists in `fits`
+## (`weapon_hold.tscn` for the pistol, `rifle_held.tscn` for the rifle, whose fit's `seat` is the
+## inverse of the right hand's place on the rifle).
 ##
 ## `<godot> --headless --path game -s res://tools/hold/write_hold.gd -- <hold.json> [rifle] [male]`
 extends SceneTree
@@ -52,12 +53,10 @@ const WEAPONS: Dictionary[String, Dictionary] = {
 		},
 	},
 }
-## The pistol's poses, which a `HoldFit` holds for another body.
-const POSES: Dictionary = WEAPONS.pistol.poses
 const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
 ## The body whose hold is the scene's own; every other body's is a `HoldFit` file.
 const DEFAULT_BODY := "female"
-const FIT := "res://gameplay/weapon/hold/pistol_fit_%s.tres"
+const FIT := "res://gameplay/weapon/hold/%s_fit_%s.tres"
 ## The line of the hold scene the way is written after when the scene has none yet.
 const _WAY_AFTER := "open_pose = "
 
@@ -77,12 +76,6 @@ func _initialize() -> void:
 			printerr("  and a body ", CharacterBodies.BY_NAME.keys())
 			quit(1)
 			return
-	if which != "pistol" and body != DEFAULT_BODY:
-		printerr(
-			"write_hold: only the pistol has a hold for each body; the rifle takes the default"
-		)
-		quit(1)
-		return
 	if arguments.size() in [1, 2, 3] and FileAccess.file_exists(arguments[0]):
 		parsed = JSON.parse_string(FileAccess.get_file_as_string(arguments[0]))
 	if not parsed is Dictionary:
@@ -92,7 +85,7 @@ func _initialize() -> void:
 		return
 	var solved: Dictionary = parsed
 	if body != DEFAULT_BODY:
-		_write_fit(solved, body)
+		_write_fit(solved, which, body)
 		quit()
 		return
 	var weapon := WEAPONS[which]
@@ -128,11 +121,17 @@ func _initialize() -> void:
 
 
 # Writes another body's hold as one `HoldFit` file, its poses inside it.
-func _write_fit(solved: Dictionary, body: String) -> void:
-	var path := FIT % body
+func _write_fit(solved: Dictionary, which: String, body: String) -> void:
+	var path := FIT % [which, body]
 	var fit := HoldFit.new()
 	fit.body = CharacterBodies.BY_NAME[body].get_file()
-	fit.seat = _transform(solved.seat)
+	if solved.has("seat"):
+		fit.seat = _transform(solved.seat)
+	elif solved.has("right_hand"):
+		# The rifle's right hand is a place on the gun; the seat is the gun's place on the hand.
+		fit.seat = _transform(solved.right_hand).affine_inverse()
+	if solved.has("left_hand"):
+		fit.support_hand = _transform(solved.left_hand)
 	if solved.has("support_hand"):
 		fit.support_hand = _transform(solved.support_hand)
 	if solved.has("magazine_hand"):
@@ -143,7 +142,7 @@ func _write_fit(solved: Dictionary, body: String) -> void:
 			snappedf(solved.way[1], 1e-5),
 			snappedf(solved.way[2], 1e-5)
 		)
-	for key: String in POSES:
+	for key: String in WEAPONS[which].poses:
 		if solved.has(key):
 			var pose := HandPose.new()
 			_fill(pose, solved, key)
