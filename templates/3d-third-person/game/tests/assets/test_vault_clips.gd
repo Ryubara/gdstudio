@@ -363,15 +363,15 @@ func _clips_join_the_sprint_and_each_other(body: String) -> void:
 
 # A game draws the clip between its 24 keys a second, where two keys that are both clear of the
 # box say nothing (gdstudio #1221: `Vault_Low`'s left knee went through the front edge between
-# two keys). 240 times a second, with the body moved at the clip's speed, no leg joint of either
-# mannequin is inside the reference box.
+# two keys). 240 times a second, with the body moved at the clip's speed, no leg joint of any of
+# the four bodies is inside the reference box, each in the file it plays.
 func test_no_leg_joint_cuts_the_box_between_the_keys() -> void:
 	var joints: Array[String] = LEG_BONES.slice(1)
-	for body: String in SIDECARS:
+	for body: String in MODELS:
 		var model := MODELS[body]
 		var rig := _rig(model)
 		for clip: String in ["Vault_Low", "Vault_High"]:
-			var spec: Dictionary = _file.clips[clip]
+			var spec: Dictionary = _numbers_of(body).clips[clip]
 			var top: float = spec.obstacle.height
 			var depth: float = spec.obstacle.depth
 			var deepest := 0.0
@@ -397,7 +397,7 @@ func test_no_leg_joint_cuts_the_box_between_the_keys() -> void:
 				)
 				. is_less(JOINT_IN_BOX)
 			)
-		var between: Dictionary = _files[body].clips.Vault_Low.contacts.between_keys
+		var between: Dictionary = _numbers_of(body).clips.Vault_Low.contacts.between_keys
 		assert_float(between.samples_a_second).is_greater_equal(60.0)
 
 
