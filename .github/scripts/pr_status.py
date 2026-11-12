@@ -71,9 +71,27 @@ def has_conflict(pr: dict[str, Any]) -> bool | None:
     return mergeable is False
 
 
+def newest_runs(check_runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The newest run of each check name. GitHub's `filter=latest` is the latest per check suite, and every event of a
+    pull request (opened, edited, pushed to) makes a suite of its own: a check that failed on an old description and
+    passed after the description was edited comes back twice, once failed and once passed, and only the newer one
+    says what the pull request is now."""
+    newest: dict[str, dict[str, Any]] = {}
+    for run in check_runs:
+        kept = newest.get(run["name"])
+        if kept is None or _when(run) >= _when(kept):
+            newest[run["name"]] = run
+    return list(newest.values())
+
+
+def _when(run: dict[str, Any]) -> tuple[str, int]:
+    """When a run started (ISO times sort as text), then its id: a later run of the same check has a higher one."""
+    return (run.get("started_at") or "", int(run.get("id") or 0))
+
+
 def failing_checks(check_runs: list[dict[str, Any]], required: list[str]) -> list[str]:
-    """The names of the required checks that failed. With no required list, every check counts."""
-    names = {run["name"] for run in check_runs if run.get("conclusion") in FAILED}
+    """The names of the required checks whose newest run failed. With no required list, every check counts."""
+    names = {run["name"] for run in newest_runs(check_runs) if run.get("conclusion") in FAILED}
     if required:
         names &= set(required)
     return sorted(names)
@@ -136,7 +154,8 @@ class Client:
             raise ApiError(f"DELETE {path}: {done.stderr.strip()}")
 
     def check_runs(self, sha: str) -> list[dict[str, Any]]:
-        """The latest run of each check on a commit (a re-run replaces the run it repeats)."""
+        """The latest run of each check on a commit, per check suite (a re-run replaces the run it repeats; a run
+        from another event of the pull request does not: `newest_runs`)."""
         pages = self.get(f"commits/{sha}/check-runs?filter=latest&per_page=100", paginate=True)
         runs: list[dict[str, Any]] = []
         for page in pages:

@@ -14,12 +14,14 @@ const CLIPS: Array[StringName] = [
 	CharacterClips.SPRINT,
 	CharacterClips.CROUCH_IDLE,
 	CharacterClips.CROUCH_WALK,
+	CharacterClips.STAND_TO_CROUCH,
+	CharacterClips.CROUCH_TO_STAND,
 	CharacterClips.JUMP_START,
 	CharacterClips.AIR,
 	CharacterClips.LAND,
 	CharacterClips.PUSH,
 ]
-const SAMPLES := 8
+const SAMPLES := 24
 ## How far a pistol point may be inside the body, in metres (none).
 const TOLERANCE := 0.0
 

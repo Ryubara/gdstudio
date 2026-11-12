@@ -61,17 +61,18 @@ game/
   silently. **Seen:** gdstudio #845, #868, #872, #925 (2026-11-08 to 11-10); #910, #1074, #1091, #968 (36 at
   once; 2026-11-11); #1186 (a
   bench built with `bench-web`, which never checks layout); seven hand-made uids replaced, kit #1129, 2026-11-11; a
-  suite added after the first `gds template uids` run failed the full run's layout step, gdstudio #1187, 2026-11-11
-  (run it again after the last new script).
+  suite added after the first `gds template uids` run failed the full run's layout step, gdstudio #1187, #1052, 11-11
+  (run it again after the last new script); PR #1171, 11-12 (two `-s` tool scripts).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
   a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and
   run `gds check layout templates/<name>/game` before the push. **Watch out for:** a left `.ruff_cache/` or
-  `__pycache__/` failed the layout check (`snake-case`) and `test_new_game.py`, and looked like a problem of the change.
+  `__pycache__/` failed the layout check (`snake-case`) and `test_new_game.py`, like a fault of the change.
   From the kit's root ruff reads no config and wraps a template's Python at 88: pass `--line-length 120` (to undo an
   88 run, first `--config "format.skip-magic-trailing-comma=true"`). **Seen:**
   gdstudio #884, 2026-11-10; gdstudio #908, 2026-11-11 (`tools/net/__pycache__`); gdstudio #1110, 2026-11-11 (a kit
-  test loading `bad_network.py` failed CI's `test_layout.py`); gdstudio #1106, #1105, 2026-11-11 (gate files rewrapped).
+  test loading `bad_network.py` failed CI's `test_layout.py`); gdstudio #1106, #1105, 2026-11-11 (gate files rewrapped);
+  gdstudio #1040 (a sweep).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or

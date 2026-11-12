@@ -26,7 +26,7 @@ can be replaced alone.
 | `CameraZone` | `gameplay/camera_zone/camera_zone.gd` | Hands the view to another Phantom Camera while the player stands in a `TriggerZone`. |
 | `PhysicsLayers` | `core/physics_layers/physics_layers.gd`, `project.godot` `[layer_names]` | The seven named layers and the masks: the player is on Characters and meets World and Props (two characters walk through each other, for networking), shots meet characters, props, the level and a dead body's bones, the camera's walls are World and Props, pickups and zones mask what they sense. Tune a body's layers in its scene's Collision group; the names show in the inspector. |
 | `TouchControls` | `ui/touch/third_person_touch_controls.tscn` (inherits 3D Blank's `touch_controls.tscn`) | The phone controls: a floating stick, a look drag and buttons that press the game's input actions (Jump and Use from the base; Fire, Aim, Crouch and Prone added here). |
-| The rifle | `assets/weapons/rifle/` | An assault rifle model for the weapon work (not yet held or fired): `rifle.glb` and its far level `rifle_far.glb` with the hand sockets (`Grip`, `Support`), `Muzzle`, `Butt` and the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` shows the far level from 10 m. How a character can hold it with the clips the template has is in the folder's README. |
+| The rifle | `assets/weapons/rifle/` | The assault rifle a `rifle_pickup.tscn` gives, held with both hands by `gameplay/weapon/rifle_held.tscn` (a `TwoHandHold`: the butt in the shoulder, the right hand on the grip, the left under the hand guard, a reload for the left hand): `rifle.glb` and its far level `rifle_far.glb` with the hand sockets (`Grip`, `Support`), `Muzzle`, `Butt` and the `Magazine` and `Bolt` as their own nodes; `rifle.tscn` shows the far level from 10 m. How the hold was chosen is in the folder's README. |
 | The bodies and their clips | `assets/characters/prototype/`, `assets/characters/mannequin/`, `assets/animation/universal/` | GDStudio's prototype bodies in the `form` look (`form_female.glb` for the player, friendlies and puppets, `form_male.glb` for enemies; `CharacterBodies` names them), Quaternius's female and male mannequins (`mannequin_female.glb`, `mannequin_male.glb`) and the Universal Animation Library 1 and 2 (CC0), 86 clips, each with a licence entry. |
 
 ## Input
@@ -34,7 +34,7 @@ can be replaced alone.
 `PlayerInput` (a child of `Player`) reads actions, never devices: `move_left`, `move_right`, `move_forward`,
 `move_back`, `jump`, `sprint`,
 `walk` (a slow walk), `interact`, `crouch`, `prone`, `aim`, `fire`, `reload`, `next_weapon`,
-`previous_weapon`, `toggle_unarmed` and, for the camera, `look_left`, `look_right`, `look_up`,
+`previous_weapon`, `toggle_unarmed`, `melee` and, for the camera, `look_left`, `look_right`, `look_up`,
 `look_down` and `shoulder_swap`. Each has a key and, where it makes sense, a pad binding for any device; the touch
 layer presses the same actions. Rebind them in Project Settings > Input Map.
 
@@ -55,6 +55,7 @@ layer presses the same actions. Rebind them in Project Settings > Input Map.
 | Next weapon | mouse wheel down | d-pad right | the Swap button |
 | Previous weapon | mouse wheel up | d-pad left | none |
 | Empty hands and back | H | d-pad up | none |
+| Melee (with any weapon; the empty hands' fire is the same blow) | V | left stick click | the Melee button |
 | Swap shoulder | Q | right stick click | none |
 | Die and get up (a testing aid) | Y (`Player`'s `ragdoll_key`; None turns it off) | none | none |
 
@@ -167,6 +168,13 @@ or off, the most to the left and right of the way the body faces, and the most u
 or the shot is refused. Its own inspector: the chain of spine bones and their shares, `converge_distance`,
 `release_time` (how fast it takes over again after a shot's recoil) and `disabled`.
 
+While the character aims, with any weapon (the fists too), the aim layer also holds the head level and looking along
+the aim, on a straight neck, whatever head the clips carry: in its Head group, `head_neck_share` and
+`head_crouch_neck_share` (the neck's share of the turn, 0.4 standing and 0.5 crouched), `head_max_turn` (the most the
+head turns off the line the chest gives it, 90 degrees) and
+`head_disabled`. A weapon whose definition says `aim_head` `SIGHT` (the rifle) has the head brought on from there
+toward its sights, the eye to the weapon's `aim_eye` marker: a cheek on the stock.
+
 Vaulting and mantling have their own resource, `gameplay/character/vault_settings.tres` (the `Character`'s
 `vault_settings`, in its Traversal group; empty turns them off), described in [Vaulting and mantling](#vaulting).
 
@@ -176,21 +184,23 @@ the steepest slope and the floor snap are applied again whenever the resource ch
 
 A `PhysicsProp` has a `push_speed` of its own: the cubes of the map are 60 kg, grippy (friction 0.5) and pushed at 1.2
 m/s, so the character (15 percent faster than the cube, to stay against it) walks slowly into them and the push clip
-plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The
-pistol's definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full
-automatic, spread, damage (34 before the hit zone's multiplier), aim range, the push it gives a body (40 N·s), the
-magazine (12), the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when
-the magazine is empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0,
-so it flies straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random
-pitch, two empty clicks, the reload's three steps, the draw). The fists (`fists.tres`) throw a jab and a cross 1.1 m,
-2.5 a second, with no ammunition, and a punch does not zoom the view (`fire_zooms` off). Each definition's Aim and zoom
-group says what aim and fire do with it: `can_aim`, `fire_needs_aim`, `fire_zooms`, `show_crosshair`, and with
-`override_zoom` its own aim and fire field of view, distance and `zoom_offset` in place of the camera's; all apply
-while the game runs. The `Weapon` node keeps the rest: `no_muzzle_offset` (where a shot starts when the
-weapon has no `muzzle`, as on a character with no model: beside its `shooter`, this far off the aim ray),
-`projectile_cap` (24 in flight) and `self_ticking` (on: the weapon counts its own cooldown and reload; the `Character`
-turns it off and counts them in its step); its `ShotSound`, `EmptySound`, `ReloadSound` and `DrawSound` nodes hold the
-volume, bus and voices. The `Loadout` lists the slots (the pistol) and the empty hands (the fists).
+plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The pistol's
+definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full automatic,
+spread, damage (34 before the hit zone's multiplier), aim range, the push it gives a body (40 N·s), the magazine (12),
+the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when the magazine is
+empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0, so it flies
+straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random pitch, two
+empty clicks, the reload's three steps, the draw). Every weapon has a melee blow (V) whose clips and numbers are its
+category's (`gameplay/weapon/categories/`: the fists' jab, cross and hook 1.1 m for 15, the pistol's whip, backhand and
+jab 1.2 m for 25), and the fists (`fists.tres`) throw it on the fire button too, with no ammunition and without zooming
+the view (`fire_zooms` off). Each definition's Aim and zoom group says what aim and fire do with it: `can_aim`,
+`fire_needs_aim`, `fire_zooms`, `show_crosshair`, and with `override_zoom` its own aim and fire field of view, distance
+and `zoom_offset` in place of the camera's; all apply while the game runs. The `Weapon` node keeps the rest:
+`no_muzzle_offset` (where a shot starts when the weapon has no `muzzle`, as on a character with no model: beside its
+`shooter`, this far off the aim ray), `projectile_cap` (24 in flight) and `self_ticking` (on: the weapon counts its own
+cooldown and reload; the `Character` turns it off and counts them in its step); its `ShotSound`, `EmptySound`,
+`ReloadSound`, `DrawSound` and `MeleeSound` nodes hold the volume, bus and voices. The `Loadout` lists the slots (the
+pistol) and the empty hands (the fists).
 
 The sample map is built for these numbers (blocks 1 m apart in height, twelve steps of 0.25 m, a 14 degree ramp): a test
 fails when a tuning breaks it, which tells you which part of the map to rebuild.
@@ -316,7 +326,30 @@ which runs into the `slide` loop, and `slide_exit`, played when a slide ends sta
 Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up
 `prone/Prone_To_Crouch` for its `exit_time`. Lying, the weapon is put away (its model hidden, the grip off) because the
 fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male mannequin's,
-kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file.
+kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file; the vault clips come a body the
+same way, from `vault_libraries` (kit #1294).
+
+Aiming lying down plays the held weapon's prone aim clips inside the prone state, over the idle and the crawl from
+`spine_01` up, blended by the look: the `WeaponDef`'s `prone_aim_clip`, `prone_aim_up_clip` and `prone_aim_down_clip`
+(the pistol's are `prone_aim/Prone_Aim_Neutral`, `_Up` and `_Down`), with `prone_aim_angles` the looks the down and up
+clips are made for (25 and 20 degrees; past them the pose stays on the clip). While the body lies, the standing grip
+and aim layers below have no weight. A shot lying down plays no shot clip: it kicks the look the pose is on by the
+Animation's `prone_shot_kick` (7 degrees), which settles over `prone_shot_kick_time` (0.22 s). A weapon whose
+`prone_aim_clip` is empty aims lying down with its standing clips. Each body plays the aim clips solved on its own
+arms and hands: the scene's `prone_aim` library is `form_female`'s, and the Animation's `prone_aim_libraries` gives
+`form_male` its own file, as `prone_libraries` does for the prone clips. The aim layer stops at the down clip's 25
+degrees lying down (`ProneTuning.aim_limits`), so the pistol never turns into the floor. A reload lying down plays the weapon's
+`prone_reload_clip` (the pistol's is `prone_reload/Prone_Reload_Pistol`) on the reload layer, never the standing
+`reload_clip`: the body rolls a little onto its right side, the right arm props on its elbow with the pistol canted
+in front of the face, and the left hand fetches the magazine at the belt, pushes it in and takes the pistol again,
+at the standing reload's shares, so the `WeaponHold` follows it as it is. Each body plays the reload solved on it
+(`prone_reload_libraries`, as the aim's files). A reload with the pistol put away brings
+it out for the reload, a body that gets up stops the lying clip, and a weapon with no `prone_reload_clip` shows no
+clip lying down. The camera frames it with its
+Prone aim group
+(`PlayerCamera`: `prone_aim_view`, `prone_aim_distance` 1.8 m, `prone_aim_ahead` 0.55 m, `prone_aim_rise` 0 m,
+`prone_aim_shoulder` 0.7 m, `prone_aim_fov` 50 degrees): the view turns about the shoulders, not the hips, and sits
+further to the side, so the hands and the pistol show beside the head above the HUD.
 Over it is the pistol layer. Off aim and fire the pistol only sits in the right hand: the locomotion clip drives the
 arms and the spine (walk, jog, sprint, crouch and jump all swing the arm as they do unarmed) and only the gripping hand
 (the wrist, fingers and thumb) takes the grip pose of `Pistol_Idle`. Aiming or firing brings the arm up over
@@ -344,10 +377,11 @@ the node or on the `WeaponDef`, builds the tree again):
 | `carry` | `Hand Only` | How the weapon is carried off aim and fire. `Hand Only`: the arms and the spine follow the locomotion and only the grip bones take the grip pose. `Held Pose`: the grip clip holds the whole upper body, both arms out in front (a weapon at the ready, a rifle). |
 | `WeaponDef.grip_clip` | `Pistol_Idle` | The pose the gripping hand takes (and the whole upper body in `Held Pose`). Empty (the fists): none. |
 | `WeaponDef.grip_bones` | `hand_r` | The bones that take the grip pose in `Hand Only`, each with every bone below it (the wrist and the fingers). Add `hand_l` for a two-handed weapon; a name the skeleton lacks is ignored. |
-| `WeaponDef.aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clips`, `reload_clip` | the `Pistol_*` clips | The aim pose by pitch, the recoil (the fists: `Punch_Jab` and `Punch_Cross` in turn) and the reload, stretched to the reload's time. |
-| `WeaponDef.shoot_additive` | on (the pistol), off (the fists) | On: the shot's clip is added to the aim as its difference from its own first frame, so the kick rides any pitch; off: it replaces the upper body while it plays (a punch). |
+| `WeaponDef.aim_clip`, `aim_up_clip`, `aim_down_clip`, `shoot_clips`, `reload_clip` | the `Pistol_*` clips | The aim pose by pitch, the recoil and the reload (a melee blow's clips are the weapon category's `melee_clips`), stretched to the reload's time. A weapon that names no shot clip plays none on a shot. |
+| `WeaponDef.shoot_additive` | on (the pistol), off (the fists) | On: the shot's clip is added to the aim as its difference from its own first frame, so the kick rides any pitch; off: it replaces the upper body while it plays. |
 | `upper_body_bone` | `spine_01` | Where the aim pose starts: this bone and everything below it. |
 | `aim_brace` | on | Holds the upper body's turn on the stance the aim poses were made on while the character aims standing, walking or running (`AimBrace`, a skeleton modifier): the pistol points along the view whatever the legs' clip does to the pelvis. Off, the aim pose turns with that pelvis. |
+| `aim_stance` | on | Holds the legs still under a standing aim (`AimStance`): the ground state's idle point blends to the idle clip held on its steadiest frame (the pelvis nearest the middle of its sway) as the arm comes up, so the idle's weight shift no longer sways the pistol (33 mm to each side without it; the muzzle stays within 0.1 mm through 10 s of a held aim, the feet within 2.3 mm while it blends, on the player's and the enemies' bodies). Walking, the blend space has left the idle point, so the gaits are unchanged. Off, the idle plays under the aim. |
 | `aim_pitch_range`, `shoot_speed` | 45 deg, 1.6 | How far the character looks up or down for the full aim up and down poses, and the recoil's speed. |
 | `shot_hold_time` | 0.2 s | How long the arm stays up after a shot, so a shot fired without aiming (hip fire) shows. The walk and the turn are normal at once; 0 lowers the arm as soon as the buttons are let go. |
 
@@ -358,36 +392,76 @@ both mannequins: `tests/gameplay/test_pistol_clearance.gd` measures it on the sk
 **The hands on the pistol** are closed by `WeaponHold` (`gameplay/weapon/hold/weapon_hold.tscn`, a node of
 `character_dressed.tscn`), after the clips: the library's fist is one pose for every weapon and does not fit this one.
 It makes three modifiers under the model's `Skeleton3D` and makes them again when the model is replaced. It reads the
-pistol layer's weights (`CharacterAnimation.pistol_weights()`) and where the reload clip is (`reload_progress()`), so
-it follows the carry, the aim, a reload and a death with no wiring of its own. Through a reload the left hand is on
-the pistol, away with the clip's arm for the new magazine, under the magazine while it goes in, and on the pistol
-again; the pistol's `Magazine` does not move yet. The left hand goes on and off the pistol one way, for the aim and
-the reload alike: its fingers open where it holds, the opened hand leaves along a line that passes through nothing,
-and only at the line's far end does the clip's arm take it. `SupportHandPlan`
-(`gameplay/weapon/hold/support_hand_plan.gd`) works that out and names the reload's phases (`HELD`, `LET_GO`,
-`AWAY`, `REACH`, `INSERT`, `SEATED`, `RETURN`); read `WeaponHold.left_hand()` for whatever should move with the
-hand. Everything is tuned in its inspector while the game runs:
+pistol layer's weights (`CharacterAnimation.pistol_weights()`) and where the reload clip is (`reload_progress()`), so it
+follows the carry, the aim, a reload and a death with no wiring of its own. Lying with a prone aim
+(`prone_hold_share()`), its left arm keeps the elbow the clip gives it (`support_keep_elbow`). Through a reload the
+left hand is on the
+pistol, away with the clip's arm for the new magazine, under the magazine while it goes in, and on the pistol again. The
+magazines go with it: the pistol's own `Magazine` drops out of the grip and falls to the floor when the reload's first
+sound plays, a new one is in the left hand from the belt (the fingers open, then close on it), comes up the grip's own
+line and is the pistol's `Magazine` again once it is in; a reload cut short leaves the pistol whole. The slide stands
+back while the pistol is empty and runs forward when the reload's last sound plays. The two hands hold the pistol
+together as a two-handed grip is taught: the left hand canted, its fingers over the right hand's and round the front of
+the grip, its index finger under the trigger guard, its thumb forward along the frame, and the right thumb on the root
+of the left one. The left hand goes on and off the pistol one way, for the aim and the reload alike: its fingers open
+where it holds, the opened hand leaves along a line that passes through nothing, and only at the line's far end does the
+clip's arm take it; it waits there while the right thumb makes room, and an arm too short for the hand's place (the aim
+coming up) backs the hand off along that line. `SupportHandPlan` (`gameplay/weapon/hold/support_hand_plan.gd`) works
+that out and names the reload's phases (`HELD`, `LET_GO`, `AWAY`, `REACH`, `INSERT`, `SEATED`, `RETURN`); read
+`WeaponHold.left_hand()` for whatever should move with the hand. Held in one hand (`one_handed`, kit #1085) a fourth
+modifier turns the body side-on and reaches the right arm out, and the left hand comes in only to reload. Everything
+is tuned in its inspector while the game runs:
 
 | Property | Default | What it does |
 | --- | --- | --- |
 | `grip_pose`, `trigger_pose` | `pistol_grip_pose.tres`, `pistol_trigger_pose.tres` | The right hand on the grip with the index finger along the frame, and the index finger on the trigger, blended in as the character aims. |
-| `support_pose` | `pistol_support_pose.tres` | The left hand's fingers over the right hand, used while aiming or firing. |
+| `trigger_way_pose` | `pistol_trigger_way_pose.tres` | Where the index finger is half-way between the frame and the trigger: it goes round by this pose, clear of the left thumb, never straight. |
+| `thumb_pose` | `pistol_thumb_pose.tres` | The right thumb while the left hand is on the pistol: on the root of the left thumb, which takes its place on the frame. |
+| `thumb_way_pose` | `pistol_thumb_way_pose.tres` | Where the right thumb is half-way between the frame and the left thumb's root: lifted clear of the frame's rear edge, which the straight blend passed through. Set by hand. |
+| `support_pose` | `pistol_support_pose.tres` | The left hand on the pistol and over the right hand, used while aiming or firing. |
 | `support_marker` | `SupportHand` | The weapon's child the left hand's bone is brought to; move the marker in `pistol_held.tscn` and the hand follows. |
 | `support_arm`, `support_elbow` | the left arm's three bones, (0.6, 0.6, 0.2) | The bones that reach, and where the elbow points in the model's space. |
-| `carry_arm`, `carry_arm_out` | `upperarm_r`, 8 deg | The weapon's arm and how far it is held out from the body while the weapon is carried, so the grip's foot clears the thigh; it goes back as the character aims. |
-| `open_pose`, `support_way` | `pistol_open_pose.tres`, (0.018, -0.03, 0.049) | The left hand's way off the pistol and back onto it: its fingers opened where it holds, and the line the opened hand leaves along, in the weapon's space, to where the clip's arm takes it. Both are solved together. |
+| `carry_arm`, `carry_arm_out` | `upperarm_r`, 8 deg | The weapon's arm and how far it is held out from the body while the weapon is carried, so the grip's foot clears the thigh; it goes back as the character aims or reloads. |
+| `open_pose`, `support_way` | `pistol_open_pose.tres`, (0.008, -0.03, 0.051) | The left hand's way off the pistol and back onto it: its fingers opened where it holds, and the line the opened hand leaves along, in the weapon's space, to where the clip's arm takes it. Both are solved together. |
+| `free_release_time`, `free_return_time` | 0.2 s, 0.12 s | How long the left hand takes off the weapon, and back onto it, for an action that reaches with it and leaves the aim up (`free_hand(seconds)`). Using a door or a lever takes the aim down for its time, which lets the hand go by itself; the rifle's hold (`TwoHandHold`, Free hand group) lets its left hand go for the same reach and takes the gun down in the right hand (`free_pitch` 50 deg, `free_yaw` 0, `free_clearance`, 0.16 s and 0.26 s). |
 | `magazine_pose` | `pistol_magazine_pose.tres` | The left hand's fingers while the heel of its palm pushes the magazine in. |
 | `magazine_marker` | `MagazineHand` | The weapon's child the left hand's bone is brought to while the magazine goes in. |
-| `magazine_approach`, `return_clearance` | (0, -0.1, 0), (0, -0.04, 0.04) | In the weapon's space: where the hand starts from under the magazine (a magazine's length down the grip), and how far it bows out half-way from under the magazine to the far end of `support_way`, round the grip's foot. |
+| `magazine_approach`, `return_clearance` | (0.034, -0.105, 0), (0, -0.04, 0.04) | In the weapon's space: where the hand and the new magazine start from under the grip (down the grip's own line, the magazine's length and a little; solved), and how far the hand bows out half-way from under the magazine to the far end of `support_way`, round the grip's foot. |
 | `reload_leave`, `reload_reach`, `reload_insert`, `reload_return` | (0.02, 0.1), (0.3, 0.4), (0.4, 0.54), (0.71, 0.88) | The shares of the reload clip between which the left hand lets go (opens, leaves along its way, goes to the clip's arm), comes under the magazine, pushes it in and goes back to the pistol: the times of `Pistol_Reload`, to change with the clip. |
-| `held_weight`, `aim_weight`, `reload_weight`, `reload_share` | from the animation | How far the hold, its aim and a reload are on, and the share of the reload clip played, for a character posed by hand (no `animation` set). |
+| `magazine_part`, `carry_pose`, `carry_open_pose`, `carry_release`, `carry_arrive` | `Pistol/Magazine`, `pistol_carry_pose.tres`, `pistol_carry_open_pose.tres`, solved, solved | The Magazine group: the weapon's magazine (its mesh is the one in the hand and the one that falls), the left fingers closed on the new magazine and opened before they close on it, and the shares of the way in over which they open off it (the grip's foot comes down over them) and over which they go on, opened, to `magazine_pose`. |
+| `reload_take`, `reload_drop` | 0.25, 0.2 | The share of the reload clip at which the hand takes the new magazine at the belt, and the one at which the old magazine drops when the weapon definition gives none (its first reload sound does). |
+| `drop_speed`, `dropped_life`, `dropped_mask` | 0.5 m/s, 8 s, World and Props | How fast the old magazine leaves the grip down its line (the weapon's own motion is added), how long it lies in the world (one a character), and what it falls onto; it is on no layer, so no shot and no camera meets it. |
+| `slide_part`, `slide_travel`, `reload_slide` | `Pistol/Slide`, 0.04 m, 0.85 | The Slide group: the weapon's slide, how far it stands back while the weapon is empty, and the share at which it runs forward when the definition gives none (its last reload sound does). |
+| `one_handed` | off (the held `WeaponDef.one_handed`) | Aim and shoot in the right hand alone: the chest side-on, the arm out along the barrel, the left arm on the locomotion clip and a little out, and the left hand on the pistol only for a reload. Switches while the game runs. |
+| `one_hand_pose`, `one_hand_way_pose` | `pistol_one_hand_pose.tres`, `pistol_one_hand_way_pose.tres` (the male's in its fit) | One-handed, the right hand's fingers while it aims (the trigger finger on the trigger, the grip fingers round the grip, the thumb forward along the frame) and the trigger finger half-way there. Every body's lands where the female's does on the gun (`tools/hold/fit_one_hand.gd`; only the seat and the knuckles are the body's own). It comes with the aim over the trigger finger's pose and goes for a reload. |
+| `shooting_arm`, `side_on`, `one_hand_reach`, `one_hand_elbow`, `one_hand_offset`, `free_arm_out` | the right arm, 35 deg, 0.96, (-0.5, -1, 0), (0, 0, 0), 10 deg | One-handed: the arm that holds the pistol out, how far the chest turns (the head turns back), how straight the arm is (a share of its length), where its elbow points and where the wrist sits from the barrel's line through the shoulder (model space), and how far the free arm is held out. |
+| `kick_climb`, `kick_back`, `kick_up`, `kick_time` | 10 deg, 0.05 m, 0.03 m, 0.4 s | One-handed, each shot: the muzzle climbs at the wrist, the wrist comes back (the elbow bends) and up, at the kick's height; it rises in the first 8 percent of `kick_time` and settles by its end, on top of the shot clip. |
+| `held_weight`, `aim_weight`, `reload_weight`, `reload_share`, `shot_kick` | from the animation | How far the hold, its aim and a reload are on, and the share of the reload clip played, for a character posed by hand (no `animation` set). |
 
-The five poses, the two markers, the way and the pistol's seat are solved, never typed: the pistol folder's
-`README.md` says how to run the solver again for another model. `tests/gameplay/test_pistol_hold.gd` holds every clip
+The ten poses, the two markers, the way and the pistol's seat are solved, and where the solver's pose did not read
+as a hand a finger is set by hand in `tools/hold/pistol_authored.json` (angles, laid over the solved hold when it is
+written); no number is typed into a pose file. The pistol folder's `README.md` says how to run the solver again for
+another model. `tests/gameplay/test_pistol_hold.gd` holds every clip
 to 2 mm in and 5 mm off on both mannequins (through the reload the left hand is never more than 2 mm in, at every
 hundredth of the clip while it moves and on every update of the live player reloading while it aims), and
 `tools/capture/pistol_hold_study.tscn` prints the numbers and films the close-ups. The hold is a pose
 worked out on each machine from the aim the game already has; nothing of it goes over a network.
+
+### The slide rack clip {#slide-rack-clip}
+
+`assets/animation/pistol/pistol_rack.glb` holds one clip of GDStudio's own, `Pistol_Rack` (0.93 s): an overhand rack
+of the slide, keyed from nothing by `build_pistol_rack.py` on the player's body (`form_female`) because the library's
+reload has none. It starts and ends on the pose `Pistol_Reload` ends on. Each body has its own hand on the slide, as
+each has its own hold: `gameplay/weapon/hold/pistol_slide_rack.tres` (a `SlideRack`, the female's) lists
+`pistol_slide_rack_male.tres` in `fits`, and `SlideRack.fit()` gives the one solved on the model's file. A rack says
+where the left hand's bone is in the pistol's space on its way over the slide, how its fingers are closed on the
+slide and opened over it, how far the slide travels and at which shares of the clip the hand grips, pulls and lets
+go; what plays the clip reaches the hand there with a `HoldArm`, puts the fingers on with a `HandPoseModifier`
+(`SlideRack.set_fingers()`) and moves the pistol's `Slide` node, as `tests/fixtures/rack_stage.gd` does. On both
+bodies the hands are within the hold's 2 mm and 5 mm on every frame, the index finger's and the thumb's pads on the
+serrations (`tests/gameplay/test_pistol_rack.gd`). The folder's `README.md` has the beats, the numbers, why it is an
+overhand rack and how to build it;
+`tools/capture/rack_closeups.tscn` films it.
 
 ### Vault clips {#vault-clips}
 
@@ -400,12 +474,32 @@ that moves the body over an obstacle of another size. No scene uses them yet: ad
 a library (`vault`) and play `vault/Vault_Low`. `tools/capture/vault_study.tscn` plays them over their reference boxes,
 `tests/assets/test_vault_clips.gd` checks them, and the folder's README says how they are rebuilt.
 
+### Fixed library clips {#fixed-clips}
+
+`assets/animation/fixed/fixed.glb` holds three of the library's clips with one arm swung a few degrees clear of the
+shin it passed through on the template's bodies: `Jump_Land` and `Slide_Exit`, which the character plays
+(`land_clip`, `slide_exit_clip`), and `NinjaJump_Land`. Everything else in them is the library's. It also holds
+`Sword_Dash` and `Sword_Heavy_Combo`, which the template does not play: their thighs passed through each other as
+the body turns, so one leg is turned about the line from its hip to its ankle, which moves the knee and leaves the
+foot where the library has it (`CharacterClips.STAND_INS` names the library's own for these too). To play the
+library's own clip, set the clip in the inspector to the name `CharacterClips.STAND_INS` gives (`ual1/Jump_Land`,
+`ual2/Slide_Exit`). A body of your own with thicker or longer limbs may cross elsewhere: measure it with
+`assets/animation/limb_overlap.py` and add the clip to `assets/animation/fixed/build_fixed_clips.py` (its `README.md`
+says how).
+
 ### Prone and crawl clips {#prone-clips}
 
-`assets/animation/prone/prone.glb` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
-`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above.
-The player does not play them yet (the prone stance is kit #1012); add the library to an `AnimationPlayer` as `prone`
-to use them. The crawl covers 0.618 m/s at its own rate with its elbows and feet planted, the body lies 1.07 m ahead of
+`assets/animation/prone/` holds four clips of GDStudio's own for a character that lies down: `Prone_Idle`,
+`Crawl_Fwd`, `Crouch_To_Prone` and `Prone_To_Crouch`, imported as an `AnimationLibrary` like the two libraries above,
+one file a body (`prone_form_female.glb` for the template's body, `prone_form_male.glb` for the enemies', `prone.glb`
+and `prone_male.glb` for the Quaternius mannequins): a clip that rests limbs on the floor fits one body's skin.
+The dressed character's `AnimationPlayer` holds the library as `prone`, `prone_reload.glb` as `prone_reload` (the
+pistol's reload lying down, `Prone_Reload_Pistol`, 1.67 s, solved on `form_female`; `prone_reload_male.glb` is
+`form_male`'s), and `prone_aim.glb` beside it as `prone_aim`
+(solved on `form_female`; `prone_aim_male.glb` is `form_male`'s):
+three clips that aim the pistol lying down (`Prone_Aim_Neutral`, `Prone_Aim_Up` at 20 degrees, `Prone_Aim_Down` at 25),
+flat behind the pistol with both arms stretched ahead and both hands on it. The crawl covers 0.618 m/s at its own rate
+with its elbows and feet planted, the body lies 1.07 m ahead of
 and 1.03 m behind the origin and 0.5 m high, and the clips hold no weapon (both hands are on the floor). The arms move
 the way people crawl: the forearms point inward and rest on their outer edges, rolled 45 degrees, the hands are
 fists near the centre line in front of the head, and each fist in turn plants ahead of the other, with the opposite
@@ -419,7 +513,11 @@ The two mannequins, both animation libraries and Phantom Camera are third-party 
 (`assets/characters/mannequin/`, `assets/animation/universal/`, `addons/phantom_camera/`): CC0 for the Quaternius files
 and MIT for Phantom Camera. Give them a line on the game's Credits screen. The pistol and the rifle are GDStudio's own
 (MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`. The prone and crawl
-clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`).
+clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`), and so are the slide
+rack clip (`assets/animation/pistol/LICENSE.md`) and the six rifle clips (`assets/animation/rifle/README.md`): the
+low ready, the aim level, up and down, a shot and a reload, played on the upper body under the two-handed hold, the
+library `rifle`. The fixed clips (`assets/animation/fixed/`) are five of the library's clips with one arm or one leg
+moved, CC0 like the library, with their own `LICENSE.md`.
 
 ## Testing it in a browser
 

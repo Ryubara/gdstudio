@@ -82,6 +82,12 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"wall_mask": PhysicsLayers.CAMERA_MASK,
 		&"wall_shape": null,
 		&"wall_margin": 0.25,
+		&"prone_aim_view": true,
+		&"prone_aim_distance": 1.8,
+		&"prone_aim_ahead": 0.55,
+		&"prone_aim_rise": 0.0,
+		&"prone_aim_shoulder": 0.7,
+		&"prone_aim_fov": 50.0,
 	}
 	assert_array(ExportPins.differences(fresh, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(fresh, pins)).is_empty()

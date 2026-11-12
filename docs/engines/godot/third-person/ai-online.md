@@ -130,8 +130,11 @@ The native bad-network gate passed with the change (both runs, every check).
 - **Approach:** In a test of a shot at a running character, aim where the target will be drawn when the round gets
   there (its drawn position plus its velocity times the flight), and print where the round met it before blaming the
   rule. **Watch out for:** the first test aimed at the drawn chest of a guard at 4 m/s; the 6 m flight took 7 ticks,
-  the drawn guard ran 0.45 m on, and the round met the edge of the capsule but no zone: a miss that was right.
-  **Seen:** gdstudio #1198, 2026-11-11.
+  the drawn guard ran 0.45 m on, and the round met the edge of the capsule but no zone: a miss that was right. The
+  flight is from the muzzle to the capsule's near side, not from the shooter's feet to its middle: led by the whole
+  of that, the round crossed 0.17 m ahead of the guard's middle, which hit only while the library's jog leaned the
+  chest there, and missed a guard running upright in our own jog (`LEAD_SHARE`, 0.7). **Seen:** gdstudio #1198,
+  2026-11-11; gdstudio #1155, 2026-11-11 (two cases red in the full run).
 
 ### What it costs {#replication-cost}
 

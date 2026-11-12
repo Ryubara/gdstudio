@@ -3,13 +3,21 @@ extends RefCounted
 ## The names of every clip the character can play: the Universal Animation Library 1 and 2
 ## (Quaternius, CC0), added to the player's `AnimationPlayer` as the libraries `ual1` and
 ## `ual2`, so a clip is `ual1/Idle`, the template's own prone and crawl clips (gdstudio
-## #1009, `assets/animation/prone/`), the library `prone`, and GDStudio's own clips that replace
+## #1009, `assets/animation/prone/`), the library `prone`, with its prone aim clips (gdstudio
+## #1111), the library `prone_aim`, its prone reload (gdstudio #1185), the library
+## `prone_reload`, its own melee blows (gdstudio #1254, `assets/animation/melee/`), the library
+## `melee`, its own rifle clips (gdstudio #1082, `assets/animation/rifle/`), the library `rifle`,
+## and GDStudio's own clips that replace
 ## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
 ## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
+## The library `fixed` holds the few library clips that put a limb through another on the
+## template's bodies, with that limb swung clear (gdstudio #1295 and #1320,
+## `assets/animation/fixed/`).
 ##
-## When a clip of our own replaces a library clip its constant moves (`IDLE` is `gds/Idle`) and
-## `STAND_INS` names the library clip it replaced, which stays in the game: set a clip export
-## of `CharacterAnimation` to `CharacterClips.stand_in(CharacterClips.IDLE)` to play it again.
+## When a clip of our own or a fixed clip replaces a library clip its constant moves (`IDLE` is
+## `gds/Idle`, `LAND` is `fixed/Jump_Land`) and `STAND_INS` names the library clip it replaced,
+## which stays in the game: set a clip export of `CharacterAnimation` to
+## `CharacterClips.stand_in(CharacterClips.IDLE)` to play it again.
 ##
 ## `CharacterAnimation` plays the ones a state needs; any other clip is one call away:
 ## `player_animation.play_clip(CharacterClips.SWORD_ATTACK)`. The constants below are the clips
@@ -19,17 +27,24 @@ extends RefCounted
 const LIBRARY_ONE := &"ual1"
 const LIBRARY_TWO := &"ual2"
 const LIBRARY_PRONE := &"prone"
+const LIBRARY_PRONE_AIM := &"prone_aim"
+const LIBRARY_PRONE_RELOAD := &"prone_reload"
 const LIBRARY_OWN := &"gds"
 const LIBRARY_VAULT := &"vault"
+const LIBRARY_RIFLE := &"rifle"
+const LIBRARY_FIXED := &"fixed"
+const LIBRARY_MELEE := &"melee"
 
 # Locomotion and the clips the player's states use.
 const IDLE := &"gds/Idle"
-const WALK := &"ual1/Walk"
-const RUN := &"ual1/Jog_Fwd"
-const SPRINT := &"ual1/Sprint"
+const WALK := &"gds/Walk"
+const RUN := &"gds/Jog"
+const SPRINT := &"gds/Sprint"
 const JUMP_START := &"ual1/Jump_Start"
 const AIR := &"ual1/Jump"
-const LAND := &"ual1/Jump_Land"
+# The library's landing with the left arm swung clear of the shin (gdstudio #1295,
+# `assets/animation/fixed/`); `STAND_INS` names the library's own.
+const LAND := &"fixed/Jump_Land"
 const PUSH := &"ual1/Push"
 const INTERACT := &"ual1/Interact"
 const HIT := &"ual1/Hit_Chest"
@@ -37,8 +52,12 @@ const HIT := &"ual1/Hit_Chest"
 # Other clips a game reaches for first (the rest are in `ALL`).
 const DEATH := &"ual1/Death01"
 const ROLL := &"ual1/Roll"
-const CROUCH_IDLE := &"ual1/Crouch_Idle"
-const CROUCH_WALK := &"ual1/Crouch_Fwd"
+const CROUCH_IDLE := &"gds/Crouch_Idle"
+const CROUCH_WALK := &"gds/Crouch_Walk"
+## The stance changes (gdstudio #1160): from the idle's first pose to the crouch idle's and back,
+## both feet on their places. The tree that plays them is gdstudio #1158.
+const STAND_TO_CROUCH := &"gds/Stand_To_Crouch"
+const CROUCH_TO_STAND := &"gds/Crouch_To_Stand"
 const PISTOL_IDLE := &"ual1/Pistol_Idle"
 const PISTOL_AIM := &"ual1/Pistol_Aim_Neutral"
 const PISTOL_AIM_UP := &"ual1/Pistol_Aim_Up"
@@ -55,7 +74,8 @@ const CLIMB_UP := &"ual2/ClimbUp_1m"
 const KNOCKBACK := &"ual2/Hit_Knockback"
 const SLIDE := &"ual2/Slide"
 const SLIDE_START := &"ual2/Slide_Start"
-const SLIDE_EXIT := &"ual2/Slide_Exit"
+# The library's clip with the right arm swung clear of the shin (gdstudio #1295).
+const SLIDE_EXIT := &"fixed/Slide_Exit"
 const CARRY_WALK := &"ual2/Walk_Carry"
 const THROW := &"ual2/OverhandThrow"
 # Lying down and crawling: the template's own clips.
@@ -63,19 +83,50 @@ const PRONE_IDLE := &"prone/Prone_Idle"
 const CRAWL := &"prone/Crawl_Fwd"
 const TO_PRONE := &"prone/Crouch_To_Prone"
 const TO_CROUCH := &"prone/Prone_To_Crouch"
+const PRONE_AIM := &"prone_aim/Prone_Aim_Neutral"
+const PRONE_AIM_UP := &"prone_aim/Prone_Aim_Up"
+const PRONE_AIM_DOWN := &"prone_aim/Prone_Aim_Down"
+const PRONE_RELOAD := &"prone_reload/Prone_Reload_Pistol"
 # Vaulting: the template's own clips (gdstudio #1010, `assets/animation/vault/`), the library
 # `vault`. What each was keyed on is a `VaultClip` (`gameplay/character/vault_low.tres`,
 # `vault_high.tres`).
 const VAULT_LOW := &"vault/Vault_Low"
 const VAULT_HIGH := &"vault/Vault_High"
 const VAULT_LAND := &"vault/Vault_Land"
+# Melee blows: the template's own clips, three per weapon category (`WeaponCategory.melee_clips`).
+const MELEE_UNARMED_JAB := &"melee/Melee_Unarmed_Jab"
+const MELEE_UNARMED_CROSS := &"melee/Melee_Unarmed_Cross"
+const MELEE_UNARMED_HOOK := &"melee/Melee_Unarmed_Hook"
+const MELEE_PISTOL_WHIP := &"melee/Melee_Pistol_Whip"
+const MELEE_PISTOL_BACKHAND := &"melee/Melee_Pistol_Backhand"
+const MELEE_PISTOL_JAB := &"melee/Melee_Pistol_Jab"
 
-## The library clip each clip of our own replaced, kept as a stand-in.
+## The library clip each clip of our own replaced, kept as a stand-in, and the library clip
+## each fixed clip was made from: the same clip, as Quaternius keyed it. A game whose bodies it
+## suits puts it back in the inspector (`CharacterAnimation.land_clip`).
 const STAND_INS: Dictionary[StringName, StringName] = {
 	&"gds/Idle": &"ual1/Idle",
+	&"gds/Crouch_Idle": &"ual1/Crouch_Idle",
+	&"gds/Crouch_Walk": &"ual1/Crouch_Fwd",
+	&"gds/Walk": &"ual1/Walk",
+	&"gds/Jog": &"ual1/Jog_Fwd",
+	&"gds/Sprint": &"ual1/Sprint",
+	&"fixed/Jump_Land": &"ual1/Jump_Land",
+	&"fixed/NinjaJump_Land": &"ual2/NinjaJump_Land",
+	&"fixed/Slide_Exit": &"ual2/Slide_Exit",
+	&"fixed/Sword_Dash": &"ual2/Sword_Dash",
+	&"fixed/Sword_Heavy_Combo": &"ual2/Sword_Heavy_Combo",
 }
 
-## Every clip of the four libraries, with its library.
+# The rifle, held in both hands: the template's own clips.
+const RIFLE_IDLE := &"rifle/Rifle_Idle"
+const RIFLE_AIM := &"rifle/Rifle_Aim_Neutral"
+const RIFLE_AIM_UP := &"rifle/Rifle_Aim_Up"
+const RIFLE_AIM_DOWN := &"rifle/Rifle_Aim_Down"
+const RIFLE_SHOOT := &"rifle/Rifle_Shoot"
+const RIFLE_RELOAD := &"rifle/Rifle_Reload"
+
+## Every clip of the ten libraries, with its library.
 const ALL: Array[StringName] = [
 	&"ual1/A_TPose",
 	&"ual1/Crouch_Fwd",
@@ -167,10 +218,38 @@ const ALL: Array[StringName] = [
 	&"prone/Crouch_To_Prone",
 	&"prone/Prone_Idle",
 	&"prone/Prone_To_Crouch",
+	&"gds/Crouch_Idle",
+	&"gds/Crouch_To_Stand",
+	&"gds/Crouch_Walk",
+	&"prone_aim/Prone_Aim_Down",
+	&"prone_aim/Prone_Aim_Neutral",
+	&"prone_aim/Prone_Aim_Up",
+	&"prone_reload/Prone_Reload_Pistol",
 	&"gds/Idle",
+	&"gds/Jog",
+	&"gds/Sprint",
+	&"gds/Stand_To_Crouch",
+	&"gds/Walk",
 	&"vault/Vault_High",
 	&"vault/Vault_Land",
 	&"vault/Vault_Low",
+	&"rifle/Rifle_Aim_Down",
+	&"rifle/Rifle_Aim_Neutral",
+	&"rifle/Rifle_Aim_Up",
+	&"rifle/Rifle_Idle",
+	&"rifle/Rifle_Reload",
+	&"rifle/Rifle_Shoot",
+	&"fixed/Jump_Land",
+	&"fixed/NinjaJump_Land",
+	&"fixed/Slide_Exit",
+	&"fixed/Sword_Dash",
+	&"fixed/Sword_Heavy_Combo",
+	&"melee/Melee_Pistol_Backhand",
+	&"melee/Melee_Pistol_Jab",
+	&"melee/Melee_Pistol_Whip",
+	&"melee/Melee_Unarmed_Cross",
+	&"melee/Melee_Unarmed_Hook",
+	&"melee/Melee_Unarmed_Jab",
 ]
 
 

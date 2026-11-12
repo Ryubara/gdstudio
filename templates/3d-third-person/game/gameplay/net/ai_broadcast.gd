@@ -142,6 +142,7 @@ func watch(character: AiCharacter) -> int:
 		weapon.effects = false
 		weapon.authoritative = true
 		weapon.fired.connect(_on_fired.bind(id, character))
+		weapon.melee_started.connect(_on_melee.bind(id, character))
 		weapon.hit_scanned.connect(_on_scanned)
 	return id
 
@@ -180,6 +181,11 @@ func _on_fired(projectile: Projectile, id: int, character: AiCharacter) -> void:
 	_tell(id, NetEvent.AiCode.FIRED, weapon.last_origin, weapon.last_heading)
 	if projectile != null and not projectile.impacted.is_connected(_on_impacted):
 		projectile.impacted.connect(_on_impacted)
+
+
+func _on_melee(_blow: int, id: int, character: AiCharacter) -> void:
+	var weapon := character.weapon
+	_tell(id, NetEvent.AiCode.MELEE, weapon.last_origin, weapon.last_heading)
 
 
 func _on_impacted(collider: Node, point: Vector3, normal: Vector3) -> void:

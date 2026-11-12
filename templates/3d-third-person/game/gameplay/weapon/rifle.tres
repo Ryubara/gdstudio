@@ -1,0 +1,82 @@
+[gd_resource type="Resource" script_class="WeaponDef" load_steps=18 format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/weapon_def.gd" id="1_def"]
+[ext_resource type="Resource" path="res://gameplay/weapon/muzzle_flash.tres" id="3_flash"]
+[ext_resource type="PackedScene" path="res://gameplay/weapon/rifle_held.tscn" id="4_held"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_shot_1.ogg" id="s1"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_shot_2.ogg" id="s2"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_shot_3.ogg" id="s3"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_shot_4.ogg" id="s4"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_shot_5.ogg" id="s5"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_empty_1.ogg" id="e1"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_empty_2.ogg" id="e2"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_reload_mag_out.ogg" id="r1"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_reload_mag_in.ogg" id="r2"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_reload_bolt.ogg" id="r3"]
+[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_draw.ogg" id="d1"]
+[ext_resource type="Resource" path="res://gameplay/weapon/categories/rifle.tres" id="c1_category"]
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_shot"]
+streams_count = 5
+stream_0/stream = ExtResource("s1")
+stream_0/weight = 1.0
+stream_1/stream = ExtResource("s2")
+stream_1/weight = 1.0
+stream_2/stream = ExtResource("s3")
+stream_2/weight = 1.0
+stream_3/stream = ExtResource("s4")
+stream_3/weight = 1.0
+stream_4/stream = ExtResource("s5")
+stream_4/weight = 1.0
+random_pitch = 1.03
+random_volume_offset_db = 1.0
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_empty"]
+streams_count = 2
+stream_0/stream = ExtResource("e1")
+stream_0/weight = 1.0
+stream_1/stream = ExtResource("e2")
+stream_1/weight = 1.0
+random_pitch = 1.03
+
+[resource]
+script = ExtResource("1_def")
+display_name = "Rifle"
+kind = 1
+automatic = true
+fire_rate = 10.0
+spread = 1.2
+recoil = 0.6
+damage = 22.0
+aim_range = 150.0
+impulse = 25.0
+aim_head = 1
+aim_eye = NodePath("RifleHeld/Pivot/Rifle/AimEye")
+magazine_size = 30
+start_reserve = 60
+max_reserve = 180
+ammo_item = &"rifle_ammo"
+reload_time = 2.2
+holster_time = 0.3
+draw_time = 0.4
+category = ExtResource("c1_category")
+view = NodePath("RifleHeld")
+view_scene = ExtResource("4_held")
+muzzle = NodePath("RifleHeld/Pivot/Rifle/Near/Rifle/Muzzle")
+clips_upright = true
+grip_clip = &"rifle/Rifle_Idle"
+grip_bones = Array[StringName]([&"spine_01"])
+aim_clip = &"rifle/Rifle_Aim_Neutral"
+aim_up_clip = &"rifle/Rifle_Aim_Up"
+aim_down_clip = &"rifle/Rifle_Aim_Down"
+shoot_clips = Array[StringName]([&"rifle/Rifle_Shoot"])
+shoot_additive = true
+reload_clip = &"rifle/Rifle_Reload"
+shot_sound = SubResource("AudioStreamRandomizer_shot")
+shot_volume_db = -27.0
+empty_sound = SubResource("AudioStreamRandomizer_empty")
+reload_sounds = Array[AudioStream]([ExtResource("r1"), ExtResource("r2"), ExtResource("r3")])
+reload_sound_at = PackedFloat32Array(0.2, 0.62, 0.88)
+draw_sound = ExtResource("d1")
+muzzle_flash = ExtResource("3_flash")
+muzzle_flash_size = 1.15

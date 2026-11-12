@@ -1,42 +1,101 @@
-## Writes the solved pistol hold into the project (kit #1001): the five `HandPose` files of
-## `gameplay/weapon/hold/`, `assets/weapons/pistol/pistol_held.tscn` (the pistol's seat on
-## `hand_r`, the `SupportHand` and `MagazineHand` markers) and the left hand's way off the pistol
-## in `gameplay/weapon/hold/weapon_hold.tscn` (`support_way`), from the JSON file
-## `solve_pistol_hold.py` wrote. No number of the hold is typed by hand: change the model or the
-## solver, run both again, then the test `tests/gameplay/test_pistol_hold.gd`.
+## Writes a solved hold into the project: the `HandPose` files of `gameplay/weapon/hold/` and the
+## places of the weapon's scene, from the JSON file its solver wrote. The pistol's (kit #1001,
+## `solve_pistol_hold.py`): ten poses, `assets/weapons/pistol/pistol_held.tscn` (the pistol's
+## seat on `hand_r`, the `SupportHand` and `MagazineHand` markers) and, in
+## `gameplay/weapon/hold/weapon_hold.tscn`, the left hand's way off the pistol (`support_way`),
+## the new magazine's way in (`magazine_approach`) and the shares of it over which the fingers let
+## go of the magazine and close under it (`carry_release`, `carry_arrive`, kit #1052). The
+## rifle's (kit #889,
+## `solve_rifle_hold.py`, asked for with `rifle`): five poses and `gameplay/weapon/rifle_held.tscn`
+## (where each hand's bone sits on the rifle: `RightHandTarget`, `LeftHandTarget`,
+## `MagazineHand`). No number of a hold is typed by hand: change the model or the solver, run both
+## again, then the hold's test (`tests/gameplay/test_pistol_hold.gd`, `test_rifle_hold.gd`).
 ##
-## Each body has its own hold (kit #1187). The default body's (`female`, `CharacterBodies.FEMALE`)
-## goes into the files above; another body's into one `HoldFit` file,
-## `gameplay/weapon/hold/pistol_fit_<body>.tres`, which `weapon_hold.tscn` lists in `fits`.
+## The pistol's finger poses set by hand (kit #1084, `tools/hold/pistol_authored.json`, read by
+## `authored_pose.gd`) are laid over the solved ones here, on the body's own skeleton, so a new
+## solve keeps them: a finger the file names takes its angles, in the pose it names. The thumb's
+## pose between (`thumb_way`) and the right hand's fingers in a one-handed aim and on its way
+## (`one_hand`, `one_hand_way`, kit #1085; fitted to the default body's placement by
+## `fit_one_hand.gd`, kit #1274) exist only there.
 ##
-## `<godot> --headless --path game -s res://tools/hold/write_hold.gd -- <hold.json> [female|male]`
+## Each body has its own hold of each weapon (kit #1187). The default body's (`female`,
+## `CharacterBodies.FEMALE`) goes into the files above; another body's into one `HoldFit` file,
+## `gameplay/weapon/hold/<weapon>_fit_<body>.tres`, which the weapon's hold lists in `fits`
+## (`weapon_hold.tscn` for the pistol, `rifle_held.tscn` for the rifle, whose fit's `seat` is the
+## inverse of the right hand's place on the rifle).
+##
+## `<godot> --headless --path game -s res://tools/hold/write_hold.gd -- <hold.json> [rifle] [male]`
 extends SceneTree
 
-const POSES: Dictionary[String, String] = {
-	"grip": "res://gameplay/weapon/hold/pistol_grip_pose.tres",
-	"trigger": "res://gameplay/weapon/hold/pistol_trigger_pose.tres",
-	"support": "res://gameplay/weapon/hold/pistol_support_pose.tres",
-	"magazine": "res://gameplay/weapon/hold/pistol_magazine_pose.tres",
-	"open": "res://gameplay/weapon/hold/pistol_open_pose.tres",
+const Authored := preload("res://tools/hold/authored_pose.gd")
+
+## For each weapon: the pose file of each solved pose, the scene that holds the weapon, and which
+## solved place each of the scene's nodes takes.
+const WEAPONS: Dictionary[String, Dictionary] = {
+	"pistol":
+	{
+		"poses":
+		{
+			"grip": "res://gameplay/weapon/hold/pistol_grip_pose.tres",
+			"trigger": "res://gameplay/weapon/hold/pistol_trigger_pose.tres",
+			"trigger_way": "res://gameplay/weapon/hold/pistol_trigger_way_pose.tres",
+			"thumb": "res://gameplay/weapon/hold/pistol_thumb_pose.tres",
+			"thumb_way": "res://gameplay/weapon/hold/pistol_thumb_way_pose.tres",
+			"one_hand": "res://gameplay/weapon/hold/pistol_one_hand_pose.tres",
+			"one_hand_way": "res://gameplay/weapon/hold/pistol_one_hand_way_pose.tres",
+			"support": "res://gameplay/weapon/hold/pistol_support_pose.tres",
+			"magazine": "res://gameplay/weapon/hold/pistol_magazine_pose.tres",
+			"open": "res://gameplay/weapon/hold/pistol_open_pose.tres",
+			"carry": "res://gameplay/weapon/hold/pistol_carry_pose.tres",
+			"carry_open": "res://gameplay/weapon/hold/pistol_carry_open_pose.tres",
+		},
+		"held": "res://assets/weapons/pistol/pistol_held.tscn",
+		"places":
+		{"Pistol": "seat", "SupportHand": "support_hand", "MagazineHand": "magazine_hand"},
+	},
+	"rifle":
+	{
+		"poses":
+		{
+			"grip": "res://gameplay/weapon/hold/rifle_grip_pose.tres",
+			"trigger": "res://gameplay/weapon/hold/rifle_trigger_pose.tres",
+			"support": "res://gameplay/weapon/hold/rifle_support_pose.tres",
+			"magazine": "res://gameplay/weapon/hold/rifle_magazine_pose.tres",
+			"open": "res://gameplay/weapon/hold/rifle_open_pose.tres",
+		},
+		"held": "res://gameplay/weapon/rifle_held.tscn",
+		"places":
+		{
+			"RightHandTarget": "right_hand",
+			"LeftHandTarget": "left_hand",
+			"MagazineHand": "magazine_hand",
+		},
+	},
 }
-const HELD := "res://assets/weapons/pistol/pistol_held.tscn"
 const HOLD := "res://gameplay/weapon/hold/weapon_hold.tscn"
 ## The body whose hold is the scene's own; every other body's is a `HoldFit` file.
 const DEFAULT_BODY := "female"
-const FIT := "res://gameplay/weapon/hold/pistol_fit_%s.tres"
-## The line of the hold scene the way is written after when the scene has none yet.
+const FIT := "res://gameplay/weapon/hold/%s_fit_%s.tres"
+## The line of the hold scene a solved number is written after when the scene has none yet.
 const _WAY_AFTER := "open_pose = "
 
 
 func _initialize() -> void:
 	var arguments := OS.get_cmdline_user_args()
 	var parsed: Variant = null
-	var body := arguments[1] if arguments.size() == 2 else DEFAULT_BODY
-	if not CharacterBodies.BY_NAME.has(body):
-		printerr("write_hold: the body is one of ", CharacterBodies.BY_NAME.keys())
-		quit(1)
-		return
-	if arguments.size() in [1, 2] and FileAccess.file_exists(arguments[0]):
+	var which := "pistol"
+	var body := DEFAULT_BODY
+	for word: String in arguments.slice(1):
+		if WEAPONS.has(word):
+			which = word
+		elif CharacterBodies.BY_NAME.has(word):
+			body = word
+		else:
+			printerr("write_hold: after the file, a weapon ", WEAPONS.keys())
+			printerr("  and a body ", CharacterBodies.BY_NAME.keys())
+			quit(1)
+			return
+	if arguments.size() in [1, 2, 3] and FileAccess.file_exists(arguments[0]):
 		parsed = JSON.parse_string(FileAccess.get_file_as_string(arguments[0]))
 	if not parsed is Dictionary:
 		# A path relative to another folder reads as nothing: stop here instead of hanging.
@@ -44,46 +103,83 @@ func _initialize() -> void:
 		quit(1)
 		return
 	var solved: Dictionary = parsed
+	if which == "pistol":
+		_lay_authored(solved, body)
 	if body != DEFAULT_BODY:
-		_write_fit(solved, body)
+		_write_fit(solved, which, body)
 		quit()
 		return
-	for key: String in POSES:
+	var weapon := WEAPONS[which]
+	var poses: Dictionary = weapon.poses
+	for key: String in poses:
 		if not solved.has(key):
 			continue
 		var pose := HandPose.new()
-		if ResourceLoader.exists(POSES[key]):
-			pose = load(POSES[key]) as HandPose
+		if ResourceLoader.exists(poses[key]):
+			pose = load(poses[key]) as HandPose
 		_fill(pose, solved, key)
-		var error := ResourceSaver.save(pose, POSES[key])
-		print("wrote ", POSES[key], " (", error, ")")
-	var places := {"Pistol": _text(solved.seat)}
-	if solved.has("support_hand"):
-		places["SupportHand"] = _text(solved.support_hand)
-	if solved.has("magazine_hand"):
-		places["MagazineHand"] = _text(solved.magazine_hand)
-	var lines := FileAccess.get_file_as_string(HELD).split("\n")
+		var error := ResourceSaver.save(pose, poses[key])
+		print("wrote ", poses[key], " (", error, ")")
+	var places := {}
+	for node_name: String in weapon.places:
+		if solved.has(weapon.places[node_name]):
+			places[node_name] = _text(solved[weapon.places[node_name]])
+	var held: String = weapon.held
+	var lines := FileAccess.get_file_as_string(held).split("\n")
 	var node := ""
 	for index in lines.size():
 		if lines[index].begins_with('[node name="'):
 			node = lines[index].get_slice('"', 1)
 		elif lines[index].begins_with("transform = ") and places.has(node):
 			lines[index] = "transform = " + places[node]
-	var file := FileAccess.open(HELD, FileAccess.WRITE)
+	var file := FileAccess.open(held, FileAccess.WRITE)
 	file.store_string("\n".join(lines))
 	file.close()
-	print("wrote ", HELD)
+	print("wrote ", held)
 	if solved.has("way"):
-		_write_way(solved.way)
+		_write_line("support_way", "Vector3", solved.way)
+	if solved.has("magazine_approach"):
+		_write_line("magazine_approach", "Vector3", solved.magazine_approach)
+	if solved.has("carry_release"):
+		_write_line("carry_release", "Vector2", solved.carry_release)
+	if solved.has("carry_arrive"):
+		_write_line("carry_arrive", "Vector2", solved.carry_arrive)
 	quit()
 
 
+# Lays the finger poses set by hand for `body` over the solved ones: each bone they name takes
+# their rotation, worked out on the body's own skeleton.
+func _lay_authored(solved: Dictionary, body: String) -> void:
+	var rig := (load(CharacterBodies.BY_NAME[body]) as PackedScene).instantiate()
+	var skeleton := rig.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	var authored := Authored.poses(skeleton, body)
+	for key: String in authored:
+		if not solved.has(key):
+			solved[key] = {}
+		for bone: StringName in authored[key]:
+			var turned: Quaternion = authored[key][bone]
+			solved[key][String(bone)] = [turned.x, turned.y, turned.z, turned.w]
+		print("laid the authored ", key, " pose over the solved one (", body, ")")
+	rig.free()
+
+
 # Writes another body's hold as one `HoldFit` file, its poses inside it.
-func _write_fit(solved: Dictionary, body: String) -> void:
-	var path := FIT % body
+func _write_fit(solved: Dictionary, which: String, body: String) -> void:
+	var path := FIT % [which, body]
 	var fit := HoldFit.new()
+	if ResourceLoader.exists(path):
+		# The file's own fit is written over: what this solve leaves out stays (a stage solved
+		# alone, as `--carry-only`; the trigger finger's way, which is another solver's,
+		# `solve_trigger_way.gd`, and is solved again after this one).
+		fit = load(path) as HoldFit
 	fit.body = CharacterBodies.BY_NAME[body].get_file()
-	fit.seat = _transform(solved.seat)
+	if solved.has("seat"):
+		fit.seat = _transform(solved.seat)
+	elif solved.has("right_hand"):
+		# The rifle's right hand is a place on the gun; the seat is the gun's place on the hand.
+		fit.seat = _transform(solved.right_hand).affine_inverse()
+	if solved.has("left_hand"):
+		fit.support_hand = _transform(solved.left_hand)
 	if solved.has("support_hand"):
 		fit.support_hand = _transform(solved.support_hand)
 	if solved.has("magazine_hand"):
@@ -94,7 +190,16 @@ func _write_fit(solved: Dictionary, body: String) -> void:
 			snappedf(solved.way[1], 1e-5),
 			snappedf(solved.way[2], 1e-5)
 		)
-	for key: String in POSES:
+	if solved.has("magazine_approach"):
+		var approach: Array = solved.magazine_approach
+		fit.magazine_approach = Vector3(
+			snappedf(approach[0], 1e-5), snappedf(approach[1], 1e-5), snappedf(approach[2], 1e-5)
+		)
+	if solved.has("carry_release"):
+		fit.carry_release = Vector2(solved.carry_release[0], solved.carry_release[1])
+	if solved.has("carry_arrive"):
+		fit.carry_arrive = Vector2(solved.carry_arrive[0], solved.carry_arrive[1])
+	for key: String in WEAPONS[which].poses:
 		if solved.has(key):
 			var pose := HandPose.new()
 			_fill(pose, solved, key)
@@ -138,17 +243,17 @@ func _transform(rows: Array) -> Transform3D:
 	)
 
 
-# Puts the left hand's way off the pistol on the hold scene's root: its `support_way` line is
-# replaced, or added after the open pose's when the scene still has the script's default.
-func _write_way(way: Array) -> void:
+# Puts a solved number on the hold scene's root: its line is replaced, or added after the open
+# pose's when the scene still has the script's default.
+func _write_line(property: String, type: String, values: Array) -> void:
 	var numbers := PackedStringArray()
-	for value: float in way:
+	for value: float in values:
 		numbers.append(_number(value, 1e-5))
-	var line := "support_way = Vector3(%s)" % ", ".join(numbers)
+	var line := "%s = %s(%s)" % [property, type, ", ".join(numbers)]
 	var lines := FileAccess.get_file_as_string(HOLD).split("\n")
 	var at := -1
 	for index in lines.size():
-		if lines[index].begins_with("support_way = "):
+		if lines[index].begins_with(property + " = "):
 			at = index
 	if at >= 0:
 		lines[at] = line
@@ -159,7 +264,7 @@ func _write_way(way: Array) -> void:
 				at = index + 1
 				break
 	if at < 0:
-		printerr("write_hold: no place for support_way in ", HOLD)
+		printerr("write_hold: no place for ", property, " in ", HOLD)
 		return
 	var file := FileAccess.open(HOLD, FileAccess.WRITE)
 	file.store_string("\n".join(lines))

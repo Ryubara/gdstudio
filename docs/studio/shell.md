@@ -44,7 +44,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds
   nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
   #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
-  #1127 (a tool's `write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154 and #1260, 11-11.
+  #1127 (a tool's `write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154, #1260 and #1270, 11-11.
 
 ## Scripted edits {#scripted-edits}
 
@@ -55,7 +55,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   vanished from a regex, and a `sed` replacement split a line over three; a parser that accepts the wrong text says
   nothing. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-03; Deadnight, 2026-11-04 (fix: the tests and `ruff` run
   straight after the edit, not at the end); gdstudio #770, 2026-11-07 (two heredoc scripts never ran: Write tool);
-  gdstudio #1005, #1120, #1183, #1188, 2026-11-10 and 11 (the Edit tool).
+  gdstudio #889, #1005, #1120, #1183, #1188, 2026-11-10 and 11.
 - **Approach:** A script that changes several places of one file works from the end upward, or finds its place again
   after each edit, and cuts "to the next top-level `func` or `class`", never to the end of the file; then it imports the
   project and runs `godot --headless --check-only -s <script>` on every edited script that no suite loads. **Watch out
@@ -96,7 +96,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** From a session that sits in the kit's main checkout, commit in a worktree with `git -C <worktree>
   commit ...`, not `cd <worktree> && git commit`. **Watch out for:** the Git guard judges the command from the
   session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would have run in the
-  worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11.
+  worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11; gdstudio #1178, 2026-11-11 (a line that set a variable
+  before its `cd <worktree> &&` was refused; the same commit with the `cd` first passed, and `git -C` passes always);
+  #1293, 2026-11-11 (the same from a worktree's own agent: a command that sourced a helper file first and changed
+  folder after it was refused as a commit on `main`).
 
 ## Background commands and processes {#background}
 
@@ -148,7 +151,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   "before" capture or measurement from a separate checkout, never by swapping files under a running test. **Watch out
   for:** `git checkout <file>` restores the last commit, not the file before the last edit, so dropping a timing probe
   reverted the whole uncommitted rewrite; old weapon files put back for a capture were read by a suite that started
-  during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: the rewrite written again, the run repeated).
+  during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: the rewrite written again, the run repeated);
+  gdstudio #1177, 2026-11-11 (the old hold swapped into a kept game for the failing-first run and the "before"
+  captures, with the glb's LFS pointer written by `git show`: the import broke and the first run measured nothing).
 - **Approach:** To run another commit in a scratch checkout, give the commit's hash (`git rev-parse HEAD` taken in the
   branch's worktree), print `git -C <checkout> log --oneline -1` before the run, give each run a new output folder and
   stop the old run by its PID first. **Watch out for:** `git checkout --detach HEAD` in the other checkout stays on that
@@ -163,7 +168,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   was refused by the permission settings; fix: `git archive HEAD` unpacked in the scratch folder with the new tests
   copied in).
 - **Approach:** Take an old copy of a Git LFS file (a sound, a model, a lightmap) with `git checkout <rev> -- <file>`
-  in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size before using it.
-  **Watch out for:** `git show <rev>:<file>` prints the LFS pointer, about 130 bytes of text, so a "before" sound
-  decoded as nothing and a model imported as a broken file. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound
-  clip); Deadnight #1282, 2026-11-05 (a model; [Build scripts](../tools/blender/build-scripts.md#rebuilding)).
+  in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size; for a game to play
+  it, clear its `.godot/imported/<name>-*` cache before `--import`. **Watch out for:** `git show <rev>:<file>` gives
+  the 130-byte pointer, and Godot keeps a failed import (`valid=false`) after the real file is back until the cache
+  is cleared. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound); Deadnight #1282, 2026-11-05 (a model;
+  [Build scripts](../tools/blender/build-scripts.md#rebuilding)); gdstudio #1191, 2026-11-11 (a clip file in a probe
+  game) and 2026-11-12 (two aim files in a copied game, cache kept: the body fell back and the `Before:` was dropped);
+  gdstudio #1275, 2026-11-11 (a merge's clip files; `git checkout --ours -- <file>` writes the file).

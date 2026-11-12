@@ -13,6 +13,30 @@ checked before its first run.
 <!-- new section: the studio pages cover hooks, issues and the workspace; nothing held how CI and deploys run on the
 default branch -->
 
+**No pull request lands on a red main, auto-merge included.** While a `CI failing on the default branch` issue is open
+([Merging on a red main](hooks-red-main.md#red-main)), the `main-green` check fails on every open pull request but the fix
+forward, whose body closes one of those issues by a closing keyword (`Fixes #N`); the `Main` ruleset requires it from
+GitHub Actions (`merge.red_main` in `.github/conventions.yml`), so no route merges past it, not even auto-merge turned
+on earlier. Two workflows give it:
+
+- `.github/workflows/main-green.yml` runs on each pull request event (`pull_request_target`: opened, reopened,
+  synchronize, edited) and reads the open issues and the body when it runs. A body edited to add `Fixes #N` re-runs it.
+- `.github/workflows/main-green-sweep.yml` writes the check again on every open pull request into `main`, through the
+  Checks API, when a red issue changes: `ci-failure.yml` dispatches it right after filing the issue (an issue filed with
+  a workflow's token starts no `issues` workflow), and closing, reopening, renaming or deleting one starts it as an
+  `issues` event. It first waits for `main-green` runs still going, so one that read the issues before the change cannot
+  put the old answer back. Run it by hand (`gh workflow run main-green-sweep.yml`) after the ruleset first requires the
+  check, so open pull requests do not wait on a check that never ran, or after an outage that dropped events.
+
+A pull request therefore merges once the issue closes, with no push: its auto-merge stays on and lands when the sweep turns
+`main-green` green. `main-green` stays out of `merge.required_checks`, so `pr-status` does not call a red main the pull
+request's failure. Tests: `python/tests/test_main_green.py` (the steps run under bash against a fake `gh`).
+
+- **Approach:** Stop a merge that must not happen with a check the ruleset requires, not only with a guard on the merge
+  command: auto-merge turned on before main went red merges with no command at all. **Watch out for:** #1276 had
+  auto-merge on, went green and landed while #1279 (main red) was open; the hook guard of #1241 refuses `gh pr merge`
+  and the merge API, never a merge GitHub makes by itself. **Seen:** gdstudio #1302, 2026-11-11 (fix: the required
+  `main-green` check and its sweep).
 - **Approach:** Use `cancel-in-progress` for pull requests only; every run on the default branch finishes. **Watch out
   for:** main's CI cancelled its run when the next merge landed, so four of five merges in three minutes were never
   checked. **Seen:** Deadnight #290, 2026-11-01 (fix: the evening review found it (Deadnight #290) and Deadnight #296
@@ -85,6 +109,13 @@ they are rerun, replayed or read from another branch -->
   stayed `IN_PROGRESS` in the rollup while its run had finished green, so a loop over `gh pr checks` waited on a check
   that would never change, with the pull request already `CLEAN`. **Seen:** gdstudio #1000, 2026-11-10 (run
   42893048440).
+- **Approach:** Judge a check on a commit by its newest run alone (`pr_status.py`'s `newest_runs`: by start time,
+  then id), and when a status label disagrees with `gh pr checks`, list the commit's check runs with their suites.
+  **Watch out for:** `check-runs?filter=latest` is the latest run of each check per check suite, and every event
+  of a pull request (opened, edited, pushed to) makes its own suite, so `commits`, failed twice on a description
+  whose Model line lacked a model and passed after the edit, came back three times and `S-ci-failing` stayed on a
+  pull request whose only red check was `hold`. **Seen:** gdstudio #1265, 2026-11-12
+  (`test_a_check_that_passed_after_the_description_was_edited_is_not_failing`).
 
 ## Reruns {#reruns}
 
@@ -145,7 +176,8 @@ they are rerun, replayed or read from another branch -->
   --allow-escape-sequences repos/<o>/<r>/actions/jobs/<id>/logs`, since `--log-failed` waits for the whole run. **Watch
   out for:** a report blamed one job's time limit for the whole run while a second job was red on a count 2,610 over
   2,600, and it reached the coordinator as a surprise on the next push. **Seen:** Deadnight #1086, 2026-11-04 (fix: the
-  list of jobs read before any explanation).
+  list of jobs read before any explanation); gdstudio #1274, 2026-11-11 (a red `build-ok` handed over unread: the
+  template job's `gdlint` on a suite the branch never touched, red on `main`, fixed there by #1282).
 - **Approach:** Before auto-merge on a branch that is behind, `gds merge-main`, then run the tests that other merges
   added or changed since the branch's base (`git diff --name-only <base>..origin/main -- 'game/tests/**/test_*.gd'`)
   beside the branch's own; the pull request that moves data rewrites a list of known failures keyed by it; reproduce a

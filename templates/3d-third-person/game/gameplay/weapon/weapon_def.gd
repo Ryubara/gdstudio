@@ -20,6 +20,9 @@ enum PastAimLimit {
 }
 
 ## How a shot travels.
+## What the head does while the weapon is aimed (`AimHeadModifier`): level and along the aim, or
+## brought to the weapon's sights, a cheek on the stock.
+enum AimHead { LEVEL, SIGHT }
 enum Kind {
 	## A body (`projectile_scene`) flies from the muzzle and hits what it touches: it can be seen
 	## and dodged, and it costs a physics body while it flies.
@@ -27,10 +30,15 @@ enum Kind {
 	## One ray from the muzzle, the hit on the tick of the shot, no body: the cheap one, for an
 	## automatic weapon, for the web and for a network, where a shot is a small record.
 	HITSCAN,
-	## A short ray from the character's chest, `melee_reach` long (fists, a blade): no muzzle, no
-	## ammunition.
+	## The fire button throws the category's melee blow (the empty hands, a blade): a short ray
+	## from the chest, `blow_reach()` long, no muzzle, no ammunition. Every weapon has the same
+	## blow on the `melee` button.
 	MELEE,
 }
+
+## The bone from which the free arm keeps the locomotion clip while a `one_handed` weapon aims
+## and shoots.
+const FREE_ARM_BONE := &"clavicle_l"
 
 @export_group("Weapon")
 ## The name a HUD or an inventory shows.
@@ -69,6 +77,14 @@ enum Kind {
 ## the body along the slide): the body turns so the aim is within reach again, or the shot is
 ## refused until it is.
 @export var past_aim_limit := PastAimLimit.TURN_BODY
+## The head while aiming: level and looking along the aim (a pistol, the fists), or with the eye
+## brought behind the sights, which tilts the head onto the stock (a shouldered weapon: it needs
+## `aim_eye`).
+@export var aim_head := AimHead.LEVEL
+## Where the aiming eye belongs on the weapon, for `AimHead.SIGHT`: a marker under the character's
+## `Model` slot, like `muzzle` (the rifle's `RifleHeld/Pivot/Rifle/AimEye`), its -Z along the sight
+## line.
+@export var aim_eye: NodePath
 
 @export_group("Aim and zoom")
 ## What a press of aim or fire does with this weapon in the hands. The character and the camera
@@ -116,6 +132,10 @@ enum Kind {
 ## What a hitscan shot can hit (physics layers): by default what every shot meets
 ## (`PhysicsLayers.SHOT_MASK`: the level, characters, props, ragdoll bones and hit zones).
 @export_flags_3d_physics var hitscan_mask := PhysicsLayers.SHOT_MASK
+## The streak a hitscan shot draws from the muzzle to where its ray ended (a `TracerDef`, drawn
+## by the level's `TracerPool` on each screen, never sent). Empty: no tracer, the flash and the
+## impact are all there is.
+@export var tracer: TracerDef
 
 @export_group("Ammo")
 ## Rounds in a full magazine. Zero: the weapon needs no ammunition (fists, a blade) and shows no
@@ -159,8 +179,30 @@ enum Kind {
 @export_range(0.0, 1.0, 0.01) var projectile_bounce_keep := 0.6
 
 @export_group("Melee")
-## How far a blow reaches from the chest (`Kind.MELEE`).
+## The kind of weapon it is (the empty hands, a pistol, a rifle: `gameplay/weapon/categories/`):
+## its melee blow (the `melee` button, and the fire button of a `Kind.MELEE` weapon) takes the
+## category's clips and numbers. Empty: the numbers below, and no clip.
+@export var category: WeaponCategory:
+	set(value):
+		if category != null and category.changed.is_connected(emit_changed):
+			category.changed.disconnect(emit_changed)
+		category = value
+		if category != null:
+			category.changed.connect(emit_changed)
+		emit_changed()
+## On: the blow takes the numbers below instead of its category's (the clips stay the category's).
+@export var override_melee := false
+## How far a blow reaches from the chest.
 @export_range(0.2, 5.0, 0.05, "suffix:m") var melee_reach := 1.1
+## What one blow takes, before the hit zone's multiplier.
+@export_range(0.0, 1000.0, 0.5, "or_greater") var melee_damage := 15.0
+## The push a blow gives (newton seconds).
+@export_range(0.0, 500.0, 0.5, "suffix:N·s") var melee_impulse := 25.0
+## Seconds from the start of one blow to the start of the next.
+@export_range(0.1, 3.0, 0.01, "suffix:s") var melee_cooldown := 0.5
+## Seconds after the press the blow can first land, and last land.
+@export_range(0.0, 2.0, 0.01, "suffix:s") var melee_hit_start := 0.15
+@export_range(0.0, 2.0, 0.01, "suffix:s") var melee_hit_end := 0.25
 
 @export_group("Hold")
 ## A change to a clip below rebuilds the animation of every character holding the weapon
@@ -170,9 +212,19 @@ enum Kind {
 ## pistol's `PistolHeld`); it is shown while the weapon is out and hidden otherwise. Empty: no
 ## model (fists).
 @export var view: NodePath
+## The scene of that model in the hand (the rifle's `rifle_held.tscn`), made under the `Model` slot
+## the first time a character carries the weapon, named as `view` says, when the slot has no such
+## node: a character that never picks the weapon up carries none of its nodes. Empty: the node is
+## part of the character's scene (the pistol's `PistolHeld`).
+@export var view_scene: PackedScene
 ## The marker the shots leave from, under the `Model` slot (the pistol's
 ## `PistolHeld/Pistol/Pistol/Muzzle`). Empty: no muzzle (shots leave from beside the shooter).
 @export var muzzle: NodePath
+## On: the weapon's clips (grip, aim, reload) are keyed for an upright trunk, the whole upper body
+## stood from the pelvis (the rifle's), so they do not play on a lying body: the prone clips keep
+## it and the weapon's hold alone carries the weapon there. Off: they play lying too (the pistol's,
+## which key the arms).
+@export var clips_upright := false
 ## The clip whose pose the gripping hand takes while the weapon is out. Empty: no grip pose
 ## (the arms follow the locomotion).
 @export var grip_clip: StringName = &"":
@@ -183,6 +235,14 @@ enum Kind {
 @export var grip_bones: Array[StringName] = [&"hand_r"]:
 	set(value):
 		grip_bones = value
+		emit_changed()
+## On: the weapon is aimed and shot in one hand (kit #1085): the body side-on, the shooting arm
+## out straight, the free arm on the locomotion clip, the shot kicking the wrist and elbow; the
+## free hand comes in only for a reload. Off: held in both hands. The character's `WeaponHold`
+## has the stance's numbers.
+@export var one_handed := false:
+	set(value):
+		one_handed = value
 		emit_changed()
 ## Aiming level; the aim blends to the clips below by how far up or down the character looks.
 ## Empty: no aim pose (the arms stay as they are while aiming).
@@ -200,8 +260,30 @@ enum Kind {
 	set(value):
 		aim_down_clip = value
 		emit_changed()
+## Aiming while lying down, looking level: a whole upper body made for the ground (the pistol's
+## `prone_aim/Prone_Aim_Neutral`, both hands on it over planted elbows). It replaces the aim clips
+## above on a lying body. Empty: the lying body aims with the standing clips.
+@export var prone_aim_clip: StringName = &"":
+	set(value):
+		prone_aim_clip = value
+		emit_changed()
+## Aiming up and down while lying down.
+@export var prone_aim_up_clip: StringName = &"":
+	set(value):
+		prone_aim_up_clip = value
+		emit_changed()
+@export var prone_aim_down_clip: StringName = &"":
+	set(value):
+		prone_aim_down_clip = value
+		emit_changed()
+## The looks the prone down and up clips are made for, in degrees (x down, y up): the aim blends
+## between the three by the look and stays on the last one past it.
+@export var prone_aim_angles := Vector2(25.0, 20.0):
+	set(value):
+		prone_aim_angles = value
+		emit_changed()
 ## The clips of a shot (a recoil, a punch), played on the upper body, one after another shot by
-## shot (a jab, then a cross).
+## shot (a jab, then a cross). None: a shot plays no clip.
 @export var shoot_clips: Array[StringName] = []:
 	set(value):
 		shoot_clips = value
@@ -218,6 +300,14 @@ enum Kind {
 @export var reload_clip: StringName = &"":
 	set(value):
 		reload_clip = value
+		emit_changed()
+## The reload of a lying body, played the same way in place of `reload_clip` while the body lies
+## with a prone aim (the pistol's `prone_reload/Prone_Reload_Pistol`: from the prone aim's pose
+## and back to it, with the left hand's times of `reload_clip`, which `WeaponHold` follows).
+## Empty: a reload lying down shows nothing, since `reload_clip` is made for a standing body.
+@export var prone_reload_clip: StringName = &"":
+	set(value):
+		prone_reload_clip = value
 		emit_changed()
 
 @export_group("Sound")
@@ -278,14 +368,69 @@ func fire_allowed(aim_held: bool) -> bool:
 	return not fire_needs_aim or (can_aim and aim_held)
 
 
+## The bones whose chains keep the locomotion clip while the weapon aims and shoots: one-handed,
+## the free arm from `FREE_ARM_BONE` (it hangs and swings as the body moves; the reload's layer
+## still takes it), none in two hands.
+func free_bones() -> Array[StringName]:
+	return [FREE_ARM_BONE] if one_handed else []
+
+
 ## Seconds between two shots.
 func shot_interval() -> float:
 	return 1.0 / maxf(fire_rate, 0.001)
+
+
+# The blow's numbers: the category's, or this definition's own when it overrides them or has no
+# category (gdstudio #1254). Read them through these, never the fields.
+func _melee_source() -> Resource:
+	return self if override_melee or category == null else category
+
+
+## How far the blow reaches from the chest, metres.
+func blow_reach() -> float:
+	return _melee_source().melee_reach
+
+
+## What one blow takes, before the hit zone's multiplier.
+func blow_damage() -> float:
+	return _melee_source().melee_damage
+
+
+## The push a blow gives, newton seconds.
+func blow_impulse() -> float:
+	return _melee_source().melee_impulse
+
+
+## Seconds from one blow's start to the next one's.
+func blow_cooldown() -> float:
+	return _melee_source().melee_cooldown
+
+
+## Seconds after the press the blow can first land.
+func blow_hit_start() -> float:
+	return _melee_source().melee_hit_start
+
+
+## Seconds after the press the blow can last land (never before it can first land).
+func blow_hit_end() -> float:
+	return maxf(_melee_source().melee_hit_end, blow_hit_start())
+
+
+## The blow's clips, one after another blow by blow: the category's (none without one).
+func blow_clips() -> Array[StringName]:
+	if category == null:
+		return [] as Array[StringName]
+	return category.melee_clips
+
+
+## How fast the blow's clips play.
+func blow_clip_speed() -> float:
+	return category.melee_clip_speed if category != null else 1.0
 
 
 # The hitscan numbers are read-only in the inspector while the toggle is off (a `HITSCAN` kind
 # reads them too).
 func _validate_property(property: Dictionary) -> void:
 	var field: String = property["name"]
-	if field in ["hitscan_range", "hitscan_mask"] and shot_kind() != Kind.HITSCAN:
+	if field in ["hitscan_range", "hitscan_mask", "tracer"] and shot_kind() != Kind.HITSCAN:
 		property["usage"] |= PROPERTY_USAGE_READ_ONLY

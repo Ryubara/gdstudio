@@ -33,7 +33,40 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   (a review file under a `.gdignore`) with `GLTFDocument` at run time. **Watch out for:** `GLTFDocument` keeps the
   `_Loop` suffix and leaves the clip unlooped, which the importer's scene step would have fixed; a clip count
   asserted in a test (`ALL.size()`) moves with every clip added. **Seen:** gdstudio #1154, 2026-11-11
-  (`tools/capture/own_clips_review.gd`).
+  (`tools/capture/own_clips_review.gd`); gdstudio #1160, 2026-11-11 (the crouch clips: `CROUCH_IDLE` and
+  `CROUCH_WALK` moved to `gds/`, and the count test failed at 91 for 95, as this entry warns).
+- **Approach:** Test a gait of our own by what holds for a rolling foot and a run: the patch of the sole on the
+  floor stays put along the travel curve (the toes' joint, after the first quarter of the contact, which is the
+  roll onto it; the ankle travels), each arm goes with the other side's leg, the
+  two feet land half a cycle apart, and the clip's `speed` is the game's. **Watch out for:** the first
+  tests held the ankle still through a contact, which a heel-to-toe roll moves, and looked for the arms
+  widest on the landing frame, which is true of a walk and not of a run; a footstep count asserted for the
+  library's walk (90 steps a minute) is wrong for ours (138). **Seen:** gdstudio #1155,
+  2026-11-11 (`tests/gameplay/test_own_clips.gd`, `test_footsteps.gd`).
+- **Approach:** Hold a rolling foot's joint along the floor and in height apart, on the bodies the game wears
+  (`CharacterBodies`), and give a limit the import's own share: measure the same joint with
+  `compression/enabled` off before blaming the clip. **Watch out for:** on the prototype bodies the toes' joint
+  stays within 0.4 mm along the floor and comes down 5.2 to 5.7 mm as the foot rolls off (the build sets the
+  turned-up sole's skin on the floor), which one distance read as a 5 mm slide; and the idle's planted joints
+  move 0.2 mm in the build and 1.1 to 1.4 mm in Godot, the rest being the compressed tracks' rounding (0.2 to
+  0.5 mm with compression off), over the test's first 1 mm. **Seen:** gdstudio #1155 (PR #1275), 2026-11-11
+  (`ROLLING` 1 mm, `ROLL_DROP` 7 mm, `PLANTED` 1.5 mm).
+- **Approach:** After a gait changes, run every suite that measures a pose over the gait, not only the gait's
+  own: an action that fades in over it (the vault, `test_vault_contacts.gd`), the carried weapon
+  (`test_pistol_clearance.gd`) and a shot at a running body (`test_net_ai_rewind.gd`). **Watch out for:** the
+  ground blend space plays its loops out of step (`sync` advances them by the same time, not the same phase), so
+  between the walk's and the jog's speeds a foot is a mix of two strides: with our own gaits the ball of a foot
+  was 20 mm under the floor as a vault began and 43 mm under half way into its 0.1 s fade, where the library's
+  shorter strides stayed inside the test's 20 mm. The vault's floor check counts from the end of the fade; the
+  phases are kit #1158's. **Seen:** gdstudio #1155, 2026-11-11.
+- **Approach:** After rebuilding the idle, measure the aiming muzzle again and move `Weapon.no_muzzle_offset` (and
+  its copy in `test_weapon.gd`) to it: `test_weapon_ray.gd` prints the muzzle from the eye in the view's axes.
+  Run the weapon suites after every merge of main as well as after a rebuild. **Watch out for:** the offset is
+  where the pistol's muzzle is while the character aims standing on the idle, so the idle solved again on the
+  prototype bodies put it 6.2 mm from the real muzzle, over the test's 5 mm; the full run before the merge had
+  passed, because main's steady stance under the aim, which set the offset to main's idle, landed in between.
+  **Seen:** gdstudio #1155 (PR #1275), 2026-11-11 (the offset's z from -0.716 to -0.722) and 2026-11-12 (main's
+  pistol seat, #1262, moved the muzzle and the line conflicted: taking main's -0.728 failed by 6 mm; it is -0.734).
 - **Approach:** When a `CharacterClips` constant moves to another library, grep for every table that lists libraries
   by name (`grep -rn LIBRARIES`, `universal/ual1`: `tests/fixtures/hold_stage.gd`, `pistol_clearance.gd`,
   `tools/ragdoll/measure_joints.gd`) and add the library, then run the weapon and hold suites (`test_weapon*.gd`,
@@ -49,11 +82,37 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   sha256 in the licence entry.
 - **Approach:** Keep the library glbs' import at the defaults (the optimizer and `remove_immutable_tracks` on) and
   read the costs before changing one: `ual1.glb` imports at 1,560 KB with the optimizer off, 752 KB at the defaults
-  and 275 KB with compression ([what the clips cost](../../../tools/blender/own-animation.md#audit-cost)). **Watch out
-  for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
+  and 275 KB with compression ([what the clips cost](../../../tools/blender/library-clip-audit.md#audit-cost)). **Watch
+  out for:** the library files key a position on every bone, their own body's bone lengths; `remove_immutable_tracks`
   drops those constant tracks on import, and a body of other proportions that plays them stretches its neck and limbs
   to the mannequin's. **Seen:** gdstudio #1150 (PR #1165), 2026-11-11 (the sizes); gdstudio #1149 and #1151,
   2026-11-11 (the position tracks).
+- **Approach:** When a new library joins the character's `AnimationPlayer` (`prone`, `melee`, `gds`), add a
+  `LIBRARY_*` constant, a constant per clip and every clip name to `CharacterClips.ALL` in the same commit, and raise
+  the count in `test_character_clips.gd`. **Watch out for:** `test_every_listed_clip_exists_and_every_clip_is_listed`
+  counts every clip of every library on the player, so a library added only to `character_dressed.tscn` passes every
+  targeted suite and fails only in the full run. **Seen:** kit #1254, the six melee clips (90 to 96, then 99
+  beside the three vault clips of #1239).
+
+## The fixed clips {#fixed-clips}
+
+<!-- new section: since kit #1187 the template wears the prototype bodies, and three library clips cross a forearm
+and a shin on them (kit #1295); the corrected copies are a library of their own -->
+
+`assets/animation/fixed/fixed.glb` is the `AnimationLibrary` `fixed`: `Jump_Land` (from `ual1`), `Slide_Exit` and
+`NinjaJump_Land` (from `ual2`) with one upper arm swung 4 to 11 degrees outward on the frames where its forearm was
+6.6 to 12.2 mm inside the shin on `form_female`, eased in and out; every other key is the library's
+([how it is built](../../../tools/blender/animation.md#corrected-clips)). `CharacterClips.LAND` and `SLIDE_EXIT` name
+the fixed clips, `CharacterClips.STAND_INS` maps each to the library clip it came from, and
+`tests/assets/test_fixed_clips.gd` holds the file to what the build measured and to the library's keys. The file
+also holds, since kit #1320, `Sword_Dash` and `Sword_Heavy_Combo` (from `ual2`, played by nothing in the template), whose
+thighs passed through each other by 17 to 26 mm on both bodies: one leg is swivelled about the line from its hip to
+its ankle (41 and 22 degrees at most) and its foot keyed back to the library's turn, so each foot stays within 0.57 mm
+of the library's on every frame, which the same test checks in Godot's own pose on both bodies. The two clips add
+553 KB to the file (946 KB for five clips). A fixture
+that builds its own `AnimationPlayer` and plays `CharacterClips` constants adds the `fixed` library beside `ual1` and
+`ual2` (`tests/fixtures/pistol_clearance.gd`). `tools/capture/fixed_clips_tour.tscn` films both clips from the game
+camera, and with `LIBRARY_CLIPS=1` the library's.
 
 ## The vault clips {#vault-clips}
 
@@ -124,28 +183,53 @@ contact times. Forward 0 is the obstacle's front face.
   0.5 to 1.0 m and the high one about 1.0 to 1.3 m; above that is a climb (`ClimbUp_1m` and a mantle).
 - **Warping one clip to another obstacle** (for #1013 to confirm in play): the pose over the obstacle is a rigid body
   on a hand, so another height is the body lifted by the difference while a hand is on the top (none at the last
-  ground contact, all of it from the hand plant to the hand's release, none at the landing), and the wrist stays 36 mm
-  over the top at any height. Another depth is more travel between the hand's release and the landing; another speed
-  is the clip's rate. `tools/capture/vault_study.tscn` does the height warp (`LOW_HEIGHT`, `HIGH_HEIGHT`) and plays the
-  clips over their boxes from four views; headless, it prints the contact numbers.
-- **The male mannequin's arms are longer** (0.54 m shoulder to wrist against the female's 0.49 m), and the clips were
-  keyed on the female, the template's default. On the male the planted wrist moves 35 mm in `Vault_Low` and 71 mm in
-  `Vault_High` while it should be still, and sits up to 49 mm low. The vault code puts the hand on the edge by IK if
-  that shows; the clip cannot be right for both.
-- **On the template's bodies** (the prototype `form` pair, `CharacterBodies`, since kit #1187; measured in kit #1286
-  by `tests/assets/test_vault_clips.gd`, which poses all four bodies): the planted wrist slides 18 and 72 mm on
-  `form_female` (low and high vault) and 35 and 82 mm on `form_male`, and rides 29 to 67 mm off its height over the
-  top (on `form_male` up to 31 mm into the box); `Vault_High` puts the thighs 34.0 mm (`form_female`) and 23.6 mm
-  (`form_male`) into each other where the legs come over together. The feet, the joins to the sprint and to
-  `Vault_Land`, the free arm, the push and the legs' spread pass on every body. The suite holds those numbers as the
-  bodies' limits (`PER_BODY`, `KNOWN_OVERLAP_MM`) until kit #1294 solves them.
-- **No limb passes through another**, on either mannequin: the build measures every frame of every clip on both
-  skinned meshes (`assets/animation/limb_overlap.py`, the approach under
-  [Keyframes](../../../tools/blender/animation.md#keyframes)) and fails over 5 mm; the clips read 0.5 mm at most
-  (0.0 mm since the rework of 2026-11-11). `vault_clips.json` carries the numbers and the hash of the
-  file they were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off. The template's bodies
-  are measured beside them in `vault/bodies_overlap.json` (`limb_overlap.py --brief`,
-  [Limbs inside limbs](../../../tools/blender/body-crossings.md#library-clips)), read by the same suite.
+  ground contact, all of it from the hand plant to the hand's release, none at the landing), and the wrist stays its
+  own height over the top (`wrist_above_top`, 22 to 36 mm by body) at any height. Another depth is more travel between
+  the hand's release and the landing; another speed is the clip's rate. `tools/capture/vault_study.tscn` does the
+  height warp (`LOW_HEIGHT`, `HIGH_HEIGHT`) and plays the clips over their boxes from four views; headless, it prints
+  the contact numbers.
+- **A file a body** (kit #1294). A planted hand is on its place only on the arms the clip was solved for, and the
+  legs go over clear of each other only on the thighs they were keyed around, so `build_vault.py --body <name>`
+  solves the same keys on each body and writes a file for it: `vault.glb` and `vault_clips.json` on `form_female`
+  (the template's default body, `CharacterBodies.FEMALE`), `vault_male.glb` on `form_male`, and
+  `vault_quaternius.glb` on the Quaternius female, the bytes the one file had before, which the Quaternius male plays
+  too. The character's `vault` library follows its model (`CharacterAnimation.vault_libraries` in
+  `character_dressed.tscn`, the model's scene file to its library, as `prone_libraries`). Every file has the clips at
+  the same lengths, speeds, contact times, root places and hand places (the build fails a body whose numbers differ
+  from the default's, and a Godot test holds it), so the `VaultClip` resources are one set; only the wrist's height
+  over the top is the body's own (22 mm on `form_female`, 28 mm on `form_male`, 36 mm on the Quaternius female: the
+  thickness of the palm).
+
+  | Body, in its own file | Planted wrist moves, low / high | Off its height | Deepest limb in limb | Before, in the one file |
+  | --- | --- | --- | --- | --- |
+  | `form_female` | 0.0 / 0.0 mm | 0.0 / 0.0 mm | 4.5 mm (thighs, `Vault_High` frame 14) | 18.7 / 72.3 mm, 15.5 / 31.2 mm, 34.0 mm |
+  | `form_male` | 0.0 / 0.0 mm | 0.0 / 0.0 mm | 4.6 mm (thighs, `Vault_High` frame 16) | 35.2 / 82.2 mm, 59.0 / 48.2 mm, 23.6 mm |
+  | Quaternius female | 0 / 0 mm | 0 / 0 mm | 0.0 mm | the same file |
+  | Quaternius male (her file) | 34 / 79 mm | 49 / 41 mm | 3.1 mm (feet) | the same file |
+
+  What a body's arms and thighs move is a short list of numbers in the build's `BODIES` table, each explained where
+  the clip reads it: the wrist's height over the top and the heights of the centre of mass at the joins (measured);
+  how far the wrist lifts on the frame it pushes off and how far the fingers tip (a longer arm is still bent when the
+  body has passed: 141 degrees on `form_female` with the first keys, 176 now); the collarbone's lift on the male; and
+  in `Vault_High` the lower leg's foot further out from the hips past the front edge (75 and 100 mm), the knees a
+  little further out, and the lower foot further back and down on the frame at the edge.
+- **No limb passes through another**: each build measures every frame of every clip on the skinned mesh of the body
+  its file is for (`assets/animation/limb_overlap.py`, the approach under
+  [Keyframes](../../../tools/blender/animation.md#keyframes)), with the body's twist bones turned as the game turns
+  them, and fails over 5 mm (the table above). Each file's sidecar carries the numbers and the hash of the file they
+  were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off. `vault/bodies_overlap.json`
+  (`limb_overlap.py --brief`, [Limbs inside limbs](../../../tools/blender/body-crossings.md#library-clips)) holds the
+  two bodies that share `vault_quaternius.glb`, read by the same suite.
+- **The legs clear the box between the keys too.** A game draws the clip 60 times a second and more, with the 24
+  keys a second joined by straight lines, so the build reads the pose 240 times a second, joined the same way, with
+  the root moved at the clip's speed: no leg joint of the file's body more than 5 mm inside the box (0.0 in both
+  vaults), no skin more than 12 mm (0.0 in `Vault_Low`, 4.4 mm of a forearm in `Vault_High`). In `Vault_Low` the left
+  knee swings out to the right with the rolled body on frame 7, before the front face, and is 0.065 m over the top
+  where it crosses the edge (0.285 s); the lead foot is lifted with the toes up on frame 5 and its ball is 0.07 m over
+  the top at the edge. A planted palm presses up to 16.3 mm into the top between two keys and the sole of the sprint's
+  foot strike 20.8 mm into the floor, under the contact, which the build allows (20 and 25 mm).
+  `tests/assets/test_vault_clips.gd` reads the leg joints at the same rate in Godot, and the `_edge` sheet draws the
+  poses between the keys at the front edge.
 - **How the vault plays them** (kit #1037): the `VaultClip` resources `gameplay/character/vault_low.tres` and
   `vault_high.tres` carry the numbers of `vault_clips.json` (a test holds them equal), and the vault is
   [timed by the clip](traversal.md#clip-timing): it starts at the frame that fits the distance, the root moves level
@@ -168,6 +252,14 @@ contact times. Forward 0 is the obstacle's front face.
   three frames), so Godot played the wrist 107 mm off the box on that frame while the build's checks in Blender read 0.
   **Seen:** gdstudio #1010, 2026-11-10 (fix: the optimizer off, the arm kept bent through the plant, and
   `tests/assets/test_vault_clips.gd`).
+- **Approach:** Check a clip against the obstacle between its keys as well, 240 times a second with the keys joined
+  as the player joins them, and key a limb that swings past an edge over the edge's height a frame before it gets
+  there. **Watch out for:** `Vault_Low`'s left knee was before the front face and under the top on frame 7 and past
+  it and over the top on frame 8, both keys clear; on the frames a game draws between them it was 60 mm inside the
+  wall (the skin 76 mm), and the lead foot's toes 40 mm between frames 5 and 6. The knee's pole pointed forward
+  while the ankle passed behind the hip, so the knee hung down and whipped forward in one frame. **Seen:** gdstudio
+  #1221, 2026-11-11 (found by #1037's test in the game; fix: `check_between` in `build_vault.py`, the knee keyed out
+  beside the rolled body on frame 7, the lead foot lifted on frame 5).
 - **Approach:** Animate a vault from the planted arm. Decide where the body's centre of mass is on every frame (a
   free fall's arc in the air; on the hand, a rise that ends faster than gravity alone would leave it) and key the
   pelvis from that. Let the arm show it: the elbow bent with the shoulder low over the hand, the arm straight and
@@ -182,6 +274,14 @@ contact times. Forward 0 is the obstacle's front face.
   given: the feet went 47 mm into the box until the roll was put back. The `Vaultable`'s own path drops the body
   three times faster than a fall, whatever the clip does. **Seen:** gdstudio #1016, 2026-11-11 (`Vault_High` tops
   out 0.14 s after the hand leaves; the path is kit #1037's).
+- **Approach:** Solve a clip with a planted hand once for each body that plays it, from one set of keys, into a
+  file a body, and hold every file to the default body's numbers in the build. Give a body its own number only where
+  its arms or thighs force one, and name each in one table. **Watch out for:** one file keyed on the Quaternius
+  female slid the planted wrists of the bodies the template wears 18 to 82 mm over the top and put their thighs 24 to
+  34 mm into each other; solved on `form_female`, the same file put the Quaternius female's free hand 41.5 mm into
+  her thigh, so no one body's file serves the others. The thighs crossed at the crotch, where the lower leg lay
+  across under the upper one: moving the knees apart did little (the knees were 1.9 hip widths apart with 8 mm still
+  crossing), moving the lower leg's foot out from the hips cleared it. **Seen:** gdstudio #1294, 2026-11-11.
 - **Approach:** Pick a mannequin's skinned mesh by its parent (the armature) or its armature modifier. **Watch out
   for:** `mannequin_female.glb` holds a stray 42-vertex `Icosphere` beside `Mannequin_F`, and it comes first, so a
   build that took the first mesh measured nothing and failed on an empty list. **Seen:** gdstudio #1010, 2026-11-10.

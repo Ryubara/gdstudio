@@ -68,8 +68,22 @@ class Rig:
         self.bind = np.array(
             [xf(skin["binds"].get(str(i), [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])) for i in range(len(self.names))]
         )
-        self.main = self.vbones[np.arange(len(self.verts)), self.vweights.argmax(axis=1)]
-        self.share = self.vweights.max(axis=1)
+        # The bone a vertex counts for is the one with the most of its weight, a leaf bone at a fingertip (no
+        # children, under a finger's last bone) counting as that bone, as the game's `HandContact` counts it.
+        children = {i: 0 for i in range(len(self.names))}
+        for p in self.parent:
+            if p >= 0:
+                children[p] += 1
+        owner = np.arange(len(self.names))
+        for i, name in enumerate(self.names):
+            if children[i] == 0 and self.parent[i] >= 0 and "_03_" in self.names[self.parent[i]]:
+                owner[i] = self.parent[i]
+        owned = owner[self.vbones]
+        summed = np.zeros_like(self.vweights)
+        for k in range(self.vweights.shape[1]):
+            summed[:, k] = (self.vweights * (owned == owned[:, k : k + 1])).sum(axis=1)
+        self.main = owned[np.arange(len(self.verts)), summed.argmax(axis=1)]
+        self.share = summed.max(axis=1)
         self.homog = np.concatenate([self.verts, np.ones((len(self.verts), 1))], axis=1)
         self.model = np.zeros(len(self.verts), int)
 

@@ -83,6 +83,13 @@ The skin's weights run from the limb bone to its twist bone along the limb's len
 stay rigid on their parents and the body skins as a rig with no twist bones does, so a far level of detail and a
 dedicated server skip the modifier.
 
+A check in Blender turns them too: no clip keys a twist bone, so a build or a measure that skins the clip's pose
+alone reads the limbs' skin where no player sees it. `limb_overlap.apply_twist` (the template's
+`assets/animation/limb_overlap.py`) does the modifier's swing-twist split on the posed armature, and can use the
+modifier's own formula because Blender's glTF importer keeps the file's bone axes when it is called with
+`bone_heuristic="BLENDER"` (the default for these scripts); a Godot test that reads bones straight after
+`seek` calls `MannequinTwist.apply` itself ([solved clips](animation.md#solved-clips)).
+
 ## Sockets {#sockets}
 
 <!-- new section: sockets are named bones on this rig, so a weapon or a camera is attached by name on every body -->
@@ -144,6 +151,37 @@ The numbers below are written by the build (`build_mannequins.py --report`); a b
 
 The male's and the female's legs are the library's own, so clips plant their feet as they do the library's mannequins;
 the chibi's leg is the same leg at 0.545 ([why the leg keeps its ratio](prototype-mannequins.md#bodies-and-looks)).
+
+## Clips on other proportions {#proportions}
+
+<!-- new section: moved from own-animation.md#proportions when that page reached 50 KB; what carries a clip over to a
+body with other bone lengths or another skin, and what one clip file cannot do for two bodies -->
+
+A clip stores each bone's turn in its parent, so on a body with other bone lengths the joints turn the same and
+the ends of the limbs land elsewhere. What is done about each consequence:
+
+| What changes on another body | What carries it over |
+| --- | --- |
+| Step length, and so the ground a gait covers | `clips.json` speed times the body's leg length over the reference's; the game plays the clip at ground speed over that |
+| Pelvis height, bob and travel | `motion_scale` scales the position keys |
+| A planted foot's place | the `ik_foot` targets and a two-bone solve in the game, on while the clip's weight curve says planted |
+| A hand on a weapon or an obstacle | the socket and the hold solver, or the `ik_hand` targets |
+| Limbs meeting the body (a big head, short arms, wide hips) | a per-body clearance pose, made by the body's build from the overlap check: an additive offset on the collarbones and upper arms that the tree always adds |
+| Where the toes rest (the prototype bodies' curl 7.3 mm up off the floor, the Quaternius mannequins' lie on it) | nothing in one file: a foot on its ball is set down by the reference body's own skin, and the other shape hangs or sinks by the difference, which the checks allow that body (`toes_off_mm`) |
+| Weight (a heavy or a tiny body) | the style file: a body type may take its own variant numbers through the same descriptions |
+
+Group I clips need nothing but the first two rows. The checks run on every shipped body, the chibi included, so a
+clip that only works on the reference fails its build.
+
+- **Approach:** Solve a clip on the body the game wears (the toolkit's `REFERENCE` is `CharacterBodies.FEMALE`),
+  run every check on each body the template holds, and set a foot that stands on its ball down by the lowest of its
+  own blended skin. **Watch out for:** the crouch clips stayed solved on the Quaternius female after the template
+  moved to the `form` bodies: the legs are the same length, yet a raised foot hung 5 to 6 mm over the floor (the
+  `form` toes curl 7.3 mm up at rest) and one variant's hand was 30 mm in the `form` female's calf; solved on
+  `form`, the Quaternius feet sink 5 to 7 mm instead, and the rig's `ik_` targets become tracks the Quaternius
+  skeleton has no bone for.
+  **Seen:** gdstudio #1160 (PR #1285), 2026-11-11 (fix: `REFERENCE` and `BODIES` in `build_own.py`, the rig's
+  `tread`, `plan._state`, `checks.TOES_SAME`, the four-body Godot suite).
 
 ## What a clip made on this rig must keep {#clip-rules}
 

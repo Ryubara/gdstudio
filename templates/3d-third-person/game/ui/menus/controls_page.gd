@@ -25,6 +25,7 @@ signal listening_changed(listening: bool)
 	&"next_weapon",
 	&"previous_weapon",
 	&"toggle_unarmed",
+	&"melee",
 	&"weapon_1",
 	&"weapon_2",
 	&"hotbar_1",

@@ -17,6 +17,7 @@ a branch fresh are in [Landing a pull request](landing.md#landing).
   older commit; `ui: Merge main into x` is not a title the convention knows (only git's own `Merge remote-tracking
   branch ...` is exempt), so the merge stayed uncommitted. **Seen:** Deadnight #987, 2026-11-04; Deadnight #1280,
   2026-11-05; Deadnight, 2026-11-02 (fix: the title checked as a file before the commit).
+  gdstudio #1323, 2026-11-12 (a docs commit title written inline at 74 characters, refused by the hook).
 
 ## The description {#body}
 
@@ -40,8 +41,8 @@ a branch fresh are in [Landing a pull request](landing.md#landing).
   `commits` check matches each commit's `Co-Authored-By` model against that line; a coordinator cherry-picking a Sonnet
   agent's commit, merging main to settle a conflict, or finishing a handed-over branch wrote only one model. A stacked
   pull request carries its base's commits, which `gds pr check-body` does not read (`groundwork.py check-commits` does).
-  **Seen:** gdstudio #207 and #208, 2026-11-02; Deadnight #553, 2026-11-02 (fix: every model listed, checked before
-  the push); gdstudio #1264, 2026-11-11 (stacked on #1239); gdstudio #1311 (stacked on #1172) and #1268, 2026-11-11.
+  **Seen:** gdstudio #207, #208 and Deadnight #553, 2026-11-02 (fix: every model listed, checked before the push);
+  gdstudio #1264 (stacked on #1239), #1311, #1268, #1323 and #1306 (stacked), #1254 (a helper's commit), 2026-11-11.
 - **Approach:** Name the model that wrote the commits on the `Model:` line and in each `Co-Authored-By` trailer (`Claude
   Opus 5.5`, `Claude Sonnet 5.5`), never the harness that ran the session or an alias. **Watch out for:** an
   attribution line that names a tool (`Claude Code`) is not a model name; when a machine maps an alias to another
@@ -139,8 +140,13 @@ the API's list of closed issues, the body's own `Fixes #N` lines say which issue
 machine at all), and when the checkout knows `origin/main` each section is looked up in `origin/main`'s `docs/`
 (`check-body --docs-ref origin/main`, `git show origin/main:./<page>`), as the `body` job of `pr.yml` reads its checkout
 of the base branch. A section only the branch adds is refused there and here; it belongs on the `Lessons:` line, which
-still reads the branch (kit #1131). The guard is a hand-merge path (`.claude/hooks/`): a maintainer merges changes to
-it.
+still reads the branch (kit #1131). The `commits` job reads the pull request's commits: `gds pr check-body` and the
+guard run the same `groundwork.py check-commits --body` on `git log origin/main..HEAD` of the checkout (the commits
+GitHub lists for a pull request against `main`; those a merge of `main` brings are not among them), so a commit's bad
+trailer, or a co-author model the `Model:` line does not name, is refused before the push. A stacked branch carries its
+base's commits, so its `Model:` line names their models too ([stacked](starting-work.md#stacked)). With no branch to
+read it prints `commits: cannot tell`, as the docs rule does (kit #1303). The guard is a hand-merge path
+(`.claude/hooks/`): a maintainer merges changes to it.
 
 - **Approach:** Give the pull request template an Issues affected section and a Failed first test from the first day,
   and update every affected issue after a merge. **Watch out for:** follow-up work and real regressions went untracked
@@ -149,12 +155,26 @@ it.
 - **Approach:** Run `groundwork.py check-body` on a pull request body before opening it. **Watch out for:** a body wrote
   `None` without the expected form, and the body check in CI refused it after the pull request was open. **Seen:**
   Deadnight, 2026-11-01 (fix: the CI body check caught it; the hook here now checks a body before it is sent).
+- **Approach:** Judge the `Model:` line against every commit the pull request carries, the branch's commits since
+  `origin/main`, not only the ones this task wrote. **Watch out for:** a stacked pull request carried its base
+  branch's commits by another model; `gds pr check-body` passed its body and the CI `commits` job refused it after the
+  push. **Seen:** gdstudio #1264 and #1274, 2026-11-11 (fix: kit #1303, `gds pr check-body` and the guard run
+  `check-commits --body` on the branch's commits); gdstudio #1273, 2026-11-11 (pushed before kit #1303's check: the
+  `Model:` line named one of the two models of its commits, stacked on #1171).
 - **Approach:** Make a local check read its input from where CI reads it: the base branch's docs for what existed
   before the branch (`Read first:`), the branch for what it writes (`Lessons:`), and check that its refusal words
   the fault as CI's does for the same body. **Watch out for:** `gds pr check-body`
   passed a `Read first:` anchor only the branch had, because it judged the rule from no history (it never ran) and would
   have read the worktree's `docs/`, while `pr-rules` reads the base checkout and refused it after the push. **Seen:**
   gdstudio #1016 and #1123, 2026-11-11 (fix: #1131, `--docs-ref origin/main` and closes from `Fixes #N`; PR #1144).
+  Again on #1171, 2026-11-12: with `- Fixes #N` as list items the local check finds no closing line and skips
+  the rule; a page the branch adds goes in `Lessons:` only.
+- **Approach:** Read a body's closing lines the way GitHub does, list items included (`- Fixes #12`), and when a
+  body passes on the machine and fails in CI, find the input the two read differently before editing the body.
+  **Watch out for:** the local reader took only a bare `Fixes #N` line, so a body whose Summary is a list closed
+  nothing on the machine, the `Read first:` rule never ran, and a stacked pull request naming two sections of its
+  base branch passed `gds pr check-body` and failed `body` after the push. **Seen:** gdstudio #1325 on #1321,
+  2026-11-12 (fix: `body_closes` takes a list item; `Read first:` names only sections of `main`).
 
 - **Approach:** When a required check fails on a pull request's first commit, add `Lessons: <page.md#anchor>` to the
   body in the same push that fixes it, naming the topic section the fix is recorded in. **Watch out for:** the local
