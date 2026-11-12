@@ -10,6 +10,7 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_aim.glb" id="6_prone_aim"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/prone/prone_aim_male.glb" id="6_prone_aim_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault.glb" id="6_vault"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/fixed/fixed.glb" id="6_fixed"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/own/locomotion.glb" id="7_gds"]
 [ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
 [ext_resource type="PackedScene" path="res://gameplay/character/footsteps.tscn" id="8_footsteps"]
@@ -85,6 +86,7 @@ libraries = {
 &"prone": ExtResource("6_prone"),
 &"prone_aim": ExtResource("6_prone_aim"),
 &"vault": ExtResource("6_vault"),
+&"fixed": ExtResource("6_fixed"),
 &"gds": ExtResource("7_gds")
 }
 
