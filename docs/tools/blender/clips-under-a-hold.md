@@ -143,6 +143,14 @@ entries, folded in from that pull request's `held-weapon-clips.md`, follow the a
   **Seen:** gdstudio #1191, 2026-11-12 (after #1171's grip the left elbow moved 18 and 45 mm and the right thumb read
   7.5 and 10.1 mm off the gun, where it now rests on the left hand; rebuilt, 0.5 mm); again after #1262's seat (a
   little finger 6.4 to 9.0 mm under the floor and the left elbow off; rebuilt, `test_prone_aim_hold.gd` green).
+- **Approach:** When a build carries the hold's plan in its own code (the prone reload's `ReloadHold` is
+  `SupportHandPlan` in Python), port main's diff of the plan and of the hold's `refresh`, extend the dump by what
+  the port reads, and give anything new in the hand its own measure before the pose is tuned again. **Watch out
+  for:** a fresh dump alone left the build on the old plan: the clip's arm took the hand 41 mm early, where the
+  hold now waits for the right thumb; the magazine's new 12 cm way in put the left hand 30 to 38 mm under the
+  floor under a pistol canted 45 degrees, and canted 65 the hand came back on with its wrist bent 86 to 90
+  degrees. **Seen:** gdstudio #1185 (PR #1265), 2026-11-12, after #1171, #1262 and #1306 (279 failed checks on the
+  old files; fix: `ARM_UNTIL`, `down_back`, the carry poses, `CANT_IN`, `CANT_OUT`, `magazine_points`).
 - **Approach:** When a clip is solved again on another body, take nothing typed for the old one: rest each arm on
   the floor frame by frame (turn the elbow's pole up until the skin is over it), search the elbow's direction for a
   wrist the hold turns (bend and overlap together), and lift the weapon while a hand leaves it down its grip.

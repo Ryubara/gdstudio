@@ -6,8 +6,8 @@ up. It starts and ends on the first pose of that body's `Prone_Aim_Neutral_Loop`
 
 - the body rolls a little onto its firing side, which lifts the left shoulder and frees the left hip;
 - the right arm props on its elbow and brings the pistol back in front of the face, the muzzle up and the magazine
-  well canted toward the left hand (how a reload is taught: the pistol close, the well canted inboard about 45
-  degrees; the sources are in the folder's README);
+  well canted toward the left hand while that hand is off the pistol (how a reload is taught: the pistol close,
+  the well canted inboard; the sources are in the folder's README);
 - the left hand lets go, goes back along the body to the belt at the left hip for the new magazine, comes under the
   grip, pushes the magazine up it with the heel of the palm, and takes its place on the pistol again;
 - both arms stretch out to the aim.
@@ -19,11 +19,12 @@ hand 8 and 25 mm off its place, fingers 8 and 18 mm in the pistol and the magazi
 
 The left hand's times and places are the game's, never typed here: `tools/hold/dump_aim_seat.gd` writes each body's
 `MagazineHand` marker, the way its opened hand leaves the weapon, its support, opened and magazine finger poses, and
-once the approach under the magazine, the bow of the way back and the four pairs of shares of `WeaponHold`'s Reload
-group; `ReloadHold` below is `SupportHandPlan` in Python. Wherever the game's hold has the left hand (on the pistol,
+its approach under the magazine and its carry poses on the new magazine (kit #1052), and once the way down off the
+seated magazine, the bow of the way back, the shares of `WeaponHold`'s Reload group and the magazine's corners;
+`ReloadHold` below is `SupportHandPlan` in Python. Wherever the game's hold has the left hand (on the pistol,
 on its way, under the magazine), the clip has the hand's bone on that very place and its fingers in the hold's own
 pose, so the hold changes nothing and keeps the clip's elbow; while the hold lets the clip's own arm have the hand,
-the clip takes it to the belt and back and closes it on the new magazine. The right hand keeps the hold's grip, the
+the clip takes it to the belt and back, its fingers the hold's own on the new magazine. The right hand keeps the hold's grip, the
 index finger off the trigger and along the frame from the first frames to the last.
 
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute, once a body:
@@ -40,7 +41,8 @@ measures of `build_prone_aim_clips.py` (same folder), and measures the skin as t
 the grip on, the fingers in the hold's poses, the twist bones turned). It fails before it exports when the first or
 the last pose is not the prone aim's, a target is missed, the left hand is off the place the game's hold has for it,
 the propped elbow slides, the lower body differs from the prone idle's, a hand's or an arm's skin or the pistol goes
-under the floor, the muzzle covers the left hand, a wrist is bent too far, an arm is stretched straight, or a part of
+under the floor, the new magazine in the left hand goes under the floor or into the body, the muzzle covers the left
+hand, a wrist is bent too far, an arm is stretched straight, or a part of
 the body goes more than 5 mm into another on any frame (the two hands on each other and on the pistol are closed by
 the game's hold and measured there: `tests/gameplay/test_prone_reload_hold.gd`).
 """
@@ -306,7 +308,7 @@ class ReloadHold(aim.Hold):
             for b in range(a + 1, 8):
                 # Godot's `AABB.get_endpoint` numbers a corner by its three sides: one bit apart is an edge, two a
                 # side's diagonal.
-                if bin(a ^ b).count("1") in (1, 2):
+                if (a ^ b).bit_count() in (1, 2):
                     points.append((corners[a] + corners[b]) / 2)
         return np.array(points)
 
