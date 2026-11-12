@@ -290,7 +290,8 @@ other style files stay in the repository, so a game picks another vision by rebu
 3. **The tree reads `clips.json`.** Blend points sit at the clips' measured speeds; each gait plays at ground speed
    over clip speed; transitions are picked by the gait, the planted foot and the turn asked for, and are played
    along their travel curve against what the controller really did. That is the Godot child issue, not a clip
-   issue.
+   issue (done in #1158: `GaitClips` reads the records, and what a transition clip's record needs is on
+   [the template's gait settings](../../engines/godot/third-person/clips.md#gait-settings)).
 4. **The web build drops what nothing plays.** Once a group is replaced, the libraries' unused clips leave the
    exported game (an import script keeps the clips a list names; the full files stay in the repository for
    stand-ins and study), and the size before and after goes in the pull request.
@@ -351,7 +352,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | #1155 the loops (done) | `Walk`, `Jog`, `Sprint`, three variants, `Walk` B and `Jog` and `Sprint` A shipped; one description, `clips/gait.py` ([adding a gait](animation.md#toolkit)) |
 | #1156 starts and stops (done) | `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`; `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`; each `_L` and `_R`, three variants, A shipped; one description, `clips/moves.py` ([start and stop clips](start-stop-clips.md#description)) |
 | #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |
-| #1158 the tree (Godot) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost |
+| #1158 the tree (Godot) (done) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost ([gaits fitted to the body](../../engines/godot/animation-tree.md#gait-fitting)) |
 | #1159 directions and lean | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`; `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` |
 | #1160 crouch (done) | `Crouch_Idle`, `Crouch_Walk`, `Stand_To_Crouch` (B, chosen), `Crouch_To_Stand` (A, chosen), solved on `form_female`; the prone transitions rebuilt on the new crouch |
 | #1161 jumps | `Jump_Start` (standing, running), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog` |
