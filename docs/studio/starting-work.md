@@ -245,6 +245,13 @@ lands (a squash merge makes a new commit on `main`), so the line keeps naming th
   and none of them the stacked branch's), and resolving them by hand risks keeping an old side of the base; the
   re-applied patch conflicted in 10 files, all the branch's own, and three of those `main` had since taken whole.
   **Seen:** gdstudio #1267 on #1040, 2026-11-12.
+- **Approach:** While the base is still open, fetch it and merge its head into the stacked branch right after
+  `main`, before resolving any docs fold or rebuilding anything solved on the base's files; where both merged the
+  same `main`, take the stacked branch's code and the base's docs with the branch's own lines added. **Watch out
+  for:** the base's agent works at the same time: it had merged the same `main`, rebuilt its clips on the new hold
+  and folded its page into another section while the stacked branch was resolving `main` alone, so the fold made
+  there (a section of its own) was redone into the base's section, and the clip that joins the base's would have
+  been solved on the base's old files. **Seen:** gdstudio #1265 on #1191, 2026-11-12.
 
 ### The worktree is removed when the work is finished {#sweep}
 
