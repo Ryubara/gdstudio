@@ -18,11 +18,15 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/hold/` solves the pistol hold: `dump_hold_rig.gd` writes the rig as Godot plays it,
   `solve_pistol_hold.py` (numpy and scipy; `hold_rig.py`, `hold_field.py` and `hold_hand.py` are its parts) closes
   both hands on the pistol for both mannequins, and `write_hold.gd` writes the seat and the three `HandPose` files.
-- `tools/capture/rack_closeups.tscn` poses a mannequin on every frame of the pistol's slide-rack clip
-  (`assets/animation/pistol/`), the left hand reached to the slide and the `Slide` node moved, prints how each hand
-  meets the pistol (lines starting `RACK`) and, with a window and `RACK_OUT`, saves close-ups of the reach, the grip,
-  the pull, the release and the follow-through from the front left, the gun's right, above and the player's camera
-  (`MODEL=male`); `tools/hold/write_slide_rack.gd` writes the clip's `SlideRack` file from the clip build's data.
+- `tools/capture/rack_closeups.tscn` poses a body on every frame of the pistol's slide-rack clip
+  (`assets/animation/pistol/`) with the hold's hands, the left hand reached to the slide and the body's own fingers
+  (`tests/fixtures/rack_stage.gd`): headless it prints how each hand meets the pistol (lines starting `RACK`) and,
+  with a window and `RACK_OUT`, saves close-ups of the reach, the grip, the pull, the release and the follow-through
+  from six sides (the gun's right, its left, above, the front, the player's camera close up and the game camera), on
+  the female body or the male (`MODEL=male`); `RACK_CARRY=0` holds the pistol where the clip has it and
+  `RACK_FINGERS=0` leaves the clip's own fingers. `tools/hold/write_slide_rack.gd` writes each body's `SlideRack`
+  file from the clip build's data, and `tools/hold/hold_files.py` reads a body's hold out of the project's files
+  for the rack's solver and build.
 - `tools/bench/hold_cost.tscn` times 40 mannequins with no hold, the carried hold or the aimed one (the run is its
   user argument, one run a process).
 - `tools/capture/walkthrough.tscn` plays the character through the map by pressing the input actions, for a clip.

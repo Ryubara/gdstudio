@@ -391,15 +391,17 @@ worked out on each machine from the aim the game already has; nothing of it goes
 ### The slide rack clip {#slide-rack-clip}
 
 `assets/animation/pistol/pistol_rack.glb` holds one clip of GDStudio's own, `Pistol_Rack` (0.93 s): an overhand rack
-of the pistol's slide, which the library's reload lacks. The left hand leaves its support grip, comes over the top of
-the slide just in front of the rear sight, pulls it back 4.5 cm while the right hand pushes the pistol forward, lets go
-at the rear and returns; it starts and ends on the pose `Pistol_Reload` ends on. The player does not play it yet (the
-reload's moving parts are kit #1052): add the library to an `AnimationPlayer` as `pistol` to use it.
-`gameplay/weapon/hold/pistol_slide_rack.tres` (a `SlideRack`) says where the left hand's bone is in the pistol's space
-at every share of the clip, how far the slide travels and when; whatever plays the clip reaches the left hand there
-with a `HoldArm` and moves the pistol's `Slide` node, as `tests/fixtures/rack_stage.gd` does. On both mannequins the
-hands are within the hold's 2 mm and 5 mm on every frame (`tests/gameplay/test_pistol_rack.gd`). The folder's
-`README.md` has the beats, the numbers, why it is an overhand rack and how to build it;
+of the slide, keyed from nothing by `build_pistol_rack.py` on the player's body (`form_female`) because the library's
+reload has none. It starts and ends on the pose `Pistol_Reload` ends on. Each body has its own hand on the slide, as
+each has its own hold: `gameplay/weapon/hold/pistol_slide_rack.tres` (a `SlideRack`, the female's) lists
+`pistol_slide_rack_male.tres` in `fits`, and `SlideRack.fit()` gives the one solved on the model's file. A rack says
+where the left hand's bone is in the pistol's space on its way over the slide, how its fingers are closed on the
+slide and opened over it, how far the slide travels and at which shares of the clip the hand grips, pulls and lets
+go; what plays the clip reaches the hand there with a `HoldArm`, puts the fingers on with a `HandPoseModifier`
+(`SlideRack.set_fingers()`) and moves the pistol's `Slide` node, as `tests/fixtures/rack_stage.gd` does. On both
+bodies the hands are within the hold's 2 mm and 5 mm on every frame, the index finger's and the thumb's pads on the
+serrations (`tests/gameplay/test_pistol_rack.gd`). The folder's `README.md` has the beats, the numbers, why it is an
+overhand rack and how to build it;
 `tools/capture/rack_closeups.tscn` films it.
 
 ### Vault clips {#vault-clips}

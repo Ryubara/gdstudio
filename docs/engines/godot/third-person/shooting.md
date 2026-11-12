@@ -406,8 +406,10 @@ phases for whatever moves with the hand: `WeaponHold.left_hand().phase` is `HELD
 
 The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (`assets/animation/pistol/`, kit #1081): it
 starts and ends on the pose the reload ends on, and its `SlideRack` resource
-(`gameplay/weapon/hold/pistol_slide_rack.tres`) gives the left hand's place on the slide, the slide's travel and the
-shares at which it is gripped, pulled and let go. The reload does not play it yet (kit #1052); the test
+(`gameplay/weapon/hold/pistol_slide_rack.tres`, with the male body's `pistol_slide_rack_male.tres` in its `fits`:
+`SlideRack.fit()` gives the one solved on the model's body) gives the left hand's place on the slide, its fingers
+closed on the slide and opened over it, the slide's travel and the shares at which it is gripped, pulled and let
+go. The reload does not play it yet (kit #1052); the test
 `test_pistol_rack.gd` and the capture `tools/capture/rack_closeups.tscn` play it on a stage
 ([the clip and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
 
