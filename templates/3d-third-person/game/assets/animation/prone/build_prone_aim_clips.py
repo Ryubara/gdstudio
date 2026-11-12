@@ -24,9 +24,9 @@ on the pelvis the game will give it. When the prone idle of a body changes, buil
 Run it with the pinned Blender, headless (`gds tool path blender`), every path absolute, once a body:
 
     blender -b --factory-startup -P build_prone_aim_clips.py -- --body female --model <form_female.glb>
-        --hold <aim_seat.json> --idle <prone.glb> --out <prone_aim.glb> [--report <numbers.json>]
+        --hold <aim_seat.json> --idle <prone_form_female.glb> --out <prone_aim.glb> [--report <numbers.json>]
     blender -b --factory-startup -P build_prone_aim_clips.py -- --body male --model <form_male.glb>
-        --hold <aim_seat.json> --idle <prone.glb> --out <prone_aim_male.glb> [--report <numbers.json>]
+        --hold <aim_seat.json> --idle <prone_form_male.glb> --out <prone_aim_male.glb> [--report <numbers.json>]
 
 Blender exits 0 when a script raises, so read the output for `EXPORTED` and check the file's time.
 
@@ -669,7 +669,9 @@ def main():
         if not args.preview:
             raise SystemExit(1)
     bpy.data.objects.remove(mesh)
-    base.export(arm, args.out)
+    # The twist bones, sockets and IK targets are not keyed (the game's `MannequinTwist` turns the twist bones
+    # after the clip), so the file holds the library's 65 bones, as the body's prone file does.
+    base.export(arm, args.out, rig.extra)
     print("EXPORTED", args.out)
 
 
