@@ -14,6 +14,7 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault_male.glb" id="6_vault_male"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/vault/vault_quaternius.glb" id="6_vault_quaternius"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/fixed/fixed.glb" id="6_fixed"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/melee/melee.glb" id="6_melee"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/own/locomotion.glb" id="7_gds"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/rifle/rifle_clips.glb" id="7_rifle"]
 [ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
@@ -90,6 +91,7 @@ libraries = {
 &"prone": ExtResource("6_prone_form_female"),
 &"vault": ExtResource("6_vault"),
 &"fixed": ExtResource("6_fixed"),
+&"melee": ExtResource("6_melee"),
 &"gds": ExtResource("7_gds"),
 &"rifle": ExtResource("7_rifle")
 }

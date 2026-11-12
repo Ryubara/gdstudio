@@ -27,7 +27,8 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## `AimHeadModifier` (kit #1334) is one more. The reload's new magazine (#1052) adds 2: a
 ## `BoneAttachment3D` on the left hand and its mesh, hidden but through a reload (the old
 ## magazine's body is made at the first reload, not at the spawn).
-const NODES_ALIVE := 63
+## The melee blow (#1254) adds 1: the weapon's `MeleeSound`, an idle player like the other three.
+const NODES_ALIVE := 64
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120
