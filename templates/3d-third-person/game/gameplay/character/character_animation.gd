@@ -643,9 +643,9 @@ func _drive_pistol(delta: float) -> void:
 	var up_share := 1.0
 	if character.loadout != null:
 		up_share = 1.0 - character.loadout.lowered_amount()
-	var lying := ProneAnimation.stow_share(character)
-	var stow := maxf(lying, _vault_look.hands)
-	var hidden := lying > 0.5 or _vault_look.away
+	var stowed := ProneAnimation.stow_share(character)
+	var stow := maxf(stowed, _vault_look.hands)
+	var hidden := stowed > 0.5 or _vault_look.away
 	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, hidden)
 	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
