@@ -191,6 +191,10 @@ var _dropped: RigidBody3D
 var _dropped_left := 0.0
 var _magazine_was := Vector3.ZERO
 var _magazine_speed := Vector3.ZERO
+var _magazine_followed := false
+# What this node last showed of the two magazines (the nodes are written only on a change).
+var _shown_in_gun := true
+var _shown_in_hand := false
 var _slide: Node3D
 var _slide_rest := Transform3D.IDENTITY
 var _slide_released := false
@@ -209,10 +213,15 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if _gun_magazine != null and is_instance_valid(_gun_magazine) and delta > 0.0:
+	# The magazine's speed is only wanted where it drops: it is followed through a reload alone
+	# (its place in the world is the skeleton's work to give; kit #1052's cost a character).
+	if reload_weight <= 0.0:
+		_magazine_followed = false
+	elif _gun_magazine != null and is_instance_valid(_gun_magazine) and delta > 0.0:
 		var at := _gun_magazine.global_position
-		_magazine_speed = (at - _magazine_was) / delta
+		_magazine_speed = (at - _magazine_was) / delta if _magazine_followed else Vector3.ZERO
 		_magazine_was = at
+		_magazine_followed = true
 	if _dropped != null and _dropped_left > 0.0:
 		_dropped_left -= delta
 		if _dropped_left <= 0.0:
@@ -298,7 +307,8 @@ func _plan_left() -> void:
 	_left.reach = reload_reach
 	_left.insert = reload_insert
 	_left.back = reload_return
-	_left.drop = _sound_share(0, reload_drop)
+	if reload_weight > 0.0:
+		_left.drop = _sound_share(0, reload_drop)
 	_left.take = reload_take
 	_left.carry_release = carry_release
 	_left.update(aim_weight, reload_weight if _magazine != null else 0.0, reload_share)
@@ -348,15 +358,19 @@ func _sound_share(index: int, fallback: float) -> float:
 # Shows the pistol's magazine or the new one in the hand as the plan has them, and drops the old
 # one as it leaves the grip.
 func _place_magazines() -> void:
+	var in_gun := _left.magazine_in_gun
+	var in_hand := _left.magazine_in_hand
+	if in_gun == _shown_in_gun and in_hand == _shown_in_hand:
+		return
 	if _gun_magazine == null or not is_instance_valid(_gun_magazine):
 		return
-	var in_gun := _left.magazine_in_gun
-	if _gun_magazine.visible and not in_gun:
+	if _shown_in_gun and not in_gun:
 		_drop()
-	if _gun_magazine.visible != in_gun:
-		_gun_magazine.visible = in_gun
-	if _held_magazine != null and _held_magazine.visible != _left.magazine_in_hand:
-		_held_magazine.visible = _left.magazine_in_hand
+	_shown_in_gun = in_gun
+	_shown_in_hand = in_hand
+	_gun_magazine.visible = in_gun
+	if _held_magazine != null:
+		_held_magazine.visible = in_hand
 
 
 # The old magazine leaves the grip: a body of the world where the pistol's was, falling down the
@@ -517,8 +531,9 @@ func _build_magazines(weapon: Node3D) -> void:
 		_gun_magazine = null
 		return
 	_gun_magazine.visible = true
-	if _gun_magazine.is_inside_tree():
-		_magazine_was = _gun_magazine.global_position
+	_shown_in_gun = true
+	_shown_in_hand = false
+	_magazine_followed = false
 	_held_magazine = BoneAttachment3D.new()
 	_held_magazine.name = _HELD_MAGAZINE
 	_held_magazine.bone_name = support_arm[2]
