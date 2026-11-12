@@ -6,7 +6,7 @@
 # nothing pops; the two clips of a pair are not mirror images of each other; each names the frame
 # from which the game may cut to new input. Planted feet, skin on the floor, tracks, limbs and
 # the budget are `test_own_clips.gd`'s, which reads every clip of the file. The compressed
-# import keeps every bone's motion of these clips as the file has it.
+# import keeps every bone's motion of these clips as the file has it, and the player plays them.
 extends GdUnitTestSuite
 
 const OWN := "res://assets/animation/own/locomotion.glb"
@@ -233,3 +233,35 @@ func test_the_import_keeps_every_start_and_stop_s_motion() -> void:
 			assert_float(worst_place).override_failure_message(message).is_less(IMPORT_PLACE)
 			assert_float(worst_turn).override_failure_message(message).is_less(IMPORT_TURN)
 	assert_int(compared).is_greater(0)
+
+
+func test_the_player_plays_our_start_and_stop() -> void:
+	# The tree of gdstudio #1158 picks a start and a stop by the names it is given
+	# (`GaitTransitionSet`, `<base>_L` or `_R`); with the shipped settings it finds ours.
+	var arena: PlayArena = auto_free(PlayArena.new())
+	add_child(arena)
+	var player := arena.add_player(Vector3.ZERO)
+	var animation: CharacterAnimation = player.get_node("Animation")
+	CommandDriver.take(player)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	animation.set_throttled(true)
+	var walk := PlayerCommand.new()
+	walk.move = Vector2(0.0, 1.0)
+	walk.walk = true
+	var played := {}
+	var step := CommandDriver.tick_seconds()
+	for command: PlayerCommand in [walk, PlayerCommand.new()]:
+		for tick in 60:
+			await get_tree().physics_frame
+			player.step(command, step)
+			animation.advance(step)
+			var clip := animation.gait.transitions.clip
+			if clip != &"":
+				played[String(clip)] = true
+	var names := played.keys()
+	print("played: ", names)
+	var started := names.any(func(n: String) -> bool: return n.begins_with("gds/Idle_To_Walk_"))
+	var stopped := names.any(func(n: String) -> bool: return n.begins_with("gds/Walk_Stop_"))
+	assert_bool(started).override_failure_message(str(names)).is_true()
+	assert_bool(stopped).override_failure_message(str(names)).is_true()
