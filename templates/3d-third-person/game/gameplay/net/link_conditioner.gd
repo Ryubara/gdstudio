@@ -9,7 +9,13 @@ extends NetLink
 ##
 ## Time is the caller's: `clock` returns seconds (a test gives it the physics frame count over the
 ## tick rate, so a slow machine meets the same network a quick one does, frame for frame); empty
-## means the real clock. Randomness is seeded, so a run repeats.
+## means the real clock. Randomness is seeded, so a run repeats. A packet is due within
+## `DUE_SLACK` of its time: on a tick clock a hold of whole ticks (0.15 s at 60) passes on its own
+## tick at every frame count, not one tick later where the sum's rounding lands it a hair past.
+
+## Seconds a packet may pass before its time: far under a tick, far over the rounding of seconds
+## counted in ticks (a frame count over the tick rate) a game runs for days.
+const DUE_SLACK := 0.000001
 
 ## Seconds each packet is held, each way.
 var delay := 0.0
@@ -151,7 +157,7 @@ class _Line:
 
 	func due(now: float) -> Array[PackedByteArray]:
 		var out: Array[PackedByteArray] = []
-		while not _queue.is_empty() and _queue[0]["at"] <= now:
+		while not _queue.is_empty() and _queue[0]["at"] <= now + DUE_SLACK:
 			out.append(_queue.pop_front()["data"])
 		return out
 

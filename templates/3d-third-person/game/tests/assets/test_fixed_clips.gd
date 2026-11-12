@@ -30,6 +30,15 @@ func before() -> void:
 	_report = JSON.parse_string(FileAccess.get_file_as_string(REPORT))
 
 
+# The fixed clips: `STAND_INS` also names the library clip each clip of our own replaced.
+func _fixed() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for clip: StringName in CharacterClips.STAND_INS:
+		if String(clip).begins_with("%s/" % CharacterClips.LIBRARY_FIXED):
+			out.append(clip)
+	return out
+
+
 func _clip(clip: StringName) -> Animation:
 	var parts := String(clip).split("/")
 	return (load(LIBRARIES[StringName(parts[0])]) as AnimationLibrary).get_animation(parts[1])
@@ -105,7 +114,7 @@ func test_the_file_holds_exactly_the_clips_with_a_stand_in() -> void:
 		names.append("fixed/%s" % clip)
 		bare.append(String(clip))
 	var stand_ins: Array[String] = []
-	for clip: StringName in CharacterClips.STAND_INS:
+	for clip: StringName in _fixed():
 		stand_ins.append(String(clip))
 		assert_bool(CharacterClips.ALL.has(CharacterClips.STAND_INS[clip])).is_true()
 	assert_array(names).contains_exactly_in_any_order(stand_ins)
@@ -117,7 +126,7 @@ func test_the_file_holds_exactly_the_clips_with_a_stand_in() -> void:
 # which is the library's on the first and last frame and never further from it than the build
 # says.
 func test_only_the_swung_bone_differs_from_the_library_and_only_inside_the_clip() -> void:
-	for fixed_name: StringName in CharacterClips.STAND_INS:
+	for fixed_name: StringName in _fixed():
 		var fixed := _clip(fixed_name)
 		var library := _clip(CharacterClips.STAND_INS[fixed_name])
 		var entry: Dictionary = _report.clips[String(fixed_name).get_slice("/", 1)]
@@ -189,7 +198,7 @@ func test_on_the_template_bodies_the_fixed_clips_overlap_no_more_than_the_librar
 		var holder: Node3D = auto_free(Node3D.new())
 		add_child(holder)
 		var body := BodyMeasure.stage(holder, model, LIBRARIES)
-		for fixed_name: StringName in CharacterClips.STAND_INS:
+		for fixed_name: StringName in _fixed():
 			assert_array(Array(body.missing_tracks(fixed_name))).is_empty()
 			var fixed: Dictionary = body.measure_clip(fixed_name)
 			var library: Dictionary = body.measure_clip(CharacterClips.STAND_INS[fixed_name])
@@ -221,7 +230,7 @@ func test_a_swivelled_legs_foot_stays_where_the_library_puts_it() -> void:
 		var holder: Node3D = auto_free(Node3D.new())
 		add_child(holder)
 		var body := BodyMeasure.stage(holder, model, LIBRARIES)
-		for fixed_name: StringName in CharacterClips.STAND_INS:
+		for fixed_name: StringName in _fixed():
 			var entry: Dictionary = _report.clips[String(fixed_name).get_slice("/", 1)]
 			var bones: Array[int] = []
 			for swing: Dictionary in entry.swings:
@@ -287,6 +296,6 @@ func test_the_game_plays_the_fixed_landing_and_slide_exit() -> void:
 	var animation_player: AnimationPlayer = player.get_node("AnimationPlayer")
 	assert_str(String(animation.land_clip)).is_equal(String(CharacterClips.LAND))
 	assert_str(String(animation.slide_exit_clip)).is_equal(String(CharacterClips.SLIDE_EXIT))
-	for clip: StringName in CharacterClips.STAND_INS:
+	for clip: StringName in _fixed():
 		assert_bool(animation_player.has_animation(clip)).is_true()
 		assert_bool(animation_player.has_animation(CharacterClips.STAND_INS[clip])).is_true()
