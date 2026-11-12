@@ -21,7 +21,7 @@ func before_test() -> void:
 	# pickup that adds a weapon would leave it.
 	var player := load("res://gameplay/player/player.tscn").instantiate() as Player
 	player.start_at_spawn = false
-	var slots: Array[WeaponDef] = [player.loadout.slots[0], _rifle, _launcher]
+	var slots: Array[Resource] = [player.loadout.slots[0], _rifle, _launcher]
 	player.loadout.slots = slots
 	_arena.add_child(player)
 	_arena.player = player

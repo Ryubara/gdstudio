@@ -20,6 +20,11 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `HitRecord` goes to the character's `take_hit()`. None: the shot passed between the parts (beside the waist, between
   the legs), takes the capsule as an exception and flies on in the same tick. A lying body is met on its ragdoll bones
   (they carry the same tag while limp), and the record names the bone.
+- **Where a weapon aims on a character.** The aim ray asks the same two steps: `HitZones.aimed_point(point, along)`
+  answers the point on the part the ray meets past the capsule, or `Vector3.INF` when it passes between the parts, and
+  `Weapon.aim_point` then goes on to what is behind the body (with the zones off it is the capsule's point). The shot
+  leaves the muzzle toward that point, so a close shot lands on the part under the crosshair, not beside it
+  (gdstudio #1251, [Shooting](third-person/shooting.md#crouch-aim-shoot)).
 - **Why two steps.** The zones move only for a shot that reached a capsule, never every frame: they cost nothing while
   nobody shoots (the numbers are below). The price: a part held outside the capsule (an arm stretched out to aim) is
   not hit, since the capsule is the first test.
@@ -32,7 +37,9 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `took_hit` and `health_changed`, and when the health reaches zero dies (`die(record)`), goes limp and then says
   `hit_received(record)` with `killed` set. `health` and `max_health` on the character read the `Health` node's `value`
   and `max_value` (read only: a game sets the `Health` node). `hit(amount, source)` is still there: a blow with no point
-  that also stops and throws the character (`hit_stun_time`, `knockback_speed`), as before. A dead character takes no
+  that also stops and throws the character (`hit_stun_time`, `knockback_speed`), as before. The hit clip plays over the
+  whole body standing and over the upper body only crouched, lying or sliding (`HitLayer`), so a low body stays down
+  ([one action state for every body](animation-tree.md#one-action-state-for-every-body)). A dead character takes no
   damage, but its `hit_received` still fires (the lying-body push). Getting up gives the health back, and `die()` with
   no record sets it to 0. The HUD's health part reads `health` and `max_health` and shows them.
 - **The reaction.** `HitReaction` listens to `hit_received`. A record that killed pushes the hit bone at the hit point

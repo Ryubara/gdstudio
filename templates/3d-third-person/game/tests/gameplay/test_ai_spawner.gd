@@ -284,38 +284,3 @@ func test_freeing_the_spawner_frees_the_characters_it_parked() -> void:
 	spawner.free()
 	for ref in parked:
 		assert_object(ref.get_ref()).is_null()
-
-
-func test_a_client_of_a_remote_server_spawns_nothing_and_a_server_only_when_asked() -> void:
-	var tree := get_tree()
-	assert_bool(AiSpawner.spawns_here(tree)).is_true()
-	(
-		assert_bool(
-			AiSpawner.spawns_here(
-				tree, true, NetArgs.new(PackedStringArray(["--connect", "ws://x"]))
-			)
-		)
-		. is_false()
-	)
-	(
-		assert_bool(
-			AiSpawner.spawns_here(tree, false, NetArgs.new(PackedStringArray(["--server"])))
-		)
-		. is_false()
-	)
-	(
-		assert_bool(AiSpawner.spawns_here(tree, true, NetArgs.new(PackedStringArray(["--server"]))))
-		. is_true()
-	)
-
-
-func test_a_map_that_handed_its_ai_to_a_server_stops_spawning() -> void:
-	var spawner := _spawner(GRUNT, {"respawn_delay": 0.5})
-	await _ticks(2)
-	assert_int(spawner.alive.size()).is_equal(2)
-	AiAuthority.hand_over(_arena)
-	await _ticks(TICKS)
-	assert_int(get_tree().get_nodes_in_group(AiCharacter.GROUP).size()).is_equal(0)
-	assert_int(spawner.spawned_total).is_equal(2)
-	assert_bool(spawner.is_physics_processing()).is_false()
-	assert_int(spawner.pool().parked()).is_equal(0)

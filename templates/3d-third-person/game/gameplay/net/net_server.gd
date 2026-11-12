@@ -114,6 +114,7 @@ const HOLD_TICKS := 4
 	preload("res://gameplay/ai/profiles/grunt.tres"),
 	preload("res://gameplay/ai/profiles/ally.tres"),
 	preload("res://gameplay/ai/profiles/civilian.tres"),
+	preload("res://gameplay/ai/profiles/shooter.tres"),
 ]
 ## The players' bodies join the group `player` with the faction `player`, so the AI sees them,
 ## measures its tiers from them and fights them.
@@ -320,6 +321,8 @@ static func entry_of(slot: int, body: Character) -> PlayerEntry:
 	entry.rising = entry.air and body.velocity.y > 0.0
 	entry.dead = body.is_dead()
 	entry.pitch = body.view_pitch
+	# The aim layer's turn off the body, which another screen poses its puppet by (kit #1277).
+	entry.aim_yaw = body.aim_yaw if body.aiming else 0.0
 	return entry
 
 
