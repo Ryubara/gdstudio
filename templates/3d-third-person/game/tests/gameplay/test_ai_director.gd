@@ -213,6 +213,40 @@ func test_the_population_cap_refuses_one_more() -> void:
 	assert_int(director.count()).is_equal(2)
 
 
+# A corpse is not counted against the cap (kit #1247): a population at the cap takes a new one
+# while its dead still lie, and one more living is still refused.
+func test_a_corpse_does_not_count_against_the_population_cap() -> void:
+	var director := _arena.add_director()
+	director.desktop_cap = 2
+	director.web_cap = 2
+	var first := _arena.add_character(Vector3(0.0, 0.0, -3.0))
+	_arena.add_character(Vector3(2.0, 0.0, -3.0))
+	first.die()
+	var third := _arena.add_character(Vector3(4.0, 0.0, -3.0))
+	assert_object(third.director).is_same(director)
+	assert_int(director.count()).is_equal(3)
+	assert_int(director.living_count()).is_equal(2)
+	var fourth := _arena.add_character(Vector3(6.0, 0.0, -3.0))
+	assert_object(fourth.director).is_null()
+	assert_int(director.living_count()).is_equal(2)
+
+
+# The match cap parks living characters past it and leaves the dead where they lie.
+func test_the_match_cap_counts_the_living_only() -> void:
+	var director := _arena.add_director()
+	var made := _row(3)
+	made[0].die()
+	director.match_cap = 2
+	assert_int(director.parked_count()).is_equal(0)
+	director.match_cap = 1
+	assert_int(director.parked_count()).is_equal(1)
+	assert_int(director.living_count()).is_equal(1)
+	assert_object(made[0].director).is_same(director)
+	director.match_cap = -1
+	assert_int(director.parked_count()).is_equal(0)
+	assert_int(director.living_count()).is_equal(2)
+
+
 func test_the_director_steps_the_bodies_and_lets_one_go_when_it_leaves() -> void:
 	var character := _arena.add_character(Vector3(0.0, 0.0, -3.0))
 	assert_bool(character.is_physics_processing()).is_true()

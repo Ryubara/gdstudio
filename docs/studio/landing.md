@@ -25,7 +25,8 @@ Open pull requests come before new work: each one left open goes stale against `
   pull requests landed unrefreshed and `main` went red: a shorter reload met a test added after its last run; on
   2026-11-10 #972 and #977 landed past unrelated-looking commits, and #954 nearly did the same with #986 and #989.
 - **Not on a red main.** While a `CI failing on the default branch` issue is open, only its fix forward (a body
-  saying `Fixes #<that issue>`) lands; the merge guard refuses the rest ([Red main](hooks-red-main.md#red-main)).
+  saying `Fixes #<that issue>`) lands; the merge guard refuses the rest ([Red main](hooks-red-main.md#red-main)), and
+  the required `main-green` check stops auto-merge too, then turns green when the issue closes ([CI](ci.md#main-runs)).
   Refreshing a branch with `gds merge-main` still works, and is the step before landing once the fix is on `main`.
 - **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
   rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
@@ -170,6 +171,11 @@ force push, which is the maintainer's decision: open the same change from a new 
 - **Approach:** After a conflicted merge, read the diff of every test file against `main` before rerunning the suites.
   **Watch out for:** a merge of `main` doubled a step in a test, so the branch failed for a reason the change never had.
   **Seen:** Deadnight, 2026-11-01 (fix: the night suite caught it after the merge).
+- **Approach:** When a branch moves a shared asset path (a body, a model), grep the merged tree for the old path after
+  `gds merge-main`, in tests and in scenes, and run the full template suite, not only the suites the branch touched.
+  **Watch out for:** a scene and a suite that landed on `main` after the branch started still use the old path, so
+  the merge is clean but they fail. **Seen:** gdstudio #1298 on #1187, 2026-11-11 (the online enemy look and
+  `test_net_ai_section.gd` from #1243 still used the Quaternius male).
 
 - **Approach:** Commit a merge of `main` the moment its conflicts are resolved, with the whole message from a file and
   nothing after the trailer, through `gds merge-main`; run `uvx pre-commit run --files <resolved files>` before

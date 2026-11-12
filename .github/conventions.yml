@@ -141,6 +141,10 @@ merge:
   # the app `app_id` (15368 is GitHub Actions), so a commit status with the same name does not count. It stays out of
   # required_checks: a hold is a decision, not a failure, so `pr-status` does not call it `S-ci-failing`.
   hold: {label: S-hold, check: hold, app_id: 15368}
+  # Main green (docs/studio/ci.md#main-runs): `check` fails while a `CI failing on the default branch` issue is open,
+  # unless the pull request's body fixes it, so auto-merge cannot land on a red main; required from `app_id` like the
+  # hold, and out of required_checks for the same reason: a red main is not the pull request's failure.
+  red_main: {check: main-green, app_id: 15368}
   # A pull request that changes one of these is merged by a maintainer by hand: tools and agent hooks refuse to turn
   # on auto-merge for it (`needs-maintainer`). The rules that judge agents are changed only by a person, and so are
   # the pinned tools.

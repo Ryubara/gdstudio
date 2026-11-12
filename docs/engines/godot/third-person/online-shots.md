@@ -48,6 +48,13 @@ template](../third-person-template.md); the bytes are [the template's packets](.
   it is now. Only the volume is rewound, never the AI's brain, senses or navigation
   ([the AI online: a shot meets the AI where its shooter drew it](ai-online.md#rewind)).
 
+- **A hitscan weapon** (`WeaponDef.hitscan`, #1252) is the cheapest shot on the wire: the server fires the ray in the
+  body's step, meets the AI where the shooter drew it at once and sends the same `SHOT` and `HIT` in the same TICK
+  (30 bytes to each other player); no peer makes a projectile, and every TICK is still exactly its header, players,
+  props and events (`test_net_hitscan.gd`, `test_net_ai_rewind.gd`'s hitscan cases). A puppet's hitscan shot is its
+  flash and sound; the shooter's impact comes with the server's HIT
+  ([the costs](shooting.md#weapons)).
+
 What each screen makes itself (`ClientCombat`), never sent: the shooter's own flash, sound, recoil and round at once
 (its weapon is cosmetic: `authoritative` off, the round stops at its first contact and changes nothing); a puppet's
 shot from its own muzzle along the event's heading with the weapon the event names (`Weapon.fire_cosmetic`,

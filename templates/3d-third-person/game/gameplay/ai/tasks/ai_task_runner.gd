@@ -240,7 +240,8 @@ func reset() -> void:
 
 ## Called by a task for each failure (retried ones too): past the profile's `failure_budget` in
 ## `failure_window` seconds, or at once on a script error, ORDER and ROUTINE stop for
-## `fallback_seconds` and DEFAULT runs, so a failing task cannot loop.
+## `fallback_seconds` and DEFAULT runs, so a failing task cannot loop. Retries wait it out; a
+## task's own `on_fail` FALLBACK still runs (once per task, so it cannot loop).
 func note_failure(task: AiTask) -> void:
 	_last_failure = task
 	if task.reason == AiTask.Reason.INVALID:

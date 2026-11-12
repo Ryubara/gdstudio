@@ -3,17 +3,23 @@ extends RefCounted
 ## The server's messages that carry state: a TICK (the events since the last one, every player,
 ## then the moving props: `NetWorld.stream_rows`) and a WELCOME (the world table and every
 ## player, for a client that joins at any time). The layouts are in `NetWire` and `NetEvent`.
-## Snapshots are full: eight players are 96 bytes a tick, and a full snapshot repairs whatever a
-## stall delayed.
+## Snapshots are full: eight players are 96 bytes a tick (104 with all of them aiming), and a full
+## snapshot repairs whatever a stall delayed.
 ##
 ## A decoder checks a count against the bytes left before it reads a single entry (never
 ## allocating by what a packet claims) and answers null, with the reason counted, for anything
 ## that is not exactly one message.
 
+## A player entry's bytes; an aiming player's carries `AIM_YAW_SIZE` more (the aim's heading off
+## the body, kit #1277).
 const PLAYER_SIZE := 12
+const AIM_YAW_SIZE := 1
+const MAX_PLAYER_SIZE := PLAYER_SIZE + AIM_YAW_SIZE
 ## A player's aim pitch is a signed byte over a quarter turn either way.
 const PITCH_STEPS := 127
 const PITCH_STEP := (PI / 2.0) / PITCH_STEPS
+## The aim's heading off the body is a signed byte over a half turn either way.
+const AIM_YAW_STEP := PI / PITCH_STEPS
 
 const F_CROUCH := 1 << 0
 const F_AIM := 1 << 1
@@ -29,7 +35,7 @@ const MAX_EVENT_SIZE := 8 + NetLimits.MAX_ENTITY_STATE
 const MAX_TICK := (
 	NetWire.TICK_HEADER
 	+ NetLimits.MAX_EVENTS * MAX_EVENT_SIZE
-	+ NetLimits.MAX_PLAYERS * PLAYER_SIZE
+	+ NetLimits.MAX_PLAYERS * MAX_PLAYER_SIZE
 	+ NetWire.TICK_TAIL
 	+ NetLimits.MAX_STREAMED_PARTS * (NetWire.STREAM_ROW_HEADER + NetLimits.MAX_ENTITY_STATE)
 	+ AiSnapshot.MAX_BLOCK
@@ -38,12 +44,13 @@ const MAX_TICK := (
 const ENTITY_HEADER := 4
 ## A WELCOME player: the entry and the name's length (then the name).
 const WELCOME_PLAYER_HEADER := PLAYER_SIZE + 1
+const MAX_WELCOME_PLAYER := MAX_PLAYER_SIZE + 1
 const MAX_WELCOME := (
 	NetWire.WELCOME_HEADER
 	+ 2
 	+ NetLimits.MAX_ENTITIES * (ENTITY_HEADER + NetLimits.MAX_ENTITY_STATE)
 	+ 1
-	+ NetLimits.MAX_PLAYERS * (WELCOME_PLAYER_HEADER + NetLimits.NAME_BYTES)
+	+ NetLimits.MAX_PLAYERS * (MAX_WELCOME_PLAYER + NetLimits.NAME_BYTES)
 )
 
 
@@ -312,7 +319,8 @@ static func read_welcome(data: PackedByteArray, drops: NetDrops = null) -> Welco
 # --- Players ---
 
 
-## Writes one 12-byte player entry; answers the reason it cannot (`&""` when written).
+## Writes one player entry (12 bytes, 13 while aiming); answers the reason it cannot (`&""` when
+## written).
 static func write_player(out: StreamPeerBuffer, player: PlayerEntry) -> StringName:
 	if not player.all_finite():
 		return NetDrops.NOT_FINITE
@@ -326,10 +334,13 @@ static func write_player(out: StreamPeerBuffer, player: PlayerEntry) -> StringNa
 	out.put_u8(clampi(player.state, 0, 0xFF))
 	out.put_u8(_player_flags(player))
 	out.put_8(pitch_step(player.pitch))
+	if player.aim:
+		out.put_8(aim_yaw_step(player.aim_yaw))
 	return &""
 
 
-## Reads one 12-byte player entry (the caller checked that 12 bytes are left).
+## Reads one player entry (the caller checked that 12 bytes are left; an aiming player's 13th is
+## checked by the reader: the caller looks at `reader.ok`).
 static func read_player(reader: WireReader) -> PlayerEntry:
 	var player := PlayerEntry.new()
 	player.slot = reader.u8()
@@ -347,7 +358,14 @@ static func read_player(reader: WireReader) -> PlayerEntry:
 	player.rising = flags & F_RISING != 0
 	player.dead = flags & F_DEAD != 0
 	player.pitch = pitch_from_step(reader.s8())
+	if player.aim:
+		player.aim_yaw = aim_yaw_from_step(reader.s8())
 	return player
+
+
+## The bytes `player`'s entry takes on the wire.
+static func player_size(player: PlayerEntry) -> int:
+	return MAX_PLAYER_SIZE if player.aim else PLAYER_SIZE
 
 
 ## The entry as a client reads it (the decode of the encode), or null when it cannot travel.
@@ -368,6 +386,16 @@ static func pitch_step(pitch: float) -> int:
 
 static func pitch_from_step(step: int) -> float:
 	return clampi(step, -PITCH_STEPS, PITCH_STEPS) * PITCH_STEP
+
+
+static func aim_yaw_step(aim_yaw: float) -> int:
+	if not is_finite(aim_yaw):
+		return 0
+	return roundi(wrapf(aim_yaw, -PI, PI) / AIM_YAW_STEP)
+
+
+static func aim_yaw_from_step(step: int) -> float:
+	return clampi(step, -PITCH_STEPS, PITCH_STEPS) * AIM_YAW_STEP
 
 
 static func _player_flags(player: PlayerEntry) -> int:
@@ -397,6 +425,8 @@ static func _read_players(reader: WireReader, drops: NetDrops) -> PlayerList:
 	var seen := 0
 	for _index in count:
 		var player := read_player(reader)
+		if not reader.ok:
+			return _drop(drops, NetDrops.COUNT_PAST_END)
 		if player.slot >= NetLimits.MAX_PLAYERS or seen & (1 << player.slot) != 0:
 			return _drop(drops, NetDrops.BAD_VALUE)
 		seen |= 1 << player.slot
