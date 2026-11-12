@@ -107,11 +107,12 @@ func aim_of(body: Character) -> float:
 	return 0.0 if _blow_aim else body.aim_amount
 
 
-## The weapon layer's two weights (`CharacterAnimation.pistol_weights`) from the tree's `armed`
-## and `aim` parameters: the aim is taken away as the blow holds the upper body, so the left hand
-## leaves the weapon and the finger the trigger while the clip swings the free arm.
-func weigh(tree: AnimationTree, armed: StringName, aim: StringName) -> Vector2:
-	return Vector2(tree.get(armed), float(tree.get(aim)) * (1.0 - share(tree)))
+## The weapon layer's two weights (`CharacterAnimation.pistol_weights`) from `weights`, how far
+## the weapon is held and aimed, standing or lying: the aim is taken away as the blow holds the
+## upper body, so the left hand leaves the weapon and the finger the trigger while the clip swings
+## the free arm.
+func weigh(tree: AnimationTree, weights: Vector2) -> Vector2:
+	return Vector2(weights.x, weights.y * (1.0 - share(tree)))
 
 
 ## True while a melee clip plays over the upper body of `tree`.
