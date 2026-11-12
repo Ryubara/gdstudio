@@ -648,6 +648,15 @@ in the shipped gaits, thigh in thigh: his thighs meet by 2 mm in his rest pose a
 - A lean pose's record has `pose` (true), `lean` (`way`, degrees to the left of ahead, and `degrees`, the lean the
   full pose is) and `reference` (`Lean_Ref`). The weight of a lean is the lean wanted over `degrees`. Each pose is
   two keys a bone on 52 bones, 1.7 KB in the file; they key no `ik_` target.
-- **Imported size:** 174 KB for the nineteen clips, 29.7 s: 5.86 KB a second against the 6 the test holds the
-  file to (130 KB and 5.3 before these clips, 6.2 with the directions' fingers keyed). The next short loops will
-  need the budget looked at: a file of short fast loops and held poses has few seconds to spread its keys over.
+- **Imported size:** 166 KB for the nineteen clips, 29.7 s, with Godot's compression pages at 32 KiB: 5.58 KB a
+  second against the 6 the test holds the file to (174 KB and 5.86 at 8 KiB pages; 130 KB and 5.3 before these
+  clips, 6.2 with the directions' fingers keyed). The next short loops will need the budget looked at: a file of
+  short fast loops and held poses has few seconds to spread its keys over.
+- **The import keeps every key at either page size** for these clips: each bone's place within 0.01 mm and turn
+  within 0.07 degrees of the file, at 8 KiB pages and at 32 (`test_own_directions.gd`,
+  `test_the_import_keeps_the_directions_and_the_leans`). The file imports at 32 since kit #1161's landing clips
+  lost keys at 8.
+- **The `ik_` targets are set from the finished pose** (`build.retarget`, the same change as kit #1156 and #1161)
+  and checked on every frame (`checks.check_targets`, 4 mm): the directions' targets are within 0.13 to 0.79 mm
+  of their limbs' ends in every variant. Every review file and the shipped file were rebuilt; the lean poses key
+  no target and are unchanged, and only the targets' keys moved in the others.
