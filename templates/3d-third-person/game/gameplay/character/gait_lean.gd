@@ -24,6 +24,9 @@ var amount := Vector2.ZERO
 var _built := false
 var _velocity := Vector3.ZERO
 var _primed := false
+## Whether the tree's differences have been set to take their base off whole: a new tree starts
+## every `sub_amount` at 0, which adds the whole lean pose over the locomotion.
+var _differences_set := false
 
 
 ## True when the tree has the lean nodes.
@@ -42,6 +45,7 @@ func add_to(
 	base: StringName
 ) -> void:
 	_built = false
+	_differences_set = false
 	if settings == null or not settings.lean or player == null or not player.has_animation(base):
 		return
 	for way: StringName in WAYS:
@@ -74,6 +78,10 @@ func add_to(
 func drive(tree: AnimationTree, body: Character, delta: float) -> void:
 	if not _built or delta <= 0.0:
 		return
+	if not _differences_set:
+		for way: StringName in WAYS:
+			tree.set("parameters/%sDiff/sub_amount" % _node_name(way), 1.0)
+		_differences_set = true
 	var velocity := Vector3(body.velocity.x, 0.0, body.velocity.z)
 	var accel := (velocity - _velocity) / delta if _primed else Vector3.ZERO
 	_velocity = velocity
