@@ -132,6 +132,25 @@ func test_the_sprint_and_the_slide_after_a_burst_are_the_ones_before_it(
 	_assert_same(await _slide("%s slide after a burst" % body), slide, SLIDE_SWING)
 
 
+# Standing still, the upright carry takes nothing off: it is for running (standing, the rifle's
+# idle leans 10 degrees by itself, and that stays).
+func test_standing_with_the_rifle_the_carry_takes_nothing_off(
+	body: String, _test_parameters := [["female"], ["male"]]
+) -> void:
+	await _player_running(body, false)
+	_player.loadout.give(load(RIFLE) as WeaponDef, 60)
+	var hold := _player.model.get_node("RifleHeld") as TwoHandHold
+	var most := 0.0
+	for _tick in 180:
+		await InputSim.ticks(get_tree(), 1)
+		most = maxf(most, hold.carry_amount())
+	(
+		assert_float(most)
+		. override_failure_message("%s standing: the carry is on by %.2f" % [body, most])
+		. is_equal(0.0)
+	)
+
+
 func test_the_pistol_run_is_the_same_after_the_rifle_and_after_a_shot(
 	body: String, _test_parameters := [["female"], ["male"]]
 ) -> void:
@@ -167,8 +186,9 @@ func test_the_pistol_run_is_the_same_after_the_rifle_and_after_a_shot(
 	_assert_same(await _gait("%s pistol after unarmed" % body), fresh)
 
 
-# A player of `body` in an arena, running forward, read on every update of its skeleton.
-func _player_running(body: String) -> void:
+# A player of `body` in an arena, running forward (or standing, `moving` off), read on every
+# update of its skeleton.
+func _player_running(body: String, moving := true) -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3.ZERO)
@@ -186,7 +206,8 @@ func _player_running(body: String) -> void:
 	_skeleton = _player.model.skeleton()
 	_animation = _player.find_children("*", "CharacterAnimation", true, false)[0]
 	_skeleton.skeleton_updated.connect(_read)
-	InputSim.key(KEY_W, true)
+	if moving:
+		InputSim.key(KEY_W, true)
 
 
 func _tap(key: Key) -> void:

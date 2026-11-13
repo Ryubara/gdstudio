@@ -98,10 +98,11 @@ const CARRY_STATES: Array[Character.State] = [
 ## The most the chest leans (from its rest, the way the clip has it) while the gun is up: a chest
 ## that leans more (a crouch's hunch) is raised toward this as the gun comes to the shoulder.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var aim_lean_limit := 25.0
-## The most the trunk leans forward (the line from the pelvis to the neck, in the model's space)
-## at the low ready while the character is on its feet (`CARRY_STATES`): a run or a sprint that
-## leans more is raised toward this, so the rifle is carried upright (kit #1348; the run leaned
-## 13 degrees and the sprint 14). Not in a crouch, a slide, a vault or lying down.
+## The most the trunk leans forward on average (the line from the pelvis to the neck, in the
+## model's space) at the low ready while the character runs on its feet (`CARRY_STATES`, from the
+## walk's speed to the run's): a run or a sprint that leans more is raised toward this, so the
+## rifle is carried upright (kit #1348; the run leaned 13 degrees and the sprint 14). Not standing
+## or walking, in a crouch, a slide, a vault or lying down.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var carry_lean_limit := 9.0
 ## How long the upright carry takes to come in or go (a crouch, a slide), in seconds.
 @export_range(0.0, 2.0, 0.01, "suffix:s") var carry_time := 0.25
@@ -339,8 +340,8 @@ func raised_amount() -> float:
 	return _raised
 
 
-## How far the trunk is carried upright now (`carry_lean_limit`): 1 on its feet at the low
-## ready, 0 aimed, crouched, sliding, vaulting or lying down, eased over `carry_time`, by the
+## How far the trunk is carried upright now (`carry_lean_limit`): 1 running at the low ready, 0
+## standing, aimed, crouched, sliding, vaulting or lying down, eased over `carry_time`, by the
 ## hold's weight.
 func carry_amount() -> float:
 	return _carry * (1.0 - _raised) * weight()
@@ -678,13 +679,23 @@ func _step(delta: float) -> void:
 		if _freed > 0.0:
 			wants = 0.0
 		_raised = move_toward(_raised, wants, delta / maxf(raise_time, 0.001))
-		var carry := 1.0 if character.state in CARRY_STATES and _freed <= 0.0 else 0.0
-		_carry = move_toward(_carry, carry, delta / maxf(carry_time, 0.001))
+		_carry = move_toward(_carry, _carry_wanted(), delta / maxf(carry_time, 0.001))
 	else:
 		_raised = posed_aim
 		_freed = posed_free
 		_carry = posed_carry
 	_kick = move_toward(_kick, 0.0, delta / maxf(kick_recover_time, 0.001))
+
+
+# How far the trunk is to be carried upright: in the states of `CARRY_STATES`, from none at the
+# walk's speed to all of it at the run's (standing, the rifle's idle leans 10 degrees by itself,
+# and that stays), never with the left hand away.
+func _carry_wanted() -> float:
+	var tuning := character.tuning
+	if tuning == null or _freed > 0.0 or not character.state in CARRY_STATES:
+		return 0.0
+	var walk := tuning.walk_speed
+	return clampf((character.ground_speed() - walk) / maxf(tuning.run_speed - walk, 0.01), 0.0, 1.0)
 
 
 # A turn of the gun from straight ahead: the muzzle `pitch` degrees down and `yaw` across.

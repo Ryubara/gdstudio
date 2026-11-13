@@ -111,16 +111,17 @@ are named as such.
   the gun where the last frame's push had it; the butt is brought to the skin after it, since the turn brings the
   chest's left side forward under the stock, and both again in the same frame only when the push moved more than 3 mm.
   What is still short then brings the gun back along its barrel (`pull_limit`, 0 now: nothing is short).
-- **The carry** (kit #1348). On its feet at the low ready (`TwoHandHold.CARRY_STATES`: standing, walking, running,
-  sprinting, in the air; not crouched, sliding, vaulting, lying down or with the left hand away), the trunk is carried
-  upright: the stance averages the trunk's forward lean (the line from the pelvis to `neck_01`, in the model's space)
-  over half a second (`LEAN_SMOOTHING`) and takes what that average has over `carry_lean_limit` (9 degrees) off, as a
-  turn about the model's side axis spread evenly over the spine bones, so the stride's own rise and fall of the trunk
-  stays and no twist is added. The head keeps the facing the clip gave it. It comes in and goes over `carry_time`
-  (0.25 s) and fades out as the gun comes up (`carry_amount()`). The run's own trunk under the rifle's idle leaned
-  13.2 degrees (female) and 13.0 (male) on average and the sprint's 14.2 and 14.0 (the unarmed run 7.8 and 7.5); with
-  the carry both read 9.1 to 9.3, the stride's rise and fall 0.7 to 1.0 degrees (0.5 to 0.7 before; holding each
-  frame's lean at the limit left it at 0). Standing still the trunk is under the limit and nothing changes.
+- **The carry** (kit #1348). Running at the low ready (`TwoHandHold.CARRY_STATES`: on its feet or in the air, not
+  crouched, sliding, vaulting, lying down or with the left hand away; by the ground speed, from none at `walk_speed`
+  to all at `run_speed`), the trunk is carried upright: the stance averages the trunk's forward lean (the line from
+  the pelvis to `neck_01`, in the model's space) over half a second (`LEAN_SMOOTHING`) and takes what that average has
+  over `carry_lean_limit` (9 degrees) off, as a turn about the model's side axis spread evenly over the spine bones,
+  so the stride's own rise and fall of the trunk stays and no twist is added. The head keeps the facing the clip gave
+  it. It comes in and goes over `carry_time` (0.25 s) and fades out as the gun comes up (`carry_amount()`). The run's
+  own trunk under the rifle's idle leaned 13.2 degrees (female) and 13.0 (male) on average and the sprint's 14.2 and
+  14.0 (the unarmed run 7.8 and 7.5); with the carry both read 8.9 to 9.3, the stride's rise and fall 0.4 to 1.0
+  degrees (0.5 to 0.7 before; holding each frame's lean at the limit left it at 0). Standing, the rifle's idle leans
+  10 degrees by itself and keeps it: the carry is for running.
 - **The arms** are a `HoldArm` each (the pistol's own reach, given the hand's place in the skeleton's space by the
   stance in the same update), toward `RightHandTarget` and `LeftHandTarget` on the rifle, the elbows toward
   `RightPole` and `LeftPole`. Both are on their places in every update of every state (0.0 mm in 110 poses of both
