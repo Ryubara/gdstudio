@@ -27,6 +27,11 @@ test](ui-controls.md#menus-under-test) section holds the headless mouse and the 
   false, then tap again. **Watch out for:** the touch layer holds a short tap down for a minimum press and releases it
   on frames; a second tap with no frame between made no new press edge, so a test that tapped Melee twice read one
   press. **Seen:** Deadnight #588, 2026-11-02 (fix: the test waits for the release, as the frames of a real night do).
+- **Approach:** In a headless suite, measure what one pixel of mouse motion does before sending turns in degrees:
+  parse one event, wait three physics ticks, read the turn, and divide. **Watch out for:** a motion's `relative` reaches
+  the game scaled by the window's stretch, and the headless window is small, so 10 pixels turned a 0.12 degree a pixel
+  camera 36 degrees; and the event lands a frame later, so a calibration that read the yaw after one frame measured 0
+  and the test sent turns a million degrees wide. **Seen:** gdstudio #1344, 2026-11-12 (`test_camera_fast_turn.gd`).
 
 ## Edges {#edges}
 

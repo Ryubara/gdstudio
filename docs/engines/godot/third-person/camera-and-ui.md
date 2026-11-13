@@ -30,6 +30,11 @@ The 3D Third Person follow camera, the map components, the minimap and the HUD. 
   was. The spring arm keeps the lens out of a wall (in the north wall test the arm hit at 0.76 m of its 4.4 m and the
   lens stayed inside).
   **Seen:** gdstudio #821, 2026-11-08.
+- **Approach:** Keep the view itself out of walls with `PlayerCamera`'s lens guard, which runs after the host each
+  physics tick: inspector Walls group `wall_mask` (World and Props), `wall_shape` (empty: a ray), `wall_margin` 0.25 m
+  and `lens_return_speed` 4 shares of the shoulder offset a second (how fast the view slides back to the shoulder once
+  the wall is gone). **Watch out for:** the arm alone left the view up to 0.30 m inside a wall beside the player,
+  because the shoulder offset is not cast ([Walls](../camera.md#walls)). **Seen:** gdstudio #1344, 2026-11-12.
 - The addon's updater window and network request are off in the template (`phantom_camera/updater/updater_mode=0`); a
   game that takes a new release replaces the folder and edits its licence entry. The addon is committed without its
   `examples/` and C# scripts, and every hook of the game's `pre-commit` and the kit's skips it (the addon's files have
