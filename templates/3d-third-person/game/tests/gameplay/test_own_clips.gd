@@ -60,7 +60,8 @@ const GAITS := {
 ## The imported library's bytes for a second of clip. The plan's budget is 6 KB a second; the
 ## starts and stops (kit #1156) bring the file to 6.6 (289,356 bytes for 43.7 s at 32 KiB pages,
 ## and 275,564 with the hands' `ik_` targets left out), the turns (kit #1157) to 7.0 (456,512
-## bytes for 65.5 s), so this holds 7 while the maintainer decides (kit docs,
+## bytes for 65.5 s), and with the directions and leans (kit #1374) 6.96 (501,814 bytes for
+## 70.4 s), so this holds 7 while the maintainer decides (kit docs,
 ## tools/blender/own-animation.md#budget).
 const BYTES_A_SECOND := 7168.0
 

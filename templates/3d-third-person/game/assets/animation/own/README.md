@@ -986,4 +986,5 @@ The numbers from the review builds (`build_own.py review <type> --report`), the 
 - `contacts`, `flat` and `events` as for a start or a stop (a `footstep` per landing, one `free`).
 - **Cost:** each turn keys the same tracks as the gaits (56 bones' rotations, the places of the pelvis and
   the four `ik_` targets). With the ten turns the library imports to 456,512 bytes for 65.5 s of clips (7.0 KB a
-  second, under the 7 the test holds while the maintainer decides; the plan's budget is 6).
+  second), and with the directions and leans of kit #1374 beside them to 501,814 bytes for 70.4 s (6.96 KB a
+  second at 32 KiB pages), under the 7 the test holds while the maintainer decides; the plan's budget is 6.
