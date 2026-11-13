@@ -59,14 +59,14 @@ POST https://api.elevenlabs.io/v1/sound-generation?output_format=mp3_44100_128
 
 ### What a request costs {#what-a-request-costs}
 
-- **Approach:** Plan every request at 40 credits a second of requested length (the quoted figure), stop the total at
-  the budget in the data file, and record what the API says it billed (the response's `character-cost` header); read
-  the balance once, a few seconds after the last request. **Watch out for:** on the free tier on 2026-11-08 the header
-  said 5 credits for 0.5 s, 50 for 5 s and 120 for 12 s (10 a second) and the balance moved by exactly that, 240 for
-  the set, a quarter of the plan; it read zero right after the coin takes and 20 a few seconds later. Planning at 40
-  stays safe, but a budget counted from the plan would refuse retakes the account can afford, so the ledger counts
-  `billed`. **Seen:** gdstudio #835, 2026-11-08 (planned 960, charged 240); #1083, 2026-11-11 (paid starter plan, v3:
-  the same 10 a second, 735 for 51 takes of 73.5 s).
+- **Approach:** Plan every request at 40 credits a second of requested length (the quoted figure), check the total
+  against the credits left (no fixed budget: quality first, gdstudio #1447), and record what the API says it billed (the
+  response's `character-cost` header); read the balance once, a few seconds after the last request. **Watch out for:**
+  on the free tier on 2026-11-08 the header said 5 credits for 0.5 s, 50 for 5 s and 120 for 12 s (10 a second) and the
+  balance moved by exactly that, 240 for the set, a quarter of the plan; it read zero right after the coin takes and 20
+  a few seconds later. Planning at 40 stays safe, but a limit counted from the plan would refuse retakes the account can
+  afford, so the ledger counts `billed`. **Seen:** gdstudio #835, 2026-11-08 (planned 960, charged 240); #1083,
+  2026-11-11 (paid starter plan, v3: the same 10 a second, 735 for 51 takes of 73.5 s).
 
 ## 2. Prompts and what came back {#prompts}
 
@@ -136,9 +136,11 @@ credits ──> plan ──> generate ──> encode ──> check
 
 - `credits` reads `GET /v1/user/subscription` and prints the plan and the credits left. **Read it before and after**,
   and put both in the pull request. The plan (`tier`) is what decides the licence (section 6).
-- `plan` prints every take with its seconds and cost (cached takes cost 0) and the total against the budget; it
-  sends nothing and refuses over the budget. `generate` runs it first, requests only takes not in the cache, and prints
-  the balance before and after.
+- `plan` prints every take with its seconds and cost (cached takes cost 0) and the total; it sends nothing. With a key
+  it reads the credits left (`GET /v1/user/subscription`) and refuses only a plan that passes them; with none it prints
+  the cost alone. There is no fixed budget: quality first, the account's credits left are the only limit. `generate`
+  runs it first, requests only takes not in the cache, stops only before a request that would pass the credits left,
+  and prints the balance before and after.
 - `encode` cuts, levels and encodes (below) and writes each folder's `LICENSE.md` from the request files (model, plan,
   date, the prompt of each take) with the licence of that plan, then the folder's `folder_notes` (the pistol's
   synthesised shots share its folder). `check` measures the committed files and exits 1 on a failure.
@@ -152,16 +154,16 @@ credits ──> plan ──> generate ──> encode ──> check
   `licence_paid` are the two licence texts, chosen by the plan the take was made on.
 
 - **Approach:** After adding a sound to the data file, run `uv run --project python pytest
-  python/tests/test_sfx_recipe.py` and move the set's pinned plan (the whole set asked again from an empty cache) and,
-  when it passes, the `budget`, in the same commit. **Watch out for:** a new cache holds only the new takes, so `plan`
-  and `generate` passed while the whole set's plan went from 3900 to 4608 credits, over the 4000 budget, and the
-  recipe's test failed after the commit. **Seen:** gdstudio #1100, 2026-11-11 (the budget is 5000 now).
+  python/tests/test_sfx_recipe.py` and move the set's pinned plan (the whole set asked again from an empty cache) in
+  the same commit. **Watch out for:** a new cache holds only the new takes, so `plan` and `generate` passed while the
+  whole set's plan went from 3900 to 4608 credits, and the recipe's test failed after the commit. **Seen:** gdstudio
+  #1100, 2026-11-11 (then over a fixed budget; #1447 removed the budget, the pinned plan stays).
 
 **Where it lives.** It is a script in the kit's `tools/audio/`, laid out as Deadnight's voice recipe is (a script and
 a data file that holds every prompt, length and target), not a `gds` subcommand: it needs numpy for the cutting and
 the checks and the kit's Python depends on Pillow alone, so a subcommand would add a package to every agent's
-environment for one recipe. `uv run --with numpy` fetches it for the run. The parts that need no package (cost, budget,
-names) are tested in `python/tests/test_sfx_recipe.py`.
+environment for one recipe. `uv run --with numpy` fetches it for the run. The parts that need no package (cost, the
+credits check, names) are tested in `python/tests/test_sfx_recipe.py`.
 
 ## 4. Trimming, cutting and looping {#trimming}
 
@@ -317,7 +319,8 @@ and so may the sounds of ElevenLabs' own premade library of sound effects. That 
 - `check` output (length, lead-in, peak, loudness per file, the loop's seam and spread) in the pull request.
 - A [listening clip](../../studio/capture.md#sound-a-clip-you-can-listen-to): an mp4 with the sounds as its track, one
   card a section, the sounds in order and then together, nothing normalised.
-- The credits before and after, the plan, and the sum of the requests against the budget.
+- The credits left before and after (both, read with `credits`), the plan and the sum of the requests. There is no
+  fixed budget: quality first, the account's credits left are the only limit.
 
 - **Approach:** For a Before of sounds being replaced, copy the files from a checkout of `main` (the workspace's
   `repos/gdstudio`) or `git checkout <rev> -- <file>`, and play both sets in two games made from the two checkouts with

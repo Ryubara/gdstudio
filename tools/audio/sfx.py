@@ -6,13 +6,14 @@
 Commands (`docs/gamedev/audio/sound-effects.md` explains each):
 
 - `credits`: read the plan and the balance (`GET /v1/user/subscription`).
-- `plan`: list every request with its cost and send nothing; refuses over the budget.
+- `plan`: list every request with its cost and the total and send nothing; with a key, read the credits left and
+  refuse a plan that passes them. There is no fixed budget: quality first, the account's credits are the only limit.
 - `generate`: `plan`, then request each take not yet in the cache (once; the raw mp3 stays in `--cache`).
 - `encode`: cut, level and encode the cached takes to Ogg Vorbis in each sound's folder, and write its `LICENSE.md`.
 - `check`: measure every committed file (length, lead-in, peak, loudness, loop seam); exit 1 on a failure.
 
 Everything about the sounds (prompt, length, folder, targets) is in `template_sounds.json`. The key is read from the
-environment only and is never printed or written. The pure parts (cost, budget, names) need no packages; numpy is
+environment only and is never printed or written. The pure parts (cost, credits check, names) need no packages; numpy is
 imported by `encode` and `check` only.
 """
 
@@ -43,7 +44,7 @@ LEAD_MAX = 0.012  # a file's first rise is within this many seconds of its start
 FADE_OUT = 0.04
 
 
-# ---------------------------------------------------------------- the pure parts: names, cost, budget
+# ---------------------------------------------------------------- the pure parts: names, cost, credits
 
 
 def load(path: Path = DATA) -> dict:
@@ -142,14 +143,13 @@ def plan_rows(data: dict, cache: Path, only: str | None = None) -> list[dict]:
     return rows
 
 
-def check_budget(data: dict, cache: Path, rows: list[dict]) -> tuple[int, int]:
-    """(already spent, to spend now); raises SystemExit when the total would pass the budget."""
-    spent, new = spent_in_cache(data, cache), sum(r["credits"] for r in rows)
-    if spent + new > data["budget"]:
-        raise SystemExit(
-            f"over budget: {spent} spent + {new} planned = {spent + new} > {data['budget']}"
-        )
-    return spent, new
+def check_credits(rows: list[dict], left: int | None) -> int:
+    """The credits the plan asks for; raises SystemExit when they pass the account's credits left (None: not read,
+    no key). There is no fixed budget: the only limit is what the account has left."""
+    new = sum(r["credits"] for r in rows)
+    if left is not None and new > left:
+        raise SystemExit(f"over the credits left: {new} planned > {left} left on the account")
+    return new
 
 
 # ---------------------------------------------------------------- the API
@@ -575,8 +575,11 @@ def cmd_plan(args) -> None:
     for r in rows:
         mark = "cached" if r["cached"] else f"{r['credits']:>4} credits"
         print(f"{r['take']:<20} {r['seconds']:>5} s  {mark:<12} {r['prompt'][:70]}")
-    spent, new = check_budget(data, cache, rows)
-    print(f"spent {spent} + planned {new} = {spent + new} of {data['budget']} credits")
+    left = balance()["left"] if os.environ.get("ELEVENLABS_API_KEY") else None
+    new = check_credits(rows, left)
+    spent = spent_in_cache(data, cache)
+    where = "no key, nothing read or sent" if left is None else f"{left} credits left on the account"
+    print(f"planned {new} credits (already spent in the cache: {spent}); {where}")
 
 
 def cmd_generate(args) -> None:
@@ -585,15 +588,16 @@ def cmd_generate(args) -> None:
     cmd_plan(args)
     before = balance()
     print(f"balance before: plan {before['tier']}, {before['left']} credits left")
+    left = before["left"]
     for sound in chosen(data, args.only):
         for take in take_names(sound):
             mp3 = cache / f"{take}.mp3"
             if mp3.exists():
                 continue
             cost = request_cost(data, sound["seconds"])
-            if spent_in_cache(data, cache) + cost > data["budget"]:
+            if cost > left:
                 raise SystemExit(
-                    f"stopped before {take}: the next request would pass the budget"
+                    f"stopped before {take}: its {cost} credits would pass the {left} left on the account"
                 )
             print(f"requesting {take} ({sound['seconds']} s, {cost} credits)")
             try:
@@ -606,6 +610,7 @@ def cmd_generate(args) -> None:
             billed = info["headers"].get("character-cost")
             if billed is not None:
                 info["billed"] = int(billed)
+            left -= int(info.get("billed", cost))
             info.update(
                 credits=cost,
                 tier=before["tier"],
