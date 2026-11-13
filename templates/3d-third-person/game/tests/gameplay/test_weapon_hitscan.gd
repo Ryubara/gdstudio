@@ -201,6 +201,9 @@ func test_a_friend_hitscan_shot_is_refused_as_a_friend_projectile_is() -> void:
 			assert_int(weapon.pull(eye, (chest - eye).normalized())).is_equal(Weapon.Pull.FIRED)
 			await InputSim.ticks(get_tree(), 20)
 			dealt["%s %s" % [shooter.name, hitscan]] = full - health.value
+			# The hit's stun and flinch move the parts (an arm kept on the weapon can cover the
+			# chest): the next shot waits until they are over (kit #1345).
+			await InputSim.ticks(get_tree(), 40)
 	prints("damage dealt (shooter, hitscan):", dealt)
 	# The grunt's friend is unhurt by either kind of shot; the ally's lands with either.
 	assert_float(dealt["%s false" % grunt.name]).is_equal(0.0)
