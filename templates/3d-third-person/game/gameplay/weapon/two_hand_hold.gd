@@ -342,9 +342,10 @@ func free_amount() -> float:
 
 ## Lets the left hand go for an action of `seconds` that reaches with it (the gun goes down in
 ## the right hand); a reload keeps the hand. The character's `interacted` does it by itself.
-func free_hand(seconds: float) -> void:
+## With `by` above 0 the hand is off within that many seconds (a vault's hand plant).
+func free_hand(seconds: float, by := -1.0) -> void:
 	if visible and _reload_progress() < 0.0:
-		_free.release_time = free_release_time
+		_free.release_time = minf(free_release_time, by) if by > 0.0 else free_release_time
 		_free.return_time = free_return_time
 		_free.start(seconds)
 
