@@ -58,6 +58,9 @@ var _work: Array[float] = []
 var _loop: Array[float] = []
 var _anim: Array[float] = []
 var _physics: Array[float] = []
+var _objects: Array[float] = []
+var _walk: Array[float] = []
+var _heap: HeapRuler
 var _tick_start := -1
 var _factor := 1.0
 var _rulers: Array[Node] = []
@@ -170,11 +173,18 @@ static func _frame_limit() -> float:
 ## Ten walkers, warmed, then `FRAMES` frames timed with every ruler timed after each; `factor` makes
 ## each frame's work cost that many times itself (the teeth case).
 func _measure_crowd(factor: float) -> Dictionary:
-	for index in CROWD:
-		_spawn(index)
 	_rulers = [AnimationRuler.new(), PhysicsRuler.new()]
+	_heap = HeapRuler.new()
 	for ruler: Node in _rulers:
 		_arena.add_child(ruler)
+	await InputSim.ticks(get_tree(), 10)
+	_factor = 1.0
+	await _measure_frames()
+	var base := _median(_work)
+	var base_nodes := get_tree().get_node_count()
+	var base_bodies := Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS)
+	for index in CROWD:
+		_spawn(index)
 	await InputSim.ticks(get_tree(), 60)
 	_factor = factor
 	await _measure_frames()
@@ -182,6 +192,8 @@ func _measure_crowd(factor: float) -> Dictionary:
 	var loop := _median(_loop)
 	var anim := _median(_anim)
 	var physics := _median(_physics)
+	var objects := _median(_objects)
+	var walk := _median(_walk)
 	var ruler := _ruler_ms(loop, anim, physics)
 	return {
 		"system": OS.get_name(),
@@ -194,6 +206,12 @@ func _measure_crowd(factor: float) -> Dictionary:
 		"loop_ratio": snappedf(frame / maxf(loop, 0.001), 0.001),
 		"anim_ratio": snappedf(frame / maxf(anim, 0.001), 0.001),
 		"physics_ratio": snappedf(frame / maxf(physics, 0.001), 0.001),
+		"objects_ms": snappedf(objects, 0.001),
+		"walk_ms": snappedf(walk, 0.001),
+		"base_ms": snappedf(base, 0.001),
+		"base_nodes": base_nodes,
+		"base_bodies": base_bodies,
+		"objects": Performance.get_monitor(Performance.OBJECT_COUNT),
 	}
 
 
@@ -209,6 +227,8 @@ func _measure_frames() -> void:
 	_loop.clear()
 	_anim.clear()
 	_physics.clear()
+	_objects.clear()
+	_walk.clear()
 	_tick_start = -1
 	var end := FrameEnd.new()
 	add_child(end)
@@ -243,13 +263,17 @@ func _on_frame_end() -> void:
 		spent = Time.get_ticks_usec() - _tick_start
 	_work.append(spent / 1000.0)
 	_tick_start = -1
-	match _work.size() % 3:
+	match _work.size() % 5:
 		0:
 			_loop.append(_calibration_ms())
 		1:
 			_anim.append((_rulers[0] as AnimationRuler).measure_ms())
 		2:
 			_physics.append((_rulers[1] as PhysicsRuler).measure_ms())
+		3:
+			_objects.append(_heap.objects_ms())
+		4:
+			_walk.append(_heap.walk_ms())
 
 
 # A fixed piece of script of the kind the parts run (arithmetic, vectors, an array and a
