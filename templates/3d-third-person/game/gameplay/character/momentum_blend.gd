@@ -15,6 +15,12 @@ extends SkeletonModifier3D
 ## `exp(x(t)) * pose` with `x(t) = (x0 + (v0 + x0 y) t) e^(-y t)`, `y = 2 ln 2 / half_life`, to
 ## every bone that differed, and the same to the pelvis's place. Nothing while the tree is off (a
 ## ragdoll holds the skeleton). Cosmetic, never sent.
+##
+## It begins again on the update after a change: on the update the state machine changes state
+## (a travel with no cross-fade), `get_current_node()` already names the new state while the pose
+## the tree mixed is still the old state's; the new state's pose shows one update later. Begun
+## only at the change, the blend measured no difference and the new pose jumped in whole on the
+## next update: a slide's end into the crouch moved the chest 0.6 m in one frame (kit #1439).
 
 ## Parts of the bone names it leaves to the clip alone.
 const SKIPPED: Array[String] = [
@@ -29,6 +35,7 @@ var half_life := 0.05
 var speed_limit := deg_to_rad(720.0)
 
 var _key: Variant = null
+var _again := false
 var _count := -1
 var _followed := PackedInt32Array()
 var _last: Array[Quaternion] = []
@@ -77,8 +84,10 @@ func _process_modification_with_delta(delta: float) -> void:
 		_forget()
 		_follow(skeleton)
 	var key: Variant = animation.gait.pose_key(animation)
-	if key != _key and _seen >= 2 and delta > 0.0:
+	var changed: bool = key != _key and _seen >= 2 and delta > 0.0
+	if changed or (_again and delta > 0.0):
 		_begin(skeleton, delta)
+		_again = changed
 	_key = key
 	if _blending:
 		_apply(skeleton, delta)
@@ -156,6 +165,7 @@ func _follow(skeleton: Skeleton3D) -> void:
 
 func _forget() -> void:
 	_seen = 0
+	_again = false
 	_blending = false
 	_key = null
 
