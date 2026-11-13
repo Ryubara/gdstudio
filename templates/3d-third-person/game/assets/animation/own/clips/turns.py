@@ -122,8 +122,8 @@ MOVING = {
     "dip": 0.02,  # metres the hips sink as the plant takes the body
     "arm_wide": [14.0, 16.0],  # degrees each arm opens from the body while the root is slowest or the body leans
     "heel_early": 0.5,  # the share of a contact of the clip's own over which the heel comes up
-    "toe_most": 50.0,
-    "push_heel": -4.0,  # degrees the toes are up at most as a step that speeds the body up lands  # degrees the heel of a step of the clip's own is up at most as the toes leave
+    "toe_most": 50.0,  # degrees the heel of a step of the clip's own is up at most as the toes leave
+    "push_heel": -4.0,  # degrees the toes are up at most as a step that speeds the body up lands
     "reach_fore": 0.45,  # metres ahead of the root a foot lands at most
     "reach_back": 0.42,  # metres behind the root a foot is at most as it leaves
     "reach_side": 0.25,  # metres to the side of where a steady step lands a foot is put at most

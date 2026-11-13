@@ -620,7 +620,11 @@
   "yaw_early": 3,
   "head_lead": 2.0,
   "dip": 0.008,
-  "yaw_turn": 0.5
+  "yaw_turn": 0.5,
+  "arm_clear": [
+   18.0,
+   14.0
+  ]
  },
  "turn_in_place_180": {
   "prep": [
@@ -658,7 +662,15 @@
   "head_lead": 2.0,
   "dip": 0.008,
   "yaw_turn": 0.5,
-  "apart": 0.08
+  "apart": 0.08,
+  "arm_wide": [
+   15.0,
+   12.0
+  ],
+  "arm_clear": [
+   16.0,
+   8.0
+  ]
  },
  "jog_turn_90": {
   "steps": [

@@ -68,3 +68,20 @@ on the floor; the next turning clip (a curved run, a landing into a turn) starts
   and a bend at a steady speed reads no acceleration at all. **Seen:** gdstudio #1157, 2026-11-13 (fix:
   `checks._turning_accel`; a clip whose root does not turn is read as before, and every earlier file rebuilds to
   the same bytes).
+- **Approach:** Turn a reversal over its plant foot: the clip that plants the left foot turns left, round it, and is
+  named for that foot. **Watch out for:** the first reversal planted the left foot and turned right, away from it, so
+  the swinging right leg had to cross in front of the planted one: 45 mm of calf in calf on every body. **Seen:**
+  gdstudio #1157, 2026-11-13 (`GaitTransitions` picks the reversal by the turn's side, `r` for a right turn).
+- **Approach:** Keep each foot on its own side of the root's middle line through a bend, at least a few centimetres
+  out (`own_side`), and read the thighs on every body once the steps are placed. **Watch out for:** steps placed
+  from where a steady step lands, moved by the lean into the bend, crossed the middle line in the pivot, and the
+  thighs folded into each other as the hips turned over them. **Seen:** gdstudio #1157, 2026-11-13.
+- **Approach:** Set a plant foot turned by a share of the root's turn over its contact (`plant_turn`, about 0.6),
+  and try the share both ways before reading any other number. **Watch out for:** a plant foot set as it came in
+  left the hips to turn the whole way over a still foot and twisted its thigh into the other; set turned the whole
+  way, it pointed the knee across the body the other way. Both put a thigh in the other. **Seen:** gdstudio #1157,
+  2026-11-13.
+- **Approach:** On a turn on the spot, land the steps before each foot's last one wider than the idle's places
+  (`apart`, 0.08 to 0.09 m), and let only the last step land on the idle's own place. **Watch out for:** steps that
+  all landed on the idle's circle, turned, put the foot that went round in front within a foot's width of the
+  standing one, and the calves and the thighs met on every body. **Seen:** gdstudio #1157, 2026-11-13.

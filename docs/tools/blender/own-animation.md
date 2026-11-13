@@ -211,7 +211,7 @@ In the build, on every frame and on every shipped body's skinned mesh, before th
 | Limbs inside limbs | at most 5 mm on every body (`limb_overlap.py`) |
 | Gait | legs half a cycle apart within a frame; each arm with the other side's leg (correlation over 0.7); shoulders against hips; cadence, planted share and bob inside [the feel](#feel)'s ranges or the variant's declared ones |
 | Overlap | the forearm, hand, chest and head each trail their parent by the variant's declared frames, within half a frame; no part moves more than 0.5 degrees on the frame a contact lands without its parent moving |
-| Weight | in the air the centre of mass is on a free fall's arc within 15 mm; on the ground its lean is the acceleration's within 5 degrees; standing, it is over the feet; with a foot down it drops at no more than 1.05 of gravity |
+| Weight | in the air the centre of mass is on a free fall's arc within 15 mm; on the ground its lean is the acceleration's within 5 degrees, or within the limit a clip declares (`lean_limit` forward, `side_lean_limit` into a bend) with the reason in its variant's notes: no start, stop, reversal or pivot leans the whole `atan(a / g)` while its feet push, so each declares its own (the jog reversal 18 and 18, [turn clips](turn-clips.md#description)); standing, it is over the feet; with a foot down it drops at no more than 1.05 of gravity |
 | Joins | a transition's first and last pose are the poses it joins within 1 mm and half a degree, at the phase `clips.json` names, and its speed there is the joined clip's |
 | Travel | a transition's root travel is the distance and the turn `clips.json` declares; a planted foot stays within 5 mm in the world while the root travels |
 | Limits | no joint past a person's range ([the ragdoll's limits](../../engines/godot/ragdoll.md#limits)); no elbow or knee bending backward; no change of a joint's speed over a per-joint limit in one frame |
@@ -241,7 +241,10 @@ The pull request for a clip type carries one **review sheet** per type, made by 
 
 1. **A strip image:** one column per variant and a last column for the library clip it replaces (or "none"), every
    column the same frames of the cycle; rows for the side, the front and the top, over a 0.25 m floor grid moving at
-   the game's speed, so a foot that slides is seen sliding.
+   the game's speed, so a foot that slides is seen sliding. A clip whose root turns cannot be shown on a floor
+   moving along one line: its shots carry the root (`[x, z, yaw]`), the body is put in the world on a still floor
+   and the camera follows its place, so the turn reads as the body makes it
+   ([turn clips](turn-clips.md#toolkit-rows); `review_sheet.py` does it for any clip with a turn curve).
 2. **A clip (mp4):** the variants side by side in Godot from the game's camera, on the template's map: the loop for
    five seconds, then the moves that use it (start, turn, stop) driven by the same recorded input for each
    (`tools/capture/own_clips_review.tscn`; `OWN_ONLY=<clip>` films one variant, short enough for a GIF). Film it

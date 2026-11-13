@@ -662,14 +662,18 @@
   "head_lead": 4.5,
   "head_more": 9.0,
   "chest_lead": 2.5,
-  "yaw_turn": 0.4,
+  "yaw_turn": 0.55,
   "dip": 0.02,
   "arm_wide": [
    13.0,
    14.0
   ],
   "shift": 0.7,
-  "apart": 0.09
+  "apart": 0.12,
+  "arm_clear": [
+   18.0,
+   8.0
+  ]
  },
  "turn_in_place_180": {
   "prep": [
@@ -712,14 +716,18 @@
   "head_lead": 4.5,
   "head_more": 14.0,
   "chest_lead": 2.5,
-  "yaw_turn": 0.4,
+  "yaw_turn": 0.55,
   "dip": 0.02,
   "arm_wide": [
    13.0,
    14.0
   ],
   "shift": 0.7,
-  "apart": 0.09
+  "apart": 0.12,
+  "arm_clear": [
+   18.0,
+   8.0
+  ]
  },
  "jog_turn_90": {
   "steps": [
@@ -748,7 +756,9 @@
    0.2
   ],
   "head_lead": 4.5,
-  "push_heel": -8.0
+  "push_heel": -8.0,
+  "plant_turn": 0.55,
+  "toe_most": 58.0
  },
  "jog_turn_180": {
   "steps": [
