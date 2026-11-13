@@ -227,6 +227,7 @@ func test_every_aim_limit_is_pinned() -> void:
 		&"chain_weights": PackedFloat32Array([0.3, 0.3, 0.4]),
 		&"converge_distance": 15.0,
 		&"release_time": 0.12,
+		&"drawn_from": 0.9,
 		&"disabled": false,
 		&"head_neck_share": 0.4,
 		&"head_crouch_neck_share": 0.5,
