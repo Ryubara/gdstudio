@@ -17,6 +17,9 @@ const _SKIN_REGION := AABB(Vector3(-0.32, -0.2, 0.0), Vector3(0.47, 0.5, 0.3))
 const _PUSH_MOST := 0.25
 ## The least share of a move along the barrel: the hold's pitch limit keeps it over 0.5.
 const _LEAST_ALONG := 0.1
+## How much farther than its last push the push along a way is first looked for, in metres
+## (`_push_along()`): more than a push moves between frames.
+const _ALONG_SLACK := 0.02
 
 # Each point in its main bone's rest space, in groups (a cell of `_SKIN_CHUNK` under one bone):
 # the points of group `i` run from `_skin_starts[i]` to the next start, inside `_skin_boxes[i]`,
@@ -38,6 +41,8 @@ var _torso_starts := PackedInt32Array()
 var _torso_up := PackedInt32Array()
 var _torso_posed: Array[Transform3D] = []
 var _torso_parents := PackedInt32Array()
+# The last push along a way (`_push_along()`), which the next one is first looked for near.
+var _along_last := _PUSH_MOST
 
 
 ## Keeps a thinned set of the torso's skin, each point in its main bone's rest space, for the butt
@@ -55,6 +60,7 @@ func measure(
 	_torso_starts = PackedInt32Array()
 	_torso_up = PackedInt32Array()
 	_torso_posed.clear()
+	_along_last = _PUSH_MOST
 	if chest < 0:
 		return
 	var origin := skeleton.get_bone_global_rest(chest).origin
@@ -238,6 +244,15 @@ func push(
 # skin near the stock forbids the moves that leave it inside the stock, one open run (low, high),
 # and the push is the least move forward no run forbids, so the skin ahead of the stock that the
 # move brings back along it counts too.
+#
+# Only the points the stock passes over in a move of `reach` are gone through (kit #1433): a
+# point it does not pass over forbids no move short of `reach`, so a push under `reach` is the
+# push of every point, and only a push that reaches it is worked out again over `_PUSH_MOST`.
+# `reach` is the last push and `_ALONG_SLACK`. The points are met in a frame sheared along the
+# move (the way up less `slope` times the way along), in which the move goes straight along and
+# the stock's sweep is nearly a box (`swept`): in the gun's own frame its box was twice the sweep,
+# and turned into a bone's rest space (as `push()` does with the stock) it covered most of the
+# torso, so three in four points gone through were outside it.
 func _push_along(
 	skeleton: Skeleton3D,
 	gun: Transform3D,
@@ -250,37 +265,63 @@ func _push_along(
 	var to_gun := gun.affine_inverse() * to_here
 	var wide := butt_pad.x * 0.5 + butt_margin
 	var high := butt_pad.y * 0.5 + butt_margin
-	var rise := absf(move.x) * _PUSH_MOST
-	var near := AABB(
-		Vector3(-wide, -high - rise, -butt_margin),
-		Vector3(wide * 2.0, (high + rise) * 2.0, butt_depth + butt_margin + _PUSH_MOST)
+	# `move.y` is over 0 (`_LEAST_ALONG`): the shear keeps x and the way along, and takes
+	# `slope` times the way along off the way up.
+	var slope := move.x / move.y
+	var shear := Transform3D(
+		Basis(Vector3.RIGHT, Vector3.UP, Vector3(0.0, -slope, 1.0)), Vector3.ZERO
 	)
-	var runs := PackedVector2Array()
-	for bone in _torso_bones.size():
-		var pose := to_gun * _posed(skeleton, bone)
-		# As in `push()`: the boxes are met against the near box in the bone's rest space.
-		var near_bone := pose.affine_inverse() * near
-		if not _torso_boxes[bone].intersects(near_bone):
-			continue
-		for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
-			if not _skin_boxes[group].intersects(near_bone):
-				continue
-			for at in pose * _group_points[group]:
-				if not near.has_point(at) or absf(at.x) >= wide:
-					continue
-				# Moved by `d` the point is at `at.y - d * move.x` up and `at.z - d * move.y` along.
-				var one := (at.y - high) / move.x
-				var other := (at.y + high) / move.x
-				var low := maxf((at.z - butt_depth) / move.y, minf(one, other))
-				var top := minf((at.z + butt_margin) / move.y, maxf(one, other))
-				if top > maxf(low, 0.0):
-					runs.append(Vector2(low, top))
-	runs.sort()
+	var low_edge := minf(slope * butt_margin, -slope * butt_depth)
+	var high_edge := maxf(slope * butt_margin, -slope * butt_depth)
+	# The edge of the stock a point crosses first as the gun goes up `move.x` (its sign is the
+	# frame's), and the one it leaves by: `minf()` and `maxf()` of the two worked out once.
+	var enters := -high if move.x > 0.0 else high
+	var leaves := -enters
+	var reach := minf(_along_last + _ALONG_SLACK, _PUSH_MOST)
 	var pushed := 0.0
-	for run in runs:
-		if run.x >= pushed:
+	while true:
+		var swept := AABB(
+			Vector3(-wide, low_edge - high, -butt_margin),
+			Vector3(
+				wide * 2.0,
+				high_edge - low_edge + high * 2.0,
+				butt_depth + butt_margin + reach * move.y
+			)
+		)
+		var runs := PackedVector2Array()
+		for bone in _torso_bones.size():
+			var pose := shear * to_gun * _posed(skeleton, bone)
+			if not (pose * _torso_boxes[bone]).intersects(swept):
+				continue
+			for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
+				if not (pose * _skin_boxes[group]).intersects(swept):
+					continue
+				for at in pose * _group_points[group]:
+					if not swept.has_point(at) or absf(at.x) >= wide:
+						continue
+					# Moved by `d` the point is at `up - d * move.x` up and `at.z - d * move.y`
+					# along.
+					var up := at.y + slope * at.z
+					var low := (at.z - butt_depth) / move.y
+					var first := (up + enters) / move.x
+					if first > low:
+						low = first
+					var top := (at.z + butt_margin) / move.y
+					var last := (up + leaves) / move.x
+					if last < top:
+						top = last
+					if top > low and top > 0.0:
+						runs.append(Vector2(low, top))
+		runs.sort()
+		pushed = 0.0
+		for run in runs:
+			if run.x >= pushed:
+				break
+			pushed = maxf(pushed, run.y)
+		if pushed < reach or reach >= _PUSH_MOST:
 			break
-		pushed = maxf(pushed, run.y)
+		reach = _PUSH_MOST
+	_along_last = pushed
 	return pushed
 
 
