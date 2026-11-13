@@ -42,6 +42,11 @@ var shortfall := 0.0
 var backed := 0.0
 
 var _bones := PackedInt32Array()
+# Every bone's parent, read once (kit #1347): the poses up the parents are worked out from the
+# local ones, and asking the skeleton for each parent too doubled the engine calls.
+var _parents := PackedInt32Array()
+# Whether the skeleton has the arm's bones (and the weapon's bone, when one is named).
+var _found := false
 
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
@@ -53,16 +58,21 @@ func _process_modification_with_delta(_delta: float) -> void:
 	if skeleton == null or arm.size() != 3:
 		return
 	if _bones.is_empty():
+		_bones.clear()
 		for bone_name in arm:
 			_bones.append(skeleton.find_bone(bone_name))
 		_bones.append(skeleton.find_bone(bone))
-	if _bones.slice(0, 3).has(-1) or (_bones[3] < 0 and bone != &""):
+		_parents.resize(skeleton.get_bone_count())
+		for index in _parents.size():
+			_parents[index] = skeleton.get_bone_parent(index)
+		_found = not _bones.slice(0, 3).has(-1) and (_bones[3] >= 0 or bone == &"")
+	if not _found:
 		return
 	# Every pose is worked out from the local ones, and only three rotations are written back.
 	var goal := offset
 	if _bones[3] >= 0:
-		goal = HandPoseModifier.global_pose(skeleton, _bones[3]) * offset
-	var above := HandPoseModifier.global_pose(skeleton, skeleton.get_bone_parent(_bones[0]))
+		goal = _global_pose(skeleton, _bones[3]) * offset
+	var above := _global_pose(skeleton, _parents[_bones[0]])
 	var fore_local := skeleton.get_bone_pose(_bones[1])
 	var hand_local := skeleton.get_bone_pose(_bones[2])
 	var upper := above * skeleton.get_bone_pose(_bones[0])
@@ -73,7 +83,7 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var longest := upper_length + fore_length - 0.001
 	backed = 0.0
 	if not retreat.is_zero_approx():
-		var line := (HandPoseModifier.global_pose(skeleton, _bones[3]).basis * retreat).normalized()
+		var line := (_global_pose(skeleton, _bones[3]).basis * retreat).normalized()
 		backed = backed_off(goal.origin - upper.origin, line, longest)
 		goal.origin += line * backed
 		if backed > 0.0 and opener != null:
@@ -114,6 +124,18 @@ static func backed_off(to_goal: Vector3, line: Vector3, longest: float) -> float
 		return 0.0
 	var inside := toward * toward - over
 	return toward - sqrt(inside) if inside > 0.0 else toward
+
+
+# `HandPoseModifier.global_pose()` with the parents read once: the same products in the same order.
+func _global_pose(skeleton: Skeleton3D, index: int) -> Transform3D:
+	if index < 0:
+		return Transform3D.IDENTITY
+	var posed := skeleton.get_bone_pose(index)
+	var parent := _parents[index]
+	while parent >= 0:
+		posed = skeleton.get_bone_pose(parent) * posed
+		parent = _parents[parent]
+	return posed
 
 
 # A bone's rotation in its parent's space, from the two bases in the skeleton's space.

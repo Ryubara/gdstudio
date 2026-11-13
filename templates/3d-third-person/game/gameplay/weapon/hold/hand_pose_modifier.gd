@@ -125,17 +125,28 @@ func _process_modification_with_delta(_delta: float) -> void:
 		for index in _indexes.size():
 			skeleton.set_bone_pose_rotation(_indexes[index], _rotations[index])
 		return
-	var shares := [
-		open_weight,
-		minf(open_weight / open_first_share, 1.0),
-		maxf((open_weight - open_first_share) / (1.0 - open_first_share), 0.0),
-	]
-	if open_first.is_empty() or open_together:
+	# How far each kind of bone opens (with `open_weight`, first, after), worked out only when the
+	# hand opens; and the leg of `second_way` the blend is on, the same for every bone (kit #1347:
+	# a call a bone was most of a hand's cost in the web build).
+	var shares := PackedFloat64Array()
+	if opened:
 		shares = [open_weight, open_weight, open_weight]
+		if not open_first.is_empty() and not open_together:
+			shares[1] = minf(open_weight / open_first_share, 1.0)
+			shares[2] = maxf((open_weight - open_first_share) / (1.0 - open_first_share), 0.0)
+	var stops := second_way.size()
+	var legs := stops + 1
+	var leg := mini(floori(second_weight * legs), legs - 1)
+	var along := second_weight * legs - leg
 	for index in _indexes.size():
 		var turned := _rotations[index]
 		if blend and _has_second[index] == 1:
-			turned = _on_the_way(index, turned)
+			if stops == 0:
+				turned = turned.slerp(_seconds[index], second_weight)
+			else:
+				var from := turned if leg == 0 else _ways[index * stops + leg - 1]
+				var to := _seconds[index] if leg == legs - 1 else _ways[index * stops + leg]
+				turned = from.slerp(to, along)
 		if opened and _opening[index] < 3:
 			var share: float = shares[_opening[index]]
 			if _has_open_via[index] == 0:
@@ -150,19 +161,6 @@ func _process_modification_with_delta(_delta: float) -> void:
 				held = held.slerp(_third_opens[index], third_open_weight)
 			turned = turned.slerp(held, third_weight)
 		skeleton.set_bone_pose_rotation(_indexes[index], turned)
-
-
-# Where the bone at `index` is on its way from `turned` (its rotation in `pose`) through
-# `second_way` to `second`, `second_weight` of the way along.
-func _on_the_way(index: int, turned: Quaternion) -> Quaternion:
-	var stops := second_way.size()
-	if stops == 0:
-		return turned.slerp(_seconds[index], second_weight)
-	var legs := stops + 1
-	var leg := mini(floori(second_weight * legs), legs - 1)
-	var from := turned if leg == 0 else _ways[index * stops + leg - 1]
-	var to := _seconds[index] if leg == legs - 1 else _ways[index * stops + leg]
-	return from.slerp(to, second_weight * legs - leg)
 
 
 func _lay_out(skeleton: Skeleton3D) -> void:
