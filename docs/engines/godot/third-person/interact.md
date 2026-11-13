@@ -56,7 +56,9 @@ arm; its right arm hangs still. So whatever is held, the hand that reaches has t
 job, never a list of weapons: each hold owns a `FreeHand` (`gameplay/weapon/hold/free_hand.gd`), starts it on its
 character's `interacted` and reads its `amount()` every frame (0 on the weapon, 1 with the clip's arm). A new weapon
 that uses either hold frees its hand with no line of its own, and a game frees the hand for another action that
-reaches with it (a use animation, a pickup) by calling the hold's `free_hand(seconds)`.
+reaches with it (a use animation, a pickup) by calling the hold's `free_hand(seconds)`, and gives it back early with
+`take_hand_back()` (`FreeHand.finish()`: the hand returns its own way from where it is). Using a bandage does both
+([A use that takes time](../inventory.md#hotbar)).
 
 - **The amount has two halves**, so a hand never goes straight from the weapon to the clip's arm. Up to
   `FreeHand.LET_GO` (0.5) the hand is still the hold's: its fingers open and it comes off the weapon along the hold's

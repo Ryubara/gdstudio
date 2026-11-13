@@ -227,6 +227,14 @@ again every frame, so a body that crouches or stands during the stun gets its ne
 went from 0.47 m to 0.88 m for each hit before and stays within 6 cm after; lying, from 0.18 m to 0.88 m
 (`tests/gameplay/test_hit_stance.gd`, the capture `tools/capture/stance_hit_tour.tscn`; gdstudio #1292).
 
+- **Approach:** Before playing a whole-body clip on the upper body alone, compare the clip's turn of the bones above
+  the filter (the root and the pelvis) with the locomotion's, and turn the first spine bone by the difference in a
+  modifier eased with the action (3D Third Person's `UseTurn`, made by `UseLayer`); capture it from in front. **Watch
+  out for:** `ual2/Consume` turns the root and hips 28 degrees and the spine 34 back; filtered from `spine_01` down,
+  only the spine's turn was left, the chest swung 28 degrees off and the hand that reaches the face in the clip
+  reached out to the side. Reading `get_bone_global_pose()` from a script did not show the modifier's turn; the
+  capture did. **Seen:** gdstudio #1342, 2026-11-12.
+
 - **Approach:** For every movement state (walk, run, sprint, crouch, air), list what each body layer plays and capture
   it from the player's camera; a layered rig never leaves a layer in a pose meant for another state. **Watch out for:**
   a sprint is a whole-body action, but the legs played `Run` while the upper layer kept looping `Aim_<Class>`, so arms
