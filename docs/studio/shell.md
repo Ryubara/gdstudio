@@ -171,7 +171,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size; for a game to play
   it, clear its `.godot/imported/<name>-*` cache before `--import`. **Watch out for:** `git show <rev>:<file>` gives
   the 130-byte pointer, and Godot keeps a failed import (`valid=false`) after the real file is back until the cache
-  is cleared. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound); Deadnight #1282, 2026-11-05 (a model;
-  [Build scripts](../tools/blender/build-scripts.md#rebuilding)); gdstudio #1191, 2026-11-11 (a clip file in a probe
-  game) and 2026-11-12 (two aim files in a copied game, cache kept: the body fell back and the `Before:` was dropped);
-  gdstudio #1275, 2026-11-11 (a merge's clip files; `git checkout --ours -- <file>` writes the file).
+  is cleared and the `.import` file (which it rewrites) is copied back. **Seen:** gdstudio
+  #1040, 2026-11-11 (a `Before:` sound); Deadnight #1282, 2026-11-05 (a model;
+  [Build scripts](../tools/blender/build-scripts.md#rebuilding)); gdstudio #1191, 2026-11-11 and 2026-11-12 (clip
+  and aim files in a probe game); gdstudio #1275, 2026-11-11 (a merge's clip files); gdstudio #1346, 2026-11-12
+  (the rifle clips in a kept game).
