@@ -31,6 +31,9 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   `RACK_FINGERS=0` leaves the clip's own fingers. `tools/hold/write_slide_rack.gd` writes each body's `SlideRack`
   file from the clip build's data, and `tools/hold/hold_files.py` reads a body's hold out of the project's files
   for the rack's solver and build.
+- `tools/export_check/export_clips_check.gd` reads an exported pack (`-- ../build/web/index.pck`): each Universal
+  Animation Library in it holds exactly the clips the game names, and a player loaded from it finds every clip of
+  its tree (CI runs it after the web export; kit `docs/tools/blender/own-animation.md#replacing`).
 - `tools/bench/hold_cost.tscn` times 40 mannequins with no hold, the carried hold or the aimed one (the run is its
   user argument, one run a process).
 - `tools/capture/walkthrough.tscn` plays the character through the map by pressing the input actions, for a clip.

@@ -96,6 +96,13 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   drops those constant tracks on import, and a body of other proportions that plays them stretches its neck and limbs
   to the mannequin's. **Seen:** gdstudio #1150 (PR #1165), 2026-11-11 (the sizes); gdstudio #1149 and #1151,
   2026-11-11 (the position tracks).
+- **Approach:** Name every library clip the game plays where the export can read it: a `CharacterClips` constant a
+  shipped script names, or the clip's name in a scene, a `.tres` or a script; a clip whose name is built at run
+  time goes in the project setting `gds_game/clip_export/keep`. **Watch out for:** the export carries `ual1` and
+  `ual2` with only the named clips ([replacing](../../../tools/blender/own-animation.md#replacing)), so a clip
+  named only in a comment (`SWORD_ATTACK`, `DANCE`), in `ALL` or in `STAND_INS` plays in the editor and in every
+  suite and is missing from the web build; `test_export_clips.gd` catches one in the tree, the clip settings or a
+  definition, and CI's pack check one the game names and the pack lacks. **Seen:** kit #1366, 2026-11-13.
 - **Approach:** When a new library joins the character's `AnimationPlayer` (`prone`, `melee`, `gds`), add a
   `LIBRARY_*` constant, a constant per clip and every clip name to `CharacterClips.ALL` in the same commit, and raise
   the count in `test_character_clips.gd`. **Watch out for:** `test_every_listed_clip_exists_and_every_clip_is_listed`
