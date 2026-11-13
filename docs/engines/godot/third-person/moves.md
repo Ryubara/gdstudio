@@ -107,6 +107,17 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   as `prone_libraries` does for the prone clips. The aim layer stops where the down clip does
   (`ProneTuning.aim_limits`: `pitch_down` 25), so the look and the shot go on to `look_down_limit` and the pistol
   stays over the floor. A weapon with no prone aim clip aims lying down with its standing clips, as before.
+  While the aim blends in and out, `WeaponHold` keeps both hands over the floor with its `HandFloor` modifier
+  (`gameplay/weapon/hold/hand_floor.gd`, after the support arm's reach, on by `prone_hold_share()` and from nothing at
+  no aim to all of it at `FLOOR_FROM_AIM` 0.1): when a bone of either hand is lower than `clearance` (5 mm, the prone
+  idle's fists) over the body's floor, both arms turn up at the shoulder by the same rise and the hands keep their
+  turn, so the pistol and the left hand on it rise together. A blend of the two clips' arm rotations, both with the
+  hands at the floor, took the left hand's skin 59 mm (`form_female`) and 70 mm (`form_male`) under it at a third of
+  the blend; with the floor the lowest is 4 and 6 mm, the prone idle's own contact. It is not one of
+  `WeaponHold.modifiers()` (`hand_floor()` gives it). Tests: `test_prone_aim_start.gd` (both bodies, simulated input)
+  and `test_net_puppet_prone_aim.gd` (an online puppet), which read every drawn update of the blend through
+  `ProneAimWatch` (`tests/fixtures/`): each hand's skin no more than 10 mm under the floor, no hand 30 mm further back
+  from its shoulder than the nearer of the two poses has it, and the pistol never shown under the floor.
   A reload lying down keeps the prone aim: the standing reload clip is not played on a lying body (it folded the
   arms under the chest), so until there is a prone reload clip (gdstudio #1185) only the time and the sounds say
   that the magazine is changed.
@@ -154,6 +165,14 @@ of the stance is sent but the command's bit; the clips are cosmetic and played i
   at every camera offset tried; pointing 25 degrees down from planted elbows bent the wrists 94 to 98 degrees.
   With the arms stretched the pistol is 0.3 m past the head and shows beside it. **Seen:** gdstudio #1111,
   2026-11-11 (three poses captured from the player's camera).
+- **Approach:** Measure a lying aim's blend in and out on every drawn update (at `skeleton_updated`), on each body
+  and a puppet, before changing anything: each hand's skin over the floor, its reach ahead of the shoulder; switch
+  layers off one at a time (`AimLayer.disabled`, the reach's weight) to split the causes. **Watch out for:** the arms
+  folded (hands 0.35 to 0.40 m under the floor) from the aim layer's solve on the drawn pose
+  ([aim-fold.md](aim-fold.md#aim-fold), #1364); with that fixed the clips' blend alone still took the left hand 6 to
+  7 cm under. Raising the blend's look made it worse (the layer turned the spine down) and leading the upper arms threw
+  the hands 30 cm up; a floor guard after the reach, both arms up by the same rise, kept the hold. **Seen:**
+  gdstudio #1356, 2026-11-12 (`test_prone_aim_start.gd`, `test_net_puppet_prone_aim.gd`; `HandFloor`).
 - **Approach:** Give a lying body's aim layer the down limit of its pose (the look the down clip is made for), and
   measure the muzzle and the grip's foot over the floor at every look to both look limits on the live player.
   **Watch out for:** with the aim layer's default 45 degrees down, the spine turned the stretched arms on to the 40
