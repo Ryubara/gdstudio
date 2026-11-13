@@ -20,7 +20,7 @@ const SOLE := 0.002
 ## How far the compressed import may move a bone's place (m) and turn (degrees) from the file's.
 const IMPORT_PLACE := 0.01
 const IMPORT_TURN := 2.0
-## The arm joints a played jump is measured on, each against the jog's same joint.
+## The arm joints a played jump is measured on, each against the same part of the jog's arms.
 const ARM_BONES: Array[StringName] = [
 	&"clavicle_l",
 	&"clavicle_r",
@@ -298,33 +298,30 @@ func _clip_arm_speeds(clip: StringName) -> Dictionary:
 func test_the_arms_float_through_a_played_jump() -> void:
 	# The jump the player really plays: the take-off, the tree's blend into the fall, the landing
 	# and its blend back to the ground, stepped by hand at the physics rate. No arm joint turns
-	# faster than the same joint of the jog at its fastest (kit #1369: the left upper arm swung
+	# faster than the same part of the jog's arms at its fastest (kit #1369: the left upper arm swung
 	# 92 degrees up in the six-frame take-off and 84 back down in the 0.15 s blend into the fall).
 	var bound := _clip_arm_speeds(CharacterClips.RUN)
 	assert_int(bound.size()).is_equal(ARM_BONES.size())
+	InputSim.release_all()
 	var arena: PlayArena = auto_free(PlayArena.new())
 	add_child(arena)
 	var player := arena.add_player(Vector3.ZERO)
 	var animation: CharacterAnimation = player.get_node("Animation")
 	var skeleton := (player.get_node("Model") as CharacterModel).skeleton()
-	CommandDriver.take(player)
 	animation.set_throttled(true)
-	var step := CommandDriver.tick_seconds()
-	var still := PlayerCommand.new()
-	var jump := PlayerCommand.new()
-	jump.jump = true
-	jump.jump_pressed = true
+	var step := 1.0 / Engine.physics_ticks_per_second
 	var states: Array[Character.State] = []
 	var last := {}
 	var fastest := {}
 	var where := {}
-	# A second standing, the jump, and a second after the landing.
+	# A second standing, the jump (the key held for a fifth of a second), and two seconds after.
 	for tick in _ticks(3.0):
 		await get_tree().physics_frame
-		var command := jump if tick == _ticks(1.0) else still
-		player.step(command, step)
-		command.clear_edges()
 		animation.advance(step)
+		if tick == _ticks(1.0):
+			InputSim.key(KEY_SPACE, true)
+		elif tick == _ticks(1.2):
+			InputSim.key(KEY_SPACE, false)
 		if not states.has(player.state):
 			states.append(player.state)
 		for bone: StringName in ARM_BONES:
@@ -335,19 +332,21 @@ func test_the_arms_float_through_a_played_jump() -> void:
 					fastest[bone] = speed
 					where[bone] = "tick %d in %s" % [tick, Character.State.keys()[player.state]]
 			last[bone] = turn
+	InputSim.release_all()
 	animation.set_throttled(false)
 	assert_bool(states.has(Character.State.JUMP)).is_true()
 	assert_bool(states.has(Character.State.FALL)).is_true()
 	assert_bool(states.has(Character.State.LAND)).is_true()
 	for bone: StringName in ARM_BONES:
+		# The part's bound, both sides' larger, as the build's `check_arms` reads it.
+		var part := String(bone).left(-2)
+		var most := maxf(bound[StringName(part + "_l")], bound[StringName(part + "_r")])
 		var message := (
-			"%s turns %.0f degrees a second at %s; the jog's at its fastest %.0f"
-			% [bone, fastest.get(bone, 0.0), where.get(bone, "-"), bound[bone]]
+			"%s turns %.0f degrees a second at %s; the jog's %s at its fastest %.0f"
+			% [bone, fastest.get(bone, 0.0), where.get(bone, "-"), part, most]
 		)
 		print(message)
-		assert_float(fastest.get(bone, 0.0)).override_failure_message(message).is_less_equal(
-			bound[bone]
-		)
+		assert_float(fastest.get(bone, 0.0)).override_failure_message(message).is_less_equal(most)
 
 
 func _ticks(seconds: float) -> int:

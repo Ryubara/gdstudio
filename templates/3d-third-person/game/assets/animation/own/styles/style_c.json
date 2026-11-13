@@ -622,7 +622,7 @@
    14.0
   ],
   "trunk_late": 1.0,
-  "arms_late": 5.0,
+  "arms_late": 7.0,
   "speed_limit": 75.0,
   "arms_lag": 0.75
  },

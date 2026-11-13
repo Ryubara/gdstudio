@@ -244,7 +244,9 @@ LAND = {
     "arm_swing": [20.0, 10.0],
     "arm_out": [28.0, 36.0],
     "arm_twist": [0.0, 0.0],
-    "elbow": [36.0, 52.0],
+    # The elbows near the idle's: control goes back at frame 9 and the game blends to the idle in 0.15 s from
+    # here; at 52 the right forearm swept 277 degrees a second in that blend.
+    "elbow": [28.0, 34.0],
     "pronate": [26.0, 34.0],
     "wrist": [4.0, 8.0],
     "shrug": [3.0, 2.0],

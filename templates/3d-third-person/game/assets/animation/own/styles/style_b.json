@@ -301,7 +301,7 @@
   ],
   "land_soft": [
    "Loose: down 0.24 m, 25 frames, the right foot 0.18 m ahead and drawn back over frames 12 to 19, the chest folds 38 degrees and the arms reach their low pose 7 frames after the weight.",
-   "Tried: the left elbow at 34 degrees with the style's overshoot: it went 9 degrees past straight on the way back; it is 44 with an overshoot of 0.1."
+   "The elbows are 32 and 38, near the idle's: the game takes control back at frame 9 and blends to the idle in 0.15 s from there (kit #1369)."
   ],
   "land_hard": [
    "Loose: 42 frames, held 4 at the bottom, the right foot 0.26 m ahead, the chest folds 58 degrees; control at frame 22.",
@@ -740,8 +740,8 @@
    44.0
   ],
   "elbow": [
-   44.0,
-   58.0
+   32.0,
+   38.0
   ],
   "trunk_late": 2.0,
   "arms_late": 7.0,
