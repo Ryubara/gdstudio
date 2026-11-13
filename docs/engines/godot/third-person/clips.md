@@ -323,7 +323,8 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 
 **What a transition clip needs** (gdstudio #1156, #1157). A name in `GaitTransitionSet` is a base: the tree plays
 `<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start),
-the foot that lands next in the gait's phase (a stop, a reversal) or the way the body turns (a pivot, a turn on the
+the foot that lands next in the gait's phase (a stop), the foot on the side the body turns to (a reversal: `_L`
+plants the left foot and turns over it to the left, kit #1157) or the way the body turns (a pivot, a turn on the
 spot). The defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`,
 `gds/Jog_Stop`, `gds/Sprint_Stop`, `gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`,
 `gds/Turn_In_Place_90` and `gds/Turn_In_Place_180`. From its record in `clips.json` the tree reads `travel` (a start
@@ -333,7 +334,8 @@ on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle).
 part plays on at its own pace; a body asked for something else leaves it at once. Until the clips exist nothing
 plays and the states change as before.
 The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
-so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are kit #1157's.
+so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are GDStudio's own since
+kit #1157 (each moving one ends as a foot strikes; a turn on the spot ends on the idle's first pose).
 
 **What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
 pose's difference from the idle's first frame.

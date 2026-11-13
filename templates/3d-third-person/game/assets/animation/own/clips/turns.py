@@ -8,9 +8,9 @@ sources are in `../README.md`):
 
 - **A reversal brakes, plants and pushes back.** It begins on the gait's pose as a foot strikes; the feet brake
   over one or more steps, each further ahead of the body than a steady step, the plant foot (the one the clip is
-  named for) lands across the way of travel while the root is slowest, the body turns over it toward the other
-  side (planting the left foot, it turns to the right), and the steps after it speed the body up the other way
-  until the last two landings are the gait's own, 180 degrees round.
+  named for) lands while the root is slowest, the body swings round it to that foot's side (planting the left
+  foot, it turns to the left, so the planted foot ends on the side it began on), and the steps after it speed the
+  body up the other way until the last two landings are the gait's own, 180 degrees round.
 - **A pivot cuts on the outside foot.** It begins on the jog's pose as the inside foot strikes; that step brakes
   a little, the outside foot plants wide of the body and pushes it round (turning left, the right foot plants),
   and the speed dips and comes back while the root's path bends through 90 degrees. The trunk leans into the
@@ -107,6 +107,7 @@ MOVING = {
     "side_hips": 0.5,
     "side_head": 0.3,
     "lean_fore": 0.15,  # the share of the lean the hips take by going toward the acceleration
+    "side_fore": 0.25,  # the share of the lean into the bend the hips take by going into it (the feet stay out)
     "lean_low": 0.06,  # and the share by which they come down
     "lean_lag": [2.0, 0.1],  # the lean follows the acceleration through a spring: frames late, share past
     "chest_lead": 1.5,  # frames the chest's turn is ahead of the root's, before the overlap pass's lag
@@ -116,17 +117,21 @@ MOVING = {
     "brace_to": 0.8,
     "bob": 0.6,  # the share of the gait's rise and fall the steps that are not the gait's have
     "dip": 0.02,  # metres the hips sink as the plant takes the body
-    "arm_wide": [8.0, 10.0],  # degrees each arm opens from the body while the root is slowest
+    "arm_wide": [14.0, 16.0],  # degrees each arm opens from the body while the root is slowest or the body leans
     "heel_early": 0.5,  # the share of a contact of the clip's own over which the heel comes up
     "reach_fore": 0.45,  # metres ahead of the root a foot lands at most
     "reach_back": 0.42,  # metres behind the root a foot is at most as it leaves
     "reach_side": 0.25,  # metres to the side of where a steady step lands a foot is put at most
-    "clear": 0.02,  # metres a foot that swings past the standing one keeps from it, at the least
+    "clear": 0.09,  # metres a foot that swings past the standing one keeps from it, beyond a foot's width
+    "foot_turn": 0.3,  # the share of the root's turn over a contact the foot is set turned by as it lands
+    "plant_turn": 0.6,  # the same for the plant foot, which the body turns over
+    "plant_wide": 0.08,  # metres the plant foot lands further outside the turn than a steady step
+    "own_side": 0.07,  # metres from the middle line each foot lands at the least, on its own side
     "stretch": 0.99,
     "meet": 3,
     "speed_limit": 55.0,
-    "lean_limit": 12.0,
-    "side_lean_limit": 12.0,
+    "lean_limit": 18.0,
+    "side_lean_limit": 20.0,
     "keys_kept": 0.9,
     "kb_a_second": 40.0,
 }
@@ -158,10 +163,11 @@ MOVES = {
         "low_at": 0.5,
         "turn_before": 14,
         "turn_after": 20,
-        "drive": 0.5,
+        "drive": 0.35,
+        "reach_fore": 0.38,
         "brace": 0.4,
         "dip": 0.05,
-        "lean_limit": 20.0,
+        "lean_limit": 24.0,
         "side_lean_limit": 20.0,
         "speed_limit": 80.0,
     },
@@ -244,9 +250,11 @@ class Turn(Move):
             self._middle = float(self.rel[:, 1].mean())
             angle = GAIT_OF[kind][1]
             if angle >= 180.0:
-                # A reversal planting the left foot turns over it to the right.
+                # A reversal planting the left foot turns over it, to the left: the body swings round the
+                # planted foot, which ends on the side it began on. Turned the other way, the plant foot
+                # ends on the body's other side and the next step crosses the legs (calf in calf, 45 mm).
                 self.plant_side = side
-                self.angle = -angle if side == "l" else angle
+                self.angle = angle if side == "l" else -angle
             else:
                 # A pivot to the left plants the right foot, outside the bend.
                 self.plant_side = OTHER[side]
@@ -475,7 +483,7 @@ class Turn(Move):
         end = land + self.contact if lift is None else lift
         return Tread(s, land, end, (float(place[0]), float(place[1])), SIGN[s] * g.own(s, "toe_out") + yaw, numbers, numbers, self.v)
 
-    def _free(self, s: str, land: float, lift: float, like: float) -> Tread:
+    def _free(self, s: str, land: float, lift: float, like: float, plant: bool = False) -> Tread:
         """A step of the clip's own: where a steady step would land, moved against the acceleration."""
         g, n = self.g, self.n
         numbers = self._numbers(s, like)
@@ -488,9 +496,18 @@ class Turn(Move):
         idle = self.idle_falls[s]
         wide = abs(idle.place[0]) + (g.own(s, "width") - abs(idle.place[0])) * like
         x = SIGN[s] * wide - max(min(out, n["reach_side"]), -n["reach_side"])
+        if plant:
+            x -= math.copysign(n["plant_wide"], self.angle)
+        # Each foot stays on its own side: a foot that crosses in front of the other folds the thighs into
+        # each other (65 mm in the limbs check), and the bend's lean goes to the trunk instead.
+        x = SIGN[s] * max(SIGN[s] * x, n["own_side"])
         xz, yaw = self.root(mid)
         place = xz + _rotate(yaw, x, ahead - 0.5 * covered)
         toe = idle.yaw + (SIGN[s] * g.own(s, "toe_out") - idle.yaw) * like
+        # A foot cannot turn while it stands: it is set down turned a share of the way the root turns over the
+        # contact, so the knee above it points neither across the body as it lands nor far out as it leaves.
+        first, last = self.root(land)[1], self.root(lift)[1]
+        yaw = first + n["plant_turn" if plant else "foot_turn"] * (last - first)
         room = max(lift - land - numbers["roll_in"], 0.0)
         numbers["roll_out"] = min(max(numbers["roll_out"], n["heel_early"] * (lift - land)), room)
         return Tread(s, land, lift, (float(place[0]), float(place[1])), yaw + toe, numbers, numbers, self.speed(land))
@@ -513,7 +530,7 @@ class Turn(Move):
         strike.foot["toe_off"] = slow["toe_off"]
         treads[a].append(strike)
         for i in range(1, m - 1):
-            treads[sides[i]].append(self._free(sides[i], lands[i], lifts[i], like[i - 1]))
+            treads[sides[i]].append(self._free(sides[i], lands[i], lifts[i], like[i - 1], i == self.plant))
         for i in (m - 1, m):
             treads[sides[i]].append(self._own(sides[i], lands[i]))
         treads[sides[m - 1]].append(self._own(sides[m - 1], F + self.half))
@@ -573,7 +590,7 @@ class Turn(Move):
         rel[1] = self._middle + (rel[1] - self._middle) * (1.0 + (n["bob"] - 1.0) * self._own_share(float(f)))
         place = mix(rel, np.asarray(idle["pelvis"]["place"], dtype=float), wb)
         place[2] += n["lean_fore"] * self.h * math.tan(math.radians(pitch))
-        place[0] += n["lean_fore"] * self.h * math.tan(math.radians(lean))
+        place[0] += n["side_fore"] * self.h * math.tan(math.radians(lean))
         tilt = min(math.hypot(math.tan(math.radians(pitch)), math.tan(math.radians(lean))), 0.6)
         low = n["lean_low"] * self.h * tilt + n["dip"] * _bump(f, self.lands[self.plant] - 3, self._slowest(), self.lifts[self.plant] + 4)
         low += float(np.interp(f, np.arange(F + 1), self.lower))
@@ -584,7 +601,7 @@ class Turn(Move):
         chest_by = self.root(f + n["chest_lead"] + self.lags.get("chest", [0.0])[0])[1] - yaw
         head_lag = self.lags.get("chest", [0.0])[0] + self.lags.get("head", [0.0])[0]
         head_by = self.root(f + n["head_lead"] + head_lag)[1] - yaw
-        arms = self.arms_share(f, wb)
+        arms = max(self.arms_share(f, wb), min(tilt / 0.4, 1.0))
         local = {
             "pelvis": {"place": place, "turn": (turn[0] + n["lean_hips"] * pitch, turn[1], turn[2] + n["side_hips"] * lean)},
             "chest": (chest[0] + n["lean"] * pitch, chest[1] + chest_by, chest[2] + n["side"] * lean),
@@ -622,7 +639,7 @@ class Turn(Move):
     def _swing(self, a: Tread, b: Tread, f: float) -> dict:
         """A foot in the air between two contacts: `Move._swing`, its ease measured along the floor whichever way
         the foot goes, carried round a turn on the spot about the root, and kept clear of the standing foot."""
-        out = Move._swing(self, a, b, f) if not self.spot else self._spot_swing(a, b, f)
+        out = self._moving_swing(a, b, f) if not self.spot else self._spot_swing(a, b, f)
         other = self.planted(OTHER[a.side], f)
         if other is None:
             return out
@@ -638,13 +655,56 @@ class Turn(Move):
         near = start + along * line
         gap = foot - near
         apart = float(np.linalg.norm(gap))
-        want = 0.13 + self.n.get("clear", 0.02)
+        want = 0.13 + self.n.get("clear", 0.05)
         if apart >= want:
             return out
         away = -gap / max(apart, 1e-6) if apart > 1e-6 else np.array([-line[1], line[0]]) / length
         push = (want - apart) * math.sin(math.pi * u) ** 2
         out["ankle"] = out["ankle"] + np.array([away[0], 0.0, away[1]]) * push
         return out
+
+    def _moving_swing(self, a: Tread, b: Tread, f: float) -> dict:
+        """`Move._swing` with two changes for a root that turns: the foot's yaw in the air follows the root's
+        (offset by what it had as it left, then by what it will have as it lands), so the knee over it points the
+        way the hips do and does not sweep across the other leg; and how still the foot lands is measured along
+        the floor whichever way it goes."""
+        s, n, g = a.side, b.swing, self.g
+        sole = self.rig.sole[s]
+        frames = b.land - a.lift
+        u = (f - a.lift) / frames
+        one, two = self._stance(a, a.lift), self._stance(b, b.land)
+        more = 1.0 + (gaits.UNEVEN_LIFT * g.n["uneven"] if s == "r" else 0.0)
+        eased = (1.0 - n["swing_ease"]) * maths.smooth(u) + n["swing_ease"] * maths.smoother(u)
+        go = (1.0 - n["swing_early"]) * eased + n["swing_early"] * (1.0 - (1.0 - u) ** 2)
+        gap = max(float(np.linalg.norm((two["ankle"] - one["ankle"])[[0, 2]])), 1e-6)
+        still = min(n["land_speed"] * (b.ground * frames / FPS) / gap, 0.7)
+        go = (1.0 - still) * go + still * u
+        ankle = one["ankle"] + (two["ankle"] - one["ankle"]) * go
+        lift = maths.keyed(
+            [(0.0, 0.0), (n["kick_at"], n["kick"] * more), (n["carry_at"], n["carry_height"] * more), (1.0, 0.0)], u
+        )
+        ankle[1] += lift
+        if n["land_from"] > 0.0:
+            ankle[1] += n["land_from"] * min(u * frames / n["leave_frames"], 1.0, (1.0 - u) * frames / n["land_frames"])
+        if "clear" in n:
+            ankle[1] += n["clear"] * math.sin(math.pi * u) ** 2
+        pitch_a, pitch_b = one["foot"][0], two["foot"][0]
+        pitch = maths.keyed(
+            [(0.0, pitch_a), (n["kick_at"], max(n["kick_pitch"], pitch_a)), (0.86, 0.6 * pitch_b), (1.0, pitch_b)], u
+        )
+        body = self.root(f)[1]
+        off_a = a.yaw - self.root(a.lift)[1]
+        off_b = b.yaw - self.root(b.land)[1]
+        yaw = body + off_a + (off_b - off_a) * maths.smooth(u)
+        toe = one["toe"] * (1.0 - maths.smooth(u / 0.3))
+        turn = body_turn(pitch, yaw, 0.0)
+        hinge = ankle + turn @ (sole["hinge"] - sole["ankle"])
+        tip = hinge + body_turn(pitch - toe, yaw, 0.0) @ (sole["toe"] - sole["hinge"])
+        heel = ankle + turn @ (sole["heel"] - sole["ankle"])
+        ball = ankle + turn @ (sole["ball"] - sole["ankle"])
+        margin = 0.006 * maths.smooth(u / 0.15) * maths.smooth((1.0 - u) / 0.1)
+        ankle[1] += max(sole["floor"] + margin - min(tip[1], heel[1], ball[1]), 0.0)
+        return {"ankle": ankle, "foot": (pitch, yaw, 0.0), "toe": toe}
 
     def _spot_swing(self, a: Tread, b: Tread, f: float) -> dict:
         """A stepping foot on the spot: its ball goes round the root's middle, its yaw turns, it lifts by `lift`."""

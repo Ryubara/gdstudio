@@ -104,6 +104,16 @@ GROUPS = {
         "Jog_Stop_R",
         "Sprint_Stop_L",
         "Sprint_Stop_R",
+        "Jog_Turn_90_L",
+        "Jog_Turn_90_R",
+        "Jog_Turn_180_L",
+        "Jog_Turn_180_R",
+        "Sprint_Turn_180_L",
+        "Sprint_Turn_180_R",
+        "Turn_In_Place_90_L",
+        "Turn_In_Place_90_R",
+        "Turn_In_Place_180_L",
+        "Turn_In_Place_180_R",
     ]
 }
 ## The deepest a limb may be inside another part of the body, on every body (mm).

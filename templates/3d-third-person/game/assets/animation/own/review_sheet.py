@@ -155,6 +155,21 @@ def review_clips(rig: Rig, path: Path) -> list:
     return out
 
 
+def root_at(record: dict, frame: int) -> list | None:
+    """Where a clip's root is at a frame, `[x, z, yaw]`, from its record's travel and turn curves, for a clip
+    whose root turns (kit #1157): the strip then shows it turning on a floor that stays still. None for a clip
+    that does not turn."""
+    turn = record.get("turn", [])
+    if not turn or max(abs(t[1]) for t in turn) < 1e-6:
+        return None
+    travel = record["travel"]
+    frames = [t[0] for t in travel]
+    forward = float(np.interp(frame, frames, [t[1] for t in travel]))
+    left = float(np.interp(frame, frames, [t[2] for t in travel]))
+    yaw = float(np.interp(frame, [t[0] for t in turn], [t[1] for t in turn]))
+    return [left, forward, yaw]
+
+
 def text(draw: ImageDraw.ImageDraw, at: tuple, words: str, size: int = 16, fill: tuple = INK) -> None:
     draw.text(at, words, font=ImageFont.load_default(size=size), fill=fill)
 
@@ -211,15 +226,17 @@ def main() -> int:
                         frame = int(round(last * k / args.frames))
                         for view in VIEWS:
                             out = folder / f"{clip['name']}_{view}_{k}.png"
-                            shots.append(
-                                {
-                                    "clip": clip["name"],
-                                    "frame": frame,
-                                    "view": view,
-                                    "out": out.as_posix(),
-                                    "shift": speed * frame / 30.0,
-                                }
-                            )
+                            shot = {
+                                "clip": clip["name"],
+                                "frame": frame,
+                                "view": view,
+                                "out": out.as_posix(),
+                                "shift": speed * frame / 30.0,
+                            }
+                            root = root_at(record, frame)
+                            if root is not None:
+                                shot["root"] = root
+                            shots.append(shot)
                             shots_of[(clip["name"], view, k)] = (out, frame)
                 if clip["name"] != "Library":
                     frame = int(round(last * 0.45))

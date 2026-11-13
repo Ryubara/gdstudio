@@ -13,6 +13,11 @@
   "Idle_To_Sprint": "A",
   "Walk_Stop": "A",
   "Jog_Stop": "A",
-  "Sprint_Stop": "A"
+  "Sprint_Stop": "A",
+  "Jog_Turn_90": "A",
+  "Jog_Turn_180": "A",
+  "Sprint_Turn_180": "A",
+  "Turn_In_Place_90": "A",
+  "Turn_In_Place_180": "A"
  }
 }

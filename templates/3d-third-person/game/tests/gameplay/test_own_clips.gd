@@ -263,12 +263,11 @@ func _wander(clip: String, record: Dictionary, side: String, contact: Array) -> 
 	var worst := 0.0
 	for frame in range(ceili(flat[0]), floori(contact[1]) + 1):
 		var pose := _pose(StringName("gds/" + clip), frame / 30.0)
-		var travel := _travel_at(record, frame)
 		var bones: Array[String] = ["ball_" + side]
 		if frame <= floori(flat[1]):
 			bones.append("foot_" + side)
 		for bone in bones:
-			var place: Vector3 = (pose[bone] as Transform3D).origin + travel
+			var place := _in_world(record, frame, (pose[bone] as Transform3D).origin)
 			if not start.has(bone):
 				start[bone] = place
 			var from: Vector3 = start[bone]
@@ -281,9 +280,14 @@ func _wander(clip: String, record: Dictionary, side: String, contact: Array) -> 
 	return worst
 
 
-# Whether a clip is a start or a stop of a gait (kit #1156): its feet roll as the gait's do.
+# Whether a clip is a start or a stop of a gait (kit #1156), or a reversal or a pivot (kit #1157):
+# its feet roll as the gait's do.
 func _steps(clip: String) -> bool:
-	return clip.begins_with("Idle_To_") or clip.contains("_Stop_")
+	return (
+		clip.begins_with("Idle_To_")
+		or clip.contains("_Stop_")
+		or (clip.contains("_Turn_") and not clip.begins_with("Turn_In_Place"))
+	)
 
 
 # The same for a foot of the walk, the jog and the sprint (`GAITS`), along the floor (x) and in
@@ -299,14 +303,28 @@ func _rolling(clip: String, record: Dictionary, side: String, contact: Array) ->
 	var bones: Array[String] = ["ball_" + side]
 	for frame in range(first, last + 1):
 		var pose := _pose(StringName("gds/" + clip), frame / 30.0)
-		var travel := _travel_at(record, frame)
 		for bone: String in bones:
-			var place: Vector3 = (pose[bone] as Transform3D).origin + travel
+			var place := _in_world(record, frame, (pose[bone] as Transform3D).origin)
 			if not start.has(bone):
 				start[bone] = place
 			var moved: Vector3 = place - start[bone]
 			worst = worst.max(Vector2(Vector2(moved.x, moved.z).length(), absf(moved.y)))
 	return worst
+
+
+# A point of a clip in place put back on the floor the root travels and turns over (kit #1157:
+# a turn's root yaws, by the `turn` curve of `clips.json`, degrees to the left).
+func _in_world(record: Dictionary, frame: int, point: Vector3) -> Vector3:
+	var yaw := 0.0
+	var curve: Array = record.get("turn", [])
+	for i in range(curve.size() - 1):
+		var a: Array = curve[i]
+		var b: Array = curve[i + 1]
+		if frame >= a[0] and frame <= b[0]:
+			yaw = lerpf(a[1], b[1], (frame - a[0]) / maxf(b[0] - a[0], 1.0))
+	if curve.size() > 0 and frame > curve[-1][0]:
+		yaw = curve[-1][1]
+	return point.rotated(Vector3.UP, deg_to_rad(yaw)) + _travel_at(record, frame)
 
 
 # The root's place at a frame, from the travel curve of `clips.json` (forward is +Z, left +X).
@@ -353,8 +371,9 @@ func test_a_stance_change_begins_and_ends_on_the_poses_it_joins() -> void:
 						two.basis.get_rotation_quaternion()
 					)
 					assert_float(rad_to_deg(turn)).override_failure_message(where).is_less(0.5)
-	# The two stance changes, and a start and a stop on each foot for each of three gaits.
-	assert_int(joined).is_equal((4 + 24) * MODELS.size())
+	# The two stance changes, a start and a stop on each foot for each of three gaits, and the ten
+	# reversals, pivots and turns on the spot (kit #1157).
+	assert_int(joined).is_equal((4 + 24 + 20) * MODELS.size())
 
 
 func test_the_crouch_clips_fit_the_game() -> void:

@@ -9,9 +9,9 @@ extends RefCounted
 ## asked to move starts; one that moves and is asked to stop stops; one asked to go back the way
 ## it came reverses, or pivots at a smaller angle; one that stands and aims away turns on the
 ## spot. The clip is the `GaitTransitionSet`'s for the gait (the ground blend space's point the
-## body is in, or heads for) and the side: the foot that lands next in the gait's phase for a stop
-## and a reversal, the way the body turns for a pivot and a turn. With no such clip in the
-## libraries nothing happens and the states blend as before.
+## body is in, or heads for) and the side: the foot that lands next in the gait's phase for a stop,
+## the foot on the side it turns to for a reversal, the way the body turns for a pivot and a turn.
+## With no such clip in the libraries nothing happens and the states blend as before.
 ##
 ## A clip plays in the machine's `gait_transition` state behind a seek and a time scale of 0, so
 ## only the seek moves it: to the time at which its travel curve (`GaitClips`) has covered the
@@ -187,8 +187,11 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	var angle := rad_to_deg(moving.angle_to(wish))
 	var picked := {}
 	if angle >= settings.reversal_angle:
+		# A reversal turns over the foot it plants (#1157: planting the left foot it turns to the
+		# left), so the clip that turns the body's way is the one for the foot on that side.
+		var plant := "r" if moving.cross(wish).y < 0.0 else "l"
 		picked = _found(
-			Kind.REVERSAL, GaitTransitionSet.pick_in(player, clips.reversals, point, foot)
+			Kind.REVERSAL, GaitTransitionSet.pick_in(player, clips.reversals, point, plant)
 		)
 	elif angle >= settings.pivot_angle:
 		var side := "r" if moving.cross(wish).y < 0.0 else "l"
