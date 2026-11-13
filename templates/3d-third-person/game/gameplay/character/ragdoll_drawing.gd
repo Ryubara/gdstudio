@@ -57,13 +57,14 @@ static func place(current: Variant, of: CharacterRagdoll) -> RagdollDrawing:
 ## hands its bones to the pool: a skeleton that only made the pool's sets (the first character of a
 ## game, while the pool fills) kept its drawing, a node a living character does not carry (gdstudio
 ## #1210). The next set it holds places a new one.
-## Puts a simulating ragdoll (and this drawing) back after modifiers made just now on `skeleton`
+## Puts a simulating ragdoll (and this drawing) back after modifiers made just now on `on`
 ## (a weapon hold's, the aim layer's): made while the body lies limp (a weapon or stance change
 ## after the death), they went after the simulator and posed the dead arm and hand over the
 ## ragdoll's, so the weapon stood off the hand (kit #1339, docs/engines/godot/ragdoll.md#underfoot).
-static func keep_last(skeleton: Skeleton3D) -> void:
-	if skeleton == null or not is_instance_valid(skeleton):
+static func keep_last(on: Object) -> void:
+	if on == null or not is_instance_valid(on) or not on is Skeleton3D:
 		return
+	var skeleton := on as Skeleton3D
 	for child in skeleton.get_children():
 		var simulator := child as PhysicalBoneSimulator3D
 		if simulator == null or not simulator.is_simulating_physics():

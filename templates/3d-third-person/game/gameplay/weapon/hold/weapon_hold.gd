@@ -851,7 +851,7 @@ func _build() -> void:
 		_build_rack()
 	else:
 		_add_floor()
-	(func() -> void: RagdollDrawing.keep_last(_skeleton)).call_deferred()
+	RagdollDrawing.keep_last.call_deferred(_skeleton)
 	refresh()
 	built.emit()
 
