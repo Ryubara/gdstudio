@@ -17,8 +17,6 @@ on:
   pull_request:
     paths:
       - templates/3d-third-person/game/tests/gameplay/test_parts_budget.gd
-      - templates/3d-third-person/game/tests/fixtures/animation_ruler.gd
-      - templates/3d-third-person/game/tests/fixtures/physics_ruler.gd
       - .github/workflows/parts-budget.yml
 
 permissions:

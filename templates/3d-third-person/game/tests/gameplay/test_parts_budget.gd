@@ -36,34 +36,31 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 const NODES_ALIVE := 69
 const BODIES_ALIVE := 2
 const CROWD := 10
-const FRAMES := 120
-## Ten walking characters' median frame (their scripts, the animation and the physics step), as a
-## multiple of the median calibration loop below, the loop run once at the end of every measured
-## frame. Both sides are timed in the same frames, so a moment the machine takes the processor
-## away moves both (#1324: the loop timed once after the frames, as the fastest of nine, read 1.41
-## against the old limit of 1.3 while other suites ran). Measured 2026-11-12 on the desktop,
-## headless at CI's step: 0.90 to 1.12 in 28 runs with two more suites running, where the old
-## measure read 0.83 to 1.45 in the same rounds. After main's character and animation work of
-## 2026-11-11 and 12 it read 1.16 to 1.33 (16 runs, 8 to 93 % of the processor, the build before
-## them 1.01 to 1.08 in turns with it), and a frame made twice as slow 2.21 to 2.60. The limit sits
-## between the two; the counts above hold the ragdoll tight. What rose is traced on kit
-## docs/engines/godot/third-person/character.md#parts-cost (#1360: our gaits' clips, their speed
-## matching and their transitions; the rest is #1438).
-const FRAME_RATIO_LIMITS := {"Linux": 1.7, "Windows": 1.7}
+## Frames a window times, and windows a measure takes the best of.
+const FRAMES := 90
+const WINDOWS := 3
+## Ten walking characters' frame (their scripts, the animation and the physics step, less the same
+## arena's frame before they came), as a multiple of the calibration loop below, run once at the
+## end of every measured frame: medians of each window's frames and loops, the lowest of the
+## windows' ratios. Both sides are timed in the same frames, so a moment the machine takes the
+## processor away moves both (#1324), and a window the runner slowed for its own reasons is
+## outvoted by the other two; a frame twice as slow is twice in every window.
+## The limits sit between the highest ratio seen and twice the lowest, by system, as the AI cost
+## gate's (kit docs/engines/godot/running-gdunit.md#timing-gates; #1451): the same code reads
+## differently on each of GitHub's processor models (one model's runs agree within a few
+## percent, the models 1.5 times apart), and Linux and Windows build it to different speeds.
+## Rulers of animation, physics and spread-out memory work were timed beside the loop over 100 CI
+## runs and none followed the frame better (third-person/character.md#parts-cost). Linux: see
+## the table there; Windows: desktop runs with other agents' Godot processes running.
+const FRAME_RATIO_LIMITS := {"Linux": 2.2, "Windows": 2.4}
 ## How many times its work the teeth case's frame costs.
 const SLOW_FACTOR := 2.0
 
 var _arena: Node3D
 var _work: Array[float] = []
 var _loop: Array[float] = []
-var _anim: Array[float] = []
-var _physics: Array[float] = []
-var _objects: Array[float] = []
-var _walk: Array[float] = []
-var _heap: HeapRuler
 var _tick_start := -1
 var _factor := 1.0
-var _rulers: Array[Node] = []
 
 
 func before_test() -> void:
@@ -170,65 +167,45 @@ static func _frame_limit() -> float:
 	return FRAME_RATIO_LIMITS.get(OS.get_name(), FRAME_RATIO_LIMITS["Linux"])
 
 
-## Ten walkers, warmed, then `FRAMES` frames timed with every ruler timed after each; `factor` makes
-## each frame's work cost that many times itself (the teeth case).
+## The empty arena's frame, then ten walkers' in `WINDOWS` windows, each beside the loop; `factor`
+## makes each of the walkers' frames cost that many times itself (the teeth case).
 func _measure_crowd(factor: float) -> Dictionary:
-	_rulers = [AnimationRuler.new(), PhysicsRuler.new()]
-	_heap = HeapRuler.new()
-	for ruler: Node in _rulers:
-		_arena.add_child(ruler)
 	await InputSim.ticks(get_tree(), 10)
 	_factor = 1.0
 	await _measure_frames()
 	var base := _median(_work)
-	var base_nodes := get_tree().get_node_count()
-	var base_bodies := Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS)
 	for index in CROWD:
 		_spawn(index)
 	await InputSim.ticks(get_tree(), 60)
 	_factor = factor
-	await _measure_frames()
-	var frame := _median(_work)
-	var loop := _median(_loop)
-	var anim := _median(_anim)
-	var physics := _median(_physics)
-	var objects := _median(_objects)
-	var walk := _median(_walk)
-	var ruler := _ruler_ms(loop, anim, physics)
+	var ratios: Array[float] = []
+	var frames: Array[float] = []
+	var loops: Array[float] = []
+	for _window in WINDOWS:
+		await _measure_frames()
+		var frame := maxf(_median(_work) - base, 0.0)
+		var loop := maxf(_median(_loop), 0.001)
+		frames.append(snappedf(frame, 0.001))
+		loops.append(snappedf(loop, 0.001))
+		ratios.append(snappedf(frame / loop, 0.001))
+	var best := ratios.find(ratios.min())
 	return {
 		"system": OS.get_name(),
-		"frame_ms": snappedf(frame, 0.001),
-		"ruler_ms": snappedf(ruler, 0.001),
-		"ratio": snappedf(frame / maxf(ruler, 0.001), 0.001),
-		"loop_ms": snappedf(loop, 0.001),
-		"anim_ms": snappedf(anim, 0.001),
-		"physics_ms": snappedf(physics, 0.001),
-		"loop_ratio": snappedf(frame / maxf(loop, 0.001), 0.001),
-		"anim_ratio": snappedf(frame / maxf(anim, 0.001), 0.001),
-		"physics_ratio": snappedf(frame / maxf(physics, 0.001), 0.001),
-		"objects_ms": snappedf(objects, 0.001),
-		"walk_ms": snappedf(walk, 0.001),
+		"ratio": ratios[best],
+		"frame_ms": frames[best],
+		"loop_ms": loops[best],
 		"base_ms": snappedf(base, 0.001),
-		"base_nodes": base_nodes,
-		"base_bodies": base_bodies,
-		"objects": Performance.get_monitor(Performance.OBJECT_COUNT),
+		"ratios": ratios,
+		"frames_ms": frames,
+		"loops_ms": loops,
 	}
 
 
-## The ruler the limit is held against, from the three timed beside the frames.
-static func _ruler_ms(loop: float, _anim_ms: float, _physics_ms: float) -> float:
-	return loop
-
-
-# Times each frame's work, from its first physics tick to the last node processed, then times one
-# ruler in the same frame, each in turn: every list sees the same load.
+# Times each frame's work, from its first physics tick to the last node processed, then runs the
+# calibration loop once in the same frame: both lists see the same load.
 func _measure_frames() -> void:
 	_work.clear()
 	_loop.clear()
-	_anim.clear()
-	_physics.clear()
-	_objects.clear()
-	_walk.clear()
 	_tick_start = -1
 	var end := FrameEnd.new()
 	add_child(end)
@@ -263,17 +240,7 @@ func _on_frame_end() -> void:
 		spent = Time.get_ticks_usec() - _tick_start
 	_work.append(spent / 1000.0)
 	_tick_start = -1
-	match _work.size() % 5:
-		0:
-			_loop.append(_calibration_ms())
-		1:
-			_anim.append((_rulers[0] as AnimationRuler).measure_ms())
-		2:
-			_physics.append((_rulers[1] as PhysicsRuler).measure_ms())
-		3:
-			_objects.append(_heap.objects_ms())
-		4:
-			_walk.append(_heap.walk_ms())
+	_loop.append(_calibration_ms())
 
 
 # A fixed piece of script of the kind the parts run (arithmetic, vectors, an array and a
