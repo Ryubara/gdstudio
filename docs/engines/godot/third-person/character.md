@@ -429,6 +429,28 @@ differs, from run to run. What Chrome still pays is the WAV's own start.
 The desktop rows are three interleaved runs of each build (before, after, before, ...), the browser rows two, headless,
 on a machine other agents were using; a range is the lowest and the highest run.
 
+**What the gaits of 2026-11-11 to 13 added** (gdstudio #1360). The budget case's ten walkers went from 0.92 to 1.07
+times the calibration (db19fdc0) to 1.50 to 1.80 (main at dc9dc2fb, 1.79 to 2.99 ms median), eight interleaved runs
+each on a desktop at 97 to 100 % load. Read by the bench's parts, as a share of the body's step (which no change
+touched, so it cancels the load), the animation script and the tree rose at three commits, a game made at each:
+
+| Animation script and tree, share of the step (25 walking) | Script | Tree |
+| --- | ---: | ---: |
+| Before (db19fdc0) | 0.31 | 0.66 |
+| Our walk, jog and sprint (#1275) | 0.40 | 0.70 |
+| Gait speed matching, momentum and lean (#1368) | 0.90 | 0.87 |
+| The starts and stops exist (#1375), and main | 1.18 to 1.37 | 0.85 to 0.91 |
+| After #1360 | 0.99 | 0.80 |
+
+At the step's 72 µs that is a script of 22 µs before and 99 on main. Of main's, the gait's blend took 16 to 25 µs (the
+speed matching of both spaces), the lean 1, the momentum blend 6.5 in the skeleton's update, and the transitions 19 to
+33: once #1375 gave the player its starts and stops, every moving body looked up its main gait, its phase in the tree
+and its next foot each frame before asking whether it wanted a stop, a reversal or a pivot, and each look at a clip's
+record built its library's name and its contact list again. #1360 asks the controller's numbers first and keeps each
+record's lookup and contacts once (`GaitClips`): 7 to 9 µs, the same transitions picked. Our clips key the four `ik_`
+targets (8 of 61 tracks), which the tree blends too. What #1360 left is
+[gdstudio #1438](https://github.com/Ryubara/gdstudio/issues/1438).
+
 - **Approach:** Empty the `RagdollPool` (`clear()`) before counting a living character's nodes, so it makes the pool's
   sets whatever ran first; leave out the controller the test added and hold the count equal. The count includes the
   empty `PhysicalBoneSimulator3D` every `Skeleton3D` adds as an internal child on entering the tree (4.7.2's

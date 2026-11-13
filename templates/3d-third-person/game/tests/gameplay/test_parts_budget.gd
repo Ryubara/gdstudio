@@ -42,9 +42,11 @@ const FRAMES := 120
 ## against the old limit of 1.3 while other suites ran). Measured 2026-11-12 on the desktop,
 ## headless at CI's step: 0.90 to 1.12 in 28 runs with two more suites running, where the old
 ## measure read 0.83 to 1.45 in the same rounds. After main's character and animation work of
-## 2026-11-11 and 12 (not traced to one change) it read 1.16 to 1.33 (16 runs, 8 to 93 %
-## of the processor, the build before them 1.01 to 1.08 in turns with it), and a frame made twice
-## as slow 2.21 to 2.60. The limit sits between the two; the counts above hold the ragdoll tight.
+## 2026-11-11 and 12 it read 1.16 to 1.33 (16 runs, 8 to 93 % of the processor, the build before
+## them 1.01 to 1.08 in turns with it), and a frame made twice as slow 2.21 to 2.60. The limit sits
+## between the two; the counts above hold the ragdoll tight. What rose is traced on kit
+## docs/engines/godot/third-person/character.md#parts-cost (#1360: our gaits' clips, their speed
+## matching and their transitions; the rest is #1438).
 const FRAME_RATIO_LIMIT := 1.7
 
 var _arena: Node3D
