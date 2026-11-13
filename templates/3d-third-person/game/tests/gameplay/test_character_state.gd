@@ -208,6 +208,7 @@ func test_restore_puts_back_the_weapons_cooldown_and_its_place_in_the_spread() -
 	# Its own copy: the pistol's definition is shared by every weapon that holds it.
 	_player.weapon.definition = _player.weapon.definition.duplicate()
 	_player.weapon.definition.spread = 5.0
+	_player.weapon.definition.first_shot_spread = 5.0
 	var aim := CommandDriver.walking(Vector3.ZERO, Vector3.FORWARD)
 	aim.aim = true
 	await _run(aim, 30)
@@ -215,8 +216,9 @@ func test_restore_puts_back_the_weapons_cooldown_and_its_place_in_the_spread() -
 	assert_array(await _press_fire(10)).has_size(2)
 	var kept := _player.state_snapshot()
 	# The cooldown, the spread's place, the magazine, the reserve and the reload, then the melee
-	# blow's eight (gdstudio #1254), then the shots of a burst under way (gdstudio #1352).
-	assert_array(kept.weapon).has_size(14)
+	# blow's eight (gdstudio #1254), then the shots of a burst under way (gdstudio #1352) and the
+	# spread's heat (gdstudio #1411).
+	assert_array(kept.weapon).has_size(15)
 	assert_float(kept.weapon[0]).is_between(0.06, 0.11)
 	# The next press waits for the rest of the cooldown, then the shot leaves, off the aim.
 	var first := await _press_fire(40)
