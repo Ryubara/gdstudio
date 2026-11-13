@@ -78,6 +78,8 @@ func test_the_bandage_takes_time_and_plays_its_clip_on_the_upper_body() -> void:
 	assert_bool(_sign.visible).is_true()
 	assert_str(_sign.name_label.text).is_equal("Bandage")
 	assert_bool(_use.sound.playing).is_true()
+	# At the character, wherever it stands (a 3D node under a plain node sits at the origin).
+	assert_float(_use.sound.global_position.distance_to(_player.global_position)).is_less(2.0)
 	# Nothing has changed yet: the bandage works near the end of the use.
 	assert_float(_health.value).is_equal(40.0)
 	assert_int(_bandages()).is_equal(3)

@@ -31,7 +31,8 @@ signal cancelled(place: int, item: ItemDef, reason: StringName)
 @export var character: Character
 ## The places the items come from. Empty: the character's `Hotbar`.
 @export var hotbar: Hotbar
-## Plays the item's `use_sound` (the `Sound` child). Empty: no sound.
+## Plays the item's `use_sound`, at the character (the player's `UseSound`, a 3D node under the
+## body: under this plain node it would sit at the world's origin). Empty: no sound.
 @export var sound: AudioStreamPlayer3D
 
 @export_group("Cut short by")
@@ -67,6 +68,11 @@ func _ready() -> void:
 	if character != null:
 		character.took_hit.connect(_on_took_hit.unbind(2))
 		character.died.connect(_on_died)
+	# Warm the hotbar's sounds now, so the first use does not decode in its frame.
+	if hotbar != null:
+		for start in hotbar.start_items:
+			if start != null and start.use_sound != null:
+				DecodedSounds.decoded(start.use_sound)
 
 
 ## The `ItemUse` of `node`: `node` itself, or its first child that is one. Null when it has none.
@@ -232,7 +238,8 @@ func _play_presentation(wanted: ItemDef) -> void:
 		elif hold is TwoHandHold:
 			(hold as TwoHandHold).free_hand(wanted.use_time)
 	if sound != null and wanted.use_sound != null:
-		sound.stream = wanted.use_sound
+		# Decoded once to PCM: an Ogg Vorbis start reads its headers again (`DecodedSounds`).
+		sound.stream = DecodedSounds.decoded(wanted.use_sound)
 		sound.play()
 
 

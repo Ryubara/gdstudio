@@ -48,9 +48,9 @@ inventory = NodePath("../Inventory")
 script = ExtResource("13_item_use")
 character = NodePath("..")
 hotbar = NodePath("../Hotbar")
-sound = NodePath("Sound")
+sound = NodePath("../UseSound")
 
-[node name="Sound" type="AudioStreamPlayer3D" parent="ItemUse"]
+[node name="UseSound" type="AudioStreamPlayer3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
 stream = ExtResource("14_bandage_sound")
 volume_db = -14.0
