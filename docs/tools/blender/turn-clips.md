@@ -15,20 +15,24 @@ numbers are in the template's `assets/animation/own/README.md`; the plan they be
 <!-- new section: the root's place and yaw are curves of their own, and the body is posed in the root's frame and put
 on the floor; the next turning clip (a curved run, a landing into a turn) starts from this -->
 
-- **The root is a speed and a heading.** `Turn._root_curves` takes the root's speed and the way it goes as
-  functions of the frame and integrates them into a place and a yaw on a tenth-of-a-frame grid that runs well past
-  both ends, so a lead-in before frame 0 and the gait's own contacts after the last frame have a root too. The body
-  faces the way the root goes; `Travel(forward, left, turn)` carries it into the build, which takes the place and
-  the yaw out (`plan.unroot`) and writes both curves into `clips.json`.
-- **Turn round the slowest moment.** A reversal's heading turns over a window centred on the frame the root is
-  slowest (`low_at`, a share of the plant's contact), so the bend's acceleration, `v * dtheta / dt`, stays small:
-  a heading that turns while the body still runs at 2 m/s leans it 48 degrees into the bend.
+- **The root is a velocity and a facing, apart.** A turn on the spot gives `Turn._root_curves` a speed and a heading;
+  a reversal or a cut gives `Turn._root_vectors` a velocity on the floor and the way the body faces as two curves
+  (kit #1442), since a reversal faces side-on and back while it still travels the old way. Both are integrated on
+  a tenth-of-a-frame grid that runs well past both ends; `Travel(forward, left, turn)` carries them into the build,
+  which takes them out (`plan.unroot`) and writes both curves into `clips.json`, and the game reads the place from
+  `travel` and the facing from `turn` separately.
+- **A change of way spends the old momentum on a plant.** The velocity is the old way's and the new way's mixed by a
+  curve (`brake_from`, `stop_at`, `brake_shape`) that is half and half late in the plant's contact (for a reversal,
+  where the body stands still), so the mass is carried on over the planted leg before the body goes the new way; a
+  reversal comes back on a lane beside its way in (`lane`), toward the turn.
 - **The body is posed in the root's frame and put on the floor.** A description builds the spec as if the root were
   at the origin facing +z (the gait's spec at the clock's frame, or the idle's), adds the lean, and `placed` turns
   and moves it: the pelvis's place, and the yaw of the pelvis, the chest and the head (the solver's turns are from
   the standing rest, yaw outermost, so a yaw adds). Feet come from the treads, already in the world.
-- **The lean is the root's acceleration in its own frame**: along the way it faces (the change of speed) and to its
-  left (the bend), each `atan(a / g)` through a spring, with its own shares for the pelvis, the chest and the head.
+- **The lean is the root's acceleration in the way it faces**: ahead and to its left, each `atan(a / g)` through a
+  spring, with its own shares for the pelvis, the chest and the head; while a plant brakes, most of the lean back is
+  taken out and the trunk is carried the old way instead (`carry`, `carry_cut`), which the weight check's side lean
+  then reads as a declared limit.
 - **The head leads.** The chest's and the head's yaw are the root's a few frames ahead (`chest_lead`,
   `head_lead`) plus the overlap pass's lag, which would otherwise make them trail the hips through a turn.
 - **A turn on the spot steps on the idle's own places, turned.** Each step lands a foot where the idle has it with
@@ -95,3 +99,10 @@ on the floor; the next turning clip (a curved run, a landing into a turn) starts
 - **Approach:** Cap how fast the tree may run a turning clip to catch up with the body (`transition_pace`), since
   the controller turns far faster than a person. **Watch out for:** a 180 degree reversal played by the angle
   turned ran its 1.13 s of turn in the controller's 0.26 s. **Seen:** gdstudio #1157, 2026-11-13.
+- **Approach:** Build a reversal as four phases: the hips go side-on (`side_on`, about 75 degrees), the outside foot
+  plants well ahead and stays down long (16 frames at a jog; 18 at a sprint, after three braking steps), the trunk
+  is carried the old way over it while it brakes (`carry`, 30 to 44 degrees), and only then does the body turn and
+  push off. **Watch out for:** the first reversals turned early and neatly round the inside foot, with no sideways
+  shift, no plant ahead and no carried lean, and read as unnatural (this replaces the entry above that turned a
+  reversal over its plant foot); a carry over about 44 degrees, or a plant over 0.12 m past the root's stop, folds
+  the ankle past its 55 degree cone. **Seen:** gdstudio #1442, 2026-11-13, from the maintainer's review.

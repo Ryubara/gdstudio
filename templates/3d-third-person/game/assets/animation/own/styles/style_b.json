@@ -344,20 +344,20 @@
    "Tried: steps on the idle's places with the hips turning early put form_male's thighs 6.5 mm into each other; the wider steps then put the left hand 5.5 mm into its thigh on the Quaternius female until the arm opens 18 degrees while its foot is up."
   ],
   "jog_turn_90": [
-   "62 frames over 5.6 m: a longer brace, a wider turn (14 frames before the slowest moment to 20 after), the chest and head leaning late (`lean_lag` 3 frames) and the head 4.5 frames ahead of the root.",
-   "Tried: the swinging right foot turned 55.6 degrees from its rest at the ankle (limit 55) with the plant set 0.6 of the turn; set 0.55, with its heel let up to 58 degrees as it leaves, it is 54.6."
+   "Loose cut: a longer plant and more carry (18 degrees), the head leading later.",
+   "The push lands flatter (toes down 8 degrees)."
   ],
   "turn_in_place_180": [
    "Five steps over 79 and 77 frames: the hips late on a skewed curve, the head 14 degrees past them, the arms opening wide, the early steps 0.12 m wider than the idle's places.",
    "Tried: steps on the idle's places with the hips turning early put form_male's thighs 6.2 mm into each other; wider, the left hand went 10.3 mm into its thigh on the Quaternius female until the arm opens 18 degrees while its foot is up."
   ],
   "jog_turn_180": [
-   "72 frames: it comes nearly to rest on the plant (0.06 of the jog), sinks 50 mm and braces further toward the idle's carriage, the head leading 4.5 frames and the lean coming late.",
-   "The thighs meet 5.0 mm on form_male in the left clip, at the limit; a deeper sink or a later turn crossed it."
+   "Loose: a longer plant (18 frames) and a later turn; the parts trail further behind.",
+   "Carried lean 40 degrees; the body hangs over the plant longest before it turns (limit 35, declared)."
   ],
   "sprint_turn_180": [
-   "108 frames, 3.6 s: longer braking steps and a slower run back out (ten landings), the carriage halfway to the idle's while it is slowest, the lean late.",
-   "Lean 22.4 forward (declared 24): the longest of the three, and the one that reads most like a person stopping first and then turning."
+   "Loose: a 20-frame plant and the latest turn; arms and head trail.",
+   "Carried lean held to 28 degrees: over that the long plant folds the ankle past its cone."
   ]
  },
  "overlap_stand_to_crouch": {

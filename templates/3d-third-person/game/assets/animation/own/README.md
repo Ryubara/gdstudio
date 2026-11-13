@@ -841,9 +841,9 @@ row shows. Measured by the build on `form_female` (frames are `_L`, `_R`):
 ## The turns: `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90`, `Turn_In_Place_90`, `Turn_In_Place_180`
 
 Kit #1157. All new: Quaternius's library has no turn, and the game turned the body at `turn_speed` under a looping gait,
-so a body that reversed out of a sprint spun round with its feet still running. Each type is two clips, `_L` and `_R`: a
-reversal is named for the foot that plants and turns over it (planting the left foot it turns to the left), a pivot and
-a turn on the spot for the way they turn. All ten are one description, `clips/turns.py`, and each type is a family in
+so a body that reversed out of a sprint spun round with its feet still running. Each type is two clips, `_L` and `_R`: every
+clip is named for the way it turns (since kit #1442 a reversal too: it plants the outside foot, as a cut
+does). All ten are one description, `clips/turns.py`, and each type is a family in
 `build_own.py` (`FAMILIES`): `review jog_turn_180` builds both clips under every letter, and one letter of `picks.json`
 picks the pair.
 
@@ -861,13 +861,31 @@ and the clip's number is a declared choice.
 | A 90 degree turn on the spot or walking | Half to three quarters of walking 90 degree turns were step turns, the foot opposite the turn redirecting the body; the turn took 1.4 to 1.7 s and three to four footfalls. | [a study of walking 90 degree turns](https://pmc.ncbi.nlm.nih.gov/articles/PMC10722562) (read) | Not used for the turn on the spot (both feet step on their own idle places); the numbers say a body takes longer than the game's 0.13 s (`turn_speed` 12 rad/s). |
 | How far a body leans in a bend | Not found as a number in a source we could open. Physics gives it: a body that stays over its feet leans by `atan(a / g)` of the acceleration toward the bend's middle, `v * dtheta / dt`; at 2.4 m/s through 90 degrees in a second that is up to 25 degrees. | computed | The trunk and the hips lean into the bend by the root's acceleration in its own frame, forward and back and to the side, through a spring (`lean_lag`); the feet land outside the bend by a share of it (`drive`), no further than `reach_side`. The build reads both against what the soles on the floor can hold (`lean_off_deg`, `side_lean_off_deg`). |
 
+Reread on 2026-11-13 for kit #1442, after the maintainer's review found the first reversals turned too soon and too
+neatly. Sports footage of shuttle runs, the 505 test and basketball and football stops shows the same order every time:
+the runner turns the hips side-on and drops them, plants the outside foot well ahead, is carried on over it while it
+brakes, and only then turns and pushes away.
+
+| What | Finding | Source | What the clips do with it |
+| --- | --- | --- | --- |
+| The 180 degree turn's body, measured | Before and after six weeks of turn coaching (modified 505, entering at 3.96 to 4.09 m/s): ground contact 0.46 to 0.53 s, pelvis turned 77 to 92 degrees at the turn, hip flexion 89 to 96 and knee 110 to 114 degrees at the penultimate contact, trunk inclined 32 to 42 degrees at the final contact; the coaching asked for lower hips and a harder penultimate brake. | [Dos'Santos et al., change-of-direction training study](https://pmc.ncbi.nlm.nih.gov/articles/PMC8225134) (read) | The hips are 0.42 of the turn (76 degrees) side-on by the plant's landing; the plant stands 16 frames (0.53 s) at a jog, 18 (0.6 s) at a sprint; the hips sink over the brake; the carried lean is 30 to 44 degrees. |
+| What makes a 505 fast | Penultimate-contact braking and triple flexion, medial trunk lean and the pelvis and foot turned in, short horizontal pushes at the final contact. | [Dos'Santos et al., determinants of the 505](https://e-space.mmu.ac.uk/626014/) (summary) | The step before the plant brakes too and lands wide toward the turn (`brake_wide`); the push off the plant lands on its own side (`push_wide`). |
+| A sprint against a jog | Faster approaches need the braking spread over more contacts before the turn (same sources; the penultimate contact is the "preparatory step"). | [the turning-phase review](https://www.mdpi.com/1660-4601/18/11/5519) (summary) | The sprint reversal brakes over three steps from frame 3, then the plant; the jog over one step and the plant. |
+
 ### How the turns are built
+
+Since kit #1442 a reversal and a cut are a velocity mixed from the old way's and the new way's (`brake_from`,
+`stop_at`, `brake_shape`, half and half late in the plant's contact), a sideways `lane` for a reversal, the facing on
+its own curve (`side_on` by the plant's landing, the rest from `turn_lead` before the stop to `turn_after` after it),
+the trunk carried the old way while the plant brakes (`carry`, `carry_cut`, `carry_hold`) and the plant placed from
+the root's place at the stop (`plant_out`, `plant_aside`). The game moves the body on the clip's own root
+(`CharacterController.turn_clips`). The rest of this section is how a turn on the spot is built, and the steps and
+the body of every turn:
 
 - **The root is a speed and a heading** (the kit's `docs/tools/blender/turn-clips.md#description`), integrated into
   a place and a yaw that `locomotion.json` carries as `travel` (frame, metres forward, metres left) and `turn`
-  (frame, degrees to the left). A reversal and a pivot slow to `low` of the gait's speed at `low_at` of the plant's
-  contact and turn from `turn_before` frames before that moment to `turn_after` after it, so the bend's
-  acceleration (`v * dtheta / dt`) is small; a turn on the spot turns from `yaw_early` frames before its first lift
+  (frame, degrees to the left). A reversal and a pivot follow the velocity and the facing above; a turn on the
+  spot turns from `yaw_early` frames before its first lift
   to `yaw_late` after its last landing, on a curve skewed by `yaw_turn`.
 - **The steps.** A reversal's and a pivot's begin and end on the gait's own contacts; the steps between land where
   a steady step would, moved by the acceleration's lean forward and to the side (`drive`), never across the middle
@@ -883,6 +901,11 @@ and the clip's number is a declared choice.
   0.0 mm and 0.09 degrees in every variant.
 
 ### The turns' variants
+
+Since kit #1442 the moving types' variants are the momentum model's: A grounded (the description's numbers), B loose
+(a longer plant, a later turn, trailing parts; its carried lean kept lower where the long plant folds the ankle), C
+sharp (the hips most side-on, a shorter plant, a quick turn). Each variant's two lines on its sheet say its numbers;
+the tables below for the moving types are the first reversals', kept as the record of what was rejected.
 
 - **A, grounded** (shipped until a letter is picked): a person's numbers where a source gave them: three steps for a
   90 on the spot and four for a 180 (the study's 2.95 put a thigh into the other), the head 3 frames ahead of the
