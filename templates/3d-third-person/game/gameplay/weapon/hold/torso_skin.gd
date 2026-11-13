@@ -248,11 +248,11 @@ func push(
 # Only the points the stock passes over in a move of `reach` are gone through (kit #1433): a
 # point it does not pass over forbids no move short of `reach`, so a push under `reach` is the
 # push of every point, and only a push that reaches it is worked out again over `_PUSH_MOST`.
-# `reach` is the last push and `_ALONG_SLACK`. The points are met in a frame sheared along the
-# move (the way up less `slope` times the way along), in which the move goes straight along and
-# the stock's sweep is nearly a box (`swept`): in the gun's own frame its box was twice the sweep,
+# `reach` is the last push and `_ALONG_SLACK`. The points are met in the frame of their runs, in
+# which the stock's sweep is a box (`swept`): in the gun's own frame its box was twice the sweep,
 # and turned into a bone's rest space (as `push()` does with the stock) it covered most of the
-# torso, so three in four points gone through were outside it.
+# torso, so three in four points gone through were outside it; and each point's run is then two
+# sums and two tests.
 func _push_along(
 	skeleton: Skeleton3D,
 	gun: Transform3D,
@@ -262,54 +262,46 @@ func _push_along(
 	butt_margin: float,
 	move: Vector2
 ) -> float:
-	var to_gun := gun.affine_inverse() * to_here
 	var wide := butt_pad.x * 0.5 + butt_margin
 	var high := butt_pad.y * 0.5 + butt_margin
-	# `move.y` is over 0 (`_LEAST_ALONG`): the shear keeps x and the way along, and takes
-	# `slope` times the way along off the way up.
-	var slope := move.x / move.y
-	var shear := Transform3D(
-		Basis(Vector3.RIGHT, Vector3.UP, Vector3(0.0, -slope, 1.0)), Vector3.ZERO
-	)
-	var low_edge := minf(slope * butt_margin, -slope * butt_depth)
-	var high_edge := maxf(slope * butt_margin, -slope * butt_depth)
-	# The edge of the stock a point crosses first as the gun goes up `move.x` (its sign is the
-	# frame's), and the one it leaves by: `minf()` and `maxf()` of the two worked out once.
+	# Each point is met in a frame of its own run (`move.y` is over 0, `_LEAST_ALONG`): x as it
+	# is, `along` the move that brings the stock's back edge to it (`(z - butt_depth) / move.y`)
+	# and `off` the move that brings its edge across the way up there, less `along`. Moved by
+	# `d`, a point is inside the stock while `d` is over `along` and `along + off`, and under
+	# `along + span` and `along + off + rise`: one transform turns a group's points into it.
 	var enters := -high if move.x > 0.0 else high
-	var leaves := -enters
+	var span := (butt_depth + butt_margin) / move.y
+	var rise := 2.0 * high / absf(move.x)
+	var into_run := Transform3D(
+		Basis(Vector3.RIGHT, Vector3(0.0, 1.0 / move.x, 0.0), Vector3(0.0, -1.0, 1.0) / move.y),
+		Vector3(0.0, enters / move.x + butt_depth / move.y, -butt_depth / move.y)
+	)
+	var to_run := into_run * gun.affine_inverse() * to_here
 	var reach := minf(_along_last + _ALONG_SLACK, _PUSH_MOST)
 	var pushed := 0.0
 	while true:
+		# Where a point forbids a move under `reach`: `off` between `-rise` and `span`, `along`
+		# between `-span` and `reach`.
 		var swept := AABB(
-			Vector3(-wide, low_edge - high, -butt_margin),
-			Vector3(
-				wide * 2.0,
-				high_edge - low_edge + high * 2.0,
-				butt_depth + butt_margin + reach * move.y
-			)
+			Vector3(-wide, -rise, -span), Vector3(wide * 2.0, rise + span, span + reach)
 		)
 		var runs := PackedVector2Array()
 		for bone in _torso_bones.size():
-			var pose := shear * to_gun * _posed(skeleton, bone)
+			var pose := to_run * _posed(skeleton, bone)
 			if not (pose * _torso_boxes[bone]).intersects(swept):
 				continue
 			for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
 				if not (pose * _skin_boxes[group]).intersects(swept):
 					continue
 				for at in pose * _group_points[group]:
-					if not swept.has_point(at) or absf(at.x) >= wide:
+					if not swept.has_point(at):
 						continue
-					# Moved by `d` the point is at `up - d * move.x` up and `at.z - d * move.y`
-					# along.
-					var up := at.y + slope * at.z
-					var low := (at.z - butt_depth) / move.y
-					var first := (up + enters) / move.x
-					if first > low:
-						low = first
-					var top := (at.z + butt_margin) / move.y
-					var last := (up + leaves) / move.x
-					if last < top:
-						top = last
+					var low := at.z
+					var top := at.z + span
+					if at.y > 0.0:
+						low += at.y
+					if at.y + rise < span:
+						top = at.z + at.y + rise
 					if top > low and top > 0.0:
 						runs.append(Vector2(low, top))
 		runs.sort()

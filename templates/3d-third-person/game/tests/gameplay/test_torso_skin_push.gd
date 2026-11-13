@@ -45,7 +45,7 @@ func before_test() -> void:
 func test_the_push_along_a_way_is_the_push_of_every_point() -> void:
 	var along := 0
 	for model in MODELS:
-		var stage := RifleStage.make_rifle(_holder, model, false)
+		var stage := RifleStage.make_rifle(_holder, model)
 		var held := stage.hold as TwoHandHold
 		var skin := TorsoSkin.new()
 		skin.measure(
