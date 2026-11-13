@@ -154,7 +154,9 @@ the parts' code.
   clear of the HUD's six regions: it sits at the top middle, and `test_hud_layout.gd` checks it against every visible
   part and the minimap at phone and desktop sizes. **Watch out for:** two pull requests that each pass their own tests
   can still overlap once both are in main (the pause button and the minimap both took the top-right corner); only a
-  phone capture of the merged game showed it. **Seen:** gdstudio #884, 2026-11-10.
+  phone capture of the merged game showed it. **Seen:** gdstudio #884, 2026-11-10; gdstudio #1400, 2026-11-13 (a new
+  touch button pair placed in the top right sat under the ammo panel on a phone: run `test_hud_layout.gd` after adding
+  a touch button, not only the touch suites).
 - **Approach:** A part that the HUD moves (`reparent`, the touch layout's `touch_region`) binds again when it enters the
   tree (`HudWidget._enter_tree` calls `rebind()` once ready), and a test changes the data after the move and reads the
   part. **Watch out for:** `_exit_tree` let go of the player and nothing bound it again, so every part moved for the

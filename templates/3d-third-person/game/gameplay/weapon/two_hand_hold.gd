@@ -87,6 +87,10 @@ const _PUSH_STEP := 0.003
 ## spine bones; negative brings the left shoulder forward so the left hand reaches the fore-end.
 ## The clip's own turn of the chest is taken off, so the shoulders keep this in a walk or a run.
 @export_range(-60.0, 60.0, 0.5, "suffix:deg") var chest_turn := -30.0
+## How far the chest stands turned with the gun on the left shoulder (a left peek lean, gdstudio
+## #1435), as `chest_turn`: square on, since the right hand reaches across to the grip and the left
+## arm forward to the hand guard (turned the mirrored 30 degrees, the left hand was 15 mm short).
+@export_range(-60.0, 60.0, 0.5, "suffix:deg") var left_chest_turn := 0.0
 ## The most the chest leans (from its rest, the way the clip has it) while the gun is up: a chest
 ## that leans more (a crouch's hunch) is raised toward this as the gun comes to the shoulder.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var aim_lean_limit := 25.0
@@ -237,6 +241,12 @@ var posed_lowered := 0.0
 var posed_free := 0.0
 ## How much of the upper body a melee blow's clip holds, for a figure posed by hand (`HoldBlow`).
 var posed_blow := 0.0
+## How far the gun is on the left shoulder, for a figure posed by hand (gdstudio #1435).
+var posed_side := 0.0
+## How far the gun is on the left shoulder now, 0 to 1: a left peek lean's share
+## (`CharacterPeek.shoulder_share()`). The pockets, the gun's turn across and the chest's turn
+## are mirrored by it; the hands stay on their places on the gun.
+var side := 0.0
 ## True while the camera is past `fingers_far_distance` (set by `CharacterAnimationThrottle`).
 var fingers_far := false
 
@@ -486,6 +496,9 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		var eased := smoothstep(0.0, 1.0, _down)
 		turn = turn.slerp(_turned(stow_pitch, stow_yaw), eased)
 		pocket = pocket.lerp(stow_pocket, eased)
+	if side > 0.0:
+		pocket.x = lerpf(pocket.x, -pocket.x, side)
+		turn = turn.slerp(LeftShoulder.mirrored(turn), side)
 	var basis_now := Basis(turn)
 	# The frame the pockets are given in: the chest's turn about the up axis, and `pocket_lean` of
 	# the rest of its turn from its rest (a lean forward, back or aside).
@@ -609,6 +622,12 @@ func weight() -> float:
 	return _reach
 
 
+## The chest's turn from the model's front now, in degrees: `chest_turn`, toward
+## `left_chest_turn` on the left shoulder (`side`).
+func chest_turn_now() -> float:
+	return lerpf(chest_turn, left_chest_turn, side)
+
+
 ## The weight of the chest's turn toward the hand guard: with the arms, and none while the left
 ## hand is away for an action, whose clip then has the shoulders (the turn would bring its
 ## reaching arm across the gun), nor while a melee blow's clip has the upper body.
@@ -684,6 +703,7 @@ func _step(delta: float) -> void:
 			_free.stop()
 		_freed = _free.amount()
 		_blow.step(character)
+		side = character.peek_motion.shoulder_share(character)
 		var wants := _blow.aim(character)
 		_shot_left = maxf(_shot_left - delta, 0.0)
 		if _shot_left > 0.0:
@@ -695,6 +715,7 @@ func _step(delta: float) -> void:
 		_raised = posed_aim
 		_freed = posed_free
 		_blow.amount = posed_blow
+		side = posed_side
 	_kick = move_toward(_kick, 0.0, delta / maxf(kick_recover_time, 0.001))
 
 
