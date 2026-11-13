@@ -33,6 +33,8 @@ const _P_SEEK := &"parameters/Locomotion/gait_transition/Seek/seek_request"
 const _P_HOLD := &"parameters/Locomotion/gait_transition/Hold/scale"
 ## Degrees of turn left before a turning body counts as done with its part.
 const TURN_DONE := 5.0
+## Below this ground speed a stopping body is at rest and its clip plays on at its own pace (m/s).
+const STOP_DONE := 0.02
 
 var settings: GaitSettings
 ## What plays now, and its clip.
@@ -230,6 +232,9 @@ func _begin(
 	_length = animation.animation_player.get_animation(clip).length
 	_time = 0.0
 	_from = body.global_position
+	if kind == Kind.STOP:
+		# The stick was let go a tick before the tree saw it: the stop's ground counts from there.
+		_from -= body.get_position_delta()
 	_facing = body.facing
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z)
 	var wish := body.last_command.world_move()
@@ -289,7 +294,10 @@ func _progress(body: Character, leg: float) -> float:
 func _body_done(body: Character) -> bool:
 	match kind:
 		Kind.STOP:
-			return body.ground_speed() < settings.standing_speed
+			# At rest: the clip is played by the ground the body covers until the body stands
+			# (the stop decelerations of `CharacterTuning` cover the clip's travel), never on by
+			# itself under a body that still slides.
+			return body.ground_speed() < STOP_DONE
 		Kind.START:
 			return body.ground_speed() >= body.goal_speed * 0.95
 		_:

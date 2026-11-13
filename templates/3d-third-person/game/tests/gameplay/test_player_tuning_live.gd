@@ -49,6 +49,9 @@ func test_every_number_has_its_default_pinned() -> void:
 		&"walk_below_push": 0.45,
 		&"least_walk_share": 0.5,
 		&"run_above_walk": 0.35,
+		&"walk_stop_deceleration": 2.84,
+		&"run_stop_deceleration": 4.38,
+		&"sprint_stop_deceleration": 4.57,
 		&"jump_height": 1.25,
 		&"jump_rise_time": 0.4,
 		&"fall_gravity_scale": 1.35,
@@ -125,13 +128,24 @@ func test_acceleration_sets_how_fast_it_gets_up_to_speed() -> void:
 	assert_float(_player.ground_speed()).is_equal_approx(_tuning.run_speed, 0.1)
 
 
-func test_deceleration_sets_how_fast_it_stops() -> void:
+func test_the_run_stop_deceleration_sets_how_fast_it_stops() -> void:
+	# On its feet the body slows by its gait's stop deceleration (gdstudio #1415).
 	InputSim.key(KEY_W, true)
 	await _ticks(40)
 	InputSim.key(KEY_W, false)
-	_tuning.deceleration = 6.0
+	_tuning.run_stop_deceleration = 6.0
 	await _ticks(10)
 	assert_float(_player.ground_speed()).is_equal_approx(_tuning.run_speed - 1.0, 0.15)
+
+
+func test_deceleration_sets_how_fast_it_stops_crouched() -> void:
+	InputSim.key(KEY_C, true)
+	InputSim.key(KEY_W, true)
+	await _ticks(40)
+	InputSim.key(KEY_W, false)
+	_tuning.deceleration = 3.0
+	await _ticks(10)
+	assert_float(_player.ground_speed()).is_equal_approx(_tuning.crouch_speed - 0.5, 0.15)
 
 
 func test_turn_speed_sets_how_fast_it_faces_where_it_goes() -> void:
