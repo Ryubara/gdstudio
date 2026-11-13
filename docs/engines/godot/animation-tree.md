@@ -361,3 +361,11 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   that frame and held the body in it, so the push clip never played and the vault's hands left the top by 0.3 m;
   the transition tests passed, since their clips existed only in their own suite. **Seen:** gdstudio #1156,
   2026-11-12 (`GaitTransitions.on_foot`; `test_player_actions.gd`, `test_push_cubes.gd`, `test_vault_contacts.gd`).
+- **Approach:** A transition played by the ground the body covers needs a body that covers the clip's ground: give the
+  controller a deceleration (or an acceleration) per gait that covers the clip's `travel`, follow the clip until the
+  body is at rest, count from the tick the input changed (`get_position_delta()`), and test the distance and a planted
+  foot's slide over the whole transition. **Watch out for:** the stops were played by travel while the body stopped by
+  one 36 m/s² in a tenth of the clip's ground; the clip then counted the body done under 0.3 m/s and played the rest at
+  its own pace, in place, its feet sliding back 106 mm under a body at rest; the transition tests checked only that a
+  stop clip played. **Seen:** gdstudio #1415, 2026-11-13 (`CharacterTuning.stop_deceleration`,
+  `test_gait_stops.gd`: 0.19 m covered of the jog stop's 1.96 before, 1.965 and 1.7 mm after).
