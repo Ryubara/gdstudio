@@ -140,10 +140,15 @@ func _process_modification_with_delta(_delta: float) -> void:
 		if not open_first.is_empty() and not open_together:
 			shares[1] = minf(open_weight / open_first_share, 1.0)
 			shares[2] = maxf((open_weight - open_first_share) / (1.0 - open_first_share), 0.0)
-	var stops := second_way.size()
-	var legs := stops + 1
-	var leg := mini(floori(second_weight * legs), legs - 1)
-	var along := second_weight * legs - leg
+	var stops := 0
+	var legs := 1
+	var leg := 0
+	var along := 0.0
+	if blend:
+		stops = second_way.size()
+		legs = stops + 1
+		leg = mini(floori(second_weight * legs), legs - 1)
+		along = second_weight * legs - leg
 	for index in _indexes.size():
 		var turned := _rotations[index]
 		if blend and _has_second[index] == 1:

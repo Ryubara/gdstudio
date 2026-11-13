@@ -291,3 +291,10 @@ headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdst
   the body, and remove the worktree after. **Watch out for:** neither branch alone held both the change and the probe
   that shows it, and nothing here said how to measure one with the other. **Seen:** gdstudio #1247 (PR #1250, with the
   soak probe of PR #1248), 2026-11-11.
+- **Approach:** To find where a part's web time goes, copy the kept game into your scratch folder at once, then turn
+  one part off at a time by an address argument (`?exp=nopush`) or time parts with `Time.get_ticks_usec()` spans,
+  export it again and read it in Chrome, each change against the build before it in turns, three rounds or more.
+  **Watch out for:** running a part ten more times a frame read the hold's place at 16 microseconds a character where
+  turning it off saved 34 (warm data, an early return the first run made possible); each span's clock read is a call
+  into JavaScript (about a microsecond); one round each moved a row 5 to 10 microseconds. **Seen:** gdstudio #1347,
+  2026-11-12 (the kept game in the temporary folder was gone between two exports).
