@@ -53,6 +53,10 @@ const _GRIP := &"HoldGrip"
 const _SUPPORT_ARM := &"HoldSupportArm"
 const _SUPPORT_FINGERS := &"HoldSupportFingers"
 const _STANCE := &"HoldOneHandStance"
+const _FLOOR := &"HoldHandFloor"
+## How far into a lying aim the hands are fully kept over the floor (`HandFloor`): from nothing at
+## no aim, so a crawl's fists are never moved.
+const FLOOR_FROM_AIM := 0.1
 ## The share of the kick's time over which a one-handed kick rises (the shot clip's own climb peaks
 ## at about a fifth of it).
 const KICK_RISE := 0.08
@@ -261,6 +265,7 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 var _skeleton: Skeleton3D
 var _grip: HandPoseModifier
 var _arm: HoldArm
+var _floor: HandFloor
 var _fingers: HandPoseModifier
 var _stance: OneHandStance
 # Seconds since the character's weapon last fired, counted by the drawn frames (cosmetic).
@@ -368,6 +373,7 @@ func refresh() -> void:
 	_grip.swing_degrees = carry_arm_out * (1.0 - aim) * (1.0 - reload_weight)
 	if _stance != null:
 		_pose_stance()
+	_keep_hands_up()
 	if _arm == null:
 		return
 	_plan_left()
@@ -403,6 +409,20 @@ func refresh() -> void:
 		# An arm too short for the place (the aim coming up, the weapon still out to the side)
 		# backs the hand off along its way, opened; under the magazine it has no such line.
 		_arm.retreat = weapon.basis * support_way if _left.at_magazine <= 0.0 else Vector3.ZERO
+
+
+# Lying with a prone aim, the hands are kept over the floor while the aim blends (`HandFloor`):
+# by how far the body lies, from nothing at no aim to all of it at `FLOOR_FROM_AIM`.
+func _keep_hands_up() -> void:
+	if hand_floor() == null:
+		return
+	var share := support_keep_elbow * clampf(aim_weight / FLOOR_FROM_AIM, 0.0, 1.0)
+	_weigh(_floor, share)
+	if share > 0.0 and animation != null and animation.character != null:
+		var body := (
+			_skeleton.global_transform.affine_inverse() * animation.character.global_position
+		)
+		_floor.floor_height = body.y
 
 
 ## How far into its kick a one-handed shot is at `share` of `kick_time`: up within its first
@@ -477,6 +497,12 @@ func _pose_stance() -> void:
 	_stance.kick_back = kick_back
 	_stance.kick_up = kick_up
 	_stance.kick = shot_kick
+
+
+## The modifier that keeps the hands over the floor during a lying aim (`HandFloor`), or null. It
+## is not one of `modifiers()`, which hold the weapon: it is on only while the body lies.
+func hand_floor() -> HandFloor:
+	return _floor if _floor != null and is_instance_valid(_floor) else null
 
 
 ## The modifiers this node made on the skeleton now: the one-handed stance (when `one_handed`),
@@ -636,11 +662,15 @@ func _weigh(modifier: SkeletonModifier3D, weight: float) -> void:
 
 # Makes the modifiers on the model's skeleton, after freeing the ones made on the last model.
 func _build() -> void:
-	for modifier in modifiers():
+	var made: Array[SkeletonModifier3D] = modifiers()
+	if hand_floor() != null:
+		made.append(_floor)
+	for modifier in made:
 		# Out of the tree at once, so the new ones can take the names.
 		modifier.get_parent().remove_child(modifier)
 		modifier.queue_free()
 	_grip = null
+	_floor = null
 	_arm = null
 	_fingers = null
 	_stance = null
@@ -689,6 +719,8 @@ func _build() -> void:
 		_arm.arm = support_arm
 		_arm.bone = seat.bone_name
 		_skeleton.add_child(_arm)
+		# After the reach, so the left hand is raised with the weapon it holds.
+		_add_floor()
 		_fingers = HandPoseModifier.new()
 		_fingers.name = _SUPPORT_FINGERS
 		_fingers.pose = support_pose
@@ -700,8 +732,17 @@ func _build() -> void:
 		_magazine = seat.get_child(0).get_node_or_null(magazine_marker) as Node3D
 		_skeleton.add_child(_fingers)
 		_build_magazines(seat.get_child(0) as Node3D)
+	else:
+		_add_floor()
 	refresh()
 	built.emit()
+
+
+func _add_floor() -> void:
+	_floor = HandFloor.new()
+	_floor.name = _FLOOR
+	_floor.arms = [carry_arm, support_arm[0] if not support_arm.is_empty() else &"upperarm_l"]
+	_skeleton.add_child(_floor)
 
 
 # The new magazine on the left hand's bone, placed as the pistol's own is seen from the magazine
