@@ -239,6 +239,14 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   turned on the process's history (the navigators' static counters), so the case passed alone and failed inside the
   full suite and on main's CI (seed 1 in a fresh process failed too). **Seen:** gdstudio #1328, 2026-11-12
   (`AiSoakFaults._hold_idle`; 24 of 24 seeds then broke the gate).
+- **Approach:** For a soak's engine error with no backtrace (a C++ check such as `instance_set_transform:
+  !v.is_finite()`), add a probe node that checks every `Node3D`'s global transform each tick and prints the first
+  one that is not finite with its character's state, and keeps a ring of the last 40 ticks of the suspect bodies
+  (server mode, distance from the clip, speeds, contacts) to dump at the first wild value. **Watch out for:** the
+  error was named Linux-only, but the same flinches went 3 to 7 m wild on Windows and only the NaN tail fell on Linux
+  seeds; a change anywhere moved the failing seed (5 and 27, then 26 on a later main), so judge a fix by the probe's
+  counts over several seeds, not by one seed turning green. **Seen:** gdstudio #1326, 2026-11-12 (the cause was the
+  flinch's partial ragdoll: [A partial ragdoll](../engines/godot/ragdoll.md#partial)).
 - **Approach:** Check a soak's replay in fresh processes, and look for static counters (`static var`) before calling a
   run nondeterministic. **Watch out for:** two runs of the same seed in one GdUnit process gave different hashes
   while separate processes matched. **Seen:** gdstudio #971, 2026-11-11 (`test_the_same_seed_repeats_its_commands`).
