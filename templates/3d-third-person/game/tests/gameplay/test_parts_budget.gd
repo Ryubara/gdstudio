@@ -49,12 +49,18 @@ const FRAMES := 120
 ## between the two; the counts above hold the ragdoll tight. What rose is traced on kit
 ## docs/engines/godot/third-person/character.md#parts-cost (#1360: our gaits' clips, their speed
 ## matching and their transitions; the rest is #1438).
-const FRAME_RATIO_LIMIT := 1.7
+const FRAME_RATIO_LIMITS := {"Linux": 1.7, "Windows": 1.7}
+## How many times its work the teeth case's frame costs.
+const SLOW_FACTOR := 2.0
 
 var _arena: Node3D
 var _work: Array[float] = []
 var _loop: Array[float] = []
+var _anim: Array[float] = []
+var _physics: Array[float] = []
 var _tick_start := -1
+var _factor := 1.0
+var _rulers: Array[Node] = []
 
 
 func before_test() -> void:
@@ -126,33 +132,83 @@ func test_a_standing_target_is_not_processed_until_it_is_hit() -> void:
 
 
 func test_ten_walking_characters_stay_under_the_frame_budget() -> void:
-	for index in CROWD:
-		_spawn(index)
-	await InputSim.ticks(get_tree(), 60)
-	await _measure_frames()
-	var frame := _median(_work)
-	var calibration := _median(_loop)
-	var ratio := frame / calibration
-	prints(
-		"PARTS_BUDGET frame %.3f ms, calibration %.3f ms, ratio %.3f" % [frame, calibration, ratio]
-	)
+	var row := await _measure_crowd(1.0)
+	print("PARTS_BUDGET\n" + JSON.stringify(row))
+	var limit := _frame_limit()
 	(
-		assert_float(ratio)
+		assert_float(row.ratio)
 		. override_failure_message(
 			(
-				"10 walking characters took %.3f ms a frame, %.2f times the calibration (limit %.2f)"
-				% [frame, ratio, FRAME_RATIO_LIMIT]
+				"10 walking characters took %.3f ms a frame, %.2f times the ruler (limit %.2f): %s"
+				% [row.frame_ms, row.ratio, limit, JSON.stringify(row)]
 			)
 		)
-		. is_less(FRAME_RATIO_LIMIT)
+		. is_less(limit)
 	)
 
 
-# Times each frame's work, from its first physics tick to the last node processed, then runs the
-# calibration loop once in the same frame: both lists see the same load.
+func test_ten_characters_twice_as_slow_fail_the_frame_budget() -> void:
+	var row := await _measure_crowd(SLOW_FACTOR)
+	print("PARTS_BUDGET_SLOW\n" + JSON.stringify(row))
+	(
+		assert_float(row.ratio)
+		. override_failure_message(
+			(
+				"10 characters twice as slow passed the frame budget at %.2f (limit %.2f): %s"
+				% [row.ratio, _frame_limit(), JSON.stringify(row)]
+			)
+		)
+		. is_greater_equal(_frame_limit())
+	)
+
+
+## This system's frame limit (Linux's on a system with none of its own).
+static func _frame_limit() -> float:
+	return FRAME_RATIO_LIMITS.get(OS.get_name(), FRAME_RATIO_LIMITS["Linux"])
+
+
+## Ten walkers, warmed, then `FRAMES` frames timed with every ruler timed after each; `factor` makes
+## each frame's work cost that many times itself (the teeth case).
+func _measure_crowd(factor: float) -> Dictionary:
+	for index in CROWD:
+		_spawn(index)
+	_rulers = [AnimationRuler.new(), PhysicsRuler.new()]
+	for ruler: Node in _rulers:
+		_arena.add_child(ruler)
+	await InputSim.ticks(get_tree(), 60)
+	_factor = factor
+	await _measure_frames()
+	var frame := _median(_work)
+	var loop := _median(_loop)
+	var anim := _median(_anim)
+	var physics := _median(_physics)
+	var ruler := _ruler_ms(loop, anim, physics)
+	return {
+		"system": OS.get_name(),
+		"frame_ms": snappedf(frame, 0.001),
+		"ruler_ms": snappedf(ruler, 0.001),
+		"ratio": snappedf(frame / maxf(ruler, 0.001), 0.001),
+		"loop_ms": snappedf(loop, 0.001),
+		"anim_ms": snappedf(anim, 0.001),
+		"physics_ms": snappedf(physics, 0.001),
+		"loop_ratio": snappedf(frame / maxf(loop, 0.001), 0.001),
+		"anim_ratio": snappedf(frame / maxf(anim, 0.001), 0.001),
+		"physics_ratio": snappedf(frame / maxf(physics, 0.001), 0.001),
+	}
+
+
+## The ruler the limit is held against, from the three timed beside the frames.
+static func _ruler_ms(loop: float, _anim_ms: float, _physics_ms: float) -> float:
+	return loop
+
+
+# Times each frame's work, from its first physics tick to the last node processed, then times one
+# ruler in the same frame, each in turn: every list sees the same load.
 func _measure_frames() -> void:
 	_work.clear()
 	_loop.clear()
+	_anim.clear()
+	_physics.clear()
 	_tick_start = -1
 	var end := FrameEnd.new()
 	add_child(end)
@@ -161,6 +217,7 @@ func _measure_frames() -> void:
 	for _i in FRAMES:
 		await get_tree().process_frame
 	get_tree().physics_frame.disconnect(_on_physics_frame)
+	end.done.disconnect(_on_frame_end)
 	end.queue_free()
 
 
@@ -178,9 +235,21 @@ func _on_physics_frame() -> void:
 func _on_frame_end() -> void:
 	if _tick_start < 0:
 		return
-	_work.append((Time.get_ticks_usec() - _tick_start) / 1000.0)
+	var spent := Time.get_ticks_usec() - _tick_start
+	if _factor > 1.0:
+		var until := _tick_start + int(spent * _factor)
+		while Time.get_ticks_usec() < until:
+			pass
+		spent = Time.get_ticks_usec() - _tick_start
+	_work.append(spent / 1000.0)
 	_tick_start = -1
-	_loop.append(_calibration_ms())
+	match _work.size() % 3:
+		0:
+			_loop.append(_calibration_ms())
+		1:
+			_anim.append((_rulers[0] as AnimationRuler).measure_ms())
+		2:
+			_physics.append((_rulers[1] as PhysicsRuler).measure_ms())
 
 
 # A fixed piece of script of the kind the parts run (arithmetic, vectors, an array and a
