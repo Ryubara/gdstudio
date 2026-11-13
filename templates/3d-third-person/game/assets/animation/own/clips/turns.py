@@ -90,18 +90,28 @@ SPOTS = {
 ## The same for `jog_turn_90` (a pivot) and `jog_turn_180` and `sprint_turn_180` (a reversal). A pivot is named
 ## for the way it turns and plants the outside foot; a reversal is named for the foot that plants.
 MOVING = {
-    "plant": 1,  # which landing is the plant (0 is the strike the clip begins on)
-    "steps": [10, 10, 10, 10, 10, 10],  # frames from each landing to the next; the last two are the gait's half cycle
-    "air": [-4, -2, -3, -4, -4],  # frames each foot stays down after the next lands, for every landing but the last
-    "gait_like": [0.8, 0.8, 0.9, 0.95],  # how far each landing between the first and the last two is the gait's (0: slow)
-    "low": 0.6,  # the share of the gait's speed the root slows to
-    "low_at": 0.5,  # where in the plant's contact it is slowest (a share of the contact)
-    "brake_from": 1,  # the frame the root begins to slow
-    "push_end": 0,  # frames before the last landing but one the gait's speed is back
-    "turn_before": 12,  # frames before the root is slowest it begins to turn
-    "turn_after": 18,  # frames after the root is slowest it has turned all the way
-    "turn_turn": 0.5,  # where in that window the turn is fastest
-    "turn_ease": 0.0,  # 0: the turn eases in and out on a cubic (the bend is sharpest in the middle); 1: on a quintic
+    "plant": 3,  # which landing is the plant (0 is the strike the clip begins on; the one before it is the brake's)
+    "steps": [10, 10, 9, 13, 10, 10, 10, 10],  # frames from each landing to the next; the last two are the gait's half cycle
+    "air": [-4, -3, 1, -3, -4, -4, -4],  # frames each foot stays down after the next lands, for every landing but the last
+    "gait_like": [0.85, 0.6, 0.5, 0.7, 0.85, 0.95],  # how far each landing between the first and the last two is the gait's (0: slow)
+    "brake_from": 8,  # the frame the old way's velocity begins to go
+    "stop_at": 0.5,  # where in the plant's contact the velocity is half the old way's and half the new (a share)
+    "brake_shape": 1.6,  # the brake's power: above 1 it bites harder toward the stop
+    "low": 0.8,  # the share of the gait's speed the root dips to on top, at the stop
+    "push_end": 0,  # frames before the last landing but one the gait's speed is back the new way
+    "lane": 0.0,  # metres the way back is beside the way in, toward the turn (a reversal's sideways shift)
+    "side_on": 0.25,  # the share of the turn the hips have made by the plant's landing
+    "face_before": 4,  # frames before the brake step lands the hips begin to turn
+    "face_late": 2,  # frames after the plant lands they have made `side_on`
+    "turn_lead": 3,  # frames before the stop the rest of the turn begins
+    "turn_after": 12,  # frames after the stop the body has turned all the way
+    "carry": 14.0,  # degrees the trunk leans the old way while the plant brakes (momentum carried over the leg)
+    "carry_cut": 0.6,  # the share of the brake's own lean back taken out while it does
+    "carry_hold": 2,  # frames after the plant leaves the carried lean is gone
+    "plant_out": 0.12,  # metres the plant lands the old way from the root's place at the stop
+    "plant_aside": -0.25,  # metres it lands toward the turn's side (less than 0: outside it)
+    "brake_wide": 0.0,  # metres toward the turn's side the step before the plant lands, on the floor's axes
+    "push_wide": 0.0,  # and the step after it
     "drive": 0.6,  # the share of the acceleration's lean the feet take: they land that far from a steady step
     "lean": 0.6,  # the share of the forward lean the chest takes, as pitch
     "lean_hips": 0.3,
@@ -119,7 +129,7 @@ MOVING = {
     "brace_from": 0.1,  # the shares of the clip between which it goes there and back
     "brace_to": 0.8,
     "bob": 0.6,  # the share of the gait's rise and fall the steps that are not the gait's have
-    "dip": 0.02,  # metres the hips sink as the plant takes the body
+    "dip": 0.03,  # metres the hips sink as the plant takes the body
     "arm_wide": [14.0, 16.0],  # degrees each arm opens from the body while the root is slowest or the body leans
     "heel_early": 0.5,  # the share of a contact of the clip's own over which the heel comes up
     "toe_most": 50.0,  # degrees the heel of a step of the clip's own is up at most as the toes leave
@@ -140,42 +150,61 @@ MOVING = {
     "keys_kept": 0.9,
     "kb_a_second": 40.0,
 }
+## A reversal (kit #1442): the hips go side-on, the outside foot plants well ahead, the trunk is carried on over it
+## while it brakes, and only then does the body turn and push off the new way. A sprint brakes longer and harder.
+REVERSAL = {
+    **MOVING,
+    "low": 1.0,
+    "side_on": 0.42,
+    "face_before": 0,
+    "face_late": -1,
+    "turn_lead": 2,
+    "plant_aside": -0.15,
+    "brake_wide": 0.1,
+    "push_wide": -0.1,
+    "toe_most": 44.0,
+    "foot_turn": 0.4,
+    "plant_turn": 0.4,
+    "own_side": 0.06,
+    "brace": 0.35,
+    "dip": 0.03,
+    "carry_hold": 3,
+}
 MOVES = {
     "jog_turn_90": dict(MOVING),
     "jog_turn_180": {
-        **MOVING,
-        "plant": 2,
-        "steps": [9, 9, 11, 10, 10, 10, 10],
-        "air": [-3, -1, -3, -3, -4, -4],
-        "gait_like": [0.6, 0.3, 0.5, 0.7, 0.9],
-        "low": 0.08,
-        "low_at": 0.5,
-        "turn_before": 14,
-        "turn_after": 20,
-        "drive": 0.5,
-        "brace": 0.35,
-        "dip": 0.04,
-        "lean_limit": 18.0,
-        "side_lean_limit": 18.0,
+        **REVERSAL,
+        "steps": [10, 10, 9, 18, 10, 10, 10, 10],
+        "air": [-4, -2, 2, -2, -3, -4, -4],
+        "gait_like": [0.75, 0.4, 0.3, 0.5, 0.75, 0.9],
+        "brake_from": 8,
+        "stop_at": 0.6,
+        "brake_shape": 1.8,
+        "lane": 0.3,
+        "turn_after": 16,
+        "carry": 38.0,
+        "carry_cut": 0.8,
+        "plant_out": 0.12,
+        "lean_limit": 30.0,
+        "side_lean_limit": 34.0,
     },
     "sprint_turn_180": {
-        **MOVING,
-        "plant": 3,
-        "steps": [9, 9, 10, 11, 11, 10, 9, 9, 9, 9],
-        "air": [-5, -5, -3, -3, -2, -3, -4, -5, -5],
-        "gait_like": [0.8, 0.5, 0.3, 0.3, 0.5, 0.7, 0.85, 0.95],
-        "low": 0.05,
-        "low_at": 0.5,
-        "turn_before": 14,
-        "turn_after": 20,
-        "drive": 0.35,
-        "reach_fore": 0.38,
-        "own_side": 0.085,
-        "plant_turn": 0.7,
-        "brace": 0.4,
-        "dip": 0.05,
-        "lean_limit": 24.0,
-        "side_lean_limit": 20.0,
+        **REVERSAL,
+        "plant": 4,
+        "steps": [9, 9, 10, 10, 20, 11, 10, 9, 9, 9],
+        "air": [-5, -4, -4, -2, -2, -3, -4, -5, -5],
+        "gait_like": [0.8, 0.55, 0.35, 0.3, 0.45, 0.65, 0.85, 0.95],
+        "brake_from": 3,
+        "stop_at": 0.6,
+        "brake_shape": 1.3,
+        "lane": 0.35,
+        "turn_after": 18,
+        "carry": 44.0,
+        "carry_cut": 0.85,
+        "plant_out": 0.15,
+        "reach_fore": 0.5,
+        "lean_limit": 36.0,
+        "side_lean_limit": 36.0,
         "speed_limit": 80.0,
     },
 }
@@ -223,6 +252,11 @@ def _bump(f: float, a: float, b: float, c: float) -> float:
     return 1.0 - maths.smooth((f - b) / max(c - b, 1e-6))
 
 
+def _ease(f: float, a: float, b: float) -> float:
+    """0 before `a`, 1 after `b`, smooth between."""
+    return maths.smooth(min(max((f - a) / max(b - a, 1e-6), 0.0), 1.0))
+
+
 class Turn(Move):
     """One reversal, pivot or turn on the spot, on one foot or one way, for one rig and one set of numbers."""
 
@@ -256,16 +290,12 @@ class Turn(Move):
             )
             self._middle = float(self.rel[:, 1].mean())
             angle = GAIT_OF[kind][1]
-            if angle >= 180.0:
-                # A reversal planting the left foot turns over it, to the left: the body swings round the
-                # planted foot, which ends on the side it began on. Turned the other way, the plant foot
-                # ends on the body's other side and the next step crosses the legs (calf in calf, 45 mm).
-                self.plant_side = side
-                self.angle = angle if side == "l" else -angle
-            else:
-                # A pivot to the left plants the right foot, outside the bend.
-                self.plant_side = OTHER[side]
-                self.angle = angle if side == "l" else -angle
+            # Both are named for the way they turn and plant the outside foot (turning left, the right foot). A
+            # reversal goes side-on first: turning left, the hips face left and the right leg leads the old way,
+            # so the right foot is the one that plants well ahead, and the left one steps off the new way without
+            # crossing it (kit #1442: the first reversals turned over the inside foot, early and with no brake).
+            self.plant_side = OTHER[side]
+            self.angle = angle if side == "l" else -angle
             self._moving_steps()
         self.lower = np.zeros(self.frames + 1)
         self.level = np.zeros(self.frames + 1)
@@ -301,6 +331,17 @@ class Turn(Move):
         lag, past = n.get("lean_lag", [2.0, 0.1])
         pitch = [math.degrees(math.atan2(self.a_fwd(float(f)), weight.G)) for f in frames]
         lean = [math.degrees(math.atan2(self.a_left(float(f)), weight.G)) for f in frames]
+        carry = getattr(self, "_carry_window", None)
+        if carry is not None and n.get("carry", 0.0):
+            # Momentum carries the mass on over the planted leg: while the plant brakes, the trunk leans the old
+            # way (+z) instead of back against the brake, and most of the brake's own lean is taken out.
+            a, b, c = carry
+            for f in frames:
+                share = _bump(float(f), a, b, c)
+                yaw = math.radians(self.root(float(f))[1])
+                keep = 1.0 - n["carry_cut"] * share
+                pitch[f] = pitch[f] * keep + n["carry"] * share * math.cos(yaw)
+                lean[f] = lean[f] * keep - n["carry"] * share * math.sin(yaw)
         out = np.array([overlap.follow(pitch, lag, past, False), overlap.follow(lean, lag, past, False)]).T
         for f in frames:
             out[f] *= maths.smooth(f / 3.0) * maths.smooth((self.frames - f) / 3.0)
@@ -459,17 +500,16 @@ class Turn(Move):
     # ---- a pivot or a reversal -----------------------------------------------------------------------------------
 
     def _moving_steps(self) -> None:
-        n, g = self.n, self.g
+        n = self.n
         steps = [int(x) for x in n["steps"]]
         m = len(steps)
         assert steps[-1] == self.half and steps[-2] == self.half, "the last two steps are the gait's own"
         assert len(n["air"]) == m - 1, "`air` has a number for every landing but the last"
         assert len(n["gait_like"]) == m - 2, "`gait_like` has a number for every landing between the first and the last two"
         j = int(n["plant"])
-        assert 1 <= j <= m - 3, "the plant is a landing of the clip's own"
+        assert 2 <= j <= m - 3, "the plant is a landing of the clip's own, after the step that begins the brake"
         self.lands = [0.0] + [float(x) for x in np.cumsum(steps)]
         self.frames = int(self.lands[-1])
-        F = float(self.frames)
         T = self.plant_side
         self.sides = [T if (i - j) % 2 == 0 else OTHER[T] for i in range(m + 1)]
         self.plant = j
@@ -479,27 +519,82 @@ class Turn(Move):
         self.lifts = lifts
         A, v = self.angle, self.v
         plant_land, plant_lift = self.lands[j], lifts[j]
-        low_at = plant_land + n["low_at"] * (plant_lift - plant_land)
+        # The old way's momentum is spent while the plant foot is down: `stop` is where the velocity is half the
+        # old way's and half the new way's (for a reversal, where the body stands still), late in the contact, so
+        # the mass is carried on over the planted leg before the body turns.
+        stop = plant_land + n["stop_at"] * (plant_lift - plant_land)
         back_at = self.lands[m - 1] - float(n["push_end"])
         brake_from = float(n["brake_from"])
+        assert brake_from < stop < back_at, "the root brakes, then goes the new way"
+        self.stop = stop
+        p = float(n["brake_shape"])
+        q = p * (back_at - stop) / (stop - brake_from)
+
+        def w(x: float) -> float:
+            """The share of the new way in the velocity: 0 before the brake, a half at the stop, 1 at `back_at`;
+            the brake bites harder and harder, and the push starts as hard as the brake ended."""
+            if x <= brake_from:
+                return 0.0
+            if x >= back_at:
+                return 1.0
+            if x <= stop:
+                return 0.5 * ((x - brake_from) / (stop - brake_from)) ** p
+            return 1.0 - 0.5 * (1.0 - (x - stop) / (back_at - stop)) ** q
+
+        r = math.radians(A)
+        old, new = np.array([0.0, 1.0]), np.array([math.sin(r), math.cos(r)])
+        # The way back is beside the way in, toward the turn's side: the body shifts out to that side first.
+        out = np.array([math.copysign(1.0, A), 0.0]) if abs(A) >= 180.0 else np.zeros(2)
+        lane = float(n["lane"])
         low = float(n["low"])
-        assert brake_from < low_at < back_at, "the root slows, then speeds up again"
 
-        def speed(x: float) -> float:
-            return v * (1.0 - (1.0 - low) * _bump(x, brake_from, low_at, back_at))
+        def velocity(x: float) -> np.ndarray:
+            u = w(x)
+            dip = 1.0 - (1.0 - low) * _bump(x, brake_from, stop, back_at)
+            side = lane * (_ease(x + 0.05, brake_from, back_at) - _ease(x - 0.05, brake_from, back_at)) / 0.1 * FPS
+            return v * dip * ((1.0 - u) * old + u * new) + side * out
 
-        t0, t1 = low_at - float(n["turn_before"]), low_at + float(n["turn_after"])
-        assert t0 >= 1.0 and t1 <= self.lands[m - 1], "the root turns inside the clip, before its last two landings"
-        self.turn_window = (t0, t1)
+        # The hips go side-on to the old way before the plant lands (`side_on` of the turn), hold there while the
+        # plant brakes, and turn the rest of the way as the body pushes off it.
+        f0 = self.lands[j - 1] - float(n["face_before"])
+        f1 = plant_land + float(n["face_late"])
+        t0, t1 = stop - float(n["turn_lead"]), stop + float(n["turn_after"])
+        assert f0 >= 1.0 and f0 < f1 and t1 <= self.lands[m - 1], "the root turns inside the clip, before its last two landings"
+        self.turn_window = (f0, t1)
+        side_on = float(n["side_on"])
 
-        def heading(x: float) -> float:
-            u = _skew((x - t0) / (t1 - t0), n["turn_turn"])
-            e = n["turn_ease"]
-            return A * ((1.0 - e) * maths.smooth(u) + e * maths.smoother(u))
+        def facing(x: float) -> float:
+            first = maths.smooth(min(max((x - f0) / (f1 - f0), 0.0), 1.0))
+            rest = maths.smooth(min(max((x - t0) / (t1 - t0), 0.0), 1.0))
+            return A * (side_on * first + (1.0 - side_on) * rest)
 
-        self._root_curves(speed, heading)
+        self._carry_window = (self.lands[j - 1], stop, plant_lift + float(n["carry_hold"]))
+        self._root_vectors(velocity, facing)
         self._treads_moving()
         self._clock_moving()
+
+    def _root_vectors(self, velocity, facing) -> None:
+        """The root's curves from its velocity (m/s, on the floor) and the way it faces (degrees), which differ
+        through a reversal: the body faces side-on and then back while it still travels the old way."""
+        lo, hi = -(self.cycle * 3 + 4), self.frames + self.cycle * 3 + 4
+        t = np.arange(lo * GRID, hi * GRID + 1) / GRID
+        vel = np.array([velocity(x) for x in t])
+        th = np.array([facing(x) for x in t])
+        dt = 1.0 / (GRID * FPS)
+        px = np.concatenate([[0.0], np.cumsum(0.5 * (vel[1:, 0] + vel[:-1, 0]) * dt)])
+        pz = np.concatenate([[0.0], np.cumsum(0.5 * (vel[1:, 1] + vel[:-1, 1]) * dt)])
+        at0 = -lo * GRID
+        px, pz = px - px[at0], pz - pz[at0]
+        self._t, self._th, self._px, self._pz = t, th, px, pz
+        self._s = np.hypot(vel[:, 0], vel[:, 1])
+        self._path = np.concatenate([[0.0], np.cumsum(np.hypot(np.diff(px), np.diff(pz)))])
+        self._path -= self._path[at0]
+        # The acceleration in the way the root faces: ahead, and to its left (as `checks._turning_accel` reads it).
+        acc = np.gradient(vel, axis=0) * GRID * FPS
+        rad = np.radians(th)
+        self._a_fwd = acc[:, 0] * np.sin(rad) + acc[:, 1] * np.cos(rad)
+        self._a_left = acc[:, 0] * np.cos(rad) - acc[:, 1] * np.sin(rad)
+        self._lean = self._leans()
 
     def _own(self, s: str, land: float, lift: float | None = None) -> Tread:
         """A contact of the gait itself, landing where the gait would put it with its root where the clip's root
@@ -511,7 +606,7 @@ class Turn(Move):
         end = land + self.contact if lift is None else lift
         return Tread(s, land, end, (float(place[0]), float(place[1])), SIGN[s] * g.own(s, "toe_out") + yaw, numbers, numbers, self.v)
 
-    def _free(self, s: str, land: float, lift: float, like: float, plant: bool = False) -> Tread:
+    def _free(self, s: str, land: float, lift: float, like: float, plant: bool = False, brake: bool = False, push: bool = False) -> Tread:
         """A step of the clip's own: where a steady step would land, moved against the acceleration."""
         g, n = self.g, self.n
         numbers = self._numbers(s, like)
@@ -531,6 +626,20 @@ class Turn(Move):
         x = SIGN[s] * max(SIGN[s] * x, n["own_side"])
         xz, yaw = self.root(mid)
         place = xz + _rotate(yaw, x, ahead - 0.5 * covered)
+        if brake:
+            # The step that begins the brake lands wide toward the turn's side, on the floor's axes (the hips are
+            # already turning, so their own side points back): the body shifts out over it, and the plant leg
+            # swings round in front of it with room (a narrow one put shin in shin, 30 mm).
+            place = place + np.array([n["brake_wide"] * math.copysign(1.0, self.angle), 0.0])
+        if push:
+            # The first step off the plant lands on its own side of the planted leg (less than 0: away from the
+            # turn's side, which is the body's other side once it faces the new way).
+            place = place + np.array([n["push_wide"] * math.copysign(1.0, self.angle), 0.0])
+        if plant:
+            # The plant lands well ahead of the body, the old way, where the mass will be carried over it: from
+            # the root's place at the stop, `plant_out` metres the old way and `plant_aside` toward the turn.
+            at, _ = self.root(self.stop)
+            place = at + np.array([n["plant_aside"] * math.copysign(1.0, self.angle), n["plant_out"]])
         toe = idle.yaw + (SIGN[s] * g.own(s, "toe_out") - idle.yaw) * like
         # A foot cannot turn while it stands: it is set down turned a share of the way the root turns over the
         # contact, so the knee above it points neither across the body as it lands nor far out as it leaves.
@@ -564,7 +673,7 @@ class Turn(Move):
         strike.foot["toe_off"] = slow["toe_off"]
         treads[a].append(strike)
         for i in range(1, m - 1):
-            treads[sides[i]].append(self._free(sides[i], lands[i], lifts[i], like[i - 1], i == self.plant))
+            treads[sides[i]].append(self._free(sides[i], lands[i], lifts[i], like[i - 1], i == self.plant, i == self.plant - 1, i == self.plant + 1))
         for i in (m - 1, m):
             treads[sides[i]].append(self._own(sides[i], lands[i]))
         treads[sides[m - 1]].append(self._own(sides[m - 1], F + self.half))
@@ -680,8 +789,7 @@ class Turn(Move):
         return out
 
     def _slowest(self) -> float:
-        j = self.plant
-        return self.lands[j] + self.n["low_at"] * (self.lifts[j] - self.lands[j])
+        return self.stop
 
     def _own_share(self, f: float) -> float:
         """How far a frame is from the gait's own steps: 0 at both ends, 1 between the first and the last two."""
