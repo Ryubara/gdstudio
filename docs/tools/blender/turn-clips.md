@@ -85,3 +85,13 @@ on the floor; the next turning clip (a curved run, a landing into a turn) starts
   (`apart`, 0.08 to 0.09 m), and let only the last step land on the idle's own place. **Watch out for:** steps that
   all landed on the idle's circle, turned, put the foot that went round in front within a foot's width of the
   standing one, and the calves and the thighs met on every body. **Seen:** gdstudio #1157, 2026-11-13.
+- **Approach:** Start the swing a clip begins inside as the joined gait's own leg and let it go for the clip's
+  landing over the swing (`Turn.leg`), and keep every push the description adds to a swing at 0 on frame 0; measure
+  the step every bone takes over the first and the last frame against the joined clip's, not only the pose there.
+  **Watch out for:** the build's join check read the first pose (0.0 mm) and passed, while frame 1 stepped 97 to
+  135 mm off the gait's: the swing in the air at frame 0 was rebuilt toward the clip's own wider landing and pushed
+  clear of the standing foot, so the foot jumped sideways between the first two frames. Only the Godot suite
+  (`test_own_turns.gd`), never run before the hand-over, caught it. **Seen:** gdstudio #1157, 2026-11-13.
+- **Approach:** Cap how fast the tree may run a turning clip to catch up with the body (`transition_pace`), since
+  the controller turns far faster than a person. **Watch out for:** a 180 degree reversal played by the angle
+  turned ran its 1.13 s of turn in the controller's 0.26 s. **Seen:** gdstudio #1157, 2026-11-13.

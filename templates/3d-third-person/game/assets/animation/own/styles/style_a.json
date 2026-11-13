@@ -126,7 +126,7 @@
   ],
   "jog_turn_90": [
    "Shipped as the recommendation until a letter is picked. 60 frames over 5.6 m: the jog dips to 0.6 of its speed (2.4 m/s) on the plant, the outside foot, set turned 0.6 of the turn over its 8 frame contact; the root turns from 12 frames before its slowest moment to 18 after.",
-   "Could not be done: the lean inside 5 degrees (16.7 forward, 19.2 into the bend; declared 18 and 20): a 90 degree turn at 2.4 m/s asks for near 25 degrees, which the feet landing outside the bend share with the trunk."
+   "Could not be done: the lean inside 5 degrees (16.8 forward, 19.2 into the bend; declared 18 and 20): a 90 degree turn at 2.4 m/s asks for near 25 degrees, which the feet landing outside the bend share with the trunk."
   ],
   "turn_in_place_180": [
    "Shipped as the recommendation until a letter is picked. 58 and 56 frames (1.9 s, the study's 1.72): the head, then the chest, then the hips; four steps, the turn's side foot first at 0.4 of the angle, the other at 0.6, then both to their idle places turned.",
@@ -134,7 +134,7 @@
   ],
   "jog_turn_180": [
    "Shipped as the recommendation until a letter is picked. 69 frames, 2.3 s, ending 2.3 m from where it began: the jog brakes over two steps to 0.08 of its speed on the plant foot, turns over that foot (`_L` plants the left and turns left) and runs back out over three.",
-   "Could not be done: the lean inside 5 degrees (16.3 forward, 8.1 to the side; declared 18 and 18): braking from 4 m/s in under a second asks for near 25 degrees; the plant stands 8 frames, not the studies' 0.5 s, or its sole wanders past 5 mm on form_male."
+   "Could not be done: the lean inside 5 degrees (16.4 forward, 8.1 to the side; declared 18 and 18): braking from 4 m/s in under a second asks for near 25 degrees; the plant stands 8 frames, not the studies' 0.5 s, or its sole wanders past 5 mm on form_male."
   ],
   "sprint_turn_180": [
    "Shipped as the recommendation until a letter is picked. 96 frames, 3.2 s: three braking steps from 6.5 m/s, the plant the fourth landing, set turned 0.7 of the turn, then five steps back up to the sprint; the trunk leans back up to 22 degrees.",

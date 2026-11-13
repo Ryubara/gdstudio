@@ -261,7 +261,7 @@
   ],
   "jog_turn_90": [
    "Four landings, not five: 50 frames over 4.6 m, the root turning from 10 frames before its slowest moment to 16 after, the steps more the gait's own.",
-   "It turns sharper than a body leans: 20.6 degrees into the bend (declared 23) and 16.6 forward (declared 20)."
+   "It turns sharper than a body leans: 20.6 degrees into the bend (declared 23) and 16.7 forward (declared 20)."
   ],
   "turn_in_place_180": [
    "Quick: 44 and 42 frames, four steps of 6 to 8 frames with one-frame rests, the hips turning before the lead foot lifts.",
