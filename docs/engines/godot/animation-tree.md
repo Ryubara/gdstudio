@@ -338,3 +338,10 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   the whole new pose arrived a frame later unblended (the arms 20 degrees in a tick, a bone up to 1.8 radians in a
   crouch); its test read `largest_offset()`, which stayed small, and passed. **Seen:** gdstudio #1369, 2026-11-12
   (fix: `_again` in `momentum_blend.gd`; `test_the_arms_float_through_a_played_jump`).
+- **Approach:** Start a transition clip only while the character's own state is one the transition plays over
+  (standing, walking, running), and end one that plays when the state leaves those; test the tree with real clips
+  in the libraries, not only made-up ones in a test library. **Watch out for:** a push, a vault or a hit begins on a
+  frame the state machine is still in `ground`: with our starts in the library (#1156) the tree picked a start on
+  that frame and held the body in it, so the push clip never played and the vault's hands left the top by 0.3 m;
+  the transition tests passed, since their clips existed only in their own suite. **Seen:** gdstudio #1156,
+  2026-11-12 (`GaitTransitions.on_foot`; `test_player_actions.gd`, `test_push_cubes.gd`, `test_vault_contacts.gd`).

@@ -74,8 +74,8 @@ their limits; `selftest.py` breaks a clip for each one.
 foot's roll, the travel, the gait checks and the free fall's arc (0 to 1.1 mm off it in the runs). The joins and the
 `ik_` targets are proved by the crouch clips ([their rows](stance-clips.md#toolkit-rows)). Mirroring and the placed
 hand are written and not yet used by a shipped clip: the first issue that uses each proves it. The weight check's
-lean is tested on made-up motion only. A body whose legs differ from the reference body's is reported with
-`needs_ik` and not held to the floor and planted limits.
+lean is proved by the starts and stops, over a step ([their rows](start-stop-clips.md#toolkit-rows)). A body whose
+legs differ from the reference body's is reported with `needs_ik` and not held to the floor and planted limits.
 
 ## What the jump clips added {#jump-rows}
 
@@ -92,7 +92,7 @@ research and their numbers are in the template's `assets/animation/own/README.md
 | Swing an arm up past level | the arm's `raise` (0 to 1): the elbow's way turns with the swing instead of staying forward, which turns round at level |
 | End the air on a pose a landing can begin on | place the fall's feet (`jump.FEET`: the first foot's ball on the capsule's bottom) and let the knees be what the weight's height leaves |
 | Catch a landing | the centre of mass's height as a curve: from the fall's with the speed the body keeps (`keep`) to the bottom (`dip`, `bottom`), then up on a push and a coast (`jump.standing_spec` solves the pelvis under it and lowers it where a folded trunk would ask the legs past their length) |
-| Join a frame of a loop | `jump._frame_of(air, "Jog", frame)` (the frame's spec, in place), `declared["joins"]` with the loop's built frame, and `join_frames` in `declared["record"]` so `clips.json` names it |
+| Join a frame of a loop | `jump._frame_of(air, "Jog", frame)` (the frame's spec, in place), `declared["joins"]` with the loop's built frame, and `first_frame` or `last_frame` in `declared["join_names"]` so `clips.json` names it (as the starts and stops do) |
 | Say something of a clip to the game | `declared["record"]`: keys that go into the clip's row of `clips.json` as they are (`fall_speed`, `control`, `made_for`, `carried`) |
 | Float a jump's arms | the arm's parts on their own windows (`jump._arm_shares`: the forearm and the hand `arms_lag` frames after the upper arm, eased by `maths.smoother`) and the overlap pass on the trunk alone (`TRUNK_PARTS`) in a clip that plays once; a take-off lasting the controller's whole rise (`RISE_FRAMES`); `declared["arm_bounds"]` from `Air.arm_bounds()` |
 

@@ -112,8 +112,8 @@ func test_the_jump_s_clips_are_made_for_the_controller_s_jump() -> void:
 		assert_float(records.clips[clip].speed).override_failure_message(clip).is_equal_approx(
 			jog, 0.02 * jog
 		)
-	assert_int(int(records.clips["Jump_Start_Run_L"].join_frames.first)).is_equal(0)
-	assert_int(int(records.clips["Jump_Start_Run_R"].join_frames.first)).is_equal(
+	assert_int(int(records.clips["Jump_Start_Run_L"].joins.first_frame)).is_equal(0)
+	assert_int(int(records.clips["Jump_Start_Run_R"].joins.first_frame)).is_equal(
 		int(records.clips["Jog"].frames / 2.0)
 	)
 

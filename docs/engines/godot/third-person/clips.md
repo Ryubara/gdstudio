@@ -125,7 +125,8 @@ plays them yet: `Jump_Start_Run_L` and `_R` (from the jog's left and right foot 
 from 9 m/s) and `Land_To_Jog` (0.27 s, ends on the jog's right foot strike). `locomotion.json` says of each
 what the tree needs: `carried` (the capsule carries it), `made_for` (the tuning numbers it was built to,
 which `tests/gameplay/test_own_jump_clips.gd` holds to `CharacterTuning`'s defaults), `fall_speed` (`from`,
-`to`), `control` (the frame control is back at), `joins` and `join_frames` (the clip and the frame each end is).
+`to`), `control` (the frame control is back at), `joins` (the clip each end is, and `first_frame` or
+`last_frame`, the frame of it).
 
 ## The fixed clips {#fixed-clips}
 
@@ -357,6 +358,8 @@ pivot or a turn: the time it has turned as far as the body), and `exit_phase` (t
 on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose body has finished its
 part plays on at its own pace; a body asked for something else leaves it at once. Until the clips exist nothing
 plays and the states change as before.
+The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
+so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are kit #1157's.
 
 **What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
 pose's difference from the idle's first frame.

@@ -16,6 +16,12 @@
   "Jump_Fall": "A",
   "Land_Soft": "A",
   "Land_Hard": "A",
-  "Land_To_Jog": "A"
+  "Land_To_Jog": "A",
+  "Idle_To_Walk": "A",
+  "Idle_To_Jog": "A",
+  "Idle_To_Sprint": "A",
+  "Walk_Stop": "A",
+  "Jog_Stop": "A",
+  "Sprint_Stop": "A"
  }
 }
