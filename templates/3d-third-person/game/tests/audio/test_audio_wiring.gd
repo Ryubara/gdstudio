@@ -157,7 +157,8 @@ func test_a_shot_plays_at_the_muzzle() -> void:
 # The levels. Step -20, crouch step -29, landing -15 and the wind -20 dB are the maintainer's own,
 # set by ear in a game made from the template. The coin and the shot were levelled against them by
 # measuring each through the camera, the buses and the 3D players (the loudest 400 ms at the mix:
-# step -40, crouch step -46, landing -37, coin -37, shot -31, the wind -50 LUFS integrated). A
+# step -40, crouch step -46, landing -37, coin -37, shot -31, the wind -50 LUFS integrated; the
+# shots of #1414 at -22.5 dB read -27.5 for a pistol shot). A
 # 3D player's volume is not one to one with what is heard (it also darkens the sound as it falls),
 # so change a number by measuring again, never by adding dB.
 func test_the_levels_are_the_ones_measured_and_no_effect_jumps_out() -> void:

@@ -145,7 +145,8 @@ credits ──> plan ──> generate ──> encode ──> check
 - **The data file's keys for picking:** `takes` is how many are asked for and `use_takes` (numbers from 1) which are
   cut, after listening and measuring; `take_prompts` holds an earlier prompt for the takes made with it; `names` gives
   fixed file names (`pistol_draw.ogg`) instead of `<prefix>_<n>.ogg`; `highpass_hz` works on a hit as on steps;
-  `model` on a sound overrides the set's. A loop takes `flatten_seconds` (even it out; never for a wind),
+  `model` on a sound overrides the set's; a shot takes `decay_ms`, `presence_db` and `crest_db`
+  ([A fire sound that stays pleasant](#fire)). A loop takes `flatten_seconds` (even it out; never for a wind),
   `min_spread_lu` and `max_spread_lu` (the range its momentary level may move, checked) and `whistle` (`hz`, `q`,
   `mix`, `seed`: a whistle layered over its gusts, [A wind that reads as wind](#wind)). `licence_free` and
   `licence_paid` are the two licence texts, chosen by the plan the take was made on.
@@ -218,8 +219,15 @@ crouch step -46, landing -37, coin -37, shot -31 LUFS-M and the wind -50 LUFS in
 has how it was measured). The weapon pickup at -20 dB reads -35 LUFS-M in the rifle tour's mix (between the coin
 and the shot, its draw sound right after it at -29) and the rifle's automatic burst at -27 dB -25 (#889). Within a
 set the files match to 0.3 LU (`check` fails over 1 LU). Every file starts within 5 ms
-of its first sample and none peaks over -1 dBFS decoded, apart from the pistol's: the five Deadnight shots are
-full-scale files (peak about 0 dBFS), made to be played at a trim, and play here at -22 dB.
+of its first sample and none peaks over -1 dBFS decoded.
+
+The shots of #1414 (pistol -17.5 LUFS-M as files, played at -22.5 dB; rifle -18.5, at -23 dB) were measured with
+`tools/capture/fire_sounds_tour.tscn` in two games made from the template, the old shots and the new, the median of
+three runs each (loudest 400 ms at the mix, before then after): pistol single shots -28.5 and -27.5, a burst of three
+at 15 a second -23.5 and -22.9, held fire at 4 a second -25.2 and -24.6; rifle single -30.8 and -28.7, a burst -26.5
+and -24.8, held fire at 10 a second -24.4 and -23.1 LUFS-M. The mix's highest sample in any of them is -10.3 dBFS (it
+was -9.7), no sample of any run passes -1 dBFS, and the new pistol (centroid 1.1 kHz in the game, 14% at 2 to 5 kHz)
+sits apart from the rifle (0.7 kHz, 43% under 250 Hz).
 
 - **Approach:** Read short sounds as the loudest momentary loudness (the file zero-padded to one second) and level to
   that, with `framelog=info` in ffmpeg's `ebur128` filter to get the per-frame `M:` lines. **Watch out for:** the
@@ -410,12 +418,28 @@ generated low thumps).
   voice each shot cuts the tail of the one before, which clicks when the cut is not at silence; a longer tail or a
   faster rate needs more voices, and voices are a cost on the web. Dynamic balancing that lowers a sustained burst is
   used in some games ([a mod's description][dab]); a template needs only the variation. **Seen:** gdstudio #857
-  (`ShotSound`: `max_polyphony = 3`).
+  (`ShotSound`: `max_polyphony = 3`); #1414 (three voices kept, each shot inside its voice's time: the pistol 0.47
+  of 0.75 s, the rifle 0.22 of 0.3).
 - **Approach:** Level the shot against the other effects by measurement in the game: a few LU over the loudest
   ordinary effect and not 15. The shot is the loudest effect, at -31 LUFS-M against a coin and a landing at -37 and a
   step at -40. **Watch out for:** the sources give no number for the tail length or for how much a pleasant shot may
   overlap, and none measured ear fatigue; the lengths and levels here are measured on the files and are the
   maintainer's to hear. **Seen:** gdstudio #857.
+- **Approach:** Generate a shot on the newest model with a prompt that names one shot's layers (an instant crack, the
+  body, a short open-air tail; for a rifle a deep, heavy boom), eight takes of 0.8 s, and keep the takes whose envelope
+  is one transient that peaks within about 30 ms with nothing after it. **Watch out for:** a mechanical layer in the
+  prompt ("a quick metallic bolt clack") came back as a second hit 70 to 90 ms after the first in three of eight rifle
+  takes, a double report that doubles the fire rate at 10 a second, and three more were near silent (peaks of -15 to
+  -24 dBFS); a second prompt without the clack ("exactly one shot and nothing after it") gave four usable takes of
+  eight. **Seen:** gdstudio #1414, 2026-11-13 (16 rifle and 8 pistol takes, 192 credits billed).
+- **Approach:** Shape a generated shot in the recipe before levelling it: `decay_ms` (25 ms held, then an exponential
+  fall: rifle 45 ms, pistol 110), `presence_db` (a bell at 3.2 kHz: 4 and 8 dB), `crest_db` (the peak held 12 dB over
+  the loudest 400 ms, the smooth limiter of
+  [Headroom](../../engines/godot/audio-mixing/mixing-levels.md#headroom-without-a-limiter)); then measure held fire in
+  the game. **Watch out for:** the takes keep a loud body for 100 ms or more: at 10 a second a shot's rise over the
+  floor fell from 26.5 dB (the synthesised M4A1) to 11; a shorter cut won under 1 dB, the decay brought it to 20. The
+  distance filter took the 2 to 5 kHz share from 10 to 14% to 3% until the lift. A limited file decoded 1.3 dB over its
+  -1.5 dBFS encode. **Seen:** gdstudio #1414, 2026-11-13 (`tools/capture/fire_sounds_tour.tscn`).
 
 Sources: [Splice, how to design a weapon sound][splice]; [Krotos, Weaponiser and Gun Sound Design][krotos]; [Lior
 Ortega, FPS gun sound design][ortega]; [sfxengine, common game audio mistakes][sfx]; [equal-loudness

@@ -69,7 +69,8 @@ same peak, and a presence lift at 2 to 5 kHz keeps their crack through a 3D play
 The player volumes are the template's defaults: steps -20 dB, crouch steps -29, landing -15, wind -20 (the maintainer's,
 set by ear in a game made from the template), coin -16 and the shots -22.5 (pistol) and -23 (rifle) (levelled against
 them by measurement). Measured in the game (kit #1083, a game made from the template, the real input), the loudest 400
-ms at the mix: step -41, crouch step -47, landing -35, coin -39, shot -29, empty click -40, reload -35, draw -30, punch
+ms at the mix: step -41, crouch step -47, landing -35, coin -39, shot -29 (since kit #1414 the pistol's -27.5 and the
+rifle's -28.7), empty click -40, reload -35, draw -30, punch
 -37, impacts -41 to -44 LUFS-M, and the wind -50 LUFS integrated, so no effect jumps out. A 3D player's volume is
 not one to one with what is heard (it also darkens the sound as it falls), so measure again before you move one (the
 kit's Godot audio page, "The templates' buses and AudioSettings", says how).
