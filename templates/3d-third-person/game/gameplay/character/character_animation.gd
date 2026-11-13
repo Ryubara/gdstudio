@@ -282,6 +282,7 @@ const _RELOAD_FADE_OUT := 0.2
 		_rebuild()
 
 var melee := MeleeLayer.new()  # The melee blow's one-shot (gdstudio #1254).
+var hits := HitLayer.new()  # where a hit's clip plays: stance and weapon (gdstudio #1292, #1345)
 var rack := RackLayer.new()  # The slide's rack after an empty reload (gdstudio #1337).
 var gait := CharacterGait.new()  # speed matching, transitions, momentum, lean (gdstudio #1158)
 var _machine: AnimationNodeStateMachine
@@ -437,7 +438,8 @@ func _drive(delta: float) -> void:
 	_prone_look.step_crawl_share(speed, blend_time, delta)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
-	HitLayer.follow(tree, active and _action_clip == hit_clip, body_state(), active and _upper_only)
+	var hit := active and _action_clip == hit_clip
+	hits.follow(tree, hit, body_state(), _weights.x > 0.0, active and _upper_only)
 	if _action_was_active and not active:
 		action_finished.emit(_action_clip)
 	_action_was_active = active
@@ -751,7 +753,8 @@ func _on_interacted(_target: Node3D) -> void:
 
 func _on_hit(_amount: float, _source: Node3D) -> void:
 	play_clip(hit_clip, character.tuning.hit_stun_time)
-	HitLayer.follow(tree, true, body_state())
+	hits.follow(tree, true, body_state(), _weights.x > 0.0)
+	_brace.hold_up(self, character.tuning.hit_stun_time + action_blend_time)
 
 
 # A vault or a mantle plays its clip over the whole body (`VaultAnimation.start()`).
@@ -819,7 +822,10 @@ func _build_root() -> AnimationNodeBlendTree:
 	var action := AnimationNodeOneShot.new()
 	action.fadein_time = action_blend_time
 	action.fadeout_time = action_blend_time
-	HitLayer.prepare(action, _bone_paths([upper_body_bone]))
+	var arms := _bone_paths([&"clavicle_l", &"clavicle_r"])
+	var upper_paths := _bone_paths([upper_body_bone])
+	var kept := _bone_paths([UseLayer.KEPT_ARM])
+	hits.prepare(action, _bone_paths([&"root", &"pelvis"]), upper_paths, arms, kept)
 	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
 	root.connect_node(_ACTION, 0, MeleeLayer.NODE)

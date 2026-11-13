@@ -125,6 +125,11 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   held, did and decided (`AI_SOAK_GATE {...}`); `ai_soak_faults.gd` breaks a character for each gate
   (`--faults all`). `--lines` prints a line of numbers a character. The header says how to run it; the nightly
   `ai-soak.yml` runs 50 seeds, `tests/gameplay/test_ai_soak.gd` the pull-request seed and the faults.
+- `tools/soak/ai_pose_log.tscn` runs the AI soak and prints a `POSE {...}` line each time an AI character's animation
+  changes (its state, the locomotion node, the action, reload, shoot and melee layers, the weapon layer's weights,
+  its tier and whether its tree is throttled), to trace a pose seen in play to the clip that played it (gdstudio #1345).
+- `tools/capture/enemy_pose_tour.tscn` films, from the player's camera, a body on the enemy's mannequin taking chest
+  shots while it aims and one that fires its pistol dry and reloads.
 - `tools/web_smoke/ai.py` runs the soak's web export (`gds template bench-web 3d-third-person
   tools/soak/ai_soak.tscn`) in Chrome at each population and CPU throttle and prints the frame's work, the AI step
   and ticks a frame.

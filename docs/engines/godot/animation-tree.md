@@ -227,6 +227,13 @@ again every frame, so a body that crouches or stands during the stun gets its ne
 went from 0.47 m to 0.88 m for each hit before and stays within 6 cm after; lying, from 0.18 m to 0.88 m
 (`tests/gameplay/test_hit_stance.gd`, the capture `tools/capture/stance_hit_tour.tscn`; gdstudio #1292).
 
+The clip is also made empty-handed, so with a weapon held (the weapon layer's grip on) the filter leaves the arms out
+(`clavicle_l`, `clavicle_r` and below) and the arms keep the weapon layer's pose while the trunk and head flinch; and
+because the stun takes the aim away, the drawn arm is held up through it (`AimBrace.Driver.hold_up()`, the shot hold's
+mechanism) while the gameplay aim stays off. Before, an aimed pistol swung 0.7 m from its aim to the hip for every hit
+(the hand measured in the clavicle's space); after, under 5 cm (`test_an_aimed_pistol_stays_up_while_hit`, the capture
+`tools/capture/enemy_pose_tour.tscn`; gdstudio #1345).
+
 - **Approach:** Before playing a whole-body clip on the upper body alone, compare the clip's turn of the bones above
   the filter (the root and the pelvis) with the locomotion's, and turn the first spine bone by the difference in a
   modifier eased with the action (3D Third Person's `UseTurn`, made by `UseLayer`); capture it from in front. **Watch
@@ -253,6 +260,14 @@ went from 0.47 m to 0.88 m for each hit before and stays within 6 cm after; lyin
   lying character stood up for the stun and popped down after it, bobbing under fire while its capsule and hit zones
   stayed low; the existing test only checked that the hit clip was the one asked for. **Seen:** gdstudio #1292,
   2026-11-11 (found filming the pistol's shot in #1280; fix: `HitLayer`, as above).
+- **Approach:** Give a whole-body action a rule per hand state too: a clip made empty-handed leaves the arms to the
+  weapon layer while a weapon is held, and anything the action's stun turns off (the aim) is held in the drawn pose
+  for its length. Test the gun hand in its shoulder's space through the action, not only that the clip played.
+  **Watch out for:** the action one-shot sits above the weapon layer, so `ual1/Hit_Chest` replaced the held pistol's
+  arms with its own hanging ones, and filtering the arms alone still dropped the gun, because the stun had also taken
+  the aim to 0. A pose log of every AI character's layers from a seeded soak (`tools/soak/ai_pose_log.tscn`) traced the
+  playtest's frames to their clips. **Seen:** gdstudio #1345, 2026-11-12 (enemies' arms hanging while hit; fix: the
+  arms left out of the hit filter and the arm held up, as above).
 
 ## Two clips half a turn apart on a bone {#two-clips-half-a-turn-apart-on-a-bone}
 
