@@ -75,7 +75,9 @@ The AI characters run on the server only. When the client joins, its own map's A
 character, with their senses, brain, tasks and navigator) stands down before it runs a frame, and an `AiReplica`
 (`ai_replica.gd`) draws the server's characters from the few bytes each TICK carries for this client: each one a
 dressed character with no AI and no collision, walked evenly from one row to the next a tenth of a second behind, its
-animation from the row (walking, running, crouching, aiming), its death a ragdoll this screen makes itself from one
+animation from the row (walking, running, crouching, aiming; its starts and stops from where its rows head and the
+speed the row says it is asked for, so it plays the stop its server body plays instead of gliding in one,
+`tests/gameplay/test_net_ai_puppet_gait.gd`), its death a ragdoll this screen makes itself from one
 event, its shot a muzzle flash this screen plays. A crowd that arrives at once (the join, a crowd walking into range)
 is made and shown a few characters a frame, the nearest first, so joining does not freeze the screen. Characters
 farther away are sent less often (`ai_tier_rates.tres`

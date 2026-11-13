@@ -144,7 +144,8 @@ vault it never stepped: [a puppet's vault](traversal.md#online).
   on a puppet, so every moving puppet was taken for a body asked to stop and slid along in the walk's stop clip's last
   frame; the drawn motion alone could not tell a stop from a slow-down to a jog in the first 0.1 s of the brake (a
   brake guess either picked the jog's stop for a sprint or a stop for a slow-down), so one free flag bit carries the
-  stop. **Seen:** gdstudio #1420, 2026-11-13 (`PlayerPuppet.goal_of`, `PlayerEntry.halt`).
+  stop. **Seen:** gdstudio #1420, 2026-11-13 (`PlayerPuppet.goal_of`, `PlayerEntry.halt`); #1452, 2026-11-13 (the
+  AI's puppets had the same glide: [their starts and stops](ai-online.md#replication)).
 - **Approach:** Film a puppet's turn off its body (an aim to the side) from ahead of it, on a lane read from the level's
   scene (each block's place and size) before the first run, with the watcher's camera turned to follow it; put a test's
   route on the same lane. **Watch out for:** from beside or above at 5 to 10 m a 50 degree aim and an aim along the

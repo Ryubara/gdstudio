@@ -28,6 +28,23 @@ plays everything cosmetic itself; nothing cosmetic is sent.
 | `AiGlide` | `gameplay/net/ai_glide.gd` | A playout buffer of rows (`interp_delay`, 0.1 s), each released row walked to over the ticks since the one before (even steps: 0.050 m a tick at 3 m/s from 30 Hz rows, and from 7.5 Hz ones), set down at once for the first row, a jump past `glide_max_jump` (4 m) or a gap past 2 s, and guessed ahead at its speed for at most `extrapolate_seconds` (0.1 s), never through `extrapolate_mask`. |
 | Population | `AiDirector.match_cap`, set by `NetServer` from the HELLO's `F_WEB` flag | A browser in the match caps the population for everyone at `web_cap` (40 living: a corpse is not counted, kit #1247): the newest living characters past it are parked (frozen, not stepped, not sent) until the browser leaves. |
 
+**Its starts and stops** (gdstudio #1452). An AI's puppet never steps, so, like a player's puppet before
+[#1420](online-client.md#puppets), `GaitTransitions` read its goal from an empty command and took every moving AI
+puppet for a body asked to stop: on a client it glided along in `Walk_Stop`'s last frame at 4 and 6.3 m/s and played
+no stop when the AI stopped. `AiReplica` now makes each puppet with `goal_from_motion` on and sets `motion_goal` each
+step from `AiGlide.goal`: none when the row's speed is 0, else that speed along where the rows head
+(`AiGlide.heading`, from the row drawn to the newest one waiting in the playout buffer, 0.1 s ahead), the way it had
+while they head under 0.5 m/s, or the way it faces from standing. The row's speed byte is the body's goal speed
+(`Character.goal_speed`), not its measured one: the stop needs a signal the drawn motion cannot give in the first
+0.1 s of a brake, and the byte already travels, so it costs no byte, no bit and no protocol version (the layout is
+the same; the client's drawn speed is the glide's own, and a guess ahead now stops at once when the walk is let go).
+On a loopback walk, run, sprint and stop (`test_net_ai_puppet_gait.gd`) the puppet begins what the server's body
+begins (`Sprint_Stop` at the stop), plays no stop on any steady frame and its largest bone turns more than 3 degrees a
+frame while it moves; on the base code 8 checks fail (`Walk_Stop` while it walked, no stop when it stopped, 40 of 40
+steady frames in a stop, 0.6 to 0.7 degrees a frame). From standing the puppet plays `Idle_To_Walk` where the server's
+body plays no start (#1453). The capture is `tools/capture/ai_gait_tour.tscn` (the server's world beside Bo's screen,
+each with the transition its body plays).
+
 The server's inspector (`net_server.tscn`, group AI; the lag compensation's two are under Shots, [below](#rewind)):
 `ai_rates`, `ai_section_origin` (positions travel as centimetres from it, 327.67 m each way), `ai_variants` (a
 character's look on the wire is the index of its profile here: `grunt.tres`, `ally.tres`, `civilian.tres`,
@@ -37,6 +54,12 @@ sees, fights and measures its tiers from them). The client's (`AiReplica`, group
 `character_dressed_male.tscn` for the grunt and the shooter, the female `character_dressed.tscn` for the ally and the
 civilian, as offline); group Making puppets: `puppets_per_frame`, `puppet_budget_usec`, `puppets_shown_per_frame`,
 `viewer`.
+
+- **Approach:** Before taking a flag bit for something a client must know, look at what the row already sends
+  and whether a field could carry the one value the client needs in its place. **Watch out for:** every bit of the
+  AI row's mode byte is used (the body's state fills 0 to 15) and #1420 took the player entry's last flag bit; the
+  speed byte carried the measured speed, which the client's glide works out itself, so the goal speed took its place
+  at no cost. **Seen:** gdstudio #1452, 2026-11-13 (`AiBroadcast.row_of`, `AiGlide.goal`).
 
 ### The AI section online {#section-online}
 
