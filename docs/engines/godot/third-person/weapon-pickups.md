@@ -262,13 +262,14 @@ model). Captures: `tools/capture/rifle_stock.tscn` (both bodies from the right a
 
 **The sprint** (kit #1340) is measured over the whole body, not the torso alone: `BodyClearance.new(..., HOLDING)`
 leaves out only the forearms and hands, so the thighs, upper arms and head count. On the live player with simulated
-keys, every update of three strides of our own sprint (#1275, with #1158's speed matching), fresh, after a burst and
-after a switch to the pistol and back, and one stride each running back, left, right and on two diagonals, on both
-bodies: 0.0 mm in, both hands 0.0 mm off their places (`test_rifle_sprint_carry.gd`). The rifle's nearest point to the
-skin is 5 to 17 mm off on the female and 1.2 to 9 mm on the male. Probes found the same at 15 frames a second, turning
-with the mouse, starting from standing and with a reload on the sprint (both bodies), and with the library's
-`ual1/Sprint` in place of ours (the female). The run and the stop after a sprint graze the chest by 2 to 3 mm
-(`spine_02`), under the stock test's 10 mm.
+keys, three strides of our own sprint (#1275, with #1158's speed matching), fresh, after a burst and after a switch to
+the pistol and back, and one stride each running back, left, right and on two diagonals, on both bodies: 0.0 mm in, both
+hands 0.0 mm off their places (`test_rifle_sprint_carry.gd`: the hands on every update, the skin on every fifth, 22
+phases of the 36-update stride; on every update the probes read the same). The rifle's nearest point to the skin is 5 to
+17 mm off on the female and 1.2 to 9 mm on the male. Probes found the same at 15 frames a second, turning with the
+mouse, starting from standing and with a reload on the sprint (both bodies), and with the library's `ual1/Sprint` in
+place of ours (the female). The run and the stop after a sprint graze the chest by 2 to 3 mm (`spine_02`), under the
+stock test's 10 mm.
 
 - **Approach:** Measure a held weapon against the body it is held by (a parity test on the closed skinned mesh, the
   arms and legs left out), in every clip, before trusting a stance, and bring the body's contact about at run time

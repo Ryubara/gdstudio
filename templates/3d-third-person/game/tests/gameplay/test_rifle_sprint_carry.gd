@@ -1,4 +1,4 @@
-# Sprinting with the rifle carries it clear of the body (kit #1340): on every update of the
+# Sprinting with the rifle carries it clear of the body (kit #1340): on the updates of the
 # skeleton through whole strides of the sprint, on both bodies, fresh from the pickup, after a
 # burst, after a switch to the pistol and back, and running back, across and on the diagonals, no
 # point of the rifle is inside the body (the torso, the legs, the upper arms and the head; the
@@ -16,6 +16,8 @@ const AFTER_SHOT := 60
 const BODY_DEPTH := 0.01
 ## How far a hand may be from its place on the rifle, in metres.
 const HAND_GAP := 0.005
+## The rifle is measured against the skin on every this many updates (the hands on all of them).
+const SKIN_EVERY := 5
 ## The ways run in `test_the_sprint_carries_the_rifle_clear_in_every_direction`: the keys held.
 const DIRECTIONS: Array[Array] = [[KEY_S], [KEY_A], [KEY_D], [KEY_W, KEY_D], [KEY_S, KEY_A]]
 const DIRECTION_NAMES: Array[String] = ["back", "left", "right", "ahead right", "back left"]
@@ -28,6 +30,7 @@ var _hold: TwoHandHold
 var _contact: HandContact
 var _clearance: BodyClearance
 var _updates: Array[Dictionary] = []
+var _read_count := 0
 
 
 func before_test() -> void:
@@ -138,16 +141,12 @@ func _sprint(tag: String, strides := STRIDES) -> Array[Dictionary]:
 			deepest = update
 	print(
 		(
-			(
-				"SPRINT %-24s updates %3d deepest %5.1f mm in %s, nearest the skin %4.1f mm,"
-				+ " hands off %.1f / %.1f mm"
-			)
+			("SPRINT %-24s updates %3d deepest %5.1f mm in %s, hands off %.1f / %.1f mm")
 			% [
 				tag,
 				_updates.size(),
 				deepest.depth * 1e3,
 				deepest.get("bone", ""),
-				_least_gap() * 1e3,
 				_most("right") * 1e3,
 				_most("left") * 1e3
 			]
@@ -158,13 +157,6 @@ func _sprint(tag: String, strides := STRIDES) -> Array[Dictionary]:
 	return _updates.duplicate()
 
 
-func _least_gap() -> float:
-	var least := BodyClearance.REACH
-	for update in _updates:
-		least = minf(least, update.gap)
-	return least
-
-
 func _most(key: String) -> float:
 	var most := 0.0
 	for update in _updates:
@@ -173,13 +165,18 @@ func _most(key: String) -> float:
 
 
 func _read() -> void:
-	var found := _clearance.deepest(_hold.get_node(^"Pivot/Rifle/Near") as Node3D, true)
+	# The hands on every update; the skin, which costs about 50 milliseconds a pose, on every
+	# `SKIN_EVERY`th, a step that shares no factor with the sprint's 36 updates a stride, so the
+	# three strides read land on 22 different phases.
+	var found := {"depth": 0.0, "bone": &"", "point": Vector3.ZERO}
+	if _read_count % SKIN_EVERY == 0:
+		found = _clearance.deepest(_hold.get_node(^"Pivot/Rifle/Near") as Node3D)
+	_read_count += 1
 	(
 		_updates
 		. append(
 			{
 				"depth": found.depth,
-				"gap": found.gap,
 				"bone": found.bone,
 				"point": found.point,
 				"right": _gap("RightHandTarget", &"hand_r"),
