@@ -28,6 +28,7 @@ static func make(player: Player) -> void:
 	player.start_at_spawn = false
 	player.input_enabled = false
 	player.ragdoll_by_command = false
+	player.goal_from_motion = true
 	player.collision_layer = 0
 	player.collision_mask = PhysicsLayers.WORLD
 	var input := player.controller
@@ -53,6 +54,9 @@ static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: fl
 	_touch_floor(puppet, entry.position, entry.air)
 	puppet.global_position = entry.position
 	puppet.velocity = moving
+	# The goal the animation's starts and stops read: none once the player asked for no move, else
+	# the drawn motion (`RemotePlayers` sets where the snapshots head after this).
+	puppet.motion_goal = Vector3.ZERO if entry.halt else moving
 	puppet.facing = entry.yaw
 	# The view along the body, turned by the aim's heading off it while aiming (0 otherwise), so
 	# the aim layer turns the puppet's upper body as it turns the stepped one.

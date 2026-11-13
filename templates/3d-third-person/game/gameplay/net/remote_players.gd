@@ -68,6 +68,7 @@ func _physics_process(delta: float) -> void:
 		_sample.position += _platform_shift(_sample.position, at)
 		starved += 1 if track.starved > before else 0
 		_puppets[slot].puppet_to(_sample, moving, delta)
+		_puppets[slot].motion_goal = Vector3.ZERO if _sample.halt else track.heading()
 	last_frame_us = Time.get_ticks_usec() - began
 
 

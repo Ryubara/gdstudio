@@ -21,6 +21,10 @@ var air := false
 ## Off the floor and going up.
 var rising := false
 var dead := false
+## Asked for no move (`Character.goal_speed` 0): another screen's puppet stops when it is set and
+## not before, as the stepped body does, for its drawn motion cannot tell a stop from a slow-down
+## for the first tenth of a second of the brake (gdstudio #1420).
+var halt := false
 ## The aim's look up or down, radians (a signed byte, about 1.4 degrees a step).
 var pitch := 0.0
 ## The aim's heading off the way the body faces, radians, positive to the character's left
