@@ -15,6 +15,9 @@
 ## `HOLD_RELOAD_OFF=1` leaves the hold untold of the reload, the left hand as the clip has it;
 ## `HOLD_RELOAD_STEP=0.01` measures every hundredth of it instead, the scan that finds a hand
 ## passing through the gun between two studied shares, and `HOLD_SHARES=0.03,0.05` those shares),
+## `HOLD_TRIGGER_STEP=0.05` films the trigger finger's way at every such share instead, with a
+## close view of the finger from the gun's right (`trigger`) and from below it (`trigger_below`),
+## `HOLD_VIEWS=trigger,right` films only the views it names (kit #1272),
 ## `HOLD_OBJ=<folder>` writes each pose's hands and weapon as an OBJ file, `HOLD_ONE_HAND=1` holds
 ## it in the right hand alone (kit #1085; the left arm on the idle clip). It lives in tools/,
 ## which the export leaves out.
@@ -96,6 +99,11 @@ func _run(model: String) -> void:
 		var reload: bool = spec.has("shares")
 		var trigger: bool = spec.has("trigger")
 		var times: Array = _reload_shares() if reload else spec.get("times", spec.get("trigger"))
+		if trigger and OS.get_environment("HOLD_TRIGGER_STEP").to_float() > 0.0:
+			var step := OS.get_environment("HOLD_TRIGGER_STEP").to_float()
+			times = []
+			for share in roundi(1.0 / step) + 1:
+				times.append(minf(share * step, 1.0))
 		for index in times.size():
 			var aim: float = spec.get("aim", 0.0)
 			if spec.get("carry", false):
@@ -124,7 +132,7 @@ func _run(model: String) -> void:
 			if film and reload:
 				await _shoot(camera, out.path_join(tag), true, true)
 			elif film and trigger:
-				await _shoot(camera, out.path_join(tag), true)
+				await _shoot(camera, out.path_join(tag), true, false, true)
 			elif film and index == times.size() - 1:
 				await _shoot(camera, out.path_join(spec.tag), aim > 0.0)
 	get_tree().quit()
@@ -225,8 +233,11 @@ func _shoot_carry(camera: Camera3D, path: String, eye: Vector3) -> void:
 # Five views of the pose: the gun's left, its right, from above (the muzzle up the picture), a
 # close-up from the player's aim camera (1.1 m behind the 1.55 m target, 0.5 m to the right) and
 # that camera's own 50 degree view; with both hands on the gun also from ahead of the muzzle and
-# from straight below, and with `under` from below the grip's foot.
-func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) -> void:
+# from straight below, with `under` from below the grip's foot, and with `close` the trigger
+# finger close up from the gun's right and from below it.
+func _shoot(
+	camera: Camera3D, path: String, two_handed: bool, under := false, close := false
+) -> void:
 	var gun := _stage.pistol.global_transform.orthonormalized()
 	var middle := gun * Vector3(-0.04, 0.03, 0.0)
 	var eye := _stage.global_transform * Vector3(-0.5, 1.55, -1.1)
@@ -242,10 +253,21 @@ func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) ->
 		views["front"] = [middle + gun.basis * Vector3(-0.5, -0.02, 0.0), gun.basis.y, 34.0]
 		views["below"] = [middle + gun.basis * Vector3(0.0, -0.5, 0.02), -gun.basis.x, 34.0]
 	var trigger := _stage.pistol.find_child("Trigger", true, false) as Node3D
-	if _one_hand and trigger != null:
+	if (_one_hand or close) and trigger != null:
 		# Square on from the gun's right and close: the trigger finger on the trigger.
 		var on := trigger.global_position
 		views["trigger"] = [on + gun.basis * Vector3(0.0, 0.0, -0.3), gun.basis.y, 20.0]
+	if close and trigger != null:
+		# From below the gun's right, under the trigger guard: the finger dropping into it.
+		var under_at := trigger.global_position
+		views["trigger_below"] = [
+			under_at + gun.basis * Vector3(0.02, -0.25, -0.17), gun.basis.y, 20.0
+		]
+	var only_views := OS.get_environment("HOLD_VIEWS")
+	if only_views != "":
+		for view: String in views.keys():
+			if not view in only_views.split(","):
+				views.erase(view)
 	if under:
 		# From below and ahead of the grip's foot, where a hand at the magazine shows.
 		views["under"] = [middle + gun.basis * Vector3(-0.3, -0.33, 0.12), gun.basis.y, 34.0]
@@ -253,7 +275,7 @@ func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) ->
 		# From the sides and above, nothing nearer than the hands is drawn (a leg, the chest); with
 		# one hand on the gun its left is cut closer still, since the thigh is a hand away from it.
 		camera.near = 0.02 if view == "player" or view == "under" else 0.3
-		if view == "trigger":
+		if view == "trigger" or view == "trigger_below":
 			camera.near = 0.1
 		if view == "below":
 			# The forearms hang below the gun: cut them away 10 cm under its middle.
@@ -261,12 +283,14 @@ func _shoot(camera: Camera3D, path: String, two_handed: bool, under := false) ->
 		if view == "left" and not two_handed:
 			camera.near = _ONE_HAND_NEAR
 		camera.fov = views[view][2]
-		var at := trigger.global_position if view == "trigger" else middle
+		var at := trigger.global_position if view.begins_with("trigger") else middle
 		camera.look_at_from_position(views[view][0], at, views[view][1])
 		for _i in 3:
 			await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png("%s_%s.png" % [path, view])
 	await _shoot_carry(camera, path, eye)
+	if only_views != "" and not "game" in only_views.split(","):
+		return
 	camera.near = 0.02
 	camera.fov = 50.0
 	camera.look_at_from_position(eye, eye + _stage.global_basis.z * 4.0)

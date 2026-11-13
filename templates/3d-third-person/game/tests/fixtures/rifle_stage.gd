@@ -63,11 +63,19 @@ static func make_rifle(holder: Node, model: String, measured := true) -> RifleSt
 
 ## Puts `clip_name` at `time` on the skeleton with the rifle `aim` of the way up to the shoulder
 ## (0 the low ready), the view `pitch` degrees up, a reload `reload` of the way through (below 0:
-## none) and a switch that has the rifle `lowered` of the way down.
+## none), a switch that has the rifle `lowered` of the way down and a melee blow's clip holding
+## `blow` of the upper body (`HoldBlow`).
 func pose_rifle(
-	clip_name: StringName, time: float, aim := 0.0, pitch := 0.0, reload := -1.0, lowered := 0.0
+	clip_name: StringName,
+	time: float,
+	aim := 0.0,
+	pitch := 0.0,
+	reload := -1.0,
+	lowered := 0.0,
+	blow := 0.0
 ) -> void:
 	var held := hold as TwoHandHold
+	held.posed_blow = blow
 	held.posed_aim = aim
 	held.posed_pitch = pitch
 	held.posed_reload = reload

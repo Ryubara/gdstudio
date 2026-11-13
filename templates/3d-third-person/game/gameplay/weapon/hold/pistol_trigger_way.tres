@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="HandPoseWay" format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose.gd" id="1_372f2"]
+[ext_resource type="Script" path="res://gameplay/weapon/hold/hand_pose_way.gd" id="2_w541n"]
+
+[sub_resource type="Resource" id="Resource_1xcp3"]
+script = ExtResource("1_372f2")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(0.18698134, -0.7070019, -0.012337481, 0.68193406),
+&"index_02_r": Quaternion(-4.1377957e-16, -1.1158135e-08, 3.708433e-08, 1),
+&"index_03_r": Quaternion(6.646705e-24, 6.2032797e-16, -1.0714825e-08, 1)
+})
+
+[sub_resource type="Resource" id="Resource_ixaxj"]
+script = ExtResource("1_372f2")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(0.2150789, -0.70654404, -0.028273607, 0.6736002),
+&"index_02_r": Quaternion(0.037805464, -9.7481685e-09, 3.747966e-08, 0.99928516),
+&"index_03_r": Quaternion(0.024723483, -2.6490718e-10, -1.071155e-08, 0.99969435)
+})
+
+[resource]
+script = ExtResource("2_w541n")
+poses = Array[ExtResource("1_372f2")]([SubResource("Resource_1xcp3"), SubResource("Resource_ixaxj")])
