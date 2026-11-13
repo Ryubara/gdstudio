@@ -761,7 +761,7 @@ func _centre(entry: Dictionary) -> Basis:
 ## A turn read as a twist about X and then a swing about Y and Z of what is left, in degrees (the
 ## way Jolt reads a 6DOF joint). `tools/ragdoll/measure_joints.gd` reads the clips with it.
 static func swing_twist(turn: Basis) -> Vector3:
-	var q := Quaternion(turn)
+	var q := turn.get_rotation_quaternion()
 	if q.w < 0.0:
 		q = -q
 	var twist := Quaternion(q.x, 0.0, 0.0, q.w).normalized()
@@ -930,7 +930,7 @@ func _clamped_world() -> Dictionary:
 ## `turn` (a turn from the pose a joint was made in, in its frame) held inside the joint's limits:
 ## a cone's swing and twist cut to their spans, a hinge's turn kept to its axis and its range.
 func inside_limits(entry: Dictionary, turn: Basis) -> Basis:
-	var q := Quaternion(turn).normalized()
+	var q := turn.get_rotation_quaternion()
 	if q.w < 0.0:
 		q = -q
 	match entry.joint:
