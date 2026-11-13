@@ -11,8 +11,8 @@
 ## `RACK_OUT=<abs folder> gds godot -- --path game --resolution 1000x800
 ## res://tools/capture/rack_closeups.tscn`. `MODEL=male` films the male body, `RACK_REACH=0`
 ## leaves the reach to the slide out (the clip's own arm) and `RACK_FINGERS=0` the body's own
-## fingers (the clip's), `RACK_CARRY=0` holds the pistol where the clip has it (the hold's carried
-## arm not held out, as when the character aims), `RACK_ALL=1` films every frame. It lives in
+## fingers (the clip's), `RACK_LOCK=0` racks a closed slide (the default is locked back, as the
+## game's empty pistol has it, kit #1337), `RACK_ALL=1` films every frame. It lives in
 ## tools/, which the export leaves out.
 extends Node3D
 
@@ -39,8 +39,7 @@ func _run(model: String) -> void:
 	_made = await RackStage.make(self, model)
 	_made.reach_on = OS.get_environment("RACK_REACH") != "0"
 	_made.fingers_on = OS.get_environment("RACK_FINGERS") != "0"
-	if OS.get_environment("RACK_CARRY") == "0":
-		_made.stage.hold.set(&"carry_arm_out", 0.0)
+	_made.lock = 0.0 if OS.get_environment("RACK_LOCK") == "0" else _made.locked_share()
 	var out := OS.get_environment("RACK_OUT")
 	var film := not out.is_empty() and DisplayServer.get_name() != "headless"
 	var camera := Camera3D.new()
@@ -84,7 +83,8 @@ func _measure(frame: float) -> String:
 			text.append("%s %.1f" % [part, left[part].distance * 1000.0])
 		line += " [" + ", ".join(text) + "]"
 	line += " | reach %.1f mm" % (_made.reach(share) * 1000.0)
-	line += " | slide %.0f mm" % (rack.travel.length() * rack.slide_pull(share) * 1000.0)
+	var pulled := rack.slide_pull(share, _made.lock)
+	line += " | slide %.0f mm" % (rack.travel.length() * pulled * 1000.0)
 	return line
 
 

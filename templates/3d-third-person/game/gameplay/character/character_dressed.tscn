@@ -21,6 +21,7 @@
 [ext_resource type="AnimationLibrary" path="res://assets/animation/melee/melee.glb" id="6_melee"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/own/locomotion.glb" id="7_gds"]
 [ext_resource type="AnimationLibrary" path="res://assets/animation/rifle/rifle_clips.glb" id="7_rifle"]
+[ext_resource type="AnimationLibrary" path="res://assets/animation/pistol/pistol_rack.glb" id="7_pistol"]
 [ext_resource type="Script" path="res://gameplay/character/character_animation.gd" id="7_animation"]
 [ext_resource type="PackedScene" path="res://gameplay/character/footsteps.tscn" id="8_footsteps"]
 [ext_resource type="Script" path="res://gameplay/character/character_ragdoll.gd" id="9_ragdoll"]
@@ -99,6 +100,7 @@ libraries = {
 &"melee": ExtResource("6_melee"),
 &"gds": ExtResource("7_gds"),
 &"rifle": ExtResource("7_rifle"),
+&"pistol": ExtResource("7_pistol"),
 &"prone_reload": ExtResource("6_prone_reload")
 }
 
