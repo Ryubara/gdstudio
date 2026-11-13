@@ -318,7 +318,7 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `slowest_pace` | 0.5 | the walk alone down to half its pace (0.85 m/s), fading into the idle below |
 | `transitions`, `transition_clips` | on, `GaitTransitionSet` | a start, a stop, a reversal, a pivot or a turn on the spot when the controller does one and its clip exists |
 | `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the controller's numbers that pick them |
-| `transition_pace` | 2 | the fastest a reversal, a pivot or a turn on the spot runs to catch the body's turn up, against its own pace: the controller turns in 0.26 s, and a clip seeked by the angle turned jumped half a second in a frame (kit #1157) |
+| `transition_pace` | 2 | the fastest a reversal, a pivot or a turn on the spot runs to catch the body's turn up, against its own pace: the controller turns in 0.26 s and the jog reversal over 1.13 s of its clip, so seeked by the angle turned it ran at over four times its pace (kit #1157) |
 | `momentum_blend`, `momentum_half_life`, `momentum_speed_limit` | on, 0.05 s, 720 degrees a second | a change of body state shows at once and the difference from the drawn pose dies away (`MomentumBlend`), in place of the cross-fade over `blend_time` |
 | `lean`, `lean_clips`, `lean_full_at`, `lean_time` | on, `gds/Lean_Left` and the rest, 20 m/s², 0.12 s | the lean into the acceleration, built only when the four lean clips exist |
 

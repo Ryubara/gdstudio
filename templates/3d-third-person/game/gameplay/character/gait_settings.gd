@@ -42,8 +42,8 @@ extends Resource
 ## Below this ground speed the body is standing for the transitions (m/s).
 @export_range(0.0, 2.0, 0.01, "suffix:m/s") var standing_speed := 0.3
 ## The fastest a reversal's, a pivot's or a turn's clip runs to catch up with the body, against
-## its own pace: the controller reverses in about 0.26 s, and a reversal played by the angle
-## turned would otherwise jump half a second of its clip in one frame (a hand 650 mm, #1157).
+## its own pace: the controller reverses in about 0.26 s, and the jog reversal turns over 1.13 s
+## of its clip, so played by the angle turned it would run at over four times its pace (#1157).
 @export_range(1.0, 8.0, 0.1) var transition_pace := 2.0
 
 @export_group("Momentum blend")
