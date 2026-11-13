@@ -8,8 +8,9 @@
 ## `gds godot -- --path game --fixed-fps 60 --write-movie <folder>/hands.png --resolution 1000x800
 ## res://tools/capture/left_shoulder_closeups.tscn` with `CLOSEUP_WEAPON=pistol|rifle` and
 ## `CLOSEUP_SIDE=left|right`. It prints a `VIEW <name> <frame>` line as each view starts (the view's
-## last frame is the still to keep) and a `HANDS` line a view (each hand's distance from its place
-## on the weapon, mm). It lives in tools/, which the export leaves out.
+## last frame is the still to keep) and a `HANDS` line a view (the lean and the muzzle's place;
+## `test_peek_left_shoulder.gd` measures the hands). It lives in tools/, which the export leaves
+## out.
 extends Node3D
 
 ## Frames before the aim is pressed, until the lean, and until the first view.
@@ -112,28 +113,9 @@ func _follow(skeleton: Skeleton3D) -> void:
 
 
 func _print_hands() -> void:
-	var skeleton := _player.model.skeleton()
-	var right_place: Vector3
-	var left_place: Vector3
-	var rifle := _player.model.get_node_or_null(^"RifleHeld")
-	if _player.weapon.definition.display_name == "Rifle" and rifle != null:
-		right_place = (rifle.find_child("RightHandTarget", true, false) as Node3D).global_position
-		left_place = (rifle.find_child("LeftHandTarget", true, false) as Node3D).global_position
-	else:
-		var seat := _player.model.get_node(^"PistolHeld") as Node3D
-		right_place = seat.global_position
-		left_place = (seat.get_node(^"Pistol/SupportHand") as Node3D).global_position
-	var xf := skeleton.global_transform
-	var right := xf * skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_r")).origin
-	var left := xf * skeleton.get_bone_global_pose(skeleton.find_bone(&"hand_l")).origin
 	print(
 		(
-			"HANDS lean %.2f right %.1f mm left %.1f mm muzzle %s"
-			% [
-				_player.peek_motion.amount,
-				right.distance_to(right_place) * 1e3,
-				left.distance_to(left_place) * 1e3,
-				_player.weapon.muzzle.global_position
-			]
+			"HANDS lean %.2f muzzle %s"
+			% [_player.peek_motion.amount, _player.weapon.muzzle.global_position]
 		)
 	)

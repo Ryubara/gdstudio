@@ -72,6 +72,9 @@ func refresh() -> void:
 	if cross == null or character == null or hold == null:
 		return
 	share = 0.0
+	# Upright (most frames, every far character) there is nothing to move.
+	if character.peek_motion.amount >= 0.0 and not cross.active:
+		return
 	if not disabled and hold.aim_weight > 0.0:
 		share = character.peek_motion.shoulder_share(character) * hold.aim_weight
 		share *= (1.0 - hold.reload_weight) * (1.0 - hold.rack_weight)
