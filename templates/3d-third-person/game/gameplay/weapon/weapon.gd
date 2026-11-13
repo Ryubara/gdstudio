@@ -471,15 +471,16 @@ func aim_point(origin := Vector3.INF, direction := Vector3.ZERO) -> Vector3:
 		var found := _cast(start, end, skipped)
 		if found.is_empty():
 			return end
-		var zones := (
-			HitZones.of(found["collider"]) if found["collider"] is CharacterBody3D else null
-		)
+		var met: Object = found["collider"]
+		var zones := HitZones.of(met) if met is CharacterBody3D or met is ShotHull else null
 		if zones == null:
 			return found["position"]
 		var on_part := zones.aimed_point(found["position"], along)
 		if on_part.is_finite():
 			return on_part
 		skipped.append(found["rid"])
+		for body in zones.shot_bodies():
+			skipped.append(body.get_rid())
 	return end
 
 
@@ -699,8 +700,14 @@ func _scan(
 		)
 		if record != null:
 			zones.deliver(record)
+			if found["collider"] != zones.body_met(found["collider"]):
+				# Met on the shot hull, which is nowhere drawn: the hit is on the part.
+				found["collider"] = zones.body_met(found["collider"])
+				found["position"] = record.point
 			break
 		skip.append((found["collider"] as CollisionObject3D).get_rid())
+		for body in zones.shot_bodies():
+			skip.append(body.get_rid())
 		if shot_rewind != null:
 			shot_rewind.skip(found["collider"])
 		found = {}
@@ -764,7 +771,7 @@ func _cast(start: Vector3, end: Vector3, skip: Array[RID] = [], mask := -1) -> D
 	var query := PhysicsRayQueryParameters3D.create(start, end, aim_mask if mask < 0 else mask)
 	var excluded: Array[RID] = skip.duplicate()
 	if shooter != null:
-		excluded.append(shooter.get_rid())
+		excluded.append_array(ShotHull.rids_of(shooter))
 	query.exclude = excluded
 	return get_world_3d().direct_space_state.intersect_ray(query)
 

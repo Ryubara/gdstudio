@@ -28,6 +28,7 @@
 [ext_resource type="Script" path="res://gameplay/hit_zones/hit_zones.gd" id="10_hit_zones"]
 [ext_resource type="Script" path="res://gameplay/hit_zones/hit_zone.gd" id="11_hit_zone"]
 [ext_resource type="Script" path="res://gameplay/character/hit_reaction.gd" id="12_hit_reaction"]
+[ext_resource type="Script" path="res://gameplay/hit_zones/shot_hull.gd" id="16_shot_hull"]
 [ext_resource type="PackedScene" path="res://gameplay/weapon/hold/weapon_hold.tscn" id="13_hold"]
 [ext_resource type="Script" path="res://core/minimap/minimap_heading.gd" id="14_heading"]
 [ext_resource type="Script" path="res://gameplay/character/aim/aim_layer.gd" id="15_aim"]
@@ -74,6 +75,11 @@ height = 0.48
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_shinr"]
 radius = 0.06
 height = 0.46
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_shot_hull"]
+resource_local_to_scene = true
+radius = 0.46
+height = 1.79
 
 [node name="CharacterDressed" node_paths=PackedStringArray("model", "ragdoll_body") instance=ExtResource("1_character")]
 model = NodePath("Model")
@@ -143,13 +149,14 @@ model = NodePath("../Model")
 script = ExtResource("9_ragdoll")
 model = NodePath("../Model")
 
-[node name="HitZones" type="StaticBody3D" parent="." node_paths=PackedStringArray("receiver", "model", "ragdoll")]
+[node name="HitZones" type="StaticBody3D" parent="." node_paths=PackedStringArray("receiver", "model", "ragdoll", "hull")]
 collision_layer = 32
 collision_mask = 0
 script = ExtResource("10_hit_zones")
 receiver = NodePath("..")
 model = NodePath("../Model")
 ragdoll = NodePath("../Ragdoll")
+hull = NodePath("../ShotHull")
 
 [node name="Head" type="CollisionShape3D" parent="HitZones"]
 shape = SubResource("SphereShape3D_head")
@@ -236,6 +243,15 @@ zone = &"shin_r"
 bone = &"calf_r"
 offset = Vector3(0, 0.23, 0)
 damage_multiplier = 0.7
+
+[node name="ShotHull" type="StaticBody3D" parent="."]
+collision_layer = 128
+collision_mask = 0
+script = ExtResource("16_shot_hull")
+
+[node name="Shape" type="CollisionShape3D" parent="ShotHull"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.895, 0)
+shape = SubResource("CapsuleShape3D_shot_hull")
 
 [node name="HitReaction" type="Node" parent="." node_paths=PackedStringArray("character", "ragdoll")]
 script = ExtResource("12_hit_reaction")

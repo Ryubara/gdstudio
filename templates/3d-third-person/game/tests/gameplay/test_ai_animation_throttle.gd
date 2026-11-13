@@ -168,6 +168,30 @@ func test_an_unseen_character_holds_its_pose_and_catches_up_when_seen() -> void:
 	assert_bool(_animation(character).is_throttled()).is_false()
 
 
+# gdstudio #1431: an unseen character's pose is frozen, so an AI shooting it off screen met its
+# zones on a stale pose. A shot that reaches it moves its tree on to now before the zones are put on
+# the bones, as being seen again does.
+func test_a_shot_at_an_unseen_character_catches_its_pose_up_first() -> void:
+	_add_director()
+	var character := _arena.add_character(Vector3(0.0, 0.0, -16.0))
+	await _frames(_settle_frames())
+	_camera.rotation.y = PI
+	await _frames(_throttle.recheck_frames + 1)
+	assert_int(_throttle.period_of(character)).is_equal(0)
+	var held := await _clip_times(character, 20)
+	assert_int(_moves(held)).is_equal(0)
+	var zones := character.get_node("HitZones") as HitZones
+	var chest := character.global_position + Vector3.UP * 1.2
+	zones.find(chest + Vector3(0.0, 0.0, 2.0), chest - Vector3(0.0, 0.0, 2.0))
+	var caught := fposmod(_clip_time(character) - held[-1], _clip_length(character))
+	assert_float(caught).is_between(_throttle.max_catch_up - 0.001, _throttle.max_catch_up + 0.001)
+	# Still unseen: it holds the new pose, and a second shot in the same frame moves nothing.
+	assert_int(_throttle.period_of(character)).is_equal(0)
+	var once := _clip_time(character)
+	zones.find(chest + Vector3(0.0, 0.0, 2.0), chest - Vector3(0.0, 0.0, 2.0))
+	assert_float(_clip_time(character)).is_equal(once)
+
+
 func test_footsteps_listen_only_near_the_camera_and_every_frame() -> void:
 	var near := _arena.add_character(Vector3(0.0, 0.0, -2.0))
 	var far := _arena.add_character(Vector3(0.0, 0.0, -20.0))

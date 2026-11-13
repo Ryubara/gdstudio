@@ -594,7 +594,7 @@ func crosshair_point() -> Vector3:
 	var end := start + along * aim_point_range
 	var query := PhysicsRayQueryParameters3D.create(start, end, aim_point_mask)
 	if is_instance_valid(_player):
-		query.exclude = [_player.get_rid()]
+		query.exclude = ShotHull.rids_of(_player)
 	var hit := camera.get_world_3d().direct_space_state.intersect_ray(query)
 	var point: Vector3 = hit["position"] if not hit.is_empty() else end
 	var nearest := (_pivot() - origin).dot(along) + aim_point_min_distance

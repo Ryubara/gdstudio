@@ -20,8 +20,9 @@ static func height(body: Character) -> float:
 	return lerpf(crouched, prone_height(body), body._prone.share())
 
 
-## Sizes `body`'s capsule and its camera's target for the crouch, the slide and the prone stance:
-## the capsule keeps its feet on the ground and loses height from the top.
+## Sizes `body`'s capsule, its camera's target and its shot hull (`ShotHull`) for the crouch, the
+## slide and the prone stance: the capsule keeps its feet on the ground and loses height from the
+## top.
 static func fit(body: Character) -> void:
 	var tuning := body.tuning
 	var capsule := body._body.shape as CapsuleShape3D
@@ -40,6 +41,10 @@ static func fit(body: Character) -> void:
 	if lying > 0.0:
 		eye = lerpf(eye, body.prone_tuning.camera_height, lying)
 	body._camera_target.position.y = eye
+	# The shot-only hull around it, with room for the pose (gdstudio #1431).
+	var hull := ShotHull.of(body)
+	if hull != null:
+		hull.fit(body)
 
 
 ## The shortest the crouched capsule can be: a capsule is at least two radii tall.
