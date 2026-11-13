@@ -26,6 +26,10 @@ extends RefCounted
 ## hand-back paired with it as one tick, so a death on the next tick left at the speed of seconds
 ## of motion: 27 m/s on a bone of a 4 m/s run (gdstudio #1388).
 
+## The physics tick count the reads are stamped with: `Engine.get_physics_frames()` in the game; a
+## test that samples several ticks in one frame sets its own counter.
+var physics_tick := Callable(Engine, &"get_physics_frames")
+
 var _skeleton: Skeleton3D
 var _names: Array[StringName] = []
 var _slots: Dictionary[StringName, int] = {}
@@ -34,7 +38,7 @@ var _now: Array[Transform3D] = []
 var _before: Array[Transform3D] = []
 var _read: Array[Transform3D] = []
 var _samples := 0
-# The physics tick (`Engine.get_physics_frames()`) of the last read.
+# The physics tick (`physics_tick`) of the last read.
 var _tick := -1
 var _basis := Basis.IDENTITY
 # Ticks between the two poses kept, and ticks since the last one with the same pose.
@@ -59,7 +63,7 @@ func _init(bodies: Array = []) -> void:
 func sample(skeleton: Skeleton3D) -> bool:
 	if skeleton != _skeleton and not _bind(skeleton):
 		return false
-	var tick := Engine.get_physics_frames()
+	var tick: int = physics_tick.call()
 	if tick != _tick + 1:
 		_samples = 0
 		_span = 1
@@ -87,7 +91,7 @@ func sample(skeleton: Skeleton3D) -> bool:
 ## True once two different poses were read from the same skeleton on ticks with none missed, the
 ## last read this tick or the one before.
 func is_ready() -> bool:
-	return _samples >= 2 and Engine.get_physics_frames() - _tick <= 1
+	return _samples >= 2 and int(physics_tick.call()) - _tick <= 1
 
 
 ## Forgets what was read (the body went limp, or got up).

@@ -15,6 +15,8 @@ var _pose: RagdollPose
 var _hand := 0
 # Where the clip has the hand: time in it, in seconds.
 var _clip_time := 0.0
+# The physics tick the sampler reads: each sample is the next tick, all within one test frame.
+var _tick_count := 0
 
 
 func before_test() -> void:
@@ -22,13 +24,21 @@ func before_test() -> void:
 	_hand = _skeleton.add_bone("hand")
 	add_child(_skeleton)
 	_pose = RagdollPose.new(BODIES)
+	_pose.physics_tick = func() -> int: return _tick_count
 	_clip_time = 0.0
+	_tick_count = 0
 
 
 # The animation runs `seconds` (an idle frame, or a throttled advance).
 func _animate(seconds: float) -> void:
 	_clip_time += seconds
 	_skeleton.set_bone_pose_position(_hand, Vector3(SPEED * _clip_time, 0.0, 0.0))
+
+
+# One physics tick: the counter moves on, then the sampler reads.
+func _sample() -> void:
+	_tick_count += 1
+	_pose.sample(_skeleton)
 
 
 func _speed() -> float:
@@ -39,7 +49,7 @@ func _speed() -> float:
 func test_a_pose_moved_every_tick_gives_its_speed() -> void:
 	for _tick in 4:
 		_animate(TICK)
-		_pose.sample(_skeleton)
+		_sample()
 	assert_bool(_pose.is_ready()).is_true()
 	assert_float(_speed()).is_equal_approx(SPEED, 0.001)
 
@@ -52,7 +62,7 @@ func test_a_slow_frame_s_ticks_give_the_clip_s_speed_on_every_tick() -> void:
 	_frame(1)
 	for ticks in [3, 1, 2, 1, 1, 3, 1]:
 		for tick in ticks:
-			_pose.sample(_skeleton)
+			_sample()
 			(
 				assert_float(_speed())
 				. override_failure_message(
@@ -66,7 +76,7 @@ func test_a_slow_frame_s_ticks_give_the_clip_s_speed_on_every_tick() -> void:
 # A frame of `ticks` physics ticks, then its idle frame.
 func _frame(ticks: int) -> void:
 	for _tick in ticks:
-		_pose.sample(_skeleton)
+		_sample()
 	_animate(TICK * ticks)
 
 
@@ -74,7 +84,7 @@ func test_a_tree_moved_every_fourth_tick_gives_its_speed_on_any_tick() -> void:
 	for tick in 16:
 		if tick % 4 == 0:
 			_animate(TICK * 4.0)
-		_pose.sample(_skeleton)
+		_sample()
 		if tick >= 4:
 			(
 				assert_float(_speed())
@@ -86,16 +96,16 @@ func test_a_tree_moved_every_fourth_tick_gives_its_speed_on_any_tick() -> void:
 func test_a_pose_that_stopped_gives_no_speed() -> void:
 	for _tick in 4:
 		_animate(TICK)
-		_pose.sample(_skeleton)
+		_sample()
 	for _tick in Engine.max_physics_steps_per_frame + 1:
-		_pose.sample(_skeleton)
+		_sample()
 	assert_bool(_pose.is_still()).is_true()
 	assert_float(_speed()).is_equal(0.0)
 
 
 func test_a_jump_of_the_pose_is_no_speed() -> void:
 	_animate(TICK)
-	_pose.sample(_skeleton)
+	_sample()
 	_skeleton.set_bone_pose_position(_hand, Vector3(5.0, 0.0, 0.0))
-	_pose.sample(_skeleton)
+	_sample()
 	assert_float(_speed()).is_equal(-1.0)
