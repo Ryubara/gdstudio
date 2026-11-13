@@ -76,9 +76,10 @@ func test_every_sound_file_is_used_by_a_scene() -> void:
 		"res://gameplay/weapon/categories/unarmed.tres",
 		"res://gameplay/weapon/categories/pistol.tres",
 		"res://gameplay/weapon/categories/rifle.tres",
+		"res://gameplay/inventory/bandage_use.tres",
 	]:
 		text += FileAccess.get_file_as_string(path)
-	for folder in ["coin", "footsteps", "pistol", "fists", "wind"]:
+	for folder in ["coin", "footsteps", "pistol", "fists", "wind", "bandage"]:
 		var dir := DirAccess.open("res://assets/audio/%s" % folder)
 		assert_object(dir).is_not_null()
 		for file in dir.get_files():
