@@ -3,7 +3,8 @@
 ## brought out), the low ready, a walk, the aim, a long automatic burst at a target, the aim up
 ## and down, the reload, a burst from the hip, a crouch and a crouched aim, a switch to the pistol
 ## and back. It presses the input actions the way a player
-## would, for the pull request's captures.
+## would, for the pull request's captures. The aim goes 45 degrees down too, the game's whole
+## pitch range (kit #1346). `RIFLE_TOUR_BODY=male` films the other body.
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
 ## `gds capture frames --project game --scene res://tools/capture/rifle_tour.tscn --seconds 22
@@ -27,7 +28,8 @@ const TARGET_AT := Vector3(0.6, 300.0, -15.0)
 const PITCH := 6.0
 
 ## Each stage: `name`, `hold` the actions held, `seconds` how long, `taps`: actions pressed for 0.1
-## s at each of the listed seconds into the stage, and `pitch`: the camera's pitch to go to.
+## s at each of the listed seconds into the stage, and `pitch`: the camera's pitch to go to
+## (the rig's: positive looks down).
 ## The stages whose rifle is counted on screen with `-- pixels`.
 const PIXEL_STAGES: Array[String] = ["low ready", "aim", "crouch", "crouch, aim"]
 const STAGES: Array[Dictionary] = [
@@ -38,8 +40,9 @@ const STAGES: Array[Dictionary] = [
 	{"name": "walk", "hold": [&"move_forward"], "seconds": 1.2},
 	{"name": "aim", "hold": [&"aim"], "seconds": 0.8},
 	{"name": "burst", "hold": [&"aim", &"fire"], "seconds": 2.0},
-	{"name": "aim up", "hold": [&"aim"], "seconds": 1.2, "pitch": 30.0},
-	{"name": "aim down", "hold": [&"aim"], "seconds": 1.2, "pitch": -20.0},
+	{"name": "aim up", "hold": [&"aim"], "seconds": 1.2, "pitch": -20.0},
+	{"name": "aim down", "hold": [&"aim"], "seconds": 1.2, "pitch": 30.0},
+	{"name": "aim steep down", "hold": [&"aim"], "seconds": 1.6, "pitch": 45.0},
 	{"name": "reload", "hold": [], "seconds": 2.8, "taps": {&"reload": [0.1]}},
 	{"name": "hip fire", "hold": [&"fire"], "seconds": 1.0},
 	{"name": "crouch", "hold": [], "seconds": 1.2, "taps": {&"crouch": [0.05]}},
@@ -81,6 +84,9 @@ func _ready() -> void:
 	target.position = TARGET_AT
 	add_child(target)
 	_player.teleport(START, PI)
+	var body := OS.get_environment("RIFLE_TOUR_BODY")
+	if CharacterBodies.BY_NAME.has(body):
+		_player.model.variant = load(CharacterBodies.BY_NAME[body]) as PackedScene
 	(pickup as WeaponPickup).weapon_taken.connect(
 		func(_who: Node3D, what: WeaponDef, _how: int) -> void: print("TAKEN ", what.display_name)
 	)
