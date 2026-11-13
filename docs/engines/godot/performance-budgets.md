@@ -181,6 +181,13 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   load at all; a `sin` loop ran 1.65 times faster on the Linux runner while the AI cost the same, and CI failed.
   **Seen:** gdstudio #1248 (`test_ai_cost_gate.gd`), 2026-11-11 (fix: medians, a ruler of vector, array and
   dictionary work, a 2x wait failing every row).
+- **Approach:** Choose a gate's ruler from 50 or more CI runs (every candidate printed beside the timing, the runner's
+  processor too), keep the one whose ratio spreads least, give each system its own limits and keep the 2x case in the
+  suite. **Watch out for:** a GDScript ruler chosen on the desktop followed the AI step on the runners at a slope of
+  0.6 and failed main three times in a day; over 150 runs the step spread 1.73 times over it and 1.55 over a physics
+  ruler, and on one runner the step moved 1.38 times between processes while every ruler held within 2 %. **Seen:**
+  gdstudio #1405, 2026-11-13 (fix: `PhysicsRuler`, limits for Linux and Windows, `SlowAiDirector`; [the gate on a
+  shared runner](running-gdunit.md#timing-gates)).
 
 - **Approach:** Make a part that only some characters use (a weapon's model in the hand) when it is first needed (a
   `WeaponDef.view_scene` the loadout instances on `give()`), not as a node of the shared character scene. **Watch out
