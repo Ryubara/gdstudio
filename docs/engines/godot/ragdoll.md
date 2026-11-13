@@ -165,6 +165,14 @@ the joints. That is physics, and not what a death looks like.
   clip), and 18 m/s squared for 0.4 s folded the body into a crouch on landing. Jolt ignores joint softness, which
   would do it too. **Seen:** gdstudio #872, 2026-11-10 (`test_ragdoll_natural.gd`: a hand or foot moves 0.2 m
   against the pelvis within 0.23 s of a death at the top of a jump).
+- **Approach:** Sample the pose for those velocities in the skeleton's own space (`get_bone_global_pose`, no
+  `global_transform`), turn the motion to the world with the skeleton's basis now, and add the character's velocity
+  (what `start(velocity)` is given): `RagdollPose` and `_give_pose_velocity`. **Watch out for:** a world-space sample
+  reads the body's own step as bone motion, and an AI at the director's Reduced tier is stepped every fourth tick with
+  the missed time while a hit makes its tree animate every frame (`hit_hold`): a death on a step tick left at four
+  times its run (16 m/s for 4 m/s: flung with a leg up), on any other tick it lost its run. Far targets are the
+  rifle's, so it looked like a rifle fault. **Seen:** gdstudio #1343, 2026-11-12
+  (`test_death_push.gd`, a far running AI killed on each tick of the step cycle; `tools/capture/kill_tour.tscn`).
 
 ## Drawing between ticks {#drawing}
 

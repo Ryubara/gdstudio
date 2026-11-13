@@ -5,8 +5,10 @@
 extends GdUnitTestSuite
 
 ## The fastest a bone may move after a death, in m/s. Each bone leaves with the speed the animation
-## gave it (a foot of a sprinting body is at 12 to 16), a body the engine throws is at 230 to 500.
-const MOST_SPEED := 20.0
+## gave it (a foot of a sprinting body is at 12 to 16, the swinging foot of a run speeding up at 20:
+## its pose's motion plus the body's speed now, gdstudio #1343), a body the engine throws is at
+## 230 to 500.
+const MOST_SPEED := 22.0
 ## A joint's limit is a soft stop against a load (`ragdoll.md#limits`). Degrees.
 const LIMIT_SLACK := 25.0
 
