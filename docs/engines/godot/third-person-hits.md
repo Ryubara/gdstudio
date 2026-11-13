@@ -103,6 +103,12 @@ The price is in [What it costs](#cost).
   from a 0.34 m capsule's axis were met by it on main and the first test written with it passed before the fix; the
   probe's misses were rays (the aim ray, a hitscan weapon). **Seen:** gdstudio #1431, 2026-11-13
   (`test_shot_hull.gd`).
+- **Approach:** Leave a shooter out of its own ray with `ShotHull.rids_of(shooter)` (its capsule and its hull), never
+  `[shooter.get_rid()]`, in the game, its test fixtures and its tour tools alike, and grep for `get_rid()]` when a
+  body gains another collider. **Watch out for:** the shooter's own hull sits around the muzzle, so a ray that left
+  out only the capsule met it at once: the old camera formula in `tests/fixtures/camera_aim.gd` disagreed with the
+  weapon at every pose (28 failures in `test_weapon_ray.gd`), and the muzzle light tour, which casts on every layer,
+  measured the light against the player's own hull. **Seen:** gdstudio #1431, 2026-11-13 (the full suite on PR #1459).
 
 ### The inspector {#inspector}
 
