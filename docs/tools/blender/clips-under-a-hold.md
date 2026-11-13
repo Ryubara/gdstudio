@@ -70,7 +70,8 @@ are the body under that.
   `test_character_clips.gd` counts every clip of every library (90 became 96) and `test_weapon.gd` wants a pinned
   default for every `WeaponDef` export (`shoot_additive`). And a pull request stacked on another carries that one's
   commits: its `Model:` line names every model in their trailers. **Seen:** gdstudio #1267, 2026-11-11 (the
-  `template (3d-third-person)` and `commits` checks failed on the first push).
+  `template (3d-third-person)` and `commits` checks failed on the first push); gdstudio #1346, 2026-11-12
+  (`test_rifle_hold_pins.gd` pins every `TwoHandHold` export: `push_level` was missing, found by the full run).
 - **Approach:** When a hold's code moves into a file of its own, point the build's readers (its numbers, its
   constants) at that file in the same change, and run the build once, since no check runs it. **Watch out for:**
   `TorsoSkin` left `two_hand_hold.gd` and the build kept looking there for `_SKIN_REGION`, so it stopped at its
