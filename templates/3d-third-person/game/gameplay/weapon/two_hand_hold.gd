@@ -63,6 +63,15 @@ const _PASSES := 3
 ## How far the push to the skin may move in a frame before the shoulder's reach is worked out
 ## again for it, in metres.
 const _PUSH_STEP := 0.003
+## The states the trunk is carried upright in at the low ready (`carry_lean_limit`).
+const CARRY_STATES: Array[Character.State] = [
+	Character.State.IDLE,
+	Character.State.WALK,
+	Character.State.RUN,
+	Character.State.JUMP,
+	Character.State.FALL,
+	Character.State.LAND,
+]
 
 @export_group("Nodes")
 ## The character holding it. Empty: the `Model` slot's parent.
@@ -89,6 +98,13 @@ const _PUSH_STEP := 0.003
 ## The most the chest leans (from its rest, the way the clip has it) while the gun is up: a chest
 ## that leans more (a crouch's hunch) is raised toward this as the gun comes to the shoulder.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var aim_lean_limit := 25.0
+## The most the trunk leans forward (the line from the pelvis to the neck, in the model's space)
+## at the low ready while the character is on its feet (`CARRY_STATES`): a run or a sprint that
+## leans more is raised toward this, so the rifle is carried upright (kit #1348; the run leaned
+## 13 degrees and the sprint 14). Not in a crouch, a slide, a vault or lying down.
+@export_range(0.0, 90.0, 0.5, "suffix:deg") var carry_lean_limit := 9.0
+## How long the upright carry takes to come in or go (a crouch, a slide), in seconds.
+@export_range(0.0, 2.0, 0.01, "suffix:s") var carry_time := 0.25
 ## The most of its length the left arm stretches to. When the hand guard is farther than that
 ## from the left shoulder (a clip leans or drops the shoulder), the gun comes back along its
 ## barrel until the hand reaches, by `pull_limit` at most.
@@ -230,6 +246,8 @@ var posed_reload := -1.0
 var posed_lowered := 0.0
 ## For a figure posed by hand: how far the left hand is let go (`FreeHand.amount()`).
 var posed_free := 0.0
+## For a figure posed by hand: how far the trunk is carried upright (`carry_amount()`).
+var posed_carry := 0.0
 ## True while the camera is past `fingers_far_distance` (set by `CharacterAnimationThrottle`).
 var fingers_far := false
 
@@ -239,6 +257,7 @@ var _stance: SkeletonModifier3D
 var _arms: Array[HoldArm] = []
 var _fingers: Array[HandPoseModifier] = []
 var _raised := 0.0
+var _carry := 0.0
 var _shot_left := 0.0
 var _kick := 0.0
 var _reach := 1.0
@@ -318,6 +337,13 @@ func _process(delta: float) -> void:
 ## How far the gun is up at the shoulder: 0 at the low ready, 1 aimed.
 func raised_amount() -> float:
 	return _raised
+
+
+## How far the trunk is carried upright now (`carry_lean_limit`): 1 on its feet at the low
+## ready, 0 aimed, crouched, sliding, vaulting or lying down, eased over `carry_time`, by the
+## hold's weight.
+func carry_amount() -> float:
+	return _carry * (1.0 - _raised) * weight()
 
 
 ## How far the left hand is let go for an action that reaches with it (`FreeHand.amount()`).
@@ -652,9 +678,12 @@ func _step(delta: float) -> void:
 		if _freed > 0.0:
 			wants = 0.0
 		_raised = move_toward(_raised, wants, delta / maxf(raise_time, 0.001))
+		var carry := 1.0 if character.state in CARRY_STATES and _freed <= 0.0 else 0.0
+		_carry = move_toward(_carry, carry, delta / maxf(carry_time, 0.001))
 	else:
 		_raised = posed_aim
 		_freed = posed_free
+		_carry = posed_carry
 	_kick = move_toward(_kick, 0.0, delta / maxf(kick_recover_time, 0.001))
 
 

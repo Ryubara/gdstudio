@@ -16,23 +16,31 @@ extends SkeletonModifier3D
 ## clip. The head and not the neck under it: the neck carries skin at the collar, and turning it
 ## put that skin 12 to 24 mm into the stock in the crouch (`test_rifle_hold.gd`).
 const HEAD := &"Head"
+## Over how long the trunk's lean is averaged before the upright carry takes off what it has over
+## the hold's `carry_lean_limit`, in seconds: about a stride, so the run's own rise and fall of the
+## trunk through a stride stays and only its standing lean is taken off.
+const LEAN_SMOOTHING := 0.5
 
 ## The hold that made it.
 var hold: TwoHandHold
 
 var _head := -2
+# The trunk's lean averaged over `LEAN_SMOOTHING`, in radians, and whether it has a value yet.
+var _lean := 0.0
+var _leaning := false
 
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
 	_head = -2
 
 
-func _process_modification_with_delta(_delta: float) -> void:
+func _process_modification_with_delta(delta: float) -> void:
 	var skeleton := get_skeleton()
 	if skeleton == null or hold == null:
 		return
 	_turn_chest(skeleton)
 	_straighten_chest(skeleton)
+	_carry_upright(skeleton, delta)
 	hold.place(skeleton)
 
 
@@ -41,24 +49,7 @@ func _turn_chest(skeleton: Skeleton3D) -> void:
 	if bones.is_empty():
 		return
 	var degrees := (hold.chest_turn - _chest_yaw(skeleton, bones[-1])) * hold.chest_weight()
-	var turn := Basis(Vector3.UP, deg_to_rad(degrees / bones.size()))
-	# The poses come from the local ones up the parents (`HandPoseModifier.global_pose`): asking
-	# the skeleton for a global pose after a bone was set makes it work out every bone under
-	# that one again, three times a frame for the spine.
-	var parent_bone := -2
-	var parent := Transform3D.IDENTITY
-	for bone in bones:
-		if bone < 0:
-			continue
-		var above := skeleton.get_bone_parent(bone)
-		if above != parent_bone:
-			parent_bone = above
-			parent = HandPoseModifier.global_pose(skeleton, above) if above >= 0 else Transform3D()
-		var pose := parent * skeleton.get_bone_pose(bone)
-		var turned := Transform3D(turn * pose.basis, pose.origin)
-		skeleton.set_bone_pose(bone, parent.affine_inverse() * turned)
-		parent_bone = bone
-		parent = turned
+	_turn_spine(skeleton, bones, Basis(Vector3.UP, deg_to_rad(degrees / bones.size())))
 	if _head == -2:
 		_head = skeleton.find_bone(HEAD)
 	if _head < 0:
@@ -90,8 +81,64 @@ func _straighten_chest(skeleton: Skeleton3D) -> void:
 	var axis := up.cross(Vector3.UP)
 	if axis.length_squared() < 1e-10:
 		return
-	var turn := Basis(axis.normalized(), (lean - limit) * share / bones.size())
-	# From the local poses up the parents, as the turn above.
+	_turn_spine(skeleton, bones, Basis(axis.normalized(), (lean - limit) * share / bones.size()))
+
+
+# Raises a trunk that leans forward more than the hold's `carry_lean_limit` at the low ready
+# (`TwoHandHold.carry_amount()`; kit #1348) by what its lean, averaged over `LEAN_SMOOTHING`, has
+# over it: the run's own trunk under the rifle's idle leaned 13 degrees and the sprint's 14. The
+# lean is the line from the spine's parent (the pelvis) to the head's parent (the neck), forward
+# in the model's space, the way the run test reads it. It is a turn about the model's side axis
+# spread evenly over the spine bones, so it adds no twist (kit #1379); the head keeps the facing
+# the clip gave it, as for the chest's turn.
+func _carry_upright(skeleton: Skeleton3D, delta: float) -> void:
+	var bones := hold.spine_indices()
+	var share := hold.carry_amount()
+	if bones.is_empty() or share <= 0.0 or bones[0] < 0 or _head < 0:
+		_leaning = false
+		return
+	var root := skeleton.get_bone_parent(bones[0])
+	var neck := skeleton.get_bone_parent(_head)
+	if root < 0 or neck < 0:
+		return
+	var lean := _trunk_lean(skeleton, root, neck)
+	if not _leaning:
+		_lean = lean
+		_leaning = true
+	_lean = lerpf(_lean, lean, 1.0 - exp(-delta / LEAN_SMOOTHING))
+	var wanted := (_lean - deg_to_rad(hold.carry_lean_limit)) * share
+	if wanted <= 0.0:
+		return
+	var head_before := HandPoseModifier.global_pose(skeleton, _head).basis
+	# The spine turns about its own bones, above the pelvis, so the trunk's line turns by less
+	# than the spine (about half); the first pass measures by how much and the second takes the
+	# rest at that rate.
+	_turn_spine(skeleton, bones, Basis(Vector3.RIGHT, -wanted / bones.size()))
+	var moved := lean - _trunk_lean(skeleton, root, neck)
+	if moved > wanted * 0.1:
+		var rest := wanted - moved
+		var spine := rest * wanted / moved
+		_turn_spine(skeleton, bones, Basis(Vector3.RIGHT, -spine / bones.size()))
+	var neck_pose := HandPoseModifier.global_pose(skeleton, neck)
+	var head := neck_pose * skeleton.get_bone_pose(_head)
+	skeleton.set_bone_pose(
+		_head, neck_pose.affine_inverse() * Transform3D(head_before, head.origin)
+	)
+
+
+# The trunk's forward lean, in radians: the line from `root` to `neck` in the skeleton's space.
+func _trunk_lean(skeleton: Skeleton3D, root: int, neck: int) -> float:
+	var trunk := (
+		HandPoseModifier.global_pose(skeleton, neck).origin
+		- HandPoseModifier.global_pose(skeleton, root).origin
+	)
+	return atan2(trunk.z, trunk.y)
+
+
+# Turns each of `bones` by `turn` in the skeleton's space. The poses come from the local ones up the
+# parents (`HandPoseModifier.global_pose`): asking the skeleton for a global pose after a bone was
+# set makes it work out every bone under that one again, three times a frame for the spine.
+func _turn_spine(skeleton: Skeleton3D, bones: PackedInt32Array, turn: Basis) -> void:
 	var parent_bone := -2
 	var parent := Transform3D.IDENTITY
 	for bone in bones:
@@ -102,10 +149,10 @@ func _straighten_chest(skeleton: Skeleton3D) -> void:
 			parent_bone = above
 			parent = HandPoseModifier.global_pose(skeleton, above) if above >= 0 else Transform3D()
 		var pose := parent * skeleton.get_bone_pose(bone)
-		var turned := Transform3D(turn * pose.basis, pose.origin)
-		skeleton.set_bone_pose(bone, parent.affine_inverse() * turned)
+		var moved := Transform3D(turn * pose.basis, pose.origin)
+		skeleton.set_bone_pose(bone, parent.affine_inverse() * moved)
 		parent_bone = bone
-		parent = turned
+		parent = moved
 
 
 # How far the clip has the chest turned from the model's front now, in degrees about the up axis

@@ -6,7 +6,9 @@
 # turn. The player is driven with simulated input and read on every update of the skeleton: the
 # weapon layer's weights (hold, aim, shot, reload, the aim's stance), the rifle hold's own
 # (raised, reach) and the body (the trunk's lean, the right hand from the chest, the head's
-# turn), each a mean over three whole strides of the gait.
+# turn), each a mean over three whole strides of the gait. The rifle's run and sprint carry the
+# trunk upright (kit #1348): their mean lean is the hold's `carry_lean_limit`, not the 13 and 14
+# degrees the run's own trunk had under the rifle's idle.
 extends GdUnitTestSuite
 
 const RIFLE := "res://gameplay/weapon/rifle.tres"
@@ -31,6 +33,11 @@ const AFTER_SHOT := 60
 ## How far the head may turn from side to side through a run with the rifle, in degrees, over
 ## what it does in the same run with empty hands.
 const HEAD_SWING := 12.0
+## How far the mean forward lean of the rifle's run and sprint may be from the hold's
+## `carry_lean_limit`, in degrees, and the least the trunk still rises and falls through a stride
+## (0.5 in the run and 0.7 in the sprint without the carry, 0.0 with each frame's lean held).
+const CARRY_LEAN := 0.5
+const TRUNK_BOB := 0.3
 
 var _arena: PlayArena
 var _player: Player
@@ -39,6 +46,8 @@ var _skeleton: Skeleton3D
 var _sums: Dictionary[String, float] = {}
 var _head_low := 0.0
 var _head_high := 0.0
+var _trunk_low := 0.0
+var _trunk_high := 0.0
 var _count := 0
 var _shooting := 0
 
@@ -66,6 +75,7 @@ func test_the_rifle_run_is_the_same_after_a_switch_and_after_a_shot(
 	assert_str(_player.weapon.definition.display_name).is_equal("Rifle")
 	var fresh: Dictionary = await _gait("%s rifle fresh" % body)
 	_assert_rifle_layers(fresh, "%s fresh" % body)
+	_assert_upright(fresh)
 	# The head stays on the run clip under the chest's turn: it does not swing with the turn the
 	# stance takes off the chest.
 	(
@@ -113,6 +123,7 @@ func test_the_sprint_and_the_slide_after_a_burst_are_the_ones_before_it(
 	await InputSim.ticks(get_tree(), 60)
 	InputSim.key(KEY_SHIFT, true)
 	var sprint: Dictionary = await _gait("%s sprint" % body)
+	_assert_upright(sprint)
 	var slide: Dictionary = await _slide("%s slide" % body)
 	await _burst()
 	await InputSim.ticks(get_tree(), AFTER_SHOT)
@@ -246,15 +257,17 @@ func _state(tag: String, ticks: int) -> Dictionary:
 		"trunk_side": _mean("trunk_side"),
 		"hand": Vector3(_mean("hand_x"), _mean("hand_y"), _mean("hand_z")),
 		"head_swing": _head_high - _head_low,
+		"trunk_bob": _trunk_high - _trunk_low,
 	}
 	print(
 		(
-			"STATE %-40s shot %3d trunk %5.1f/%5.1f hand (%.3f %.3f %.3f) head swing %5.1f"
+			"STATE %-40s shot %3d trunk %5.1f/%5.1f bob %4.1f hand (%.3f %.3f %.3f) head swing %5.1f"
 			% [
 				tag,
 				_shooting,
 				state.trunk_forward,
 				state.trunk_side,
+				state.trunk_bob,
 				state.hand.x,
 				state.hand.y,
 				state.hand.z,
@@ -277,7 +290,10 @@ func _read() -> void:
 		_shooting += 1
 	var hips := _place("pelvis")
 	var trunk := (_place("neck_01") - hips).normalized()
-	_add("trunk_forward", rad_to_deg(atan2(trunk.z, trunk.y)))
+	var forward := rad_to_deg(atan2(trunk.z, trunk.y))
+	_add("trunk_forward", forward)
+	_trunk_low = forward if _count == 0 else minf(_trunk_low, forward)
+	_trunk_high = forward if _count == 0 else maxf(_trunk_high, forward)
 	_add("trunk_side", rad_to_deg(atan2(trunk.x, trunk.y)))
 	var hand := _place("hand_r") - _place("spine_03")
 	_add("hand_x", hand.x)
@@ -312,6 +328,30 @@ func _assert_rifle_layers(state: Dictionary, tag: String) -> void:
 	assert_float(state.raised).override_failure_message(tag + ": raised").is_equal(0.0)
 	assert_float(state.reach).override_failure_message(tag + ": reach").is_equal(1.0)
 	assert_int(state.shooting).override_failure_message(tag + ": a shot's clip plays").is_equal(0)
+
+
+# The rifle's gait in `state` carries the trunk upright: its mean forward lean is the hold's
+# `carry_lean_limit`, and the trunk still rises and falls through the stride (the carry takes off
+# the lean averaged over a stride, not each frame's).
+func _assert_upright(state: Dictionary) -> void:
+	var hold := _player.model.get_node("RifleHeld") as TwoHandHold
+	(
+		assert_float(state.trunk_forward)
+		. override_failure_message(
+			(
+				"%s: the trunk leans %.1f degrees forward, not %.1f"
+				% [state.tag, state.trunk_forward, hold.carry_lean_limit]
+			)
+		)
+		. is_equal_approx(hold.carry_lean_limit, CARRY_LEAN)
+	)
+	(
+		assert_float(state.trunk_bob)
+		. override_failure_message(
+			"%s: the trunk is held still (%.2f degrees)" % [state.tag, state.trunk_bob]
+		)
+		. is_greater(TRUNK_BOB)
+	)
 
 
 # `state` is `wanted`: the same weights on every layer and the same body within the tolerances.
