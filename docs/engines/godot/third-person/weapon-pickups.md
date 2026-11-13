@@ -45,7 +45,8 @@ no loadout leaves it, both hands reach their places and let go when it is put aw
 weapon back), `test_rifle_hold.gd` ([the rifle in both hands](#rifle-hands)) and `test_rifle_run_state.gd` (the run,
 the sprint and the slide with the rifle are the same fresh, after a switch, after a burst, after a reload and after
 going unarmed, and the pistol's run the same after the rifle, on both bodies; `tools/capture/rifle_run_tour.tscn`
-films it from the game camera with a side view). Captures:
+films it from the game camera with a side view, and with `RUN_STAGES=directions` the sprint in every direction and a
+reload on it) and `test_rifle_sprint_carry.gd` ([the sprint](#rifle-hands)). Captures:
 `tools/capture/rifle_tour.tscn` from the game camera (the floating rifle, taking it, the low ready, a walk, the aim, a
 burst, the aim up and down, the reload, hip fire, a crouch, a switch to the pistol and back) and
 `tools/capture/rifle_hands.tscn` (six close-ups at once in every state).
@@ -269,6 +270,17 @@ expects). The hands' places on the rifle and the finger poses are as solved (the
 model). Captures: `tools/capture/rifle_stock.tscn` (both bodies from the right and the front, `-- stand` or
 `-- move`).
 
+**The sprint** (kit #1340) is measured over the whole body, not the torso alone: `BodyClearance.new(..., HOLDING)`
+leaves out only the forearms and hands, so the thighs, upper arms and head count. On the live player with simulated
+keys, three strides of our own sprint (#1275, with #1158's speed matching), fresh, after a burst and after a switch to
+the pistol and back, and one stride each running back, left, right and on two diagonals, on both bodies: 0.0 mm in, both
+hands 0.0 mm off their places (`test_rifle_sprint_carry.gd`: the hands on every update, the skin on every fifth, 22
+phases of the 36-update stride; on every update the probes read the same). The rifle's nearest point to the skin is 5 to
+17 mm off on the female and 1.2 to 9 mm on the male. Probes found the same at 15 frames a second, turning with the
+mouse, starting from standing and with a reload on the sprint (both bodies), and with the library's `ual1/Sprint` in
+place of ours (the female). The run and the stop after a sprint graze the chest by 2 to 3 mm (`spine_02`), under the
+stock test's 10 mm.
+
 - **Approach:** Measure a held weapon against the body it is held by (a parity test on the closed skinned mesh, the
   arms and legs left out), in every clip, before trusting a stance, and bring the body's contact about at run time
   from the model's own skin when two models share one stance. **Watch out for:** the first stance placed the butt by
@@ -283,6 +295,18 @@ model). Captures: `tools/capture/rifle_stock.tscn` (both bodies from the right a
   every shot played that idle over the upper body for 6.25 s: the run stood 13 degrees more upright after a shot and
   a sprint or a slide kept the idle's chest; a mean over part of a stride moved the hand 30 mm between two readings.
   **Seen:** gdstudio #1333, 2026-11-12 (fix: no shot clip, no one-shot; readings equal to 0.1 degrees and 1 mm).
+- **Approach:** Before fixing a fault seen in a playtest recording, measure it on main and on the commit the recording
+  was made on, with the measure the fault names (the thigh, not the torso), in every situation the frames show
+  (direction, after a shot, a reload, the frame rate), and read the frames for what they prove: a barrel drawn over a
+  thigh from behind is in front of it, not through it. **Watch out for:** the rifle in the sprint read as dangling and
+  through the thigh in a playtest on main at #1291; on main after #1349 and #1275 it measured 0.0 mm in every
+  direction on both bodies, and in the arena even the recording's commit measured clear on the female, so there was
+  nothing left for a carry pose to fix; the existing stock test could not have said so, since it leaves the legs out.
+  **Seen:** gdstudio #1340, 2026-11-12 (kept: `test_rifle_sprint_carry.gd` over the whole body).
+- **Approach:** In a suite, call `BodyClearance.deepest()` without `with_gap` and on a sample of updates whose step
+  shares no factor with the stride; keep the gap for probes. **Watch out for:** with the gap on every update the
+  sprint suite took 592 s in the full template run (a nearest-triangle search for every point of the rifle), against
+  11 s without it on every fifth update. **Seen:** gdstudio #1340, 2026-11-12.
 - **Approach:** When a modifier takes a clip's turn off one bone (the chest's swing in a run), give the turn back
   above it on a bone whose skin is clear of the weapon (the head), measure the head's turn through a whole stride
   against empty hands, and run the hold's own suite after any change to a bone near it. **Watch out for:** a run
