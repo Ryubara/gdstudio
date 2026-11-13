@@ -29,7 +29,8 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## magazine's body is made at the first reload, not at the spawn).
 ## The melee blow (#1254) adds 1: the weapon's `MeleeSound`, an idle player like the other three.
 ## The momentum blend (#1158) adds 1: `MomentumBlend`, the skeleton's first modifier.
-const NODES_ALIVE := 65
+## The hold's `HandFloor` (#1356) adds 1, a modifier inactive unless the body lies and aims.
+const NODES_ALIVE := 66
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120
