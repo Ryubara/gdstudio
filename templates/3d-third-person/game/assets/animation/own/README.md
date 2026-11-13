@@ -10,6 +10,7 @@ Nothing here is copied from a library clip or from another game: a clip is a des
 | `locomotion.glb`, `locomotion.json` | The shipped clips and what the game needs to know of each (`clips.json` of the plan): loop, length, speed, travel and turn curves, contact times per foot, the foot it starts and ends on, events. Godot imports the glb as an `AnimationLibrary`; the player's `AnimationPlayer` holds it as `gds`, so the clip is `gds/Idle`. |
 | `picks.json` | Which variant each shipped clip is built from (`"Idle": "A"`). |
 | `clips/<type>.py` | A clip type's description, with every number a style may set and what it means. |
+| `clips/directed.py`, `clips/lean.py` | The gaits that do not go the way the body faces (one description, a table a clip), and the lean poses with their reference. |
 | `clips/joined.py` | What a clip reads of the shipped clips it joins: their numbers, their first frame, their solved first pose. |
 | `styles/style_<letter>.json` | A variant: a vision, its numbers per clip type and its overlap numbers. |
 | `review/<type>.glb`, `.json` | Every variant of a type under its letter (`Idle_A`), for review; the game does not import this folder. |
@@ -29,12 +30,13 @@ game's camera is `tools/capture/own_clips_review.tscn` (the starts and stops: `o
 tests are `tests/gameplay/test_own_clips.gd`, `test_own_moves.gd` and `test_own_turns.gd`.
 
 The clip types are `idle`, `walk`, `jog`, `sprint`, `crouch_idle`, `crouch_walk`, `stand_to_crouch`,
-`crouch_to_stand`, and the families `idle_to_walk`, `idle_to_jog`, `idle_to_sprint`, `walk_stop`, `jog_stop` and
-`sprint_stop`, and the turns `jog_turn_90`, `jog_turn_180`, `sprint_turn_180`, `turn_in_place_90` and
-`turn_in_place_180` (two clips each). After `ship locomotion` changes `Crouch_Idle`, rebuild the prone clips too
-(`../prone/`): their
-two transitions join its first pose. `fluidity.py` reads the shipped gaits against the library clips they
-replaced (below, "How fluid the gaits are").
+`crouch_to_stand`, the directions `walk_back`, `walk_left`, `walk_right`, `jog_back`, `jog_left`, `jog_right`, the
+leans `lean_left`, `lean_right`, `lean_fwd`, `lean_back` (below, "The directions and the lean"), the families
+`idle_to_walk`, `idle_to_jog`, `idle_to_sprint`, `walk_stop`, `jog_stop` and `sprint_stop`, and the turns
+`jog_turn_90`, `jog_turn_180`, `sprint_turn_180`, `turn_in_place_90` and `turn_in_place_180` (two clips each). After
+`ship locomotion` changes `Crouch_Idle`, rebuild the prone clips too (`../prone/`): their two transitions join its
+first pose. `fluidity.py` reads the shipped gaits against the library clips they replaced (below, "How fluid the
+gaits are").
 
 ## The bodies
 
@@ -509,6 +511,166 @@ person's cadence at the game's speeds), so each frame is a larger share of the m
 floor at the game's speed has to swing faster than one that slides (the walk's joints change speed twice as hard as
 the library's, by the square of the pace). Keys at 60 a second would halve each step; that doubles the file's key
 bytes, over the 6 KB a second the import is held to, and is a budget decision, not a clip one.
+
+## The directions and the lean
+
+Kit #1159. `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right` and the poses `Lean_Left`,
+`Lean_Right`, `Lean_Fwd`, `Lean_Back` with their reference `Lean_Ref`. **None of them is in Quaternius's library**
+(its Standard files have no strafe, no backpedal and no lean pose), and the game plays none of them yet: while it
+aims, the character moves any way under the forward walk. The tree that plays them is kit #1158.
+
+### How people go backward, sideways and lean (the research)
+
+Read on 2026-11-12, before the numbers were set. "Opened" means the page itself was read; "summary" means only a
+search's summary of it was, so the number is a lead; where nothing was found it says so and the clip's number is a
+declared choice.
+
+| What | Finding | Source | What the clips do with it |
+| --- | --- | --- | --- |
+| A backward walk against a forward one | Slower, on shorter steps, with a longer share of the cycle on the ground (one study of healthy adults found the stance share the same); the hip's and the knee's angles are close to a forward walk's played backward, the ankle's are not. | [a review of backward walking](https://pmc.ncbi.nlm.nih.gov/articles/PMC7359031) and [Winter, Pluck and Yang, 1989](https://scilit.com/publications/0c32bde682b1fc8cafec495df210671b) (both summary) | `Walk_Back` is 1.3 m/s on the forward walk's 26 frames: 0.56 m steps where the forward walk takes 0.74, a foot down 16 frames of 26 (62 %, the forward walk's 58). The foot reaches back toes first and the heel comes down under the weight. |
+| Which part of the foot leaves last, walking backward | Not found in a source we could open. | | The sole is lifted whole. A heel that left last with the toes up (the forward walk reversed) raised the ball of the foot 20 mm inside its declared contact. |
+| A backward run against a forward one | Thirty runners flat out backward: 5.1 m/s (70 % of their forward 7.3), 2.50 m strides at 124 strides a minute where the same speed forward took 3.60 m at 86, a foot down 31 % of the stride against 27 %, the hip through 42 degrees against 63 and the knee through 83 against 119. At one speed the step is about 11 % quicker backward. | [Arata, kinematic comparison of high speed backward and forward running](https://pages.uoregon.edu/btbates/backward/alan2.htm) (opened); [a treadmill study](https://oasis.library.unlv.edu/ahs_fac_articles/329) (summary) | `Jog_Back` is 3.0 m/s on the forward jog's 20 frames (2.0 m strides, 90 a minute), a foot down 7 frames (35 %), landing and leaving on the ball of the foot, the knee through 71 degrees, the hips low and the trunk 9 degrees over the toes. At the game's 4.0 m/s the tree plays it a third faster, which is the quicker step the studies find. |
+| Which part of the foot a backward runner lands on | Not found in a source we could open. | | The ball, the heel 20 degrees up and never fully down: a declared choice from how a backpedal looks. |
+| Sideways steps | The leading leg steps out and the trailing leg is drawn in past the middle; the two legs do different work (one makes the vertical push, the other takes the shock); step length and step rate rise with speed and the share on the ground falls. | [forward and sideways walking, 2023](https://www.nature.com/articles/s41598-023-34369-4.pdf), [Kuntze et al., 2009](https://www.jssm.org/jssm-08-1.xml-abst), a paper on lateral walking found only as a library record (all summary) | A strafe's two steps are not alike: a long open step of the leading foot and a short crossed step of the trailing one (0.72 and 0.32 m in the grounded walk). |
+| Shuffle or crossover | Badminton players were measured in sidesteps and in crossover steps at a set 3 m/s; coaching texts keep the shuffle for a few steps and cross the legs to cover ground. No measured top speed of either was found. | Kuntze et al. above; coaching pages (summary) | The strafes cross: at 1.2 m/s with the forward walk's cadence the trailing foot would have to stand 0.6 m behind the body to stay behind the leading one. `Jog_Left` and `Jog_Right` are 3.0 m/s, the speed the study set. |
+| How far the hips turn in a crossover | Not found in a source we could open. | | A third toward the step (26 to 34 degrees), as the issue asks; the chest turns back to 6 to 10 and the head looks ahead. |
+| The lean | A body that changes speed leans by `atan(a / g)` (the kit's `docs/tools/blender/own-animation.md#feel`). People held leaning from the ankles could hold 14.9 degrees (SD 1.4) with the ankle muscles alone, and recover from 5.9 when let go at once. | [balance recovery with the ankle strategy](https://scilit.com/publications/0ffaaa3069df809a25d6fdf066116130) (summary) | The full poses are 8 to 12 degrees of the centre of mass off the upright, inside what the ankles hold; the tree scales them by the acceleration and may go past the full pose. |
+| Side to side | Fore and aft balance is the ankles' alone; side to side the hips take part. | [Winter et al., 1996](https://edisciplinas.usp.br/pluginfile.php/5245117/mod_resource/content/1/winter_1996JNP.pdf) (summary) | A side lean tips the pelvis (5.5 to 9 degrees) and bends the inner knee; a forward one keeps the legs as they stand and turns at the ankles (16 degrees). |
+
+### How the directions are built
+
+One description, `clips/directed.py`: the gait of `clips/gait.py` (footfalls first, the centre of mass as the
+input, the pelvis and the knees solved, the feet set down on both of the template's bodies) travelling `heading`
+degrees to the left of the way the body faces, with a table of numbers per clip.
+
+- **In step with the forward gaits.** The cycle is the shipped `Walk`'s (26 frames) or `Jog`'s (20), the left foot
+  lands at frame 0 and the right at half the cycle in all six, so the tree can blend a direction with the forward
+  gait in step. The steps are shorter, so each clip has its own speed, in `locomotion.json` with its `heading` and
+  the gait it is `in_step_with`.
+- **A backpedal lands on the ball of the foot** and the heel comes down under the weight. The walk lifts its sole
+  whole; the run leaves over the ball, with the hips low and the trunk over the toes. Each arm swings with the
+  other side's leg, as forward.
+- **A strafe turns the hips a third toward the step and passes its feet in two lanes.** The leading foot's lane
+  is 0.12 m behind the root's path and the crossing foot's 0.12 m ahead of it, so the crossing leg swings across
+  in front. The swinging foot goes 5 cm further out as it passes the planted one (`pass_wide`), and the knees pass
+  apart: the leading knee points on toward the step and the crossing knee ahead (`knee_turn`). With one turn for
+  both legs the thighs met by 50 mm as the crossing foot landed, and in two straight lanes 0.2 m apart a foot went
+  36 mm through the other.
+- **A left strafe is not a right strafe flipped.** Each has its own table: to the left the hips turn 30 degrees
+  (34 in the jog) and the chest 9, to the right 26 (29) and 6; the right strafe opens wider and crosses less
+  (0.77 and 0.27 m against 0.72 and 0.32); the lanes, the feet's turns, the arms and the hands differ, and the
+  right arm, which carries the weapon, is held tighter in both. Flipped onto each other the two walks differ by 4
+  degrees at the hips, 42 mm at a foot and 17 mm in a hand's height (`tests/gameplay/test_own_directions.gd`).
+- **The fingers hold their curl.** These gaits play while the character aims, with a weapon in its hands whose
+  hold poses the fingers. Thirty finger tracks that opened and closed 3 degrees were a quarter to a third of a
+  clip's key bytes, and with them the library file imported at 6.2 KB a second, over the 6 the test holds it to.
+
+### How the lean poses are built
+
+`clips/lean.py`. `Lean_Ref` is the shipped standing idle's first frame with the arms carried by the chest. A lean
+pose is that reference with the centre of mass moved a number of degrees off the upright, measured from the floor
+point the reference's weight is over, both soles flat where they stand: the pelvis is solved from it, so the ankles
+take what the trunk does not. The pelvis, the chest and the head each lean by a share of those degrees, and each
+upper arm keeps hanging along the body's line with its hand off its thigh. Everything else is the reference's, so
+the difference between a lean pose and `Lean_Ref` moves only the pelvis, the spine, the neck, the head, the legs
+and the upper arms.
+
+In Godot the template's tree (`GaitLean`, kit #1158) adds `Lean_X - Idle` (the idle's first frame) over the
+locomotion (`AnimationNodeSub2` into `AnimationNodeAdd2`), weighted by the body's acceleration over
+`lean_full_at`. `Lean_Ref` is the idle's first frame within 0.3 degrees a bone, so the difference is the one the
+poses were built as. Over the reference at full weight it gives the lean pose back within 0.06 degrees a bone, both
+soles within 0.7 mm of the floor on both of the template's bodies; on the player, standing, the head goes 210 to
+330 mm the pose's way and the feet and the `ik_` targets stay within 0.1 mm of where they were on their limbs
+(`test_own_directions.gd`). The poses key the `ik_` targets where their hands and feet are: a pose without them
+would pull each target back toward its rest by the idle's offset. Over a gait the legs' share of the lean moves
+the feet, which a foot placement would have to hold; the tree has none yet.
+
+### The variants of the directions and the lean
+
+Measured by the build on `form_female` (and `form_male` where two numbers are given); the review sheets print the
+whole tables.
+
+| Strafes | A, grounded | B, loose | C, sharp |
+| --- | --- | --- | --- |
+| The hips turn toward the step: `Walk_Left`, `Walk_Right`, `Jog_Left`, `Jog_Right` | 30, 26, 34, 29 degrees | 36, 32, 40, 35 | 22, 19, 26, 22 |
+| The open step and the crossed one, `Walk_Left` | 0.72 and 0.32 m | 0.66 and 0.38 | 0.77 and 0.27 |
+| The same, `Jog_Left` (with a flight between) | 1.31 and 0.69 m | 1.26 and 0.74 | 1.34 and 0.66 |
+| The chest leans into the step, walk and jog | 2 and 4 degrees | 3.5 and 6 | 1 and 2.5 |
+| Pelvis up and down, walk and jog | 30 and 70 mm | 36 and 70 | 31 and 77 |
+| Forearm and chest trail, walk | 1.7 and 1.4 frames | 2.2 and 2.4 | 1.1 and 0.8 |
+| Limbs inside limbs, the four bodies, worst of the four clips | 0.9, 3.1, 0, 2.6 mm | 0.4, 2.9, 0, 0 (4.6 before `width`, below) | 0.5, 2.7, 0, 2.6 |
+| A planted sole wanders, `form_female` and `form_male` | 1.8 and 1.7 mm | 1.8 and 1.7 | 1.8 and 1.8 |
+| Joints' effective harmonic, walk and jog (the shipped `Walk` 3.17, `Jog` 2.37) | 2.8 and 2.0 | 2.5 and 2.0 | 2.8 and 2.1 |
+
+| Backpedals | A, grounded | B, loose | C, sharp |
+| --- | --- | --- | --- |
+| `Walk_Back`: the heel up as the ball lands, and the roll down | 16 degrees, 4.5 frames | 20, 4.5 | 22, 3.5 |
+| Hips turn and tip, trunk leans | 6 and 5, 2 degrees | 10 and 8, 3 | 4 and 3.6, 1 |
+| Pelvis up and down | 32 mm | 39 | 26 |
+| Forearm and chest trail | 1.4 and 1.5 frames | 2.0 and 2.4 | 0.9 and 0.9 |
+| `Jog_Back`: pelvis up and down, trunk leans | 52 mm, 9 degrees | 61, 11 | 50, 7 |
+| The foot's lift in the swing | 0.05 m | 0.05 | 0.08 |
+| Off a free fall's arc in the air | 0.0 mm | 0.0 | 0.0 |
+| Limbs inside limbs, the four bodies, worst of the two clips | 0, 1.7, 0, 0 mm | 0, 2.3, 0, 0 | 0, 1.7, 0, 0 |
+| Joints' effective harmonic, walk and jog | 3.0 and 1.9 | 2.6 and 1.8 | 3.3 and 2.0 |
+
+| Leans | A, grounded | B, loose | C, sharp |
+| --- | --- | --- | --- |
+| The vision | the trunk bends a little more than the legs lean, the head half follows | the hips stay, the chest and the head go: a curve | a plank from the ankles, the head level |
+| `Lean_Left` (10 degrees): pelvis, chest, head | 5.5, 11, 3.5 degrees | 4, 17, 10 | 9.5, 10, 0 |
+| `Lean_Right` (10 degrees) | 9, 6, 2 | 6, 13, 9 | 10.5, 8.5, 1.5 |
+| `Lean_Fwd` (12 degrees) | 9.6, 15.6, 6 | 6, 21.6, 12 | 12, 12.6, 2.4 |
+| `Lean_Back` (8 degrees) | 4, 9.6, 1.6 | 2.4, 13.6, 6.4 | 7.2, 8, 0 |
+| A planted sole off the floor, `form_female`, `form_male`, the Quaternius male | 0.0, 0.6, 0.7 mm at most | 0.0, 0.5, 0.6 | 0.0, 0.7, 0.8 |
+| Limbs inside limbs, the four bodies, worst of the four poses | 0, 3.9, 0, 0 mm | 0, 4.7, 0, 0 | 0, 2.0, 0, 0 |
+
+**The maintainer picked B for the strafes and the backpedals and A for the leans** (2026-11-12, `picks.json`).
+B's `Walk_Right` and `Jog_Left` set their feet 0.02 m off the middle line along the step (`width`): at 0,
+`form_male`'s thighs met by 4.6 and 3.5 mm, over the 3.5 that `test_own_directions.gd` holds a strafe's legs to (A
+read 2.8 and 2.6); now 2.7 and 2.9. On `form_male` the legs read 1.5 to 2.9 mm in the shipped directions, thigh in
+thigh: his thighs meet by 2 mm in his rest pose and by 3.8 in the shipped `Jog`.
+
+### What the numbers do not say (the directions and the lean)
+
+- **The crossing knee is not turned a third toward the step.** The toes are (17 to 21 degrees for the crossing
+  foot, 39 to 43 for the leading one), the leading knee is, and the crossing knee points ahead (-1 to 7 degrees):
+  it has to pass in front of the other knee.
+- **Nothing plays them yet.** The captures show the variants in place on the game's map; whether a strafe blends
+  cleanly with the forward walk at 45 degrees is the tree's to prove (kit #1158).
+- **The speeds are not the game's.** Aiming moves the character at 1.0 to 1.5 m/s and a run at 4.0; the clips are
+  1.2, 1.3 and 3.0 m/s on the forward gaits' cycles, and the tree plays each at ground speed over clip speed.
+- **The gait checks read a strafe in two planes**: its legs along the way it travels, its arms across the way its
+  hips face, and its legs' phase where the soles land (`declared["legs_facing"]`, `facing`, `legs_by_landing`).
+  The audit's forward-plane rows (thigh swing, arm with the other side's leg) are left off these sheets.
+
+### Numbers for the code (the directions and the lean)
+
+| | `Walk_Back` | `Walk_Left`, `Walk_Right` | `Jog_Back` | `Jog_Left`, `Jog_Right` |
+| --- | --- | --- | --- | --- |
+| Frames, seconds | 26, 0.867 | 26, 0.867 | 20, 0.667 | 20, 0.667 |
+| `speed`, `heading` | 1.3 m/s, 180 | 1.2 m/s, 90 and -90 | 3.0 m/s, 180 | 3.0 m/s, 90 and -90 |
+| `in_step_with` | `Walk` | `Walk` | `Jog` | `Jog` |
+| Left foot down (frames), right foot lands | 0 to 16, 13 | 0 to 15, 13 | 0 to 7, 10 | 0 to 6, 10 |
+| `flat` (the sole at rest), left | 4.5 to 12.5 | 3 to 9 | 2.5 to 4.5 | 1.5 to 3 |
+| Key bytes in the file | 12.3 KB | 12.8, 12.9 | 10.9 | 10.9, 11.0 |
+
+- `travel` in `locomotion.json` is `[frame, forward, left]`: a backpedal's forward is negative, a strafe's left is
+  its travel (negative to the right).
+- A lean pose's record has `pose` (true), `lean` (`way`, degrees to the left of ahead, and `degrees`, the lean the
+  full pose is) and `reference` (`Lean_Ref`). The weight of a lean is the lean wanted over `degrees`. Each pose is
+  two keys a bone on 52 bones and the four `ik_` targets, 1.9 KB in the file.
+- **Imported size:** 166 KB for the nineteen clips, 29.7 s, with Godot's compression pages at 32 KiB: 5.58 KB a
+  second against the 6 the test holds the file to (174 KB and 5.86 at 8 KiB pages; 130 KB and 5.3 before these
+  clips, 6.2 with the directions' fingers keyed). The next short loops will need the budget looked at: a file of
+  short fast loops and held poses has few seconds to spread its keys over.
+- **The import keeps every key at either page size** for these clips: each bone's place within 0.01 mm and turn
+  within 0.07 degrees of the file, at 8 KiB pages and at 32 (`test_own_directions.gd`,
+  `test_the_import_keeps_the_directions_and_the_leans`). The file imports at 32 since kit #1161's landing clips
+  lost keys at 8.
+- **The `ik_` targets are set from the finished pose** (`build.retarget`, the same change as kit #1156 and #1161)
+  and checked on every frame (`checks.check_targets`, 4 mm): the directions' targets are within 0.13 to 0.79 mm
+  of their limbs' ends in every variant. Every review file and the shipped file were rebuilt; the lean poses key
+  no target and are unchanged, and only the targets' keys moved in the others.
 
 ## The starts and the stops: `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`, `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`
 
