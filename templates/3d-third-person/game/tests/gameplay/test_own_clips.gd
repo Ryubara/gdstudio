@@ -43,6 +43,12 @@ const ROLLING := 0.001
 ## it: the build brings the foot down 5 mm by the frame the toes leave to keep that skin on the
 ## floor.
 const ROLL_DROP := 0.007
+## The same along the floor for a clip whose root turns (kit #1157), on every body: the build's
+## limit for a planted sole, 5 mm. A foot planted while the hips turn over it carries the
+## difference between this body's hip joints and the body the clip is solved on round with it
+## (2.6 mm on `form_male` in a reversal, 3.9 on the Quaternius pair in a 180 on the spot; under
+## 0.3 on `form_female`), which a straight clip never does (`turn-clips.md#taught`).
+const TURNING := 0.005
 ## The share of a gait's contact its foot takes to roll down onto the floor.
 const ROLL_ON := 0.25
 ## The gaits, the speed the game moves each at (`CharacterTuning`) and the clip each replaced.
@@ -199,13 +205,15 @@ func test_a_planted_foot_stays_on_its_place_on_the_floor() -> void:
 							% [foot, rolled.x * 1000.0, rolled.y * 1000.0]
 						)
 						print(where)
-						assert_float(rolled.x).override_failure_message(where).is_less(ROLLING)
+						var along := TURNING if _turns(record) else ROLLING
+						assert_float(rolled.x).override_failure_message(where).is_less(along)
 						assert_float(rolled.y).override_failure_message(where).is_less(ROLL_DROP)
 					else:
 						var worst := _wander(clip, record, side, contact)
 						var where := "%s: %.2f mm" % [foot, worst * 1000.0]
 						print(where)
-						assert_float(worst).override_failure_message(where).is_less(PLANTED)
+						var limit := TURNING if _turns(record) else PLANTED
+						assert_float(worst).override_failure_message(where).is_less(limit)
 
 
 # The skin of a planted foot is on the floor on every frame of its contact: flat, on its ball in
@@ -278,6 +286,12 @@ func _wander(clip: String, record: Dictionary, side: String, contact: Array) -> 
 				place.y = from.y
 			worst = maxf(worst, place.distance_to(from))
 	return worst
+
+
+# Whether a clip's root turns: the last key of its `turn` curve is not 0.
+func _turns(record: Dictionary) -> bool:
+	var curve: Array = record.get("turn", [])
+	return curve.size() > 0 and absf(curve[-1][1]) > 0.01
 
 
 # Whether a clip is a start or a stop of a gait (kit #1156), or a reversal or a pivot (kit #1157):

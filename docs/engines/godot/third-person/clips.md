@@ -318,21 +318,22 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `slowest_pace` | 0.5 | the walk alone down to half its pace (0.85 m/s), fading into the idle below |
 | `transitions`, `transition_clips` | on, `GaitTransitionSet` | a start, a stop, a reversal, a pivot or a turn on the spot when the controller does one and its clip exists |
 | `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the controller's numbers that pick them |
+| `transition_pace` | 2 | the fastest a reversal, a pivot or a turn on the spot runs to catch the body's turn up, against its own pace: the controller turns in 0.26 s, and a clip seeked by the angle turned jumped half a second in a frame (kit #1157) |
 | `momentum_blend`, `momentum_half_life`, `momentum_speed_limit` | on, 0.05 s, 720 degrees a second | a change of body state shows at once and the difference from the drawn pose dies away (`MomentumBlend`), in place of the cross-fade over `blend_time` |
 | `lean`, `lean_clips`, `lean_full_at`, `lean_time` | on, `gds/Lean_Left` and the rest, 20 m/s², 0.12 s | the lean into the acceleration, built only when the four lean clips exist |
 
 **What a transition clip needs** (gdstudio #1156, #1157). A name in `GaitTransitionSet` is a base: the tree plays
-`<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start),
-the foot that lands next in the gait's phase (a stop), the foot on the side the body turns to (a reversal: `_L`
-plants the left foot and turns over it to the left, kit #1157) or the way the body turns (a pivot, a turn on the
-spot). The defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`,
-`gds/Jog_Stop`, `gds/Sprint_Stop`, `gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`,
-`gds/Turn_In_Place_90` and `gds/Turn_In_Place_180`. From its record in `clips.json` the tree reads `travel` (a start
-or a stop is played at the time its travel has covered the ground the body really covered), `turn` (a reversal, a
-pivot or a turn: the time it has turned as far as the body), and `exit_phase` (the share of the gait's cycle it ends
-on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose body has finished its
-part plays on at its own pace; a body asked for something else leaves it at once. Until the clips exist nothing
-plays and the states change as before.
+`<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start), the
+foot that lands next in the gait's phase (a stop), the foot on the side the body turns to (a reversal: `_L` plants the
+left foot and turns over it to the left, kit #1157) or the way the body turns (a pivot, a turn on the spot). The
+defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`, `gds/Jog_Stop`,
+`gds/Sprint_Stop`, `gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`, `gds/Turn_In_Place_90` and
+`gds/Turn_In_Place_180`. From its record in `clips.json` the tree reads `travel` (a start or a stop is played at the
+time its travel has covered the ground the body really covered), `turn` (a reversal, a pivot or a turn: the time it has
+turned as far as the body, run at most `transition_pace` times its own pace), and `exit_phase` (the share of the gait's
+cycle it ends on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose body has
+finished its part plays on at its own pace; a body asked for something else leaves it at once. Until the clips exist
+nothing plays and the states change as before.
 The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
 so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are GDStudio's own since
 kit #1157 (each moving one ends as a foot strikes; a turn on the spot ends on the idle's first pose).

@@ -1,6 +1,6 @@
 {
  "clips_file": "locomotion.glb",
- "sha256": "ad57623b3f1d88512dfd97ed3144b453d9e722310ecbd1f7115525080a48a8a9",
+ "sha256": "51cecf7cb2196c22916983a903fb661f99ac2046e83f56833f003fb267a70c46",
  "fps": 30,
  "limit_mm": 5.0,
  "clips": {
@@ -341,7 +341,7 @@
     "pair": null
    },
    "form_male": {
-    "deepest_mm": 3.1,
+    "deepest_mm": 4.2,
     "frame": 4,
     "pair": "thigh_l in thigh_r"
    },
@@ -473,8 +473,8 @@
     "pair": null
    },
    "form_male": {
-    "deepest_mm": 1.7,
-    "frame": 39,
+    "deepest_mm": 3.9,
+    "frame": 2,
     "pair": "thigh_l in thigh_r"
    },
    "mannequin_female": {

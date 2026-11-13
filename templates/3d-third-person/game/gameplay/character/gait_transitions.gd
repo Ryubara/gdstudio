@@ -270,6 +270,8 @@ func _go_on(
 		or ((kind == Kind.REVERSAL or kind == Kind.PIVOT) and goal <= standing)
 	)
 	var progress := _progress(body, blend.leg)
+	if progress >= 0.0 and kind != Kind.START and kind != Kind.STOP:
+		progress = minf(progress, _time + delta * settings.transition_pace)
 	var done := _body_done(body)
 	_time = minf(maxf(progress, _time + (delta if done or progress < 0.0 else 0.0)), _length)
 	animation.tree.set(_P_SEEK, _time)

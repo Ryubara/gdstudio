@@ -608,6 +608,36 @@ class Turn(Move):
         xz, yaw = self.root(f)
         return placed(spec, xz, yaw)
 
+    def leg(self, s: str, f: float) -> dict:
+        """`Move.leg`, but the swing the clip begins inside starts as the shipped gait's own leg, not as a swing
+        made from the clip's treads: frame 0 is the gait's spec, and frame 1 must go on the way it went (a swing
+        retargeted to the clip's own landing stepped 40 to 130 mm off the gait's in `test_own_turns.gd`)."""
+        out = super().leg(s, f)
+        ghost = self.ghost
+        if self.spot or ghost is None or s != ghost.side or self.planted(s, f) is not None or not 0.0 < f:
+            return out
+        before = [t for t in self.treads[s] if t.lift < f]
+        after = [t for t in self.treads[s] if t.land > f]
+        if not (before and after and before[-1].lift < 0.0 < after[0].land):
+            return out
+        mine = self._swing(before[-1], after[0], f)
+        g = self.g
+        k = math.fmod(self.phase + f, float(self.cycle))
+        spec = g.spec(k)
+        leg = spec["leg"][s]
+        xz, yaw = self.root(f)
+        ankle = np.asarray(leg["ankle"], dtype=float) + np.array([0.0, 0.0, -self.v * k / FPS])
+        rest = {"pelvis": {"place": np.zeros(3), "turn": (0.0, 0.0, 0.0)}, "leg": {s: {**leg, "ankle": ankle}}}
+        own = placed(rest, xz, yaw)["leg"][s]
+        share = maths.smoother(f / after[0].land)
+        out = {
+            "ankle": own["ankle"] + (mine["ankle"] - own["ankle"]) * share,
+            "foot": tuple(x + (y - x) * share for x, y in zip(own["foot"], mine["foot"], strict=True)),
+            "toe": own["toe"] + (mine["toe"] - own["toe"]) * share,
+        }
+        out["ankle"] = out["ankle"] + maths.Y * self.set_down.get((s, f), 0.0)
+        return out
+
     def _moving_spec(self, f: float) -> dict:
         n, F = self.n, self.frames
         if f <= 0:
@@ -698,6 +728,12 @@ class Turn(Move):
             return out
         away = -gap / max(apart, 1e-6) if apart > 1e-6 else np.array([-line[1], line[0]]) / length
         push = (want - apart) * math.sin(math.pi * u) ** 2
+        if a.lift < 0.0 < f:
+            # A swing the clip begins inside is the gait's own on frame 0, with no push: let the push in from there,
+            # or the foot jumps sideways between the first two frames (130 mm in `test_own_turns.gd`).
+            push *= maths.smoother(f / max(b.land, 1.0))
+        elif a.lift < 0.0:
+            push = 0.0
         out["ankle"] = out["ankle"] + np.array([away[0], 0.0, away[1]]) * push
         return out
 
