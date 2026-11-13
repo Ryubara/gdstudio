@@ -130,7 +130,7 @@ func head_weight() -> float:
 		return 0.0
 	var aim := animation.melee.aim_of(character)
 	var aimed := maxf(animation.pistol_weights().y, smoothstep(0.0, 1.0, aim))
-	return aimed * (1.0 - animation.reload_progress().x)
+	return aimed * (1.0 - _reloading())
 
 
 ## The share the layer is on by now (0 off, 1 the whole turn): the aim's weight, less a reload,
@@ -143,8 +143,7 @@ func weight() -> float:
 	var limits := character.aim_limits
 	if limits == null or not limits.enabled:
 		return 0.0
-	var reload := animation.reload_progress().x
-	return animation.pistol_weights().y * (1.0 - reload)
+	return animation.pistol_weights().y * (1.0 - _reloading())
 
 
 ## Puts the aim on the modifiers now (the frame's own `_process` does it too).
@@ -163,7 +162,7 @@ func refresh() -> void:
 	aim.muzzle = character.weapon.muzzle
 	aim.limits = character.aim_limits
 	aim.target = aim_point(Engine.get_physics_interpolation_fraction())
-	aim.hold_turn = animation.is_shooting() or animation.is_reloading()
+	aim.hold_turn = animation.is_shooting() or animation.is_reloading() or _racking()
 	aim.release_time = release_time
 	_pose_aim(aim)
 
@@ -315,3 +314,13 @@ func _place(skeleton: Skeleton3D) -> void:
 		skeleton.move_child(_modifier, at)
 	elif _modifier.get_index() < at:
 		skeleton.move_child(_modifier, at - 1)
+
+
+# How much of the body a reload holds now, or the slide's rack after it (kit #1337): the aim gives
+# way to both, whose clips hold the weapon in front of the chest.
+func _reloading() -> float:
+	return maxf(animation.reload_progress().x, animation.rack.progress().x)
+
+
+func _racking() -> bool:
+	return animation.rack.progress().x > 0.0

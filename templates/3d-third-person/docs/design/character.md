@@ -464,12 +464,14 @@ each has its own hold: `gameplay/weapon/hold/pistol_slide_rack.tres` (a `SlideRa
 `pistol_slide_rack_male.tres` in `fits`, and `SlideRack.fit()` gives the one solved on the model's file. A rack says
 where the left hand's bone is in the pistol's space on its way over the slide, how its fingers are closed on the
 slide and opened over it, how far the slide travels and at which shares of the clip the hand grips, pulls and lets
-go; what plays the clip reaches the hand there with a `HoldArm`, puts the fingers on with a `HandPoseModifier`
-(`SlideRack.set_fingers()`) and moves the pistol's `Slide` node, as `tests/fixtures/rack_stage.gd` does. On both
+go. A reload of an empty pistol ends with it (kit #1337): the character's `RackLayer` plays the clip as the reload
+clip ends, and the `WeaponHold` (its `rack`) reaches the hand there with a `HoldArm`, puts the fingers on with a
+`HandPoseModifier` (`SlideRack.set_fingers()`) and moves the pistol's `Slide` node from where it stands locked back,
+as `tests/fixtures/rack_stage.gd` drives it on a stage. A shot or a switch cuts it short. On both
 bodies the hands are within the hold's 2 mm and 5 mm on every frame, the index finger's and the thumb's pads on the
 serrations (`tests/gameplay/test_pistol_rack.gd`). The folder's `README.md` has the beats, the numbers, why it is an
 overhand rack and how to build it;
-`tools/capture/rack_closeups.tscn` films it.
+`tools/capture/rack_closeups.tscn` films it, and `tools/capture/rack_live.tscn` films it in the running game.
 
 ### Vault clips {#vault-clips}
 

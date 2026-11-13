@@ -146,6 +146,10 @@ var spread_share := 1.0
 var authoritative := true
 ## On: the flash, the sounds and the impacts play. Off (a server): none of them.
 var effects := true
+## How many of the reload's last sounds this reload leaves to what plays after it (the rack's
+## slide, `WeaponDef.rack_clip`, kit #1337: `RackLayer` plays it). The character's animation sets
+## it as each reload starts; cosmetic.
+var reload_steps_held := 0
 ## With 0 or more, the spread of a shot is drawn from a generator seeded by this and `shot_seq`
 ## (a player's slot and its command's number), so every peer draws the same pellet for one
 ## command whatever it fired before. -1: the weapon's own running order.
@@ -810,7 +814,7 @@ func _play_reload_steps() -> void:
 		return
 	var steps := definition.reload_sounds
 	var progress := reload_progress()
-	while _reload_sounds_played < steps.size():
+	while _reload_sounds_played < steps.size() - reload_steps_held:
 		var at := (
 			definition.reload_sound_at[_reload_sounds_played]
 			if _reload_sounds_played < definition.reload_sound_at.size()
