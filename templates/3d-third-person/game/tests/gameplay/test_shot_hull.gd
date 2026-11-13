@@ -4,6 +4,9 @@
 # never meets it, a dead body's hull is off, and a shot that passes between the parts flies on.
 extends GdUnitTestSuite
 
+## The thinnest round a weapon can fire (`WeaponDef.projectile_size`), metres.
+const THIN_ROUND := 0.02
+
 var _arena: PlayArena
 var _player: Player
 var _animation: CharacterAnimation
@@ -76,12 +79,16 @@ func test_a_crouched_body_is_hit_at_its_hips_from_the_side() -> void:
 	var hips := _part(&"pelvis")
 	var off := Vector2(hips.x - _player.global_position.x, hips.z - _player.global_position.z)
 	# The case: the drawn hips are out past the moving capsule's surface.
-	assert_float(off.length()).is_greater(_capsule().radius)
+	assert_float(off.length()).is_greater(_capsule().radius + THIN_ROUND / 2.0)
 	var line := _side_line(&"pelvis", hips)
 	assert_array(line).override_failure_message("no side sees the hips first").is_not_empty()
 	if line.is_empty():
 		return
-	await ImpactShots.shoot(get_tree(), _arena, line[0], hips + line[1] * 0.5)
+	# A thin round, as a hitscan ray or the aim ray is: the template's 14 cm round reaches 7 cm past
+	# the capsule by its own width and met these hips before.
+	var shot := ImpactShots.fire(_arena, line[0], hips + line[1] * 0.5)
+	shot.size = THIN_ROUND
+	await ImpactShots.land(get_tree(), shot)
 	assert_int(_records.size()).override_failure_message("the shot flew past the hips").is_equal(1)
 	if not _records.is_empty():
 		assert_str(String(_records[0].zone)).is_equal("pelvis")
