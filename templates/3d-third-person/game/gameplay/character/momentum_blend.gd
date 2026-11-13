@@ -44,6 +44,7 @@ var _pelvis_x0 := Vector3.ZERO
 var _pelvis_j0 := Vector3.ZERO
 var _t := 0.0
 var _blending := false
+var _again := false
 
 
 ## True while a difference is dying away.
@@ -79,6 +80,14 @@ func _process_modification_with_delta(delta: float) -> void:
 	var key: Variant = animation.gait.pose_key(animation)
 	if key != _key and _seen >= 2 and delta > 0.0:
 		_begin(skeleton, delta)
+		_again = true
+	elif _again and delta > 0.0:
+		# The state machine names its new state a frame before the new state's pose reaches the
+		# skeleton: begun on the change alone, the blend carried a few hundredths of a radian and
+		# the pose jumped whole on the next frame (the arms 20 degrees in a tick as a landing
+		# gave way to the ground, gdstudio #1369). Begun again here from the pose last shown.
+		_begin(skeleton, delta)
+		_again = false
 	_key = key
 	if _blending:
 		_apply(skeleton, delta)
@@ -157,6 +166,7 @@ func _follow(skeleton: Skeleton3D) -> void:
 func _forget() -> void:
 	_seen = 0
 	_blending = false
+	_again = false
 	_key = null
 
 

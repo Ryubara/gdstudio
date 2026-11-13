@@ -296,20 +296,27 @@ func _clip_arm_speeds(clip: StringName) -> Dictionary:
 
 
 func test_the_arms_float_through_a_played_jump() -> void:
-	# The jump the player really plays: the take-off, the tree's blend into the fall, the landing
-	# and its blend back to the ground, stepped by hand at the physics rate. No arm joint turns
-	# faster than the same part of the jog's arms at its fastest (kit #1369: the left upper arm swung
-	# 92 degrees up in the six-frame take-off and 84 back down in the 0.15 s blend into the fall).
+	# The jump the player really plays, as drawn: the take-off, the momentum blend into the fall,
+	# the landing and its blend back to the ground, a frame a physics tick (`--fixed-fps 60`). No
+	# arm joint turns faster than the same part of the jog's arms at its fastest (kit #1369: the
+	# left upper arm swung 92 degrees up in the six-frame take-off, 1177 degrees a second, and the
+	# momentum blend, begun a frame before the new state's pose arrived, let it jump 20 degrees
+	# in one tick as the landing gave way to the ground).
 	var bound := _clip_arm_speeds(CharacterClips.RUN)
 	assert_int(bound.size()).is_equal(ARM_BONES.size())
 	InputSim.release_all()
 	var arena: PlayArena = auto_free(PlayArena.new())
 	add_child(arena)
 	var player := arena.add_player(Vector3.ZERO)
-	var animation: CharacterAnimation = player.get_node("Animation")
 	var skeleton := (player.get_node("Model") as CharacterModel).skeleton()
-	animation.set_throttled(true)
 	var step := 1.0 / Engine.physics_ticks_per_second
+	# The pose as drawn: read after each of the skeleton's modifiers (the momentum blend first).
+	var drawn := {}
+	var read := func() -> void:
+		for bone: StringName in ARM_BONES:
+			drawn[bone] = skeleton.get_bone_pose_rotation(skeleton.find_bone(bone))
+	for modifier in skeleton.find_children("*", "SkeletonModifier3D", true, false):
+		(modifier as SkeletonModifier3D).modification_processed.connect(read)
 	var states: Array[Character.State] = []
 	var last := {}
 	var fastest := {}
@@ -317,7 +324,6 @@ func test_the_arms_float_through_a_played_jump() -> void:
 	# A second standing, the jump (the key held for a fifth of a second), and two seconds after.
 	for tick in _ticks(3.0):
 		await get_tree().physics_frame
-		animation.advance(step)
 		if tick == _ticks(1.0):
 			InputSim.key(KEY_SPACE, true)
 		elif tick == _ticks(1.2):
@@ -325,7 +331,9 @@ func test_the_arms_float_through_a_played_jump() -> void:
 		if not states.has(player.state):
 			states.append(player.state)
 		for bone: StringName in ARM_BONES:
-			var turn := skeleton.get_bone_pose_rotation(skeleton.find_bone(bone))
+			if not drawn.has(bone):
+				continue
+			var turn: Quaternion = drawn[bone]
 			if last.has(bone) and tick > _ticks(0.5):
 				var speed := rad_to_deg((last[bone] as Quaternion).angle_to(turn)) / step
 				if speed > fastest.get(bone, 0.0):
@@ -333,7 +341,6 @@ func test_the_arms_float_through_a_played_jump() -> void:
 					where[bone] = "tick %d in %s" % [tick, Character.State.keys()[player.state]]
 			last[bone] = turn
 	InputSim.release_all()
-	animation.set_throttled(false)
 	assert_bool(states.has(Character.State.JUMP)).is_true()
 	assert_bool(states.has(Character.State.FALL)).is_true()
 	assert_bool(states.has(Character.State.LAND)).is_true()

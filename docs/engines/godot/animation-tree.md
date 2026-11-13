@@ -316,8 +316,9 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   half and half let a planted foot slide 10 mm forward and 4 mm across in a contact, a turn blended not being a place
   blended. So each gait plays alone over a range of paces (`stretch`), the blend is kept to the speeds between, its
   stride is the weights' geometric mean, and a trim measured from the planted foot itself corrects the rest.
-- **Momentum.** A state machine transition with `xfade_time` 0 shows the new state in the same process; the
-  modifier then adds the decaying difference from the last drawn pose. A `SkeletonModifier3D` added as an internal
+- **Momentum.** A state machine transition with `xfade_time` 0 names the new state (`get_current_node()`) a frame
+  before its pose reaches the skeleton; the modifier begins its decaying difference on the change and again on the
+  next frame, from the last drawn pose. A `SkeletonModifier3D` added as an internal
   child at the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
 
 - **Approach:** Play a gait alone, slowed or sped up, for as many speeds as it looks right at, and blend two gaits
@@ -331,3 +332,9 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
   **Seen:** gdstudio #1158, 2026-11-12 (the lean's base pose, three errors for four poses).
+- **Approach:** Test a blend between states on the pose as drawn, every frame, as joint speed through the change
+  (read after the skeleton's modifiers, `modification_processed`), not by the blend's own offset. **Watch out
+  for:** the momentum blend began on the frame the state's name changed, carried a few hundredths of a radian, and
+  the whole new pose arrived a frame later unblended (the arms 20 degrees in a tick, a bone up to 1.8 radians in a
+  crouch); its test read `largest_offset()`, which stayed small, and passed. **Seen:** gdstudio #1369, 2026-11-12
+  (fix: `_again` in `momentum_blend.gd`; `test_the_arms_float_through_a_played_jump`).
