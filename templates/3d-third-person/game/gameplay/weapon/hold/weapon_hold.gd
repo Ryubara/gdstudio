@@ -282,6 +282,7 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 var _skeleton: Skeleton3D
 var _grip: HandPoseModifier
 var _arm: HoldArm
+var _floor: HandFloor
 var _fingers: HandPoseModifier
 var _stance: OneHandStance
 # Seconds since the character's weapon last fired, counted by the drawn frames (cosmetic).
@@ -413,6 +414,7 @@ func refresh() -> void:
 	_grip.swing_degrees = carry_arm_out * (1.0 - aim) * (1.0 - busy)
 	if _stance != null:
 		_pose_stance()
+	_keep_hands_up()
 	if _arm == null:
 		return
 	_plan_left()
@@ -449,6 +451,17 @@ func refresh() -> void:
 		# An arm too short for the place (the aim coming up, the weapon still out to the side)
 		# backs the hand off along its way, opened; under the magazine it has no such line.
 		_arm.retreat = weapon.basis * support_way if _left.at_magazine <= 0.0 else Vector3.ZERO
+
+
+# Lying with a prone aim, the hands are kept over the floor while the aim blends (`HandFloor`).
+func _keep_hands_up() -> void:
+	if hand_floor() == null:
+		return
+	var share := HandFloor.share(support_keep_elbow, aim_weight)
+	_weigh(_floor, share)
+	if share > 0.0 and animation != null and animation.character != null:
+		var at := animation.character.global_position
+		_floor.floor_height = (_skeleton.global_transform.affine_inverse() * at).y
 
 
 ## How far into its kick a one-handed shot is at `share` of `kick_time`: up within its first
@@ -543,6 +556,11 @@ func _pose_stance() -> void:
 	_stance.kick_back = kick_back
 	_stance.kick_up = kick_up
 	_stance.kick = shot_kick
+
+
+## The hands' floor keeper of a lying aim (`HandFloor`), or null; not one of `modifiers()`.
+func hand_floor() -> HandFloor:
+	return _floor if _floor != null and is_instance_valid(_floor) else null
 
 
 ## The modifiers this node made on the skeleton now: the one-handed stance (when `one_handed`),
@@ -756,11 +774,16 @@ func _weigh(modifier: SkeletonModifier3D, weight: float) -> void:
 
 # Makes the modifiers on the model's skeleton, after freeing the ones made on the last model.
 func _build() -> void:
-	for modifier in modifiers() + rack_modifiers():
+	var made: Array[SkeletonModifier3D] = modifiers()
+	made.append_array(rack_modifiers())
+	if hand_floor() != null:
+		made.append(_floor)
+	for modifier in made:
 		# Out of the tree at once, so the new ones can take the names.
 		modifier.get_parent().remove_child(modifier)
 		modifier.queue_free()
 	_grip = null
+	_floor = null
 	_arm = null
 	_fingers = null
 	_stance = null
@@ -812,6 +835,8 @@ func _build() -> void:
 		_arm.arm = support_arm
 		_arm.bone = seat.bone_name
 		_skeleton.add_child(_arm)
+		# After the reach, so the left hand is raised with the weapon it holds.
+		_add_floor()
 		_fingers = HandPoseModifier.new()
 		_fingers.name = _SUPPORT_FINGERS
 		_fingers.pose = support_pose
@@ -824,9 +849,16 @@ func _build() -> void:
 		_skeleton.add_child(_fingers)
 		_build_magazines(seat.get_child(0) as Node3D)
 		_build_rack()
-	_keep_ragdoll_last.call_deferred()
+	else:
+		_add_floor()
+	RagdollDrawing.keep_last.call_deferred(_skeleton)
 	refresh()
 	built.emit()
+
+
+func _add_floor() -> void:
+	_floor = HandFloor.made(carry_arm, support_arm[0] if not support_arm.is_empty() else &"")
+	_skeleton.add_child(_floor)
 
 
 # The rack's reach to the slide and its fingers, after the left hand's (they read the arm and the
@@ -847,24 +879,6 @@ func _build_rack() -> void:
 	_rack_fingers.name = _RACK_FINGERS
 	_rack_fingers.active = false
 	_skeleton.add_child(_rack_fingers)
-
-
-# Puts a simulating ragdoll back after the modifiers made just now (and the aim layer's, made on
-# `built`): made while the body lies limp (a weapon or stance change after the death), they went
-# after the simulator and posed the dead arm and hand over the ragdoll's, so the weapon stood off
-# the hand (kit #1339, docs/engines/godot/ragdoll.md#underfoot).
-func _keep_ragdoll_last() -> void:
-	if _skeleton == null or not is_instance_valid(_skeleton):
-		return
-	for child in _skeleton.get_children():
-		var simulator := child as PhysicalBoneSimulator3D
-		if simulator == null or not simulator.is_simulating_physics():
-			continue
-		_skeleton.move_child(simulator, -1)
-		var drawing := _skeleton.get_node_or_null(NodePath(RagdollDrawing.NODE_NAME))
-		if drawing != null:
-			_skeleton.move_child(drawing, -1)
-		return
 
 
 # The new magazine on the left hand's bone, placed as the pistol's own is seen from the magazine

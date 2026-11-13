@@ -925,6 +925,7 @@ func _use_weapon(delta: float) -> void:
 	# longer, or a click held past its shot leaves a second one buffered (gdstudio #1335).
 	if pressed:
 		_fire_buffer = tuning.fire_buffer_time
+	_release_burst(last_command)
 	var burst := weapon.bursting
 	var wanted := _fire_buffer > 0.0 or held or burst
 	if wanted and aiming and aim_amount >= tuning.shot_aim_amount and _within_reach():
@@ -932,6 +933,15 @@ func _use_weapon(delta: float) -> void:
 		if weapon.pull(_aim_origin(), _aim_direction()) != Weapon.Pull.BUSY and not burst:
 			_fire_buffer = 0.0
 	elif burst:
+		weapon.bursting = false
+
+
+# Ends a burst under way on a tick the fire button is up, for a weapon whose burst lasts only while
+# it is held (`WeaponDef.full_burst_per_press` off): the shot already gone stays. The client and the
+# server step the same commands, so both end it on the same tick.
+func _release_burst(command: PlayerCommand) -> void:
+	var held := weapon.definition
+	if held != null and not held.full_burst_per_press and not command.fire:
 		weapon.bursting = false
 
 
