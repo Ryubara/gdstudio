@@ -116,12 +116,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   above; a monitor script also ends on its own, [Agents](agents.md#the-loop)).
 - **Approach:** Stop only a process you started: keep its PID (`echo $! > pid`) or find it by your worktree's path in
   its command line, print the candidates before the first `Stop-Process`, end it by tree (`taskkill /PID <pid> /T /F`),
-  give each run its own log, and list what is left after the stop. **Watch out for:** every agent shares one pinned
-  Godot, so a name does not say whose it is; `taskkill /IM` and a `GdUnitCmdTool` pattern ended other agents' suites;
-  stopping a background task ends the shell, not the `timeout` and Godot under it. **Seen:** Deadnight, 2026-11-01;
-  Deadnight #1086, 2026-11-04; gdstudio, 2026-11-06 (fix: the hooks refuse a kill by name ([Hooks](hooks.md))); #1149,
-  2026-11-11 (a stopped task's `bash record.sh` started its next capture); #1324, 2026-11-12 (`$3` in a load loop's
-  shell function was its own empty argument, so the loops outlived the run).
+  give each run its own log, and list what is left after the stop before a rerun. **Watch out for:** every agent shares
+  one pinned Godot, so a name does not say whose it is (`taskkill /IM` ended other agents' suites); stopping a
+  background task ends the shell, not the script, `timeout` or Godot under it. **Seen:** Deadnight #1086, 2026-11-04;
+  gdstudio, 2026-11-06 (the hooks refuse a kill by name ([Hooks](hooks.md))); #1149, 2026-11-11 (`record.sh` started
+  its next capture); #1324, 2026-11-12 (load loops outlived the run); #1391, 2026-11-13 (a stopped bench's `ab.sh` ran
+  on beside the rerun).
 - **Approach:** Leave a shell script alone while a background run executes it: edit the source, and copy it over the
   running copy only after the run ends (or run a copy made for that run). **Watch out for:** bash reads a script as
   it goes, by byte offset, so a `cp` over `check.sh` during a 10 minute bot run made bash resume inside the new text:
