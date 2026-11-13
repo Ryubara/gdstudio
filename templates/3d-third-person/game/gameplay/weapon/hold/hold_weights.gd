@@ -5,17 +5,20 @@ extends RefCounted
 ## changed and reads nothing back from the modifiers (a property of another object costs more
 ## than a line in the web build's GDScript).
 
-## What a modifier of the hold is, for its weight: the stance or the right arm, the left arm, the
-## right hand's fingers, the left hand's fingers (the hands' last: `>= FINGERS`).
+## What a modifier of the hold is, for its weight: the stance, the right arm, the left arm, the
+## right hand's fingers, the left hand's fingers (the arms `ARM` and `LEFT_ARM`, the hands last:
+## `>= FINGERS`).
 const OTHER := 0
-const LEFT_ARM := 1
-const FINGERS := 2
-const LEFT_FINGERS := 3
+const ARM := 1
+const LEFT_ARM := 2
+const FINGERS := 3
+const LEFT_FINGERS := 4
 
 var _kinds := PackedByteArray()
 var _influences := PackedFloat64Array()
 var _actives := PackedByteArray()
 var _hands := PackedFloat64Array([NAN, NAN, NAN, NAN])
+var _elbow := NAN
 
 
 ## Keeps a modifier just made, as the `kind` it is.
@@ -23,6 +26,7 @@ func add(modifier: SkeletonModifier3D, kind: int) -> void:
 	_kinds.append(kind)
 	_influences.append(modifier.influence)
 	_actives.append(int(modifier.active))
+	_elbow = NAN
 
 
 func clear() -> void:
@@ -30,19 +34,30 @@ func clear() -> void:
 	_influences.clear()
 	_actives.clear()
 	_hands = PackedFloat64Array([NAN, NAN, NAN, NAN])
+	_elbow = NAN
 
 
 ## Weighs each of `modifiers` (in the order they were added): the arms and the stance by `reach`,
 ## the hands by `fingers`, none when not `alive`; the left arm and fingers less as an action's
-## clip takes the left hand (`freed`, `FreeHand`).
+## clip takes the left hand (`freed`, `FreeHand`); each arm keeps its clip's elbow by
+## `keep_elbow` (`HoldArm.keep_elbow`: a melee blow's clip has the elbows, `HoldBlow`).
 func weigh(
-	modifiers: Array[SkeletonModifier3D], alive: bool, reach: float, fingers: float, freed: float
+	modifiers: Array[SkeletonModifier3D],
+	alive: bool,
+	reach: float,
+	fingers: float,
+	freed: float,
+	keep_elbow := 0.0
 ) -> void:
+	var elbow := keep_elbow != _elbow
+	_elbow = keep_elbow
 	for index in modifiers.size():
 		var modifier := modifiers[index]
 		if not is_instance_valid(modifier):
 			continue
 		var kind := _kinds[index]
+		if elbow and (kind == ARM or kind == LEFT_ARM):
+			(modifier as HoldArm).keep_elbow = keep_elbow
 		var share := fingers if kind >= FINGERS else reach
 		if not alive:
 			share = 0.0

@@ -13,6 +13,9 @@ extends RefCounted
 const NOT_TORSO: Array[StringName] = [
 	&"upperarm_r", &"upperarm_l", &"thigh_r", &"thigh_l", &"neck_01"
 ]
+## The bones left out to measure the whole body (kit #1340): only the forearms and hands, which
+## hold the weapon (`HandContact` measures them); the legs, upper arms and head count.
+const HOLDING: Array[StringName] = [&"lowerarm_r", &"lowerarm_l"]
 ## How far round the weapon the skin is looked at, in metres: deeper than this reads as this.
 const REACH := 0.15
 const _CELL := 0.02
@@ -30,15 +33,22 @@ var _columns := {}
 var _cells := {}
 
 
-## `contact` copies the pose (its `bone_pose()`); `weapon` is the node whose meshes are measured.
-func _init(skeleton: Skeleton3D, contact: HandContact, weapon: Node3D) -> void:
+## `contact` copies the pose (its `bone_pose()`); `weapon` is the node whose meshes are measured;
+## `left_out` the bones whose skin, and every bone's under them, is not measured (the torso alone
+## by default, `HOLDING` for the whole body).
+func _init(
+	skeleton: Skeleton3D,
+	contact: HandContact,
+	weapon: Node3D,
+	left_out: Array[StringName] = NOT_TORSO
+) -> void:
 	_skeleton = skeleton
 	_contact = contact
 	_limbs.resize(skeleton.get_bone_count())
 	for bone in skeleton.get_bone_count():
 		var cursor := bone
 		while cursor >= 0:
-			if NOT_TORSO.has(skeleton.get_bone_name(cursor)):
+			if left_out.has(skeleton.get_bone_name(cursor)):
 				_limbs[bone] = 1
 				break
 			cursor = skeleton.get_bone_parent(cursor)

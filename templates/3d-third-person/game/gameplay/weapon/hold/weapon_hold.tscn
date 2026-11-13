@@ -15,6 +15,7 @@
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_fit_male.tres" id="10_fit_male"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_one_hand_pose.tres" id="14_one_hand"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_one_hand_way_pose.tres" id="15_one_hand_way"]
+[ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_slide_rack.tres" id="16_rack"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_trigger_way.tres" id="16_trigger_way"]
 
 [node name="WeaponHold" type="Node"]
@@ -36,4 +37,5 @@ carry_open_pose = ExtResource("13_carry_open")
 one_hand_pose = ExtResource("14_one_hand")
 one_hand_way_pose = ExtResource("15_one_hand_way")
 support_way = Vector3(0.00478, -0.02052, 0.05618)
+rack = ExtResource("16_rack")
 fits = Array[ExtResource("9_fit")]([ExtResource("10_fit_male")])
