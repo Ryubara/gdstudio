@@ -42,6 +42,10 @@ Open pull requests come before new work: each one left open goes stale against `
   defaults to the CI clock, a test pins it against `ci.yml`, kit #976); gdstudio #1191, 2026-11-12: CLEAN and green
   after #1353 landed, the merge failed `test_aim_head.gd` lying with the prone aim (head 8.9 degrees on the neck,
   limit 8), which neither branch had alone (fix: `head_prone_neck_share`).
+- **Approach:** Push a refreshed branch in one command and turn on auto-merge in the next, once `gh pr view` shows
+  the new head. **Watch out for:** the landing hook reads the pull request's head before the command runs, so
+  `git push` and `gh pr merge --auto` in one command is refused as behind `main` even though the push would fix it.
+  **Seen:** gdstudio #1431 (PR #1459), 2026-11-13.
 
 - **Approach:** Look up the owner of any pull request red for over 30 minutes and assign one at once if none is live;
   when an agent is moved to other work, hand each pull request it leaves to someone. **Watch out for:** every open pull
