@@ -109,6 +109,13 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   some pages and not others ([the buffer hint](web-export.md#skin-buffer-hint)). **Seen:** gdstudio #1260,
   2026-11-11; gdstudio #1323, 2026-11-12 (three template time budgets red locally with about nine Godot runs up;
   `origin/main` in a detached worktree failed the same ones in the same hour, so the branch went to CI).
+- **Approach:** Trace a frame rise across commits by the parts, not the frame: a game at each commit (`git restore
+  --source=<sha> --staged --worktree -- templates/`, `gds template game <t>`), the parts bench in each, interleaved,
+  each part read as a share of one no commit touched (the body's step); split the part that rose with a probe of
+  `Time.get_ticks_usec()` spans. Godot's `--path` is the printed path plus `/game`. **Watch out for:** the budget
+  case's ratio spread 1.47 to 1.86 on one build, too wide for a 0.3 ms change, where the step share split the rise
+  into three commits; at the printed path itself Godot finds no project and waits silent until the timeout.
+  **Seen:** gdstudio #1360, 2026-11-13 (10 minutes lost to the path).
 
 ## A leak is read as a count at the same crowd, round after round {#leak-count}
 
