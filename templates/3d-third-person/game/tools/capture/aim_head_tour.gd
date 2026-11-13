@@ -16,7 +16,7 @@ const START := Vector3(0.0, 300.1, 10.0)
 
 ## Each stage: `name` (printed when it starts), `hold` the actions held, `tap` the actions pressed
 ## for one tick at its start, `give` a weapon handed over at its start, `pitch` the view's pitch
-## and `seconds` how long.
+## and `seconds` how long. Crouch is held (the tuning's crouch is held by default, not toggled).
 const STAGES: Array[Dictionary] = [
 	{"name": "pistol lowered", "hold": [], "seconds": 1.0},
 	{"name": "pistol aim level", "hold": [&"aim"], "seconds": 2.5},
@@ -24,11 +24,11 @@ const STAGES: Array[Dictionary] = [
 	{"name": "pistol aim up", "hold": [&"aim"], "pitch": 15.0, "seconds": 2.0},
 	{"name": "pistol aim walking", "hold": [&"aim", &"move_right"], "seconds": 2.0},
 	{"name": "pistol lowered again", "hold": [], "seconds": 1.0},
-	{"name": "pistol crouched aim", "hold": [&"aim"], "tap": [&"crouch"], "seconds": 2.5},
-	{"name": "rifle", "hold": [], "tap": [&"crouch"], "give": "rifle", "seconds": 2.0},
+	{"name": "pistol crouched aim", "hold": [&"aim", &"crouch"], "seconds": 2.5},
+	{"name": "rifle", "hold": [], "give": "rifle", "seconds": 2.0},
 	{"name": "rifle aim level", "hold": [&"aim"], "seconds": 2.5},
 	{"name": "rifle aim down", "hold": [&"aim"], "pitch": -25.0, "seconds": 2.0},
-	{"name": "rifle crouched aim", "hold": [&"aim"], "tap": [&"crouch"], "seconds": 2.5},
+	{"name": "rifle crouched aim", "hold": [&"aim", &"crouch"], "seconds": 2.5},
 	{"name": "rifle lying aim", "hold": [&"aim"], "tap": [&"prone"], "seconds": 3.5},
 	{"name": "fists", "hold": [], "tap": [&"prone", &"toggle_unarmed"], "seconds": 2.0},
 	{"name": "fists aim down", "hold": [&"aim"], "pitch": -25.0, "seconds": 2.0},

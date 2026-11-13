@@ -116,6 +116,14 @@ they are rerun, replayed or read from another branch -->
   whose Model line lacked a model and passed after the edit, came back three times and `S-ci-failing` stayed on a
   pull request whose only red check was `hold`. **Seen:** gdstudio #1265, 2026-11-12
   (`test_a_check_that_passed_after_the_description_was_edited_is_not_failing`).
+- **Approach:** In a workflow script that reads GitHub's API, ask a read again (three tries, waiting 2 s then 4 s)
+  when the answer is empty, not JSON or a 5xx, print a `::warning::` for each retry so the rate shows in the runs, and
+  fail with the last error once the tries are spent; a 404 or a refused token is an answer and is not retried.
+  **Watch out for:** `gh api` exits non-zero with `unexpected end of JSON input` when GitHub sends an empty body, and
+  `pr_status.py` turned the first one into a red `labels` job that the landing script read as a failed pull request;
+  a rerun passed. The job runs the default branch's script, so the fix reaches open pull requests once it merges.
+  **Seen:** gdstudio #1381 and #1387, 2026-11-13 (fix: `Client._read` in `pr_status.py`, gdstudio #1407;
+  `test_the_job_passes_when_the_first_answer_is_empty_and_fails_when_every_one_is`).
 
 ## Reruns {#reruns}
 
