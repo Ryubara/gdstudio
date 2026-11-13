@@ -66,7 +66,9 @@ The other players are drawn by `RemotePlayers` (`remote_players.gd`): one puppet
 the two TICKs around that moment, so they walk, run, crouch, aim, jump and land with the same clips as the local body.
 A vault or a mantle is planned again on this screen when a puppet's state turns to one (`PuppetVault`, also used by
 the AI's puppets), so its clip plays as on the body that steps it with nothing more sent, and its planted hand rests
-on the obstacle's top on every screen (`tests/gameplay/test_net_puppet_vault.gd`). Nothing that only looks
+on the obstacle's top on every screen (`tests/gameplay/test_net_puppet_vault.gd`). A puppet's starts and stops are
+picked from where its TICKs head and the entry's `halt` flag (the player asked for no move), so it plays the stop the
+stepping body plays instead of sliding in one (`tests/gameplay/test_net_puppet_gait.gd`). Nothing that only looks
 (a footstep, a hand pose, a muzzle flash) crosses the network.
 
 The AI characters run on the server only. When the client joins, its own map's AI (the director and every AI
