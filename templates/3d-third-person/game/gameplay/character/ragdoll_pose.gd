@@ -11,6 +11,12 @@ extends RefCounted
 ## It reads the skeleton, not the physical bones, so it works before they exist (they are made on
 ## the first death), and it keeps the two ticks in arrays it made once, by bone index: a tick
 ## costs one read of each bone and no allocation.
+##
+## Only two reads on consecutive physics ticks make a velocity, and only while the last one is from
+## this tick or the one before: a sampler paused for a while (the animation throttle turns
+## `pose_velocity` off while it holds the tree) kept its last read, and the first read after the
+## hand-back paired with it as one tick, so a death on the next tick left at the speed of seconds
+## of motion: 27 m/s on a bone of a 4 m/s run (gdstudio #1388).
 
 var _skeleton: Skeleton3D
 var _names: Array[StringName] = []
@@ -19,6 +25,8 @@ var _indices := PackedInt32Array()
 var _now: Array[Transform3D] = []
 var _before: Array[Transform3D] = []
 var _samples := 0
+# The physics tick (`Engine.get_physics_frames()`) of the last read.
+var _tick := -1
 var _basis := Basis.IDENTITY
 
 
@@ -32,11 +40,15 @@ func _init(bodies: Array = []) -> void:
 
 
 ## Reads the pose `skeleton` has now; the one read before becomes the tick before. A new skeleton
-## (the model was swapped) starts the count again. Returns false, reading nothing, when the
-## skeleton lacks one of the bones.
+## (the model was swapped), or a tick missed since the last read, starts the count again. Returns
+## false, reading nothing, when the skeleton lacks one of the bones.
 func sample(skeleton: Skeleton3D) -> bool:
 	if skeleton != _skeleton and not _bind(skeleton):
 		return false
+	var tick := Engine.get_physics_frames()
+	if tick != _tick + 1:
+		_samples = 0
+	_tick = tick
 	var swap := _before
 	_before = _now
 	_now = swap
@@ -47,9 +59,10 @@ func sample(skeleton: Skeleton3D) -> bool:
 	return true
 
 
-## True once two ticks were read from the same skeleton.
+## True once two consecutive ticks were read from the same skeleton, the last of them this tick or
+## the one before.
 func is_ready() -> bool:
-	return _samples >= 2
+	return _samples >= 2 and Engine.get_physics_frames() - _tick <= 1
 
 
 ## Forgets what was read (the body went limp, or got up).

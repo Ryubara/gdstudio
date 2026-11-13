@@ -1,14 +1,20 @@
-# How many shots a press of the fire button gives (gdstudio #1335): a mouse button pressed through
-# the engine's own input path (`InputSim`), read by the player's `PlayerInput` as a player's is,
-# and the weapon's `fired` signal counted. For every weapon of the template, one shot a press and
-# automatic: with the aim up, a press of one frame fires exactly one shot; a tap shorter than the
-# weapon's shot interval fires exactly one, from the arm down or with the aim up; a held press
-# fires the weapon's rate for as long as it is held (within one shot), with nothing after the
-# release. A one-frame press from the arm down fires nothing: the arm drops as the button is let
-# go, before it is half up (`test_aim_release.gd`). The fists' press is a blow (gdstudio #1254),
-# counted as a shot: one a press, aimed or not, held or not, automatic or not.
+# How many shots a press of the fire button gives (gdstudio #1335, #1352): a mouse button pressed
+# through the engine's own input path (`InputSim`), read by the player's `PlayerInput` as a
+# player's is, and the weapon's `fired` signal counted. For every weapon of the template in every
+# fire mode (single, burst, automatic): a press of one frame fires exactly one press's worth (one
+# shot, or one burst of `burst_size`), from the arm down or with the aim up; so does a tap shorter
+# than the weapon's shot interval; a held press fires one press's worth on single and burst, and
+# the weapon's rate for as long as it is held (within one shot) on automatic, with nothing after
+# the release. From the arm down the arm keeps coming up after a tap until its shots have left
+# (gdstudio #1352). The fists' press is a blow (gdstudio #1254), counted as a shot: one a press,
+# aimed or not, held or not, whatever the fire mode.
 extends GdUnitTestSuite
 
+const MODES: Array[WeaponDef.FireMode] = [
+	WeaponDef.FireMode.SINGLE,
+	WeaponDef.FireMode.BURST,
+	WeaponDef.FireMode.AUTOMATIC,
+]
 const WEAPONS: Array[String] = [
 	"res://gameplay/weapon/pistol.tres",
 	"res://gameplay/weapon/rifle.tres",
@@ -45,41 +51,45 @@ func after_test() -> void:
 	AudioDrain.stop_all(_arena)
 
 
-func test_a_one_frame_press_from_the_arm_down_fires_nothing() -> void:
-	for automatic: bool in [false, true]:
+func test_a_one_frame_press_from_the_arm_down_fires_one_press() -> void:
+	for mode in MODES:
 		for path in WEAPONS:
-			await _arm(path, automatic)
+			var definition := await _arm(path, mode)
 			await _tap(1)
-			_expect(1 if _is_blow(path) else 0, path, automatic, "one frame, arm down")
+			_expect(_press_shots(definition), definition, "one frame, arm down")
 
 
-func test_a_one_frame_press_fires_one_shot_with_the_aim_up() -> void:
-	for automatic: bool in [false, true]:
+func test_a_one_frame_press_fires_one_press_with_the_aim_up() -> void:
+	for mode in MODES:
 		for path in WEAPONS:
-			await _arm(path, automatic)
+			var definition := await _arm(path, mode)
 			await _aim_up()
 			await _tap(1)
-			_expect(1, path, automatic, "one frame, aim up")
+			_expect(_press_shots(definition), definition, "one frame, aim up")
 			InputSim.mouse_button(MOUSE_BUTTON_RIGHT, false)
 
 
-func test_a_tap_shorter_than_the_shot_interval_fires_one_shot() -> void:
-	for automatic: bool in [false, true]:
+func test_a_tap_shorter_than_the_shot_interval_fires_one_press() -> void:
+	for mode in MODES:
 		for path in WEAPONS:
 			for aim_up: bool in [false, true]:
-				var definition := await _arm(path, automatic)
+				var definition := await _arm(path, mode)
 				var tap := _interval_ticks(definition) - 1
 				if aim_up:
 					await _aim_up()
 				await _tap(tap)
-				_expect(1, path, automatic, "tap of %d ticks, aim up %s" % [tap, aim_up])
+				_expect(
+					_press_shots(definition),
+					definition,
+					"tap of %d ticks, aim up %s" % [tap, aim_up]
+				)
 				InputSim.mouse_button(MOUSE_BUTTON_RIGHT, false)
 
 
 func test_a_held_press_fires_the_rate_while_held_and_nothing_after() -> void:
-	for automatic: bool in [false, true]:
+	for mode in MODES:
 		for path in WEAPONS:
-			var definition := await _arm(path, automatic)
+			var definition := await _arm(path, mode)
 			await _aim_up()
 			var ticks := roundi(HOLD_SECONDS * Engine.physics_ticks_per_second)
 			InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
@@ -87,8 +97,8 @@ func test_a_held_press_fires_the_rate_while_held_and_nothing_after() -> void:
 			var held := _shots
 			InputSim.mouse_button(MOUSE_BUTTON_LEFT, false)
 			await InputSim.ticks(get_tree(), SETTLE_TICKS)
-			var label := "%s automatic %s" % [path.get_file(), automatic]
-			if automatic and not _is_blow(path):
+			var label := _label(definition)
+			if mode == WeaponDef.FireMode.AUTOMATIC and not _is_blow(path):
 				var expected := HOLD_SECONDS * definition.fire_rate
 				(
 					assert_float(float(held))
@@ -98,7 +108,7 @@ func test_a_held_press_fires_the_rate_while_held_and_nothing_after() -> void:
 					. is_between(expected - 1.0, expected + 1.0)
 				)
 			else:
-				_expect(1, path, automatic, "held")
+				_expect(_press_shots(definition), definition, "held")
 			(
 				assert_int(_shots)
 				. override_failure_message(
@@ -109,13 +119,13 @@ func test_a_held_press_fires_the_rate_while_held_and_nothing_after() -> void:
 			InputSim.mouse_button(MOUSE_BUTTON_RIGHT, false)
 
 
-# Gives the player a copy of the weapon at `path`, automatic or not, with rounds enough for the
+# Gives the player a copy of the weapon at `path` in fire mode `mode`, with rounds enough for the
 # test, and waits until it is ready; the shot count starts again.
-func _arm(path: String, automatic: bool) -> WeaponDef:
+func _arm(path: String, mode: WeaponDef.FireMode) -> WeaponDef:
 	InputSim.release_all()
 	await InputSim.ticks(get_tree(), SETTLE_TICKS)
 	var definition := (load(path) as WeaponDef).duplicate() as WeaponDef
-	definition.automatic = automatic
+	definition.fire_mode = mode
 	definition.auto_reload = false
 	if definition.uses_ammo():
 		definition.magazine_size = 200
@@ -149,11 +159,18 @@ func _interval_ticks(definition: WeaponDef) -> int:
 	return floori(definition.shot_interval() * Engine.physics_ticks_per_second)
 
 
-func _expect(count: int, path: String, automatic: bool, what: String) -> void:
+# What one press fires: a blow for a melee weapon, else one shot or one burst.
+func _press_shots(definition: WeaponDef) -> int:
+	return 1 if definition.kind == WeaponDef.Kind.MELEE else definition.shots_a_press()
+
+
+func _label(definition: WeaponDef) -> String:
+	return "%s %s" % [definition.display_name, WeaponDef.FireMode.keys()[definition.fire_mode]]
+
+
+func _expect(count: int, definition: WeaponDef, what: String) -> void:
 	(
 		assert_int(_shots)
-		. override_failure_message(
-			"%s automatic %s, %s: %d shots" % [path.get_file(), automatic, what, _shots]
-		)
+		. override_failure_message("%s, %s: %d shots" % [_label(definition), what, _shots])
 		. is_equal(count)
 	)

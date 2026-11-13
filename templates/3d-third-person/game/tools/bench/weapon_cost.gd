@@ -1,7 +1,8 @@
 extends Node
 ## What the weapon system costs on the CPU: a shot of each kind (a pooled projectile, a hitscan
-## ray, a blow), the first shots that fill the pool, the tick of a weapon and its loadout, and how
-## many objects a thousand shots leave behind. A wall 20 m out takes the projectiles back to the
+## ray, a blow), the first shots that fill the pool, the tick of a weapon and its loadout, a burst
+## weapon pulled on every tick as a character pulls it (gdstudio #1352), and how many objects a
+## thousand shots leave behind. A wall 20 m out takes the projectiles back to the
 ## pool. Timed with `Time.get_ticks_usec()` around the calls only (never the physics server's
 ## step).
 ##
@@ -84,6 +85,24 @@ func _run() -> void:
 		weapon.pull(Vector3(0.0, 1.0, 3.0), Vector3.FORWARD)
 		spent += Time.get_ticks_usec() - started
 	result["hitscan_shot_us"] = spent / float(SHOTS)
+	# A burst of three hitscan shots, silent, started every half second and pulled on every tick
+	# while it is under way, as `Character._use_weapon` does: the tick and the pulls together.
+	var burst := pistol.duplicate() as WeaponDef
+	burst.fire_mode = WeaponDef.FireMode.BURST
+	burst.shot_sound = null
+	weapon.definition = burst
+	weapon.make_ready()
+	var bursts := 0
+	started = Time.get_ticks_usec()
+	for tick in TICKS:
+		weapon.tick(1.0 / 60.0)
+		if tick % 30 == 0:
+			weapon.make_ready()
+			bursts += 1
+		if tick % 30 == 0 or weapon.bursting:
+			weapon.pull(Vector3(0.0, 1.0, 3.0), Vector3.FORWARD)
+	result["burst_tick_us"] = (Time.get_ticks_usec() - started) / float(TICKS)
+	result["burst_us"] = (Time.get_ticks_usec() - started) / float(bursts)
 	weapon.definition = load(FISTS) as WeaponDef
 	spent = 0
 	for _shot in SHOTS:

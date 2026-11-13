@@ -22,12 +22,18 @@ const FPS := 30.0
 
 static var _records: Dictionary = {}
 static var _loaded: Dictionary = {}
+## The clips already looked for: a frame asks again without working out the library's name.
+static var _looked: Dictionary = {}
+## `contacts()` worked out once per clip and foot (`{clip: {foot: shares}}`), asked every frame.
+static var _contacts: Dictionary = {}
 static var _hips := REFERENCE_HIPS
 
 
 ## The record of `clip` (`gds/Walk`), or an empty dictionary when there is none.
 static func record(clip: StringName) -> Dictionary:
-	_load(clip)
+	if not _looked.has(clip):
+		_load(clip)
+		_looked[clip] = true
 	return _records.get(clip, {})
 
 
@@ -50,14 +56,22 @@ static func seconds(clip: StringName) -> float:
 
 ## The share of `clip`'s cycle (0 to 1) at which `foot` (`"l"` or `"r"`) is down in every
 ## contact, as `[from, to]` pairs; empty without a record.
+## Read-only: the list is worked out once and shared.
 static func contacts(clip: StringName, foot: String) -> Array:
+	var cache: Dictionary = _contacts.get(clip, {})
+	if cache.has(foot):
+		return cache[foot]
 	var found := record(clip)
 	var frames: float = found.get("frames", 0.0)
 	var shares: Array = []
-	if frames <= 0.0:
-		return shares
-	for contact: Array in found.get("contacts", {}).get(foot, []):
-		shares.append([contact[0] / frames, contact[1] / frames])
+	if frames > 0.0:
+		for contact: Array in found.get("contacts", {}).get(foot, []):
+			var share := [contact[0] / frames, contact[1] / frames]
+			share.make_read_only()
+			shares.append(share)
+	shares.make_read_only()
+	cache[foot] = shares
+	_contacts[clip] = cache
 	return shares
 
 
@@ -138,11 +152,13 @@ static func leg_scale(skeleton: Skeleton3D, owner: Node3D) -> float:
 ## Gives `clip` a record of its own (a game's clip, a test's), in the form of `clips.json`.
 static func register(clip: StringName, data: Dictionary) -> void:
 	_records[clip] = data
+	_contacts.erase(clip)
 
 
 ## Takes away a record `register()` gave.
 static func forget(clip: StringName) -> void:
 	_records.erase(clip)
+	_contacts.erase(clip)
 
 
 static func _load(clip: StringName) -> void:

@@ -373,7 +373,8 @@ take it with `git checkout <rev> -- <file>` into a scratch checkout, never `git 
   "before" frames covered the desktop window only, and once the code had changed the phone and web ones could not be
   taken, while `git stash` is refused by the hooks; old weapon files checked out for a capture were read by a suite that
   started during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: a detached baseline worktree under scratch,
-  the same capture scripts with `--label=before`).
+  the same capture scripts with `--label=before`); gdstudio #1346, 2026-11-12 (main's hold files swapped into a kept
+  game for the `Before:` tour, which broke its clips' import twice before it filmed).
 
 ## Tests {#tests}
 

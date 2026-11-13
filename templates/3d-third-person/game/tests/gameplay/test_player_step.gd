@@ -229,11 +229,16 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 	# frame of 6 bytes, with the fire button held the whole time. The budget is 2 KB/s up.
 	var frame := 6
 	var rates: Dictionary[String, float] = {}
-	for automatic: bool in [false, true]:
-		var human := _arena.add_player(Vector3(0.0, 0.0, 6.0 if automatic else 3.0))
+	var names := {
+		WeaponDef.FireMode.SINGLE: "one shot a press",
+		WeaponDef.FireMode.BURST: "burst",
+		WeaponDef.FireMode.AUTOMATIC: "automatic",
+	}
+	for mode: WeaponDef.FireMode in names:
+		var human := _arena.add_player(Vector3(0.0, 0.0, 3.0 + 3.0 * mode))
 		# Its own copy: the pistol's definition is shared by every weapon that holds it.
 		human.weapon.definition = human.weapon.definition.duplicate()
-		human.weapon.definition.automatic = automatic
+		human.weapon.definition.fire_mode = mode
 		var camera := Camera3D.new()
 		camera.position = Vector3(0.0, 1.3, 9.0)
 		_arena.add_child(camera)
@@ -250,12 +255,14 @@ func test_holding_fire_stays_inside_the_up_budget() -> void:
 		camera.queue_free()
 		await InputSim.ticks(get_tree(), 2)
 		var rate := float(bytes) / seconds + NetLimits.PING_RATE * (NetWire.PING_SIZE + frame)
-		rates["automatic" if automatic else "one shot a press"] = rate
+		rates[names[mode]] = rate
 		assert_float(rate).is_less(2000.0)
 	print("up bytes a second with fire held: ", rates)
 	# No shot block at all is 60 * (15 + 6) + 2 * 13 = 1286: the block rides on a few ticks a
 	# shot, not on every tick the button is held (which would be 2006).
 	assert_float(rates["one shot a press"]).is_less(1320.0)
+	# A burst's later shots each carry the block on the tick they leave (gdstudio #1352).
+	assert_float(rates["burst"]).is_less(1320.0)
 	assert_float(rates["automatic"]).is_less(1400.0)
 
 
