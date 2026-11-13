@@ -29,8 +29,6 @@ const TICKS := 300
 const SPACING := 1.6
 ## Ticks between two timings of the ruler in the measured window.
 const CALIBRATE_TICKS := 50
-## Rounds of the ruler loop (about 10 ms on the desktop the limits were set on).
-const RULER_ROUNDS := 60000
 ## The director's step a character a tick (median), microseconds a ruler millisecond (median),
 ## at most, by crowd size.
 const STEP_RATIO_LIMITS: Dictionary[int, float] = {50: 8.0, 100: 7.5, 200: 6.5}
@@ -44,11 +42,14 @@ const HISTORY_RATIO_LIMITS: Dictionary[int, float] = {50: 0.055, 100: 0.06, 200:
 const WALKING_SHARE_MIN := 0.2
 
 var _arena: BehaviourArena
+var _rulers: CostRulers
 
 
 func before_test() -> void:
 	_arena = auto_free(BehaviourArena.new())
 	add_child(_arena)
+	_rulers = CostRulers.new()
+	_arena.add_child(_rulers)
 	_arena.build()
 	await _arena.settle()
 
@@ -108,7 +109,8 @@ func _measure(count: int) -> Dictionary:
 	for _i in WARM_TICKS:
 		await get_tree().physics_frame
 	var sin_loop := AiSoakWatch.calibrate()
-	var calibrations := PackedFloat64Array([_ruler_ms()])
+	var calibrations := PackedFloat64Array([CostRulers.script_ms()])
+	var physics_rulers := PackedFloat64Array([_rulers.physics_ms()])
 	var thinks := PackedInt32Array()
 	var queries := PackedInt32Array()
 	var rays := PackedInt32Array()
@@ -148,7 +150,8 @@ func _measure(count: int) -> Dictionary:
 				if (character.senses as AiSenses).last_rays > character.profile.max_rays_per_think:
 					rays_over += 1
 		if (tick + 1) % CALIBRATE_TICKS == 0:
-			calibrations.append(_ruler_ms())
+			calibrations.append(CostRulers.script_ms())
+			physics_rulers.append(_rulers.physics_ms())
 	var seconds := float(TICKS) / Engine.physics_ticks_per_second
 	var storms := 0
 	var fast_thinkers := 0
@@ -171,10 +174,18 @@ func _measure(count: int) -> Dictionary:
 	var step_each := _median(steps)
 	var think_each := _median(think_times)
 	var history_each := _median(histories)
+	var physics_ruler := maxf(_median(physics_rulers), 0.001)
+	var step_low := _quantile(steps, 0.1)
 	return {
 		"count": count,
 		"ruler_ms": snappedf(calibration, 0.01),
 		"sin_loop_ms": snappedf(sin_loop, 0.01),
+		"physics_ruler_ms": snappedf(physics_ruler, 0.01),
+		"step_p10_us_each": snappedf(step_low, 0.01),
+		"step_p25_us_each": snappedf(_quantile(steps, 0.25), 0.01),
+		"think_p25_us": snappedf(_quantile(think_times, 0.25), 0.1),
+		"step_physics_ratio": snappedf(step_each / physics_ruler, 0.001),
+		"think_physics_ratio": snappedf(think_each / physics_ruler, 0.001),
 		"step_us_each": snappedf(step_each, 0.01),
 		"think_us": snappedf(think_each, 0.1),
 		"history_us_each": snappedf(history_each, 0.001),
@@ -203,25 +214,17 @@ func _clear_crowd() -> void:
 	AiSensePool.forget()
 
 
-# Milliseconds the ruler takes now: GDScript work of the AI's kind, no C library maths.
-static func _ruler_ms() -> float:
-	var start := Time.get_ticks_usec()
-	var points: Array[Vector3] = []
-	var seen := {}
-	var total := 0.0
-	for index in RULER_ROUNDS:
-		var point := Vector3(index % 17, index % 5, index % 11) * 0.5
-		points.append(point)
-		total += point.length_squared() + point.dot(Vector3.UP)
-		seen[index % 97] = total
-		if points.size() > 64:
-			points.clear()
-	return (Time.get_ticks_usec() - start + int(total * 0.0) + seen.size() * 0) / 1000.0
-
-
 static func _median(values: PackedFloat64Array) -> float:
 	if values.is_empty():
 		return 0.0
 	var sorted := values.duplicate()
 	sorted.sort()
 	return sorted[sorted.size() / 2]
+
+
+static func _quantile(values: PackedFloat64Array, share: float) -> float:
+	if values.is_empty():
+		return 0.0
+	var sorted := values.duplicate()
+	sorted.sort()
+	return sorted[mini(int(sorted.size() * share), sorted.size() - 1)]

@@ -1,0 +1,96 @@
+# 3D Third Person's AI cost gate (game/tests/gameplay/test_ai_cost_gate.gd) run many times on unchanged code, to show
+# it holds on GitHub's shared runners: a game made from the template, then the gate's suite run ten times in each of
+# five shards (fifty runs), each run's rows (`AI_COST_GATE`) and the runner's processor written to the summary and to
+# one JSON line a row in the artifact. The template job of ci.yml runs the gate once on every pull request; a gate on
+# time that reads the runner as much as the code fails there now and then, which this soak counts. Kit docs:
+# docs/engines/godot/third-person/ai-characters.md#cost-gate. It runs by hand and on a pull request that changes the
+# gate, its rulers or this file. Not a required check.
+name: ai-cost-gate
+
+on:
+  push:
+    branches: [godot-fix-the-ai-cost-gate-failing-on-slow-ci]
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Runs of the gate in each of the five shards
+        default: "10"
+  pull_request:
+    paths:
+      - templates/3d-third-person/game/tests/gameplay/test_ai_cost_gate.gd
+      - templates/3d-third-person/game/tests/fixtures/cost_rulers.gd
+      - .github/workflows/ai-cost-gate.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: repos/gdstudio
+          persist-credentials: false
+          lfs: true
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: cache/downloads
+          key: tools-cost-gate-${{ runner.os }}-${{ hashFiles('repos/gdstudio/tools.toml') }}
+      - name: Make the workspace and fetch the pinned Godot and GdUnit4
+        run: uv run --project repos/gdstudio/python --frozen gds workspace init --workspace . --no-clone --no-mcp --fetch godot,gdunit4
+      - name: Make a game from the template
+        env:
+          GIT_AUTHOR_NAME: template-check
+          GIT_AUTHOR_EMAIL: template-check@example.invalid
+          GIT_COMMITTER_NAME: template-check
+          GIT_COMMITTER_EMAIL: template-check@example.invalid
+        run: uv run --project repos/gdstudio/python --frozen gds new game template-check --template 3d-third-person --local --workspace .
+      - name: Import the project
+        run: |
+          set -o pipefail
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          "$godot" --headless --path repos/template-check/game --import 2>&1 | tee import.log
+          ! grep -E "^(SCRIPT )?ERROR" import.log
+      - name: The gate, run after run
+        env:
+          SHARD: ${{ matrix.shard }}
+          RUNS: ${{ inputs.runs || '10' }}
+        run: |
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          cpu=$(lscpu | sed -n 's/^Model name: *//p' | head -1)
+          echo "Shard $SHARD on $cpu ($(nproc) processors)" >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p gate
+          failed=0
+          for index in $(seq 1 "$RUNS"); do
+            if ! "$godot" --headless --path repos/template-check/game -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd \
+              -a res://tests/gameplay/test_ai_cost_gate.gd -c --ignoreHeadlessMode --fixed-fps 60 \
+              > "gate/run_$index.log" 2>&1; then
+              failed=$((failed + 1))
+              echo "Run $index failed:" | tee -a "$GITHUB_STEP_SUMMARY"
+              grep -iE "over budget|over the rate|overspent|did not walk|FAILED" "gate/run_$index.log" | head -8 \
+                | tee -a "$GITHUB_STEP_SUMMARY" || tail -20 "gate/run_$index.log"
+            fi
+            grep -A3 "^AI_COST_GATE" "gate/run_$index.log" | grep "^{" \
+              | jq -c --arg cpu "$cpu" --arg run "$SHARD.$index" '. + {cpu: $cpu, run: $run}' >> "gate/rows_$SHARD.jsonl"
+          done
+          echo "Shard $SHARD: $failed of $RUNS runs failed" >> "$GITHUB_STEP_SUMMARY"
+          exit $((failed > 0))
+      - name: Upload the rows
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ai-cost-gate-${{ matrix.shard }}
+          path: gate/rows_*.jsonl
+          if-no-files-found: ignore
+          retention-days: 7
