@@ -171,7 +171,8 @@ every exit, kept with `--keep`, two calls at once).
   template's own folder cannot be opened to make one, so agents copied uids back from a kept game or wrote them by
   hand, and hand-made ones held text Godot never writes. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR
   #1092), 2026-11-11; gdstudio #1148, 2026-11-11 (a suite written after the scripts); kit #1129, 2026-11-11 (the
-  command).
+  command); gdstudio #1359, 2026-11-13 (a suite run in a kept game, which made its uid, had none in
+  the worktree).
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game` (the
   `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree (the kit is the
   `--project` checkout, not your folder). Send a run's log to a new name in your own scratch folder or from `mktemp`,
