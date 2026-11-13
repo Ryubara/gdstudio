@@ -181,7 +181,7 @@ func _drive(moves: Array) -> Dictionary:
 	animation.set_throttled(true)
 	var played := {}
 	var step := CommandDriver.tick_seconds()
-	var before := {}
+	var last_places := {}
 	var jump := 0.0
 	var where := ""
 	for move: Array in moves:
@@ -196,12 +196,12 @@ func _drive(moves: Array) -> Dictionary:
 			# Bones in the skeleton's space, so the body's own turn and travel are not counted.
 			for bone in skeleton.get_bone_count():
 				var place := skeleton.get_bone_global_pose(bone).origin
-				if before.has(bone):
-					var moved := place.distance_to(before[bone])
+				if last_places.has(bone):
+					var moved := place.distance_to(last_places[bone])
 					if moved > jump:
 						jump = moved
 						where = "%s at %s" % [skeleton.get_bone_name(bone), str(played.keys())]
-				before[bone] = place
+				last_places[bone] = place
 	return {"played": played.keys(), "jump": jump, "where": where}
 
 
