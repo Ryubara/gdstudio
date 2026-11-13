@@ -74,6 +74,10 @@ SPEED_CHANGE = 30.0
 ## second of clip (the budget's imported size is measured in Godot; this stops a clip that could never meet it).
 KEYS_KEPT = 0.40
 KB_A_SECOND = 16.0
+## Arms: the joints of an arm read by `check_arms`, each with its other side's; a clip that declares `arm_bounds`
+## (the jump's, read off the shipped gait) holds each one's fastest turn and its sharpest change of acceleration
+## under that bound (degrees a second, degrees a second cubed).
+ARM_PARTS = ("clavicle", "upperarm", "lowerarm", "hand")
 MAIN = audit_clips.MAIN
 
 
@@ -620,6 +624,53 @@ def check_limits(built, played: dict) -> tuple:
     return {"limits": numbers}, failures
 
 
+def arm_numbers(rotation: np.ndarray, rig: Rig, loop: bool) -> dict:
+    """Each arm joint's fastest turn (degrees a second) and sharpest change of acceleration (degrees a second
+    cubed) over a clip's local rotations, `[frame, bone, 4]`, the two sides' larger: `{part: [speed, jerk]}`. A
+    loop is read round its seam; a clip that plays once from its first frame to its last."""
+    out = {}
+    for part in ARM_PARTS:
+        worst = [0.0, 0.0]
+        for s, _ in SIDES:
+            q = rotation[:, rig.index[f"{part}_{s}"]]
+            m = maths.matrix_of(q[:-1] if loop else q)
+            ahead = np.roll(m, -1, axis=0) if loop else m[1:]
+            here = m if loop else m[:-1]
+            speed = np.array([maths.rotation_vector(b @ a.T) for a, b in zip(here, ahead, strict=True)])
+            speed = np.degrees(speed) * FPS
+            if loop:
+                accel = (np.roll(speed, -1, axis=0) - speed) * FPS
+                jerk = (np.roll(accel, -1, axis=0) - accel) * FPS
+            else:
+                jerk = np.diff(speed, n=2, axis=0) * FPS * FPS
+            worst[0] = max(worst[0], float(np.linalg.norm(speed, axis=1).max()))
+            if len(jerk):
+                worst[1] = max(worst[1], float(np.linalg.norm(jerk, axis=1).max()))
+        out[part] = [round(worst[0], 1), round(worst[1], 0)]
+    return out
+
+
+def check_arms(built, played: dict) -> tuple:
+    """An arm that floats: no arm joint of a clip that declares `arm_bounds` turns faster, or changes its
+    acceleration more sharply, than the bound (`{part: [speed, jerk]}`), on the curve the file plays."""
+    bounds = built.clip.declared.get("arm_bounds")
+    if not bounds:
+        return {}, []
+    body = next(iter(played.values()))
+    numbers = arm_numbers(body.rotation, body.rig, built.clip.loop)
+    failures = []
+    for part, (speed, jerk) in numbers.items():
+        most_speed, most_jerk = bounds[part]
+        if speed > most_speed:
+            failures.append(f"arms: {part} turns {speed:.0f} degrees a second, over the {most_speed:.0f} of the bound")
+        if jerk > most_jerk:
+            failures.append(
+                f"arms: {part}'s acceleration changes {jerk:.0f} degrees a second cubed, over the {most_jerk:.0f} "
+                "of the bound"
+            )
+    return {"arms": numbers}, failures
+
+
 def cost_numbers(built) -> dict:
     """Bones moved, the share of their keys a half-degree reducer keeps, and the clip's key bytes a second."""
     reference = built.record["_rig"]
@@ -697,6 +748,7 @@ CHECKS = [
     check_travel,
     check_targets,
     check_limits,
+    check_arms,
     check_cost,
     check_reduction,
 ]

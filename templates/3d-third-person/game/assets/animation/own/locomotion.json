@@ -1040,7 +1040,7 @@
     "l": [],
     "r": []
    },
-   "frames": 6,
+   "frames": 12,
    "join_frames": {
     "first": 0,
     "last": 0
@@ -1056,9 +1056,9 @@
     "jump_height": 1.25,
     "jump_rise_time": 0.4
    },
-   "reduced_to_deg": 0.1,
+   "reduced_to_deg": 0.025,
    "replaces": "ual1/Jump_Start",
-   "seconds": 0.2,
+   "seconds": 0.4,
    "speed": 0.0,
    "start_foot": "none",
    "style": "A",
@@ -1069,7 +1069,7 @@
      0.0
     ],
     [
-     6,
+     12,
      0.0,
      0.0
     ]
@@ -1080,7 +1080,7 @@
      0.0
     ],
     [
-     6,
+     12,
      0.0
     ]
    ]
@@ -1155,7 +1155,7 @@
     "l": [],
     "r": []
    },
-   "frames": 6,
+   "frames": 12,
    "join_frames": {
     "first": 0,
     "last": 0
@@ -1171,9 +1171,9 @@
     "jump_height": 1.25,
     "jump_rise_time": 0.4
    },
-   "reduced_to_deg": 0.1,
+   "reduced_to_deg": 0.05,
    "replaces": "",
-   "seconds": 0.2,
+   "seconds": 0.4,
    "speed": 4.0,
    "start_foot": "none",
    "style": "A",
@@ -1184,8 +1184,8 @@
      0.0
     ],
     [
-     6,
-     0.8,
+     12,
+     1.6,
      0.0
     ]
    ],
@@ -1195,7 +1195,7 @@
      0.0
     ],
     [
-     6,
+     12,
      0.0
     ]
    ]
@@ -1270,7 +1270,7 @@
     "l": [],
     "r": []
    },
-   "frames": 6,
+   "frames": 12,
    "join_frames": {
     "first": 10,
     "last": 0
@@ -1288,7 +1288,7 @@
    },
    "reduced_to_deg": 0.05,
    "replaces": "",
-   "seconds": 0.2,
+   "seconds": 0.4,
    "speed": 4.0,
    "start_foot": "none",
    "style": "A",
@@ -1299,8 +1299,8 @@
      0.0
     ],
     [
-     6,
-     0.8,
+     12,
+     1.6,
      0.0
     ]
    ],
@@ -1310,7 +1310,7 @@
      0.0
     ],
     [
-     6,
+     12,
      0.0
     ]
    ]

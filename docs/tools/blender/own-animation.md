@@ -115,6 +115,14 @@ one clip symmetric about its own middle.
   of the table above; with the right side 0.015 to 0.03 of a cycle late they differ by 1.0 to 2.5. **Seen:**
   gdstudio #1155 (PR #1275), 2026-11-11.
 
+- **Approach:** Float a jump's arms: the take-off's over the whole rise, each part of the arm a frame behind its
+  parent, the air's poses within about 10 degrees of each other, a landing's arms following the weight down late;
+  hold every arm joint under the gaits' bound (`checks.check_arms`). **Watch out for:** in a short one-shot clip
+  the overlap springs' lags add up the arm past its end, and joining the next clip crushed the rest of the swing
+  into three frames; air poses 84 degrees apart, swept by the game's 0.15 s blend; quadratic eases; an idle arm's
+  thigh search (`clear`) jolting as the thigh moves. The take-off's upper arm ran 1177 degrees a second, the jog's
+  382. **Seen:** gdstudio #1369, 2026-11-12, the maintainer's review (`clips/jump.py`).
+
 ## The set we will own {#set}
 
 <!-- new section: the issue asks for the grouped list, replacements told from new clips, and what depends on the body -->
@@ -215,6 +223,7 @@ In the build, on every frame and on every shipped body's skinned mesh, before th
 | Joins | a transition's first and last pose are the poses it joins within 1 mm and half a degree, at the phase `clips.json` names, and its speed there is the joined clip's |
 | Travel | a transition's root travel is the distance and the turn `clips.json` declares; a planted foot stays within 5 mm in the world while the root travels |
 | Limits | no joint past a person's range ([the ragdoll's limits](../../engines/godot/ragdoll.md#limits)); no elbow or knee bending backward; no change of a joint's speed over a per-joint limit in one frame |
+| Arms | in a clip that declares `arm_bounds` (the jump's), each arm joint no faster than the same joint of the shipped jog at its fastest, and none changing its acceleration more sharply than the sharpest arm joint of the walk, the jog and the sprint (`check_arms`) |
 | Cost | [the budget](#budget): bones moved, keys kept, imported bytes |
 | The frozen list | the build exports exactly the clips its issue names; a rebuild writes the same bytes |
 
@@ -366,3 +375,9 @@ heights); idles and emotes.
   template's gaits looked acceptable in every capture since it shipped, while the walk's feet covered 56 % of the
   ground and the jog's swept 48 % faster than it; nobody had divided a clip's planted speed by the speed its blend
   point sits at. **Seen:** gdstudio #1150, 2026-11-11 (`audit_clips.py`; the fix is #1158).
+- **Approach:** When a planned issue names a game word with more than one meaning (a lean: the body tilting into its
+  acceleration, or the upper body leaning out past cover to see and shoot), write which one it is in the issue and
+  plan the other one too if the template has neither. **Watch out for:** the locomotion research made #1159's
+  `Lean_*` poses momentum leans for #1158's tree; the lean the maintainer meant was the player's peek around a wall
+  edge (a tactical shooter's lean keys), which no issue planned. **Seen:** gdstudio #1159 / #1374, 2026-11-12, from
+  the maintainer's review (the peek lean filed as its own issue, #1400).

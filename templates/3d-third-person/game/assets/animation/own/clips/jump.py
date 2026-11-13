@@ -25,11 +25,12 @@ what the game's controller does and from how people jump and land (the research 
   the right foot lands a step ahead and later, and each arm has its own height and bend.
 """
 
+import copy
 import math
 
 import numpy as np
 
-from gdsanim import maths, overlap, weight
+from gdsanim import checks, maths, overlap, weight
 from gdsanim.build import Clip
 from gdsanim.maths import FPS, Y, body_turn
 from gdsanim.plan import ContactPlan, Footfall, Travel
@@ -46,12 +47,22 @@ RISE_TIME = 0.4
 FALL_SCALE = 1.35
 LAND_TIME = 0.3
 LAND_CLIP_SPEED = 4.5
+## The frames of the controller's rise: a take-off lasts all of it, so the arms float up while the body flies.
+RISE_FRAMES = round(RISE_TIME * FPS)
 ## The fall speed (m/s) from which the hard landing is the one to play: a fall of 1.9 m under the game's gravity.
 HARD_SPEED = 9.0
 AT = {"l": 0, "r": 1}
 TREAD = True
 FINGER_NAMES = idle_clip.FINGER_NAMES
 PARTS = idle_clip.PARTS
+## The overlap pass's parts in a clip that plays once: the trunk and the head alone. Its arms trail in the
+## description instead (`_arm_shares`): the spring's lag adds up along the arm (six frames at the hand in a style
+## of two a part), so a 12-frame take-off ended with the hand still on its way, and joining the next clip's first
+## pose crushed the rest of the swing into the last three frames (an arm at 500 to 1200 degrees a second).
+TRUNK_PARTS = {bone: part for bone, part in PARTS.items() if part in ("chest", "head")}
+## Which part of the arm each of its numbers turns: 0 the upper arm (and the collarbone), 1 the forearm, 2 the hand
+## (and the fingers). Each part starts and ends its way `arms_lag` frames after the part it hangs from.
+ARM_LATE = {"swing": 0, "out": 0, "twist": 0, "clear": 0, "carry": 0, "bend": 1, "pronate": 1, "wrist": 2}
 ARM_KEYS = ("swing", "out", "twist", "bend", "pronate", "wrist", "clear", "carry")
 ## Degrees of forward swing between which an arm's elbow goes from pointing forward to turning with the swing
 ## (the solver's `raise`): an arm over level needs the second, a hanging one the first.
@@ -104,13 +115,15 @@ RISE = {
     "knee_out": [4.0, 8.0],
     "point": [38.0, 26.0],
     "toe_out": [6.0, 12.0],
-    "arm_swing": [96.0, 40.0],
-    "arm_out": [20.0, 38.0],
+    # The arms of the three poses of the air lie within about 10 degrees of each other: the game blends between
+    # them in 0.15 s, and an arm that swings 80 degrees in that blend snaps (gdstudio #1369's review).
+    "arm_swing": [48.0, 26.0],
+    "arm_out": [26.0, 38.0],
     "arm_twist": [10.0, 0.0],
-    "elbow": [46.0, 74.0],
-    "pronate": [20.0, 30.0],
+    "elbow": [52.0, 58.0],
+    "pronate": [20.0, 24.0],
     "wrist": [5.0, 10.0],
-    "shrug": [8.0, 4.0],
+    "shrug": [4.0, 3.0],
     "reach": [4.0, 2.0],
 }
 APEX = {
@@ -127,12 +140,12 @@ APEX = {
     "knee_out": [6.0, 10.0],
     "point": [18.0, 12.0],
     "toe_out": [8.0, 14.0],
-    "arm_swing": [60.0, 14.0],
-    "arm_out": [38.0, 52.0],
-    "elbow": [44.0, 80.0],
-    "pronate": [25.0, 35.0],
+    "arm_swing": [52.0, 24.0],
+    "arm_out": [32.0, 44.0],
+    "elbow": [54.0, 60.0],
+    "pronate": [24.0, 28.0],
     "wrist": [0.0, 8.0],
-    "shrug": [5.0, 3.0],
+    "shrug": [3.0, 2.5],
 }
 FALL = {
     **{key: value for key, value in POSE.items() if key not in ("thigh", "spread", "knee", "point")},
@@ -143,25 +156,34 @@ FALL = {
     "pelvis": [8.0, 3.0, -2.0],
     "chest": [14.0, -4.0, 2.0],
     "head": [4.0, -2.0, 0.0],
-    "arm_swing": [26.0, 8.0],
-    "arm_out": [52.0, 64.0],
-    "elbow": [38.0, 56.0],
-    "pronate": [30.0, 40.0],
+    "arm_swing": [44.0, 18.0],
+    "arm_out": [36.0, 48.0],
+    "elbow": [56.0, 60.0],
+    "pronate": [26.0, 32.0],
     "wrist": [-5.0, 5.0],
-    "shrug": [6.0, 4.0],
+    "shrug": [1.0, 1.5],
 }
-## `jump_start`: the standing take-off. A window is the shares of the clip a part starts and stops moving at.
+## `jump_start`: the standing take-off. It lasts the controller's whole rise (`RISE_FRAMES`): the legs and the trunk
+## push in its first `frames` and then drift with the rise's pose, while the arms float up over all of it. A
+## window is the shares of the push a part starts and stops moving at.
 START = {
-    "frames": 6,  # the clip's length: the part of the game's rise (12 frames) the take-off has to itself
+    "frames": 6,  # the push: the frames the legs and the trunk take from the idle to the rise's pose
     # The stretch the take-off passes through, as a pose of the air: what `PUSH` gives, with a style's own over it.
+    # It sets no arm: the arms swing once, from the idle to the rise's pose, and do not stop at the stretch.
     "push": {},
     "legs_out": [0.0, 0.42],  # the legs' way to the stretch
     "legs_in": [0.5, 1.0],  # and from it to the rise's pose
     "trunk_out": [0.0, 0.5],  # the pelvis, the chest and the head
     "trunk_in": [0.5, 1.0],
-    "arms_out": [0.0, 0.62],  # the arms swing up later than the legs stretch
-    "arms_in": [0.55, 1.0],
-    "meet": 3,  # frames over which the joined clips' overlap is let go at each end
+    # The frames the arms start and finish their swing up at: a frame behind the legs, which they hang from, and
+    # on to the top of the rise, eased in and out with no jump in their acceleration (`maths.smoother`). The
+    # window is the upper arm's: the forearm follows it `arms_lag` frames later and the hand as much again.
+    "arms": [0.25, 10.75],
+    "arms_lag": 0.6,  # frames each part of the arm starts and ends after the part it hangs from
+    # Frames over which the joined clips' overlap is let go at each end. The idle's arms keep clear of the
+    # thighs (`clear`), the take-off's leave that to their own numbers: the few degrees between are let go over
+    # six frames, not three.
+    "meet": 6,
     "speed_limit": 60.0,  # the largest change of a joint's speed in one frame (degrees a frame)
 }
 PUSH = {
@@ -175,22 +197,21 @@ PUSH = {
     "point": [50.0, 44.0],
     "toe_out": [7.0, 10.0],
     "toes": [-6.0, -4.0],
-    "arm_swing": [46.0, 30.0],
-    "arm_out": [12.0, 16.0],
-    "elbow": [44.0, 60.0],
-    "pronate": [16.0, 22.0],
-    "shrug": [6.0, 3.0],
 }
 ## `jump_start_run`: the two running take-offs, from the jog's left foot strike and from its right.
 START_RUN = {
-    "frames": 6,
-    "legs": [0.0, 1.0],  # the legs' way from the stride to the rise's pose
+    "frames": 6,  # the push, as the standing take-off's; the clip lasts the whole rise
+    "legs": [0.0, 1.0],  # the legs' way from the stride to the rise's pose, as shares of the push
     "trunk": [0.0, 0.8],
-    "arms": [0.0, 1.0],
+    # The frames the arms float up between: from the first, since the jog's arms are already on their way.
+    "arms": [0.0, 11.0],
+    "arms_lag": 0.5,
     "drive": [0.05, 0.03],  # metres the leading knee's foot is drawn up more in the middle (struck left, right)
     "trail": [0.06, 0.03],  # metres the pushing foot goes down and back more in the middle
-    "pump": [14.0, 10.0],  # degrees the arm opposite the leading knee swings up more in the middle
-    "meet": 3,
+    "pump": [4.0, 3.0],  # degrees the arm opposite the leading knee swings up more in the middle of its way
+    # The jog's arms carry its overlap pass and ours do not: the difference at the first frame is let go over
+    # all of the clip, or it is crushed into three frames (an arm at 480 degrees a second); at the last, over six.
+    "meet": [12, 6],
     "speed_limit": 70.0,
 }
 ## `land_soft` and `land_hard`. Frames are whole; a pair is `[left, right]`.
@@ -218,10 +239,12 @@ LAND = {
     "pelvis": [16.0, 8.0, -6.0],
     "chest": [30.0, -7.0, 5.0],
     "head": [10.0, -3.0, 0.0],
-    "arm_swing": [-18.0, 6.0],
-    "arm_out": [26.0, 34.0],
+    # The arms come down from the fall's pose by no more than about 30 degrees and reach theirs late: the weight
+    # is caught by the legs, and the arms follow it down after it, eased, and float back up.
+    "arm_swing": [20.0, 10.0],
+    "arm_out": [28.0, 36.0],
     "arm_twist": [0.0, 0.0],
-    "elbow": [34.0, 52.0],
+    "elbow": [36.0, 52.0],
     "pronate": [26.0, 34.0],
     "wrist": [4.0, 8.0],
     "shrug": [3.0, 2.0],
@@ -230,11 +253,13 @@ LAND = {
     "thumb_out": [38.0, 38.0],
     "trunk_down": [0.0, 1.0],  # the trunk's fold, as shares of the way to the bottom (it may go on past it)
     "trunk_late": 1.0,  # frames the trunk reaches its fold after the weight is lowest
-    "arms_late": 2.0,  # frames the arms reach theirs after it
+    "arms_from": 1.0,  # the frame the arms start down at: they keep the fall's pose a moment after the foot lands
+    "arms_late": 6.0,  # frames the arms reach theirs after the weight is lowest (smoothly, `maths.smoother`)
     "trunk_up": [0.1, 0.9],  # the trunk's way back, as shares of the frames from the bottom to the end
     "head_up": [0.0, 0.6],
-    "arms_up": [0.25, 1.0],
-    "meet": 4,
+    "arms_up": [0.4, 1.0],  # the arms' way back up, as the trunk's: they start once they are down
+    "arms_lag": 1.0,  # frames each part of the arm starts and ends after the part it hangs from
+    "meet": 6,  # the idle's arms keep clear of the thighs and the landing's do not: see `START`
     "speed_limit": 60.0,
 }
 HARD = {
@@ -259,12 +284,12 @@ HARD = {
     "chest": [52.0, -7.0, 4.0],
     "head": [18.0, -3.0, 0.0],
     # The right arm is held out past its knee: at 22 degrees out its hand went 37 to 62 mm into the thigh under it.
-    "arm_swing": [-26.0, 22.0],
+    "arm_swing": [16.0, 24.0],
     "arm_out": [34.0, 50.0],
-    "elbow": [40.0, 42.0],
+    "elbow": [40.0, 46.0],
     "arms_up": [0.5, 1.0],  # the arms come back once the thighs are down
     "trunk_late": 2.0,
-    "arms_late": 3.0,
+    "arms_late": 8.0,
     "speed_limit": 70.0,
 }
 ## `land_to_jog`: a landing on the left foot that ends on the jog's right foot strike.
@@ -275,9 +300,14 @@ TO_JOG = {
     "heel": [1.5, 3.0],  # the left heel: the frame it is lowest at, and degrees up it still is there
     "toe_off": 58.0,  # degrees it is up as the toes leave
     "fold": 8.0,  # degrees more the chest folds as the leg takes the weight
-    "upper": [0.0, 0.75],  # the trunk's and the arms' way to the jog's, as shares of the clip
+    "upper": [0.0, 0.75],  # the trunk's way to the jog's, as shares of the clip
+    "arms": [0.0, 1.0],  # the arms', eased with no jump in their acceleration: they float into the jog's swing
+    "arms_lag": 0.0,  # frames each part of the arm starts and ends after the part it hangs from (none: 7 frames)
+    # The gait whose arm speeds bound this clip's (`Air.arm_bounds`): its arms end in the jog's own swing seven
+    # frames after the foot lands, a stride's work in a third of a second, and swing as a runner's do.
+    "arms_like": "Sprint",
     "right": [0.0, 0.7],  # the right foot's way from the fall's pose to the jog's swing
-    "meet": 3,
+    "meet": 7,  # as the running take-offs': at most the clip's length
     "speed_limit": 75.0,
 }
 
@@ -502,6 +532,44 @@ class Air:
         stood = self.solver.solve(to_spec(self.idle_upper, self.idle_legs, self.idle_place, True))
         self.home = weight.centre_of_mass(rig, stood)
         self.feet = {fall.side: fall for fall in joined.clip("Idle").plan.footfalls}
+        self._open = None
+
+    def open_idle_upper(self) -> dict:
+        """The idle's upper body with arms that ride the chest and no longer look for the thigh (`carry` 1,
+        `clear` 0), each opened from the body by what the thigh search gave the idle's own arm (`out`): the pose a
+        take-off leaves and a landing comes back to, with no search left in it. A search kept in a moving clip
+        jolts the arm wherever the thigh crosses its limit (150 to 220 thousand degrees a second cubed); left out
+        with the idle's `out` as written, the hand went 8 to 34 mm into the thigh as the landing stood up."""
+        if self._open is None:
+            spec = copy.deepcopy(self.idle["spec"])
+            want = self.solver.solve(spec)["local"]
+            upper = upper_from(spec)
+            for s, _ in SIDES:
+                arm = {**upper["arm"][s], "carry": 1.0, "clear": 0.0}
+                bone = f"upperarm_{s}"
+
+                def off(out: float) -> float:
+                    trial = copy.deepcopy(spec)
+                    trial["arm"][s] = {**trial["arm"][s], **arm, "out": out}
+                    return maths.angle_between(self.solver.solve(trial)["local"][bone], want[bone])
+
+                tries = [arm["out"] + 0.5 * k for k in range(101)]
+                arm["out"] = min(tries, key=off)
+                upper["arm"][s] = arm
+            self._open = upper
+        return self._open
+
+    def arm_bounds(self, like: str = "Jog") -> dict:
+        """What every arm joint of the jump is held under (`checks.check_arms`), read off the shipped gaits: each
+        joint no faster than the same joint of the gait `like` at its fastest (the jog's: an arm in the air
+        floats, it does not swing like a running arm), and none with a sharper change of acceleration than the
+        sharpest arm joint of the walk, the jog and the sprint. That one is the whole arm's: a collarbone that
+        turns 4 degrees in a quarter of a second already changes its acceleration more sharply than the gaits'
+        collarbones, which hardly move, and no eye sees it."""
+        gaits = {name: self.joined.built(name) for name in ("Walk", "Jog", "Sprint")}
+        numbers = {name: checks.arm_numbers(b.played(self.rig)[0], self.rig, True) for name, b in gaits.items()}
+        sharpest = max(jerk for one in numbers.values() for _, jerk in one.values())
+        return {part: [numbers[like][part][0], sharpest] for part in checks.ARM_PARTS}
 
     def numbers(self, kind: str) -> dict:
         """The picked variant's numbers of an air pose (`Jump_Rise`, `Jump_Fall`)."""
@@ -561,7 +629,12 @@ def _loop(rig, style, name: str, joined, kind: str, replaces: str, risen: float)
         chains=overlap.chains_from(style.overlap(section), PARTS),
         kind="stand",
         # A short loop in which every limb drifts has few keys a reducer can drop.
-        declared={"carried": [risen] * (frames + 1), "record": {"carried": True}, "kb_a_second": 20.0},
+        declared={
+            "carried": [risen] * (frames + 1),
+            "record": {"carried": True},
+            "kb_a_second": 20.0,
+            "arm_bounds": air.arm_bounds(),
+        },
         replaces=replaces,
         style=style.letter,
     )
@@ -583,18 +656,26 @@ def describe_fall(rig, style, name: str = "Jump_Fall", joined=None) -> Clip:
 # ---- take-offs --------------------------------------------------------------------------------------------------
 
 
-def _blend(a: dict, b: dict, legs: float, trunk: float, arms: float) -> dict:
-    """Two bodies (`{"upper", "legs"}`) mixed part by part."""
+def _blend(a: dict, b: dict, legs: float, trunk: float, arms) -> dict:
+    """Two bodies (`{"upper", "legs"}`) mixed part by part. `arms` is one share for the whole arm, or three
+    (`_arm_shares`): the upper arm's and the collarbone's, the forearm's, the hand's and the fingers'."""
     ua, ub = a["upper"], b["upper"]
+    upper, fore, hand = arms if isinstance(arms, tuple) else (arms, arms, arms)
+    by_part = (upper, fore, hand)
+    arm = {
+        s: {key: mix(value, ub["arm"][s][key], by_part[ARM_LATE.get(key, 0)]) if key in ub["arm"][s] else value
+            for key, value in ua["arm"][s].items()}
+        for s in ua["arm"]
+    }  # fmt: skip
     return {
         "upper": {
             "turn": mix(ua["turn"], ub["turn"], trunk),
             "chest": mix(ua["chest"], ub["chest"], trunk),
             "ribs": mix(ua["ribs"], ub["ribs"], trunk),
             "head": mix(ua["head"], ub["head"], trunk),
-            "clavicle": mix(ua["clavicle"], ub["clavicle"], arms),
-            "arm": mix(ua["arm"], ub["arm"], arms),
-            "fingers": mix(ua["fingers"], ub["fingers"], arms),
+            "clavicle": mix(ua["clavicle"], ub["clavicle"], upper),
+            "arm": arm,
+            "fingers": mix(ua["fingers"], ub["fingers"], hand),
         },
         "legs": mix(a["legs"], b["legs"], legs),
     }
@@ -608,8 +689,10 @@ def _take_off(air: Air, style, name: str, section: str, n: dict, first: str, at:
     """A take-off from the pose of `first` at its frame `at` to the rise's first pose; `body_at(f)` is the body
     on each frame, and the centre of mass goes from the one pose's to the rise's at one speed."""
     rig, joined = air.rig, air.joined
-    frames = int(n["frames"])
+    frames = RISE_FRAMES
+    assert int(n["frames"]) < frames, f"{name}: a push of {n['frames']} frames does not fit the rise's {frames}"
     built_a, built_b = joined.built(first), joined.built("Jump_Rise")
+    meet = n["meet"] if isinstance(n["meet"], list) else [n["meet"], n["meet"]]
     start = weight.centre_of_mass(rig, built_a.frames[at])
     made = {}
 
@@ -647,6 +730,7 @@ def _take_off(air: Air, style, name: str, section: str, n: dict, first: str, at:
         "speed_limit": n["speed_limit"],
         "keys_kept": 0.95,
         "kb_a_second": 60.0,
+        "arm_bounds": air.arm_bounds(),
     }
     return Clip(
         name=name,
@@ -654,8 +738,8 @@ def _take_off(air: Air, style, name: str, section: str, n: dict, first: str, at:
         plan=ContactPlan(frames, [], Travel.steady(speed), loop=False),
         spec=spec,
         loop=False,
-        meet={"first": (built_a.frames[at], n["meet"]), "last": (built_b.frames[0], n["meet"])},
-        chains=overlap.chains_from(style.overlap(section), PARTS),
+        meet={"first": (built_a.frames[at], meet[0]), "last": (built_b.frames[0], meet[1])},
+        chains=overlap.chains_from(style.overlap(section), TRUNK_PARTS),
         kind="transition",
         declared=declared,
         replaces="ual1/Jump_Start" if first == "Idle" else "",
@@ -663,20 +747,65 @@ def _take_off(air: Air, style, name: str, section: str, n: dict, first: str, at:
     )
 
 
+def _rising(air: Air) -> callable:
+    """The rise's pose on each frame of a take-off: the rise's own loop, run so that the take-off's last frame
+    is its first. A take-off's legs and trunk drift with it once they have pushed, and its arms float to it."""
+    n = air.numbers("Jump_Rise")
+    made = {}
+
+    def at(f: int) -> dict:
+        if f not in made:
+            made[f] = _body(air.posed(n, float(f - RISE_FRAMES)))
+        return made[f]
+
+    return at
+
+
+def _carried_arms(upper: dict) -> dict:
+    """An upper body whose arms ride with the chest (`carry` 1, as the poses of the air carry them) and no longer
+    look for the thigh (`clear` 0). An idle arm keeps its hand a few centimetres from the thigh's line by moving
+    out, and the take-off's push moves the thighs from its first frame: the upper arm jolted there, before it
+    had begun to swing, at 150 to 220 thousand degrees a second cubed."""
+    return {**upper, "arm": {s: {**arm, "carry": 1.0, "clear": 0.0} for s, arm in upper["arm"].items()}}
+
+
+def _arm_shares(f: float, span: list, lag: float) -> tuple:
+    """How far each part of an arm is on its way at a frame: the upper arm from the first frame of `span` to its
+    last, eased in and out with no jump in its acceleration (`maths.smoother`), the forearm `lag` frames after
+    it and the hand `lag` after that: the overlap, as each part starts after the part it hangs from."""
+    return tuple(maths.smoother((f - k * lag - span[0]) / max(span[1] - span[0], 1e-6)) for k in range(3))
+
+
+def _arms_fit(name: str, span: list, lag: float, frames: int) -> None:
+    assert span[1] + 2 * lag <= frames + 1e-9, (
+        f"{name}: the upper arm ends its way on frame {span[1]} and the hand {2 * lag} frames later, after the "
+        f"clip's {frames}"
+    )
+
+
+## The numbers of a pose that belong to its arms: a take-off's stretch sets none of them.
+ARM_POSE = ("arm_swing", "arm_out", "arm_twist", "elbow", "pronate", "wrist", "shrug", "reach", "curl", "thumb_out")
+
+
 def describe_start(rig, style, name: str = "Jump_Start", joined=None) -> Clip:
     air = Air(rig, joined)
     n = style.numbers("jump_start", START)
     unknown = sorted(set(n["push"]) - set(POSE))
     assert not unknown, f"{style.path.name}: `jump_start.push` sets {unknown}, which a pose does not have"
-    frames = int(n["frames"])
-    stand = {"upper": air.idle_upper, "legs": air.idle_legs}
+    arms = sorted(set(n["push"]) & set(ARM_POSE))
+    assert not arms, f"{style.path.name}: `jump_start.push` sets {arms}: the arms swing once, from the idle to the rise"
+    push_frames = int(n["frames"])
+    stand = {"upper": air.open_idle_upper(), "legs": air.idle_legs}
     push = _body(air.posed({**PUSH, **n["push"]}, 0.0))
-    rise = _body(air.posed(air.numbers("Jump_Rise"), 0.0))
+    rise = _rising(air)
+
+    _arms_fit(name, n["arms"], n["arms_lag"], RISE_FRAMES)
 
     def body_at(f: int) -> dict:
-        u = f / frames
-        out = _blend(stand, push, window(u, n["legs_out"]), window(u, n["trunk_out"]), window(u, n["arms_out"]))
-        return _blend(out, rise, window(u, n["legs_in"]), window(u, n["trunk_in"]), window(u, n["arms_in"]))
+        u = f / push_frames
+        out = _blend(stand, push, window(u, n["legs_out"]), window(u, n["trunk_out"]), 0.0)
+        out = _blend(out, rise(f), window(u, n["legs_in"]), window(u, n["trunk_in"]), 0.0)
+        return _blend(out, rise(f), 0.0, 0.0, _arm_shares(f, n["arms"], n["arms_lag"]))
 
     return _take_off(air, style, name, "jump_start", n, "Idle", 0, body_at, 0.0)
 
@@ -684,23 +813,27 @@ def describe_start(rig, style, name: str = "Jump_Start", joined=None) -> Clip:
 def _start_run(rig, style, name: str, joined, struck: str) -> Clip:
     air = Air(rig, joined)
     n = style.numbers("jump_start_run", START_RUN)
-    frames = int(n["frames"])
+    push_frames = int(n["frames"])
     jog = joined.clip("Jog")
     at = 0 if struck == "l" else jog.frames // 2
     speed = joined.built("Jog").record["speed"]
     stride = _body(_frame_of(air, "Jog", at))
-    rise = _body(air.posed(air.numbers("Jump_Rise"), 0.0))
+    stride["upper"] = _carried_arms(stride["upper"])
+    rise = _rising(air)
     i = AT[struck]
     # The rise's pose leads with the right knee and trails the left leg, whichever foot struck.
     lead, trail = "r", "l"
 
+    _arms_fit(name, n["arms"], n["arms_lag"], RISE_FRAMES)
+
     def body_at(f: int) -> dict:
-        u = f / frames
-        out = _blend(stride, rise, window(u, n["legs"]), window(u, n["trunk"]), window(u, n["arms"]))
+        u = min(f / push_frames, 1.0)
+        arms = _arm_shares(f, n["arms"], n["arms_lag"])
+        out = _blend(stride, rise(f), window(u, n["legs"]), window(u, n["trunk"]), arms)
         middle = math.sin(math.pi * u) ** 2
         out["legs"][lead]["ankle"] = out["legs"][lead]["ankle"] + Y * n["drive"][i] * middle
         out["legs"][trail]["ankle"] = out["legs"][trail]["ankle"] - (Y + 0.6 * maths.Z) * n["trail"][i] * middle
-        out["upper"]["arm"]["l"]["swing"] += n["pump"][i] * middle
+        out["upper"]["arm"]["l"]["swing"] += n["pump"][i] * math.sin(math.pi * arms[0]) ** 2
         return out
 
     return _take_off(air, style, name, "jump_start_run", n, "Jog", at, body_at, speed)
@@ -748,6 +881,13 @@ def _landing(rig, style, name: str, joined, section: str, defaults: dict, speeds
     frames, bottom, hold, up = int(n["frames"]), int(n["bottom"]), int(n["hold"]), int(n["up"])
     top = bottom + hold + up
     assert top <= frames, "the landing's rise ends after the clip does"
+    assert n["arms_from"] < bottom + n["arms_late"], f"{name}: the arms reach their low pose before they start down"
+    # The arms' ways down and back up, in frames, the upper arm's (the forearm and the hand follow it, `lag`).
+    lag = n["arms_lag"]
+    down_span = [n["arms_from"], bottom + n["arms_late"]]
+    after = frames - bottom - hold
+    up_span = [bottom + hold + n["arms_up"][0] * after, bottom + hold + n["arms_up"][1] * after - 2 * lag]
+    _arms_fit(name, up_span, lag, frames)
     took = bottom / FPS
     assert n["keep"] * took / 3.0 <= n["dip"] <= 2.0 * n["keep"] * took / 3.0, (
         f"{name}: a dip of {n['dip']} m in {bottom} frames from {n['keep']} m/s speeds up on the way down or "
@@ -827,9 +967,13 @@ def _landing(rig, style, name: str, joined, section: str, defaults: dict, speeds
         def back_up(span: list) -> float:
             return window((f - bottom - hold) / (frames - bottom - hold), span)
 
+        # The arms follow the weight down after it and come back up, each way eased with no jump in its
+        # acceleration (`maths.smoother`): a quadratic ease's steps in acceleration are what read as a snap.
+        arms_down = _arm_shares(f, down_span, lag)
+        arms_up = _arm_shares(f, up_span, lag)
         folded = {"upper": fall_upper, "legs": {}}
-        folded = _blend(folded, {"upper": low, "legs": {}}, 0.0, down(n["trunk_late"]), down(n["arms_late"]))
-        stood = _blend(folded, {"upper": air.idle_upper, "legs": {}}, 0.0, back_up(n["trunk_up"]), back_up(n["arms_up"]))
+        folded = _blend(folded, {"upper": low, "legs": {}}, 0.0, down(n["trunk_late"]), arms_down)
+        stood = _blend(folded, {"upper": air.open_idle_upper(), "legs": {}}, 0.0, back_up(n["trunk_up"]), arms_up)
         stood["upper"]["head"] = mix(folded["upper"]["head"], air.idle_upper["head"], back_up(n["head_up"]))
         return stood["upper"]
 
@@ -862,6 +1006,7 @@ def _landing(rig, style, name: str, joined, section: str, defaults: dict, speeds
         "speed_limit": n["speed_limit"],
         "keys_kept": 0.9,
         "kb_a_second": 40.0,
+        "arm_bounds": air.arm_bounds(),
     }
     return Clip(
         name=name,
@@ -870,7 +1015,7 @@ def _landing(rig, style, name: str, joined, section: str, defaults: dict, speeds
         spec=spec,
         loop=False,
         meet={"first": (built_a.frames[0], n["meet"]), "last": (built_b.frames[0], n["meet"])},
-        chains=overlap.chains_from(style.overlap(section), PARTS),
+        chains=overlap.chains_from(style.overlap(section), TRUNK_PARTS),
         kind="transition",
         declared=declared,
         replaces=replaces,
@@ -974,11 +1119,14 @@ def describe_land_to_jog(rig, style, name: str = "Land_To_Jog", joined=None) -> 
         return np.array([level[0], height, level[1]]) + travel(f)
 
     made = {}
+    arms_span = [n["arms"][0] * frames, n["arms"][1] * frames - 2 * n["arms_lag"]]
+    _arms_fit(name, arms_span, n["arms_lag"], frames)
 
     def spec(f: int) -> dict:
         if f not in made:
             share = window(f / frames, n["upper"])
-            upper = _blend({"upper": fall_upper, "legs": {}}, {"upper": upper_from(strides[f]), "legs": {}}, 0.0, share, share)["upper"]
+            arms = _arm_shares(f, arms_span, n["arms_lag"])
+            upper = _blend({"upper": fall_upper, "legs": {}}, {"upper": _carried_arms(upper_from(strides[f])), "legs": {}}, 0.0, share, arms)["upper"]
             fold = n["fold"] * math.sin(math.pi * min(f / contact, 1.0)) ** 2
             upper["chest"] = (upper["chest"][0] + fold, upper["chest"][1], upper["chest"][2])
             start = air.home - Y * 0.12 if f == 0 else made[f - 1]["pelvis"]["place"] + travel(1) if f - 1 in made else air.idle_place + travel(f)
@@ -1006,6 +1154,7 @@ def describe_land_to_jog(rig, style, name: str = "Land_To_Jog", joined=None) -> 
         "speed_limit": n["speed_limit"],
         "keys_kept": 0.95,
         "kb_a_second": 60.0,
+        "arm_bounds": air.arm_bounds(n["arms_like"]),
     }
     return Clip(
         name=name,
@@ -1013,7 +1162,9 @@ def describe_land_to_jog(rig, style, name: str = "Land_To_Jog", joined=None) -> 
         plan=plan,
         spec=spec,
         loop=False,
-        meet={"first": (built_a.frames[0], n["meet"]), "last": (built_jog.frames[last], n["meet"])},
+        meet={"first": (built_a.frames[0], min(n["meet"], frames)), "last": (built_jog.frames[last], min(n["meet"], frames))},
+        # The arms keep the overlap pass here: they end in the jog's swing, whose arms carry the pass too, and a
+        # solved arm would be moved the jog's lag (15 to 25 degrees) in the clip's seven frames to join it.
         chains=overlap.chains_from(style.overlap("land_to_jog"), PARTS),
         kind="transition",
         declared=declared,

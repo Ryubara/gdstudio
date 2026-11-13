@@ -232,27 +232,27 @@
    "Not tried: 16 frames a cycle (225 steps a minute, over the range): a contact would be under four frames."
   ],
   "jump_start": [
-   "Sharp: 5 frames, the legs straight by frame 1.8 with the toes at 54 and 48 degrees, the parts trailing 1 to 2 frames.",
+   "Sharp: a push of 5 frames, the legs straight by frame 1.8 with the toes at 53 and 48 degrees.",
    "The game gives a take-off no frame on the floor (the capsule leaves on the tick of the press at 6.25 m/s), so no variant crouches first: at 0.2 m a frame the feet would be 0.2 to 0.4 m under the capsule."
   ],
   "jump_start_run_l": [
-   "Sharp: 5 frames, 4 cm of drive and trail, the arm pumped 8 degrees.",
+   "Sharp: a push of 5 frames, 4 cm of drive and trail, the arm pumped 3 degrees.",
    "The shortest way from the stride to the rise: a joint's speed changes up to 26 degrees in a frame."
   ],
   "jump_start_run_r": [
-   "Sharp: 5 frames, 2 cm of drive and trail.",
+   "Sharp: a push of 5 frames, 2 cm of drive and trail.",
    "A joint's speed changes up to 48 degrees in a frame; the limit it declares is 85."
   ],
   "jump_rise": [
-   "Sharp: one strong line, the left arm 124 degrees up and nearly straight, the right fist at the hip, the left leg straight and pointed, the right knee high (thigh 44, knee 82).",
-   "The drift is 0.6 of the grounded one's: a pose that holds, for a small body seen from far."
+   "Sharp: one strong line, the left arm 56 degrees forward, the right fist at the hip, the left leg straight and pointed, the right knee high (thigh 44, knee 82).",
+   "Before kit #1369 the left arm was 124 degrees up; an arm that high cannot float there and back inside the rise."
   ],
   "jump_apex": [
    "Sharp: a tight tuck, the thighs 40 and 72 degrees forward and the knees at 88 and 112.",
    "The feet come 6 cm higher under the body than the grounded one's."
   ],
   "jump_fall": [
-   "Sharp: the feet closer (0.11 m apart fore and aft), the elbows bent 48 and 66.",
+   "Sharp: the feet closer (0.11 m apart fore and aft), the elbows bent 46 and 58.",
    "Its heels are up 18 and 22 degrees: nearly level with each other, the least staggered of the three."
   ],
   "land_soft": [
@@ -464,19 +464,20 @@
     8.0
    ],
    "point": [
-    54.0,
+    53.0,
     48.0
-   ],
-   "arm_swing": [
-    40.0,
-    22.0
    ]
   },
   "legs_out": [
    0.0,
    0.36
   ],
-  "speed_limit": 75.0
+  "speed_limit": 75.0,
+  "arms": [
+   0.5,
+   10.5
+  ],
+  "arms_lag": 0.75
  },
  "jump_start_run": {
   "frames": 5,
@@ -489,10 +490,15 @@
    0.02
   ],
   "pump": [
-   8.0,
-   6.0
+   3.0,
+   2.0
   ],
-  "speed_limit": 85.0
+  "speed_limit": 85.0,
+  "arms": [
+   0.0,
+   10.5
+  ],
+  "arms_lag": 0.75
  },
  "jump_rise": {
   "live": 0.6,
@@ -519,16 +525,16 @@
    22.0
   ],
   "arm_swing": [
-   124.0,
-   28.0
+   56.0,
+   22.0
   ],
   "arm_out": [
-   14.0,
-   30.0
+   20.0,
+   32.0
   ],
   "elbow": [
-   30.0,
-   92.0
+   40.0,
+   52.0
   ],
   "shrug": [
    12.0,
@@ -551,16 +557,16 @@
    3.0
   ],
   "arm_swing": [
-   56.0,
-   12.0
+   58.0,
+   18.0
   ],
   "arm_out": [
-   30.0,
-   58.0
+   26.0,
+   42.0
   ],
   "elbow": [
-   64.0,
-   84.0
+   44.0,
+   56.0
   ]
  },
  "jump_fall": {
@@ -578,16 +584,16 @@
    0.045
   ],
   "arm_swing": [
-   20.0,
-   12.0
+   52.0,
+   14.0
   ],
   "arm_out": [
-   44.0,
-   58.0
+   32.0,
+   48.0
   ],
   "elbow": [
-   48.0,
-   66.0
+   46.0,
+   58.0
   ]
  },
  "land_soft": {
@@ -612,12 +618,13 @@
    2.0
   ],
   "arm_swing": [
-   -12.0,
-   10.0
+   24.0,
+   14.0
   ],
   "trunk_late": 1.0,
-  "arms_late": 1.0,
-  "speed_limit": 75.0
+  "arms_late": 5.0,
+  "speed_limit": 75.0,
+  "arms_lag": 0.75
  },
  "land_hard": {
   "frames": 33,
@@ -636,8 +643,9 @@
    0.62
   ],
   "trunk_late": 3.0,
-  "arms_late": 2.0,
-  "speed_limit": 85.0
+  "arms_late": 7.0,
+  "speed_limit": 85.0,
+  "arms_lag": 0.75
  },
  "land_to_jog": {
   "keep": 2.4,

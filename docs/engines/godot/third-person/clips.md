@@ -115,7 +115,7 @@ mass keeps its place against the capsule: it flies the arc the controller flies.
 
 | State | Export of `CharacterAnimation` | Clip | Stand-in (`CharacterClips.STAND_INS`) |
 | --- | --- | --- | --- |
-| `JUMP` (rising) | `jump_clip` | `gds/Jump_Start`: 0.2 s from the idle's first pose to the rise's, then held | `ual1/Jump_Start` |
+| `JUMP` (rising) | `jump_clip` | `gds/Jump_Start`: the whole 0.4 s rise from the idle's first pose to the rise's, the arms floating up over all of it | `ual1/Jump_Start` |
 | `FALL` | `air_clip` | `gds/Jump_Fall`: a 1.2 s loop, the soles at the capsule's bottom | `ual1/Jump` |
 | `LAND` (a fall of `land_clip_speed` or more, for `land_time`) | `land_clip` | `gds/Land_Soft`: control back at frame 9 (0.3 s), the settle after | `fixed/Jump_Land` |
 

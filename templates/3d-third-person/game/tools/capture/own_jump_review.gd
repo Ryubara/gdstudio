@@ -11,6 +11,9 @@
 ## `OWN_ONLY=Library` the library's: nine seconds each, short enough for a GIF.
 ## `OWN_AHEAD=<metres>` starts each turn that far ahead of the spawn point (default 6: the spawn
 ## pad ends 4.6 m ahead, and a body that runs off it falls).
+## `OWN_BEFORE=<a folder on this machine>` reads an older build's review files from that folder
+## (`jump_start.glb`, `jump_fall.glb`, `land_soft.glb`) for a turn named `Before`, which plays
+## their A: `OWN_ONLY=Before` films it alone, to set beside `OWN_ONLY=A` (kit #1369's arms).
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -44,9 +47,15 @@ var _turn := -1
 func _ready() -> void:
 	var animation: CharacterAnimation = _rig.player.get_node("Animation")
 	var clips: AnimationPlayer = _rig.player.get_node("AnimationPlayer")
+	var before := OS.get_environment("OWN_BEFORE")
 	for slot: StringName in SLOTS:
 		_shipped[slot] = animation.get(slot)
-		clips.add_animation_library(StringName("review_" + SLOTS[slot][0]), _read(SLOTS[slot][0]))
+		var type: String = SLOTS[slot][0]
+		clips.add_animation_library(StringName("review_" + type), _read(REVIEW % type))
+		if before != "":
+			clips.add_animation_library(
+				StringName("before_" + type), _read(before.path_join(type + ".glb"))
+			)
 	var only := OS.get_environment("OWN_ONLY")
 	if only != "":
 		_turns = [only]
@@ -91,11 +100,14 @@ func _begin(letter: String) -> void:
 		var clip: StringName = _shipped[slot]
 		if letter == "Library":
 			clip = CharacterClips.stand_in(clip)
+		elif letter == "Before":
+			clip = StringName("before_%s/%s_A" % [SLOTS[slot][0], SLOTS[slot][1]])
 		elif letter != "Shipped":
 			clip = StringName("review_%s/%s_%s" % [SLOTS[slot][0], SLOTS[slot][1], letter])
 		animation.set(slot, clip)
 		named.append(String(clip).get_slice("/", 1))
 	var what := "the library's" if letter == "Library" else "ours"
+	what = "before (kit #1369)" if letter == "Before" else what
 	_label.text = "%s: %s" % [what, ", ".join(named)]
 
 
@@ -108,11 +120,11 @@ func _hold(action: StringName, down: bool) -> void:
 
 # Reads a review file, which the game does not import: its clips as a library, a `_Loop` clip
 # looping under its name without the suffix, as the importer makes them.
-func _read(type: String) -> AnimationLibrary:
+func _read(path: String) -> AnimationLibrary:
 	var document := GLTFDocument.new()
 	var state := GLTFState.new()
-	var error := document.append_from_file(ProjectSettings.globalize_path(REVIEW % type), state)
-	assert(error == OK, "cannot read the review file of %s" % type)
+	var error := document.append_from_file(ProjectSettings.globalize_path(path), state)
+	assert(error == OK, "cannot read the review file %s" % path)
 	var scene := document.generate_scene(state, 30.0)
 	var source: AnimationPlayer = scene.find_children("*", "AnimationPlayer", true, false)[0]
 	var library := AnimationLibrary.new()

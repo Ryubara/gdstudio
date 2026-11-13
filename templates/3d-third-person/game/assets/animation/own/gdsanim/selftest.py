@@ -300,6 +300,16 @@ def run(rig, solver, bodies) -> int:
     # limits: a knee bent backward; a jump in a joint's speed.
     case("a knee bends backward", "limits", walk, turned(walk, rig, "calf_l", range(8, 12), 35.0))
     case("a joint jumps", "limits", stand, turned(stand, rig, "upperarm_l", [15], 40.0))
+    # arms: an arm that swings up in three frames, over a bound read off the clip itself; the same bound with the
+    # speed left free and a short jolt that changes the acceleration sharply (the jump's arms, kit #1369).
+    own = checks.arm_numbers(walk.rotation, rig, True)
+    floating = dense(walk)
+    floating.clip.declared["arm_bounds"] = {part: [1.01 * v, 1.01 * j] for part, (v, j) in own.items()}
+    snapped = turned(floating, rig, "upperarm_l", range(10, 14), 40.0)
+    case("an arm snaps up faster than the bound", "arms", floating, snapped)
+    eased = dense(walk)
+    eased.clip.declared["arm_bounds"] = {part: [1e9, 1.01 * j] for part, (_, j) in own.items()}
+    case("an arm jolts more sharply than the bound", "arms", eased, turned(eased, rig, "lowerarm_r", [12], 6.0))
     # cost: noise on every key.
     noisy = dense(stand)
     rng = np.random.default_rng(7)

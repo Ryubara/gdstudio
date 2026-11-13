@@ -94,6 +94,7 @@ research and their numbers are in the template's `assets/animation/own/README.md
 | Catch a landing | the centre of mass's height as a curve: from the fall's with the speed the body keeps (`keep`) to the bottom (`dip`, `bottom`), then up on a push and a coast (`jump.standing_spec` solves the pelvis under it and lowers it where a folded trunk would ask the legs past their length) |
 | Join a frame of a loop | `jump._frame_of(air, "Jog", frame)` (the frame's spec, in place), `declared["joins"]` with the loop's built frame, and `join_frames` in `declared["record"]` so `clips.json` names it |
 | Say something of a clip to the game | `declared["record"]`: keys that go into the clip's row of `clips.json` as they are (`fall_speed`, `control`, `made_for`, `carried`) |
+| Float a jump's arms | the arm's parts on their own windows (`jump._arm_shares`: the forearm and the hand `arms_lag` frames after the upper arm, eased by `maths.smoother`) and the overlap pass on the trunk alone (`TRUNK_PARTS`) in a clip that plays once; a take-off lasting the controller's whole rise (`RISE_FRAMES`); `declared["arm_bounds"]` from `Air.arm_bounds()` |
 
 - **Approach:** Check a rig's `ik_` targets against the ends of their limbs on every frame of every clip, in the
   build (`checks.check_targets`, 4 mm), and set them from the finished pose, after the overlap pass and the

@@ -20,6 +20,17 @@ const SOLE := 0.002
 ## How far the compressed import may move a bone's place (m) and turn (degrees) from the file's.
 const IMPORT_PLACE := 0.01
 const IMPORT_TURN := 2.0
+## The arm joints a played jump is measured on, each against the jog's same joint.
+const ARM_BONES: Array[StringName] = [
+	&"clavicle_l",
+	&"clavicle_r",
+	&"upperarm_l",
+	&"upperarm_r",
+	&"lowerarm_l",
+	&"lowerarm_r",
+	&"hand_l",
+	&"hand_r",
+]
 
 var _model: Node3D
 var _skeleton: Skeleton3D
@@ -87,8 +98,12 @@ func test_the_jump_s_clips_are_made_for_the_controller_s_jump() -> void:
 		assert_bool(record.carried).override_failure_message(clip).is_true()
 		assert_array(record.contacts.l).override_failure_message(clip).is_empty()
 		assert_array(record.contacts.r).override_failure_message(clip).is_empty()
-	# A take-off is over before the rise is, and the air's three poses loop.
-	assert_float(records.clips["Jump_Start"].seconds).is_less(tuning.jump_rise_time)
+	# A take-off lasts the rise and no longer (its arms float up over all of it, kit #1369), and the
+	# air's three poses loop.
+	for clip: String in ["Jump_Start", "Jump_Start_Run_L", "Jump_Start_Run_R"]:
+		assert_float(records.clips[clip].seconds).override_failure_message(clip).is_equal_approx(
+			tuning.jump_rise_time, 0.0001
+		)
 	for clip: String in ["Jump_Rise", "Jump_Apex", "Jump_Fall"]:
 		assert_bool(records.clips[clip].loop).override_failure_message(clip).is_true()
 	# The running take-offs leave at the jog's speed, and the landing into the jog arrives at it.
@@ -255,6 +270,88 @@ func test_the_import_keeps_every_clip_s_motion() -> void:
 		assert_float(worst_place).override_failure_message(message).is_less(IMPORT_PLACE)
 		assert_float(worst_turn).override_failure_message(message).is_less(IMPORT_TURN)
 	assert_int(compared).is_greater(0)
+
+
+# Each arm bone's fastest turn in a clip of the file (degrees a second), read off its rotation
+# tracks at 30 a second.
+func _clip_arm_speeds(clip: StringName) -> Dictionary:
+	var animation := (load(OWN) as AnimationLibrary).get_animation(
+		StringName(String(clip).get_file())
+	)
+	var out := {}
+	for track in animation.get_track_count():
+		if animation.track_get_type(track) != Animation.TYPE_ROTATION_3D:
+			continue
+		var bone := StringName(animation.track_get_path(track).get_concatenated_subnames())
+		if not ARM_BONES.has(bone):
+			continue
+		var fastest := 0.0
+		var frames := int(round(animation.length * 30.0))
+		for frame in frames:
+			var a := animation.rotation_track_interpolate(track, frame / 30.0)
+			var b := animation.rotation_track_interpolate(track, (frame + 1) / 30.0)
+			fastest = maxf(fastest, rad_to_deg(a.angle_to(b)) * 30.0)
+		out[bone] = fastest
+	return out
+
+
+func test_the_arms_float_through_a_played_jump() -> void:
+	# The jump the player really plays: the take-off, the tree's blend into the fall, the landing
+	# and its blend back to the ground, stepped by hand at the physics rate. No arm joint turns
+	# faster than the same joint of the jog at its fastest (kit #1369: the left upper arm swung
+	# 92 degrees up in the six-frame take-off and 84 back down in the 0.15 s blend into the fall).
+	var bound := _clip_arm_speeds(CharacterClips.RUN)
+	assert_int(bound.size()).is_equal(ARM_BONES.size())
+	var arena: PlayArena = auto_free(PlayArena.new())
+	add_child(arena)
+	var player := arena.add_player(Vector3.ZERO)
+	var animation: CharacterAnimation = player.get_node("Animation")
+	var skeleton := (player.get_node("Model") as CharacterModel).skeleton()
+	CommandDriver.take(player)
+	animation.set_throttled(true)
+	var step := CommandDriver.tick_seconds()
+	var still := PlayerCommand.new()
+	var jump := PlayerCommand.new()
+	jump.jump = true
+	jump.jump_pressed = true
+	var states: Array[Character.State] = []
+	var last := {}
+	var fastest := {}
+	var where := {}
+	# A second standing, the jump, and a second after the landing.
+	for tick in _ticks(3.0):
+		await get_tree().physics_frame
+		var command := jump if tick == _ticks(1.0) else still
+		player.step(command, step)
+		command.clear_edges()
+		animation.advance(step)
+		if not states.has(player.state):
+			states.append(player.state)
+		for bone: StringName in ARM_BONES:
+			var turn := skeleton.get_bone_pose_rotation(skeleton.find_bone(bone))
+			if last.has(bone) and tick > _ticks(0.5):
+				var speed := rad_to_deg((last[bone] as Quaternion).angle_to(turn)) / step
+				if speed > fastest.get(bone, 0.0):
+					fastest[bone] = speed
+					where[bone] = "tick %d in %s" % [tick, Character.State.keys()[player.state]]
+			last[bone] = turn
+	animation.set_throttled(false)
+	assert_bool(states.has(Character.State.JUMP)).is_true()
+	assert_bool(states.has(Character.State.FALL)).is_true()
+	assert_bool(states.has(Character.State.LAND)).is_true()
+	for bone: StringName in ARM_BONES:
+		var message := (
+			"%s turns %.0f degrees a second at %s; the jog's at its fastest %.0f"
+			% [bone, fastest.get(bone, 0.0), where.get(bone, "-"), bound[bone]]
+		)
+		print(message)
+		assert_float(fastest.get(bone, 0.0)).override_failure_message(message).is_less_equal(
+			bound[bone]
+		)
+
+
+func _ticks(seconds: float) -> int:
+	return int(round(seconds * Engine.physics_ticks_per_second))
 
 
 func test_the_player_plays_our_jump_where_the_library_s_played() -> void:
