@@ -20,7 +20,10 @@ func test_the_surfaces_play_their_variants_on_the_sfx_bus_near_the_shots_level()
 	add_child(impacts)
 	var shot := auto_free(load("res://gameplay/weapon/weapon.tscn").instantiate()) as Weapon
 	add_child(shot)
-	var shot_db := (shot.get_node("%ShotSound") as AudioStreamPlayer3D).volume_db
+	# The shots of #1414 are fuller files (their peak 13 to 15 dB over their loudest 400 ms, against
+	# 15 to 17 for the synthesised ones), so the player holds them 2 dB lower for the same level in
+	# the game, and the impacts' margin over its number moves with it.
+	var shot_db := (shot.get_node("%ShotSound") as AudioStreamPlayer3D).volume_db + 2.0
 	for surface: ImpactSurface in impacts.surfaces_by_name().values():
 		assert_bool(surface.effect.sound_bus == &"SFX").is_true()
 		assert_float(surface.effect.sound_volume_db).is_less(shot_db + 14.0)

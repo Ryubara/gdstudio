@@ -490,6 +490,17 @@ def limit(ffmpeg: str, x, crest_db: float, window: float = 0.002):
     return x
 
 
+def presence(x, db: float, hz: float = 3200.0, octaves: float = 0.8):
+    """A broad bell of `db` round `hz` (a Gaussian `octaves` wide on a log axis): a shot's crack lives at 2 to 5 kHz,
+    which a 3D player's distance filter takes the most off, so a shot keeps its edge in the game."""
+    import numpy as np
+
+    spectrum = np.fft.rfft(x)
+    freqs = np.maximum(np.fft.rfftfreq(len(x), 1 / RATE), 1.0)
+    spectrum *= 10 ** (db * np.exp(-0.5 * (np.log2(freqs / hz) / octaves) ** 2) / 20)
+    return np.fft.irfft(spectrum, len(x))
+
+
 def level(ffmpeg: str, x, sound: dict):
     """Gain to the sound's target loudness, held under the peak ceiling; returns (samples, gain dB, peak limited)."""
     now = loudness(ffmpeg, x)[
@@ -690,6 +701,8 @@ def cmd_encode(args) -> None:
             if sound["kind"] == "hit":
                 if sound.get("highpass_hz"):
                     x = highpass(x, sound["highpass_hz"])
+                if sound.get("presence_db"):
+                    x = presence(x, sound["presence_db"])
                 pieces.append(hit(x, sound))
             elif sound["kind"] == "steps":
                 pieces.extend(steps_of(x, sound))
