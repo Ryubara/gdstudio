@@ -233,6 +233,8 @@ func test_every_aim_limit_is_pinned() -> void:
 		&"head_prone_neck_share": 0.5,
 		&"head_max_turn": 90.0,
 		&"head_disabled": false,
+		&"upright_max_lean": 30.0,
+		&"upright_disabled": false,
 	}
 	assert_array(ExportPins.differences(_layer, layer)).is_empty()
 	assert_array(ExportPins.wrong_values(_layer, layer)).is_empty()

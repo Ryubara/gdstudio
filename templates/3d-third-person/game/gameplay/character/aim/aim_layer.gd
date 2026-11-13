@@ -23,9 +23,15 @@ extends Node
 ## reload. A weapon whose definition says `AimHead.SIGHT` (the rifle) has the head brought to its
 ## sights instead, the eye toward the definition's `aim_eye` marker; the head's modifier then
 ## runs after the stance of the hold that places that weapon.
+##
+## Between the two it makes an `AimUprightModifier` (kit #1351): with a weapon the spine's turn
+## does not aim (the fists, no muzzle), the chest leans at most `upright_max_lean` forward while
+## aiming, so a crouch's folded trunk stands up and the head stays in the shoulder camera's frame.
+## It is on by the head's weight, and off lying.
 
 const _MODIFIER := &"AimOffset"
 const _HEAD_MODIFIER := &"AimHead"
+const _UPRIGHT_MODIFIER := &"AimUpright"
 
 @export_group("Nodes")
 ## The character whose aim the weapon follows.
@@ -66,8 +72,17 @@ const _HEAD_MODIFIER := &"AimHead"
 ## On: the head keeps the clips' pose while aiming (as before kit #1334).
 @export var head_disabled := false
 
+@export_group("Upright")
+## The most the chest (`spine_03` to the neck) may lean forward while aiming a weapon the spine's
+## turn does not aim (the fists), in degrees: the crouch idle leans it 81. The pistol's and the
+## rifle's aim stand it at 16 to 29 crouched.
+@export_range(0.0, 90.0, 0.5, "suffix:deg") var upright_max_lean := 30.0
+## On: the chest keeps the clips' lean while aiming the fists (as before kit #1351).
+@export var upright_disabled := false
+
 var _modifier: AimOffsetModifier
 var _head: AimHeadModifier
+var _upright: AimUprightModifier
 # The weapon whose `aim_eye` was looked up last, and the marker found (null: a level head).
 var _eye_of: WeaponDef
 var _eye: Node3D
@@ -106,6 +121,23 @@ func head_modifier() -> AimHeadModifier:
 	return _head if _head != null and is_instance_valid(_head) else null
 
 
+## The upright modifier this node made on the skeleton, or null.
+func upright_modifier() -> AimUprightModifier:
+	return _upright if _upright != null and is_instance_valid(_upright) else null
+
+
+## The share the chest is stood up by now (0 the clips' lean, 1 at most `upright_max_lean`): the
+## head's weight, with a weapon the spine's turn does not aim (no muzzle or no aim clip), less how
+## far the body lies.
+func upright_weight() -> float:
+	if upright_disabled or character == null or character.weapon == null:
+		return 0.0
+	var definition := character.weapon.definition
+	if character.weapon.muzzle != null and definition != null and definition.aim_clip != &"":
+		return 0.0
+	return head_weight() * (1.0 - smoothstep(0.0, 1.0, character.prone_amount))
+
+
 ## The share the head looks along the aim by now (0 the clips' head, 1 all the way): the aim,
 ## from the aim pose's weight or the character's `aim_amount` eased, less a reload.
 func head_weight() -> float:
@@ -134,6 +166,7 @@ func weight() -> float:
 ## Puts the aim on the modifiers now (the frame's own `_process` does it too).
 func refresh() -> void:
 	_refresh_head()
+	_refresh_upright()
 	var aim := modifier()
 	if aim == null:
 		return
@@ -149,6 +182,18 @@ func refresh() -> void:
 	aim.target = aim_point(Engine.get_physics_interpolation_fraction())
 	aim.hold_turn = animation.is_shooting() or animation.is_reloading()
 	aim.release_time = release_time
+
+
+func _refresh_upright() -> void:
+	var upright := upright_modifier()
+	if upright == null:
+		return
+	var share := upright_weight()
+	if not is_equal_approx(upright.influence, share):
+		upright.influence = share
+	if upright.active != (share > 0.0):
+		upright.active = share > 0.0
+	upright.max_lean = upright_max_lean
 
 
 func _refresh_head() -> void:
@@ -207,12 +252,13 @@ func aim_point(fraction: float) -> Vector3:
 # Makes the modifiers on the model's skeleton, after freeing the ones made on the last model: the
 # spine's right after the hold's grip (or first, with no hold), the head's right after it.
 func _build() -> void:
-	for made: Node in [_modifier, _head]:
+	for made: Node in [_modifier, _head, _upright]:
 		if made != null and is_instance_valid(made):
 			made.get_parent().remove_child(made)
 			made.queue_free()
 	_modifier = null
 	_head = null
+	_upright = null
 	_eye_of = null
 	_eye = null
 	var skeleton := model.skeleton() if model != null else null
@@ -232,6 +278,14 @@ func _build() -> void:
 	_head.influence = 0.0
 	skeleton.add_child(_head)
 	skeleton.move_child(_head, _modifier.get_index() + 1)
+	_upright = AimUprightModifier.new()
+	_upright.name = _UPRIGHT_MODIFIER
+	_upright.chain = chain
+	_upright.weights = chain_weights
+	_upright.active = false
+	_upright.influence = 0.0
+	skeleton.add_child(_upright)
+	skeleton.move_child(_upright, _head.get_index())
 	refresh()
 
 
