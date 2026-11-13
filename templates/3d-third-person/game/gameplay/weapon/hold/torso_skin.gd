@@ -5,20 +5,18 @@ extends RefCounted
 ## points over the torso's triangles, each kept in its main bone's rest space, and how far a
 ## stock must go forward along its barrel to be clear of them in the pose of this update.
 ## `TwoHandHold` measures a body once (`measure()`, when the model is put in) and asks for the
-## push every frame (`push()`). The stock kept off the skin is the rifle's own shape when the hold
-## names its mesh (`measure_stock()`, kit #1346), else a box the pad's size.
+## push every frame (`push()`).
 
 ## The size of the cells the skin's points are grouped in under each bone, in metres.
 const _SKIN_CHUNK := 0.08
 ## Where round the chest bone (on the rest pose, +X its left) the torso's skin can meet the stock.
 const _SKIN_REGION := AABB(Vector3(-0.32, -0.2, 0.0), Vector3(0.47, 0.5, 0.3))
-## How long each slice of the stock is along the barrel, in metres.
-const _STOCK_STEP := 0.01
-## How far ahead of the stock a point of the skin is still looked at, in metres: a push brings the
-## skin ahead of the stock back along it (longer than any push the arms reach).
+## How far ahead of the stock a point of the skin is still looked at when the gun goes another way
+## than its barrel, in metres: the move brings the skin ahead back along the stock (longer than
+## any push the arms reach).
 const _PUSH_MOST := 0.25
-## How far along the barrel from the butt the rifle's triangles are kept for the stock, in metres.
-const _STOCK_KEPT := 0.45
+## The least share of a move along the barrel: the hold's pitch limit keeps it over 0.5.
+const _LEAST_ALONG := 0.1
 
 # Each point in its main bone's rest space, in groups (a cell of `_SKIN_CHUNK` under one bone):
 # the points of group `i` run from `_skin_starts[i]` to the next start, inside `_skin_boxes[i]`,
@@ -31,13 +29,6 @@ var _skin_boxes: Array[AABB] = []
 var _torso_bones := PackedInt32Array()
 var _torso_boxes: Array[AABB] = []
 var _torso_starts := PackedInt32Array()
-# The stock's triangles in the butt's space (+Z along the barrel from the butt), three corners
-# each, and its slices along the barrel for the depth, margin and pad they were cut for:
-# each slice's box across the barrel (min x, max x, min y, max y), grown by the margin and by the
-# slices within the margin of it.
-var _stock_triangles := PackedVector3Array()
-var _slices := PackedVector4Array()
-var _sliced_for := Vector4(-1.0, -1.0, -1.0, -1.0)
 
 
 ## Keeps a thinned set of the torso's skin, each point in its main bone's rest space, for the butt
@@ -175,87 +166,14 @@ func _keep(
 	cells[cell] = [bone, skeleton.get_bone_global_rest(bone).affine_inverse() * rest, ahead]
 
 
-## Keeps the stock's own shape for `push()`: the triangles of `mesh` (the rifle's near level; in
-## the butt's space by `to_butt`, +Z along the barrel from the butt) that reach into the first
-## `_STOCK_KEPT` from the butt. A null mesh: the stock is the `butt_pad` box.
-func measure_stock(mesh: Mesh, to_butt: Transform3D) -> void:
-	_stock_triangles = PackedVector3Array()
-	_sliced_for = Vector4(-1.0, -1.0, -1.0, -1.0)
-	if mesh == null:
-		return
-	for surface in mesh.get_surface_count():
-		var arrays := mesh.surface_get_arrays(surface)
-		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-		var indices := PackedInt32Array()
-		if arrays[Mesh.ARRAY_INDEX] != null:
-			indices = arrays[Mesh.ARRAY_INDEX]
-		var corners := indices.size() if not indices.is_empty() else vertices.size()
-		for triangle in corners / 3:
-			var at: Array[Vector3] = []
-			for corner in 3:
-				var index := triangle * 3 + corner
-				at.append(to_butt * vertices[indices[index] if not indices.is_empty() else index])
-			if minf(at[0].z, minf(at[1].z, at[2].z)) < _STOCK_KEPT:
-				_stock_triangles.append_array(at)
-
-
-## Whether the stock is the rifle's own shape (`measure_stock()`), not the pad's box.
-func has_stock() -> bool:
-	return not _stock_triangles.is_empty()
-
-
-## The stock's slices for `depth` along the barrel and `margin` off the skin (`_slices`): each
-## triangle cut by the slices' planes, its corners and its edges' crossings in a slice widening
-## that slice's box, then each box grown by `margin` and by the slices within `margin` of it.
-## Without the stock's shape every slice is the pad's box, `pad` across (`butt_pad`).
-func stock_slices(depth: float, margin: float, pad: Vector2) -> PackedVector4Array:
-	var key := Vector4(depth, margin, pad.x, pad.y)
-	if _sliced_for == key:
-		return _slices
-	var count := maxi(ceili(depth / _STOCK_STEP - 1e-6), 1)
-	var empty := Vector4(INF, -INF, INF, -INF)
-	var raw: Array[Vector4] = []
-	raw.resize(count)
-	raw.fill(empty if has_stock() else Vector4(-pad.x, pad.x, -pad.y, pad.y) * 0.5)
-	for triangle in _stock_triangles.size() / 3:
-		for slice in count:
-			# The first slice reaches back `margin` behind the butt: the pad's face is there.
-			var from := slice * _STOCK_STEP if slice > 0 else -margin
-			var to := (slice + 1) * _STOCK_STEP
-			for corner in 3:
-				var a := _stock_triangles[triangle * 3 + corner]
-				var b := _stock_triangles[triangle * 3 + (corner + 1) % 3]
-				if a.z >= from and a.z <= to:
-					raw[slice] = _widen(raw[slice], a)
-				for plane: float in [from, to]:
-					if (a.z - plane) * (b.z - plane) < 0.0:
-						raw[slice] = _widen(raw[slice], a.lerp(b, (plane - a.z) / (b.z - a.z)))
-	var reach := ceili(margin / _STOCK_STEP - 1e-6)
-	_slices = PackedVector4Array()
-	for slice in count:
-		var box := empty
-		for other in range(maxi(slice - reach, 0), mini(slice + reach, count - 1) + 1):
-			var near := raw[other]
-			box = Vector4(
-				minf(box.x, near.x), maxf(box.y, near.y), minf(box.z, near.z), maxf(box.w, near.w)
-			)
-		if box.x <= box.y:
-			box += Vector4(-margin, margin, -margin, margin)
-		_slices.append(box)
-	_sliced_for = key
-	return _slices
-
-
-## How far the gun goes from the pocket along `way` (a unit direction in the hold's space; zero:
-## along its barrel) so no point of the torso's skin is inside its stock, kept `butt_margin` off
-## the skin; `gun` is the butt's place and `to_here` the skeleton's, both in the hold's space. The
-## stock is the rifle's own shape over its first `butt_depth` from the butt (`measure_stock()`;
-## its body rises from the pad's toe to the buffer tube, kit #1346), or without it a box
-## `butt_pad` across. Each point near the stock forbids the moves that leave it inside a slice
-## that covers it, and the push is the least move no point forbids, so the skin ahead of the
-## stock that a push brings back along it counts too. The skin points ride their main bones in
-## the pose of this update (the clip, the crouch and the chest turn, from the local poses up the
-## parents), so the butt comes to the skin of whichever body holds it.
+## How far the gun goes from the pocket so no point of the torso's skin is inside its stock: a box
+## `butt_pad` across and `butt_depth` long from the butt's place, facing back along the barrel,
+## kept `butt_margin` off the skin; `gun` is the butt's place and `to_here` the skeleton's, both
+## in the hold's space. The gun goes along its barrel, or along `way` (a unit direction in the
+## hold's space with no part across the barrel: `TwoHandHold.push_level`, kit #1346). The skin
+## points ride their main bones in the pose of this update (the clip, the crouch and the chest
+## turn, from the local poses up the parents), so the butt comes to the skin of whichever body
+## holds it.
 func push(
 	skeleton: Skeleton3D,
 	gun: Transform3D,
@@ -265,44 +183,75 @@ func push(
 	butt_margin: float,
 	way := Vector3.ZERO
 ) -> float:
-	var slices := stock_slices(butt_depth, butt_margin, butt_pad)
-	var count := slices.size()
-	var across := Vector4(INF, -INF, INF, -INF)
-	for box in slices:
-		across = Vector4(
-			minf(across.x, box.x),
-			maxf(across.y, box.y),
-			minf(across.z, box.z),
-			maxf(across.w, box.w)
-		)
-	if across.x > across.y:
-		return 0.0
-	# The move in the gun's space: along the barrel (+Z) and up it (+Y), never across (the hold
-	# neither rolls the gun nor moves it aside).
-	var move := Vector2(0.0, 1.0)
 	if not way.is_zero_approx():
 		var local := gun.basis.inverse() * way
-		move = Vector2(local.y, maxf(local.z, 0.1)).normalized()
-	var ahead := count * _STOCK_STEP + butt_margin + _PUSH_MOST
-	var reach := AABB(
-		Vector3(across.x, across.z - absf(move.x) * _PUSH_MOST, -butt_margin),
-		Vector3(across.y - across.x, across.w - across.z + absf(move.x) * _PUSH_MOST * 2.0, ahead)
-	)
+		if absf(local.y) > 1e-4:
+			var move := Vector2(local.y, maxf(local.z, _LEAST_ALONG)).normalized()
+			return _push_along(skeleton, gun, to_here, butt_pad, butt_depth, butt_margin, move)
+	var deepest_of_all := 0.0
 	var to_gun := gun.affine_inverse() * to_here
+	var wide := butt_pad.x * 0.5 + butt_margin
+	var high := butt_pad.y * 0.5 + butt_margin
+	var stock := AABB(
+		Vector3(-wide, -high, -butt_margin),
+		Vector3(wide * 2.0, high * 2.0, butt_depth + butt_margin)
+	)
+	for bone in _torso_bones.size():
+		var pose := to_gun * HandPoseModifier.global_pose(skeleton, _torso_bones[bone])
+		var deepest := 0.0
+		if (pose * _torso_boxes[bone]).intersects(stock):
+			for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
+				if not (pose * _skin_boxes[group]).intersects(stock):
+					continue
+				for index in range(_skin_starts[group], _skin_starts[group + 1]):
+					var at := pose * _skin_points[index]
+					if at.z > -butt_margin and at.z < butt_depth and absf(at.x) < wide:
+						if absf(at.y) < high:
+							deepest = maxf(deepest, at.z + butt_margin)
+		deepest_of_all = maxf(deepest_of_all, deepest)
+	return deepest_of_all
+
+
+# The push along `move` (up the gun and along its barrel, in the gun's space): each point of the
+# skin near the stock forbids the moves that leave it inside the stock, one open run (low, high),
+# and the push is the least move forward no run forbids, so the skin ahead of the stock that the
+# move brings back along it counts too.
+func _push_along(
+	skeleton: Skeleton3D,
+	gun: Transform3D,
+	to_here: Transform3D,
+	butt_pad: Vector2,
+	butt_depth: float,
+	butt_margin: float,
+	move: Vector2
+) -> float:
+	var to_gun := gun.affine_inverse() * to_here
+	var wide := butt_pad.x * 0.5 + butt_margin
+	var high := butt_pad.y * 0.5 + butt_margin
+	var rise := absf(move.x) * _PUSH_MOST
+	var near := AABB(
+		Vector3(-wide, -high - rise, -butt_margin),
+		Vector3(wide * 2.0, (high + rise) * 2.0, butt_depth + butt_margin + _PUSH_MOST)
+	)
 	var runs := PackedVector2Array()
 	for bone in _torso_bones.size():
 		var pose := to_gun * HandPoseModifier.global_pose(skeleton, _torso_bones[bone])
-		if not (pose * _torso_boxes[bone]).intersects(reach):
+		if not (pose * _torso_boxes[bone]).intersects(near):
 			continue
 		for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
-			if not (pose * _skin_boxes[group]).intersects(reach):
+			if not (pose * _skin_boxes[group]).intersects(near):
 				continue
 			for index in range(_skin_starts[group], _skin_starts[group + 1]):
 				var at := pose * _skin_points[index]
-				if reach.has_point(at):
-					_add_runs(runs, at, slices, butt_margin, move)
-	if runs.is_empty():
-		return 0.0
+				if not near.has_point(at) or absf(at.x) >= wide:
+					continue
+				# Moved by `d` the point is at `at.y - d * move.x` up and `at.z - d * move.y` along.
+				var one := (at.y - high) / move.x
+				var other := (at.y + high) / move.x
+				var low := maxf((at.z - butt_depth) / move.y, minf(one, other))
+				var top := minf((at.z + butt_margin) / move.y, maxf(one, other))
+				if top > maxf(low, 0.0):
+					runs.append(Vector2(low, top))
 	runs.sort()
 	var pushed := 0.0
 	for run in runs:
@@ -310,33 +259,3 @@ func push(
 			break
 		pushed = maxf(pushed, run.y)
 	return pushed
-
-
-# Adds the moves `d` (along `move`, in the gun's space: up the gun, along the barrel) that leave
-# the point `at` (in the butt's space) inside a slice of the stock that covers it: the point is
-# then at `at.y - d * move.x` up and `at.z - d * move.y` along, the first slice reaching back
-# `margin` behind the butt. One open run (low, high) for each slice, kept when it forbids a move
-# forward.
-static func _add_runs(
-	runs: PackedVector2Array, at: Vector3, slices: PackedVector4Array, margin: float, move: Vector2
-) -> void:
-	for slice in slices.size():
-		var box := slices[slice]
-		if at.x <= box.x or at.x >= box.y:
-			continue
-		var from := slice * _STOCK_STEP if slice > 0 else -margin
-		var low := (at.z - (slice + 1) * _STOCK_STEP) / move.y
-		var high := (at.z - from) / move.y
-		if absf(move.x) > 1e-6:
-			var one := (at.y - box.w) / move.x
-			var other := (at.y - box.z) / move.x
-			low = maxf(low, minf(one, other))
-			high = minf(high, maxf(one, other))
-		elif at.y <= box.z or at.y >= box.w:
-			continue
-		if high > maxf(low, 0.0):
-			runs.append(Vector2(low, high))
-
-
-static func _widen(box: Vector4, at: Vector3) -> Vector4:
-	return Vector4(minf(box.x, at.x), maxf(box.y, at.x), minf(box.z, at.y), maxf(box.w, at.y))

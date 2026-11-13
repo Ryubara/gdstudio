@@ -106,10 +106,6 @@ const _PUSH_STEP := 0.003
 ## level out of the pocket; 0: along the barrel). Along the barrel, a steep aim down slid the butt
 ## down the chest and 10 cm off the shoulder before it was clear (kit #1346).
 @export_range(0.0, 1.0, 0.01) var push_level := 1.0
-## The rifle's mesh whose own shape is kept off the skin over `butt_depth` (kit #1346): its
-## stock rises from the pad's toe to the buffer tube, so at a steep aim down the chest under it
-## leaves the butt on the shoulder. Empty: a box `butt_pad` across.
-@export var stock_mesh: NodePath
 ## The torso's skin is thinned to one point in each cell this size.
 @export_range(0.005, 0.1, 0.005, "suffix:m") var skin_spacing := 0.03
 ## The most the left collarbone turns to bring the shoulder toward the hand guard when the arm
@@ -591,6 +587,12 @@ func _pull(
 	return clampf(-along - reach, 0.0, pull_limit)
 
 
+## How far the butt went from the pocket to the skin in the last frame it was measured, in metres
+## (along `push_level`'s way).
+func butt_push() -> float:
+	return _push
+
+
 ## The weight of the hold on the arms and the chest: with the arms.
 func weight() -> float:
 	return _reach
@@ -910,11 +912,6 @@ func _find_parts() -> void:
 	_mag = get_node_or_null(magazine) as Node3D
 	_mag_far = get_node_or_null(magazine_far) as Node3D
 	_hand_at_rest = false
-	var stock := get_node_or_null(stock_mesh) as MeshInstance3D
-	if stock != null and _pivot != null and _pivot.is_ancestor_of(stock):
-		_skin.measure_stock(stock.mesh, _between(stock, _pivot))
-	else:
-		_skin.measure_stock(null, Transform3D.IDENTITY)
 
 
 func _find_bones() -> void:
