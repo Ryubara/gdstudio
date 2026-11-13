@@ -50,8 +50,10 @@ const WINDOWS := 3
 ## differently on each of GitHub's processor models (one model's runs agree within a few
 ## percent, the models 1.5 times apart), and Linux and Windows build it to different speeds.
 ## Rulers of animation, physics and spread-out memory work were timed beside the loop over 100 CI
-## runs and none followed the frame better (third-person/character.md#parts-cost). Linux: see
-## the table there; Windows: desktop runs with other agents' Godot processes running.
+## runs and none followed the frame better (third-person/character.md#parts-cost). Linux: 150
+## soak runs on five processor models read 1.26 to 1.78 (one window of 450 read 2.24), twice as
+## slow 2.54 at the least; Windows: 10 desktop runs beside 9 to 11 other Godot processes, 1.54 to
+## 1.83, twice as slow 3.07 at the least.
 const FRAME_RATIO_LIMITS := {"Linux": 2.2, "Windows": 2.4}
 ## How many times its work the teeth case's frame costs.
 const SLOW_FACTOR := 2.0
