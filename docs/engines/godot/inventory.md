@@ -131,6 +131,11 @@ its 0, until it is assigned again or cleared. An item sits in one place: assigni
   runs `Character.hands_busy` is on (no aim, no shot) and another press uses nothing. Cut short, with nothing used, by
   sprinting, fire, a new aim press, jump, melee, reload, a weapon switch, lying down or getting up, a hit that takes
   health, and death; each is a switch on `ItemUse` (Cut short by). An item with no `use_time` works at the press.
+  Cost (desktop, Godot 4.7.2, `ItemUse` and `CharacterAnimation` timed in a probe): an idle `ItemUse` 0.5 us a tick,
+  its rules 2 to 3 us a tick during a use, a start and a cut together about 150 us (the right arm's filter paths and
+  the holds found by type), once a press; the chest's `UseTurn` returns at once between actions; the sound is decoded
+  to PCM once when the player is made. An ordinary action clip (a hit) stays at under 1 us: only an upper-body action,
+  or the first clip after one, touches the filter, which cost 76 us on every hit before it was skipped.
 - **Online:** the bag is not on the wire yet, so neither is the hotbar. `NetClient` turns `authoritative` off on its
   player's hotbar, and a use is refused there: the health it would change is the server's. The weapon places switch by
   ordinary weapon presses (`request_weapon`), so a server sees nothing new and the lit slot follows the predicted

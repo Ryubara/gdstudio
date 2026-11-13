@@ -465,8 +465,10 @@ func play_clip(clip: StringName, duration: float = 0.0, upper_body := false) -> 
 	if tree == null or not animation_player.has_animation(clip):
 		push_warning("CharacterAnimation: no clip called %s" % clip)
 		return
+	# Only an upper-body action, or the first one after it, touches the filter (80 us a call).
+	if upper_body or _upper_only:
+		UseLayer.begin(self, _bone_paths([UseLayer.KEPT_ARM]), clip, duration, upper_body)
 	_upper_only = upper_body
-	UseLayer.begin(self, _bone_paths([UseLayer.KEPT_ARM]), clip, duration, upper_body)
 	_action_clip = clip
 	_action_clip_node.animation = clip
 	var length := animation_player.get_animation(clip).length
