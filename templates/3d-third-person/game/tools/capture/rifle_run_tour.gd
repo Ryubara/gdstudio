@@ -9,6 +9,9 @@
 ## model at the start; the female is the default):
 ## `gds capture frames --project game --scene res://tools/capture/rifle_run_tour.tscn --seconds
 ## 15 --fps 20`
+## `RUN_STAGES=directions` films the sprint in every direction from the same camera instead (kit
+## #1340): ahead, back towards the camera, to each side, on the diagonals and the turns between
+## them, where the rifle at the low ready meets the front thigh, then a reload on the sprint.
 ## It prints a `STAGE` line as each stage starts. It lives in tools/, which the export leaves
 ## out, and nothing in the game refers to it.
 extends Node
@@ -48,6 +51,31 @@ const STAGES: Array[Dictionary] = [
 	{"name": "run after the slide", "hold": [&"move_forward"], "seconds": 1.6},
 ]
 
+## The sprint in each direction with the camera held looking ahead (`RUN_STAGES=directions`).
+const DIRECTION_STAGES: Array[Dictionary] = [
+	{"name": "draw", "hold": [], "seconds": 1.0},
+	{"name": "sprint ahead", "hold": [&"move_forward", &"sprint"], "seconds": 1.6},
+	{"name": "sprint back", "hold": [&"move_back", &"sprint"], "seconds": 1.6},
+	{"name": "sprint left", "hold": [&"move_left", &"sprint"], "seconds": 1.6},
+	{"name": "sprint right", "hold": [&"move_right", &"sprint"], "seconds": 1.6},
+	{
+		"name": "sprint ahead right",
+		"hold": [&"move_forward", &"move_right", &"sprint"],
+		"seconds": 1.6
+	},
+	{"name": "sprint back left", "hold": [&"move_back", &"move_left", &"sprint"], "seconds": 1.6},
+	{"name": "sprint ahead again", "hold": [&"move_forward", &"sprint"], "seconds": 1.6},
+	{"name": "burst", "hold": [&"fire"], "seconds": 0.5},
+	{
+		"name": "sprint and reload",
+		"hold": [&"move_forward", &"sprint"],
+		"seconds": 2.8,
+		"taps": {&"reload": [0.1]}
+	},
+	{"name": "stop", "hold": [], "seconds": 0.8},
+]
+
+var _stages: Array[Dictionary] = STAGES
 var _index := -1
 var _clock := 0.0
 var _held: Array[StringName] = []
@@ -58,6 +86,8 @@ var _side: Camera3D
 
 
 func _ready() -> void:
+	if OS.get_environment("RUN_STAGES") == "directions":
+		_stages = DIRECTION_STAGES
 	var floor_block := (load("res://world/blocks/proto_block.tscn") as PackedScene).instantiate()
 	floor_block.size = FLOOR_SIZE
 	floor_block.position = Vector3(0.0, START.y - 0.6, 0.0)
@@ -97,16 +127,16 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_rig.orbit(Vector2(-clampf(wrapf(0.0 - _rig.yaw, -180.0, 180.0), -6.0, 6.0), 0.0))
 	_rig.orbit(Vector2(0.0, clampf(PITCH - _rig.pitch, -2.0, 2.0)))
-	if _index >= STAGES.size():
+	if _index >= _stages.size():
 		return
-	if _index < 0 or _clock >= float(STAGES[_index]["seconds"]):
+	if _index < 0 or _clock >= float(_stages[_index]["seconds"]):
 		_index += 1
 		_clock = 0.0
-		if _index >= STAGES.size():
+		if _index >= _stages.size():
 			_finish()
 			return
-		print("STAGE ", STAGES[_index]["name"])
-	var stage := STAGES[_index]
+		print("STAGE ", _stages[_index]["name"])
+	var stage := _stages[_index]
 	_clock += delta
 	var actions: Array[StringName] = []
 	actions.append_array(stage["hold"])
