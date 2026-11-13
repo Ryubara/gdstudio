@@ -27,7 +27,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 RUN_TIMEOUT_S = 300.0
-RUNS = ["no_hold", "carried", "aimed", "racked", "rifle", "rifle_low", "rifle_reload", "no_hold_far", "rifle_far"]
+RUNS = ["no_hold", "carried", "aimed", "racked", "rifle", "rifle_low", "rifle_carry", "rifle_reload", "no_hold_far", "rifle_far"]
 
 
 class IsolatedHandler(http.server.SimpleHTTPRequestHandler):

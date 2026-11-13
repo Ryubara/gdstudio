@@ -129,7 +129,11 @@ are named as such.
   own trunk under the rifle's idle leaned 13.2 degrees (female) and 13.0 (male) on average and the sprint's 14.2 and
   14.0 (the unarmed run 7.8 and 7.5); with the carry both read 8.9 to 9.3, the stride's rise and fall 0.4 to 1.0
   degrees (0.5 to 0.7 before; holding each frame's lean at the limit left it at 0). Standing, the rifle's idle leans
-  10 degrees by itself and keeps it: the carry is for running.
+  10 degrees by itself and keeps it: the carry is for running. Its poses come from the spine's of the update (the
+  stance's chain, kit #1347): in the web bench (`hold_cost.gd`'s `rifle_carry`, the low ready with the carry all the
+  way and `carry_lean_limit` 0) it costs about 6 to 7 microseconds a running character a frame over the low ready
+  (median of three paired rounds, both bodies); off, it is three calls (about 0.2 microseconds). A single turn at the
+  last frame's rate in place of the second pass read the same within the busy machine's noise, so the second pass stays.
 - **The arms** are a `HoldArm` each (the pistol's own reach, given the hand's place in the skeleton's space by the
   stance in the same update), toward `RightHandTarget` and `LeftHandTarget` on the rifle, the elbows toward
   `RightPole` and `LeftPole`. Both are on their places in every update of every state (0.0 mm in 110 poses of both
