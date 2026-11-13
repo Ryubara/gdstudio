@@ -211,3 +211,20 @@ func stop_deceleration(speed: float) -> float:
 	if speed > walk_speed:
 		return run_stop_deceleration
 	return walk_stop_deceleration
+
+
+## The ground a body on its feet covers from ground speed `speed` to rest with the stick let go,
+## by the stop decelerations (m): what an AI's navigator leaves itself to stop on its point.
+func stop_distance(speed: float) -> float:
+	var bands: Array[Array] = [
+		[run_speed, sprint_stop_deceleration],
+		[walk_speed, run_stop_deceleration],
+		[0.0, walk_stop_deceleration],
+	]
+	var distance := 0.0
+	var top := maxf(speed, 0.0)
+	for band in bands:
+		var bottom: float = minf(band[0], top)
+		distance += (top * top - bottom * bottom) / (2.0 * maxf(band[1], 0.01))
+		top = bottom
+	return distance

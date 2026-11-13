@@ -83,6 +83,7 @@ func _stop(run: Array) -> Dictionary:
 	let_go.yaw = 0.0
 	var found := {"clip": &"", "slide": 0.0, "clip_time": 0.0, "speed": _player.ground_speed()}
 	for tick in roundi(LONGEST / step):
+		found.seconds = (tick + 1) * step
 		await get_tree().physics_frame
 		_player.step(let_go, step)
 		_animation.advance(step)
@@ -127,12 +128,13 @@ func _stop(run: Array) -> Dictionary:
 func _line(run: Array, found: Dictionary) -> String:
 	return (
 		(
-			"%s stop from %.2f m/s: %s, covered %.3f m of the clip's %.3f m, the clip at %.3f m"
+			"%s stop from %.2f m/s in %.2f s: %s, covered %.3f m of the clip's %.3f m, the clip at %.3f m"
 			+ " of it when the body came to rest, a planted foot slid %.1f mm (%s)"
 		)
 		% [
 			run[0],
 			found.speed,
+			found.seconds,
 			found.clip,
 			found.covered,
 			found.travel,
