@@ -50,7 +50,8 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   most `flinch_most_speed`), shown at `flinch_strength` through the simulator's `influence`, held for `flinch_hold` of
   `flinch_time` and blended back to the clip, then the bones stop. The bodies it leaves out are put on the clip's pose
   in the server, at rest and off every layer, and the ragdoll's extra joints go for the flinch ([A partial
-  ragdoll](ragdoll.md#partial)). A death during a flinch hands the whole skeleton to the ragdoll. The marks shots left
+  ragdoll](ragdoll.md#partial)); `RagdollLengths` keeps its bones, and the get-up's, at their rest lengths (gdstudio
+  #1338). A death during a flinch hands the whole skeleton to the ragdoll. The marks shots left
   on the bones go when the body gets up (`Impacts.clear_marks_on(simulator)`).
 
 - **Approach:** Push a body by a speed, not only by the shot's strength: the kill's and the lying body's push land on

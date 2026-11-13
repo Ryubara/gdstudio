@@ -273,6 +273,34 @@ def test_the_label_or_the_hold_taken_off_named_numbers_approves(workspace, text)
     assert run(workspace, "gh issue edit 9 --remove-label S-hold", path) == ""
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "I approve all of #5 through #9",
+        "Approved: 6-9.",
+        "Yes to #3 thru #8",
+        "For #7, the B variant looks good.",
+        "#7 is great, the clips feel right.",
+    ],
+)
+def test_a_range_or_a_plain_good_names_and_approves_the_number(workspace, text):
+    path = transcript(workspace, said("Waiting on your picks: #5 to #9."), typed(text))
+    assert run(workspace, LIFT, path) == ""
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "I don't like the jumps in 7. I approve all of #5 through #9.",
+        "Approved: 1 to 100.",  # a run longer than 30 names nothing in it
+        "Approved: #8 through #12.",
+    ],
+)
+def test_a_range_keeps_the_veto_and_its_bounds(workspace, text):
+    path = transcript(workspace, said("Waiting on your picks: #5 to #12."), typed(text))
+    assert run(workspace, LIFT, path) != ""
+
+
 @pytest.mark.parametrize("text", ["hold off on 7", "Hold off with 7 for now.", "yes, but hold off on 7"])
 def test_hold_off_as_a_verb_still_refuses(workspace, text):
     path = transcript(workspace, said("Lift S-hold on #7?"), typed(text))

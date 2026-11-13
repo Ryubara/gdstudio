@@ -309,6 +309,18 @@ const FREE_ARM_BONE := &"clavicle_l"
 	set(value):
 		prone_reload_clip = value
 		emit_changed()
+## The rack of the slide after a reload of an empty magazine (kit #1337; the pistol's
+## `pistol/Pistol_Rack`): played on the upper body at its own speed as the reload clip ends, its
+## first frame the reload's last. It is cosmetic: the rounds go in at the end of `reload_time`, and
+## a shot or a switch cuts it short. A reload lying down, or with rounds left, has none. Empty:
+## none.
+@export var rack_clip: StringName = &"":
+	set(value):
+		rack_clip = value
+		emit_changed()
+## The share of `rack_clip` at which the reload's last sound (the slide's) plays, where the hand
+## lets the slide go; a reload with a rack leaves that sound to it.
+@export_range(0.0, 1.0, 0.001) var rack_sound_at := 0.5
 
 @export_group("Sound")
 ## A shot (an `AudioStreamRandomizer` gives a spread of takes).

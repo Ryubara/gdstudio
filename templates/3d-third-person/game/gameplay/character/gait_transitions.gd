@@ -123,10 +123,22 @@ func step(
 		return
 	if playback.get_current_node() != CharacterAnimation.GROUND or animation.is_acting():
 		return
+	if not on_foot(animation.character):
+		return
 	var picked := pick(animation, blend)
 	if picked.is_empty():
 		return
 	_begin(animation, picked, playback)
+
+
+## True while the body stands, walks or runs: a push, a vault or a hit begins on a frame the
+## machine is still in the ground state, and a start picked then would take the body from it.
+static func on_foot(body: Character) -> bool:
+	return (
+		body.state == Character.State.IDLE
+		or body.state == Character.State.WALK
+		or body.state == Character.State.RUN
+	)
 
 
 ## The transition the body calls for now, as `{kind, clip}`, or empty: what `step()` would start.
@@ -242,6 +254,9 @@ func _go_on(
 		and _time > 0.0
 	):
 		_end()  # Something else took the body (a jump, a hit's state).
+		return
+	if not on_foot(body):
+		_hand_over(animation, blend, playback, true)  # A state the machine has no node for (a vault).
 		return
 	var goal := body.goal_speed
 	var standing := settings.standing_speed

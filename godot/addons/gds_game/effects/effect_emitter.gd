@@ -101,6 +101,8 @@ var _slots: Array[EffectSlot] = []
 var _warm_queue: Array[EffectDef] = []
 var _warm_materials: Array[Material] = []
 var _warming := true
+# The slot that last lit each `light_alone` effect, so a new play switches only that one off.
+var _lit_alone := {}
 
 
 ## The emitter of the level `from` is in (the one in its viewport, else the first in the group),
@@ -268,6 +270,10 @@ func _start(
 	var slot := _take(effect)
 	if slot == null:
 		return null
+	if effect.light_alone:
+		var before := _lit_alone.get(effect) as EffectSlot
+		if before != null and before != slot and before.effect == effect and before.light_on():
+			before.end_light()
 	var with_light := lights_enabled and light_count() < max_lights
 	slot.start(
 		effect,
@@ -278,6 +284,8 @@ func _start(
 		with_sound and sounds_enabled,
 		with_light
 	)
+	if effect.light_alone and slot.light_on():
+		_lit_alone[effect] = slot
 	set_process(true)
 	played.emit(effect, slot)
 	return slot
@@ -620,5 +628,8 @@ func _trim() -> void:
 
 func _drop(slot: EffectSlot) -> void:
 	slot.stop(true)
+	for effect: EffectDef in _lit_alone.keys():
+		if _lit_alone[effect] == slot:
+			_lit_alone.erase(effect)
 	_slots.erase(slot)
 	slot.queue_free()

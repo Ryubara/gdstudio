@@ -61,17 +61,24 @@ func part() -> Part:
 
 
 ## Sets the filter of `tree`'s action one-shot for a hit that plays (`hit`) in body state `state`,
-## with a weapon held (`armed`) or not, and turns it off for every other action: called when a hit
-## lands and every frame after, so a body that crouches, stands up or puts its weapon away during
-## the stun gets the share of the clip its new state takes. The paths are written only on a change.
-func follow(tree: AnimationTree, hit: bool, state: StringName, armed: bool) -> void:
+## with a weapon held (`armed`) or not, or for an upper-body action (`upper_body`, `UseLayer`), and
+## turns it off for every other action: called when a hit lands and every frame after, so a body
+## that crouches, stands up or puts its weapon away during the stun gets the share of the clip its
+## new state takes. The paths are written only on a change.
+func follow(
+	tree: AnimationTree, hit: bool, state: StringName, armed: bool, upper_body: bool = false
+) -> void:
 	var root := tree.tree_root as AnimationNodeBlendTree if tree != null else null
 	if root == null or not root.has_node(&"Action"):
 		return
 	var action := root.get_node(&"Action") as AnimationNodeOneShot
 	if action == null:
 		return
-	var wanted := part_for(state, armed) if hit else Part.WHOLE
+	var wanted := Part.WHOLE
+	if hit:
+		wanted = part_for(state, armed)
+	elif upper_body:
+		wanted = Part.UPPER
 	if wanted == _part and action.filter_enabled == (wanted != Part.WHOLE):
 		return
 	_part = wanted

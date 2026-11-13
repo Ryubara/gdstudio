@@ -135,6 +135,12 @@ one costs only its slider. The sounds are on [Sound effects](../../gamedev/audio
   a change; the whole action tour differed by -44 dB RMS only because its shots vary from run to run (its first 8 s),
   while its walking differed by -70 to -83 dB (16-bit rounding) and a crowd of walkers by -65 dB. **Seen:** gdstudio
   #1023, 2026-11-10.
+- **Approach:** Prove a new sound player in a Movie Maker mix of the scene where it plays (a null test against the
+  same capture without it), never by its `playing` flag alone, and parent an `AudioStreamPlayer3D` to the 3D node it
+  follows. **Watch out for:** the bandage's `AudioStreamPlayer3D` was the child of a plain `Node` (`ItemUse`), so it
+  sat at the world's origin: the test that asserted `playing` passed, and a capture 300 m above the map had it 30 to
+  50 dB under the wind; under the body it peaks at -12 dBFS. **Seen:** gdstudio #1342, 2026-11-12 (fix: the player is
+  `UseSound` under the body, and the test checks its distance to the body).
 
 ## Layered gunshots and event-timed sounds {#layered-gunshots-and-event-timed-sounds}
 
