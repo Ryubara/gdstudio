@@ -84,6 +84,11 @@ minutes). How it is started decides what it can build.
   Godot reports the real error only when that script is loaded on its own: its users get the generic `Cannot infer the
   type of "fight" variable` and nothing names the file that is wrong (a new method `_order` had the name of an
   existing member variable). **Seen:** Deadnight #641, 2026-11-03 (fix: the method got another name).
+- **Approach:** Count the `SCRIPT ERROR` lines of a probe's log before reading one number from it, also when the run
+  is a Movie Maker capture whose output goes to a file. **Watch out for:** a sound level probe printed three levels
+  that did not change with the volume: a loop variable in the script under test shadowed a method, the class did not
+  compile, and the capture ran a game in which the use never started; the grep for the probe's own lines showed none
+  of it. **Seen:** gdstudio #1342, 2026-11-12.
 
 ## An engine error from a player's own file {#engine-errors-from-input}
 

@@ -30,6 +30,11 @@ The 3D Third Person follow camera, the map components, the minimap and the HUD. 
   was. The spring arm keeps the lens out of a wall (in the north wall test the arm hit at 0.76 m of its 4.4 m and the
   lens stayed inside).
   **Seen:** gdstudio #821, 2026-11-08.
+- **Approach:** Keep the view itself out of walls with `PlayerCamera`'s lens guard, which runs after the host each
+  physics tick: inspector Walls group `wall_mask` (World and Props), `wall_shape` (empty: a ray), `wall_margin` 0.25 m
+  and `lens_return_speed` 4 shares of the shoulder offset a second (how fast the view slides back to the shoulder once
+  the wall is gone). **Watch out for:** the arm alone left the view up to 0.30 m inside a wall beside the player,
+  because the shoulder offset is not cast ([Walls](../camera.md#walls)). **Seen:** gdstudio #1344, 2026-11-12.
 - The addon's updater window and network request are off in the template (`phantom_camera/updater/updater_mode=0`); a
   game that takes a new release replaces the folder and edits its licence entry. The addon is committed without its
   `examples/` and C# scripts, and every hook of the game's `pre-commit` and the kit's skips it (the addon's files have
@@ -110,7 +115,10 @@ player's `Hotbar` ([The hotbar](../inventory.md#hotbar)). A place shows the firs
 `HudSlot`, `HudSlotLit`, `HudSlotEmpty` (with an `icon_color` each), `HudSlotKey` and `HudSlotKeyLit`. On a touch screen
 each place is a place a finger presses (`touch_zones()`, through `Hud.touch_zones()` to the touch layer), and every
 place is at least 44 CSS pixels (84 units: the HUD's phone scale makes them 45 on an 844 x 390 and a 667 x 375 page).
-In the inspector: on both rows Keys (`action_format`, `first_key_number`), Parts (`row`, `cell_scene`) and Phone
+Above the hotbar `HudUse` (`hud_use.tscn`) shows an item being used: its icon, its name and a bar that fills over the
+use, green once the item has worked, red for a moment when the use is cut short ([A use that takes
+time](../inventory.md#hotbar)). In the inspector: on both rows Keys (`action_format`, `first_key_number`), Parts
+(`row`, `cell_scene`) and Phone
 (`touch_region`: the slots `BottomLeft`, the hotbar `TopLeft`); `HudWeaponSlots` Places (`place_count` 2);
 `HudHotbar` Look (`flash_time` 0.3 s, `flash_scale` 1.15) and Places (`editor_places` 4, the editor's count; the game's
 is the `Hotbar`'s); on `HudSlot` Look (`panel_variations`, `key_variation`, `key_variation_lit`, `spent_alpha` 0.35) and

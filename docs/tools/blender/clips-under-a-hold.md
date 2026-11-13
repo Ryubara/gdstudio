@@ -46,7 +46,25 @@ are the body under that.
 - **Measure the weapon against the body too.** The limb check knows limbs; the build also casts the head's and the
   chest's skin against the rifle's mesh where the hold has it, and measures what the hold does with no clip of
   yours under it, as the floor to hold a clip to.
+- **A clip that carries a two-hand weapon (a rifle blow) keys the weapon, not the wrists.** The melee build's rifle
+  blows (`assets/animation/melee/build_melee.py`, `RIFLE_BLOWS`, kit #1288) key per frame the firing hand bone's
+  place, the way the muzzle points and the way the weapon's top faces (`Clip.rifle`); both hand bones then go on
+  the hold's places on the weapon (`RightHandTarget`, `LeftHandTarget`) by the two-bone reach, each elbow swung by
+  a keyed angle (`Clip.elbow`). Start and end on the frame the game plays under it (`Rifle_Idle` frame 0); measure
+  the other body with its own hold on the same keys (his fingers, his left arm to his own place keeping the clip's
+  elbow); check the weapon in the body with both hands left out, the support hand off its place, and the wrists.
+  In the game the hold lets the clip's firing hand carry the weapon while the clip holds the body (`HoldBlow`,
+  [melee](../../engines/godot/third-person/melee.md#melee)), so the hold's own turns must ease off by the clip's
+  share.
 
+- **Approach:** Cant a two-hand weapon's top away from a swing (about 20 degrees to its right for a swing to the
+  left) so its stock clears the firing forearm. **Watch out for:** the firing hand is fixed to the grip, so the wrist
+  follows the weapon: any turn of the rifle about the forearm put the stock through the forearm, which runs under
+  it, and swinging the elbow out did not help (near a straight arm its circle is small, and outward it went into the
+  stock). **Seen:** gdstudio #1288, 2026-11-12 (`RIFLE_BLOWS`; the rifle in the body 4.1 mm at most).
+- **Approach:** Key an elbow as a swivel angle about the shoulder-to-hand line (`Clip.elbow`), not as a nudge to the
+  elbow's aim point. **Watch out for:** a 0.5 m nudge added to the aim point moved the elbow 15 mm, since the
+  two-bone reach only reads the aim point's direction off that line. **Seen:** gdstudio #1288, 2026-11-12.
 - **Approach:** Give a pose search limits a body has (so many degrees of lean, of neck) as steep costs, weigh the
   target against them, and read the solved angles before the picture. **Watch out for:** a free least-squares put
   the eye on the sight line with the neck 88 degrees down and the head 70 back, and with the limits off the trunk
@@ -70,7 +88,13 @@ are the body under that.
   `test_character_clips.gd` counts every clip of every library (90 became 96) and `test_weapon.gd` wants a pinned
   default for every `WeaponDef` export (`shoot_additive`). And a pull request stacked on another carries that one's
   commits: its `Model:` line names every model in their trailers. **Seen:** gdstudio #1267, 2026-11-11 (the
-  `template (3d-third-person)` and `commits` checks failed on the first push).
+  `template (3d-third-person)` and `commits` checks failed on the first push); gdstudio #1346, 2026-11-12
+  (`test_rifle_hold_pins.gd` pins every `TwoHandHold` export: `push_level` was missing, found by the full run).
+- **Approach:** When a hold's code moves into a file of its own, point the build's readers (its numbers, its
+  constants) at that file in the same change, and run the build once, since no check runs it. **Watch out for:**
+  `TorsoSkin` left `two_hand_hold.gd` and the build kept looking there for `_SKIN_REGION`, so it stopped at its
+  start on main and nobody saw until the next hold change needed it. **Seen:** gdstudio #1346, 2026-11-12 (fix: the
+  build reads `torso_skin.gd` too; the clips rebuilt, the same bytes twice).
 - **Approach:** When the idle under a clip or the bodies that play it change, rebuild the clip over the new idle on
   the new bodies and run the test that compares the clip's own hands with the hold's first. **Watch out for:** the
   clips were keyed over the library's `Idle` on the Quaternius female; the template then moved to its own idle and

@@ -38,6 +38,13 @@ extends Resource
 @export_range(0.1, 30.0, 0.1, "or_greater", "suffix:m") var light_range := 4.0
 ## How long the flash of light lasts; it fades out over this time.
 @export_range(0.0, 2.0, 0.005, "suffix:s") var light_time := 0.06
+## How fast the light falls off with distance (the light's `omni_attenuation`): 1 is Godot's
+## default, below 1 keeps a surface right at the light from getting far brighter than one a metre
+## away (a muzzle pressed to a wall), above 1 keeps the light close to where it starts.
+@export_exp_easing("attenuation") var light_attenuation := 1.0
+## On: a new play of this effect takes the light over from the plays of it still lit, so a fast
+## weapon's flashes never stack two lights on the same wall.
+@export var light_alone := false
 
 @export_group("Timing")
 ## How long the effect holds its place in the pool, and then it is cut. Zero waits for the

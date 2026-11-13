@@ -104,6 +104,13 @@ blend takes it to zero.
   dropped to 0.28 to 0.41 m from the head, a first-person view. Not the wall (the open floor did it too); at rest the
   origin is inside the capsule, where a ray ignores the body it starts in. The addon excludes `follow_target`, a
   `Node3D` and no collision object, so it excludes nothing. **Seen:** gdstudio #856, 2026-11-08.
+- **Approach:** Guard the point the picture is drawn from, not the Camera node: each physics tick after the host moves
+  the node, sweep a ball the size of the near plane's corners from the arm's start to the node, from the node along the
+  H and V Offset, and straight from the start to that eye; use the share of the offset that fits, dropped at once and
+  grown back slowly (`CameraLensGuard`, 5 to 10 microseconds a tick). **Watch out for:** the arm's ray left the node 2
+  mm from a grazed wall and the uncast 0.5 m shoulder offset put the view up to 0.30 m inside it at many yaws; a fast
+  turn only swept through them. From inside a box the culled faces show the far side, so read clearances, not only
+  frames. **Seen:** gdstudio #1344, 2026-11-12 (`test_camera_fast_turn.gd`).
 
 ## Keeping the aim through a shoulder swap {#shoulder-swap-aim}
 

@@ -34,6 +34,25 @@ func after_test() -> void:
 		InputMap.erase_action(action)
 	_added.clear()
 	Input.emulate_mouse_from_touch = true
+	# Nothing stays down for the suites after (the left button is a game's `fire`: kit #1357).
+	_lift_engine_touch(Vector2.ZERO)
+	for action in InputMap.get_actions():
+		Input.action_release(action)
+
+
+# Lifts finger 0 and the left click mouse emulation made of it, through the engine's input path.
+func _lift_engine_touch(at: Vector2) -> void:
+	var lift := InputEventScreenTouch.new()
+	lift.index = 0
+	lift.position = at
+	lift.pressed = false
+	Input.parse_input_event(lift)
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.position = at
+	click.pressed = false
+	Input.parse_input_event(click)
+	Input.flush_buffered_events()
 
 
 func _down(index: int, at: Vector2) -> void:
@@ -318,3 +337,7 @@ func test_a_touch_sent_through_the_engine_reaches_the_layer() -> void:
 	Input.flush_buffered_events()
 	await get_tree().process_frame
 	assert_bool(_touch.is_shown()).is_true()
+	# The engine also sent the finger as a left click (mouse emulation was on when it landed), and
+	# the layer turned emulation off, so lifting the finger sends no release: let go of both here.
+	_lift_engine_touch(event.position)
+	assert_bool(Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)).is_false()

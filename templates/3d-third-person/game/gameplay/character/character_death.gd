@@ -23,6 +23,7 @@ static func die(body: Character, shot: HitRecord) -> void:
 	body._fire_buffer = 0.0
 	if body.weapon != null:
 		body.weapon.cancel_reload()
+		body.weapon.bursting = false
 	body._action_lock = 0.0
 	body._land_timer = 0.0
 	body._jump_buffer = 0.0

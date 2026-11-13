@@ -26,10 +26,12 @@ if emitter != null:
   `GPUParticles3D` nodes (the root may be one; every one is restarted and the effect lasts as long as the longest).
   Sound: `sound` (an `AudioStreamRandomizer` gives variants), `sound_volume_db`, `sound_bus` (`SFX`),
   `sound_max_distance`. Light: `light_energy` (0 makes none), `light_color`, `light_range`, `light_time` (it fades out
-  over it). Timing: `duration` (0 waits for the parts to end by themselves; a number cuts the effect) and
-  `max_instances` (4: how many show at once, a newer one takes the oldest's place). Placement: `offset`,
-  `rotation_degrees` and `size` (the particles' scale and the light's reach). Every part is optional, and every number
-  is read when the effect plays, so a change while the game runs shows in the next play.
+  over it), `light_attenuation` (Godot's falloff, 1; below 1 for a light that can sit against a wall) and
+  `light_alone` (a new play takes the light over from the earlier plays of the same effect). Timing: `duration` (0
+  waits for the parts to end by themselves; a number cuts the effect) and `max_instances` (4: how many show at once, a
+  newer one takes the oldest's place). Placement: `offset`, `rotation_degrees` and `size` (the particles' scale and the
+  light's reach). Every part is optional, and every number is read when the effect plays, so a change while the game
+  runs shows in the next play.
 - **`EffectEmitter`, in the inspector.** `enabled`, `particles_enabled`, `sounds_enabled` and `lights_enabled` switch
   the whole level's effects; `max_effects` (24) and `web_max_effects` (12, used in the web build and on phones) cap the
   pool; `max_lights` (2) caps the flashes of light at once (past it an effect plays without its light: the
@@ -52,14 +54,17 @@ if emitter != null:
 - **The muzzle flash.** `WeaponDef.muzzle_flash` (the pistol's, `gameplay/weapon/muzzle_flash.tres`) is an `EffectDef`
   played on the `muzzle` marker for each shot: a star drawn by one shader on a `CPUParticles3D` quad
   (`assets/shaders/effects/flash_star.gdshader`: two flat colours, spikes, camera-facing, additive), a spray of eight
-  short sparks and a 2.5-energy warm light that lasts 0.06 s. `Weapon.muzzle_flash_enabled` switches it off for that
+  short sparks and a weak near-white light (0.3 energy, 2.5 m, attenuation 0.5, alone) that lasts 0.04 s
+  ([the flash's light](shot-feedback.md#flash-light)). `Weapon.muzzle_flash_enabled` switches it off for that
   weapon, the definition's `muzzle_flash_size` resizes it, and another weapon's definition points `muzzle_flash` at
   its own `EffectDef`. The flash stands at
   the muzzle's position and turns with it for as long as it lasts, and a scaled muzzle does not scale it.
 - **Tests and captures.** `tests/gameplay/test_effect_emitter.gd` (placement, following, ending), `test_effect_pool.gd`
   (the cap, reuse, the oldest cut, lights, switches, node counts), `test_effect_exports.gd` (the defaults and every
-  live change), `test_muzzle_flash.gd` and `test_muzzle_flash_in_the_map.gd`;
-  `tools/capture/muzzle_flash_tour.tscn` films the flash in slow motion with the flash on and then off, and
+  live change), `test_muzzle_flash.gd`, `test_muzzle_flash_light.gd` (the light's budget) and
+  `test_muzzle_flash_in_the_map.gd`;
+  `tools/capture/muzzle_flash_tour.tscn` films the flash in slow motion with the flash on and then off,
+  `tools/capture/muzzle_light_tour.tscn` measures what its light does to the screen by a wall and in the open, and
   `tools/bench/effects_cost.tscn` measures the cost.
 
 ## The warm-up {#warm-up}
