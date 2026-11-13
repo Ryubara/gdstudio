@@ -60,16 +60,16 @@ own, and both hands, the rack's hand on the slide among them, were solved again 
 
 What the rig cannot do, and where it differs from the taught grip:
 
-- **Two-handed, on the male body the trigger finger grazes the inside of the guard's front strut as it swings in** (on
-  kit #1213's seat, swept at every hundredth of its way: 1.9 mm deep at 0.68, over 1 mm from 0.66 to 0.80, the last
-  bone's tip on the strut's inner face near its lower corner). On the female body the way no longer touches the guard
-  (0.1 mm at most until 0.95, then 0.6 to 0.75 mm on the trigger itself as it arrives). Half-way the finger is drawn out
-  to the gun's right side, its middle bone 7 mm (female) and 16 mm (male) off the frame. Against the left hand it is
-  never more than 0.4 mm in (male, at the frame end of the way). One-handed the finger has a way of its own
-  ([one-handed](../../../engines/godot/third-person/one-handed.md#one-handed)). On kit #1001's seat the graze was 1.4 mm
-  (female) and 2.2 mm (male) from 0.69 to 0.81 of the way (kit #1273); on the earlier bodies the solved way crossed the
-  strut whole (3.7 mm, the most a point can read inside that 8 mm bar), and moving the strut 6, 12 and 18 mm forward did
-  not clear it (kit #1212); the guard is unchanged.
+- **Two-handed, the trigger finger comes to the trigger by a way of its own, with room** (kit #1272,
+  [between the poses](#between-the-poses)): measured at every hundredth, it is at most 0.75 mm (female) and 0.83 mm
+  (male) into the gun, read through the part's thickness, and the deepest of that is the pad arriving on the trigger;
+  against the left hand it is never more than 0.5 mm in (at the frame end, where it holds). Before, the way had one
+  pose between and swung the finger in from the gun's right: on kit #1213's seat the male's last bone rubbed the
+  inner face of the guard's front strut (1.9 mm at 0.68 of the way, kit #1273), on kit #1001's seat both bodies did
+  (1.4 and 2.2 mm), and on the earlier bodies the way crossed the strut whole (3.7 mm, the most a point can read
+  inside that 8 mm bar), which moving the strut 6, 12 and 18 mm forward did not clear (kit #1212). The guard is
+  unchanged: the way, not the guard, was at fault. One-handed the finger has a way of its own
+  ([one-handed](../../../engines/godot/third-person/one-handed.md#one-handed)).
 
 **Poses set by hand** (kit #1084, on the prototype bodies of kit #1187). Where the solver's search ended in a pose
 that passed no test or did not read as a hand, the finger's angles are set by hand in
@@ -129,12 +129,23 @@ on the hold were all solved or built again, in that order. The rifle's hold has 
 
 A solved pose is clear where it holds; the blend the game plays between two of them is not, unless it is solved too.
 
-- **The trigger finger goes by a pose between** (kit #1079, `pistol_trigger_way_pose.tres`,
-  `HandPoseModifier.second_way`). The straight blend from along the frame to the trigger left the guard on the gun's
-  far side: 7.3 mm through the left thumb's tip and 7.0 mm through the gun. The pose between (the finger lowered and
-  drawn out to its own side, nearly straight) is solved as the nearest to both ends that keeps the finger out of the
-  left hand at every twentieth (0.4 mm in at the most now) and as little in the gun as it can be (1.9 mm on the
-  strut's inner face on the male body, above).
+- **The trigger finger goes by a way** (kit #1079, kit #1272; `pistol_trigger_way.tres` and the male fit's
+  `trigger_way`, `WeaponHold.trigger_way`, `HandPoseModifier.second_way`). The straight blend from along the frame
+  to the trigger left the guard on the gun's far side: 7.3 mm through the left thumb's tip and 7.0 mm through the
+  gun. One pose between (kit #1079, `pistol_trigger_way_pose.tres`: the finger lowered and drawn out to its own
+  side, nearly straight) kept it out of the left hand, but swinging in from there the male finger's tip rubbed the
+  guard's front strut (above). The way now has two poses between, as a trigger finger is taught to come in: lifted
+  off the frame and spread out to its own side, straight (the male's knuckle 17 degrees past flat, the female's
+  hardly moves), then its last two bones bent to the trigger's bend there, outside the guard, and only then the
+  knuckle turned so the bent finger drops into the guard's open side onto the trigger. `tools/hold/solve_pistol_trigger_way.gd
+  -- <body>` searches it in the solver's angles from a few such first guesses and the old pose between, each leg
+  blended as the game blends it and measured with the tests' `HandContact` on the tests' stage, the depth into the
+  gun read against the part's thickness (`HandContact.measure_through`: a point more than three quarters of the way
+  to a part's middle reads the part's whole thickness, so a crossing reads as a crossing). It writes nothing when
+  any hundredth is deeper than 1.5 mm. Run it after `write_hold.gd`, for each body, then the hold suite. The female's
+  trigger pose is nearly straight (bends of 13 and 9 degrees), so her way is near the old one; the male's is bent
+  (37 and 24 degrees), which is why his tip met the strut. `test_the_trigger_finger_has_room_on_its_way_to_the_trigger`
+  holds it to 1 mm at every hundredth; one-handed the finger keeps its one pose between.
 - **The right thumb makes room while the left hand waits** (kit #1084, `SupportHandPlan.room`). The left thumb's
   root takes the right thumb's place on the frame, so the right thumb is lifted onto it; blended while the left hand
   came in, it was 16 mm inside that hand. The plan now has a step for it: the hold's arm takes the left hand to the
@@ -360,9 +371,16 @@ player's camera (`*_carry_*.png`).
   graze. Before changing a model for room, move the obstacle in the solver's data and solve again. **Watch out for:**
   the trigger finger read 3.6 mm into the guard's 8 mm strut, taken for a finger too thick for the opening; with the
   strut 6 to 18 mm further forward it read the same, in the strut's middle. **Seen:** gdstudio #1079 and #1212,
-  2026-11-11 (the guard left as it was; the way is kit #1272); gdstudio #1273, 2026-11-12 (the prototype bodies'
-  hold: 1.4 and 2.2 mm on the strut's inner face, a graze; on kit #1213's seat 1.9 mm, male only; the test's
-  allowance cut to 2.5 mm).
+  2026-11-11; gdstudio #1273, 2026-11-12 (a graze of 1.4 to 2.2 mm on the strut's inner face); gdstudio #1272,
+  2026-11-12 (fix: two poses between, the last two bones bent outside the guard; 0.83 mm at most; depth read
+  through the part, `HandContact.measure_through`).
+- **Approach:** When a search for a way between two poses ends with a pose between pinned at an angle limit, run
+  it again with that limit opened a little within a person's range, and probe the last leg alone (every pose that
+  reaches the end pose clear) before searching the whole way. **Watch out for:** the trigger way's search kept the
+  male knuckle at the hold's own pose limits (spread 20, straightened 15 degrees) and ended 1.6 mm deep, which
+  read as no way existing; a probe of the last leg showed most bent poses with the knuckle straightened 20 degrees
+  reach the trigger clear, and with the limits at 25 the way passed at 0.83 mm. **Seen:** gdstudio #1272,
+  2026-11-12.
 - **Approach:** Measure the other arm's reach on each mannequin's own skeleton, in the reload clip's first pose as
   well as the aim poses, after moving a hand's place. **Watch out for:** the solver's merged rig is the female
   skeleton with both skins, so the male arm was never measured: the canted place, 4 cm higher, was 6.5 mm out of

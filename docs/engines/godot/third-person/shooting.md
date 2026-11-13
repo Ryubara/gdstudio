@@ -249,8 +249,8 @@ muzzle's own swing round the spine (1.3 to 1.8 degrees off with one pass, 0.1 to
 `WeaponHold`'s grip (whose wrist turn moves the muzzle) and before its support arm, which reaches for the weapon where
 the turn left it: the left hand, the fingers and the trigger finger stay on the gun with no change to the hold.
 `WeaponHold` says `built` when it makes its modifiers again, and the layer puts itself back after the grip. The layer is
-on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's; a weapon with no muzzle (the fists)
-turns nothing.
+on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's, solved on the aim pose alone while
+it comes up ([no fold](aim-fold.md#aim-fold)); the fists turn nothing.
 
 **Recoil.** While the shot's one-shot plays (`CharacterAnimation.is_shooting()`), the turn found before the shot is kept
 and moved only with the aim, so the recoil the clip shows is not turned away; after it the turn eases back over
@@ -273,14 +273,14 @@ screen a sliding player's upper body turns and the pistol points to the side as 
 ([puppets](online-client.md#puppets)).
 
 **How it goes with the other aim work.** A steadier stance under the aim (#1206) and a one-handed pistol hold (#1085)
-change the clips and the hold that the layer reads; the layer measures the muzzle on whatever pose they leave, so they
-need nothing from it and it needs nothing from them: a steadier clip only makes its turn smaller. A one-handed hold
+change the clips and the hold that the layer reads; the layer measures the muzzle on whatever pose they leave, so
+neither needs the other: a steadier clip only makes its turn smaller. A one-handed hold
 whose support arm is off leaves the layer as it is.
 
 **What it costs** (`tools/bench/aim_layer_cost.tscn`, 40 dressed players aiming 30 degrees off their facing, the
-modifier timed alone on a shared machine under load): about 31 to 37 microseconds a character a frame with two passes,
+modifier timed alone under load): about 31 to 37 microseconds a character a frame with two passes,
 25 with one (`passes`), against 9 for the hold's support arm in the same run. Only an aiming character pays it (the
-modifier is off at weight 0). The web export was not measured.
+modifier is off at weight 0). The web was not measured.
 
 The tests are `tests/gameplay/test_aim_layer.gd` (sliding ahead, 50 degrees left and right, 20 up and 25 down within 3
 degrees with the body along the slide; without the layer the slide misses by more than 10; past the reach the body turns

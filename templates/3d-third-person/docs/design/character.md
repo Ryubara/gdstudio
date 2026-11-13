@@ -16,7 +16,7 @@ can be replaced alone.
 | `Ragdoll` | `gameplay/character/character_ragdoll.gd`, a node of `character_dressed.tscn` | Makes physical bones on the skeleton of the `Model` slot, from the model's own bones, on the character's first death, taking a set the `RagdollPool` (`ragdoll_pool.gd`) made after the level loaded (a character that never dies never carries them; one freed gives them back), and holds the skeleton while the player is dead. Nothing it makes is saved in a scene; its exports are the body's mass, damping, joint range, how many times each joint is held (`hinge_passes`, `cone_passes`: the extra joints are `ragdoll_braces.gd`), layers and get-up time. |
 | `CharacterAnimation` | `gameplay/character/character_animation.gd` | Builds an `AnimationTree` from the player's state and plays any other clip on request. |
 | `WeaponDef`, `Weapon`, `WeaponLoadout`, `Projectile`, `Target` | `gameplay/weapon/`, `gameplay/projectile/`, `gameplay/target/` | A weapon is a `WeaponDef` resource (`pistol.tres`, `fists.tres`: every number of a shot, the magazine, reserve and reload, its clips and sounds). A `Weapon` fires the one it holds along the ray its character aims by, the crosshair's for the player (pooled `Projectile` spheres, a hitscan ray, which `WeaponDef.hitscan` turns any weapon's shots into, or a blow), counts the ammunition, reloads and clicks when empty; a `WeaponLoadout` switches between the slots and the empty hands; a projectile pushes physics bodies and bounces or stops, and a `Target` falls over when it is hit. A definition names its model and muzzle under the `Model` slot, so a game adds a weapon with a `.tres` and a model node. |
-| `HitZones`, `HitReaction` | `gameplay/hit_zones/`, `gameplay/character/hit_reaction.gd`, nodes of `character_dressed.tscn` | The body parts a shot can hit (a `HitZone` shape each on a bone: `zone`, `bone`, `offset`, `damage_multiplier`, `enabled`), looked for only when a shot meets the capsule, and how the body answers a hit: `death_push`, `lying_push`, the flinch (`flinch_enabled`, `flinch_push`, `flinch_most_speed`, `flinch_strength`, `flinch_time`, `flinch_hold`). |
+| `HitZones`, `HitReaction` | `gameplay/hit_zones/`, `gameplay/character/hit_reaction.gd`, nodes of `character_dressed.tscn` | The body parts a shot can hit (a `HitZone` shape each on a bone: `zone`, `bone`, `offset`, `damage_multiplier`, `enabled`), looked for only when a shot meets the capsule, and how the body answers a hit: `death_push`, `push_most_speed`, `lying_push`, the flinch (`flinch_enabled`, `flinch_push`, `flinch_most_speed`, `flinch_strength`, `flinch_time`, `flinch_hold`). |
 | `Impacts` | `world/world.tscn`, `gameplay/impacts/impacts.tscn` | Where a shot lands: a mark on the body it hit (it rides the body and goes with it), an effect and a sound by the kind of surface. A projectile reports its hit to it (the group `impacts`); `WeaponDef.impacts` and `Projectile.impact_effects` switch it off. Its numbers (how long marks last, how many, their size and material) and one `ImpactSurface` node a surface (`Default`, `Wood`, `Metal`, `Target`) are in the inspector, each with an `EffectDef` (the burst and the sound, played by the `EffectEmitter`); a body names its surface with the metadata `surface` or a group. |
 | `EffectEmitter`, `EffectDef` | `world/world.tscn` (`Effects`), `gameplay/effects/` (the scripts: `addons/gds_game/effects/`, synced from the kit) | Plays one-shot effects from one capped pool: an `EffectDef` (a particles scene, a sound, a flash of light, a length) is played at a point or on a node, by the muzzle flash and every bullet impact, and by anything a game adds. The pool is smaller in the web build, lights are limited, an effect frees its slot when it ends, the first frames of the level draw each effect once unseen (`warm_up_on_start`) so the first shot does not stop the web build, and nothing is sent over the network. Its switches and caps are in the inspector. |
 | Muzzle flash | `gameplay/weapon/muzzle_flash.tres`, `muzzle_flash.tscn` | A star and a spray of sparks (`CPUParticles3D`) and a light on the pistol's `Muzzle`, pointing out of the barrel. `Weapon.muzzle_flash_enabled`, and the definition's `muzzle_flash` (another `EffectDef` for another weapon) and `muzzle_flash_size`, tune it. |
@@ -263,6 +263,12 @@ step (`hinge_passes`, `cone_passes`), so a limb the body lands on stays near a p
 ramp and a ledge in the south (`RagdollLedge`) to run off. The way it is built and tuned is in the kit's
 `docs/engines/godot/ragdoll.md`.
 
+The living walk through the dead: no capsule meets a ragdoll bone, so a pile never slows, lifts, vaults or turns the
+player. The player's `CorpseNudge` node pushes the dead's limbs out of its legs as it goes (sideways from the walk,
+capped at two fifths of the walk's speed, so a sprint moves a body and never throws it); it is a cosmetic, each
+machine's own, never sent. Untick its `enabled` to let the legs pass through; `reach`, `height`, `push_speed`,
+`speed_share` and `lead` tune it live.
+
 ## Vaulting and mantling {#vaulting}
 
 Press jump running at a wall that carries a `Vaultable` and the character vaults over it (0.45 to 1.3 m high and up to
@@ -308,9 +314,10 @@ for a hitscan shot or a blow), `hit_scanned(hit)`, `dry_fired`, `ammo_changed(am
 `stood_up`. A shot on a character finds the body part in its path (`HitZones`, eleven parts with a damage multiplier
 each) and gives the character a `HitRecord` (`take_hit(record)`): its `Health` node takes the health (`max_value`, 100;
 `enabled`) and dies at zero, the ragdoll thrown along the shot from the hit bone; a hit that does not kill makes the hit
-part flinch (`HitReaction`), and a shot on a lying body pushes the bone and leaves a mark on it. The record is all a
-network sends for a hit (`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a blow
-with no point: it takes the health too, stops the character for the stun time and throws it away from the source.
+part flinch (`HitReaction`; its bones keep their lengths through `RagdollLengths`), and a shot on a lying body pushes
+the bone and leaves a mark on it. The record is all a network sends for a hit (`encode()`, about 40 bytes); every peer
+makes the rest. `player.hit(amount, source)` is a blow with no point: it takes the health too, stops the character for
+the stun time and throws it away from the source.
 `player.teleport(spot)` moves it and the camera cuts to it (the camera would otherwise fly there).
 
 ## Animation {#animation}
@@ -416,6 +423,7 @@ is tuned in its inspector while the game runs:
 | --- | --- | --- |
 | `grip_pose`, `trigger_pose` | `pistol_grip_pose.tres`, `pistol_trigger_pose.tres` | The right hand on the grip with the index finger along the frame, and the index finger on the trigger, blended in as the character aims. |
 | `trigger_way_pose` | `pistol_trigger_way_pose.tres` | Where the index finger is half-way between the frame and the trigger: it goes round by this pose, clear of the left thumb, never straight. |
+| `trigger_way` | `pistol_trigger_way.tres` (the male body's in his fit) | The poses the index finger passes through between the frame and the trigger with both hands on the pistol: off the frame to its own side, its last two bones bent there, then into the trigger guard, clear of the guard and the left hand all the way. Written by `tools/hold/solve_pistol_trigger_way.gd`; when it is set, two-handed, `trigger_way_pose` is not used. |
 | `thumb_pose` | `pistol_thumb_pose.tres` | The right thumb while the left hand is on the pistol: on the root of the left thumb, which takes its place on the frame. |
 | `thumb_way_pose` | `pistol_thumb_way_pose.tres` | Where the right thumb is half-way between the frame and the left thumb's root: lifted clear of the frame's rear edge, which the straight blend passed through. Set by hand. |
 | `support_pose` | `pistol_support_pose.tres` | The left hand on the pistol and over the right hand, used while aiming or firing. |

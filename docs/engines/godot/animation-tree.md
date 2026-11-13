@@ -129,8 +129,14 @@ that steps the tree by hand.
 The cause (Godot 4.7, measured in Deadnight #619): with a modifier on, the bones it turns do not all follow `influence`.
 The chest and the hand bones blend linearly with it, but the upper and lower arm bones of an IK chain stay in the
 modifier's pose at any influence, 0 included, so switching the modifier off at 0 snaps them to the clip's (27 to 66
-degrees in one tick, a hand 0.7 m). Fading it out for any other reason (a sprint carry that takes the arms back
-over 0.2 s) pops the same way. Leave `influence` at 1 and blend inside `_process_modification`: keep each bone's local
+degrees in one tick, a hand 0.7 m). Why, from the engine's source (`Skeleton3D::_process_modifiers`, 4.7.2): for a
+modifier whose influence is under 1, every `set_bone_pose*` call during its update copies the bone's cached pose as the
+pose to blend from (`make_bone_modified()`), and a `get_bone_pose` between two writes refreshes that cache. So the blend
+runs from the pose before the bone's *last* write, not from the pose before the modifier: a bone written once (the
+chest, the hand) blends as documented, and a bone written again and again (an IK solver's iterations, a solve in two
+passes) keeps every write but the last whole, at influence 0 too. Fading it out for any other reason (a sprint carry
+that takes the arms back over 0.2 s) pops the same way. Leave `influence` at 1 and blend inside
+`_process_modification`: keep each bone's local
 rotation before solving, then `set_bone_pose_rotation(bone, before.slerp(solved, weight))` for every bone the modifier
 turns. At weight 0 the pose is the clip's, so switching off moves nothing. The modified pose is only readable at
 `skeleton_updated`; record the bones there, every tick, and fail on a per-tick turn or move far above the clip's own
@@ -141,6 +147,32 @@ stride.
   modifier's `influence` and switched it off at 0, but Godot blends only the chest and hand bones by `influence`, so the
   arms stayed in the IK pose and snapped to the carry clip in one tick (66 degrees) as a sprint began. **Seen:**
   Deadnight #619, 2026-11-02 (fix: deadnight #645 added the per-tick test).
+- **Approach:** In a `SkeletonModifier3D` whose `influence` fades it, work the solve out on copies of the bones' local
+  poses and write each bone once, at the end of the update; or keep `influence` at 1 and blend inside it, as above.
+  Prove it with a probe modifier placed just before it that records a bone, read again at `skeleton_updated`, at
+  influences 1, 0.5, 0.1 and 0. **Watch out for:** the third-person aim layer wrote the spine once per pass of its
+  two-pass solve, so at an aim weight of 0.11 the chest took the first pass whole (80 of 80 degrees) and at an
+  influence of 0 it still turned 75 degrees; a modifier that writes each bone once blended exactly (9.0 of 90 degrees at
+  0.1). **Seen:** gdstudio #1318, 2026-11-11 (`test_aim_fold.gd`).
+
+## A blend worked out by hand {#a-blend-worked-out-by-hand}
+
+<!-- new section: nothing said how the tree blends rotations or a track a clip lacks, which a script that rebuilds a
+     pose from the clips must match -->
+
+A script that works out by hand the pose a tree draws (to solve on it before the tree reaches it) has to blend as the
+tree does (Godot 4.7, measured against the drawn pose in gdstudio #1318). A deterministic tree (`deterministic`, on by
+default) blends a bone that a clip has no track for toward the bone's rest, not toward what the other clips give it:
+an aim clip with no `spine_01` track leaves `spine_01` at its rest at full aim, over whatever the legs' clip had. A
+blend of rotations is not a `slerp` from one clip to the other: each clip adds its turn off the rest, scaled by its
+weight, `rest * slerp(identity, rest.inverse() * q_a, w_a) * slerp(identity, rest.inverse() * q_b, w_b)`; positions
+are the weighted sum. Between the down and level points of an aim blend space 30 degrees down, the `slerp` of the two
+was off by 1.1 degrees on the chest and 6 at the hand, and this form by under 0.1.
+
+- **Approach:** Read each clip's tracks once, keep every bone's rest, and blend as above. **Watch out for:** a bone
+  missing from a clip taken as drawn rather than at rest, and a `slerp` between two blend points, each put the
+  third-person aim layer's solve 4 to 14 degrees off. **Seen:** gdstudio #1318, 2026-11-12 (`AimPose`,
+  `test_aim_fold.gd`).
 
 ## A state machine that starts at Start and has no way out {#a-state-machine-that-starts-at-start-and-has-no-way-out}
 
@@ -307,3 +339,10 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
   **Seen:** gdstudio #1158, 2026-11-12 (the lean's base pose, three errors for four poses).
+- **Approach:** Start a transition clip only while the character's own state is one the transition plays over
+  (standing, walking, running), and end one that plays when the state leaves those; test the tree with real clips
+  in the libraries, not only made-up ones in a test library. **Watch out for:** a push, a vault or a hit begins on a
+  frame the state machine is still in `ground`: with our starts in the library (#1156) the tree picked a start on
+  that frame and held the body in it, so the push clip never played and the vault's hands left the top by 0.3 m;
+  the transition tests passed, since their clips existed only in their own suite. **Seen:** gdstudio #1156,
+  2026-11-12 (`GaitTransitions.on_foot`; `test_player_actions.gd`, `test_push_cubes.gd`, `test_vault_contacts.gd`).

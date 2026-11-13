@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://addons/gds_game/inventory/hotbar.gd" id="12_hotbar"]
 [ext_resource type="Script" path="res://gameplay/character/item_use.gd" id="13_item_use"]
 [ext_resource type="AudioStream" path="res://gameplay/inventory/bandage_use.tres" id="14_bandage_sound"]
+[ext_resource type="Script" path="res://gameplay/character/corpse_nudge.gd" id="13_nudge"]
 
 [sub_resource type="Resource" id="ItemStack_bandages"]
 script = ExtResource("8_stack")
@@ -59,3 +60,7 @@ bus = &"SFX"
 [node name="AiFactionMember" type="Node" parent="."]
 script = ExtResource("ai_faction_member")
 faction = &"player"
+
+[node name="CorpseNudge" type="Node" parent="." node_paths=PackedStringArray("body")]
+script = ExtResource("13_nudge")
+body = NodePath("..")
