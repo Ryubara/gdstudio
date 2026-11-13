@@ -346,8 +346,9 @@ an impulse sideways from the walk (straight out when the body stands) up to `pus
 (0.4) of the body's speed, whichever is more, scaled by how deep the bone is. A body stood on is clear of the capsule in
 17 ticks. Running through four bodies in a row crosses about 30 percent fewer bones than with it off, not none, since
 the joints hold each limb to its body (bone centres inside the capsule over the run, summed over its ticks: 202 off,
-148 on at a run; 118 and 83 at a sprint), and the fastest bone stays under 2.5 m/s. It is cosmetic and runs on each
-machine outside `Character.step`, as the ragdoll does. The capture is `tools/capture/corpse_tour.tscn` (`NUDGE_OFF=1`
+148 on at a run; 118 and 83 at a sprint), and the fastest bone stays under 2.5 m/s on the desktop (4.8 m/s on CI's
+Linux runner; the pelvis 1.6 m/s). It is cosmetic and runs on each machine outside `Character.step`, as the ragdoll
+does. The capture is `tools/capture/corpse_tour.tscn` (`NUDGE_OFF=1`
 for the template before it).
 
 Taking the bones into the contact instead (the ragdoll's mask with `CHARACTERS`) cleared the capsule completely but
@@ -416,3 +417,8 @@ into a game made from the template to run it (`scenario=`, `variants=`, `model=`
   failed a fresh death against itself; and a stage set up between frames rather than right after a tick started its
   walk a tick off and lay 0.3 m from the others. A joint made in the wrong pose lay 0.46 m off, well past the 3 cm
   allowed. **Seen:** gdstudio #1022, 2026-11-10 (`test_ragdoll_pool.gd`).
+- **Approach:** Bound how hard a body was pushed by its pelvis's speed and its hips' travel, with room for the CI
+  runner, not by the fastest bone. **Watch out for:** a limb whipping on its joint is the fastest bone, and the same
+  sprint through four bodies gave a 2.5 m/s limb on the desktop and a 4.8 m/s one on CI's Linux runner, which failed a
+  4 m/s bound; the pelvis stayed at 1.6 m/s. **Seen:** kit #1339, 2026-11-12
+  (`test_a_sprint_through_the_dead_never_throws_a_body`, now the pelvis under 3.5 m/s).

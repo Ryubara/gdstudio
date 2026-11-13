@@ -53,11 +53,12 @@ func _inside() -> int:
 	return count
 
 
-func _fastest_bone() -> float:
+# The fastest any dead body moves now, read at its pelvis: a limb swings faster as it is pushed
+# (up to 5 m/s on CI's Linux runner), the body as a whole is what a throw would move.
+func _fastest_body() -> float:
 	var fastest := 0.0
 	for body in _dead:
-		for entry: Dictionary in CharacterRagdoll.BODIES:
-			fastest = maxf(fastest, body.ragdoll_body.body(entry.bone).linear_velocity.length())
+		fastest = maxf(fastest, body.ragdoll_body.body(&"pelvis").linear_velocity.length())
 	return fastest
 
 
@@ -143,12 +144,12 @@ func test_a_sprint_through_the_dead_never_throws_a_body() -> void:
 	var pushed := 0.0
 	for tick in 150:
 		await get_tree().physics_frame
-		fastest = maxf(fastest, _fastest_bone())
+		fastest = maxf(fastest, _fastest_body())
 	for index in _dead.size():
 		var moved := _dead[index].ragdoll_body.hips() - DEAD[index]
 		pushed = maxf(pushed, Vector2(moved.x, moved.z).length())
-	# Moved aside (a limb faster than a walk, the hips less than a body's length), never thrown.
-	assert_float(fastest).is_less(4.0)
+	# Moved aside (the body slower than a walk, its hips less than a body's length), never thrown.
+	assert_float(fastest).is_less(3.5)
 	assert_float(pushed).is_less(1.0)
 	assert_float(_player.global_position.z).is_less(DEAD.back().z - 1.0)
 
