@@ -119,6 +119,8 @@ MOVING = {
     "dip": 0.02,  # metres the hips sink as the plant takes the body
     "arm_wide": [14.0, 16.0],  # degrees each arm opens from the body while the root is slowest or the body leans
     "heel_early": 0.5,  # the share of a contact of the clip's own over which the heel comes up
+    "toe_most": 50.0,
+    "push_heel": -4.0,  # degrees the toes are up at most as a step that speeds the body up lands  # degrees the heel of a step of the clip's own is up at most as the toes leave
     "reach_fore": 0.45,  # metres ahead of the root a foot lands at most
     "reach_back": 0.42,  # metres behind the root a foot is at most as it leaves
     "reach_side": 0.25,  # metres to the side of where a steady step lands a foot is put at most
@@ -165,6 +167,8 @@ MOVES = {
         "turn_after": 20,
         "drive": 0.35,
         "reach_fore": 0.38,
+        "own_side": 0.085,
+        "plant_turn": 0.7,
         "brace": 0.4,
         "dip": 0.05,
         "lean_limit": 24.0,
@@ -510,6 +514,12 @@ class Turn(Move):
         yaw = first + n["plant_turn" if plant else "foot_turn"] * (last - first)
         room = max(lift - land - numbers["roll_in"], 0.0)
         numbers["roll_out"] = min(max(numbers["roll_out"], n["heel_early"] * (lift - land)), room)
+        # A foot that leaves a leaning or twisted leg cannot point its toes as far as a straight run's does.
+        numbers["toe_off"] = min(numbers["toe_off"], n["toe_most"])
+        if land > self._slowest():
+            # A step that speeds the body up lands under it, the shin leaning forward: on a flat foot or its
+            # ball, not on a heel with the toes drawn up (the ankle would bend past its range).
+            numbers["heel_strike"] = min(numbers["heel_strike"], n["push_heel"])
         return Tread(s, land, lift, (float(place[0]), float(place[1])), yaw + toe, numbers, numbers, self.speed(land))
 
     def _treads_moving(self) -> None:
@@ -642,7 +652,11 @@ class Turn(Move):
         out = self._moving_swing(a, b, f) if not self.spot else self._spot_swing(a, b, f)
         other = self.planted(OTHER[a.side], f)
         if other is None:
-            return out
+            # A foot that has only just left the floor is still where it stood.
+            gone = [t for t in self.treads[OTHER[a.side]] if t.lift <= f <= t.lift + 4.0]
+            if not gone:
+                return out
+            other = gone[-1]
         u = (f - a.lift) / (b.land - a.lift)
         start, end = np.array(a.place), np.array(b.place)
         foot = np.array(other.place)

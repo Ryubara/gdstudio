@@ -611,7 +611,7 @@
    ]
   ],
   "settle": 7,
-  "yaw_early": 4,
+  "yaw_early": 3,
   "head_lead": 2.0,
   "dip": 0.008,
   "yaw_turn": 0.5
@@ -642,7 +642,7 @@
    ]
   ],
   "settle": 7,
-  "yaw_early": 4,
+  "yaw_early": 3,
   "head_lead": 2.0,
   "dip": 0.008,
   "yaw_turn": 0.5
@@ -666,15 +666,15 @@
    0.9,
    0.95
   ],
-  "low": 0.65,
-  "turn_before": 9,
-  "turn_after": 12,
+  "low": 0.6,
+  "turn_before": 10,
+  "turn_after": 16,
   "lean_limit": 20.0,
-  "side_lean_limit": 20.0
+  "side_lean_limit": 23.0
  },
  "jog_turn_180": {
-  "plant": 1,
   "steps": [
+   8,
    9,
    11,
    10,
@@ -682,54 +682,63 @@
    10
   ],
   "air": [
-   -2,
    -3,
+   -1,
+   -2,
    -4,
    -4
   ],
   "gait_like": [
-   0.3,
    0.6,
-   0.9
+   0.4,
+   0.8,
+   0.95
   ],
   "low": 0.1,
-  "turn_before": 10,
-  "turn_after": 14,
+  "turn_before": 12,
+  "turn_after": 16,
   "lean_limit": 25.0,
-  "side_lean_limit": 20.0
+  "side_lean_limit": 20.0,
+  "drive": 0.4,
+  "reach_fore": 0.4,
+  "plant_turn": 0.7
  },
  "sprint_turn_180": {
   "steps": [
    9,
+   9,
    10,
    11,
-   11,
+   10,
    10,
    9,
    9,
    9
   ],
-  "plant": 2,
+  "plant": 3,
   "air": [
    -5,
+   -5,
+   2,
+   -3,
+   -3,
    -4,
-   -3,
-   -2,
-   -3,
    -5,
    -5
   ],
   "gait_like": [
-   0.6,
+   0.8,
+   0.5,
    0.3,
-   0.4,
-   0.65,
-   0.85,
+   0.5,
+   0.7,
+   0.9,
    0.95
   ],
-  "turn_before": 10,
-  "turn_after": 14,
+  "turn_before": 11,
+  "turn_after": 16,
   "lean_limit": 30.0,
-  "side_lean_limit": 20.0
+  "side_lean_limit": 20.0,
+  "plant_turn": 0.7
  }
 }
