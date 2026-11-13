@@ -361,6 +361,9 @@ const _FORWARDED: Array[StringName] = [
 	set(value):
 		wall_margin = value
 		_forward()
+## How fast the view slides back out to the shoulder once the wall that pulled it in is gone, in
+## shares of the shoulder offset a second (it comes in at once: `CameraLensGuard`).
+@export_range(0.5, 20.0, 0.1, "suffix:/s") var lens_return_speed := 4.0
 
 ## The horizontal orbit angle in degrees (0 looks along -Z).
 var yaw := 0.0
@@ -394,6 +397,9 @@ var _swap_look := 0.0
 var _view_waits := false
 var _view_pending := false
 var _view_due := Vector2.ZERO
+# The view offset asked for last; the Camera node shows the share of it the lens guard allows.
+var _view_target := Vector2.ZERO
+var _lens := CameraLensGuard.new()
 
 var _pcam: PhantomCamera3D
 var _player: Player
@@ -461,9 +467,18 @@ func _ready() -> void:
 
 
 # After the Phantom Camera host's own physics step (priority 300), which moves the Camera node.
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if _view_pending:
 		_write_view(_view_due)
+	# The host has moved the Camera node: keep the lens and its shoulder view out of the walls.
+	if _arm_ready and is_instance_valid(camera) and camera.is_inside_tree():
+		var exclude: Array[RID] = []
+		if is_instance_valid(_player):
+			exclude.append(_player.get_rid())
+		_lens.guard(camera, _pivot(), _view_target, wall_mask, exclude, delta, lens_return_speed)
+		_write_view(_view_target)
 
 
 func _process(delta: float) -> void:
@@ -830,9 +845,12 @@ func _forward_view() -> void:
 	_write_view(view)
 
 
-# Puts `view` on the lens resource and the Camera node's H and V Offset.
-func _write_view(view: Vector2) -> void:
+# Puts the share of `asked` the lens guard allows on the lens resource and the Camera node's H
+# and V Offset.
+func _write_view(asked: Vector2) -> void:
 	_view_pending = false
+	_view_target = asked
+	var view := asked * _lens.room
 	var lens: Camera3DResource = null
 	if is_instance_valid(_pcam):
 		lens = _pcam.camera_3d_resource
