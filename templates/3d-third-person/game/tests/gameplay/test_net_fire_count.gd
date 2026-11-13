@@ -1,10 +1,12 @@
-# The shots of a press online (gdstudio #1335): a predicting client and the game server in one
-# process (`OnlineRig`, lockstep loopback). The client's controller aims and then presses fire for
-# one tick, taps it for less than the shot interval and holds it two seconds, as a player's input
-# would; the client's body fires what it predicts at once and the server's body fires the same
-# commands. For every weapon, one shot a press and automatic, the two counts are the same shot for
-# shot, and each press gave what it gives offline (`test_fire_count.gd`). The fists' press is a blow
-# (gdstudio #1254), counted as a shot: one a press, held or not, automatic or not.
+# The shots of a press online (gdstudio #1335, #1352): a predicting client and the game server in
+# one process (`OnlineRig`, lockstep loopback). The client's controller aims and then presses fire
+# for one tick, taps it for less than the shot interval and holds it two seconds, as a player's
+# input would; the client's body fires what it predicts at once and the server's body fires the same
+# commands. For every weapon in every fire mode (single, burst, automatic), the two counts are the
+# same shot for shot, and each press gave what it gives offline (`test_fire_count.gd`): one shot or
+# one burst a press, the rate while held on automatic. A press of one tick with the aim down fires
+# too, on both. The fists' press is a blow (gdstudio #1254), counted as a shot: one a press, held or
+# not, whatever the fire mode.
 extends GdUnitTestSuite
 
 const WEAPONS: Array[String] = [
@@ -23,12 +25,14 @@ var _client: NetClient
 ## The ticks of the controller (its `ticks`) on which fire is held, and from which aim is held.
 var _fire_ticks: Dictionary[int, bool] = {}
 var _aim_from := 1 << 30
-var _automatic: Dictionary[String, bool] = {}
+## Whether aim is held with the presses (off: the arm comes up for the press alone).
+var _aim := true
+var _modes: Dictionary[String, WeaponDef.FireMode] = {}
 
 
 func before_test() -> void:
 	for path in WEAPONS:
-		_automatic[path] = (load(path) as WeaponDef).automatic
+		_modes[path] = (load(path) as WeaponDef).fire_mode
 	_rig = auto_free(OnlineRig.new())
 	add_child(_rig)
 	assert_bool(_rig.start()).is_true()
@@ -40,8 +44,8 @@ func before_test() -> void:
 
 
 func after_test() -> void:
-	for path in _automatic:
-		(load(path) as WeaponDef).automatic = _automatic[path]
+	for path in _modes:
+		(load(path) as WeaponDef).fire_mode = _modes[path]
 	_rig = null
 	_client = null
 
@@ -55,20 +59,23 @@ func test_the_client_predicts_the_shots_the_server_fires() -> void:
 	_client.player.weapon.melee_started.connect(func(_b: int) -> void: client_shots[0] += 1)
 	server_body.weapon.melee_started.connect(func(_b: int) -> void: server_shots[0] += 1)
 	var seen: Array[String] = []
-	for automatic: bool in [false, true]:
+	for mode: WeaponDef.FireMode in WeaponDef.FireMode.values():
 		for path in WEAPONS:
 			# One definition, shared by both bodies as by every weapon that loads it.
 			var definition := load(path) as WeaponDef
-			definition.automatic = automatic
+			definition.fire_mode = mode
 			for body: Character in [_client.player, server_body]:
 				body.weapon.definition = definition
 				body.weapon.make_ready()
 			await _rig.wait(SETTLE_TICKS)
-			var label := "%s automatic %s" % [path.get_file(), automatic]
+			var label := "%s %s" % [path.get_file(), WeaponDef.FireMode.keys()[mode]]
 			var interval := floori(definition.shot_interval() * Engine.physics_ticks_per_second)
 			var hold := roundi(HOLD_SECONDS * Engine.physics_ticks_per_second)
-			var presses: Array[int] = [1, interval - 1, hold]
-			for press in presses:
+			var presses: Array[int] = [1, interval - 1, hold, -1]
+			for entry in presses:
+				# -1: a press of one tick with the aim down.
+				var press := absi(entry)
+				_aim = entry > 0
 				var at := _rig.controllers[0].ticks
 				_aim_from = at
 				_fire_ticks.clear()
@@ -77,15 +84,16 @@ func test_the_client_predicts_the_shots_the_server_fires() -> void:
 				client_shots[0] = 0
 				server_shots[0] = 0
 				await _rig.wait(AIM_TICKS + press + SETTLE_TICKS)
-				var expected := 1.0
+				var melee := definition.kind == WeaponDef.Kind.MELEE
+				var expected := 1.0 if melee else float(definition.shots_a_press())
 				var slack := 0.0
-				if press == hold and automatic and definition.kind != WeaponDef.Kind.MELEE:
+				if press == hold and mode == WeaponDef.FireMode.AUTOMATIC and not melee:
 					expected = HOLD_SECONDS * definition.fire_rate
 					slack = 1.0
 				seen.append(
 					(
-						"%s, %d ticks: client %d server %d"
-						% [label, press, client_shots[0], server_shots[0]]
+						"%s, %d ticks, aim %s: client %d server %d"
+						% [label, press, _aim, client_shots[0], server_shots[0]]
 					)
 				)
 				assert_int(client_shots[0]).override_failure_message(seen.back()).is_equal(
@@ -108,7 +116,7 @@ func _plan(tick: int) -> PlayerCommand:
 		return command
 	var body := _client.player
 	var eye := body.global_position + Vector3.UP * body.tuning.camera_height
-	command.aim = true
+	command.aim = _aim
 	command.has_shot = true
 	command.origin = eye
 	command.shot_yaw = ahead.x

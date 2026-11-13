@@ -31,6 +31,7 @@
   `pistol_held.tscn` puts it in the mannequin's right hand for the pistol clips (the folder's README).
 - `assets/audio/coin/` (a coin pickup, four variants), `assets/audio/footsteps/` (four soft steps),
   `assets/audio/fists/` (three punch whooshes), `assets/audio/weapon_pickup/` (the weapon pickup, two variants),
+  `assets/audio/bandage/` (a bandage wrapped on, two variants),
   `assets/audio/impacts/` (nine bullet impacts: default, wood and metal, three each) and the pistol's empty click,
   reload and draw in `assets/audio/pistol/` are generated with ElevenLabs
   Sound Effects on the studio's paid plan, like the base's wind: commercial use in a game allowed, no attribution

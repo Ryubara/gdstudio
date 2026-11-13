@@ -30,6 +30,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   out for:** this machine's Git Bash runs under a locale `grep -P` refuses (`-P supports only unibyte and UTF-8
   locales`, exit 2), so a filter in a pipe printed nothing and read as no match. **Seen:** gdstudio #1153 (PR #1167),
   2026-11-11; #1203 (PR #1215), 2026-11-11 (a CI watch loop; `gh pr checks --json` or awk instead).
+- **Approach:** Filter JSON in a loop with `gh ... --json <fields> -q '<expression>'`, which carries its own jq;
+  the standalone `jq` program is not installed here. **Watch out for:** a CI watch loop that piped `gh pr checks
+  --json` into `jq -e` never met its end condition (`jq: command not found` went to the error stream of a background
+  command), so it ran past the checks for half an hour. **Seen:** gdstudio #1318 (PR #1364), 2026-11-12.
 - **Approach:** Before handing a computed file list to `grep` (or any tool that falls back to standard input), check
   that the list is not empty, or use `xargs -r grep ...`. **Watch out for:** `grep pattern $(git diff --name-only ...)`
   with no files reads standard input, which the Bash tool never closes, so a commit command waited minutes on nothing.
@@ -40,11 +44,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** In an edit script on Windows open both ends with `newline=""` and `encoding="utf-8"` (or
   `read_text(encoding="utf-8")` and `write_bytes(text.encode("utf-8"))`), keep an `assert old in text`, or use the Edit
   tool; after the script, or a `gdformat` run, `sed -i 's/\r$//' <files>` and `file <path>` (`ASCII text`, not `with
-  CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n`, whatever the file had, and reading
+  CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n` and reading
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds
-  nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
+  nothing. A bare `write_text` used cp1252, so one `m²` broke the docs. **Seen:** Deadnight #415, #429,
   #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
-  #1127 (a tool's `write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154, #1260 and #1270, 11-11.
+  #1127 (`write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154, #1260, #1270, 11-11, #1356;
+  #1360, 11-13.
 
 ## Scripted edits {#scripted-edits}
 
@@ -112,12 +117,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   above; a monitor script also ends on its own, [Agents](agents.md#the-loop)).
 - **Approach:** Stop only a process you started: keep its PID (`echo $! > pid`) or find it by your worktree's path in
   its command line, print the candidates before the first `Stop-Process`, end it by tree (`taskkill /PID <pid> /T /F`),
-  give each run its own log, and list what is left after the stop. **Watch out for:** every agent shares one pinned
-  Godot, so a name does not say whose it is; `taskkill /IM` and a `GdUnitCmdTool` pattern ended other agents' suites;
-  stopping a background task ends the shell, not the `timeout` and Godot under it. **Seen:** Deadnight, 2026-11-01;
-  Deadnight #1086, 2026-11-04; gdstudio, 2026-11-06 (fix: the hooks refuse a kill by name ([Hooks](hooks.md))); #1149,
-  2026-11-11 (a stopped task's `bash record.sh` started its next capture); #1324, 2026-11-12 (`$3` in a load loop's
-  shell function was its own empty argument, so the loops outlived the run).
+  give each run its own log, and list what is left after the stop before a rerun. **Watch out for:** every agent shares
+  one pinned Godot, so a name does not say whose it is (`taskkill /IM` ended other agents' suites); stopping a
+  background task ends the shell, not the script, `timeout` or Godot under it. **Seen:** Deadnight #1086, 2026-11-04;
+  gdstudio, 2026-11-06 (the hooks refuse a kill by name ([Hooks](hooks.md))); #1149, 2026-11-11 (`record.sh` started
+  its next capture); #1324, 2026-11-12 (load loops outlived the run); #1391, 2026-11-13 (a stopped bench's `ab.sh` ran
+  on beside the rerun).
 - **Approach:** Leave a shell script alone while a background run executes it: edit the source, and copy it over the
   running copy only after the run ends (or run a copy made for that run). **Watch out for:** bash reads a script as
   it goes, by byte offset, so a `cp` over `check.sh` during a 10 minute bot run made bash resume inside the new text:
@@ -171,7 +176,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in a scratch checkout, or `git show <rev>:<file> | git lfs smudge > <out>`, and check its size; for a game to play
   it, clear its `.godot/imported/<name>-*` cache before `--import`. **Watch out for:** `git show <rev>:<file>` gives
   the 130-byte pointer, and Godot keeps a failed import (`valid=false`) after the real file is back until the cache
-  is cleared. **Seen:** gdstudio #1040, 2026-11-11 (a `Before:` sound); Deadnight #1282, 2026-11-05 (a model;
-  [Build scripts](../tools/blender/build-scripts.md#rebuilding)); gdstudio #1191, 2026-11-11 (a clip file in a probe
-  game) and 2026-11-12 (two aim files in a copied game, cache kept: the body fell back and the `Before:` was dropped);
-  gdstudio #1275, 2026-11-11 (a merge's clip files; `git checkout --ours -- <file>` writes the file).
+  is cleared and the `.import` file (which it rewrites) is copied back. **Seen:** gdstudio
+  #1040, 2026-11-11 (a `Before:` sound); Deadnight #1282, 2026-11-05 (a model;
+  [Build scripts](../tools/blender/build-scripts.md#rebuilding)); gdstudio #1191, 2026-11-11 and 2026-11-12 (clip
+  and aim files in a probe game); gdstudio #1275, 2026-11-11 (a merge's clip files); gdstudio #1346, 2026-11-12
+  (the rifle clips in a kept game).

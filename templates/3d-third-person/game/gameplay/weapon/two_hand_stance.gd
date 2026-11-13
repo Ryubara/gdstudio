@@ -25,6 +25,21 @@ const LEAN_SMOOTHING := 0.5
 var hold: TwoHandHold
 
 var _head := -2
+# The spine (kit #1347): its bones and the skeleton's parents, read once; whether each spine bone's
+# parent is the one before it (`_chain`); and in this update the pose of the first one's parent,
+# each one's local pose and its pose in the skeleton's space. With a chain the turns and the
+# chest's pose are worked out from these, not from every pose up to the root again for each
+# step; the steps are written out in few functions, since a call costs more than most lines in
+# the web build's GDScript.
+var _laid_out := false
+var _bones := PackedInt32Array()
+var _parents := PackedInt32Array()
+var _chain := false
+var _base := Transform3D.IDENTITY
+var _locals: Array[Transform3D] = []
+var _posed: Array[Transform3D] = []
+# The rest turn of the chest (the last spine bone) inverted, read once.
+var _rest_inverse := Basis.IDENTITY
 # The trunk's lean averaged over `LEAN_SMOOTHING`, in radians, and whether it has a value yet.
 var _lean := 0.0
 var _leaning := false
@@ -32,29 +47,100 @@ var _leaning := false
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
 	_head = -2
+	_laid_out = false
 
 
 func _process_modification_with_delta(delta: float) -> void:
 	var skeleton := get_skeleton()
 	if skeleton == null or hold == null:
 		return
-	_turn_chest(skeleton)
-	_straighten_chest(skeleton)
-	_carry_upright(skeleton, delta)
-	hold.place(skeleton)
-
-
-func _turn_chest(skeleton: Skeleton3D) -> void:
-	var bones := hold.spine_indices()
-	if bones.is_empty():
+	if not _laid_out:
+		_lay_out(skeleton)
+	if _bones.is_empty():
+		hold.place(skeleton)
 		return
-	var degrees := (hold.chest_turn - _chest_yaw(skeleton, bones[-1])) * hold.chest_weight()
-	_turn_spine(skeleton, bones, Basis(Vector3.UP, deg_to_rad(degrees / bones.size())))
+	var top := _bones[-1]
+	# The clip's spine, and how far it has the chest turned from the model's front now, in
+	# degrees about the up axis (the way `chest_turn` counts): where the turn from the bone's rest
+	# sends the model's front.
+	var chest := Transform3D.IDENTITY
+	if _chain:
+		var above := _parents[_bones[0]]
+		_base = HandPoseModifier.global_pose(skeleton, above) if above >= 0 else Transform3D()
+		chest = _base
+		for index in _bones.size():
+			_locals[index] = skeleton.get_bone_pose(_bones[index])
+			chest = chest * _locals[index]
+			_posed[index] = chest
+	elif top >= 0:
+		chest = HandPoseModifier.global_pose(skeleton, top)
+	var yaw := 0.0
+	if top >= 0:
+		var ahead := (chest.basis.orthonormalized() * _rest_inverse) * Vector3.BACK
+		yaw = rad_to_deg(atan2(ahead.x, ahead.z))
+	var degrees := (hold.chest_turn - yaw) * hold.chest_weight()
+	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
+	_turn_head(skeleton, top, degrees)
+	_straighten_chest(skeleton, top)
+	_carry_upright(skeleton, top, delta)
+	hold.place(skeleton, _posed[-1] if _chain else Transform3D(), _chain)
+
+
+func _lay_out(skeleton: Skeleton3D) -> void:
+	_laid_out = true
+	_bones = hold.spine_indices()
+	_parents = hold.bone_parents()
+	_chain = not _bones.is_empty() and _parents.size() == skeleton.get_bone_count()
+	var index := 0
+	while _chain and index < _bones.size():
+		var bone := _bones[index]
+		_chain = bone >= 0 and (index == 0 or _parents[bone] == _bones[index - 1])
+		index += 1
+	_locals.resize(_bones.size())
+	_posed.resize(_bones.size())
+	if not _bones.is_empty() and _bones[-1] >= 0:
+		var rest := skeleton.get_bone_global_rest(_bones[-1]).basis.orthonormalized()
+		_rest_inverse = rest.inverse()
+
+
+# Turns each spine bone by `turn` in the skeleton's space, about its own place. The poses come
+# from the local ones up the parents: asking the skeleton for a global pose after a bone was set
+# makes it work out every bone under that one again, three times a frame for the spine.
+func _turn_spine(skeleton: Skeleton3D, turn: Basis) -> void:
+	if _chain:
+		var above := _base
+		for index in _bones.size():
+			var pose := above * _locals[index]
+			var turned := Transform3D(turn * pose.basis, pose.origin)
+			_locals[index] = above.affine_inverse() * turned
+			skeleton.set_bone_pose(_bones[index], _locals[index])
+			_posed[index] = turned
+			above = turned
+		return
+	var parent_bone := -2
+	var parent := Transform3D.IDENTITY
+	for bone in _bones:
+		if bone < 0:
+			continue
+		var above := skeleton.get_bone_parent(bone)
+		if above != parent_bone:
+			parent_bone = above
+			parent = HandPoseModifier.global_pose(skeleton, above) if above >= 0 else Transform3D()
+		var pose := parent * skeleton.get_bone_pose(bone)
+		var turned := Transform3D(turn * pose.basis, pose.origin)
+		skeleton.set_bone_pose(bone, parent.affine_inverse() * turned)
+		parent_bone = bone
+		parent = turned
+
+
+# Turns the head back by the chest's turn of `degrees`, so it keeps the clip's facing; its
+# parent's pose comes from the chest's (`top`) when it is under it.
+func _turn_head(skeleton: Skeleton3D, top: int, degrees: float) -> void:
 	if _head == -2:
 		_head = skeleton.find_bone(HEAD)
 	if _head < 0:
 		return
-	var neck := HandPoseModifier.global_pose(skeleton, skeleton.get_bone_parent(_head))
+	var neck := _neck_pose(skeleton, top)
 	var head := neck * skeleton.get_bone_pose(_head)
 	var back := Basis(Vector3.UP, -deg_to_rad(degrees))
 	skeleton.set_bone_pose(
@@ -65,15 +151,12 @@ func _turn_chest(skeleton: Skeleton3D) -> void:
 # Raises a chest that leans more than the hold's `aim_lean_limit` toward that limit as the gun comes
 # up (a crouch's hunch would put the stock in the collarbone and the head over the receiver),
 # split evenly over the spine bones like the turn.
-func _straighten_chest(skeleton: Skeleton3D) -> void:
-	var bones := hold.spine_indices()
+func _straighten_chest(skeleton: Skeleton3D, top: int) -> void:
 	var share := hold.raised_amount() * hold.weight()
-	if bones.is_empty() or share <= 0.0 or bones[-1] < 0:
+	if share <= 0.0 or top < 0:
 		return
-	var top := bones[-1]
-	var posed := HandPoseModifier.global_pose(skeleton, top).basis.orthonormalized()
-	var rest := skeleton.get_bone_global_rest(top).basis.orthonormalized()
-	var up := (posed * rest.inverse()) * Vector3.UP
+	var chest := _posed[-1] if _chain else HandPoseModifier.global_pose(skeleton, top)
+	var up := (chest.basis.orthonormalized() * _rest_inverse) * Vector3.UP
 	var lean := up.angle_to(Vector3.UP)
 	var limit := deg_to_rad(hold.aim_lean_limit)
 	if lean <= limit:
@@ -81,7 +164,22 @@ func _straighten_chest(skeleton: Skeleton3D) -> void:
 	var axis := up.cross(Vector3.UP)
 	if axis.length_squared() < 1e-10:
 		return
-	_turn_spine(skeleton, bones, Basis(axis.normalized(), (lean - limit) * share / bones.size()))
+	_turn_spine(skeleton, Basis(axis.normalized(), (lean - limit) * share / _bones.size()))
+
+
+# The pose of the head's parent (the neck) in the skeleton's space, from the chest's (`top`) when
+# it is under it.
+func _neck_pose(skeleton: Skeleton3D, top: int) -> Transform3D:
+	var bone := _parents[_head] if _head < _parents.size() else skeleton.get_bone_parent(_head)
+	var neck := Transform3D.IDENTITY
+	var cursor := bone
+	if _chain:
+		while cursor >= 0 and cursor != top:
+			neck = skeleton.get_bone_pose(cursor) * neck
+			cursor = _parents[cursor]
+	if _chain and cursor == top:
+		return _posed[-1] * neck
+	return HandPoseModifier.global_pose(skeleton, bone) if bone >= 0 else Transform3D()
 
 
 # Raises a trunk that leans forward more than the hold's `carry_lean_limit` at the low ready
@@ -90,18 +188,20 @@ func _straighten_chest(skeleton: Skeleton3D) -> void:
 # lean is the line from the spine's parent (the pelvis) to the head's parent (the neck), forward
 # in the model's space, the way the run test reads it. It is a turn about the model's side axis
 # spread evenly over the spine bones, so it adds no twist (kit #1379); the head keeps the facing
-# the clip gave it, as for the chest's turn.
-func _carry_upright(skeleton: Skeleton3D, delta: float) -> void:
-	var bones := hold.spine_indices()
+# the clip gave it, as for the chest's turn. It runs only while the carry is on, and its poses
+# come from the spine's of this update (kit #1347).
+func _carry_upright(skeleton: Skeleton3D, top: int, delta: float) -> void:
 	var share := hold.carry_amount()
-	if bones.is_empty() or share <= 0.0 or bones[0] < 0 or _head < 0:
+	if share <= 0.0 or _head < 0 or _bones[0] < 0:
 		_leaning = false
 		return
-	var root := skeleton.get_bone_parent(bones[0])
-	var neck := skeleton.get_bone_parent(_head)
-	if root < 0 or neck < 0:
+	var root := _parents[_bones[0]]
+	if root < 0:
 		return
-	var lean := _trunk_lean(skeleton, root, neck)
+	var pelvis := _base.origin if _chain else HandPoseModifier.global_pose(skeleton, root).origin
+	var neck := _neck_pose(skeleton, top)
+	var trunk := neck.origin - pelvis
+	var lean := atan2(trunk.z, trunk.y)
 	if not _leaning:
 		_lean = lean
 		_leaning = true
@@ -109,58 +209,18 @@ func _carry_upright(skeleton: Skeleton3D, delta: float) -> void:
 	var wanted := (_lean - deg_to_rad(hold.carry_lean_limit)) * share
 	if wanted <= 0.0:
 		return
-	var head_before := HandPoseModifier.global_pose(skeleton, _head).basis
+	var head_local := skeleton.get_bone_pose(_head)
+	var head_before := (neck * head_local).basis
 	# The spine turns about its own bones, above the pelvis, so the trunk's line turns by less
 	# than the spine (about half); the first pass measures by how much and the second takes the
 	# rest at that rate.
-	_turn_spine(skeleton, bones, Basis(Vector3.RIGHT, -wanted / bones.size()))
-	var moved := lean - _trunk_lean(skeleton, root, neck)
+	_turn_spine(skeleton, Basis(Vector3.RIGHT, -wanted / _bones.size()))
+	neck = _neck_pose(skeleton, top)
+	trunk = neck.origin - pelvis
+	var moved := lean - atan2(trunk.z, trunk.y)
 	if moved > wanted * 0.1:
-		var rest := wanted - moved
-		var spine := rest * wanted / moved
-		_turn_spine(skeleton, bones, Basis(Vector3.RIGHT, -spine / bones.size()))
-	var neck_pose := HandPoseModifier.global_pose(skeleton, neck)
-	var head := neck_pose * skeleton.get_bone_pose(_head)
-	skeleton.set_bone_pose(
-		_head, neck_pose.affine_inverse() * Transform3D(head_before, head.origin)
-	)
-
-
-# The trunk's forward lean, in radians: the line from `root` to `neck` in the skeleton's space.
-func _trunk_lean(skeleton: Skeleton3D, root: int, neck: int) -> float:
-	var trunk := (
-		HandPoseModifier.global_pose(skeleton, neck).origin
-		- HandPoseModifier.global_pose(skeleton, root).origin
-	)
-	return atan2(trunk.z, trunk.y)
-
-
-# Turns each of `bones` by `turn` in the skeleton's space. The poses come from the local ones up the
-# parents (`HandPoseModifier.global_pose`): asking the skeleton for a global pose after a bone was
-# set makes it work out every bone under that one again, three times a frame for the spine.
-func _turn_spine(skeleton: Skeleton3D, bones: PackedInt32Array, turn: Basis) -> void:
-	var parent_bone := -2
-	var parent := Transform3D.IDENTITY
-	for bone in bones:
-		if bone < 0:
-			continue
-		var above := skeleton.get_bone_parent(bone)
-		if above != parent_bone:
-			parent_bone = above
-			parent = HandPoseModifier.global_pose(skeleton, above) if above >= 0 else Transform3D()
-		var pose := parent * skeleton.get_bone_pose(bone)
-		var moved := Transform3D(turn * pose.basis, pose.origin)
-		skeleton.set_bone_pose(bone, parent.affine_inverse() * moved)
-		parent_bone = bone
-		parent = moved
-
-
-# How far the clip has the chest turned from the model's front now, in degrees about the up axis
-# (the way `chest_turn` counts): where the turn from the bone's rest sends the model's front.
-func _chest_yaw(skeleton: Skeleton3D, bone: int) -> float:
-	if bone < 0:
-		return 0.0
-	var posed := HandPoseModifier.global_pose(skeleton, bone).basis.orthonormalized()
-	var rest := skeleton.get_bone_global_rest(bone).basis.orthonormalized()
-	var ahead := (posed * rest.inverse()) * Vector3.BACK
-	return rad_to_deg(atan2(ahead.x, ahead.z))
+		var spine := (wanted - moved) * wanted / moved
+		_turn_spine(skeleton, Basis(Vector3.RIGHT, -spine / _bones.size()))
+		neck = _neck_pose(skeleton, top)
+	var head := neck * head_local
+	skeleton.set_bone_pose(_head, neck.affine_inverse() * Transform3D(head_before, head.origin))

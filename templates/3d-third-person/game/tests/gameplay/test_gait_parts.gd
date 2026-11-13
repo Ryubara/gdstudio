@@ -2,8 +2,9 @@
 # ground blend space's points at the clips' speeds (a stand-in clip at the tuning's), the momentum
 # blend in place of the cross-fade, the transitions chosen from the controller's numbers and
 # played along their travel, and the lean, built only when its poses exist. The transition and
-# lean clips do not exist yet (gdstudio #1156, #1157, #1159): the tests give the player clips of
-# their own in a library `test`, with records registered in `GaitClips`.
+# lean clips do not all exist yet (gdstudio #1157, #1159; the starts and stops of #1156 do): the
+# tests give the player clips of their own in a library `test`, with records registered in
+# `GaitClips`.
 extends GdUnitTestSuite
 
 const SETTINGS := "res://gameplay/character/gait_settings.tres"
@@ -210,6 +211,11 @@ func test_a_start_hands_over_to_the_walk_and_a_push_back_leaves_a_stop() -> void
 
 
 func test_no_transition_clip_leaves_the_states_as_they_were() -> void:
+	# Our own starts and stops are in the library since gdstudio #1156: a set that names no clip.
+	_settings.transition_clips = GaitTransitionSet.new()
+	_settings.transition_clips.starts = {}
+	_settings.transition_clips.stops = {}
+	_animation.gait_settings = _settings
 	_animation.set_throttled(true)
 	var states: Array[String] = []
 	var each := func(_tick: int) -> void: states.append(String(_animation.body_state()))
@@ -222,6 +228,20 @@ func test_the_stop_s_foot_is_the_one_that_lands_next() -> void:
 	# The walk lands on the left at 0 and on the right at half its cycle.
 	assert_str(GaitTransitions.next_foot(CharacterClips.WALK, 0.1)).is_equal("r")
 	assert_str(GaitTransitions.next_foot(CharacterClips.WALK, 0.7)).is_equal("l")
+
+
+func test_a_clip_s_contacts_are_worked_out_once_and_follow_a_new_record() -> void:
+	# Asked every frame by the blend and the transitions (gdstudio #1360): one shared, read-only
+	# list until the clip's record changes.
+	GaitClips.register(STOP, {"frames": 20.0, "contacts": {"l": [[0.0, 10.0]]}})
+	var first := GaitClips.contacts(STOP, "l")
+	assert_array(first).is_equal([[0.0, 0.5]])
+	assert_bool(is_same(GaitClips.contacts(STOP, "l"), first)).is_true()
+	assert_bool(first.is_read_only()).is_true()
+	GaitClips.register(STOP, {"frames": 20.0, "contacts": {"l": [[5.0, 15.0]]}})
+	assert_array(GaitClips.contacts(STOP, "l")).is_equal([[0.25, 0.75]])
+	GaitClips.forget(STOP)
+	assert_array(GaitClips.contacts(STOP, "l")).is_empty()
 
 
 func test_the_lean_is_built_only_with_its_poses_and_follows_the_acceleration() -> void:

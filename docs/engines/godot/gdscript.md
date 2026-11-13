@@ -47,8 +47,10 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
 - **Approach:** Write the type (`var cooked: float = ...`) when a value comes out of an untyped Dictionary or Array,
   or keep the record in a small typed class. **Watch out for:** an element of an untyped `Dictionary` is a Variant, so
   `var cooked := now - _cooks[id]["started"]` has nothing to infer (`Cannot infer the type of "cooked" variable`); in
-  a project that raises warnings, `:=` from a Dictionary value is an error that also hangs a headless `-s` run.
-  **Seen:** Deadnight, 2026-11-01 (fix: explicit types).
+  a project that raises warnings, `:=` from a Dictionary value is an error that also hangs a headless `-s` run. The
+  same goes for a property of an addon's component reached through a static lookup (`Health.of(body).value`): the
+  template's parse check refused the whole suite (`The variable type is being inferred from a Variant value`).
+  **Seen:** Deadnight, 2026-11-01 (fix: explicit types); gdstudio #1288, 2026-11-12 (`test_rifle_melee.gd`).
 
 - **Approach:** Test a node with `node == null` or `is_instance_valid(node)`, never against a bool, and keep a test
   that runs the real game path. **Watch out for:** GDScript parses a comparison of an Object with a bool and fails
@@ -103,8 +105,9 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   untyped `Variant`, or check `is_instance_valid()` before the call, and test the path that frees it. **Watch out
   for:** a typed parameter refuses a freed instance at the call (`The Object-derived class of argument 1 (previously
   freed) is not a subclass of the expected argument class`), before the function's own `is_instance_valid()` check
-  runs; the suites of the new code passed, and only the death test that swaps to the male mannequin met it, in the
-  whole template run. **Seen:** gdstudio #1126, 2026-11-11 (`RagdollDrawing.place`).
+  runs, and only one test of the whole run met it. A deferred call (`Class.f.call_deferred(node)`) meets it on the
+  idle frame as `Cannot convert argument 1 from Object to Object`. **Seen:** gdstudio #1126, 2026-11-11
+  (`RagdollDrawing.place`); PR #1397's merge, 2026-11-13 (`keep_last`, 174 errors a run; coordinator's mistake).
 
 ## Lambdas {#lambdas}
 
@@ -116,6 +119,29 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   outer variable inside the lambda is the same trap. **Seen:** Deadnight #226, 2026-11-02 (bot counts, a
   mesh); gdstudio #836, 2026-11-08 (`hits += 1` read 0); gdstudio #1251, 2026-11-11 (`met = {...}` left the
   dict empty); gdstudio #1206, 2026-11-11 (a `maxf` into a captured float read 0 mm); #1158, 2026-11-12 (the same).
+
+## What a line costs in the web build {#web-cost}
+
+<!-- new section: per-frame scripts were cut for the web build by guessing what costs (engine calls, global poses), and
+     nothing said what a GDScript line, a call or an engine call costs there (gdstudio #1347) -->
+
+A per-frame script (a skeleton modifier, a hold, an AI step) runs 40 times a frame in a crowd, so the web build's
+GDScript cost is what a web bench reads. Measured in headless Chrome on the pinned Godot (20,000 calls each,
+`tools/bench/hold_cost.gd`'s spans in a kept game): a call to a function of another script or of the same one
+0.06 microseconds or more (with its arguments and return), a member of a built-in read in a condition (`at.z > 0.0 and
+at.z < d and absf(at.x) < w`) 0.25 for the whole line, an engine call such as `get_bone_pose` 0.03, a transform
+product 0.04, a packed array read 0.02. So a function written out at its one caller costs less than the call, and a
+loop over points pays for every component it reads. The engine does a loop in one call when it is handed a packed
+array: `Transform3D * PackedVector3Array` turns a whole group of points, and `AABB.has_point` tests one without
+reading its components in script.
+
+- **Approach:** Before cutting a per-frame script for the web, count its script calls a frame (its own helpers, a
+  static helper of another class, a getter of another object) and write the small ones out at their caller, keep
+  what is written to another object (a modifier's `influence`, a hand's weights) and write it only when it changes,
+  and hand point loops to the engine in packed arrays. Then measure in Chrome, in turns with `main`. **Watch out
+  for:** a cache of bone poses behind a helper class (a call for each pose and each parent, recursive) made the rifle
+  hold 97 microseconds a character a frame against 71; asking the engine for half as many bone poses moved nothing;
+  writing the helpers out at their callers took it from 57 to 41. **Seen:** gdstudio #1347, 2026-11-12.
 
 ## Project and scene files {#project-and-scene-files}
 

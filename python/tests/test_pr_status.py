@@ -258,3 +258,73 @@ def test_a_bad_sha_or_repository_is_refused(capsys):
     assert ps.main(["--sha", "not-a-sha"]) == 2
     with pytest.raises(ps.Unusable):
         ps.Client("not a repo; rm -rf")
+
+
+# --- an empty or broken answer from GitHub --------------------------------------------------------------------------
+
+
+class FakeGh(ps.Client):
+    """The real client with `gh api` replaced: each path answers from its own queue of (exit code, stdout, stderr),
+    the last answer repeating, and the waits between tries are recorded instead of slept."""
+
+    def __init__(self, answers: dict[str, list[tuple[int, str, str]]]) -> None:
+        super().__init__("owner/repo")
+        self.answers = answers
+        self.asked: list[str] = []
+        self.slept: list[float] = []
+        self.sleep = self.slept.append
+
+    def _run(self, *args: str):
+        path = next(arg for arg in args if arg.startswith("repos/")).removeprefix("repos/owner/repo/")
+        self.asked.append(path)
+        queue = next(queue for prefix, queue in self.answers.items() if path.startswith(prefix))
+        code, out, err = queue.pop(0) if len(queue) > 1 else queue[0]
+        return ps.subprocess.CompletedProcess(["gh"], code, out, err)
+
+
+GOOD_PR = (0, '{"number": 1381, "state": "open", "mergeable": true, "head": {"sha": "' + SHA + '"}, "labels": []}', "")
+EMPTY = (0, "", "")
+GH_EMPTY = (1, "", "unexpected end of JSON input")  # gdstudio #1407: what `gh api` printed for #1381 and #1387
+NOT_JSON = (0, "<html><body>502 Bad Gateway</body></html>", "")
+NOT_FOUND = (1, '{"message": "Not Found"}', "gh: Not Found (HTTP 404)")
+
+
+@pytest.mark.parametrize("broken", [EMPTY, GH_EMPTY, NOT_JSON], ids=["empty", "gh-empty", "not-json"])
+def test_an_empty_or_broken_answer_is_asked_again(broken):
+    client = FakeGh({"pulls/1381": [broken, GOOD_PR]})
+    assert client.get("pulls/1381")["number"] == 1381
+    assert client.asked == ["pulls/1381", "pulls/1381"]
+    assert client.slept == [ps.READ_BACKOFF_SECONDS]
+
+
+def test_three_empty_answers_in_a_row_fail_with_the_error():
+    client = FakeGh({"pulls/1381": [GH_EMPTY]})
+    with pytest.raises(ps.ApiError, match=r"GET pulls/1381: unexpected end of JSON input \(3 tries\)"):
+        client.get("pulls/1381")
+    assert client.asked == ["pulls/1381"] * 3
+    assert client.slept == [ps.READ_BACKOFF_SECONDS, 2 * ps.READ_BACKOFF_SECONDS]  # the wait grows
+
+
+def test_a_real_error_is_not_asked_again():
+    client = FakeGh({"labels/S-conflict": [NOT_FOUND]})
+    assert client.get_or_none("labels/S-conflict") is None  # the label does not exist yet: one call, no wait
+    with pytest.raises(ps.ApiError, match="HTTP 404"):
+        client.get("labels/S-conflict")
+    assert client.asked == ["labels/S-conflict"] * 2
+    assert client.slept == []
+
+
+def test_get_or_none_asks_again_on_an_empty_answer():
+    client = FakeGh({"labels/S-conflict": [EMPTY, (0, '{"name": "S-conflict"}', "")]})
+    assert client.get_or_none("labels/S-conflict") == {"name": "S-conflict"}
+
+
+def test_the_job_passes_when_the_first_answer_is_empty_and_fails_when_every_one_is(capsys):
+    conventions = ["--conventions", str(ROOT / ".github" / "conventions.yml")]
+    runs = (0, '[{"total_count": 0, "check_runs": []}]', "")
+    ok = FakeGh({"pulls/1381": [GH_EMPTY, GOOD_PR], f"commits/{SHA}/check-runs": [runs]})
+    assert ps.main(["--pr", "1381", *conventions], client=ok) == 0
+    assert "#1381: conflict=False, failing=False; no change" in capsys.readouterr().out
+    broken = FakeGh({"pulls/1381": [GH_EMPTY]})
+    assert ps.main(["--pr", "1381", *conventions], client=broken) == 1
+    assert "::error::GET pulls/1381: unexpected end of JSON input (3 tries)" in capsys.readouterr().err

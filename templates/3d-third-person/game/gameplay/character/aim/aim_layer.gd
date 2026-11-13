@@ -14,8 +14,10 @@ extends Node
 ## made again when the model or the hold's modifiers are made again. It follows the aim ray of the
 ## character's last two steps, blended by the physics interpolation as the aim clips are, and it
 ## is on by as much as the weapon is aimed (`CharacterAnimation.pistol_weights()`), less a
-## reload. It is a pose on each machine from what the body already has (the view's yaw and
-## pitch): cosmetic, never sent. A weapon with no muzzle (the fists) turns nothing.
+## reload; until the weapon is nearly up, the turn is the one the aim pose alone needs (`AimPose`),
+## so the chest never folds back as the aim comes up or goes down. It is a pose on each machine
+## from what the body already has (the view's yaw and pitch): cosmetic, never sent. A weapon with
+## no muzzle (the fists) turns nothing.
 ##
 ## It makes an `AimHeadModifier` after it too (kit #1334): with any weapon, the fists among them,
 ## the head looks along the aim, level, with the neck on its line, whatever head the clips carry.
@@ -23,9 +25,19 @@ extends Node
 ## reload. A weapon whose definition says `AimHead.SIGHT` (the rifle) has the head brought to its
 ## sights instead, the eye toward the definition's `aim_eye` marker; the head's modifier then
 ## runs after the stance of the hold that places that weapon.
+##
+## Between the two it makes an `AimUprightModifier` (kit #1351): with a weapon the spine's turn
+## does not aim (the fists, no muzzle), the chest leans at most `upright_max_lean` forward while
+## aiming, so a crouch's folded trunk stands up and the head stays in the shoulder camera's frame.
+## It is on by the head's weight, and off lying.
 
 const _MODIFIER := &"AimOffset"
 const _HEAD_MODIFIER := &"AimHead"
+const _UPRIGHT_MODIFIER := &"AimUpright"
+# The prone aim's place on its look axis in the tree (`ProneAnimation.drive()`).
+const _PRONE_PITCH := (
+	"parameters/Locomotion/%s/%s" % [CharacterAnimation.PRONE, ProneAnimation.AIM_POSE]
+)
 
 @export_group("Nodes")
 ## The character whose aim the weapon follows.
@@ -47,6 +59,11 @@ const _HEAD_MODIFIER := &"AimHead"
 @export_range(1.0, 200.0, 0.5, "suffix:m") var converge_distance := 15.0
 ## Seconds the turn takes to ease back after a shot's recoil, which it leaves as the clip plays.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var release_time := 0.12
+## From this much of the aim up (`CharacterAnimation.pistol_weights().y`) the turn is solved on the
+## drawn pose more and more, and below it on the aim pose alone (`AimPose`): the drawn pose is the
+## aim pose blended with the carry pose, whose muzzle points at the floor, so a turn solved on it
+## while the weapon comes up or goes down folds the chest back (kit #1318).
+@export_range(0.0, 1.0, 0.01) var drawn_from := 0.9
 ## On: no turn (the clips alone aim the weapon, as before the layer).
 @export var disabled := false
 
@@ -66,8 +83,19 @@ const _HEAD_MODIFIER := &"AimHead"
 ## On: the head keeps the clips' pose while aiming (as before kit #1334).
 @export var head_disabled := false
 
+@export_group("Upright")
+## The most the chest (`spine_03` to the neck) may lean forward while aiming a weapon the spine's
+## turn does not aim (the fists), in degrees: the crouch idle leans it 81. The pistol's and the
+## rifle's aim stand it at 16 to 29 crouched.
+@export_range(0.0, 90.0, 0.5, "suffix:deg") var upright_max_lean := 30.0
+## On: the chest keeps the clips' lean while aiming the fists (as before kit #1351).
+@export var upright_disabled := false
+
 var _modifier: AimOffsetModifier
+var _aim_pose := AimPose.new()
+var _prone_pose := AimPose.new()
 var _head: AimHeadModifier
+var _upright: AimUprightModifier
 # The weapon whose `aim_eye` was looked up last, and the marker found (null: a level head).
 var _eye_of: WeaponDef
 var _eye: Node3D
@@ -106,15 +134,35 @@ func head_modifier() -> AimHeadModifier:
 	return _head if _head != null and is_instance_valid(_head) else null
 
 
+## The upright modifier this node made on the skeleton, or null.
+func upright_modifier() -> AimUprightModifier:
+	return _upright if _upright != null and is_instance_valid(_upright) else null
+
+
+## The share the chest is stood up by now (0 the clips' lean, 1 at most `upright_max_lean`): the
+## head's weight, with a weapon the spine's turn does not aim (no muzzle or no aim clip), less how
+## far the body lies.
+func upright_weight() -> float:
+	if upright_disabled or character == null or character.weapon == null:
+		return 0.0
+	var definition := character.weapon.definition
+	if character.weapon.muzzle != null and definition != null and definition.aim_clip != &"":
+		return 0.0
+	return head_weight() * (1.0 - smoothstep(0.0, 1.0, character.prone_amount))
+
+
 ## The share the head looks along the aim by now (0 the clips' head, 1 all the way): the aim,
-## from the aim pose's weight or the character's `aim_amount` eased, less a reload.
+## from the aim pose's weight or the character's `aim_amount` eased, less a reload. A melee blow's
+## aim is not an aim (`MeleeLayer.aim_of`): the blow's clip keeps its own head, where an aimed
+## rifle's head looked along the sights of a rifle the clip was swinging (gdstudio #1288).
 func head_weight() -> float:
 	if head_disabled or character == null or animation == null or animation.tree == null:
 		return 0.0
 	if not animation.tree.active or character.aim_limits == null:
 		return 0.0
-	var aimed := maxf(animation.pistol_weights().y, smoothstep(0.0, 1.0, character.aim_amount))
-	return aimed * (1.0 - animation.reload_progress().x)
+	var aim := animation.melee.aim_of(character)
+	var aimed := maxf(animation.pistol_weights().y, smoothstep(0.0, 1.0, aim))
+	return aimed * (1.0 - _reloading())
 
 
 ## The share the layer is on by now (0 off, 1 the whole turn): the aim's weight, less a reload,
@@ -127,13 +175,13 @@ func weight() -> float:
 	var limits := character.aim_limits
 	if limits == null or not limits.enabled:
 		return 0.0
-	var reload := animation.reload_progress().x
-	return animation.pistol_weights().y * (1.0 - reload)
+	return animation.pistol_weights().y * (1.0 - _reloading())
 
 
 ## Puts the aim on the modifiers now (the frame's own `_process` does it too).
 func refresh() -> void:
 	_refresh_head()
+	_refresh_upright()
 	var aim := modifier()
 	if aim == null:
 		return
@@ -147,8 +195,73 @@ func refresh() -> void:
 	aim.muzzle = character.weapon.muzzle
 	aim.limits = character.aim_limits
 	aim.target = aim_point(Engine.get_physics_interpolation_fraction())
-	aim.hold_turn = animation.is_shooting() or animation.is_reloading()
+	aim.hold_turn = animation.is_shooting() or animation.is_reloading() or _racking()
 	aim.release_time = release_time
+	_pose_aim(aim)
+
+
+# Gives the modifier the weapon's aim pose alone at the aim's pitch now (the prone aim's, by how
+# far the body lies), and how far to trust the drawn pose instead.
+func _pose_aim(aim: AimOffsetModifier) -> void:
+	var held := animation.held_definition()
+	var clips: Array[StringName] = []
+	var prone: Array[StringName] = []
+	if held != null:
+		clips = [held.aim_down_clip, held.aim_clip, held.aim_up_clip]
+		var level := held.prone_aim_clip
+		for clip in [held.prone_aim_down_clip, level, held.prone_aim_up_clip]:
+			prone.append(clip if clip != &"" else level)
+	var skeleton := model.skeleton() if model != null else null
+	var player := animation.animation_player
+	var pitch := Vector2(animation.aim_pitch_range, animation.aim_pitch_range)
+	var standing := _aim_pose.prepare(player, skeleton, clips, pitch)
+	var share := animation.prone_hold_share()
+	var lying := (
+		share > 0.0
+		and held != null
+		and _prone_pose.prepare(player, skeleton, prone, held.prone_aim_angles)
+	)
+	_aim_pose.lying = _prone_pose if lying else null
+	_aim_pose.lying_share = share if lying else 0.0
+	if not (standing or lying) or not _aim_pose.has_pose():
+		aim.aim_pose = null
+		aim.drawn_trust = 1.0
+		return
+	_aim_pose.set_pitch(animation.aim_pitch())
+	_brace_aim(skeleton, share)
+	var gripping := hold.grip_modifier() if hold != null else null
+	_aim_pose.grip = gripping.pose if gripping != null else null
+	if lying:
+		_prone_pose.set_pitch(animation.tree.get(_PRONE_PITCH))
+	aim.aim_pose = _aim_pose
+	var up := animation.pistol_weights().y
+	aim.drawn_trust = smoothstep(drawn_from, 1.0, up) if drawn_from < 1.0 else float(up >= 1.0)
+
+
+# Tells the aim pose how the `AimBrace` (the skeleton's first modifier, made by
+# `CharacterAnimation` the first time the character aims) holds the upper body: its share at full
+# aim is its weight now over the aim's, which it follows.
+func _brace_aim(skeleton: Skeleton3D, lying: float) -> void:
+	var brace := skeleton.get_node_or_null(^"AimBrace") as AimBrace
+	var aimed := animation.pistol_weights().y * (1.0 - lying)
+	if brace == null or not brace.active or aimed <= 0.0:
+		_aim_pose.brace_share = 0.0
+		return
+	_aim_pose.brace_bone = skeleton.find_bone(brace.bone)
+	_aim_pose.brace_stance = brace.stance
+	_aim_pose.brace_share = clampf(brace.influence / aimed, 0.0, 1.0)
+
+
+func _refresh_upright() -> void:
+	var upright := upright_modifier()
+	if upright == null:
+		return
+	var share := upright_weight()
+	if not is_equal_approx(upright.influence, share):
+		upright.influence = share
+	if upright.active != (share > 0.0):
+		upright.active = share > 0.0
+	upright.max_lean = upright_max_lean
 
 
 func _refresh_head() -> void:
@@ -207,12 +320,13 @@ func aim_point(fraction: float) -> Vector3:
 # Makes the modifiers on the model's skeleton, after freeing the ones made on the last model: the
 # spine's right after the hold's grip (or first, with no hold), the head's right after it.
 func _build() -> void:
-	for made: Node in [_modifier, _head]:
+	for made: Node in [_modifier, _head, _upright]:
 		if made != null and is_instance_valid(made):
 			made.get_parent().remove_child(made)
 			made.queue_free()
 	_modifier = null
 	_head = null
+	_upright = null
 	_eye_of = null
 	_eye = null
 	var skeleton := model.skeleton() if model != null else null
@@ -232,6 +346,14 @@ func _build() -> void:
 	_head.influence = 0.0
 	skeleton.add_child(_head)
 	skeleton.move_child(_head, _modifier.get_index() + 1)
+	_upright = AimUprightModifier.new()
+	_upright.name = _UPRIGHT_MODIFIER
+	_upright.chain = chain
+	_upright.weights = chain_weights
+	_upright.active = false
+	_upright.influence = 0.0
+	skeleton.add_child(_upright)
+	skeleton.move_child(_upright, _head.get_index())
 	refresh()
 
 
@@ -246,3 +368,13 @@ func _place(skeleton: Skeleton3D) -> void:
 		skeleton.move_child(_modifier, at)
 	elif _modifier.get_index() < at:
 		skeleton.move_child(_modifier, at - 1)
+
+
+# How much of the body a reload holds now, or the slide's rack after it (kit #1337): the aim gives
+# way to both, whose clips hold the weapon in front of the chest.
+func _reloading() -> float:
+	return maxf(animation.reload_progress().x, animation.rack.progress().x)
+
+
+func _racking() -> bool:
+	return animation.rack.progress().x > 0.0

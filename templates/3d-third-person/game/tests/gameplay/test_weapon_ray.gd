@@ -271,8 +271,8 @@ func test_the_step_state_puts_back_the_cooldown_and_the_spreads_place() -> void:
 	weapon.tick(0.1)
 	var kept: Array = []
 	weapon.save_step_state(kept)
-	# Five of the gun's, eight of the melee blow's (gdstudio #1254).
-	assert_array(kept).has_size(13)
+	# Five of the gun's, eight of the melee blow's (gdstudio #1254), the burst's one (gdstudio #1352).
+	assert_array(kept).has_size(14)
 	assert_float(kept[0]).is_equal_approx(0.15, 0.0001)
 	weapon.make_ready()
 	var first := weapon.fire().velocity
@@ -285,8 +285,8 @@ func test_the_step_state_puts_back_the_cooldown_and_the_spreads_place() -> void:
 	assert_vector(weapon.fire().velocity).is_equal(first)
 	# The same array is written again, not a new one.
 	weapon.save_step_state(kept)
-	# Five of the gun's, eight of the melee blow's (gdstudio #1254).
-	assert_array(kept).has_size(13)
+	# Five of the gun's, eight of the melee blow's (gdstudio #1254), the burst's one (gdstudio #1352).
+	assert_array(kept).has_size(14)
 	# An empty state (a character that had no weapon) changes nothing.
 	var cooling := weapon._cooldown
 	weapon.load_step_state([])

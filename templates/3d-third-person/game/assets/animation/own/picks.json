@@ -7,6 +7,12 @@
   "Crouch_To_Stand": "A",
   "Walk": "A",
   "Jog": "A",
-  "Sprint": "A"
+  "Sprint": "A",
+  "Idle_To_Walk": "A",
+  "Idle_To_Jog": "A",
+  "Idle_To_Sprint": "A",
+  "Walk_Stop": "A",
+  "Jog_Stop": "A",
+  "Sprint_Stop": "A"
  }
 }

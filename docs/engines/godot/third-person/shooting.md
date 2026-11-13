@@ -204,8 +204,8 @@ the spread's place for `restore()`.
   fire alone; walk, aim, fire, release) by reading `aiming` and the speed on the frame after release. **Watch out
   for:** #856 moved the camera to the buttons, but `aiming` stayed true 0.8 s after a shot (a hold since removed) and
   drove `aim_move_scale` and the turn, so the slow aim walk lasted about a second; the animation tree had no latch of
-  its own. List everything that reads a state that outlives its input. A tap under half the arm's raise time (about
-  75 ms) now shoots nothing. **Seen:** gdstudio #868, 2026-11-09 (`test_aim_release.gd`).
+  its own. List everything that reads a state that outlives its input. A tap fires since #1352
+  ([fire modes](fire-modes.md#tap)). **Seen:** gdstudio #868, 2026-11-09 (`test_aim_release.gd`).
 - **Approach:** Sweep the camera's yaw with aim, fire and sprint held in a four-walled room built high above the map and
   in the open, and assert the lens never nears the arm's start by less than a bound no wall can force
   (`test_camera_walls.gd`: 12 yaws and three actions, about 40 s). **Watch out for:** a first sweep stood in the map and
@@ -249,8 +249,8 @@ muzzle's own swing round the spine (1.3 to 1.8 degrees off with one pass, 0.1 to
 `WeaponHold`'s grip (whose wrist turn moves the muzzle) and before its support arm, which reaches for the weapon where
 the turn left it: the left hand, the fingers and the trigger finger stay on the gun with no change to the hold.
 `WeaponHold` says `built` when it makes its modifiers again, and the layer puts itself back after the grip. The layer is
-on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's; a weapon with no muzzle (the fists)
-turns nothing.
+on by the aim's weight (`CharacterAnimation.pistol_weights().y`) less the reload's, solved on the aim pose alone while
+it comes up ([no fold](aim-fold.md#aim-fold)); the fists turn nothing.
 
 **Recoil.** While the shot's one-shot plays (`CharacterAnimation.is_shooting()`), the turn found before the shot is kept
 and moved only with the aim, so the recoil the clip shows is not turned away; after it the turn eases back over
@@ -273,14 +273,14 @@ screen a sliding player's upper body turns and the pistol points to the side as 
 ([puppets](online-client.md#puppets)).
 
 **How it goes with the other aim work.** A steadier stance under the aim (#1206) and a one-handed pistol hold (#1085)
-change the clips and the hold that the layer reads; the layer measures the muzzle on whatever pose they leave, so they
-need nothing from it and it needs nothing from them: a steadier clip only makes its turn smaller. A one-handed hold
+change the clips and the hold that the layer reads; the layer measures the muzzle on whatever pose they leave, so
+neither needs the other: a steadier clip only makes its turn smaller. A one-handed hold
 whose support arm is off leaves the layer as it is.
 
 **What it costs** (`tools/bench/aim_layer_cost.tscn`, 40 dressed players aiming 30 degrees off their facing, the
-modifier timed alone on a shared machine under load): about 31 to 37 microseconds a character a frame with two passes,
+modifier timed alone under load): about 31 to 37 microseconds a character a frame with two passes,
 25 with one (`passes`), against 9 for the hold's support arm in the same run. Only an aiming character pays it (the
-modifier is off at weight 0). The web export was not measured.
+modifier is off at weight 0). The web was not measured.
 
 The tests are `tests/gameplay/test_aim_layer.gd` (sliding ahead, 50 degrees left and right, 20 up and 25 down within 3
 degrees with the body along the slide; without the layer the slide misses by more than 10; past the reach the body turns
@@ -490,14 +490,10 @@ It is cosmetic: the rounds go in at the end of `reload_time`.
 How the two hands hold the pistol together, the trigger finger's way to the trigger and the hand's retreat when the
 arm is short are on [The two-handed pistol grip](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses).
 
-The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (kit #1081); its `SlideRack` resource
-(`pistol_slide_rack.tres`; `SlideRack.fit()` gives the model's body's) holds the left hand's place and fingers on
-the slide, the slide's travel and the shares of its grip, pull and release. The reload does not play it yet
-(kit #1337): the hold releases the slide at the last sound and writes the `Slide` node only on a change, so a rack can
-move it. `test_pistol_rack.gd` and the `rack_closeups` capture play it on a stage whose `reload_weight` is
-`SlideRack.support_weight(share)`, which also takes off the carry arm's swing: there the pistol swings 7 cm out
-and back, and the game's player keeps the arm in
-([the clip and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
+A reload of an empty pistol ends with the template's own rack of the slide, `pistol/Pistol_Rack` (kit #1081 and
+kit #1337): the `RackLayer` plays it, the `WeaponHold` puts the body's `SlideRack` hand on the slide, locked back until
+then ([the rack in the game](../../../tools/blender/weapon-hands/pistol-slide-rack.md#the-slide-rack),
+[the clip](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
 
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
   the action going down between two commands, or an event seen while the action is up again, never both: keep the

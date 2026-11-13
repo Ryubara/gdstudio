@@ -116,7 +116,13 @@ func _reset() -> void:
 
 func test_without_the_layer_the_slide_points_the_pistol_off_the_aim() -> void:
 	# The fault the layer mends: the aim clips are posed for an upright body, and the slide leans
-	# the hips back.
+	# the hips back. Without the start into the sprint (gdstudio #1156), whose pose the momentum
+	# blend is still leaving when the slide begins 40 ticks in.
+	var settings := (
+		(load("res://gameplay/character/gait_settings.tres") as GaitSettings).duplicate()
+	)
+	settings.transitions = false
+	(_player.get_node("Animation") as CharacterAnimation).gait_settings = settings
 	_layer.disabled = true
 	await _slide_and_aim(0.0, 0.0)
 	assert_float(_muzzle_miss()).is_greater(10.0)
@@ -227,12 +233,15 @@ func test_every_aim_limit_is_pinned() -> void:
 		&"chain_weights": PackedFloat32Array([0.3, 0.3, 0.4]),
 		&"converge_distance": 15.0,
 		&"release_time": 0.12,
+		&"drawn_from": 0.9,
 		&"disabled": false,
 		&"head_neck_share": 0.4,
 		&"head_crouch_neck_share": 0.5,
 		&"head_prone_neck_share": 0.5,
 		&"head_max_turn": 90.0,
 		&"head_disabled": false,
+		&"upright_max_lean": 30.0,
+		&"upright_disabled": false,
 	}
 	assert_array(ExportPins.differences(_layer, layer)).is_empty()
 	assert_array(ExportPins.wrong_values(_layer, layer)).is_empty()
