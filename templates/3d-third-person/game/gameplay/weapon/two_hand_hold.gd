@@ -102,9 +102,9 @@ const _PUSH_STEP := 0.003
 ## How far off the skin the butt stays (the skin points ride one bone each, so they are a few
 ## millimetres off the drawn skin near a joint).
 @export_range(0.0, 0.03, 0.001, "suffix:m") var butt_margin := 0.01
-## How much of the barrel's rise or fall the butt's way to the skin leaves out (1: it comes
-## level out of the pocket; 0: along the barrel). Along the barrel, a steep aim down slid the butt
-## down the chest and 10 cm off the shoulder before it was clear (kit #1346).
+## How much of the barrel's fall the butt's way to the skin leaves out while the muzzle is down
+## (1: it comes level out of the pocket; 0: along the barrel). Along the barrel, a steep aim down
+## slid the butt down the chest and 10 cm off the shoulder before it was clear (kit #1346).
 @export_range(0.0, 1.0, 0.01) var push_level := 1.0
 ## The torso's skin is thinned to one point in each cell this size.
 @export_range(0.005, 0.1, 0.005, "suffix:m") var skin_spacing := 0.03
@@ -495,12 +495,13 @@ func spine_indices() -> PackedInt32Array:
 	return _spine_indices
 
 
-# The way the butt goes from the pocket to the skin: along the barrel, its rise or fall taken out
-# by `push_level` (kit #1346).
+# The way the butt goes from the pocket to the skin: along the barrel, its fall taken out by
+# `push_level` while the muzzle is down (kit #1346). Aimed up the barrel's way stays: the push is
+# small there, and out level it jumped between frames on a walk and shook the head on the sights.
 func _push_way(turn: Basis) -> Vector3:
 	var barrel := turn.z.normalized()
 	var level := Vector3(barrel.x, 0.0, barrel.z)
-	if push_level <= 0.0 or level.length_squared() < 1e-6:
+	if push_level <= 0.0 or barrel.y >= 0.0 or level.length_squared() < 1e-6:
 		return barrel
 	return barrel.slerp(level.normalized(), push_level)
 
