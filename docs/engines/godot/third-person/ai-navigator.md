@@ -24,6 +24,7 @@ far character stepped every 4th tick walks the same path.
 | `AiPathCheck` | `ai_path_check.gd` | A new path checked with knee-height rays as the body would walk it; a moving thing or an unlocked door is no block, a `Vaultable` is a place to jump. |
 | `AiStuckWatch`, `AiStuckLadder` | `ai_stuck_watch.gd`, `ai_stuck_ladder.gd` | Stuck from the path left (over 1 m/s asked, under 0.25 m/s of progress for 0.5 s; it ends on 0.5 m of net progress), and the rungs: sidestep, repath from the mesh to a moved goal, a jump where the level allows one, drop the goal for 10 s, walk back along the breadcrumbs, report. |
 | `AiNavAvoidance` | `ai_nav_avoidance.gd` | OFF, SEPARATION (a push from the characters near) or RVO (the server's avoidance agent, or the agent node's). |
+| `AiNavBrake` | `ai_nav_brake.gd` | Where it lets go so the body's own stop ends on the goal, the band of a follow or a link it waits at (gdstudio #1415). |
 | `AiNavDebug` | `ai_nav_debug.gd` | With `debug` on: the path (a link's stretch orange), the point it steers to, a path ending short of the goal in red; the overlay's line says what it does, the stuck rung and why a goal was refused. |
 
 - **Queries.** One path query per character at most every `repath_seconds` (0: the profile's 0.25 s), on a phase of
@@ -55,6 +56,12 @@ far character stepped every 4th tick walks the same path.
   asked and real speed, at least `steer_seconds` (0.05 s) and at most 0.5 s, or `steer_seconds` with avoidance on.
   Between two steers the body keeps its push; a body pushed off the stretch asks for a path (above). `steers` counts
   them.
+- **Stopping.** A body on its feet slows over its stop clip (1.96 m from a jog, 4.82 m from a sprint:
+  [the stops](clips.md#gait-settings)), so the navigator lets go once what is left of the path (to the goal, to a
+  follow's band, or to a link it waits at) is the ground the body's stop covers (`CharacterTuning.stop_distance`), and
+  keeps letting go until the body is at rest short of it or the goal moves on; it steers at every step within that
+  reach and 0.25 m more. Every stock task's walk is a `go_to`: a jog ends 9 mm past its point, a sprint 3 mm (1.48 and
+  4.34 m past it with the stops and no braking; 0.30 m short and 0.06 m past before the stops).
 
 The backend is SERVER: the research measured both the same once the target is set on a timer, and SERVER needs no
 node, answers the same on every machine and is what a test can hash; AGENT is there for its RVO in a crowd.
@@ -80,6 +87,12 @@ node, answers the same on every machine and is what a test can hash; AGENT is th
   push's neighbours). **Watch out for:** the capture freed a shot's characters and the others' kept list cast freed
   objects: 18 `SCRIPT ERROR` lines in the Movie Maker run, none in the suites, which never free a walker mid-walk.
   **Seen:** gdstudio #967, 2026-11-11 (`tools/capture/nav_tour.tscn`).
+- **Approach:** When the body's stop gets longer, let go by the path left (`path.left`, to the goal or to a link it
+  waits at) against the stop's reach, and end every steer hold before that point; measure where a jog and a sprint
+  come to rest past the point, on main and on the branch. **Watch out for:** letting go only on the path's last
+  stretch began 1.5 m out (the path's last two points were close) and the sprint still ran 3.3 m past; a hold set
+  up to the next point carried the body 0.8 m past a link it had to wait at. **Seen:** gdstudio #1415, 2026-11-13
+  (`AiNavBrake`, `test_ai_nav_stops.gd`, `test_ai_nav_recovery.gd`'s waiting link).
 
 ## What it costs {#cost}
 
@@ -109,7 +122,8 @@ first iteration, async iterations off, the repath count, the
 budget, the goal in a wall, the off-mesh target, the much longer route, the unreachable goal, the overlay, a far
 character, the AGENT backend with RVO, two walkers meeting), `test_ai_nav_recovery.gd` (the sidestep, the report with
 no teleport, the wall the mesh runs through, the door that shuts mid-walk, the locked door, the link crossed and left
-to a task) and `tests/world/test_ai_nav_course.gd` (every route of the pathing section at Full and stepped every 4th
+to a task), `test_ai_nav_stops.gd` (a jog, a sprint and a sprint round a corner come to rest on the point) and
+`tests/world/test_ai_nav_course.gd` (every route of the pathing section at Full and stepped every 4th
 tick, and the AI section from its doorway: no stuck second on any of them). Each rule's test fails with that rule
 taken out. The capture is `tools/capture/nav_tour.tscn` (the course from above, a crowd through the doorway, a stuck
 recovery, from the player's camera).
