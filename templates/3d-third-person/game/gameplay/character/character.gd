@@ -389,7 +389,8 @@ func _move(delta: float) -> void:
 
 
 ## True when a shot may leave on the tick `command` is stepped: the fire button was just pressed
-## or is still buffered (or held, with an automatic weapon) and the weapon is ready, or the melee
+## or is still buffered (or held, with an automatic weapon, or a burst is under way) and the weapon
+## is ready, or the melee
 ## button was pressed and a blow can start (it is aimed the same way). A controller asks it to
 ## know whether the command needs the crosshair's ray (`PlayerCommand.has_shot`).
 func shot_wanted(command: PlayerCommand) -> bool:
@@ -402,7 +403,7 @@ func shot_wanted(command: PlayerCommand) -> bool:
 	var held := weapon.definition
 	if held != null and not held.fire_allowed(command.aim):
 		return false
-	return _fire_buffer > 0.0 or fire_press(command) or _trigger_held(command)
+	return _fire_buffer > 0.0 or fire_press(command) or _trigger_held(command) or weapon.bursting
 
 
 ## True when `command` is a new press of the fire button: its press flag, or the button down when
@@ -421,7 +422,7 @@ func _trigger_held(command: PlayerCommand) -> bool:
 	return (
 		weapon != null
 		and weapon.definition != null
-		and weapon.definition.automatic
+		and weapon.definition.fire_mode == WeaponDef.FireMode.AUTOMATIC
 		and command.fire
 	)
 
@@ -683,8 +684,9 @@ func _update_aim(delta: float) -> void:
 		var held := weapon.definition
 		aim_held = last_command.aim and (held == null or held.can_aim)
 		fire_held = last_command.fire and _prone_lets_fire() and _weapon_lets_fire(aim_held)
-		# A melee blow turns the body to the way it goes, as an aim does (gdstudio #1254).
-		wants = aim_held or fire_held or weapon.meleeing
+		# A melee blow turns the body to the way it goes, as an aim does (gdstudio #1254), and a
+		# press still to fire keeps the arm coming up after the button is let go (gdstudio #1352).
+		wants = aim_held or fire_held or weapon.meleeing or _shot_pending()
 		if _slide.active and not slide_tuning.can_shoot:
 			aim_held = false
 			fire_held = false
@@ -914,15 +916,35 @@ func _use_weapon(delta: float) -> void:
 	if not _prone_lets_fire() or not _weapon_lets_fire(aim_held):
 		pressed = false
 		held = false
+		weapon.bursting = false
 	weapon.spread_share = prone_tuning.spread_share if _prone.is_prone() else 1.0
 	# Only a press fills the buffer: a held automatic trigger pulls on the ticks it is held and no
 	# longer, or a click held past its shot leaves a second one buffered (gdstudio #1335).
 	if pressed:
 		_fire_buffer = tuning.fire_buffer_time
-	var wanted := _fire_buffer > 0.0 or held
+	var burst := weapon.bursting
+	var wanted := _fire_buffer > 0.0 or held or burst
 	if wanted and aiming and aim_amount >= tuning.shot_aim_amount and _within_reach():
-		if weapon.pull(_aim_origin(), _aim_direction()) != Weapon.Pull.BUSY:
+		# A burst's later shots are not the press: a press made during it stays buffered.
+		if weapon.pull(_aim_origin(), _aim_direction()) != Weapon.Pull.BUSY and not burst:
 			_fire_buffer = 0.0
+	elif burst:
+		weapon.bursting = false
+
+
+# True while a press is still to fire: one buffered that the weapon can take (not reloading or put
+# away, and allowed now), or a burst under way. It keeps the arm coming up, so a tap from the hip
+# fires its shot or its burst (gdstudio #1352).
+func _shot_pending() -> bool:
+	if weapon.bursting:
+		return true
+	return (
+		_fire_buffer > 0.0
+		and not weapon.lowered
+		and not weapon.is_reloading()
+		and _prone_lets_fire()
+		and _weapon_lets_fire(aim_held)
+	)
 
 
 # What `fire_press` reads on the next step: the button as held now, and whether this step counted a

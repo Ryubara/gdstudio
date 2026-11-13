@@ -45,7 +45,6 @@ script = ExtResource("1_def")
 display_name = "Pistol"
 icon = ExtResource("i1_icon")
 kind = 0
-automatic = false
 fire_rate = 4.0
 damage = 34.0
 magazine_size = 12
