@@ -60,7 +60,8 @@ floor.
   clip has 52 bones' rotations, the pelvis's place and the targets' places and turns. The Quaternius skeleton has
   no such bones and the tracks move nothing there. With the eight clips before the starts and stops the shipped
   file was 356 KB and imported to 130 KB for 24.8 s of clips (5.3 KB a second; the budget is 6); with the twelve
-  starts and stops and the nine jump clips it is SHIPKB and imports to IMPKB for SECS s (RATE, below), with
+  starts and stops and the nine jump clips it is 1.4 MB and imports to 352 KB for 50.8 s (6.8 KB a second: over
+  the plan's 6, inside the 7 the test holds while the maintainer decides, below), with
   Godot's compression pages at 32 KiB: at 8 a long dense clip lost its pelvis's keys (`test_own_jump_clips.gd`
   compares the import with the file).
 - **The targets are set from the finished pose** (`build.retarget`, kit #1161) and checked on every frame
