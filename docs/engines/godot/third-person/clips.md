@@ -330,7 +330,11 @@ spot). The defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Spri
 or a stop is played at the time its travel has covered the ground the body really covered), `turn` (a reversal, a
 pivot or a turn: the time it has turned as far as the body), and `exit_phase` (the share of the gait's cycle it ends
 on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose body has finished its
-part plays on at its own pace; a body asked for something else leaves it at once. Until the clips exist nothing
+part plays on at its own pace; a body asked for something else leaves it at once. A start is picked while the body
+stood at most `GaitTransitions.START_GRACE` (4) frames ago, since the controller's acceleration has it past
+`standing_speed` on the tick it is asked to move (gdstudio #1416); a state asked for while a clip plays (a crouch in a
+stop) is the one the machine goes on to. `tools/capture/own_blend_tour.tscn` films each start, stop and crouch from
+the game camera, printing the largest move of a bone each frame. Until the clips exist nothing
 plays and the states change as before.
 The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
 so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are kit #1157's.

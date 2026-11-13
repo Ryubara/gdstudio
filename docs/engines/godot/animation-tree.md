@@ -339,9 +339,12 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   half and half let a planted foot slide 10 mm forward and 4 mm across in a contact, a turn blended not being a place
   blended. So each gait plays alone over a range of paces (`stretch`), the blend is kept to the speeds between, its
   stride is the weights' geometric mean, and a trim measured from the planted foot itself corrects the rest.
-- **Momentum.** A state machine transition with `xfade_time` 0 shows the new state in the same process; the
-  modifier then adds the decaying difference from the last drawn pose. A `SkeletonModifier3D` added as an internal
-  child at the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
+- **Momentum.** A state machine transition with `xfade_time` 0 reports its new node from
+  `get_current_node()` in the update it travels, but the skeleton shows the new pose a frame later (measured at
+  `skeleton_updated`, stepped by hand and in the running game alike), so the modifier starts the decaying difference
+  from the last drawn pose again on each of the three frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
+  start on the frame the new pose arrives takes the whole jump. A `SkeletonModifier3D` added as an internal child at
+  the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
 
 - **Approach:** Play a gait alone, slowed or sped up, for as many speeds as it looks right at, and blend two gaits
   only across the speeds between; measure a planted foot's slide in the world in a test that steps the body and the
@@ -361,3 +364,15 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   that frame and held the body in it, so the push clip never played and the vault's hands left the top by 0.3 m;
   the transition tests passed, since their clips existed only in their own suite. **Seen:** gdstudio #1156,
   2026-11-12 (`GaitTransitions.on_foot`; `test_player_actions.gd`, `test_push_cubes.gd`, `test_vault_contacts.gd`).
+- **Approach:** Prove an inertialization (or any blend started on a change of state) by the drawn pose: record each
+  body bone's place in the model's frame at `skeleton_updated` every frame through the change, and fail on a move far
+  above the clip's own largest. **Watch out for:** the momentum blend began on the frame the state machine reported
+  its new node, a frame before the skeleton showed it, so it carried nothing and the new pose arrived whole: 88 cm in
+  one frame at a walk's stop, 70 cm into the crouch, for our clips and the library's alike; the blend's own test
+  checked only that it was blending. **Seen:** gdstudio #1416, 2026-11-13 (the maintainer's playtest;
+  `test_own_clip_blends.gd`).
+- **Approach:** Pick a start from the speed the body had before the tick that asked it to move (`START_GRACE`
+  frames since it last stood), not from its speed after. **Watch out for:** at 28 m/s² the body is at 0.47 m/s, past
+  `standing_speed` (0.3), on the first tick of a press, so the starts were never picked for the player and the idle
+  snapped to the walk in two frames; the transition tests set the speed by hand. **Seen:** gdstudio #1416,
+  2026-11-13.

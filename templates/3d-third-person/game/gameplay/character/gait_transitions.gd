@@ -33,6 +33,10 @@ const _P_SEEK := &"parameters/Locomotion/gait_transition/Seek/seek_request"
 const _P_HOLD := &"parameters/Locomotion/gait_transition/Hold/scale"
 ## Degrees of turn left before a turning body counts as done with its part.
 const TURN_DONE := 5.0
+## Frames after the body last stood in which a start is still picked: the controller's
+## acceleration carries the body past `standing_speed` on the tick it is asked to move, so a start
+## read only from the speed now never played (gdstudio #1416).
+const START_GRACE := 4
 
 var settings: GaitSettings
 ## What plays now, and its clip.
@@ -50,6 +54,8 @@ var _along := Vector3.FORWARD
 var _facing := 0.0
 var _turn_to := 0.0
 var _pending := false
+var _since_standing := 0
+var _after: StringName = &""
 
 
 ## The state's node: the clip behind a seek and a time scale of 0.
@@ -98,6 +104,7 @@ func route(state: StringName) -> StringName:
 	if state == CharacterAnimation.GROUND:
 		return STATE
 	_end()
+	_after = state
 	return state
 
 
@@ -108,12 +115,15 @@ func step(
 	playback: AnimationNodeStateMachinePlayback,
 	delta: float
 ) -> void:
+	_count_standing(animation.character)
 	if is_playing():
 		_go_on(animation, blend, playback, delta)
 		return
 	if playback.get_current_node() == STATE:
-		playback.travel(CharacterAnimation.GROUND)  # Left there by a rebuild of the tree.
+		# Left there by a rebuild of the tree, or not yet out to the state it was routed to.
+		playback.travel(_after if _after != &"" else CharacterAnimation.GROUND)
 		return
+	_after = &""
 	if (
 		not _any
 		or settings == null
@@ -144,9 +154,21 @@ static func on_foot(body: Character) -> bool:
 ## The transition the body calls for now, as `{kind, clip}`, or empty: what `step()` would start.
 func pick(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary:
 	var body := animation.character
-	if body.ground_speed() < settings.standing_speed:
+	var standing := settings.standing_speed
+	if (
+		body.ground_speed() < standing
+		or (_since_standing <= START_GRACE and body.goal_speed > standing)
+	):
 		return _pick_standing(animation, blend)
 	return _pick_moving(animation, blend)
+
+
+# Frames since the body's ground speed was last under `standing_speed` (0 while it stands).
+func _count_standing(body: Character) -> void:
+	if settings != null and body.ground_speed() < settings.standing_speed:
+		_since_standing = 0
+	else:
+		_since_standing += 1
 
 
 # A start, or aiming away while standing, a turn on the spot.
@@ -326,6 +348,7 @@ func _hand_over(
 				"r":
 					phase = 0.5
 	_end()
+	_after = CharacterAnimation.GROUND
 	playback.travel(CharacterAnimation.GROUND)
 	if phase >= 0.0:
 		blend.seek_phase(animation.tree, CharacterAnimation.GROUND, phase)

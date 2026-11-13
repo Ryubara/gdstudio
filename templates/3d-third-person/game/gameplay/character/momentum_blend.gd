@@ -15,11 +15,20 @@ extends SkeletonModifier3D
 ## `exp(x(t)) * pose` with `x(t) = (x0 + (v0 + x0 y) t) e^(-y t)`, `y = 2 ln 2 / half_life`, to
 ## every bone that differed, and the same to the pelvis's place. Nothing while the tree is off (a
 ## ragdoll holds the skeleton). Cosmetic, never sent.
+##
+## The new state's pose reaches the skeleton a frame or two after the key changes (the state
+## machine reports its new node in the frame it travels, and the tree draws it on a later update),
+## so the blend starts again from the pose last shown on each of `SETTLE_FRAMES` frames after a
+## change: each start keeps the drawn pose and its speed, and the one on the frame the new pose
+## arrives takes the whole jump (gdstudio #1416).
 
 ## Parts of the bone names it leaves to the clip alone.
 const SKIPPED: Array[String] = [
 	"thumb", "index", "middle", "ring", "pinky", "twist", "socket", "ik_", "root"
 ]
+
+## Frames after a change of key on which the blend starts again from the pose last shown.
+const SETTLE_FRAMES := 3
 
 ## The node whose body state it follows (`CharacterGait.pose_key()`).
 var animation: CharacterAnimation
@@ -44,6 +53,7 @@ var _pelvis_x0 := Vector3.ZERO
 var _pelvis_j0 := Vector3.ZERO
 var _t := 0.0
 var _blending := false
+var _settle := 0
 
 
 ## True while a difference is dying away.
@@ -77,9 +87,12 @@ func _process_modification_with_delta(delta: float) -> void:
 		_forget()
 		_follow(skeleton)
 	var key: Variant = animation.gait.pose_key(animation)
-	if key != _key and _seen >= 2 and delta > 0.0:
-		_begin(skeleton, delta)
+	if key != _key and _seen >= 2:
+		_settle = SETTLE_FRAMES
 	_key = key
+	if _settle > 0 and delta > 0.0:
+		_settle -= 1
+		_begin(skeleton, delta)
 	if _blending:
 		_apply(skeleton, delta)
 	_remember(skeleton)
@@ -156,6 +169,7 @@ func _follow(skeleton: Skeleton3D) -> void:
 
 func _forget() -> void:
 	_seen = 0
+	_settle = 0
 	_blending = false
 	_key = null
 
