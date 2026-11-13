@@ -51,6 +51,8 @@ walking). The rifle clips' build keys the same head from the same numbers
 The body that swings round at the start and end of an aim is not the head: while the aim fades in, the spine's turn
 folded the chest back by up to 47 degrees on main (gdstudio #1318, [the aim layer](shooting.md#aim-layer)). The head
 modifier rides whatever chest that leaves.
+Crouched with the fists, the chest under it is stood up first to at most 30 degrees forward
+([the aiming chest](aim-chest.md#aim-upright), gdstudio #1351).
 
 - **Approach:** Give the head its own last say while aiming: a modifier after every spine turn that sets the neck and
   head from the chest's pose of this update toward the aim point, level, shared over the two bones about one axis.
