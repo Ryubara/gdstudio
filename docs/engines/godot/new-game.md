@@ -144,6 +144,10 @@ bench of `tools/bench/` as its main scene and exports it to the web ([A bench's 
 Its tests are `python/tests/test_template_test.py` (a fake Godot: unique folder, outside the real workspace, removed on
 every exit, kept with `--keep`, two calls at once).
 
+- **Approach:** Remove a kept game with `gds template clean <the path it printed>`, one folder at a time, as soon as
+  its captures are made. **Watch out for:** every agent's kept games and logs sit side by side in the user's temp
+  folder as `gds-tt-*`; a cleanup by that glob deleted other agents' kept games, some mid-run, before it was
+  stopped. **Seen:** gdstudio #1156, 2026-11-12.
 - **Approach:** Prove a new game or template change with a parse of every script (`gds check scripts`) and an editor
   open, and when a script fails, find the registration or file it needs, never an export exclusion. **Watch out
   for:** a new 3D Blank game opened with five parse errors from the `gds_ui` demo (`Identifier "UIRouter" not
