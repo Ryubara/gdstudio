@@ -70,6 +70,7 @@ func test_the_character_the_player_and_the_ragdoll_pin_their_exports() -> void:
 		&"joint_range": 1.0,
 		&"hinge_passes": 6,
 		&"cone_passes": 6,
+		&"brace_time": 1.5,
 		&"linear_damp": 0.1,
 		&"angular_damp": 2.0,
 		&"friction": 0.8,

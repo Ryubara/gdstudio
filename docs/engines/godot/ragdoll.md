@@ -129,6 +129,14 @@ into speed.
   remake it in order did not mend it (Jolt takes a removed joint's place with its last one), and changing a joint's
   limit or a body's shape makes the joint again too. **Seen:** gdstudio #1022, 2026-11-10
   (`test_a_pooled_set_holds_a_shoulder_the_body_rolls_over`).
+- **Approach:** Hold the copies only through the fall: free them `brace_time` (1.5 s) after the death, so a body that
+  has landed lies on its own joints, and make them again at the next `start()` (`CharacterRagdoll._while_limp`,
+  `start`). **Watch out for:** a body kept braced while it lay against a wall and the floor in the AI soak spun its
+  arm and trunk at Jolt's angular limit (47 rad/s) for a third of a second and left at 500 m/s 2.3 s after the death,
+  then went to NaN; with the copies freed at 1.5 s the same seed ran clean and the hinge and cone suites stay
+  green. A replay of that body's state in a test, from the death or from 20 ticks before the throw,
+  calmed down braced or not, so the test pins the behaviour (`test_ragdoll_brace_time.gd`) and the soak proves the
+  cause. **Seen:** gdstudio #1372, 2026-11-13 (seed 28 on the commit #1326 found it; 50 seeds on main clean).
 
 ## Godot Physics or Jolt {#jolt}
 
@@ -294,7 +302,8 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   it sets None. On `Ragdoll`: `mass` (the whole body, shared out by the segment masses of a person), `thickness` (the
   capsules), `joint_range` (how far the joints swing, as a share of a person's range), `hinge_passes` (how many hinges
   hold each elbow and knee, 6: one lets a limb the body lands on fold past its range, [why](#limits)), `cone_passes`
-  (the same for every cone, 6: one lets a shoulder twist 50 to 115 degrees past a person's range), `linear_damp`,
+  (the same for every cone, 6: one lets a shoulder twist 50 to 115 degrees past a person's range), `brace_time`
+  (seconds the copies hold after the death, 1.5: then the body lies on its own joints, [why](#limits)), `linear_damp`,
   `angular_damp`, `friction`, `bounce`; Editor: `editor_preview` (the bones shown in the editor, on); Death and
   getting up:
   `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and `relax_time` (the limbs let
@@ -407,7 +416,8 @@ the template's `HitReaction` flinch); four things threw a flinching arm, each fi
   remake them when the flinch ends, after the bones' own joints. **Watch out for:** six copies of a joint whose
   parent the clip moves (a kinematic body, as heavy as the world to the solver) turned a light arm at 47 rad/s within
   two ticks and sent it off at 500 m/s (Jolt's linear limit), then to NaN; with one joint, every soak seed ran clean.
-  A limp body lying wedged against two blocks with its braces still goes the same way (gdstudio #1372).
+  A limp body lying against a wall with its braces went the same way, until the braces went after the landing
+  ([limits](#limits), gdstudio #1372).
   **Seen:** gdstudio #1326, 2026-11-12 (`test_a_flinch_lifts_the_extra_joints_and_gives_them_back`).
 
 - **Approach:** Hold every simulated bone of a flinch, and of the get-up blend, at its rest distance from its parent
