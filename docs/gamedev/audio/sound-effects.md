@@ -21,7 +21,8 @@ the templates' `assets/audio/` folders, each with a `LICENSE.md`.
 | Fists | `3d-third-person` `assets/audio/fists/` | 4 takes of 0.5 s | 3 punch whooshes of 0.15 to 0.17 s, high-passed at 120 Hz |
 | Impacts | `3d-third-person` `assets/audio/impacts/` | 6, 8 and 8 takes of 0.5 s | 3 files each for stone, wood and metal, 0.15 to 0.31 s |
 | Pistol mechanics | `3d-third-person` `assets/audio/pistol/` | 2 to 4 takes of 0.5 s each | 2 empty clicks, magazine out and in, the slide, the draw (0.06 to 0.30 s) |
-| Pistol shot | `3d-third-person` `assets/audio/pistol/` | none: Deadnight's House Pistol, synthesised | 5 shots of 0.10 s, MIT, kept (picked by ear in #857) |
+| Pistol shot | `3d-third-person` `assets/audio/pistol/` | 8 takes of 0.8 s (#1414) | 5 shots of 0.47 s from takes 2, 3, 4, 6 and 7: a bright crack, a punchy body and a short open-air tail; Deadnight's synthesised House Pistol shots (0.10 s, #857) before them |
+| Rifle shot | `3d-third-person` `assets/audio/rifle/` | 8 + 8 takes of 0.8 s, two prompts (#1414) | 4 shots of 0.22 s from takes 3, 6, 16 and 10: a heavy, deep report with a crack on top and a tight decay; Deadnight's synthesised M4A1 shots before them (its mechanics stay) |
 | Menu sounds | `3d-third-person` `assets/audio/ui/` | 5 + 3 hint, 5 press, 4 confirm, 4 move, 4 toggle and 4 swish takes, of 0.5 to 1 s (#1100) | 14 files: 3 hints of 0.05 s (a low wooden tock), 3 presses of 0.07 to 0.14 s, 2 confirms of 0.42 s (a click into a two-note marimba chime), 2 tab moves of 0.13 s, 2 switch snaps of 0.06 to 0.07 s, 2 swishes of 0.36 to 0.39 s |
 | Wind | `3d-blank` `assets/audio/wind/` | 2 takes of 30 s, `loop` (and 3 of a second prompt) | one seamless loop of 28 s: gusts every 7 s or so, with a soft whistle layered in them ([A wind that reads as wind](#wind)) |
 
@@ -250,11 +251,13 @@ Credits screen named ElevenLabs. #1083 regenerated the set under the paid starte
 commands): `encode` writes the paid licence from the plan in the request files, so a game made from the template now
 carries no replace note.
 
-The pistol shots in `assets/audio/pistol/` are not ElevenLabs output: they are Deadnight's House Pistol shots,
-synthesised by its own code (`tools/audio/gun_recipes_2.py`, nothing sampled) and covered by the same MIT licence as
-the kit, so their `LICENSE.md` names no generator and asks for no attribution and no replacement
-([#857](https://github.com/Ryubara/gdstudio/issues/857)). Check how a sound's source documents its origin before
-copying it across repositories; only the folders its design page lists as synthesised (here `guns/`) are plain MIT.
+The rifle's empty clicks, reload steps and draw in `assets/audio/rifle/` are not ElevenLabs output: they are
+Deadnight's M4A1 sounds, synthesised by its own code (`tools/audio/gun_recipes_2.py`, nothing sampled) and covered by
+the same MIT licence as the kit, so the folder's `LICENSE.md` lists them under a note of their own (`folder_notes`) that
+names no generator and asks for no attribution and no replacement. The pistol's and the rifle's shots were synthesised
+the same way until [#1414](https://github.com/Ryubara/gdstudio/issues/1414) generated new ones. Check how a sound's
+source documents its origin before copying it across repositories; only the folders its design page lists as
+synthesised (here `guns/`) are plain MIT.
 
 ### On the paid plan {#paid-plan}
 

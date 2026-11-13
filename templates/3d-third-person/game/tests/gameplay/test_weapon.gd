@@ -132,7 +132,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"rack_clip": CharacterClips.PISTOL_RACK,
 		&"rack_sound_at": 0.482,
 		&"shot_sound": pistol.shot_sound,
-		&"shot_volume_db": -24.0,
+		&"shot_volume_db": -22.5,
 		&"empty_sound": pistol.empty_sound,
 		&"reload_sounds": pistol.reload_sounds,
 		&"reload_sound_at": PackedFloat32Array([0.2, 0.6, 0.85]),

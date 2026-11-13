@@ -36,8 +36,8 @@ pickup is a scene that inherits it and puts the model under `Visual`: the templa
   the character carries the weapon, so a character without a rifle carries none of its nodes. Its parts are below:
   [the rifle in both hands](#rifle-hands).
 - **The rifle**: hitscan, automatic, 10 shots a second, spread 1.2 degrees, recoil 0.6, damage 22, a magazine of 30,
-  60 to 180 in reserve (`rifle_ammo`), reload 2.2 s, holster 0.3 s, draw 0.4 s; Deadnight's synthesised M4A1 sounds
-  (`assets/audio/rifle/`, MIT), the shot at -27 dB.
+  60 to 180 in reserve (`rifle_ammo`), reload 2.2 s, holster 0.3 s, draw 0.4 s; Deadnight's synthesised M4A1 mechanics
+  (`assets/audio/rifle/`, MIT) and four generated shots (kit #1414), the shot at -24.5 dB.
 
 Tests: `test_weapon_pickup.gd` (walking into it gives the rifle and its rounds, it comes back after its time, with the
 rifle carried it gives only rounds, with a full reserve it stays, the rifle fires while the button is held, a body with

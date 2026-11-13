@@ -324,7 +324,7 @@
       "max_seconds": 0.5,
       "min_files": 4,
       "measure": "momentary",
-      "target_lufs": -16.0,
+      "target_lufs": -17.5,
       "tail_db": -36.0,
       "use_takes": [
         2,
@@ -334,7 +334,8 @@
         7
       ],
       "crest_db": 12.0,
-      "presence_db": 8.0
+      "presence_db": 8.0,
+      "decay_ms": 110.0
     },
     {
       "name": "rifle_shot",
@@ -346,10 +347,10 @@
       "seconds": 0.8,
       "influence": 0.6,
       "min_seconds": 0.18,
-      "max_seconds": 0.32,
+      "max_seconds": 0.25,
       "min_files": 4,
       "measure": "momentary",
-      "target_lufs": -17.0,
+      "target_lufs": -18.5,
       "tail_db": -30.0,
       "take_prompts": {
         "1": "One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music.",
@@ -368,7 +369,8 @@
         10
       ],
       "crest_db": 12.0,
-      "presence_db": 4.0
+      "presence_db": 4.0,
+      "decay_ms": 45.0
     },
     {
       "name": "ui_hint",

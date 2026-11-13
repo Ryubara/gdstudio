@@ -745,7 +745,19 @@ def hit(x, sound: dict):
         int((sound["min_seconds"] + 0.01) * RATE),
     )
     x = whole[: min(max(len(short), least), most)]
+    if sound.get("decay_ms"):  # a shot: tightened after its transient, so a run of them stays a run of shots
+        x = decay(x, sound["decay_ms"] / 1000.0)
     return fade_out(fade_in(x), 0.06)
+
+
+def decay(x, seconds: float, hold: float = 0.025):
+    """Hold the first `hold` seconds (the transient), then let the sound fall away exponentially with a time constant
+    of `seconds`: a generated shot keeps its loud body for 100 ms or more, and at ten a second each shot ran into the
+    next (#1414)."""
+    import numpy as np
+
+    t = np.arange(len(x)) / RATE
+    return x * np.exp(-np.maximum(t - hold, 0.0) / seconds)
 
 
 def spread(pieces: list, sound: dict) -> list:

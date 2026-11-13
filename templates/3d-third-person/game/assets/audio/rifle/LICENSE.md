@@ -10,10 +10,10 @@
 
 | File | Prompt | Seconds |
 | --- | --- | ---: |
-| `rifle_shot_1.ogg` | One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music. (requested 0.8 s, `eleven_text_to_sound_v3`) | 0.29 |
-| `rifle_shot_2.ogg` | One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music. (requested 0.8 s, `eleven_text_to_sound_v3`) | 0.29 |
-| `rifle_shot_3.ogg` | One single assault rifle gunshot fired close to the shooter, outdoors: one instant, very loud, explosive blast with a deep, heavy low-end boom and a sharp high crack at its very start, then a short tight decay. Exactly one shot and nothing after it, dry. (requested 0.8 s, `eleven_text_to_sound_v3`) | 0.29 |
-| `rifle_shot_4.ogg` | One single assault rifle gunshot fired close to the shooter, outdoors: one instant, very loud, explosive blast with a deep, heavy low-end boom and a sharp high crack at its very start, then a short tight decay. Exactly one shot and nothing after it, dry. (requested 0.8 s, `eleven_text_to_sound_v3`) | 0.29 |
+| `rifle_shot_1.ogg` | One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music. (requested 0.8 s, `eleven_text_to_sound_v3`) | 0.22 |
+| `rifle_shot_2.ogg` | One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music. (requested 0.8 s, `eleven_text_to_sound_v3`) | 0.22 |
+| `rifle_shot_3.ogg` | One single assault rifle gunshot fired close to the shooter, outdoors: one instant, very loud, explosive blast with a deep, heavy low-end boom and a sharp high crack at its very start, then a short tight decay. Exactly one shot and nothing after it, dry. (requested 0.8 s, `eleven_text_to_sound_v3`) | 0.22 |
+| `rifle_shot_4.ogg` | One single assault rifle gunshot fired close to the shooter, outdoors: one instant, very loud, explosive blast with a deep, heavy low-end boom and a sharp high crack at its very start, then a short tight decay. Exactly one shot and nothing after it, dry. (requested 0.8 s, `eleven_text_to_sound_v3`) | 0.22 |
 
 ## The mechanics: GDStudio's own work, MIT
 

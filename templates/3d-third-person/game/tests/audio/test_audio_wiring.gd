@@ -170,7 +170,7 @@ func test_the_levels_are_the_ones_measured_and_no_effect_jumps_out() -> void:
 		[_scene.get_node("PlayerRig/Player/Footsteps").get_node("%CrouchStep"), -29.0],
 		"LandStep": [_scene.get_node("PlayerRig/Player/Footsteps").get_node("%LandStep"), -15.0],
 		"Coin": [pickup.get_node("%Sound"), -16.0],
-		"Shot": [_scene.get_node("PlayerRig/Player/Weapon").get_node("%ShotSound"), -24.0],
+		"Shot": [_scene.get_node("PlayerRig/Player/Weapon").get_node("%ShotSound"), -22.5],
 	}
 	for label in levels:
 		var pair: Array = levels[label]
