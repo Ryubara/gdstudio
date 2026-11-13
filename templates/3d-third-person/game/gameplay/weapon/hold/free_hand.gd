@@ -42,6 +42,14 @@ func step(delta: float) -> void:
 	_left = maxf(_left - delta, 0.0)
 
 
+## Ends the action early: the hand comes back over at most `return_time` from now, the way it
+## would at the action's own end, never with a jump (an item's use cut short).
+func finish() -> void:
+	if _left <= 0.0:
+		return
+	_left = minf(_left, return_time * amount())
+
+
 ## Puts the hand back on the weapon at once.
 func stop() -> void:
 	_left = 0.0

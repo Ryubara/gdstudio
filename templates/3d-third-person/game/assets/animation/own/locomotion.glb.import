@@ -43,7 +43,7 @@ _subresources={
 "nodes": {
 "PATH:AnimationPlayer": {
 "compression/enabled": true,
-"compression/page_size": 8,
+"compression/page_size": 32,
 "optimizer/enabled": false
 }
 }

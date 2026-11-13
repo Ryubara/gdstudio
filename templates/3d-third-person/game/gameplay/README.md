@@ -11,7 +11,8 @@ The template has a character and the map's components:
 
 - `character/`: the character whoever drives it (`Character` and its scenes `character.tscn`, the body alone, and
   `character_dressed.tscn`, with its model; `CharacterTuning`, `CharacterAnimation`, `CharacterRagdoll`, `Footsteps`,
-  `Interactor`, `StepClimber`, `CharacterClips`, `CharacterController`, `CharacterState`).
+  `Interactor`, `StepClimber`, `CharacterClips`, `CharacterController`, `CharacterState`, and `ItemUse`, which uses a
+  hotbar item that takes time: the bandage's clip, sound and HUD sign, and the rules that cut it short).
 - `ai/`: the AI characters' base (`AiCharacter`, `ai_character.tscn`: the dressed character driven by an
   `AiController`), what kind each is (`AiProfile`, `profiles/grunt.tres`, `ally.tres`, `civilian.tres`), and the
   `AiDirector` (a node of `world/world.tscn`) that steps them, runs their thinks and sets their tiers within one

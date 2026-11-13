@@ -51,6 +51,8 @@ func test_every_effect_export_has_its_default_pinned() -> void:
 		&"light_color": Color(1.0, 0.72, 0.38),
 		&"light_range": 4.0,
 		&"light_time": 0.06,
+		&"light_attenuation": 1.0,
+		&"light_alone": false,
 		&"duration": 0.0,
 		&"max_instances": 4,
 		&"offset": Vector3.ZERO,
@@ -78,6 +80,7 @@ func test_a_sound_and_light_change_shows_in_the_next_play() -> void:
 	effect.light_color = Color(0.1, 0.2, 0.9)
 	effect.light_energy = 5.0
 	effect.light_range = 7.0
+	effect.light_attenuation = 0.5
 	_emitter.play_at(effect, Vector3.ZERO)
 	var voice := slot.sound_player()
 	assert_float(voice.volume_db).is_equal(-3.0)
@@ -86,6 +89,7 @@ func test_a_sound_and_light_change_shows_in_the_next_play() -> void:
 	assert_object(slot.light().light_color).is_equal(Color(0.1, 0.2, 0.9))
 	assert_float(slot.light().light_energy).is_equal(5.0)
 	assert_float(slot.light().omni_range).is_equal(7.0)
+	assert_float(slot.light().omni_attenuation).is_equal(0.5)
 
 
 func test_a_timing_and_placement_change_shows_in_the_next_play() -> void:

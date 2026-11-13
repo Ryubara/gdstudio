@@ -365,6 +365,12 @@ func free_hand_for_interact() -> void:
 	free_hand(animation.character.tuning.interact_time)
 
 
+## The action the hand was let go for ended early (a use cut short): the hand comes back onto the
+## weapon its own way, from wherever it is.
+func take_hand_back() -> void:
+	_free.finish()
+
+
 ## Puts the weights on the modifiers now (the frame's own `_process` does it too).
 func refresh() -> void:
 	if animation != null and animation.tree != null:
@@ -818,6 +824,7 @@ func _build() -> void:
 		_skeleton.add_child(_fingers)
 		_build_magazines(seat.get_child(0) as Node3D)
 		_build_rack()
+	_keep_ragdoll_last.call_deferred()
 	refresh()
 	built.emit()
 
@@ -840,6 +847,24 @@ func _build_rack() -> void:
 	_rack_fingers.name = _RACK_FINGERS
 	_rack_fingers.active = false
 	_skeleton.add_child(_rack_fingers)
+
+
+# Puts a simulating ragdoll back after the modifiers made just now (and the aim layer's, made on
+# `built`): made while the body lies limp (a weapon or stance change after the death), they went
+# after the simulator and posed the dead arm and hand over the ragdoll's, so the weapon stood off
+# the hand (kit #1339, docs/engines/godot/ragdoll.md#underfoot).
+func _keep_ragdoll_last() -> void:
+	if _skeleton == null or not is_instance_valid(_skeleton):
+		return
+	for child in _skeleton.get_children():
+		var simulator := child as PhysicalBoneSimulator3D
+		if simulator == null or not simulator.is_simulating_physics():
+			continue
+		_skeleton.move_child(simulator, -1)
+		var drawing := _skeleton.get_node_or_null(NodePath(RagdollDrawing.NODE_NAME))
+		if drawing != null:
+			_skeleton.move_child(drawing, -1)
+		return
 
 
 # The new magazine on the left hand's bone, placed as the pistol's own is seen from the magazine

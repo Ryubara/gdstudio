@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="ItemDef" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="ItemDef" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://addons/gds_game/inventory/item_def.gd" id="1_def"]
 [ext_resource type="Texture2D" path="res://assets/ui/inventory/item_bandage.svg" id="2_icon"]
 [ext_resource type="PackedScene" path="res://gameplay/pickup/pickup.tscn" id="3_pickup"]
 [ext_resource type="Script" path="res://addons/gds_game/inventory/heal_effect.gd" id="4_heal"]
+[ext_resource type="AudioStream" path="res://gameplay/inventory/bandage_use.tres" id="5_sound"]
 
 [sub_resource type="Resource" id="HealEffect_bandage"]
 script = ExtResource("4_heal")
@@ -13,9 +14,13 @@ amount = 25.0
 script = ExtResource("1_def")
 id = &"bandage"
 display_name = "Bandage"
-description = "A sample item: five fit in one slot. Drop one and walk over it to take it back."
+description = "A sample item: five fit in one slot. Using one takes 1.6 s and gives 25 health."
 icon = ExtResource("2_icon")
 tint = Color(0.91, 0.85, 0.74, 1)
 max_stack = 5
 drop_scene = ExtResource("3_pickup")
 use_effect = SubResource("HealEffect_bandage")
+use_time = 1.6
+use_apply_share = 0.75
+use_clip = &"ual2/Consume"
+use_sound = ExtResource("5_sound")
