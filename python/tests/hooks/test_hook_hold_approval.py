@@ -258,6 +258,55 @@ def test_an_approval_in_any_words_answers_the_list_however_long_the_message(work
     assert run(workspace, "gh issue edit 9 --remove-label S-hold", path) == ""
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Yes remove S-Hold off 7 and 9",  # the label's name followed by "off" is not "hold off"
+        "Yes, take S-hold off #7 and #9.",
+        "take the hold off 7 and 9",
+        "Take that hold off 7 and 9, they are good.",
+    ],
+)
+def test_the_label_or_the_hold_taken_off_named_numbers_approves(workspace, text):
+    path = transcript(workspace, said("Waiting on your approval: #7 and #9."), typed(text))
+    assert run(workspace, LIFT, path) == ""
+    assert run(workspace, "gh issue edit 9 --remove-label S-hold", path) == ""
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "I approve all of #5 through #9",
+        "Approved: 6-9.",
+        "Yes to #3 thru #8",
+        "For #7, the B variant looks good.",
+        "#7 is great, the clips feel right.",
+    ],
+)
+def test_a_range_or_a_plain_good_names_and_approves_the_number(workspace, text):
+    path = transcript(workspace, said("Waiting on your picks: #5 to #9."), typed(text))
+    assert run(workspace, LIFT, path) == ""
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "I don't like the jumps in 7. I approve all of #5 through #9.",
+        "Approved: 1 to 100.",  # a run longer than 30 names nothing in it
+        "Approved: #8 through #12.",
+    ],
+)
+def test_a_range_keeps_the_veto_and_its_bounds(workspace, text):
+    path = transcript(workspace, said("Waiting on your picks: #5 to #12."), typed(text))
+    assert run(workspace, LIFT, path) != ""
+
+
+@pytest.mark.parametrize("text", ["hold off on 7", "Hold off with 7 for now.", "yes, but hold off on 7"])
+def test_hold_off_as_a_verb_still_refuses(workspace, text):
+    path = transcript(workspace, said("Lift S-hold on #7?"), typed(text))
+    assert run(workspace, LIFT, path) != ""
+
+
 def test_a_number_named_with_a_negation_is_vetoed_by_the_rest_of_the_message(workspace):
     path = transcript(workspace, said("Lift S-hold on #7 and #9?"), typed("Yes to all of them. Don't lift 9 yet."))
     assert run(workspace, LIFT, path) == ""

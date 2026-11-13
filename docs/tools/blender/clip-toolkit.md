@@ -79,8 +79,8 @@ foot's roll, the travel, the gait checks and the free fall's arc (0 to 1.1 mm of
 backward, and a pose added to another in Godot, are proved by the directions and the lean (kit #1159). Mirroring
 and the placed
 hand are written and not yet used by a shipped clip: the first issue that uses each proves it. The weight check's
-lean is tested on made-up motion only. A body whose legs differ from the reference body's is reported with
-`needs_ik` and not held to the floor and planted limits.
+lean is proved by the starts and stops, over a step ([their rows](start-stop-clips.md#toolkit-rows)). A body whose
+legs differ from the reference body's is reported with `needs_ik` and not held to the floor and planted limits.
 
 - **Approach:** Give a description the body's weight and contacts, not its pose: the share of weight on each foot,
   how straight the carrying leg is, how far a hand keeps from the thigh, and let the solver find the pelvis and the

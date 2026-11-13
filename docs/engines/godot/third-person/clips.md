@@ -340,6 +340,8 @@ pivot or a turn: the time it has turned as far as the body), and `exit_phase` (t
 on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose body has finished its
 part plays on at its own pace; a body asked for something else leaves it at once. Until the clips exist nothing
 plays and the states change as before.
+The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
+so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are kit #1157's.
 
 **What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
 pose's difference from the idle's first frame, so it keys every bone the idle keys, the `ik_` targets too (where

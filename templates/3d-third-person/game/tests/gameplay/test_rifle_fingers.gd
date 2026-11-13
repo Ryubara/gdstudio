@@ -6,9 +6,9 @@
 # skinned mesh worked out from the bone poses after the modifiers ran). `test_rifle_hold.gd`
 # poses the clips by hand on a stage; this suite measures what the player plays, blends and all.
 # And the trigger finger's way between the receiver and the trigger, as the rifle comes up and
-# goes down, passes no deeper through the rifle than a hand may between two places (6 mm, as the
-# reload's left hand; the straight way between the two poses went 17 mm into the magazine well
-# and the trigger guard; `HandPoseWay`, `tools/hold/solve_trigger_way.gd`).
+# goes down, keeps the finger within the hold's own 2 mm of the rifle at every hundredth of the
+# raise (kit #1283; the straight way between the two poses went 20 to 24 mm into the magazine
+# well and the trigger guard; `HandPoseWay`, `tools/hold/plan_trigger_way.py`).
 extends GdUnitTestSuite
 
 const RIFLE := "res://gameplay/weapon/rifle.tres"
@@ -18,11 +18,8 @@ const SETTLE := 30
 const SAMPLE_GAP := 7
 const SAMPLES := 3
 ## The steps of the rifle's way up at which the trigger finger is measured.
-const RAISE_STEPS := 50
+const RAISE_STEPS := 100
 const INDEX: Array[String] = ["index_base", "index_mid", "index_tip"]
-## How deep the index finger may pass through the rifle on its way to the trigger and back, in
-## metres (the reload's moving hand has the same, `test_rifle_hold.gd`).
-const PASSING_DEPTH := 0.006
 
 var _arena: PlayArena
 var _player: Player
@@ -56,9 +53,12 @@ func test_every_finger_holds_the_rifle_in_every_state_on_the_male() -> void:
 	await _walk_the_states(MALE)
 
 
+# With `RIFLE_WAY_SWEEP` set to a file, each step's deepest part is written there (a run's
+# `print()` reaches no log).
 func test_the_trigger_finger_goes_round_the_guard_as_the_rifle_comes_up() -> void:
 	var holder: Node3D = auto_free(Node3D.new())
 	add_child(holder)
+	var sweep := PackedStringArray()
 	for model: String in HoldStage.MODELS:
 		var stage := RifleStage.make_rifle(holder, model)
 		var deepest := 0.0
@@ -68,10 +68,13 @@ func test_the_trigger_finger_goes_round_the_guard_as_the_rifle_comes_up() -> voi
 			stage.pose_rifle(CharacterClips.IDLE, 0.0, aim)
 			await stage.settle()
 			var parts := stage.contact.measure("r")
+			var here := -INF
 			for part in INDEX:
+				here = maxf(here, -float(parts[part].distance))
 				if -float(parts[part].distance) > deepest:
 					deepest = -float(parts[part].distance)
 					deepest_at = aim
+			sweep.append("%s %.2f %.2f" % [model, aim, here * 1e3])
 		(
 			assert_float(deepest)
 			. override_failure_message(
@@ -80,9 +83,14 @@ func test_the_trigger_finger_goes_round_the_guard_as_the_rifle_comes_up() -> voi
 					% [model, deepest * 1e3, deepest_at]
 				)
 			)
-			. is_less_equal(PASSING_DEPTH)
+			. is_less_equal(HandContact.MAX_DEPTH)
 		)
 		stage.free()
+	var report := OS.get_environment("RIFLE_WAY_SWEEP")
+	if not report.is_empty():
+		var file := FileAccess.open(report, FileAccess.WRITE)
+		file.store_string("body aim deepest_mm\n" + "\n".join(sweep) + "\n")
+		file.close()
 
 
 # A player in an arena with the rifle out at the low ready, the mannequin `variant` (empty: the
@@ -158,9 +166,10 @@ func _on_skeleton_updated() -> void:
 	var right := _contact.measure("r")
 	var raised := _hold.raised_amount()
 	if raised > 0.0 and raised < 1.0:
-		# The finger on its way to the trigger or back: a passing depth, and no contact asked.
+		# The finger on its way to the trigger or back: in by no more than the hold's 2 mm, and
+		# no contact asked.
 		for part in INDEX:
-			if -float(right[part].distance) > PASSING_DEPTH:
+			if -float(right[part].distance) > HandContact.MAX_DEPTH:
 				_fails.append(
 					(
 						"%s r %s passing %.1f mm inside"

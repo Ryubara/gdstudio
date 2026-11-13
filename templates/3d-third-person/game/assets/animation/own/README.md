@@ -26,11 +26,13 @@ uv run --with numpy --with pillow python -B review_sheet.py <type> --blender <th
 ```
 
 A rebuild writes the same bytes (`--check` compares with the files on disk and writes nothing). The clip from the
-game's camera is `tools/capture/own_clips_review.tscn`; the Godot test is `tests/gameplay/test_own_clips.gd`.
+game's camera is `tools/capture/own_clips_review.tscn` (the starts and stops: `own_moves_review.tscn`); the Godot
+tests are `tests/gameplay/test_own_clips.gd` and `test_own_moves.gd`.
 
 The clip types are `idle`, `walk`, `jog`, `sprint`, `crouch_idle`, `crouch_walk`, `stand_to_crouch`,
-`crouch_to_stand`, the directions `walk_back`, `walk_left`, `walk_right`, `jog_back`, `jog_left`, `jog_right`, and
-the leans `lean_left`, `lean_right`, `lean_fwd`, `lean_back` (below, "The directions and the lean"). After
+`crouch_to_stand`, the directions `walk_back`, `walk_left`, `walk_right`, `jog_back`, `jog_left`, `jog_right`, the
+leans `lean_left`, `lean_right`, `lean_fwd`, `lean_back` (below, "The directions and the lean"), and the families
+`idle_to_walk`, `idle_to_jog`, `idle_to_sprint`, `walk_stop`, `jog_stop` and `sprint_stop` (two clips each). After
 `ship locomotion` changes `Crouch_Idle`, rebuild the prone clips too (`../prone/`): their two transitions join its
 first pose. `fluidity.py` reads the shipped gaits against the library clips they replaced (below, "How fluid the
 gaits are").
@@ -57,8 +59,9 @@ floor.
   settle off (`ContactPlan.tread`).
 - **The four `ik_` targets are keyed** (`ik_foot_l/r`, `ik_hand_l/r`), since the prototype rig has them: each
   clip has 52 bones' rotations, the pelvis's place and the targets' places and turns. The Quaternius skeleton has
-  no such bones and the tracks move nothing there. With all eight clips the shipped file is 356 KB and imports
-  to 130 KB for 24.8 s of clips (5.3 KB a second; the budget is 6).
+  no such bones and the tracks move nothing there. With the eight clips before the starts and stops the shipped
+  file was 356 KB and imported to 130 KB for 24.8 s of clips (5.3 KB a second; the budget is 6); with the twelve
+  starts and stops it is 1.1 MB and imports to 289 KB for 43.7 s (6.6, below).
 
 **Picking another variant:** set the letter in `picks.json`, run `ship locomotion`, run the test. The other styles
 stay here, so a game picks another vision by rebuilding, or writes a `style_d.json` of its own.
@@ -667,3 +670,169 @@ thigh: his thighs meet by 2 mm in his rest pose and by 3.8 in the shipped `Jog`.
   and checked on every frame (`checks.check_targets`, 4 mm): the directions' targets are within 0.13 to 0.79 mm
   of their limbs' ends in every variant. Every review file and the shipped file were rebuilt; the lean poses key
   no target and are unchanged, and only the targets' keys moved in the others.
+
+## The starts and the stops: `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`, `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`
+
+Kit #1156. All new: Quaternius's library has no start and no stop, and the game cross-faded for 0.15 s between the
+idle and a gait, poses 436 to 685 mm apart. Each type is two clips, `_L` and `_R`: a start is named for the foot
+that steps off first, a stop for the foot that strikes as it begins. All twelve are one description,
+`clips/moves.py`, and each type is a family in `build_own.py` (`FAMILIES`): `review idle_to_walk` builds both feet
+under every letter, and one letter of `picks.json` picks the pair.
+
+### How a body starts and stops (the research)
+
+Read on 2026-11-12, before the numbers were set. "Summary" means only a search's summary of the page was read, so
+the finding is a lead; "computed" is our own arithmetic from the physics named; where nothing was found it says so
+and the clip's number is a declared choice.
+
+| What | Finding | Source | What the clips do with it |
+| --- | --- | --- | --- |
+| Before the first step | A standing person who starts to walk first moves the point the feet press on backward and toward the foot that will swing, which tips the body forward and onto the other leg; the further back it goes, the faster the body is moving as the first foot lands. Then that foot is unloaded, then it steps. | [Postural organization of gait initiation](https://www.jove.com/t/64088/postural-organization-gait-initiation-for-biomechanical-analysis); [Brenière and Do's line of work, in a study of children](https://research.vu.nl/en/publications/the-build-up-of-anticipatory-behavior-an-analysis-of-gait-initiat/) (both summary) | A start gathers for 7 to 10 frames before a foot leaves (`prep`): the hips go over the standing foot (`shift`) and sink a little (`dip`), and the root does not move on the first frame. From the idle, which stands on its left leg, the right foot is free sooner: `_R` gathers three frames less and shifts 12 mm where `_L` shifts 50. |
+| How fast a standing body can speed up | Not found as a number in a source we could open. Physics gives it: a body that stands can only fall forward over its feet, so its acceleration is `g / h` times the distance from where the feet press to the centre of mass. With the heels 0.10 m behind it and `h` 1.0 m that is 1 m/s2 at first; falling until the standing foot is 0.45 m behind takes 0.76 s and ends at 1.7 m/s, the walk's speed. | computed (an inverted pendulum) | The start's speed is that fall (`lever`, `push_most`), scaled until the gait's speed is reached two frames after the last landing but one. The scale (1.9 to 2.0 in the grounded walk start) is how much harder the clip pushes than a fall alone; the build's lean check reads what that costs. |
+| When the gait's speed is reached | The speed at the end of the first step grows with the backward shift and the time spent on it; no page we could open said by which step a walk is steady. | the same pages (summary) | The walk is at speed as its second foot lands (two landings), the jog after three steps of four, the sprint after four of six: declared choices. |
+| A sprinter's first steps | From a standing start, faster athletes have 11 to 13 % shorter contacts and about 9 % more steps a second over the first three steps; among world-class men the trunk's angle and the thighs' spread at the first take-off explain almost 90 % of how well the first contact speeds them up; short contacts go with a quick first four metres. | [Standing and Maulder, 2017](https://www.jssm.org/jssm-16-154.xml-Fulltext); [Walker et al., 2021](https://eprints.leedsbeckett.ac.uk/id/eprint/7810/1/KinematicFactorsAssociatedWithStartPerformanceInWorldClassMaleAM-WALKER.pdf) (both summary; neither page's table opened) | The run starts lean by their acceleration: the chest takes 60 % of `atan(a / g)` as pitch and the pelvis 30 %, the hips go ahead of the root and come down (`lean_fore`, `lean_low`) so the legs push from behind, the arms swing at the gait's size before the feet are the gait's (`arms`), and contacts shorten step by step to the gait's 4 or 6 frames (`air`). |
+| How a person stops | To stop, the braking under the leading foot goes up and the push of the trailing foot goes down, over a step with both feet down before the last; a planned stop takes longer and brakes less hard than a sudden one; about 90 % of the speed has to go in the last step of a walk. | [Planned and unplanned gait termination, 2023](https://www.mdpi.com/2076-3417/13/12/7323/html); [Lower limb biomechanics of unplanned gait termination](https://www.jove.com/t/61558) (both summary) | A stop begins as a foot strikes and brakes from the second frame: the walk stops in two more landings (the other foot ahead on its standing place, then the first one closing beside it), the jog in four, the sprint in six, each brake step landing further ahead of the body than a steady step (up to 0.5 m). The last two landings are the idle's own places. |
+| How many steps a run takes to stop | Not found in a source we could open. | | 0.48 m from a walk, 1.96 m from a jog and 4.82 m from a sprint in the grounded variant, braking at 3.5 to 5.4 m/s2 on average: declared choices. A body cannot lean back far enough to brake that hard without sliding, and the lean check says by how much (below). |
+| After the stop | Not found as numbers. The plan asks that nothing stops on one frame. | `docs/tools/blender/own-animation.md#feel` | The root is at rest a few frames after the last landing but one (`halt`); the hips sink 20 to 50 mm as the legs take the stop and come back (`dip`); the lean follows the braking through a spring (`lean_lag`) and the chest, the head, the arms and the hands trail through the overlap pass, for 7 to 14 frames after the last landing (`settle`). |
+
+### How the starts and stops are built
+
+- **The root's speed and the footfalls are the inputs** (the kit's `docs/tools/blender/start-stop-clips.md#description`).
+  `steps` is the frames from each landing to the next and `air` how long each foot outlasts the next landing (under
+  0: a flight). A start's last two landings are the shipped gait's own contacts and its last frame is the gait's
+  frame as a foot strikes (`joins.last_frame` in `locomotion.json`: 0 for the left foot, half the cycle for the
+  right); a stop's first frame is the gait's frame as the foot it is named for strikes (`joins.first_frame`).
+- **Every foot steps at least once.** The idle's feet stand 112 mm from the middle line and turned out 9 degrees;
+  the walk's land 75 and 85 mm from it, turned out 4 and 10. A foot that stayed where the idle has it could not be
+  the gait's contact within a millimetre, so the shortest start is two landings.
+- **The clip's own steps** land where a steady step at the root's speed would, moved back (a start) or ahead (a
+  stop) by `h * a / g`, no further than a leg reaches, and their foot numbers (heel strike, roll, the heel drawn up
+  behind) are mixed from a slow step's to the gait's by `gait_like`. A foot that stays down while the body goes on
+  over it lets its heel come up early (`heel_early`).
+- **The body is the idle's, then the gait's.** The pelvis over the root, the trunk's wind, the arms and the hands
+  are mixed from the shipped idle's first frame to the shipped gait's spec at the frame of its cycle the feet are
+  in, on the windows `body` and `arms`. The arms open from the body in the middle of the change and while the hips
+  are low (`arm_wide`).
+- **The ends are the joined clips' own poses**, and a stop is solved with a cycle of the gait before its first
+  frame (`Clip.lead`), so its arms and chest are trailing as the gait's are when it begins.
+- **The feet are set down on the skin** of the template's two bodies frame by frame, as a gait's are, and the
+  pelvis is lowered where a leg would be stretched past `stretch`.
+
+### The starts' and stops' variants
+
+A, grounded, takes the frames a body needs; B, loose, gathers longer, leans its trunk further and later and settles
+longer; C, sharp, has fewer steps and shorter eases and pushes or brakes harder than a body can, which its lean
+row shows. Measured by the build on `form_female` (frames are `_L`, `_R`):
+
+| | A, grounded | B, loose | C, sharp |
+| --- | --- | --- | --- |
+| **`Idle_To_Walk`**: frames | 35, 32 | 38, 35 | 30, 27 |
+| Seconds, metres travelled | 1.17 s, 1.14 m | 1.27 s, 1.23 m | 1.00 s, 1.03 m |
+| Landings inside the clip | 1 | 1 | 1 |
+| The frame the game may cut from (`free`) | 22, 19 | 25, 22 | 17, 14 |
+| Lean off the acceleration's over a step, and its declared limit | 7.6 of 8 degrees | 5.9 of 9 degrees | 10.7 of 12 degrees |
+| Fastest drop of the centre of mass with a foot down | 0.55 of gravity | 0.93 of gravity | 0.55 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.56 and 2.7 mm | 2.56 and 2.71 mm | 2.56 and 2.71 mm |
+| A planted sole off the floor, the same two | 0.4 and 0.4 mm | 0.4 and 0.4 mm | 0.4 and 0.5 mm |
+| Limbs inside limbs, the worst of the four bodies | 2.1 mm | 2.1 mm | 2.1 mm |
+| Largest change of a joint's speed in a frame | 23 degrees | 22 degrees | 19 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 58 KB | 52 KB | 38 KB |
+| **`Idle_To_Jog`**: frames | 44, 42 | 46, 44 | 31, 29 |
+| Seconds, metres travelled | 1.47 s, 3.07 m | 1.53 s, 3.21 m | 1.03 s, 2.18 m |
+| Landings inside the clip | 3 | 3 | 2 |
+| The frame the game may cut from (`free`) | 34, 32 | 36, 34 | 21, 19 |
+| Lean off the acceleration's over a step, and its declared limit | 10.5 of 12 degrees | 10.9 of 12 degrees | 21.5 of 23 degrees |
+| Fastest drop of the centre of mass with a foot down | 0.86 of gravity | 0.85 of gravity | 0.83 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.44 and 2.23 mm | 2.44 and 2.23 mm | 2.44 and 2.22 mm |
+| A planted sole off the floor, the same two | 0.3 and 0.3 mm | 0.3 and 0.3 mm | 0.2 and 0.2 mm |
+| Limbs inside limbs, the worst of the four bodies | 3.4 mm | 3.3 mm | 2.6 mm |
+| Largest change of a joint's speed in a frame | 43 degrees | 45 degrees | 31 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 79 KB | 84 KB | 56 KB |
+| **`Idle_To_Sprint`**: frames | 58, 56 | 61, 59 | 47, 45 |
+| Seconds, metres travelled | 1.93 s, 6.45 m | 2.03 s, 6.81 m | 1.57 s, 5.17 m |
+| Landings inside the clip | 5 | 5 | 4 |
+| The frame the game may cut from (`free`) | 49, 47 | 52, 50 | 38, 36 |
+| Lean off the acceleration's over a step, and its declared limit | 15.1 of 20 degrees | 12.4 of 20 degrees | 25.5 of 28 degrees |
+| Fastest drop of the centre of mass with a foot down | 0.89 of gravity | 0.81 of gravity | 0.89 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.12 and 2.07 mm | 2.17 and 2.08 mm | 2.28 and 2.18 mm |
+| A planted sole off the floor, the same two | 0.1 and 0.2 mm | 0.1 and 0.2 mm | 0.1 and 0.2 mm |
+| Limbs inside limbs, the worst of the four bodies | 3.9 mm | 4.0 mm | 3.5 mm |
+| Largest change of a joint's speed in a frame | 42 degrees | 42 degrees | 58 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 106 KB | 114 KB | 87 KB |
+| **`Walk_Stop`**: frames | 33 | 38 | 28 |
+| Seconds, metres travelled | 1.10 s, 0.48 m | 1.27 s, 0.51 m | 0.93 s, 0.38 m |
+| Landings inside the clip | 2 | 2 | 2 |
+| The frame the game may cut from (`free`) | 23 | 24 | 21 |
+| Lean off the acceleration's over a step, and its declared limit | 8.8 of 10 degrees | 9.5 of 10 degrees | 8.1 of 14 degrees |
+| Fastest drop of the centre of mass with a foot down | 0.58 of gravity | 0.74 of gravity | 0.84 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.56 and 2.78 mm | 2.56 and 2.78 mm | 2.56 and 2.76 mm |
+| A planted sole off the floor, the same two | 0.4 and 0.4 mm | 0.4 and 0.4 mm | 0.4 and 0.4 mm |
+| Limbs inside limbs, the worst of the four bodies | 2.1 mm | 2.1 mm | 2.1 mm |
+| Largest change of a joint's speed in a frame | 23 degrees | 19 degrees | 26 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 56 KB | 62 KB | 45 KB |
+| **`Jog_Stop`**: frames | 50 | 54 | 37 |
+| Seconds, metres travelled | 1.67 s, 1.96 m | 1.80 s, 2.08 m | 1.23 s, 1.37 m |
+| Landings inside the clip | 4 | 4 | 3 |
+| The frame the game may cut from (`free`) | 40 | 40 | 30 |
+| Lean off the acceleration's over a step, and its declared limit | 15.2 of 17 degrees | 14.5 of 17 degrees | 23.7 of 24 degrees |
+| Fastest drop of the centre of mass with a foot down | 0.73 of gravity | 0.72 of gravity | 0.54 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.27 and 2.31 mm | 2.27 and 2.36 mm | 2.23 and 2.48 mm |
+| A planted sole off the floor, the same two | 0.3 and 0.3 mm | 0.3 and 0.3 mm | 0.3 and 0.3 mm |
+| Limbs inside limbs, the worst of the four bodies | 3.2 mm | 3.2 mm | 3.8 mm |
+| Largest change of a joint's speed in a frame | 27 degrees | 27 degrees | 30 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 93 KB | 99 KB | 70 KB |
+| **`Sprint_Stop`**: frames | 67 | 71 | 55 |
+| Seconds, metres travelled | 2.23 s, 4.82 m | 2.37 s, 5.01 m | 1.83 s, 3.95 m |
+| Landings inside the clip | 6 | 6 | 5 |
+| The frame the game may cut from (`free`) | 57 | 57 | 48 |
+| Lean off the acceleration's over a step, and its declared limit | 15.0 of 16 degrees | 16.4 of 17 degrees | 17.5 of 22 degrees |
+| Fastest drop of the centre of mass with a foot down | 0.58 of gravity | 0.6 of gravity | 0.59 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.22 and 2.22 mm | 2.22 and 2.25 mm | 2.17 and 2.28 mm |
+| A planted sole off the floor, the same two | 0.3 and 0.3 mm | 0.3 and 0.3 mm | 0.3 and 0.3 mm |
+| Limbs inside limbs, the worst of the four bodies | 4.0 mm | 4.0 mm | 4.0 mm |
+| Largest change of a joint's speed in a frame | 36 degrees | 36 degrees | 38 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 120 KB | 130 KB | 99 KB |
+
+**A is shipped for all six** (`picks.json`), as the recommendation until the maintainer picks a letter per type.
+
+### What the starts' and stops' numbers do not say
+
+- **The lean rows are over the 5 degrees of the plan in every run clip, and each variant declares its limit**
+  (`lean_limit`). The row is how far the acceleration's lean is outside what the soles on the floor can hold,
+  averaged over a step. To pass at 5 a jog start would take about 57 frames and a sprint stop over 3 s; the
+  grounded clips are as long as we judged a game can wait, and C is shorter still.
+- **A start does not reach the gait's cadence at once**: its first step is a slow one (a swing of 9 to 13 frames
+  from a standing foot), and the walk's start is a whole second.
+- **The clips are in place** and their travel is a curve in `locomotion.json`; the controller reaches its speed in
+  under 0.25 s (28 m/s2) and stops in under 0.2 s. The tree (kit #1158, `GaitTransitions`) finds them by name
+  (`GaitTransitionSet`: `gds/Idle_To_Walk` and the rest, `_L` or `_R`), plays each where its travel curve has
+  covered the ground the body really covered, and hands a start over to the gait at its `end_foot` (`l` from 0,
+  `r` from half the cycle, which is where each start ends). `tests/gameplay/test_own_moves.gd` holds that the
+  player plays a walk start and a walk stop of ours.
+- **The stops sit low** in the middle (the hips come down 5 to 11 cm in the sprint's) and the forearms are carried
+  ahead of the body while the trunk comes back: the arms are mixed from the run's bent carriage to the idle's hang.
+
+### Numbers for the code (the starts and stops)
+
+- `joins` in `locomotion.json`: `{"first": "Idle", "last": "Walk", "last_frame": 13}` for a start, `{"first":
+  "Walk", "first_frame": 0, "last": "Idle"}` for a stop. `Idle_To_Walk_L` ends as the right foot strikes (frame 13
+  of `Walk`) and `_R` as the left does (frame 0); `Idle_To_Jog_L` and `Idle_To_Sprint_L` end on the other foot
+  from their first (four and six landings), at frames 10 and 9, and their `_R` at 0. `Walk_Stop_L`, `Jog_Stop_L`
+  and `Sprint_Stop_L` begin at frame 0 of their gait, the `_R` at half its cycle.
+- `travel` is the root's curve (frame, metres forward, metres left), still on the idle's end and at the gait's
+  speed on the gait's; `speed` is the clip's mean.
+- `contacts` and `flat` are each foot's contacts as for a gait; a contact the clip begins inside starts at 0.
+  `events` has a `footstep` per landing inside the clip and one `free`: from that frame the game may cut to new
+  input (a start is on the gait's own feet from its last landing but one; a stop has only its settle left after
+  its last landing).
+- **Cost:** each start or stop keys the same tracks as the gaits (56 bones' rotations, the places of the pelvis and
+  the four `ik_` targets). The library imports to 289,356 bytes for 43.7 s of clips at 32 KiB compression pages (6.6
+  KB a second; the plan's budget is 6, and the test holds 7 while the maintainer decides). Godot bakes a key a frame
+  on import, so the build's key reduction does not make the import smaller; leaving the hands' `ik_` targets out of
+  the twelve clips gave 275,564 bytes, still over 6.

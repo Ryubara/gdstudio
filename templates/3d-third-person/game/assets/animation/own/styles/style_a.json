@@ -135,6 +135,30 @@
   "lean_back": [
    "Grounded: the centre of mass 8 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 4.0 degrees, the chest 9.6, the head 1.6, the ankles take what is left; the knees bend 6.8 and 17.1 degrees.",
    "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 1.8, 0, 0 mm."
+  ],
+  "idle_to_walk": [
+   "Shipped as the recommendation until a letter is picked. A body's own start: 35 and 32 frames (left, right) over 1.14 m; it gathers 7 to 10 frames, falls forward over the standing foot and is at the walk's speed as its second foot lands, on the walk's pose as that foot strikes. The right foot is free three frames sooner than the left: the idle stands on its left leg.",
+   "Could not be done: the lean inside 5 degrees. It is 7.6 off over a step (declared 8): the push is 1.9 to 2.0 times what a fall over the feet gives, or the start would take a quarter second more."
+  ],
+  "idle_to_jog": [
+   "Shipped as the recommendation until a letter is picked. 44 and 42 frames (left, right) over 3.07 m and four landings: a slow first step, two that lengthen with the hips low and the trunk pitched by the acceleration, then the jog's own two contacts.",
+   "Could not be done: the lean inside 5 degrees (10.5, declared 12). A leg reaches 0.40 m behind the root, which holds about 3.5 m/s2; the clip peaks near 7. Tried: feet a full h a / g behind (0.8 m): half a metre out of reach."
+  ],
+  "idle_to_sprint": [
+   "Shipped as the recommendation until a letter is picked. 58 and 56 frames (left, right) over 6.45 m and six landings: contacts shorten from 7 frames to the sprint's 4 while the arms are at the sprint's swing from the third step.",
+   "Could not be done: the lean inside 5 degrees (15.1, declared 20): 6.5 m/s in 1.6 s is over 4 m/s2 on average with the feet no further than 0.40 m behind. The hips come down so the legs that push can reach the floor."
+  ],
+  "walk_stop": [
+   "Shipped as the recommendation until a letter is picked. 33 frames over 0.48 m: the striking foot brakes, the other lands just ahead of it on its standing place, the first closes beside it, and the body settles for 10 frames.",
+   "Could not be done: the lean inside 5 degrees (8.8, declared 10): the root is at rest 18 frames in, sooner than a body leaning back that little can stop. Tried: the striking foot kept as the idle's: it stands 37 mm narrower and 5 degrees straighter than the idle's foot, so it steps once more."
+  ],
+  "jog_stop": [
+   "Shipped as the recommendation until a letter is picked. 50 frames over 1.96 m and four landings after the strike: two brake steps that land up to 0.5 m ahead of the root, then the two standing places; the hips sink 35 mm as the legs take it.",
+   "Could not be done: the lean inside 5 degrees (15.2, declared 17): braking that hard asks for near 30 degrees of lean back, and the trunk takes 40 % of it so the body does not sit down."
+  ],
+  "sprint_stop": [
+   "Shipped as the recommendation until a letter is picked. 67 frames over 4.82 m and six landings after the strike; the first three contacts are as short as the sprint's (4 to 5 frames), then the steps lengthen on the floor as the speed goes.",
+   "Could not be done: the lean inside 5 degrees (15.0, declared 16). Tried: a brake step held 6 frames at 6 m/s: it covered more ground than two legs span and the pelvis went under the floor."
   ]
  },
  "overlap_walk": {
@@ -602,5 +626,11 @@
    1.6,
    0.15
   ]
- }
+ },
+ "idle_to_walk": {},
+ "idle_to_jog": {},
+ "idle_to_sprint": {},
+ "walk_stop": {},
+ "jog_stop": {},
+ "sprint_stop": {}
 }

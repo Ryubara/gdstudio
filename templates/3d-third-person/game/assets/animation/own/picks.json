@@ -17,6 +17,12 @@
   "Lean_Left": "A",
   "Lean_Right": "A",
   "Lean_Fwd": "A",
-  "Lean_Back": "A"
+  "Lean_Back": "A",
+  "Idle_To_Walk": "A",
+  "Idle_To_Jog": "A",
+  "Idle_To_Sprint": "A",
+  "Walk_Stop": "A",
+  "Jog_Stop": "A",
+  "Sprint_Stop": "A"
  }
 }

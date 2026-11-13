@@ -46,6 +46,13 @@ const MAX_FLOAT := 0.005
 const MIN_WEIGHT := 0.5
 ## A part farther than this from every surface reads this, in metres.
 const MARGIN := 0.03
+## How far through its own thickness a point inside a piece of the weapon must be (its depth over
+## half the piece's thickness at that point) to read as having crossed it, not grazed it: a point
+## can read at most half a thin part's thickness deep, however far through it the hand has gone
+## (kit #1272). `measure_through` reads such a point as the piece's whole thickness.
+const CROSSING := 0.75
+## Shallower than this a point inside a piece reads as its depth, whatever the piece's thickness.
+const CROSSING_LEAST := 0.0005
 const _CELL := 0.01
 const _SKIN_DEPTH := 0.02
 
@@ -209,6 +216,33 @@ func measure_parts(side: String, parts: Array[String]) -> Dictionary:
 	return found
 
 
+## The skin of the hand of `side` as posed in the snapshot, for `measure_through` to measure the
+## other hand against many times while only that hand's bones move (kit #1272).
+func hand_skin(side: String) -> HandSkin:
+	return _hand_field(side)
+
+
+## The signed distance from each of `parts` of the hand of `side` to the weapon and to `other` (a
+## `hand_skin` of the other hand, or null), in metres: {part: Vector2(gun, hand)}. Inside a piece
+## of the weapon, depth is read against the piece's thickness there: a point more than `CROSSING`
+## of the way to the piece's middle has gone through it, and reads the whole thickness (an 8 mm
+## bar crossed reads 8 mm, where the nearest face is at most 4 mm away) (kit #1272).
+func measure_through(side: String, parts: Array[String], other: HandSkin = null) -> Dictionary:
+	_to_weapon = _weapon.global_transform.affine_inverse() * _skeleton.global_transform
+	var found := {}
+	var cache := {}
+	for part in parts:
+		var list: Array = _parts[side][part]
+		var least := Vector2(INF, INF)
+		for index in list.size() / 2:
+			var at := _skinned(list[index * 2], list[index * 2 + 1], cache)
+			least.x = minf(least.x, _gun_through(_to_weapon * at))
+			if other != null:
+				least.y = minf(least.y, _skin_distance(other, at))
+		found[part] = least
+	return found
+
+
 ## Turns the bones `rotations` names ({bone name: rotation in its parent's space}, a finger's
 ## chain from the knuckle out) to those rotations over the snapshot, as a `HandPoseModifier`
 ## would, with the leaf bones under them following: a solver tries a pose without waiting for the
@@ -293,6 +327,12 @@ static func summary(parts: Dictionary, contacts: Array) -> String:
 		"in %.1f (%s) off %.1f (%s)"
 		% [deepest * 1000.0, deepest_part, farthest * 1000.0, farthest_part]
 	)
+
+
+## `weapon_distance`, read against the thickness of the piece the point is in (kit #1272): a
+## point more than `CROSSING` of the way to the piece's middle reads the piece's whole thickness.
+func weapon_through(point: Vector3) -> float:
+	return _gun_through(_weapon.global_transform.affine_inverse() * point)
 
 
 ## Both hands' skin as posed and the weapon, in the skeleton's space, as an OBJ file (objects
@@ -689,6 +729,65 @@ func _gun_distance(at: Vector3) -> float:
 			to_surface = minf(to_surface, at.distance_to(closest))
 		depth = maxf(depth, to_surface)
 	return -depth if depth > 0.0 else (hit[0] as float)
+
+
+# `_gun_distance`, with a point that has gone more than `CROSSING` of the way through its piece's
+# thickness reading that whole thickness: the thickness is the depth and the way on from the
+# point, away from the nearest face, to where a ray leaves the piece.
+func _gun_through(at: Vector3) -> float:
+	var hit := _gun.nearest(at)
+	var depth := 0.0
+	var column := Vector2i(floori(at.x / _CELL), floori(at.y / _CELL))
+	for piece in _gun_pieces.size():
+		var list: Variant = _columns.get(Vector3i(column.x, column.y, piece))
+		if list == null or not _inside(at, list as Array):
+			continue
+		var to_surface := INF
+		var nearest := at
+		for triangle in _gun_pieces[piece]:
+			var closest := closest_on_triangle(
+				at,
+				_gun.points[triangle * 3],
+				_gun.points[triangle * 3 + 1],
+				_gun.points[triangle * 3 + 2]
+			)
+			if at.distance_to(closest) < to_surface:
+				to_surface = at.distance_to(closest)
+				nearest = closest
+		var read := to_surface
+		if to_surface > CROSSING_LEAST:
+			var onward := _exit(piece, at, (at - nearest).normalized())
+			var thickness := to_surface + onward
+			if onward < INF and to_surface > CROSSING * thickness * 0.5:
+				read = thickness
+		depth = maxf(depth, read)
+	return -depth if depth > 0.0 else (hit[0] as float)
+
+
+# How far a ray from `at` along `direction` goes before it leaves the piece `piece` (the nearest
+# face it meets), or INF when it meets none (Moller and Trumbore).
+func _exit(piece: int, at: Vector3, direction: Vector3) -> float:
+	var nearest := INF
+	for triangle in _gun_pieces[piece]:
+		var a := _gun.points[triangle * 3]
+		var ab := _gun.points[triangle * 3 + 1] - a
+		var ac := _gun.points[triangle * 3 + 2] - a
+		var p := direction.cross(ac)
+		var det := ab.dot(p)
+		if absf(det) < 1e-12:
+			continue
+		var s := at - a
+		var u := s.dot(p) / det
+		if u < 0.0 or u > 1.0:
+			continue
+		var q := s.cross(ab)
+		var v := direction.dot(q) / det
+		if v < 0.0 or u + v > 1.0:
+			continue
+		var t := ac.dot(q) / det
+		if t > 1e-7:
+			nearest = minf(nearest, t)
+	return nearest
 
 
 # Whether `at` is inside the closed piece whose triangles over this column are `list`: an odd

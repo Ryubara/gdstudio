@@ -121,6 +121,24 @@ def hop_built(rig, solver, arc: bool):
     return built
 
 
+def carried_built(rig, solver, level: bool, risen: float):
+    """A stand the controller carries through the air for the whole clip (no foot is ever down), the root `risen`
+    metres over the floor and the body 0.05 m lower than it stands: its centre of mass at one height against the
+    root when `level`, rising and falling 0.3 m in the clip's own space when not."""
+    clip = stand_clip(rig)
+    clip.name, clip.loop, clip.kind = "Carried_Test", False, "action"
+    built = dense(build.build_clip(rig, solver, clip))
+    built.clip.plan = ContactPlan(30, [], loop=False)
+    built.record["contacts"] = {s: [] for s, _ in SIDES}
+    built.clip.declared["carried"] = [risen] * 31
+    up = rig.rest_rot[rig.parent["pelvis"]].T @ maths.Y
+    moved(built, rig, slice(None), -up * 0.05)
+    if not level:
+        for k, height in enumerate(np.concatenate([np.linspace(0, 0.3, 15), np.linspace(0.3, 0, 16)])):
+            moved(built, rig, k, up * height)
+    return built
+
+
 def tiptoe_built(rig, solver, settled: bool):
     """A stand whose right foot stands on its ball, the heel 40 degrees up: set down by its own skin when `settled`,
     and turned about the toes' hinge with nothing more when not, as a body whose toes lie flat on the floor would

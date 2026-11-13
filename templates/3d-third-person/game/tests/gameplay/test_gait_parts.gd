@@ -2,9 +2,9 @@
 # ground blend space's points at the clips' speeds (a stand-in clip at the tuning's), the momentum
 # blend in place of the cross-fade, the transitions chosen from the controller's numbers and
 # played along their travel, and the lean, built only when its poses exist. The transition clips
-# do not exist yet (gdstudio #1156, #1157): the tests give the player clips of their own in a
-# library `test`, with records registered in `GaitClips`. The lean poses are GDStudio's own
-# (`gds/Lean_Left` and the rest, gdstudio #1159).
+# do not all exist yet (gdstudio #1157; the starts and stops of #1156 do): the tests give the
+# player clips of their own in a library `test`, with records registered in `GaitClips`. The
+# lean poses are GDStudio's own (`gds/Lean_Left` and the rest, gdstudio #1159).
 extends GdUnitTestSuite
 
 const SETTINGS := "res://gameplay/character/gait_settings.tres"
@@ -211,6 +211,11 @@ func test_a_start_hands_over_to_the_walk_and_a_push_back_leaves_a_stop() -> void
 
 
 func test_no_transition_clip_leaves_the_states_as_they_were() -> void:
+	# Our own starts and stops are in the library since gdstudio #1156: a set that names no clip.
+	_settings.transition_clips = GaitTransitionSet.new()
+	_settings.transition_clips.starts = {}
+	_settings.transition_clips.stops = {}
+	_animation.gait_settings = _settings
 	_animation.set_throttled(true)
 	var states: Array[String] = []
 	var each := func(_tick: int) -> void: states.append(String(_animation.body_state()))

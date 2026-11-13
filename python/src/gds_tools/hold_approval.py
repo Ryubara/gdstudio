@@ -48,15 +48,23 @@ _SENTENCES = re.compile(_ENDS + r"|\bbut\b", re.IGNORECASE)  # clauses, read for
 _WHOLE = re.compile(_ENDS)  # whole sentences, read for a yes to the list: "yes but not yet" stays one
 _YES = re.compile(
     r"\b(yes|yep|yeah|yup|ok|okay|sure|approved?|approving|go ahead|go for it|do it|green light|lgtm"
-    r"|lift(?:ed)?|remove[d]?|release[d]?|unhold|take (?:it|them|the holds?|that|those) off|land|merge|ship)\b",
+    r"|lift(?:ed)?|remove[d]?|release[d]?|unhold|take (?:it|them|that|those) off|land|merge|ship"
+    r"|take (?:(?:the|that|this|those|these|its|their) )?(?:s-)?holds? off"
+    r"|looks? (?:good|great|fine)|(?:is|are) (?:good|great|fine)|good to go)\b",
     re.IGNORECASE,
 )
+# "hold off" refuses as a verb ("hold off on 7"), not as the label or the hold taken off ("S-hold off 7", "take the
+# hold off 7"): gdstudio #1332.
+_HOLD_OFF = r"(?<!s-)(?<!the )(?<!that )(?<!this )(?<!its )(?<!their )hold off"
 _NO = re.compile(
-    r"\b(no|not|nope|never|dont|cant|wont|wait|keep|stop|hold off|later|cancel|instead"
+    r"\b(no|not|nope|never|dont|cant|wont|wait|keep|stop|" + _HOLD_OFF + r"|later|cancel|instead"
     r"|if|unless|until|once|after|before|when|whether)\b|n['’]t\b|\?",
     re.IGNORECASE,
 )
 _NUMBER = re.compile(r"\d")
+# "#1369 through #1378" names every number between, both ends included; a short run only.
+_RANGE = re.compile(r"(?<![\w.#/-])#?(\d+)\s*(?:through|thru|to|-|–|—)\s*#?(\d+)(?![\w])", re.IGNORECASE)
+_RANGE_MOST = 30
 _HOLD = re.compile(r"\b(?:hold|approv\w*)\b", re.IGNORECASE)  # the reply asked about a hold or an approval
 
 
@@ -132,6 +140,9 @@ def names(text: str, number: int, repo: str | None) -> bool:
     name is the repository's (a name given for an unknown repository does not count)."""
     pattern = re.compile(rf"(?<![\w.#/-])(?:(?P<repo>[\w.-]+(?:/[\w.-]+)?)#|#)?(?<![\d.]){number}(?![\w])")
     url = re.compile(rf"github\.com/(?P<repo>[\w.-]+/[\w.-]+)/(?:pull|issues)/{number}(?![\w])", re.IGNORECASE)
+    for low, high in _RANGE.findall(text):
+        if int(low) <= number <= int(high) and int(high) - int(low) <= _RANGE_MOST:
+            return True
     for found in [*pattern.finditer(text), *url.finditer(text)]:
         named = found.group("repo")
         if named is None:

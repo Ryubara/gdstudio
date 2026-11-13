@@ -314,6 +314,30 @@
   "lean_back": [
    "Loose: the centre of mass 8 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 2.4 degrees, the chest 13.6, the head 6.4, the ankles take what is left; the knees bend 6.9 and 17.1 degrees.",
    "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 1.7, 0, 0 mm."
+  ],
+  "idle_to_walk": [
+   "Gathers longer and leans more: 38 and 35 frames (left, right) over 1.23 m, the chest taking 90 % of the acceleration's lean three frames late and swinging 20 % past, the hips sinking 25 mm first.",
+   "Its lean is the closest to the acceleration's (5.9 degrees over a step, declared 9): three more frames of gathering are three more frames of falling."
+  ],
+  "idle_to_jog": [
+   "46 and 44 frames (left, right) over 3.21 m: the arms are at the jog's swing by 70 % of the clip while the trunk is still coming up, and the lean arrives three frames late.",
+   "Tried: the arms on the window of the grounded one (to 80 %): the left upper arm turned 0.7 degrees by itself on the second landing. Lean 10.9 degrees off (declared 12)."
+  ],
+  "idle_to_sprint": [
+   "61 and 59 frames (left, right) over 6.81 m: a longer first step, the trunk pitched by 80 % of the acceleration's lean, the hips 60 mm down as it gathers.",
+   "Lean 12.4 degrees off (declared 20): the longer clip pushes less hard."
+  ],
+  "walk_stop": [
+   "38 frames over 0.51 m: the root is at rest a frame later, the trunk rocks back three frames late and 30 % past, and the settle is 14 frames.",
+   "Lean 9.5 degrees off (declared 10)."
+  ],
+  "jog_stop": [
+   "54 frames over 2.08 m: the same four landings, the root at rest two frames later, the hips 50 mm down, a 14 frame settle with the trunk swinging past.",
+   "Lean 14.5 degrees off (declared 17)."
+  ],
+  "sprint_stop": [
+   "71 frames over 5.01 m: six landings, the hips 65 mm down, a 14 frame settle.",
+   "Lean 16.4 degrees off (declared 17): the trunk's late swing back adds to it."
   ]
  },
  "overlap_stand_to_crouch": {
@@ -947,5 +971,101 @@
    1.5,
    0.15
   ]
+ },
+ "idle_to_walk": {
+  "prep": [
+   12,
+   9
+  ],
+  "swing": 13,
+  "lean": 0.9,
+  "lean_lag": [
+   3.0,
+   0.2
+  ],
+  "dip": 0.025,
+  "arms": [
+   0.15,
+   0.95
+  ],
+  "shift": [
+   0.06,
+   0.02
+  ],
+  "lean_limit": 9.0
+ },
+ "idle_to_jog": {
+  "prep": [
+   7,
+   5
+  ],
+  "swing": 9,
+  "steps": [
+   10,
+   10,
+   10
+  ],
+  "lean": 0.8,
+  "lean_lag": [
+   3.0,
+   0.2
+  ],
+  "dip": 0.04,
+  "arms": [
+   0.02,
+   0.7
+  ]
+ },
+ "idle_to_sprint": {
+  "prep": [
+   6,
+   4
+  ],
+  "swing": 9,
+  "steps": [
+   10,
+   9,
+   9,
+   9,
+   9
+  ],
+  "lean": 0.8,
+  "lean_lag": [
+   3.0,
+   0.2
+  ],
+  "dip": 0.06
+ },
+ "walk_stop": {
+  "steps": [
+   12,
+   12
+  ],
+  "halt": 7,
+  "settle": 14,
+  "lean_lag": [
+   3.0,
+   0.3
+  ],
+  "dip": 0.03
+ },
+ "jog_stop": {
+  "settle": 14,
+  "lean_lag": [
+   3.0,
+   0.3
+  ],
+  "dip": 0.05,
+  "halt": 4
+ },
+ "sprint_stop": {
+  "settle": 14,
+  "lean_lag": [
+   3.0,
+   0.3
+  ],
+  "dip": 0.065,
+  "halt": 4,
+  "lean_limit": 17.0
  }
 }
