@@ -8,7 +8,7 @@ extends RefCounted
 ## lean stands up when the body may not lean (a sprint, a slide, lying down, a jump, a death).
 
 ## The player's option: on, a press leans and the next stands up.
-const SETTING := &"controls/lean_toggle"
+const SETTING := SettingsService.LEAN_TOGGLE
 
 ## The side the command asks to lean: -1 left, 1 right, 0 neither.
 var side := 0
@@ -44,11 +44,13 @@ func step(player: Player, enabled: bool, from: Node) -> void:
 
 ## True when a press toggles the lean: the player's option, else the tuning's mode.
 static func toggles(player: Player, from: Node) -> bool:
-	var settings := (
-		from.get_node_or_null(^"/root/Settings") if from != null and from.is_inside_tree() else null
+	var settings: SettingsService = (
+		from.get_node_or_null(^"/root/Settings") as SettingsService
+		if from != null and from.is_inside_tree()
+		else null
 	)
-	if settings != null and settings.has_method(&"get_value"):
-		var value: Variant = settings.call(&"get_value", SETTING)
+	if settings != null:
+		var value: Variant = settings.get_value(SETTING)
 		if value is bool:
 			return value
 	var tuning := player.peek_tuning if player != null else null
