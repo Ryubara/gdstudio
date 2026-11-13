@@ -41,8 +41,9 @@ enum Kind {
 enum FireMode {
 	## One shot a press, however long the button is held.
 	SINGLE,
-	## `burst_size` shots a press, `burst_rate` apart, however short or long the press: a held
-	## button fires one burst, and the next press waits one `shot_interval()` after its last shot.
+	## `burst_size` shots a press, `burst_rate` apart: a held button fires one burst, and the next
+	## press waits one `shot_interval()` after its last shot. `full_burst_per_press` says whether a
+	## short press fires the whole burst or only the shots the button is held for.
 	BURST,
 	## Shots at `fire_rate` for as long as the button is held; a tap fires one.
 	AUTOMATIC,
@@ -78,6 +79,10 @@ const FREE_ARM_BONE := &"clavicle_l"
 @export_range(2, 10, 1) var burst_size := 3
 ## How many shots a second inside a burst, for `FireMode.BURST` (the spacing of its shots).
 @export_range(1.0, 30.0, 0.1, "suffix:shots/s") var burst_rate := 15.0
+## For `FireMode.BURST`. On: every press fires the whole burst, however short. Off: the burst goes
+## on only while the button is held, so letting go ends it after the shot already leaving (a quick
+## tap fires fewer than `burst_size`). Weapon data: a server fires by the same setting.
+@export var full_burst_per_press := true
 ## The shot goes off the aim by up to this angle, picked from the weapon's seeded sequence.
 @export_range(0.0, 15.0, 0.1, "suffix:deg") var spread := 0.0
 ## How hard a shot kicks the player's view: a share of the camera's `shot_kick_amplitude` (1: as
@@ -486,5 +491,8 @@ func _validate_property(property: Dictionary) -> void:
 	var field: String = property["name"]
 	if field in ["hitscan_range", "hitscan_mask", "tracer"] and shot_kind() != Kind.HITSCAN:
 		property["usage"] |= PROPERTY_USAGE_READ_ONLY
-	if field in ["burst_size", "burst_rate"] and fire_mode != FireMode.BURST:
+	if (
+		field in ["burst_size", "burst_rate", "full_burst_per_press"]
+		and fire_mode != FireMode.BURST
+	):
 		property["usage"] |= PROPERTY_USAGE_READ_ONLY
