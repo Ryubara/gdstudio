@@ -91,13 +91,10 @@
     "r": []
    },
    "frames": 8,
-   "join_frames": {
-    "first": 0,
-    "last": 10
-   },
    "joins": {
     "first": "Jump_Fall",
-    "last": "Jog"
+    "last": "Jog",
+    "last_frame": 10
    },
    "kind": "transition",
    "loop": false,
@@ -221,13 +218,10 @@
     "r": []
    },
    "frames": 8,
-   "join_frames": {
-    "first": 0,
-    "last": 10
-   },
    "joins": {
     "first": "Jump_Fall",
-    "last": "Jog"
+    "last": "Jog",
+    "last_frame": 10
    },
    "kind": "transition",
    "loop": false,
@@ -351,13 +345,10 @@
     "r": []
    },
    "frames": 8,
-   "join_frames": {
-    "first": 0,
-    "last": 10
-   },
    "joins": {
     "first": "Jump_Fall",
-    "last": "Jog"
+    "last": "Jog",
+    "last_frame": 10
    },
    "kind": "transition",
    "loop": false,
