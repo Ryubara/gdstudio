@@ -66,7 +66,7 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   name them at parse. **Seen:** gdstudio #881 (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965
   (`next_up`), #1047, 2026-11-10; #906, #907, #909, #1127, #970 (`before`), #1337 (`after`), 2026-11-11; a game
   script too: #1336, 2026-11-12 (a parameter `amount` beside an `amount()`, a local `free`); #1400, 2026-11-13 (a
-  test's local `snapped`).
+  test's local `snapped`); #1435, 2026-11-13 (`side`, `roll`).
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
   `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
