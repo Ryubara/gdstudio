@@ -165,6 +165,14 @@ the joints. That is physics, and not what a death looks like.
   clip), and 18 m/s squared for 0.4 s folded the body into a crouch on landing. Jolt ignores joint softness, which
   would do it too. **Seen:** gdstudio #872, 2026-11-10 (`test_ragdoll_natural.gd`: a hand or foot moves 0.2 m
   against the pelvis within 0.23 s of a death at the top of a jump).
+- **Approach:** Sample the pose for those velocities in the skeleton's own space (`get_bone_global_pose`, no
+  `global_transform`), turn the motion to the world with the skeleton's basis now, and add the character's velocity
+  (what `start(velocity)` is given): `RagdollPose` and `_give_pose_velocity`. **Watch out for:** a world-space sample
+  reads the body's own step as bone motion, and an AI at the director's Reduced tier is stepped every fourth tick with
+  the missed time while a hit makes its tree animate every frame (`hit_hold`): a death on a step tick left at four
+  times its run (16 m/s for 4 m/s: flung with a leg up), on any other tick it lost its run. Far targets are the
+  rifle's, so it looked like a rifle fault. **Seen:** gdstudio #1343, 2026-11-12
+  (`test_death_push.gd`, a far running AI killed on each tick of the step cycle; `tools/capture/kill_tour.tscn`).
 
 ## Drawing between ticks {#drawing}
 
@@ -368,6 +376,47 @@ went 8 m with the player.
   the simulator and poses the dead arm and hand over the ragdoll's, so the weapon stands off the hand. **Seen:** kit
   #1339, 2026-11-12 (`test_a_weapon_hold_made_on_a_dead_body_leaves_the_weapon_in_the_dead_hand`; the gun moved 8 cm on
   a corpse lying still).
+
+## A partial ragdoll: the flinch {#partial}
+
+<!-- new section: the page covered the whole body going limp; nothing covered a few bones simulated while the clip
+     keeps the rest, which the template's flinch does and which threw arms to NaN in the AI soak (gdstudio #1326) -->
+
+`physical_bones_start_simulation(bones)` makes the listed bones rigid and every other bone **kinematic, on the
+ragdoll's layers**, moved to the clip's pose each tick. Measured in the AI soak with Godot 4.7.2 and Jolt (16 bodies,
+the template's `HitReaction` flinch); four things threw a flinching arm, each fixed in `hit_reaction.gd`:
+
+- **Approach:** Before a partial simulation starts, put every body at the clip's pose through the server
+  (`body_set_state(BODY_STATE_TRANSFORM)` with the body made static for the move) and zero every body's velocities
+  there, again after the start. **Watch out for:** while the simulator rests a body's node transform does not reach the
+  server, so a body waits where the last death or flinch left it, and its first kinematic move covers that whole way
+  in a tick: 64 m/s after a get-up 1 m away (1.1 m in the first tick in the test). A kinematic body also keeps a
+  speed the server had (481 m/s from an arm thrown by the flinch before). **Seen:** gdstudio #1326, 2026-11-12
+  (`test_a_flinch_after_getting_up_starts_from_the_clip_pose`).
+- **Approach:** Take the bodies a partial simulation leaves out off every layer while it runs. **Watch out for:** the
+  engine leaves them kinematic on the ragdoll's layers, so a flinching arm pressed against the trunk was squeezed
+  between a body the clip moves and its own joint, both immovable to it; shots and aim rays also met a living body's
+  bones instead of its hit zones. **Seen:** gdstudio #1326, 2026-11-12
+  (`test_the_bodies_a_flinch_leaves_out_touch_nothing`).
+- **Approach:** Push a flinching body at its middle (`apply_central_impulse`) and cap the speed the push gives it
+  (`flinch_most_speed`, 3 m/s). **Watch out for:** a shot's impulse (40 N·s times 0.6) at the hit point spun a forearm,
+  a thin capsule of a kilogram, at Jolt's angular limit (47 rad/s) and gave it 12 m/s. **Seen:** gdstudio #1326,
+  2026-11-12 (`test_a_flinch_push_moves_a_light_limb_and_does_not_spin_it`).
+- **Approach:** Free the extra joints of [the limits](#limits) (`RagdollBraces`) while a few bones simulate and
+  remake them when the flinch ends, after the bones' own joints. **Watch out for:** six copies of a joint whose
+  parent the clip moves (a kinematic body, as heavy as the world to the solver) turned a light arm at 47 rad/s within
+  two ticks and sent it off at 500 m/s (Jolt's linear limit), then to NaN; with one joint, every soak seed ran clean.
+  A limp body lying wedged against two blocks with its braces still goes the same way (gdstudio #1372).
+  **Seen:** gdstudio #1326, 2026-11-12 (`test_a_flinch_lifts_the_extra_joints_and_gives_them_back`).
+
+A flinching body farther than 0.6 m from the clip or faster than 15 m/s ends the flinch at once (`FLINCH_STRAY`,
+`FLINCH_TOO_FAST`); a flinch at its strongest reads 0.36 m and 5 m/s.
+
+- **Approach:** Cast a basis read off an animated pose to a quaternion with `get_rotation_quaternion()`, not
+  `Quaternion(basis)`. **Watch out for:** a pose is a rotation only to a few thousandths, and `Quaternion(basis)`
+  logs `get_quaternion: !is_rotation()` and returns the identity, so a death's pose pushed inside the joint limits
+  (`inside_limits`) read 67 degrees off and the AI soak's error gate broke. **Seen:** gdstudio #1326, 2026-11-12
+  (`test_a_turn_a_little_off_square_is_held_with_no_error`).
 
 ## Testing a body that the engine throws {#testing}
 

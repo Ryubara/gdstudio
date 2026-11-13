@@ -75,8 +75,14 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 @export var trigger_pose: HandPose
 ## Where the index finger is half-way between the frame and the trigger (kit #1079): it leaves
 ## the trigger guard on its own side before it lifts, so it never crosses the left thumb, which
-## lies along the frame on the other side. Solved with the poses, never typed.
+## lies along the frame on the other side. Solved with the poses, never typed; the way
+## `trigger_way` goes by instead when there is one, and one-handed this pose's other bones.
 @export var trigger_way_pose: HandPose
+## The poses the index finger passes through between the frame and the trigger with both hands
+## on the gun (kit #1272): off the frame to its own side, its last two bones bent there, then
+## dropped into the trigger guard's open side and onto the trigger, clear of the guard and the
+## left hand all the way (`tools/hold/solve_pistol_trigger_way.gd`). Null: `trigger_way_pose`.
+@export var trigger_way: HandPoseWay
 ## The right thumb while the left hand is on the weapon too (kit #1084): it rests on the root of
 ## the left thumb, which takes its place on the frame, as a two-handed grip is taught. Blended
 ## over `grip_pose` while the left hand waits at the far end of `support_way`, before it comes in
@@ -664,12 +670,15 @@ func _build() -> void:
 	_grip.name = _GRIP
 	_grip.pose = grip_pose
 	_grip.second = _with_one_hand(trigger_pose, one_hand_pose)
-	# The trigger finger's pose between is a way of one stop (`HandPoseModifier.second_way`).
-	var trigger_way: Array[HandPose] = []
-	if trigger_way_pose != null:
+	# The trigger finger's poses between (`HandPoseModifier.second_way`): in two hands its way,
+	# one-handed (and with no way) one pose.
+	var stops: Array[HandPose] = []
+	if trigger_way != null and not one_handed:
+		stops.assign(trigger_way.poses)
+	elif trigger_way_pose != null:
 		var thumb_way := _with_one_hand(trigger_way_pose, thumb_way_pose)
-		trigger_way.append(_with_one_hand(thumb_way, one_hand_way_pose))
-	_grip.second_way = trigger_way
+		stops.append(_with_one_hand(thumb_way, one_hand_way_pose))
+	_grip.second_way = stops
 	_grip.open = thumb_pose
 	_grip.open_via = thumb_way_pose
 	_skeleton.add_child(_grip)
@@ -767,6 +776,7 @@ func _fit_body() -> void:
 		_own.grip_pose = grip_pose
 		_own.trigger_pose = trigger_pose
 		_own.trigger_way_pose = trigger_way_pose
+		_own.trigger_way = trigger_way
 		_own.thumb_pose = thumb_pose
 		_own.thumb_way_pose = thumb_way_pose
 		_own.support_pose = support_pose
@@ -789,6 +799,7 @@ func _fit_body() -> void:
 	grip_pose = chosen.grip_pose
 	trigger_pose = chosen.trigger_pose
 	trigger_way_pose = chosen.trigger_way_pose
+	trigger_way = chosen.trigger_way
 	thumb_pose = chosen.thumb_pose
 	thumb_way_pose = chosen.thumb_way_pose
 	support_pose = chosen.support_pose
