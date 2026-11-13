@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="WeaponDef" load_steps=18 format=3]
+[gd_resource type="Resource" script_class="WeaponDef" load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://gameplay/weapon/weapon_def.gd" id="1_def"]
 [ext_resource type="Resource" path="res://gameplay/weapon/muzzle_flash.tres" id="3_flash"]
@@ -7,7 +7,6 @@
 [ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_shot_2.ogg" id="s2"]
 [ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_shot_3.ogg" id="s3"]
 [ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_shot_4.ogg" id="s4"]
-[ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_shot_5.ogg" id="s5"]
 [ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_empty_1.ogg" id="e1"]
 [ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_empty_2.ogg" id="e2"]
 [ext_resource type="AudioStream" path="res://assets/audio/rifle/rifle_reload_mag_out.ogg" id="r1"]
@@ -17,7 +16,7 @@
 [ext_resource type="Resource" path="res://gameplay/weapon/categories/rifle.tres" id="c1_category"]
 
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_shot"]
-streams_count = 5
+streams_count = 4
 stream_0/stream = ExtResource("s1")
 stream_0/weight = 1.0
 stream_1/stream = ExtResource("s2")
@@ -26,8 +25,6 @@ stream_2/stream = ExtResource("s3")
 stream_2/weight = 1.0
 stream_3/stream = ExtResource("s4")
 stream_3/weight = 1.0
-stream_4/stream = ExtResource("s5")
-stream_4/weight = 1.0
 random_pitch = 1.03
 random_volume_offset_db = 1.0
 

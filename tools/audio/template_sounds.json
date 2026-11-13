@@ -5,7 +5,7 @@
   "credits_per_second": 40,
   "min_seconds": 0.5,
   "max_seconds": 30.0,
-  "budget": 5000,
+  "budget": 6000,
   "attribution": "Sounds generated with ElevenLabs Sound Effects (<https://elevenlabs.io/sound-effects>).",
   "licence_free": "Generated on ElevenLabs' free tier: attribution required, not licensed for commercial use. Replace or\n  relicense before any commercial release.",
   "licence_paid": "Generated on ElevenLabs' paid `{tier}` plan, which allows commercial use under ElevenLabs' Sound\n  Effects terms (<https://elevenlabs.io/sound-effects-terms>, Exhibit 4): the sounds may be used in a game, combined\n  with other material; they may not be sold, licensed or shared on their own as isolated audio files or samples, or\n  put in a sound, sample or effects library.",
@@ -312,6 +312,64 @@
       ]
     },
     {
+      "name": "pistol_shot",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/pistol",
+      "prefix": "pistol_shot",
+      "prompt": "One single 9mm handgun gunshot, close to the shooter, outdoors: an instant, sharp, bright crack with a tight punchy snap in the mids, a small metallic slide clack inside it, and a short open-air tail that dies away within half a second. One shot only, dry, no echo, no music.",
+      "takes": 8,
+      "seconds": 0.8,
+      "influence": 0.6,
+      "min_seconds": 0.25,
+      "max_seconds": 0.5,
+      "min_files": 4,
+      "measure": "momentary",
+      "target_lufs": -16.0,
+      "tail_db": -36.0,
+      "use_takes": [
+        2,
+        3,
+        4,
+        6,
+        7
+      ],
+      "highpass_hz": 100.0,
+      "crest_db": 12.0
+    },
+    {
+      "name": "rifle_shot",
+      "kind": "hit",
+      "folder": "templates/3d-third-person/game/assets/audio/rifle",
+      "prefix": "rifle_shot",
+      "prompt": "One single assault rifle gunshot fired close to the shooter, outdoors: one instant, very loud, explosive blast with a deep, heavy low-end boom and a sharp high crack at its very start, then a short tight decay. Exactly one shot and nothing after it, dry.",
+      "takes": 16,
+      "seconds": 0.8,
+      "influence": 0.6,
+      "min_seconds": 0.18,
+      "max_seconds": 0.32,
+      "min_files": 4,
+      "measure": "momentary",
+      "target_lufs": -17.0,
+      "tail_db": -30.0,
+      "take_prompts": {
+        "1": "One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music.",
+        "2": "One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music.",
+        "3": "One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music.",
+        "4": "One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music.",
+        "5": "One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music.",
+        "6": "One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music.",
+        "7": "One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music.",
+        "8": "One single 5.56 assault rifle gunshot, close to the shooter, outdoors: a hard, heavy, explosive report with a deep chest-thumping low punch, a sharp supersonic crack on top and a quick metallic bolt clack, ending in a very short tight tail. One shot only, dry, no echo, no music."
+      },
+      "use_takes": [
+        3,
+        6,
+        16,
+        10
+      ],
+      "crest_db": 12.0
+    },
+    {
       "name": "ui_hint",
       "kind": "hit",
       "folder": "templates/3d-third-person/game/assets/audio/ui",
@@ -469,7 +527,7 @@
     }
   ],
   "folder_notes": {
-    "templates/3d-third-person/game/assets/audio/pistol": "## The shots: GDStudio's own work, MIT\n\nThe five shots are not ElevenLabs output and stay as they were: GDStudio's own work, synthesised by code, nothing\nsampled and nothing third-party. They are the five variants of the House Pistol's shot from Deadnight\n(`game/assets/audio/guns/shot_house_pistol_1..5.ogg`), made by Deadnight's `tools/audio/gun_recipes_2.py` (a seeded\nreport of a click, a crack, a roar, a bark and a low thump), copied here unchanged under the names below, and covered by\nthe MIT licence of the kit and of Deadnight (Copyright (c) 2026 GDStudio contributors). No attribution is required.\n\n| File | Deadnight file | Seconds |\n| --- | --- | ---: |\n| `pistol_shot_1.ogg` | `shot_house_pistol_1.ogg` | 0.10 |\n| `pistol_shot_2.ogg` | `shot_house_pistol_2.ogg` | 0.11 |\n| `pistol_shot_3.ogg` | `shot_house_pistol_3.ogg` | 0.11 |\n| `pistol_shot_4.ogg` | `shot_house_pistol_4.ogg` | 0.10 |\n| `pistol_shot_5.ogg` | `shot_house_pistol_5.ogg` | 0.11 |\n",
-    "templates/3d-blank/game/assets/audio/wind": "## The whistle in the wind: GDStudio's own work, MIT\n\n`wind_soft_1.ogg` is the ElevenLabs take above with a soft whistle layered over its gusts by `tools/audio/sfx.py`\n(`whistle()`: seeded noise through a resonant band-pass whose pitch follows the take's own level). The layer is\nsynthesised by code, nothing sampled and nothing third-party, and is covered by the MIT licence of the kit\n(Copyright (c) 2026 GDStudio contributors); the file as a whole is used under the ElevenLabs terms above.\n"
+    "templates/3d-blank/game/assets/audio/wind": "## The whistle in the wind: GDStudio's own work, MIT\n\n`wind_soft_1.ogg` is the ElevenLabs take above with a soft whistle layered over its gusts by `tools/audio/sfx.py`\n(`whistle()`: seeded noise through a resonant band-pass whose pitch follows the take's own level). The layer is\nsynthesised by code, nothing sampled and nothing third-party, and is covered by the MIT licence of the kit\n(Copyright (c) 2026 GDStudio contributors); the file as a whole is used under the ElevenLabs terms above.\n",
+    "templates/3d-third-person/game/assets/audio/rifle": "## The mechanics: GDStudio's own work, MIT\n\nThe empty clicks, reload steps and draw are not ElevenLabs output: GDStudio's own work, synthesised by code, nothing\nsampled and nothing third-party. They are Deadnight's M4A1 sounds (`game/assets/audio/guns/`), made by Deadnight's\n`tools/audio/gun_recipes_2.py`, copied here unchanged under the names below, and covered by the MIT licence of the kit\nand of Deadnight (Copyright (c) 2026 GDStudio contributors). No attribution is required. (The rifle's shots were\nDeadnight's M4A1 shots too until kit #1414 replaced them with the generated ones above.)\n\n| File | Deadnight file | Seconds |\n| --- | --- | ---: |\n| `rifle_empty_1.ogg` | `dry_m4a1_1.ogg` | 0.03 |\n| `rifle_empty_2.ogg` | `dry_m4a1_2.ogg` | 0.04 |\n| `rifle_reload_mag_out.ogg` | `reload_m4a1_mag_out_1.ogg` | 0.16 |\n| `rifle_reload_mag_in.ogg` | `reload_m4a1_mag_in_1.ogg` | 0.13 |\n| `rifle_reload_bolt.ogg` | `reload_m4a1_bolt_1.ogg` | 0.05 |\n| `rifle_draw.ogg` | `equip_m4a1_1.ogg` | 0.10 |\n"
   }
 }

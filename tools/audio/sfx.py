@@ -472,6 +472,24 @@ def highpass(x, hz: float):
     return np.fft.irfft(spectrum, len(x))
 
 
+def limit(ffmpeg: str, x, crest_db: float, window: float = 0.002):
+    """Hold the highest sample `crest_db` over the loudest momentary loudness, so a sharp shot gets a fuller body at
+    the same peak (`mixing-levels.md#headroom-without-a-limiter`): a smooth gain curve, the minimum of the gain each
+    sample needs over a `window`, then its average over the same window, so it never steps and never rises into a
+    peak. Run twice, since taking the peaks off moves the loudness a little."""
+    import numpy as np
+
+    n = max(int(window * RATE) | 1, 3)
+    for _ in range(2):
+        ceiling = 10 ** ((loudness(ffmpeg, x)["m_max"] + crest_db) / 20)
+        need = np.minimum(1.0, ceiling / np.maximum(np.abs(x), 1e-12))
+        padded = np.pad(need, n // 2, constant_values=1.0)
+        lowest = np.lib.stride_tricks.sliding_window_view(padded, n).min(axis=1)
+        gain = np.convolve(np.pad(lowest, n // 2, mode="edge"), np.ones(n) / n, "valid")
+        x = x * gain
+    return x
+
+
 def level(ffmpeg: str, x, sound: dict):
     """Gain to the sound's target loudness, held under the peak ceiling; returns (samples, gain dB, peak limited)."""
     now = loudness(ffmpeg, x)[
@@ -690,6 +708,8 @@ def cmd_encode(args) -> None:
                 else spread(pieces, sound)
             )
         for name, x in zip(file_names(sound, len(pieces)), pieces, strict=True):
+            if sound.get("crest_db"):  # a shot: its peaks held a fixed height over its body
+                x = limit(ffmpeg, x, sound["crest_db"])
             x, gain, limited = level(ffmpeg, x, sound)
             write_ogg(ffmpeg, x, root / sound["folder"] / name)
             print(
