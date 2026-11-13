@@ -26,11 +26,15 @@ enum InputMode {
 ## On: the lean commands lean the body. Off: they do nothing.
 @export var enabled := true
 ## How far the head and the shoulders go to the side at a whole lean, standing, in metres (the
-## eye point and the camera go as far). Crouched, the bend is shorter, so the same angle goes less.
+## eye point and the camera go as far). Crouched, the bend is shorter (`crouch_max_angle`).
 @export_range(0.0, 0.8, 0.01, "suffix:m") var side_offset := 0.35
 ## The most the upper body tilts from the hips, in degrees: `side_offset` is reached by this tilt
 ## or less.
 @export_range(0.0, 60.0, 0.5, "suffix:deg") var max_angle := 30.0
+## The most it tilts crouched, in degrees: the crouched bend from the hips to the eye is shorter,
+## so it tilts further to put the head about as far out (0.29 m at 45 degrees on the template's
+## body).
+@export_range(0.0, 75.0, 0.5, "suffix:deg") var crouch_max_angle := 45.0
 ## Where the bend starts, as a share of the eye's height above the feet (the hips, about 0.55):
 ## everything below it stays where it is.
 @export_range(0.2, 0.9, 0.01) var pivot_share := 0.55

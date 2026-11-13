@@ -164,7 +164,7 @@ func test_crouched_it_leans_and_walking_it_walks_slowly() -> void:
 	await _step(body, crouched, 40)
 	assert_bool(body.crouching).is_true()
 	assert_float(body.peek_motion.amount).is_equal(1.0)
-	assert_float(_eye(body).x - upright.x).is_between(0.12, 0.3)
+	assert_float(_eye(body).x - upright.x).is_between(0.25, 0.33)
 	var walking := _leaning(1)
 	walking.move = Vector2(0.0, 1.0)
 	await _step(body, walking, 60)

@@ -124,7 +124,8 @@ func full_angle(body: Character, eye: float) -> float:
 	if bend <= 0.001:
 		return 0.0
 	var reach := asin(clampf(tuning.side_offset / bend, 0.0, 1.0))
-	return minf(reach, deg_to_rad(tuning.max_angle))
+	var crouched := smoothstep(0.0, 1.0, body._crouch_amount)
+	return minf(reach, deg_to_rad(lerpf(tuning.max_angle, tuning.crouch_max_angle, crouched)))
 
 
 ## How far the upper body is tilted now, in radians, positive to the right: the roll a weapon with

@@ -60,13 +60,13 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   code was fine. **Seen:** gdstudio #1183 (PR #1214), 2026-11-11.
 
 - **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
-  `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`); grep a new suite for them, and for a local named like one of
-  the script's exports, before its first run. **Watch out for:** the project turns a shadowed name into a parse error,
-  so four suites did not load; `gds check scripts` and `gds template test` name them at parse. **Seen:** gdstudio #881
-  (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965 (`next_up`), #1047, all 2026-11-10; #906, #907,
-  #909, #1127 (`before`), #970 (a loop's `var before`), 2026-11-11; #1013, #1047, #909, #970 and #1337 (`after`)
-  after reading this. A game script meets the same rule: gdstudio #1336, 2026-11-12 (a static function's parameter
-  `amount` in a class with an `amount()`, and a test's local `free`, `Object.free`).
+  `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`, nor a global function: `snapped`, `free`); grep a new suite for
+  them, and for a local named like one of the script's exports, before its first run. **Watch out for:** the project
+  turns a shadowed name into a parse error, so four suites did not load; `gds check scripts` and `gds template test`
+  name them at parse. **Seen:** gdstudio #881 (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965
+  (`next_up`), #1047, 2026-11-10; #906, #907, #909, #1127, #970 (`before`), #1337 (`after`), 2026-11-11; a game
+  script too: #1336, 2026-11-12 (a parameter `amount` beside an `amount()`, a local `free`); #1400, 2026-11-13 (a
+  test's local `snapped`).
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
   `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
