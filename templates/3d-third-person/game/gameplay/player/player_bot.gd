@@ -146,6 +146,12 @@ func _walk_to(point: Vector3) -> bool:
 	if flat.length() <= ARRIVE_DISTANCE:
 		_hold(&"move_forward", false)
 		return true
+	if (
+		player.tuning != null
+		and flat.length() <= player.tuning.stop_distance(player.ground_speed())
+	):
+		_hold(&"move_forward", false)  # Its own stop carries it there (gdstudio #1415).
+		return false
 	var left := face(Vector3(point.x, player.global_position.y + CHEST_HEIGHT, point.z))
 	_hold(&"move_forward", absf(left) <= WALK_CONE_DEGREES)
 	return false

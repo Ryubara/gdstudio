@@ -46,7 +46,8 @@ func test_it_turns_to_the_way_it_moves_and_stops_when_the_keys_are_let_go() -> v
 	assert_float(_angle_between(_player.facing, atan2(1.0, 0.0))).is_less(0.1)
 	assert_float(_player.velocity.x).is_greater(3.0)
 	InputSim.key(KEY_D, false)
-	await InputSim.ticks(get_tree(), 30)
+	# A jog's stop covers its clip's 1.96 m in 1.13 s (gdstudio #1415).
+	await InputSim.ticks(get_tree(), 75)
 	assert_float(_player.ground_speed()).is_less(0.05)
 	assert_int(_player.state).is_equal(Player.State.IDLE)
 
