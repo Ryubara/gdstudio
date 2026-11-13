@@ -211,6 +211,18 @@ func camera_height(body: Character) -> float:
 	return lerpf(body.tuning.camera_height, low, smoothstep(0.0, 1.0, amount))
 
 
+## How much of the held weapon's grip pose (`WeaponDef.grip_clip`) plays over the body now, 0 to 1:
+## all of it, but a weapon whose clips are made for an upright body (`WeaponDef.clips_upright`,
+## the rifle: its idle holds the whole upper body) gives the trunk back to the slide's clip as the
+## body drops into the slide, and takes it again as it rises. The rifle's standing idle over the
+## slide's laid-back hips lay the trunk flat on its back, 20 degrees past the pistol's slide
+## (kit #1413). The hold's own modifiers keep the hands on the gun.
+static func grip_share(body: Character, hold: WeaponDef) -> float:
+	if body == null or hold == null or not hold.clips_upright:
+		return 1.0
+	return 1.0 - smoothstep(0.0, 1.0, body._slide.amount)
+
+
 ## True when a capsule `height` tall (a little thinner, lifted off the floor) fits where the body
 ## stands: the room a slide needs to end in a crouch.
 func has_room_for(body: Character, height: float) -> bool:

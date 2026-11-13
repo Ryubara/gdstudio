@@ -40,8 +40,11 @@ func _turn_chest(skeleton: Skeleton3D) -> void:
 	var bones := hold.spine_indices()
 	if bones.is_empty():
 		return
+	# About the chest's own up axis, not the model's: a slide lays the chest back, and a turn about
+	# the model's up axis rolled it onto its side instead (kit #1413).
+	var axis := _chest_up(skeleton, bones[-1])
 	var degrees := (hold.chest_turn - _chest_yaw(skeleton, bones[-1])) * hold.chest_weight()
-	var turn := Basis(Vector3.UP, deg_to_rad(degrees / bones.size()))
+	var turn := Basis(axis, deg_to_rad(degrees / bones.size()))
 	# The poses come from the local ones up the parents (`HandPoseModifier.global_pose`): asking
 	# the skeleton for a global pose after a bone was set makes it work out every bone under
 	# that one again, three times a frame for the spine.
@@ -65,7 +68,7 @@ func _turn_chest(skeleton: Skeleton3D) -> void:
 		return
 	var neck := HandPoseModifier.global_pose(skeleton, skeleton.get_bone_parent(_head))
 	var head := neck * skeleton.get_bone_pose(_head)
-	var back := Basis(Vector3.UP, -deg_to_rad(degrees))
+	var back := Basis(axis, -deg_to_rad(degrees))
 	skeleton.set_bone_pose(
 		_head, neck.affine_inverse() * Transform3D(back * head.basis, head.origin)
 	)
@@ -108,12 +111,31 @@ func _straighten_chest(skeleton: Skeleton3D) -> void:
 		parent = turned
 
 
-# How far the clip has the chest turned from the model's front now, in degrees about the up axis
-# (the way `chest_turn` counts): where the turn from the bone's rest sends the model's front.
+# How far the clip has the chest turned from the model's front now, in degrees about the chest's
+# own up axis (the way `chest_turn` counts): where the turn from the bone's rest sends the model's
+# front, from where the chest's lean alone sends it. Upright that is the turn about the model's
+# up axis; laid back by a slide, the front points up and its turn about the model's up axis came
+# from the slightest roll, a different one every slide (kit #1413).
 func _chest_yaw(skeleton: Skeleton3D, bone: int) -> float:
 	if bone < 0:
 		return 0.0
+	var turned := _chest_turned(skeleton, bone)
+	var up := turned * Vector3.UP
+	if up.dot(Vector3.UP) < -0.99:
+		return 0.0
+	var leaned := Basis(Quaternion(Vector3.UP, up.normalized())) * Vector3.BACK
+	return rad_to_deg(leaned.signed_angle_to(turned * Vector3.BACK, up))
+
+
+# The chest's up now, in the model's space: where the turn from the bone's rest sends the up axis.
+func _chest_up(skeleton: Skeleton3D, bone: int) -> Vector3:
+	if bone < 0:
+		return Vector3.UP
+	var up := _chest_turned(skeleton, bone) * Vector3.UP
+	return up.normalized() if up.dot(Vector3.UP) >= -0.99 else Vector3.UP
+
+
+func _chest_turned(skeleton: Skeleton3D, bone: int) -> Basis:
 	var posed := HandPoseModifier.global_pose(skeleton, bone).basis.orthonormalized()
 	var rest := skeleton.get_bone_global_rest(bone).basis.orthonormalized()
-	var ahead := (posed * rest.inverse()) * Vector3.BACK
-	return rad_to_deg(atan2(ahead.x, ahead.z))
+	return posed * rest.inverse()
