@@ -36,7 +36,10 @@ Windows, nor on a Linux machine with another directory order.
   (`Microsoft Corporation` did not leak, `Amazon EC2` did).
 - **Run Linux on the machine you have.** The pinned Linux Godot (`tools.toml`, hash-checked) runs under WSL on
   Windows; copy the project (without `.godot`), import twice (the first import can crash on a font), and run the same
-  arguments, with `taskset -c 0-3` for a four-core runner.
+  arguments, with `taskset -c 0-3` for a four-core runner. A soak seed that broke only on CI's Linux runner broke the
+  same way, at the same tick, under WSL (gdstudio #1326); write the commands into a script and run it with
+  `wsl -d Ubuntu -- bash <script>` from PowerShell (Git Bash rewrites the script's path, and `$` in an inline
+  command is expanded before WSL sees it).
 
 - **Approach:** Clear a handler stored on an object that the handler itself names in that object's dispose method, not
   in each test, and run a new suite alone and grep its log for `leaked at exit|still in use` before the pull request.
