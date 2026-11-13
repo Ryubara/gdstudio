@@ -163,7 +163,7 @@ every exit, kept with `--keep`, two calls at once).
   checkout whose `python` folder `--project` names, not the folder you stand in, so `--project` names the worktree's
   (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
   **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
-  gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template); #1274.
+  gdstudio #940, 2026-11-10 (the main checkout's `python` tested its own template); #1274; PR #1427.
 - **Approach:** Give a new script or shader its `.uid` before `gds template test` with `gds template uids
   <template>` (the template's name, or a folder holding `project.godot`): it writes each missing file in Godot's form
   and leaves every valid one alone. A new asset's `.import` still comes from the kept game (`gds template game

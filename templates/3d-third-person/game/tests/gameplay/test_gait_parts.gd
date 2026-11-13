@@ -145,10 +145,12 @@ func test_the_momentum_blend_replaces_the_cross_fade_and_dies_away() -> void:
 	crouch.crouch = true
 	var offsets: Array[float] = []
 	await _steps(crouch, 30, func(_tick: int) -> void: offsets.append(momentum.largest_offset()))
-	# The crouch walk's pose differs from the walk's: the blend starts from the drawn walk and
-	# the difference is all but gone in a quarter of a second.
+	# The crouch walk's pose differs from the walk's: the blend starts from the drawn walk once the
+	# crouch's pose is drawn (a frame or two after the key changes) and the difference is all but
+	# gone a quarter of a second after that.
 	assert_float(offsets.max()).is_greater(0.05)
-	assert_float(offsets[15]).is_less(0.01)
+	var peak := offsets.find(offsets.max())
+	assert_float(offsets[peak + 15]).is_less(0.01)
 	# Off, the node leaves the skeleton and the states cross-fade again.
 	_settings.momentum_blend = false
 	_animation.gait_settings = _settings

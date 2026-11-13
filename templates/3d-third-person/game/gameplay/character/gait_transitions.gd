@@ -178,7 +178,8 @@ func _pick_standing(animation: CharacterAnimation, blend: GaitBlend) -> Dictiona
 	var player := animation.animation_player
 	var goal := body.goal_speed
 	var picked := {}
-	if goal > settings.standing_speed:
+	# An aimed walk faces the view and strafes; a start faces the way it moves, so none plays.
+	if goal > settings.standing_speed and not body.aiming:
 		var wish := body.last_command.world_move()
 		var forward := Vector3.BACK.rotated(Vector3.UP, body.facing)
 		var gait := blend.main_point(CharacterAnimation.GROUND, goal)

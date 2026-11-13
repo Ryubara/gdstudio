@@ -371,8 +371,15 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   one frame at a walk's stop, 70 cm into the crouch, for our clips and the library's alike; the blend's own test
   checked only that it was blending. **Seen:** gdstudio #1416, 2026-11-13 (the maintainer's playtest;
   `test_own_clip_blends.gd`).
+- **Approach:** Keep a state-change blend out while an action clip covers the whole body
+  (`CharacterAnimation.is_acting(true)`); the action cross-fades in the tree. **Watch out for:** the body state
+  under a vault still changes, and a restart then took the clip's own fast motion for a jump and held it back: a
+  planted hand 16 cm off the top. **Seen:** gdstudio PR #1427, 2026-11-13 (`test_vault_contacts.gd`,
+  `test_net_puppet_vault.gd`).
 - **Approach:** Pick a start from the speed the body had before the tick that asked it to move (`START_GRACE`
   frames since it last stood), not from its speed after. **Watch out for:** at 28 m/s² the body is at 0.47 m/s, past
   `standing_speed` (0.3), on the first tick of a press, so the starts were never picked for the player and the idle
-  snapped to the walk in two frames; the transition tests set the speed by hand. **Seen:** gdstudio #1416,
-  2026-11-13.
+  snapped to the walk in two frames; the transition tests set the speed by hand. Pick no start for an aimed walk (it
+  faces the view and strafes), and in a test that reads the steady gait after a press from standing, wait until the
+  machine is back in `ground`: once starts played, three suites read the start instead. **Seen:** gdstudio #1416,
+  2026-11-13 (PR #1427: `test_pistol_carry.gd`, `test_aim_release.gd`, `test_rifle_run_state.gd`).
