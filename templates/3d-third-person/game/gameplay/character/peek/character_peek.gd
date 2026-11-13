@@ -29,6 +29,10 @@ var _probe := CapsuleShape3D.new()
 var _query := PhysicsShapeQueryParameters3D.new()
 var _shape: CollisionShape3D
 var _shape_looked := false
+# What the eye and the shape were last placed for (`place()`): a steady lean skips the fit, until
+# the tuning it was placed with changes.
+var _placed := Vector3(INF, INF, INF)
+var _placed_tuning: PeekTuning
 
 
 ## The side `command` asks to lean: -1 left, 1 right, 0 neither (or both).
@@ -87,6 +91,13 @@ func step(body: Character, delta: float) -> void:
 	if amount != 0.0:
 		room = _room(body, signf(amount))
 		amount = signf(amount) * minf(absf(amount), room)
+	# A steady lean (the same share, facing, eye height and tuning as last placed) has nothing to
+	# move.
+	if (
+		tuning == _placed_tuning
+		and Vector3(amount, body.facing, CharacterCapsule.eye_height(body)) == _placed
+	):
+		return
 	CharacterCapsule.fit(body)
 
 
@@ -160,7 +171,16 @@ static func forward_of(body: Character) -> Vector3:
 ## Puts the eye point (`camera_target`) and the shape where the lean is, for the eye `eye` metres
 ## up (`CharacterCapsule.fit` calls it after it sizes the capsule).
 func place(body: Character, camera_target: Node3D, eye: float) -> void:
-	camera_target.position = Vector3.UP * eye + eye_shift(body, eye, amount)
+	_placed = Vector3(amount, body.facing, eye)
+	if _placed_tuning != body.peek_tuning:
+		if _placed_tuning != null and _placed_tuning.changed.is_connected(_forget_placed):
+			_placed_tuning.changed.disconnect(_forget_placed)
+		_placed_tuning = body.peek_tuning
+		if _placed_tuning != null:
+			_placed_tuning.changed.connect(_forget_placed)
+	var target := Vector3.UP * eye + eye_shift(body, eye, amount)
+	if camera_target.position != target:
+		camera_target.position = target
 	var shape := _peek_shape(body)
 	if shape == null:
 		return
@@ -168,11 +188,16 @@ func place(body: Character, camera_target: Node3D, eye: float) -> void:
 	if shape.disabled == on:
 		shape.disabled = not on
 	if on:
+		# Written only when they change: a shape's setter rebuilds it in the physics server.
 		var capsule := shape.shape as CapsuleShape3D
 		var made := _capsule(body, eye, 0.0)
-		capsule.radius = made.x
-		capsule.height = made.y
-		shape.transform = _capsule_transform(body, eye, amount)
+		if capsule.radius != made.x:
+			capsule.radius = made.x
+		if capsule.height != made.y:
+			capsule.height = made.y
+		var placed := _capsule_transform(body, eye, amount)
+		if not shape.transform.is_equal_approx(placed):
+			shape.transform = placed
 
 
 ## Saves the step state in `into` (`CharacterState.peek`).
@@ -247,6 +272,10 @@ func _free(body: Character, eye: float, share: float) -> bool:
 	_query.collision_mask = body.collision_mask
 	_query.exclude = [body.get_rid()]
 	return body.get_world_3d().direct_space_state.intersect_shape(_query, 1).is_empty()
+
+
+func _forget_placed() -> void:
+	_placed = Vector3(INF, INF, INF)
 
 
 func _peek_shape(body: Character) -> CollisionShape3D:

@@ -56,8 +56,10 @@ Lean `enabled`, `side_offset`, `max_angle`, `crouch_max_angle`, `pivot_share`, `
 `PeekLayer`: `chain`, `chain_weights`, `keep`, `head`, `disabled` (the body still leans, unbent).
 
 **The cost.** On a tick with no lean and none asked for, the step is one comparison. A leaning body adds one
-`intersect_shape` with a capsule a tick, six more while a wall holds it short, and the modifier's two passes over five
-bones on each drawn frame, only while it leans.
+`intersect_shape` with a capsule a tick (about 7 us headless in the editor build), six more while a wall holds it short,
+and the modifier's two passes over five bones on each drawn frame, only while it leans. A held lean places the eye and
+the shape again only when the lean, the facing, the eye's height or the tuning changed. Forty bodies stepped by hand,
+headless: 25 us a body a tick upright, 37 leaning (crouched: 26 and 37).
 
 **What it does not do yet.** A right-handed weapon stays to the right of the head: leaning left, the head clears an
 edge before the muzzle does, so a left peek needs the edge a little closer than a right one (the capture's pillar is
@@ -88,6 +90,11 @@ edge).
   `PlayerCamera._unhandled_input` the shoulder swap is checked before the click that captures the mouse. **Watch out
   for:** with the swap moved from Q to the middle button, the click branch took the event first and the swap never
   ran (`test_camera_shoulder.gd`). **Seen:** gdstudio #1400, 2026-11-13.
+- **Approach:** Time a per-tick module's parts one by one in a loop of thousands of calls before guarding engine calls,
+  and skip the whole placement when what it is placed from has not changed. **Watch out for:** a leaning body first
+  cost 28 us more a tick than an upright one; writing the capsule's size and the shape nodes' places only on a change
+  saved under 1 us, because 9 of the 28 were the GDScript calls of `CharacterCapsule.fit` itself. Skipping the fit at
+  a steady lean brought it to 12. **Seen:** gdstudio #1400, 2026-11-13.
 - **Approach:** Compare a predicting client's state with the server's by the command's `seq` each side stepped, not on
   the same physics frame. **Watch out for:** the server steps a command a tick or two after the client, so on one frame
   the lean differed by a tick's growth (1/12) while every command matched exactly. **Seen:** gdstudio #1400, 2026-11-13

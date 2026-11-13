@@ -9,7 +9,8 @@ extends Resource
 ## shoulders go `side_offset` to the side (never more than `max_angle`), the eye point and the
 ## camera go with them, the body's shots leave from there and its hits land there. The feet and
 ## the pelvis stay. A number is read where it is used, every tick, so changing it in the inspector
-## or the remote inspector works while the game runs. The defaults come from tactical shooters'
+## or the remote inspector works while the game runs (the numbers that place the eye and the
+## shape emit `changed`, so a held lean is placed again). The defaults come from tactical shooters'
 ## leans: a quarter to a third of a metre to the side, about a fifth of a second to lean out.
 
 ## How the human's controls ask for a lean (`PlayerInput` reads it, unless the player's
@@ -27,17 +28,29 @@ enum InputMode {
 @export var enabled := true
 ## How far the head and the shoulders go to the side at a whole lean, standing, in metres (the
 ## eye point and the camera go as far). Crouched, the bend is shorter (`crouch_max_angle`).
-@export_range(0.0, 0.8, 0.01, "suffix:m") var side_offset := 0.35
+@export_range(0.0, 0.8, 0.01, "suffix:m") var side_offset := 0.35:
+	set(value):
+		side_offset = value
+		emit_changed()
 ## The most the upper body tilts from the hips, in degrees: `side_offset` is reached by this tilt
 ## or less.
-@export_range(0.0, 60.0, 0.5, "suffix:deg") var max_angle := 30.0
+@export_range(0.0, 60.0, 0.5, "suffix:deg") var max_angle := 30.0:
+	set(value):
+		max_angle = value
+		emit_changed()
 ## The most it tilts crouched, in degrees: the crouched bend from the hips to the eye is shorter,
 ## so it tilts further to put the head about as far out (0.29 m at 45 degrees on the template's
 ## body).
-@export_range(0.0, 75.0, 0.5, "suffix:deg") var crouch_max_angle := 45.0
+@export_range(0.0, 75.0, 0.5, "suffix:deg") var crouch_max_angle := 45.0:
+	set(value):
+		crouch_max_angle = value
+		emit_changed()
 ## Where the bend starts, as a share of the eye's height above the feet (the hips, about 0.55):
 ## everything below it stays where it is.
-@export_range(0.2, 0.9, 0.01) var pivot_share := 0.55
+@export_range(0.2, 0.9, 0.01) var pivot_share := 0.55:
+	set(value):
+		pivot_share = value
+		emit_changed()
 ## Seconds from upright to a whole lean (and back).
 @export_range(0.0, 1.0, 0.01, "suffix:s") var lean_time := 0.2
 
@@ -50,10 +63,16 @@ enum InputMode {
 @export_group("Body")
 ## The radius of the shape that stands for the leaning shoulders and head: what a shot meets
 ## outside the upright capsule, and what the wall test sweeps.
-@export_range(0.05, 0.5, 0.01, "suffix:m") var shape_radius := 0.2
+@export_range(0.05, 0.5, 0.01, "suffix:m") var shape_radius := 0.2:
+	set(value):
+		shape_radius = value
+		emit_changed()
 ## Where that shape starts up the bend, as a share of the bend's length from the hips to the eye
 ## (the shoulders' lower edge); it ends a radius above the eye.
-@export_range(0.0, 1.0, 0.01) var shape_start := 0.45
+@export_range(0.0, 1.0, 0.01) var shape_start := 0.45:
+	set(value):
+		shape_start = value
+		emit_changed()
 ## The room kept between the leaning shape and a wall, in metres: the lean stops this short.
 @export_range(0.0, 0.2, 0.005, "suffix:m") var wall_margin := 0.03
 

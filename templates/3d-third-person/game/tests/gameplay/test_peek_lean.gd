@@ -95,6 +95,22 @@ func test_a_lean_tilts_the_eye_to_the_side_and_keeps_the_feet() -> void:
 	assert_vector(body.global_position).is_equal_approx(feet, Vector3.ONE * 0.001)
 
 
+func test_a_held_lean_follows_the_tuning_changed_while_it_is_held() -> void:
+	# A steady lean skips placing the eye again; a live change of the tuning places it again.
+	var body := await _body()
+	var upright := _eye(body)
+	await _step(body, _leaning(1), 20)
+	var tuning := body.peek_tuning
+	var offset_was := tuning.side_offset
+	tuning.side_offset = 0.2
+	await _step(body, _leaning(1), 2)
+	var shift := (_eye(body) - upright).x
+	tuning.side_offset = offset_was
+	assert_float(shift).is_between(0.18, 0.21)
+	await _step(body, _leaning(1), 2)
+	assert_float((_eye(body) - upright).x).is_between(0.32, 0.37)
+
+
 func test_both_sides_at_once_lean_neither_way() -> void:
 	var body := await _body()
 	var both := _leaning(1)

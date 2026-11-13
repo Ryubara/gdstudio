@@ -27,11 +27,15 @@ static func fit(body: Character) -> void:
 	var capsule := body._body.shape as CapsuleShape3D
 	var tall := height(body)
 	var lying := body._prone.share() if body.prone_tuning != null else 0.0
-	capsule.radius = (
-		lerpf(tuning.radius, prone_radius(body), lying) if lying > 0.0 else tuning.radius
-	)
-	capsule.height = tall
-	body._body.position.y = tall / 2.0
+	var radius := lerpf(tuning.radius, prone_radius(body), lying) if lying > 0.0 else tuning.radius
+	# A shape's setter rebuilds it in the physics server even for the same value, and a shape
+	# node's place moves it there: written only when they change (a leaning body fits every tick).
+	if capsule.radius != radius:
+		capsule.radius = radius
+	if capsule.height != tall:
+		capsule.height = tall
+	if body._body.position.y != tall / 2.0:
+		body._body.position.y = tall / 2.0
 	# The eye goes with a peek lean (`CharacterPeek`), and the lean's shape with it.
 	body.peek_motion.place(body, body._camera_target, eye_height(body))
 
