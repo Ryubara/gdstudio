@@ -381,5 +381,5 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   `standing_speed` (0.3), on the first tick of a press, so the starts were never picked for the player and the idle
   snapped to the walk in two frames; the transition tests set the speed by hand. Pick no start for an aimed walk (it
   faces the view and strafes), and in a test that reads the steady gait after a press from standing, wait until the
-  machine is back in `ground`: once starts played, three suites read the start instead. **Seen:** gdstudio #1416,
-  2026-11-13 (PR #1427: `test_pistol_carry.gd`, `test_aim_release.gd`, `test_rifle_run_state.gd`).
+  machine is back in `ground`: once starts played, four suites read the start instead. **Seen:** gdstudio #1416,
+  2026-11-13 (PR #1427: pistol carry, aim release, rifle run state, a ragdoll that died mid-start).

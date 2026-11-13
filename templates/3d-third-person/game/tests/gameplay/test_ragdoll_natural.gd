@@ -11,6 +11,8 @@ extends GdUnitTestSuite
 const MOST_OVERLAP := 0.06
 ## A joint's limit is a soft stop against a load (`test_ragdoll_physics.gd`). Degrees.
 const LIMIT_SLACK := 25.0
+## Ticks a start from standing may still play after the first 40 (two seconds at most).
+const START_TICKS := 120
 
 var _arena: PlayArena
 var _player: Player
@@ -61,6 +63,14 @@ func test_limbs_do_not_pass_through_the_body_after_a_run_and_a_shove() -> void:
 	InputSim.key(KEY_W, true)
 	InputSim.key(KEY_SHIFT, true)
 	await _ticks(40)
+	# A start from standing plays first: die in the run itself, as the case says.
+	var animation := (
+		_player.find_children("*", "CharacterAnimation", true, false)[0] as CharacterAnimation
+	)
+	for _tick in START_TICKS:
+		if animation.body_state() == CharacterAnimation.GROUND:
+			break
+		await _ticks(1)
 	_player.die()
 	# A shove from the side, harder the higher the bone, topples the body onto its side.
 	for entry: Dictionary in CharacterRagdoll.BODIES:
