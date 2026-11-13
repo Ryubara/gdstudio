@@ -86,6 +86,8 @@ static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: fl
 	if Vector2(puppet._crouch_amount, puppet._prone.amount) != shape_before:
 		puppet._fit_body()
 	puppet.state = entry.state as Character.State
+	# The peek lean: the eye, the shape and the bend, as the server's body leans (gdstudio #1400).
+	puppet.peek_motion.show(puppet, entry.peek)
 	# A vault or a mantle: its plan and clip are worked out here (nothing about it is sent).
 	PuppetVault.follow(puppet, delta, PhysicsLayers.WORLD)
 

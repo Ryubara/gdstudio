@@ -323,6 +323,8 @@ static func entry_of(slot: int, body: Character) -> PlayerEntry:
 	entry.pitch = body.view_pitch
 	# The aim layer's turn off the body, which another screen poses its puppet by (kit #1277).
 	entry.aim_yaw = body.aim_yaw if body.aiming else 0.0
+	# The peek lean moves the eye, the shape a shot meets and the bend (gdstudio #1400).
+	entry.peek = body.peek_motion.amount
 	return entry
 
 

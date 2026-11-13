@@ -128,6 +128,10 @@ const CHEST_SHARE := 0.72
 			slide_tuning.changed.connect(_apply_tuning)
 			_apply_tuning()
 
+@export_group("Peek")
+## The peek lean around cover (`CharacterPeek`): how far, how fast, the shape. Empty: the defaults.
+@export var peek_tuning: PeekTuning
+
 @export_group("Weapon")
 ## What the character shoots with. Empty: it cannot aim or shoot. The character steps it: the
 ## weapon's own `self_ticking` is turned off and `step` counts its cooldown.
@@ -241,6 +245,8 @@ var aim_yaw: float:
 		return wrapf(view_yaw + PI - facing, -PI, PI)
 ## The vault and the mantle (`CharacterVault`): the running plan; its step state is `vault`.
 var vault_motion := CharacterVault.new()
+## The peek lean (`CharacterPeek`): `amount` -1 (left) to 1 (right); its step state is `peek`.
+var peek_motion := CharacterPeek.new()
 ## On while the hands are busy with something else (an `ItemUse` using a bandage): the character
 ## neither aims nor shoots, and an aim held lowers until it is off again.
 var hands_busy := false
@@ -287,6 +293,8 @@ func _ready() -> void:
 		prone_tuning = ProneTuning.new()
 	if slide_tuning == null:
 		slide_tuning = SlideTuning.new()
+	if peek_tuning == null:
+		peek_tuning = PeekTuning.new()
 	_apply_tuning()
 	if Engine.is_editor_hint():
 		return
@@ -345,6 +353,7 @@ func step(command: PlayerCommand, delta: float) -> void:
 		_fall_out()
 	else:
 		_move(delta)
+	peek_motion.step(self, delta)
 	# Last, as the weapon's own tick came after the body's; the switch before the weapon.
 	if loadout != null:
 		loadout.tick(delta)
@@ -467,6 +476,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	_rider.platform = null
 	_fallen = false
 	_slide.reset()
+	peek_motion.reset()
 	_fit_body()
 	if not is_nan(heading):
 		facing = heading
@@ -770,6 +780,8 @@ func _target_speed(strength: float) -> float:
 		speed = tuning.walk_speed * maxf(strength, tuning.least_walk_share)
 	if aiming:
 		speed = minf(speed, tuning.walk_speed * tuning.aim_walk_cap) * tuning.aim_move_scale
+	if peek_motion.leaning():
+		speed = minf(speed, peek_tuning.move_speed)
 	if _push_cap > 0.0:
 		speed = minf(speed, _push_cap)
 	return speed
@@ -790,8 +802,8 @@ func _steer(wish: Vector3, delta: float) -> void:
 	flat = flat.move_toward(goal, rate * delta)
 	velocity.x = flat.x
 	velocity.z = flat.z
-	if aiming and _action_lock <= 0.0:
-		# Aiming turns the body to the view's heading, however it walks.
+	if (aiming or peek_motion.leaning()) and _action_lock <= 0.0:
+		# Aiming (or a peek lean) turns the body to the view's heading, however it walks.
 		var aim_turn := prone_tuning.aim_turn_speed if _prone.is_prone() else tuning.aim_turn_speed
 		facing = lerp_angle(facing, view_yaw + PI, clampf(aim_turn * delta, 0.0, 1.0))
 		_present_facing()

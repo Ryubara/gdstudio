@@ -67,3 +67,21 @@ offset_right = -640.0
 offset_bottom = -420.0
 action = &"melee"
 label = "Melee"
+
+[node name="LeanLeft" parent="SafeArea/Buttons" index="9" instance=ExtResource("2_button")]
+layout_mode = 1
+offset_left = -420.0
+offset_top = -650.0
+offset_right = -250.0
+offset_bottom = -480.0
+action = &"lean_left"
+label = "Lean L"
+
+[node name="LeanRight" parent="SafeArea/Buttons" index="10" instance=ExtResource("2_button")]
+layout_mode = 1
+offset_left = -230.0
+offset_top = -650.0
+offset_right = -60.0
+offset_bottom = -480.0
+action = &"lean_right"
+label = "Lean R"

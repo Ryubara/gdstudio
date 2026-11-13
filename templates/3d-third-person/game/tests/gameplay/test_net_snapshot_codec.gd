@@ -248,8 +248,9 @@ func test_the_longest_welcome_fits_its_limit_and_round_trips() -> void:
 	var players := _players(NetLimits.MAX_PLAYERS)
 	for player in players:
 		player.player_name = "n".repeat(NetLimits.NAME_BYTES)
-		# The longest: every player aims, so every entry carries its aim byte.
+		# The longest: every player aims and leans, so every entry carries its aim and lean bytes.
 		player.aim = true
+		player.peek = 0.5
 	var packet := SnapshotCodec.welcome(7, 555, 0xABCDEF01, entities, players)
 	assert_int(packet.size()).is_equal(SnapshotCodec.MAX_WELCOME)
 	var welcome := SnapshotCodec.read_welcome(packet)
