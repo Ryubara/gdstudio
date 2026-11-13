@@ -149,7 +149,6 @@ func test_the_momentum_blend_replaces_the_cross_fade_and_dies_away() -> void:
 	# the difference is all but gone in a quarter of a second. Relative to its start: since the
 	# blend is begun again on the frame the new pose arrives (kit #1369) it starts from the whole
 	# difference, where it had started from a few hundredths of a radian.
-	print("momentum offsets: largest %.3f, at tick 15 %.4f" % [offsets.max(), offsets[15]])
 	assert_float(offsets.max()).is_greater(0.05)
 	assert_float(offsets[15]).is_less(0.05 * offsets.max())
 	# Off, the node leaves the skeleton and the states cross-fade again.
