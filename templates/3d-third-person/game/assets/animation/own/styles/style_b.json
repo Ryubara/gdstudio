@@ -281,11 +281,11 @@
   ],
   "walk_right": [
    "Loose: 1.2 m/s on the forward walk's 26-frame cycle; the hips stay turned 32 degrees toward the step, the open step is 0.71 m and the crossing foot lands 0.33 m past the other, in a lane 0.24 m ahead of it; the chest leans 3 degrees into the step, the forearm trails 2 frames and the chest 2.5.",
-   "Could not be done: both knees a third toward the step. The leading knee points 60 degrees toward it and the crossing one 17: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0.4, 4.6, 0, 0 mm (form_male's thighs meet by 2 at rest). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
+   "Could not be done: both knees a third toward the step. The leading knee points 60 degrees toward it and the crossing one 17: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0, 2.7, 0, 0 mm (form_male's thighs meet by 2 at rest; the feet land 0.02 m off the middle line along the step, since at 0 his thighs met by 4.6, over the strafes' 3.5). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
   ],
   "jog_left": [
    "Loose: 3 m/s on the forward jog's 20-frame cycle; the hips stay turned 40 degrees toward the step, the open step is 1.26 m and the crossing foot lands 0.74 m past the other, in a lane 0.24 m ahead of it; the chest leans 6 degrees into the step, the forearm trails 1.2 frames and the chest 2.",
-   "Could not be done: both knees a third toward the step. The leading knee points 62 degrees toward it and the crossing one 22: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0, 3.5, 0, 0 mm (form_male's thighs meet by 2 at rest). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
+   "Could not be done: both knees a third toward the step. The leading knee points 62 degrees toward it and the crossing one 22: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0, 2.9, 0, 0 mm (form_male's thighs meet by 2 at rest; the feet land 0.02 m off the middle line along the step, since at 0 his thighs met by 3.5, at the strafes' 3.5). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
   ],
   "jog_right": [
    "Loose: 3 m/s on the forward jog's 20-frame cycle; the hips stay turned 35 degrees toward the step, the open step is 1.29 m and the crossing foot lands 0.71 m past the other, in a lane 0.24 m ahead of it; the chest leans 5 degrees into the step, the forearm trails 1.2 frames and the chest 2.",
@@ -639,6 +639,7 @@
   "arm_out": 12.0
  },
  "walk_right": {
+  "width": 0.02,
   "left": {
    "toe_out": 4.0,
    "arm_fore": 15.0,
@@ -716,6 +717,7 @@
   "arm_out": 18.0
  },
  "jog_left": {
+  "width": 0.02,
   "left": {
    "toe_out": 4.0,
    "arm_fore": 25.0,

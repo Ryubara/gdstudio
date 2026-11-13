@@ -594,7 +594,7 @@ whole tables.
 | The chest leans into the step, walk and jog | 2 and 4 degrees | 3.5 and 6 | 1 and 2.5 |
 | Pelvis up and down, walk and jog | 30 and 70 mm | 36 and 70 | 31 and 77 |
 | Forearm and chest trail, walk | 1.7 and 1.4 frames | 2.2 and 2.4 | 1.1 and 0.8 |
-| Limbs inside limbs, the four bodies, worst of the four clips | 0.9, 3.1, 0, 2.6 mm | 0.4, 4.6, 0, 0 | 0.5, 2.7, 0, 2.6 |
+| Limbs inside limbs, the four bodies, worst of the four clips | 0.9, 3.1, 0, 2.6 mm | 0.4, 2.9, 0, 0 (4.6 before `width`, below) | 0.5, 2.7, 0, 2.6 |
 | A planted sole wanders, `form_female` and `form_male` | 1.8 and 1.7 mm | 1.8 and 1.7 | 1.8 and 1.8 |
 | Joints' effective harmonic, walk and jog (the shipped `Walk` 3.17, `Jog` 2.37) | 2.8 and 2.0 | 2.5 and 2.0 | 2.8 and 2.1 |
 
@@ -620,9 +620,11 @@ whole tables.
 | A planted sole off the floor, `form_female`, `form_male`, the Quaternius male | 0.0, 0.6, 0.7 mm at most | 0.0, 0.5, 0.6 | 0.0, 0.7, 0.8 |
 | Limbs inside limbs, the four bodies, worst of the four poses | 0, 3.9, 0, 0 mm | 0, 4.7, 0, 0 | 0, 2.0, 0, 0 |
 
-**A is built into `locomotion.glb` for all ten** (`picks.json`), as the recommendation, until the maintainer picks
-a letter for the strafes, one for the backpedals and one for the leans. On `form_male` the legs read 1.5 to 3.1 mm
-in the shipped gaits, thigh in thigh: his thighs meet by 2 mm in his rest pose and by 3.8 in the shipped `Jog`.
+**The maintainer picked B for the strafes and the backpedals and A for the leans** (2026-11-12, `picks.json`).
+B's `Walk_Right` and `Jog_Left` set their feet 0.02 m off the middle line along the step (`width`): at 0,
+`form_male`'s thighs met by 4.6 and 3.5 mm, over the 3.5 that `test_own_directions.gd` holds a strafe's legs to (A
+read 2.8 and 2.6); now 2.7 and 2.9. On `form_male` the legs read 1.5 to 2.9 mm in the shipped directions, thigh in
+thigh: his thighs meet by 2 mm in his rest pose and by 3.8 in the shipped `Jog`.
 
 ### What the numbers do not say (the directions and the lean)
 
