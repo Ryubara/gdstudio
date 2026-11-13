@@ -440,6 +440,14 @@ generated low thumps).
   floor fell from 26.5 dB (the synthesised M4A1) to 11; a shorter cut won under 1 dB, the decay brought it to 20. The
   distance filter took the 2 to 5 kHz share from 10 to 14% to 3% until the lift. A limited file decoded 1.3 dB over its
   -1.5 dBFS encode. **Seen:** gdstudio #1414, 2026-11-13 (`tools/capture/fire_sounds_tour.tscn`).
+- **Approach:** Check a 3D player's distance filter before shaping its files: when the game sounds darker than the
+  file, look at `attenuation_filter_db` first. The filter is a high shelf at `attenuation_filter_cutoff_hz`, as deep as
+  `(1 - gain) * attenuation_filter_db`, the gain being the whole heard level with `volume_db` in it ([source][p3dsrc]):
+  a player trimmed to -22 dB sits near the full depth at any distance, and the web build ignores it
+  ([samples](../../engines/godot/audio.md#web-samples-or-streams)). The template's weapon and impact players have it
+  at 0 (`sound_filter_db` on an `EffectDef`): distance is volume alone. **Watch out for:** Godot's default (5 kHz,
+  -24 dB) muffled the new shots in the game (2 to 5 kHz from 28 to 31% to 13 to 17%), and a presence boost in the
+  files only hid it. **Seen:** gdstudio #1447, 2026-11-13.
 
 Sources: [Splice, how to design a weapon sound][splice]; [Krotos, Weaponiser and Gun Sound Design][krotos]; [Lior
 Ortega, FPS gun sound design][ortega]; [sfxengine, common game audio mistakes][sfx]; [equal-loudness
@@ -453,6 +461,7 @@ contour][eq]; Godot docs: [AudioStreamRandomizer][rand], [AudioStreamPlayer3D][p
 [eq]: https://en.wikipedia.org/wiki/Equal-loudness_contour
 [rand]: https://docs.godotengine.org/en/stable/classes/class_audiostreamrandomizer.html
 [p3d]: https://docs.godotengine.org/en/stable/classes/class_audiostreamplayer3d.html
+[p3dsrc]: https://github.com/godotengine/godot/blob/master/scene/3d/audio_stream_player_3d.cpp
 [dab]: https://thunderstore.io/c/h3vr/p/Sirdoggy/Dynamic_Audio_Balancing/
 
 [api]: https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert

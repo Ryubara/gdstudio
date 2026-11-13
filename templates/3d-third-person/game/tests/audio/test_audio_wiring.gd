@@ -127,6 +127,23 @@ func test_the_shot_is_five_pistol_files_with_a_small_pitch_spread_and_three_voic
 	assert_str(String(sound.bus)).is_equal("SFX")
 
 
+# Godot's 3D distance filter is a high shelf whose depth follows the heard gain, `volume_db`
+# included, so a weapon trimmed to about -22 dB was darkened near the full -24 dB above 5 kHz even
+# at the camera (the shots' 2 to 5 kHz share fell from 28 to 31% to 13 to 17% in the game, #1447),
+# and the web build ignores it. Every weapon player has it off: distance is volume alone.
+func test_the_weapon_players_have_no_distance_filter() -> void:
+	var weapon := _scene.get_node("PlayerRig/Player/Weapon") as Weapon
+	for part: String in ["ShotSound", "EmptySound", "ReloadSound", "DrawSound", "MeleeSound"]:
+		var sound := weapon.get_node("%" + part) as AudioStreamPlayer3D
+		(
+			assert_float(sound.attenuation_filter_db)
+			. override_failure_message(
+				"%s has a distance filter of %s dB" % [part, sound.attenuation_filter_db]
+			)
+			. is_equal(0.0)
+		)
+
+
 # The players hold the takes decoded once (`DecodedSounds`): starting an Ogg Vorbis take set its
 # decoder up, about 250 µs a shot on the desktop and 300 to 400 in a browser; a decoded one about 1.
 func test_the_weapon_plays_its_sounds_decoded_with_the_definitions_spread() -> void:
@@ -158,9 +175,9 @@ func test_a_shot_plays_at_the_muzzle() -> void:
 # set by ear in a game made from the template. The coin and the shot were levelled against them by
 # measuring each through the camera, the buses and the 3D players (the loudest 400 ms at the mix:
 # step -40, crouch step -46, landing -37, coin -37, shot -31, the wind -50 LUFS integrated; the
-# shots of #1414 at -22.5 dB read -27.5 for a pistol shot). A
-# 3D player's volume is not one to one with what is heard (it also darkens the sound as it falls),
-# so change a number by measuring again, never by adding dB.
+# shots of #1414 at -22.5 dB read -27.5 for a pistol shot, -26.6 with no distance filter, #1447).
+# A 3D player's volume is not one to one with what is heard (with a distance filter it also darkens
+# the sound), so change a number by measuring again, never by adding dB.
 func test_the_levels_are_the_ones_measured_and_no_effect_jumps_out() -> void:
 	var pickup := (load("res://gameplay/pickup/pickup.tscn") as PackedScene).instantiate()
 	auto_free(pickup)

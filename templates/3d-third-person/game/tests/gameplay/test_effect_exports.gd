@@ -47,6 +47,7 @@ func test_every_effect_export_has_its_default_pinned() -> void:
 		&"sound_volume_db": -12.0,
 		&"sound_bus": &"SFX",
 		&"sound_max_distance": 60.0,
+		&"sound_filter_db": -24.0,
 		&"light_energy": 0.0,
 		&"light_color": Color(1.0, 0.72, 0.38),
 		&"light_range": 4.0,
@@ -77,6 +78,7 @@ func test_a_sound_and_light_change_shows_in_the_next_play() -> void:
 	effect.sound_volume_db = -3.0
 	effect.sound_bus = &"Ambient"
 	effect.sound_max_distance = 12.0
+	effect.sound_filter_db = -6.0
 	effect.light_color = Color(0.1, 0.2, 0.9)
 	effect.light_energy = 5.0
 	effect.light_range = 7.0
@@ -85,6 +87,7 @@ func test_a_sound_and_light_change_shows_in_the_next_play() -> void:
 	var voice := slot.sound_player()
 	assert_float(voice.volume_db).is_equal(-3.0)
 	assert_bool(voice.bus == &"Ambient").is_true()
+	assert_float(voice.attenuation_filter_db).is_equal(-6.0)
 	assert_float(voice.max_distance).is_equal(12.0)
 	assert_object(slot.light().light_color).is_equal(Color(0.1, 0.2, 0.9))
 	assert_float(slot.light().light_energy).is_equal(5.0)
