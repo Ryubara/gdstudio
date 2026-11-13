@@ -7,7 +7,9 @@
 # the weapon's rate for as long as it is held (within one shot) on automatic, with nothing after
 # the release. From the arm down the arm keeps coming up after a tap until its shots have left
 # (gdstudio #1352). The fists' press is a blow (gdstudio #1254), counted as a shot: one a press,
-# aimed or not, held or not, whatever the fire mode.
+# aimed or not, held or not, whatever the fire mode. With a burst weapon's `full_burst_per_press`
+# off, the burst lasts only while the button is held: a one-tick tap fires one shot (aimed or from
+# the hip), a 2-tick hold what the burst's spacing allows, a long hold the whole burst.
 extends GdUnitTestSuite
 
 const MODES: Array[WeaponDef.FireMode] = [
@@ -117,6 +119,34 @@ func test_a_held_press_fires_the_rate_while_held_and_nothing_after() -> void:
 				. is_equal(held)
 			)
 			InputSim.mouse_button(MOUSE_BUTTON_RIGHT, false)
+
+
+func test_with_the_full_burst_off_a_press_fires_the_shots_it_is_held_for() -> void:
+	var hold := roundi(HOLD_SECONDS * Engine.physics_ticks_per_second)
+	for path in WEAPONS:
+		for press: int in [1, 2, hold]:
+			for aim_up: bool in [false, true]:
+				var definition := await _arm(path, WeaponDef.FireMode.BURST)
+				definition.full_burst_per_press = false
+				if aim_up:
+					await _aim_up()
+				await _tap(press)
+				# From the hip the arm comes up after a short press is let go: one shot; a long
+				# hold still fires the whole burst.
+				var expected := _held_shots(definition, press)
+				if not aim_up and press < hold:
+					expected = 1
+				_expect(expected, definition, "held %d ticks, aim up %s" % [press, aim_up])
+				InputSim.mouse_button(MOUSE_BUTTON_RIGHT, false)
+
+
+# What a burst press held `ticks` ticks with the aim up fires when the release ends the burst: a
+# shot every burst spacing from the first tick, at most the burst (a blow for a melee weapon).
+func _held_shots(definition: WeaponDef, ticks: int) -> int:
+	if definition.kind == WeaponDef.Kind.MELEE:
+		return 1
+	var spacing := roundi(definition.burst_interval() * Engine.physics_ticks_per_second)
+	return mini(ceili(float(ticks) / spacing), definition.shots_a_press())
 
 
 # Gives the player a copy of the weapon at `path` in fire mode `mode`, with rounds enough for the
