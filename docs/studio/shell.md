@@ -30,6 +30,10 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   out for:** this machine's Git Bash runs under a locale `grep -P` refuses (`-P supports only unibyte and UTF-8
   locales`, exit 2), so a filter in a pipe printed nothing and read as no match. **Seen:** gdstudio #1153 (PR #1167),
   2026-11-11; #1203 (PR #1215), 2026-11-11 (a CI watch loop; `gh pr checks --json` or awk instead).
+- **Approach:** Filter JSON in a loop with `gh ... --json <fields> -q '<expression>'`, which carries its own jq;
+  the standalone `jq` program is not installed here. **Watch out for:** a CI watch loop that piped `gh pr checks
+  --json` into `jq -e` never met its end condition (`jq: command not found` went to the error stream of a background
+  command), so it ran past the checks for half an hour. **Seen:** gdstudio #1318 (PR #1364), 2026-11-12.
 - **Approach:** Before handing a computed file list to `grep` (or any tool that falls back to standard input), check
   that the list is not empty, or use `xargs -r grep ...`. **Watch out for:** `grep pattern $(git diff --name-only ...)`
   with no files reads standard input, which the Bash tool never closes, so a commit command waited minutes on nothing.
