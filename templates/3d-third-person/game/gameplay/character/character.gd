@@ -241,6 +241,9 @@ var aim_yaw: float:
 		return wrapf(view_yaw + PI - facing, -PI, PI)
 ## The vault and the mantle (`CharacterVault`): the running plan; its step state is `vault`.
 var vault_motion := CharacterVault.new()
+## On while the hands are busy with something else (an `ItemUse` using a bandage): the character
+## neither aims nor shoots, and an aim held lowers until it is off again.
+var hands_busy := false
 
 var _coyote := 0.0
 var _jump_buffer := 0.0
@@ -680,7 +683,7 @@ func _update_crouch(delta: float) -> void:
 
 func _update_aim(delta: float) -> void:
 	var wants := false
-	if weapon != null and _action_lock <= 0.0 and _prone_lets_aim():
+	if weapon != null and _action_lock <= 0.0 and not hands_busy and _prone_lets_aim():
 		var held := weapon.definition
 		aim_held = last_command.aim and (held == null or held.can_aim)
 		fire_held = last_command.fire and _prone_lets_fire() and _weapon_lets_fire(aim_held)

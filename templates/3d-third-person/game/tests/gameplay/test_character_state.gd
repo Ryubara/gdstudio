@@ -43,6 +43,7 @@ const NOT_STATE := {
 	&"_body": "a node",
 	&"_camera_target": "a node",
 	&"_rider": "the online platform under it after its last move, found again by the next",
+	&"hands_busy": "set by the ItemUse beside the body, not by the step; a client refuses a use",
 }
 
 var _arena: PlayArena

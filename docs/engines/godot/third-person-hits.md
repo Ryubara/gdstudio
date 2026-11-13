@@ -38,7 +38,8 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `hit_received(record)` with `killed` set. `health` and `max_health` on the character read the `Health` node's `value`
   and `max_value` (read only: a game sets the `Health` node). `hit(amount, source)` is still there: a blow with no point
   that also stops and throws the character (`hit_stun_time`, `knockback_speed`), as before. The hit clip plays over the
-  whole body standing and over the upper body only crouched, lying or sliding (`HitLayer`), so a low body stays down
+  whole body standing and over the upper body only crouched, lying or sliding (`HitLayer`), so a low body stays down,
+  and with a weapon held it leaves the arms to the weapon, held up through the stun
   ([one action state for every body](animation-tree.md#one-action-state-for-every-body)). A dead character takes no
   damage, but its `hit_received` still fires (the lying-body push). Getting up gives the health back, and `die()` with
   no record sets it to 0. The HUD's health part reads `health` and `max_health` and shows them.
@@ -49,7 +50,8 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   most `flinch_most_speed`), shown at `flinch_strength` through the simulator's `influence`, held for `flinch_hold` of
   `flinch_time` and blended back to the clip, then the bones stop. The bodies it leaves out are put on the clip's pose
   in the server, at rest and off every layer, and the ragdoll's extra joints go for the flinch ([A partial
-  ragdoll](ragdoll.md#partial)). A death during a flinch hands the whole skeleton to the ragdoll. The marks shots left
+  ragdoll](ragdoll.md#partial)); `RagdollLengths` keeps its bones, and the get-up's, at their rest lengths (gdstudio
+  #1338). A death during a flinch hands the whole skeleton to the ragdoll. The marks shots left
   on the bones go when the body gets up (`Impacts.clear_marks_on(simulator)`).
 
 - **Approach:** Push a body by a speed, not only by the shot's strength: the kill's and the lying body's push land on
@@ -108,6 +110,9 @@ The zones' shapes are sized on the template's two prototype bodies (kit #1187, `
 [the bodies](third-person/character.md#mannequins)). `tools/capture/hit_tour.tscn` films it from the player's camera
 (`HIT_MODEL=male` for the male body):
 `gds capture frames --project game --scene res://tools/capture/hit_tour.tscn --seconds 26`.
+`tools/capture/enemy_pose_tour.tscn` films an armed body on the enemy's mannequin taking chest shots while it aims,
+beside one that fires dry and reloads (`--seconds 9`); `tools/soak/ai_pose_log.tscn` prints every AI character's
+state, locomotion node and layers (`POSE` lines) through a seeded soak, to trace a pose seen in play to its clip.
 
 - **Approach:** Run a shot's second test along the projectile's own line (its centre at the touch), not from the
   contact point. **Watch out for:** a sphere that touches a curved capsule touches it off its centre line, so a ray

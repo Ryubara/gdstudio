@@ -13,6 +13,9 @@
 ## `HIT_TRACER=1` (with `HIT_HITSCAN=1`) gives that pistol the ready-made tracer
 ## (`gameplay/weapon/pistol_tracer.tres`, gdstudio #1270), and `HIT_TIME_SCALE=0.12` slows the
 ## clock so a streak that lasts a tenth of a second shows over several frames.
+## `HIT_TOUR=flinch` plays the flinches instead (gdstudio #1338): a target killed, got up again
+## and shot twice without dying, then the walker shot twice as it walks; record it at 30 frames a
+## second, since a limb that stretched did it for two to five ticks.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -51,6 +54,26 @@ const TOUR: Array[Dictionary] = [
 	{"do": "wait", "seconds": 1.5, "aim": true},
 ]
 
+## The flinches: hits that do not kill on a body that has died and got up, and on a walking one.
+const FLINCH_TOUR: Array[Dictionary] = [
+	{"do": "wait", "seconds": 0.6, "aim": false},
+	{"do": "shoot", "target": "head", "zone": &"head", "shots": 1},
+	{"do": "wait", "seconds": 1.6, "aim": true},
+	{"do": "revive", "target": "head"},
+	{"do": "wait", "seconds": 1.4, "aim": true},
+	{"do": "shoot", "target": "head", "zone": &"chest", "shots": 1},
+	{"do": "wait", "seconds": 0.8, "aim": true},
+	{"do": "shoot", "target": "head", "zone": &"arm_l", "shots": 1},
+	{"do": "wait", "seconds": 0.8, "aim": true},
+	{"do": "walk"},
+	{"do": "wait", "seconds": 0.8, "aim": true},
+	{"do": "shoot", "target": "walker", "zone": &"chest", "shots": 1},
+	{"do": "wait", "seconds": 0.7, "aim": true},
+	{"do": "shoot", "target": "walker", "zone": &"forearm_l", "shots": 1},
+	{"do": "wait", "seconds": 1.0, "aim": true},
+]
+
+var _tour: Array[Dictionary] = TOUR
 var _index := 0
 var _clock := 0.0
 var _fired := 0
@@ -63,6 +86,8 @@ var _held: Array[StringName] = []
 
 
 func _ready() -> void:
+	if OS.get_environment("HIT_TOUR") == "flinch":
+		_tour = FLINCH_TOUR
 	if OS.get_environment("HIT_HITSCAN") == "1":
 		var pistol := _player.loadout.slots[0].duplicate() as WeaponDef
 		pistol.hitscan = true
@@ -97,11 +122,11 @@ func _add_target(spot: Vector3) -> Character:
 # Each drawn frame, not each physics tick: the crosshair is read from the camera, which moves
 # once a frame (at a capture's 10 frames a second six ticks would turn it six times too far).
 func _process(delta: float) -> void:
-	if _index >= TOUR.size():
+	if _index >= _tour.size():
 		_hold([])
 		_finish()
 		return
-	var step := TOUR[_index]
+	var step := _tour[_index]
 	var done := false
 	match step["do"]:
 		"wait":
@@ -114,6 +139,9 @@ func _process(delta: float) -> void:
 			route.points = PackedVector3Array([WALK_TO])
 			walker.add_child(route)
 			walker.controller = route
+			done = true
+		"revive":
+			(_targets[step["target"]] as Character).revive()
 			done = true
 		"shoot":
 			done = _shoot(step, delta)
