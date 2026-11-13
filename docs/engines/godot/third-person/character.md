@@ -449,7 +449,8 @@ and its next foot each frame before asking whether it wanted a stop, a reversal 
 record built its library's name and its contact list again. #1360 asks the controller's numbers first and keeps each
 record's lookup and contacts once (`GaitClips`): 7 to 9 µs, the same transitions picked. Our clips key the four `ik_`
 targets (8 of 61 tracks), which the tree blends too. What #1360 left is
-[gdstudio #1438](https://github.com/Ryubara/gdstudio/issues/1438).
+[gdstudio #1438](https://github.com/Ryubara/gdstudio/issues/1438). The lean's share of the tree went from 1.0 to 0.3
+of the step in gdstudio #1403 ([the lean's cost](clips.md#gait-settings)).
 
 **The budget on CI** (gdstudio #1451). The limit of 1.7 was set on the desktop and failed main at 2.40 on code whose
 parts held still. `.github/workflows/parts-budget.yml` runs the suite 50 times on the runners (by hand, and on a pull

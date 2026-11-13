@@ -142,6 +142,11 @@ reading its components in script.
   for:** a cache of bone poses behind a helper class (a call for each pose and each parent, recursive) made the rifle
   hold 97 microseconds a character a frame against 71; asking the engine for half as many bone poses moved nothing;
   writing the helpers out at their callers took it from 57 to 41. **Seen:** gdstudio #1347, 2026-11-12.
+- **Approach:** Before culling points by boxes, count how many the boxes let through against how many count, and
+  meet the boxes in the frame where the tested shape is a box (turn the small boxes into it, not it into theirs).
+  **Watch out for:** a long, thin sweep turned into each bone's rest space became a box over most of the torso, so the
+  rifle's low ready went through 143 to 170 points a frame of which 23 to 32 counted, and cost 20 to 36 microseconds
+  more than the ready. **Seen:** gdstudio #1433, 2026-11-13 (`TorsoSkin._push_along()`).
 
 ## Project and scene files {#project-and-scene-files}
 

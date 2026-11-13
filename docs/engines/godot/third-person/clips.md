@@ -356,3 +356,17 @@ Chrome on a workstation, the settings off and on in turns, players walking, blen
 frame for one character, 17 µs a character with 40 (4.28 ms off, 4.97 ms on); headless desktop, 12 µs a character
 with 40. The momentum blend reads 25 body bones a frame on each character and turns the ones that differ for 0.4 s
 after a change; the transitions ask nothing of the body while no transition clip is in the libraries.
+
+**The lean's cost** (gdstudio #1403). Built as one `AnimationNodeSub2` and two whole clips a way, the lean was the
+dearest part of the tree: the parts bench read the tree at 1.96 to 2.03 times the body's step and the script at 1.23
+to 1.25 (25 walking), and the budget case's ten walkers 1.76 to 1.92 times the calibration (1.31 to 1.46 with the
+lean off). Since #1403 each axis takes its base off once (an `AnimationNodeAdd2` at minus the axis's lean, as only
+one way of an axis leans at a time) and `LeanClips` keeps of each clip only the 23 of 61 tracks the poses move:
+the tree 1.35 to 1.38 and the script 1.09 to 1.11, the budget case 1.48 to 1.64, the drawn bones within 0.0005 mm
+of the old build (`test_gait_lean.gd`). Nothing depends on distance or sight. In headless Chrome
+(`gait_cost.py` with `lean_off,on`), the lean a character a frame:
+
+| | 10 walking | 40 walking |
+| --- | ---: | ---: |
+| Before | 32 to 37 µs (frame 1.82 to 1.92 ms) | 35 to 51 µs (7.9 to 8.9 ms) |
+| After | 14 to 26 µs (1.74 ms) | 12 to 15 µs (6.2 to 6.7 ms) |
