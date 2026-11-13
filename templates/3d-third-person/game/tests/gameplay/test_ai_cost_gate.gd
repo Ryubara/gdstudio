@@ -115,6 +115,7 @@ func _measure(count: int) -> Dictionary:
 	for character in crowd:
 		crowd_nodes.append_array(CostRulers.nodes_under(character))
 	var tree_rulers := PackedFloat64Array([CostRulers.tree_ms(crowd_nodes)])
+	var memory_rulers := PackedFloat64Array([CostRulers.memory_ms()])
 	var thinks := PackedInt32Array()
 	var queries := PackedInt32Array()
 	var rays := PackedInt32Array()
@@ -157,6 +158,7 @@ func _measure(count: int) -> Dictionary:
 			calibrations.append(CostRulers.script_ms())
 			physics_rulers.append(_rulers.physics_ms())
 			tree_rulers.append(CostRulers.tree_ms(crowd_nodes))
+			memory_rulers.append(CostRulers.memory_ms())
 	var seconds := float(TICKS) / Engine.physics_ticks_per_second
 	var storms := 0
 	var fast_thinkers := 0
@@ -191,6 +193,7 @@ func _measure(count: int) -> Dictionary:
 		"step_p25_us_each": snappedf(_quantile(steps, 0.25), 0.01),
 		"think_p25_us": snappedf(_quantile(think_times, 0.25), 0.1),
 		"tree_ruler_ms": snappedf(tree_ruler, 0.01),
+		"memory_ruler_ms": snappedf(_median(memory_rulers), 0.01),
 		"crowd_nodes": crowd_nodes.size(),
 		"step_tree_ratio": snappedf(step_each / tree_ruler, 0.001),
 		"think_tree_ratio": snappedf(think_each / tree_ruler, 0.001),

@@ -15,8 +15,14 @@ const SCRIPT_ROUNDS := 60000
 const PHYSICS_ROUNDS := 400
 ## Node visits of the tree ruler.
 const TREE_VISITS := 20000
+## Entries of the memory ruler's chain (32 MB of 4-byte links, past a runner's cache).
+const CHAIN_SIZE := 1 << 23
+## Links the memory ruler follows.
+const CHAIN_STEPS := 150000
 ## Where the ruler's floor and body stand, metres, far off every arena.
 const SPOT := Vector3(400.0, 0.0, 400.0)
+
+static var _chain := PackedInt32Array()
 
 var _body: CharacterBody3D
 
@@ -117,3 +123,25 @@ static func nodes_under(root: Node) -> Array[Node]:
 		found.append_array(found[index].get_children())
 		index += 1
 	return found
+
+
+## Milliseconds the memory ruler takes now: links followed through one random cycle over a chain
+## larger than the cache, so each costs a trip to memory (what a busy or far memory slows).
+static func memory_ms() -> float:
+	if _chain.is_empty():
+		_chain.resize(CHAIN_SIZE)
+		for index in CHAIN_SIZE:
+			_chain[index] = index
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 1405
+		# Sattolo's shuffle: one cycle through every entry.
+		for index in range(CHAIN_SIZE - 1, 0, -1):
+			var other := rng.randi_range(0, index - 1)
+			var held := _chain[index]
+			_chain[index] = _chain[other]
+			_chain[other] = held
+	var start := Time.get_ticks_usec()
+	var at := 0
+	for _step in CHAIN_STEPS:
+		at = _chain[at]
+	return (Time.get_ticks_usec() - start + at * 0) / 1000.0
