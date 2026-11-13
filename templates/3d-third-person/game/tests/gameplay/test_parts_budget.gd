@@ -31,8 +31,9 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## The momentum blend (#1158) adds 1: `MomentumBlend`, the skeleton's first modifier.
 ## The slide's rack (#1337) adds 2: the hold's `HoldRackArm` and `HoldRackFingers` modifiers,
 ## inactive but through the rack after an empty reload. The hold's `HandFloor` (#1356) adds 1, a
-## modifier inactive unless the body lies and aims.
-const NODES_ALIVE := 68
+## modifier inactive unless the body lies and aims. The aim layer's `AimUprightModifier` (kit #1351)
+## adds 1, inactive until the fists aim.
+const NODES_ALIVE := 69
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120
@@ -43,9 +44,11 @@ const FRAMES := 120
 ## against the old limit of 1.3 while other suites ran). Measured 2026-11-12 on the desktop,
 ## headless at CI's step: 0.90 to 1.12 in 28 runs with two more suites running, where the old
 ## measure read 0.83 to 1.45 in the same rounds. After main's character and animation work of
-## 2026-11-11 and 12 (not traced to one change) it read 1.16 to 1.33 (16 runs, 8 to 93 %
-## of the processor, the build before them 1.01 to 1.08 in turns with it), and a frame made twice
-## as slow 2.21 to 2.60. The limit sits between the two; the counts above hold the ragdoll tight.
+## 2026-11-11 and 12 it read 1.16 to 1.33 (16 runs, 8 to 93 % of the processor, the build before
+## them 1.01 to 1.08 in turns with it), and a frame made twice as slow 2.21 to 2.60. The limit sits
+## between the two; the counts above hold the ragdoll tight. What rose is traced on kit
+## docs/engines/godot/third-person/character.md#parts-cost (#1360: our gaits' clips, their speed
+## matching and their transitions; the rest is #1438).
 const FRAME_RATIO_LIMIT := 1.7
 
 var _arena: Node3D
