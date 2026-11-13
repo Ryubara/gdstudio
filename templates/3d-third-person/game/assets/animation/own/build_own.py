@@ -34,7 +34,7 @@ HERE = Path(__file__).resolve().parent
 QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 sys.path.insert(0, str(HERE))
 
-from clips import crouch_idle, crouch_walk, gait, idle, moves, stance  # noqa: E402
+from clips import crouch_idle, crouch_walk, gait, idle, moves, stance, turns  # noqa: E402
 from clips.joined import Joined, described  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
@@ -72,6 +72,12 @@ FAMILIES = {
     "walk_stop": ("Walk_Stop", moves.family("walk", False)),
     "jog_stop": ("Jog_Stop", moves.family("jog", False)),
     "sprint_stop": ("Sprint_Stop", moves.family("sprint", False)),
+    # Kit #1157: a reversal by the foot that plants, a pivot and a turn on the spot by the way it turns.
+    "jog_turn_90": ("Jog_Turn_90", turns.family("jog_turn_90")),
+    "jog_turn_180": ("Jog_Turn_180", turns.family("jog_turn_180")),
+    "sprint_turn_180": ("Sprint_Turn_180", turns.family("sprint_turn_180")),
+    "turn_in_place_90": ("Turn_In_Place_90", turns.family("turn_in_place_90")),
+    "turn_in_place_180": ("Turn_In_Place_180", turns.family("turn_in_place_180")),
 }
 ## Every clip of a family by its own name, with the name `picks.json` picks it under.
 MEMBERS = {name: (pick, describe) for pick, members in FAMILIES.values() for name, describe in members}

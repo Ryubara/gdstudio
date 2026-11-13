@@ -3,11 +3,14 @@
     blender -b --factory-startup -P review_render.py -- <jobs.json>
 
 `jobs.json` is `{"size": [w, h], "top_size": [w, h], "bodies": [{"glb": <a body's glb with the clips in it>,
-"shots": [{"clip", "frame", "view", "out", "shift"}]}]}`. A shot is one clip at one frame from one side: `side` (the
+"shots": [{"clip", "frame", "view", "out", "shift", "root"}]}]}`. A shot is one clip at one frame from one side: `side` (the
 character faces right), `left` (its other side), `front`, `back`, `top` (the character faces up the picture) or
 `quarter`. Each is drawn with no
 perspective over a floor of 0.25 m squares that is moved back by `shift` metres, so a foot that slides is seen
-sliding over its square, with back faces culled as the game draws them.
+sliding over its square, with back faces culled as the game draws them. A clip that turns (kit #1157) gives each
+shot a `root` instead, `[x, z, yaw]` in glTF's axes (metres to the character's first left and ahead, degrees to its
+left): the character is put there on a floor that stays still, and the camera looks from where it would at the
+clip's first frame, following the character's place, so the turn is seen as the body makes it.
 """
 
 import json
@@ -60,10 +63,12 @@ def camera() -> bpy.types.Object:
     return obj
 
 
-def aim(cam: bpy.types.Object, view: str, size: tuple) -> None:
-    """Blender's axes: the character faces -Y, its left is +X, up is +Z."""
+def aim(cam: bpy.types.Object, view: str, size: tuple, at: Vector = None) -> None:
+    """Blender's axes: the character faces -Y, its left is +X, up is +Z. `at` moves the camera with a character
+    that is not at the origin."""
     scene = bpy.context.scene
     scene.render.resolution_x, scene.render.resolution_y = size
+    at = at if at is not None else Vector((0.0, 0.0, 0.0))
     middle = Vector((0.0, 0.0, TALL / 2.0 - 0.06))
     if view == "side":
         cam.location, up = middle + Vector((-6.0, 0.0, 0.0)), Vector((0, 0, 1))
@@ -84,6 +89,8 @@ def aim(cam: bpy.types.Object, view: str, size: tuple) -> None:
         middle = Vector((0.0, 0.0, 0.0))
         cam.location, up = Vector((0.0, 0.0, 8.0)), Vector((0, -1, 0))
         cam.data.ortho_scale = WIDE
+    cam.location += at
+    middle = middle + at
     look = (middle - cam.location).normalized()
     side = look.cross(up).normalized()
     over = side.cross(look)
@@ -114,6 +121,7 @@ def main() -> None:
         bpy.ops.import_scene.gltf(filepath=body["glb"])
         new = [o for o in bpy.data.objects if o not in before]
         arm = next(o for o in new if o.type == "ARMATURE")
+        base = arm.matrix_world.copy()
         for track in arm.animation_data.nla_tracks:
             track.mute = True
         actions = {a.name.removesuffix("_Loop"): a for a in bpy.data.actions}
@@ -122,9 +130,18 @@ def main() -> None:
             arm.animation_data.action = action
             arm.animation_data.action_slot = action.slots[0]
             scene.frame_set(int(shot["frame"]))
-            # The floor moves back under a clip in place; it repeats every two squares.
-            ground.location = (0.0, math.fmod(shot.get("shift", 0.0), 2.0 * SQUARE), 0.0)
-            aim(cam, shot["view"], tuple(jobs["top_size"] if shot["view"] == "top" else jobs["size"]))
+            size = tuple(jobs["top_size"] if shot["view"] == "top" else jobs["size"])
+            if "root" in shot:
+                # glTF's x (left) is Blender's +X and its z (ahead) Blender's -Y; a turn to the left is about +Z.
+                x, z, yaw = shot["root"]
+                arm.matrix_world = Matrix.Translation((x, -z, 0.0)) @ Matrix.Rotation(math.radians(yaw), 4, "Z") @ base
+                ground.location = (0.0, 0.0, 0.0)
+                aim(cam, shot["view"], size, Vector((x, -z, 0.0)))
+            else:
+                arm.matrix_world = base
+                # The floor moves back under a clip in place; it repeats every two squares.
+                ground.location = (0.0, math.fmod(shot.get("shift", 0.0), 2.0 * SQUARE), 0.0)
+                aim(cam, shot["view"], size)
             scene.render.filepath = shot["out"]
             bpy.ops.render.render(write_still=True)
         for obj in new:
