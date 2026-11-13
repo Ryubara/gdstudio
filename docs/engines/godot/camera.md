@@ -398,7 +398,8 @@ From Deadnight #702 (a bot's body had the view):
   **Watch out for:** the 3D Third Person player aims along the main viewport's camera, so a close-up camera made
   current turned the character to face it: the rifle tour's front and side views showed her back as soon as she aimed,
   and a walk steered by that camera missed the pickup. **Seen:** gdstudio #889, 2026-11-10 (fix: `rifle_tour.gd`'s
-  viewport).
+  viewport); gdstudio #1403, 2026-11-13 (the lean tour moved the rig's own camera to the side and the pressed sprint
+  ran away from it; fix: the tour steps the body by commands, `lean_tour.gd`).
 
 - **Approach:** Fix a fault found twice where the thing is made, not in each caller, and have camera tests read
   `get_viewport().get_camera_3d()` in the real Solo-with-bots flow. **Watch out for:** every body is `player.tscn` with
