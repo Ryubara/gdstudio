@@ -74,6 +74,7 @@ const TRUNK := &"spine_01"
 
 var _flinch_left := 0.0
 var _flinch_bones: Array[StringName] = []
+var _lengths: RagdollLengths
 
 
 func _ready() -> void:
@@ -182,6 +183,7 @@ func _flinch(record: HitRecord) -> void:
 	simulator.physical_bones_start_simulation(bones)
 	_still_bodies()
 	_out_of_the_world(bones)
+	_hold_lengths(simulator, bones)
 	var hit_body := body_for(record.bone)
 	var pushed := ragdoll.body(hit_body if bones.has(hit_body) else bones[0])
 	if flinch_push > 0.0 and record.strength > 0.0:
@@ -252,6 +254,20 @@ func _out_of_the_world(flinching: Array[StringName]) -> void:
 			PhysicsServer3D.body_set_collision_mask(body.get_rid(), 0)
 
 
+# The flinch's bones keep their rest lengths while the clip moves the bones between the bodies
+# (`RagdollLengths`).
+func _hold_lengths(simulator: PhysicalBoneSimulator3D, bones: Array[StringName]) -> void:
+	_lengths = RagdollLengths.place(_lengths, simulator)
+	if _lengths == null:
+		return
+	var skeleton := simulator.get_parent() as Skeleton3D
+	var ids := PackedInt32Array()
+	for key in bones:
+		ids.append(skeleton.find_bone(key))
+	_lengths.bones = ids
+	_lengths.active = true
+
+
 func _tick_flinch(delta: float) -> void:
 	if _flinch_left <= 0.0:
 		set_physics_process(false)
@@ -315,6 +331,8 @@ func _stop_flinch(release: bool) -> void:
 		simulator.physical_bones_stop_simulation()
 		simulator.active = false
 		simulator.influence = 1.0
+	if is_instance_valid(_lengths):
+		_lengths.active = false
 	_flinch_left = 0.0
 	_flinch_bones = []
 	_restore_braces()
@@ -330,6 +348,27 @@ func _on_revived() -> void:
 		var impacts := Impacts.find(self)
 		if impacts != null:
 			impacts.clear_marks_on(simulator)
+		_hold_lengths_getting_up(simulator)
+
+
+# The get-up blend keeps the bones' lengths too, all but the pelvis (it moves the body): blending
+# from where the bodies lie, a hand stood 6 cm off its forearm (gdstudio #1338).
+func _hold_lengths_getting_up(simulator: PhysicalBoneSimulator3D) -> void:
+	if not ragdoll.is_active() or ragdoll.is_limp():
+		return
+	var all: Array[StringName] = []
+	for entry: Dictionary in CharacterRagdoll.BODIES:
+		if entry.bone != &"pelvis":
+			all.append(entry.bone)
+	_hold_lengths(simulator, all)
+	if not ragdoll.stopped.is_connected(_release_lengths):
+		ragdoll.stopped.connect(_release_lengths)
+		ragdoll.started.connect(_release_lengths)
+
+
+func _release_lengths() -> void:
+	if is_instance_valid(_lengths) and not is_flinching():
+		_lengths.active = false
 
 
 func _get_configuration_warnings() -> PackedStringArray:
