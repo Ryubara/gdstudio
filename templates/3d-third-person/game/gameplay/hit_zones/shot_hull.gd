@@ -88,12 +88,12 @@ static func rids_of(body: CollisionObject3D) -> Array[RID]:
 func fit(body: Character) -> void:
 	if _shape == null or body == null or body._body == null:
 		return
-	var capsule := body._body.shape as CapsuleShape3D
-	if capsule == null:
+	var moving := body._body.shape as CapsuleShape3D
+	if moving == null:
 		return
 	var goal := CharacterCapsule.crouch_height(body) if body.crouching else body.tuning.height
-	var radius := capsule.radius + margin
-	var tall := maxf(maxf(capsule.height, goal) + head_room, radius * 2.0 + 0.01)
+	var radius := moving.radius + margin
+	var tall := maxf(maxf(moving.height, goal) + head_room, radius * 2.0 + 0.01)
 	var hull := _shape.shape as CapsuleShape3D
 	if hull.radius != radius:
 		hull.radius = radius
