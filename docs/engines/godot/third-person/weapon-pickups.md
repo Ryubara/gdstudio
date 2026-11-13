@@ -172,6 +172,9 @@ are named as such.
   the chest's turn eases off ([Using something with a weapon in the hands](interact.md#interact-held)). The torso's
   skin the butt meets is a class of its own since then (`gameplay/weapon/hold/torso_skin.gd`, `TorsoSkin`), moved out
   of `two_hand_hold.gd` at the 1000 lines a script may have.
+- **A melee blow** keeps both hands on the rifle: its clip carries the rifle on the right hand while it plays and the
+  hold's chest turn and shoulder reach ease off by the clip's share (`HoldBlow`,
+  [melee](melee.md#melee)).
 
 The body under the hold is the rifle's own clips (kit #1082, the library `rifle`): `rifle.tres` names
 `Rifle_Idle` as the grip clip on `spine_01` and all under it, the three aims, `Rifle_Shoot` added on top of the aim

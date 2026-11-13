@@ -21,6 +21,7 @@ const LIBRARIES: Dictionary[String, String] = {
 	"prone_aim_male": "res://assets/animation/prone/prone_aim_male.glb",
 	"pistol": "res://assets/animation/pistol/pistol_rack.glb",
 	"gds": "res://assets/animation/own/locomotion.glb",
+	"melee": "res://assets/animation/melee/melee.glb",
 }
 
 ## The parts that hold the weapon in each hand: none may be more than `HandContact.MAX_FLOAT` off

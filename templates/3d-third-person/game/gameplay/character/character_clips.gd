@@ -100,6 +100,9 @@ const MELEE_UNARMED_HOOK := &"melee/Melee_Unarmed_Hook"
 const MELEE_PISTOL_WHIP := &"melee/Melee_Pistol_Whip"
 const MELEE_PISTOL_BACKHAND := &"melee/Melee_Pistol_Backhand"
 const MELEE_PISTOL_JAB := &"melee/Melee_Pistol_Jab"
+const MELEE_RIFLE_BUTT_STROKE := &"melee/Melee_Rifle_Butt_Stroke"
+const MELEE_RIFLE_BUTT_JAB := &"melee/Melee_Rifle_Butt_Jab"
+const MELEE_RIFLE_SMASH := &"melee/Melee_Rifle_Smash"
 
 ## The library clip each clip of our own replaced, kept as a stand-in, and the library clip
 ## each fixed clip was made from: the same clip, as Quaternius keyed it. A game whose bodies it
@@ -247,6 +250,9 @@ const ALL: Array[StringName] = [
 	&"melee/Melee_Pistol_Backhand",
 	&"melee/Melee_Pistol_Jab",
 	&"melee/Melee_Pistol_Whip",
+	&"melee/Melee_Rifle_Butt_Jab",
+	&"melee/Melee_Rifle_Butt_Stroke",
+	&"melee/Melee_Rifle_Smash",
 	&"melee/Melee_Unarmed_Cross",
 	&"melee/Melee_Unarmed_Hook",
 	&"melee/Melee_Unarmed_Jab",
