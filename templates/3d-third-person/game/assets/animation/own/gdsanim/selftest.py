@@ -199,11 +199,32 @@ def turned(built, rig, bone: str, frames, degrees: float, axis=maths.X):
     return twin
 
 
+def bend(built, turning: bool):
+    """A copy of a standing clip whose root runs at 3 m/s, round a bend of 2 m (`turning`, a body that should lean
+    25 degrees into it and stands upright) or straight on (it should not lean at all), as a transition."""
+    twin = dense(built)
+    twin.clip.kind = "transition"
+    twin.clip.declared = {**twin.clip.declared, "lean_over": 6}
+    plan = copy.copy(twin.clip.plan)
+    speed, radius = 3.0, 2.0
+    if turning:
+        rate = math.degrees(speed / radius) / FPS
+        plan.travel = Travel(
+            forward=lambda f: radius * math.sin(math.radians(rate * f)),
+            left=lambda f: radius * (1.0 - math.cos(math.radians(rate * f))),
+            turn=lambda f: rate * f,
+        )
+    else:
+        plan.travel = Travel(forward=lambda f: speed * f / FPS, turn=lambda f: 0.0 * f)
+    twin.clip.plan = plan
+    return twin
+
+
 def run(rig, solver, bodies) -> int:
     stand = build.build_clip(rig, solver, stand_clip(rig))
     walk = build.build_clip(rig, solver, walk_clip(rig))
     pelvis = rig.index["pelvis"]
-    cases = []
+    cases, alone = [], []
 
     def case(name: str, check: str, good, bad) -> None:
         cases.append((name, check, good, bad))
@@ -261,6 +282,9 @@ def run(rig, solver, bodies) -> int:
     aside.clip.plan = ContactPlan(30, [fall for fall in stand.clip.plan.footfalls if fall.side == "r"])
     case("the centre of mass is outside the feet", "weight", stand, aside)
     case("a jump is not on a free fall's arc", "weight", hop_built(rig, solver, True), hop_built(rig, solver, False))
+    # weight: a body that runs round a bend standing upright (kit #1157). Its feet do not travel with it, so only
+    # the weight check is read (`alone`): the same body running straight on passes it.
+    alone.append(("a body does not lean into a bend", checks.check_weight, bend(stand, False), bend(stand, True)))
     # weight: a body that drops faster than gravity with its feet on the floor.
     case("a drop is faster than a fall", "weight", drop_built(rig, solver, 12), drop_built(rig, solver, 7))
     # floor: a head above the declared ceiling.
@@ -314,10 +338,20 @@ def run(rig, solver, bodies) -> int:
             print(f"   the good clip failed: {good_failures}")
         if not caught:
             print(f"   the broken clip was not refused by `{check}`: {bad_failures}")
+    for name, check, good, bad in alone:
+        played = {one.path.stem: checks.Played(good, one) for one in bodies[:1]}
+        _, good_failures = check(good, played)
+        played = {one.path.stem: checks.Played(bad, one) for one in bodies[:1]}
+        _, bad_failures = check(bad, played)
+        verdict = "ok" if not good_failures and bad_failures else "WRONG"
+        failed += verdict != "ok"
+        print(f"SELFTEST {check.__name__.removeprefix('check_')}: {name}: {verdict}")
+        if verdict != "ok":
+            print(f"   the good clip: {good_failures}; the broken one: {bad_failures}")
     # The frozen list.
     result = build.build_file(rig, [stand], bodies, ["Stand_Test", "Another"])
     caught = any("frozen list" in line for line in result["failures"])
     failed += not caught
     print(f"SELFTEST frozen: a clip the list does not name: {'ok' if caught else 'WRONG'}")
-    print(f"SELFTEST {'PASSED' if not failed else f'FAILED ({failed})'}: {len(cases) + 1} cases")
+    print(f"SELFTEST {'PASSED' if not failed else f'FAILED ({failed})'}: {len(cases) + len(alone) + 1} cases")
     return 1 if failed else 0

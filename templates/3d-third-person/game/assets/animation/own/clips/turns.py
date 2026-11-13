@@ -51,7 +51,8 @@ SPOT = {
     "prep": [9, 7],  # frames from the clip's first frame to the lead foot's lifting
     # Each step: which foot (`lead`, the foot on the side of the turn, or `trail`), the share of the turn the
     # foot lands at, the frames it is in the air, and the frames both feet are down after it lands.
-    "steps": [["lead", 1.0, 8, 3], ["trail", 1.0, 9, 3]],
+    "steps": [["lead", 0.6, 8, 2], ["trail", 1.0, 9, 2], ["lead", 1.0, 7, 3]],
+    "apart": 0.08,  # metres further out from the middle a foot lands on every step but its last
     "settle": 9,  # frames after the last landing: the hips, the trunk and the arms come to rest
     "yaw_early": 6,  # frames before the lead foot lifts the hips begin to turn
     "yaw_late": 2,  # frames after the last landing the hips have turned all the way
@@ -59,13 +60,15 @@ SPOT = {
     "chest_lead": 1.5,  # frames the chest's turn is ahead of the hips', before the overlap pass's lag
     "head_lead": 3.0,  # frames the head's turn is ahead of the hips' (the eyes lead)
     "head_more": 6.0,  # degrees the head turns past the hips while the body turns, on top of its lead
-    "shift": 0.85,  # the share of the way from between the feet to over the standing foot the hips go
+    "shift": 0.6,  # the share of the way from between the feet to over the standing foot the hips go
     "shift_soft": 5.0,  # frames over which the weight goes from one foot to the other round a lift or a landing
     "dip": 0.012,  # metres the hips sink while a foot is in the air
     "lift": 0.03,  # metres a stepping foot clears the floor by
     "heel": 3.0,  # degrees a stepping foot lands on its heel by
     "toe_off": 18.0,  # degrees the heel is up as a stepping foot leaves
-    "arm_wide": [5.0, 6.0],  # degrees each arm (left, right) opens from the body while the body turns
+    "arm_wide": [11.0, 12.0],  # degrees each arm (left, right) opens from the body while the body turns
+    "knee_follow": 0.5,  # the share of the way from the foot's yaw to the hips' each knee points
+    "arm_clear": [12.0, 10.0],  # degrees an arm opens and goes back while the foot on its side steps
     "stretch": 0.995,  # the share of its length a leg may be stretched to
     "meet": 3,  # frames over which what the overlap pass left in the joined clips is let go
     "speed_limit": 30.0,
@@ -79,7 +82,7 @@ SPOTS = {
     "turn_in_place_180": {
         **SPOT,
         "prep": [8, 6],
-        "steps": [["lead", 0.5, 8, 2], ["trail", 1.0, 10, 2], ["lead", 1.0, 8, 3]],
+        "steps": [["lead", 0.4, 8, 2], ["trail", 0.6, 9, 2], ["lead", 1.0, 9, 2], ["trail", 1.0, 8, 3]],
         "settle": 10,
         "head_more": 10.0,
     },
@@ -331,8 +334,9 @@ class Turn(Move):
 
     # ---- a turn on the spot --------------------------------------------------------------------------------------
 
-    def _stand(self, s: str, land: float, lift: float, yaw: float, toe_off: float, heel: float) -> Tread:
-        """A foot on its standing place, the idle's, turned with the body by `yaw`."""
+    def _stand(self, s: str, land: float, lift: float, yaw: float, toe_off: float, heel: float, apart=0.0) -> Tread:
+        """A foot on its standing place, the idle's, turned with the body by `yaw`, and `apart` metres further out
+        from the root's middle."""
         fall = self.idle_falls[s]
         numbers = dict(SLOW)
         numbers.update(heel_strike=heel, roll_in=2.0 if heel > 0 else 0.0, stance_pitch=0.0, toe_off=toe_off)
@@ -342,6 +346,7 @@ class Turn(Move):
         numbers["kick"] = 0.0
         numbers["clear"] = float(self.n["lift"])
         place = _rotate(yaw, fall.place[0], fall.place[1])
+        place = place + apart * place / max(float(np.linalg.norm(place)), 1e-9)
         return Tread(s, land, lift, (float(place[0]), float(place[1])), fall.yaw + yaw, numbers, numbers, 0.0, standing=True)
 
     def _spot_steps(self) -> None:
@@ -359,18 +364,21 @@ class Turn(Move):
         for s in ("l", "r"):
             assert any(step[0] == s and step[1] == 1.0 for step in steps), "every foot ends on its idle place"
         treads = {"l": [], "r": []}
-        at = {"l": (-1000.0, 0.0), "r": (-1000.0, 0.0)}
-        for s, share, lift, land in steps:
-            begun, yaw = at[s]
-            treads[s].append(self._stand(s, begun, lift, yaw, n["toe_off"], n["heel"] if begun > 0 else 0.0))
-            at[s] = (land, A * share)
+        at = {"l": (-1000.0, 0.0, 0.0), "r": (-1000.0, 0.0, 0.0)}
+        # A foot's last step lands on its idle place; the steps before it land wider (`apart`), so two feet that
+        # pass each other round the middle keep a foot's width between them.
+        last = {s: max(i for i, step in enumerate(steps) if step[0] == s) for s in ("l", "r")}
+        for i, (s, share, lift, land) in enumerate(steps):
+            begun, yaw, out = at[s]
+            treads[s].append(self._stand(s, begun, lift, yaw, n["toe_off"], n["heel"] if begun > 0 else 0.0, out))
+            at[s] = (land, A * share, 0.0 if i == last[s] else n["apart"])
         for s in ("l", "r"):
-            begun, yaw = at[s]
-            treads[s].append(self._stand(s, begun, F + 1000.0, yaw, 0.0, n["heel"] if begun > 0 else 0.0))
+            begun, yaw, out = at[s]
+            treads[s].append(self._stand(s, begun, F + 1000.0, yaw, 0.0, n["heel"] if begun > 0 else 0.0, out))
         self.treads = treads
         self.steps = steps
-        first, last = steps[0][2] - float(n["yaw_early"]), last_land + float(n["yaw_late"])
-        assert first >= 1.0 and last <= F - 1.0, "the root stands still on the clip's first and last frame"
+        first, last = max(steps[0][2] - float(n["yaw_early"]), 1.0), last_land + float(n["yaw_late"])
+        assert last <= F - 1.0, "the root stands still on the clip's last frame"
         self.turn_window = (first, last)
 
         def heading(x: float) -> float:
@@ -424,12 +432,28 @@ class Turn(Move):
         local["chest"] = (c[0], c[1] + chest_by, c[2])
         local["head"] = (h[0], h[1] + head_by + more, h[2])
         wide = maths.smooth(turning / 6.0)
-        local["arm"] = {
-            s: {**plain_arm(local["arm"][s]), "out": plain_arm(local["arm"][s])["out"] + n["arm_wide"][AT[s]] * wide}
-            for s, _ in SIDES
-        }
+        arms = {}
+        for s, _ in SIDES:
+            arm = plain_arm(local["arm"][s])
+            arm["out"] += n["arm_wide"][AT[s]] * wide
+            # A thigh that comes forward as its foot steps is where the hanging hand is (the arm's `clear` reads
+            # the thigh as the body stands): the arm on that side opens and goes back while the foot is up.
+            up = 1.0 - self._carry(s, f)
+            arm["out"] += n["arm_clear"][0] * up
+            arm["swing"] -= n["arm_clear"][1] * up
+            arms[s] = arm
+        local["arm"] = arms
         out = placed({k: v for k, v in local.items() if k != "leg"}, xz, yaw)
-        out["leg"] = {s: self.leg(s, float(f)) for s, _ in SIDES}
+        out["leg"] = {}
+        for s, _ in SIDES:
+            leg = self.leg(s, float(f))
+            # A foot not yet turned with the hips would point its knee across the body (the solver's default
+            # is the foot's way), into the other thigh: the knee points between the foot's way and the hips'.
+            # Not at the ends, where the clip is the idle's own pose.
+            fade = maths.smooth(min(abs(yaw), abs(self.angle - yaw)) / 15.0)
+            knee = leg["foot"][1] + fade * n["knee_follow"] * (yaw - leg["foot"][1])
+            leg["knee"] = np.array([math.sin(math.radians(knee)), 0.0, math.cos(math.radians(knee))])
+            out["leg"][s] = leg
         return out
 
     # ---- a pivot or a reversal -----------------------------------------------------------------------------------
