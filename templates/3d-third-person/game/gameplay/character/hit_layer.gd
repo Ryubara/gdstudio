@@ -8,10 +8,11 @@ extends RefCounted
 ## grip on), it leaves the arms out (the clavicles down), so they keep holding and aiming the
 ## weapon while the trunk and head take the hit; before, the clip's empty-handed arms dropped the
 ## pistol to the hip for the whole stun (gdstudio #1345). It is the action one-shot's filter, set
-## for a hit and off for every other action. `CharacterAnimation` owns one (`hits`).
+## for a hit and off for every other action but an upper-body one (`UseLayer`: the upper body less
+## the right arm, `Part.USE`). `CharacterAnimation` owns one (`hits`).
 
 ## The share of the action that plays a hit, as `part_for()` names it.
-enum Part { WHOLE, UPPER, WHOLE_BUT_ARMS, UPPER_BUT_ARMS }
+enum Part { WHOLE, UPPER, WHOLE_BUT_ARMS, UPPER_BUT_ARMS, USE }
 
 ## The body states whose hit plays on the upper body only.
 const UPPER_BODY_STATES: Array[StringName] = [
@@ -25,6 +26,7 @@ const UPPER_BODY_STATES: Array[StringName] = [
 var _whole: Array[NodePath] = []
 var _upper: Array[NodePath] = []
 var _arms: Array[NodePath] = []
+var _kept: Array[NodePath] = []
 var _part := Part.WHOLE
 
 
@@ -41,16 +43,19 @@ static func part_for(state: StringName, armed: bool) -> Part:
 
 
 ## Takes the bones' tracks the parts are made of (`whole`: every bone; `upper`: the upper body;
-## `arms`: both arms from the clavicles) and leaves `action`'s filter off until a hit.
+## `arms`: both arms from the clavicles; `kept`: the arm an upper-body action leaves on the layers
+## under it, `UseLayer.KEPT_ARM` down) and leaves `action`'s filter off until a hit.
 func prepare(
 	action: AnimationNodeOneShot,
 	whole: Array[NodePath],
 	upper: Array[NodePath],
-	arms: Array[NodePath]
+	arms: Array[NodePath],
+	kept: Array[NodePath] = []
 ) -> void:
 	_whole = whole
 	_upper = upper
 	_arms = arms
+	_kept = kept
 	_part = Part.WHOLE
 	action.filter_enabled = false
 
@@ -78,15 +83,16 @@ func follow(
 	if hit:
 		wanted = part_for(state, armed)
 	elif upper_body:
-		wanted = Part.UPPER
+		wanted = Part.USE
 	if wanted == _part and action.filter_enabled == (wanted != Part.WHOLE):
 		return
 	_part = wanted
 	action.filter_enabled = wanted != Part.WHOLE
 	if wanted == Part.WHOLE:
 		return
-	var upper := wanted == Part.UPPER or wanted == Part.UPPER_BUT_ARMS
+	var upper := wanted in [Part.UPPER, Part.UPPER_BUT_ARMS, Part.USE]
 	var but_arms := wanted == Part.WHOLE_BUT_ARMS or wanted == Part.UPPER_BUT_ARMS
 	for path in _whole:
 		var on := (not upper or _upper.has(path)) and not (but_arms and _arms.has(path))
+		on = on and not (wanted == Part.USE and _kept.has(path))
 		action.set_filter_path(path, on)

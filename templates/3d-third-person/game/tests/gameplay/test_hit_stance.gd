@@ -153,6 +153,36 @@ func test_a_held_weapon_keeps_the_arms_in_every_stance() -> void:
 		assert_int(HitLayer.part_for(state, false)).is_equal(HitLayer.Part.UPPER)
 
 
+# An upper-body action (`UseLayer`) and a hit share the action one-shot: the action takes the upper
+# body less the kept arm, and a hit after it writes its own part over every path.
+func test_an_upper_body_action_leaves_the_kept_arm_out() -> void:
+	var tree := AnimationTree.new()
+	var root := AnimationNodeBlendTree.new()
+	var action := AnimationNodeOneShot.new()
+	root.add_node(&"Action", action)
+	tree.tree_root = root
+	var legs := NodePath("Armature/Skeleton3D:thigh_l")
+	var left := NodePath("Armature/Skeleton3D:upperarm_l")
+	var right := NodePath("Armature/Skeleton3D:upperarm_r")
+	var whole: Array[NodePath] = [legs, left, right]
+	var upper: Array[NodePath] = [left, right]
+	var kept: Array[NodePath] = [right]
+	var hits := HitLayer.new()
+	hits.prepare(action, whole, upper, upper, kept)
+	hits.follow(tree, false, CharacterAnimation.GROUND, true, true)
+	assert_int(hits.part()).is_equal(HitLayer.Part.USE)
+	assert_bool(action.filter_enabled).is_true()
+	assert_bool(action.is_path_filtered(left)).is_true()
+	assert_bool(action.is_path_filtered(right)).is_false()
+	assert_bool(action.is_path_filtered(legs)).is_false()
+	hits.follow(tree, true, CharacterAnimation.GROUND, false, false)
+	assert_int(hits.part()).is_equal(HitLayer.Part.WHOLE)
+	assert_bool(action.filter_enabled).is_false()
+	hits.follow(tree, true, CharacterAnimation.CROUCH, false, false)
+	assert_bool(action.is_path_filtered(right)).is_true()
+	tree.free()
+
+
 func test_the_low_stances_play_the_hit_on_the_upper_body() -> void:
 	for state: StringName in [
 		CharacterAnimation.GROUND,

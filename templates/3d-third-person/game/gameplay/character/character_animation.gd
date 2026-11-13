@@ -438,13 +438,8 @@ func _drive(delta: float) -> void:
 	_prone_look.step_crawl_share(speed, blend_time, delta)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
-	hits.follow(
-		tree,
-		active and _action_clip == hit_clip,
-		body_state(),
-		_weights.x > 0.0,
-		active and _upper_only
-	)
+	var hit := active and _action_clip == hit_clip
+	hits.follow(tree, hit, body_state(), _weights.x > 0.0, active and _upper_only)
 	if _action_was_active and not active:
 		action_finished.emit(_action_clip)
 	_action_was_active = active
@@ -828,7 +823,9 @@ func _build_root() -> AnimationNodeBlendTree:
 	action.fadein_time = action_blend_time
 	action.fadeout_time = action_blend_time
 	var arms := _bone_paths([&"clavicle_l", &"clavicle_r"])
-	hits.prepare(action, _bone_paths([&"root", &"pelvis"]), _bone_paths([upper_body_bone]), arms)
+	var upper_paths := _bone_paths([upper_body_bone])
+	var kept := _bone_paths([UseLayer.KEPT_ARM])
+	hits.prepare(action, _bone_paths([&"root", &"pelvis"]), upper_paths, arms, kept)
 	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
 	root.connect_node(_ACTION, 0, MeleeLayer.NODE)
