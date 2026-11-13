@@ -72,7 +72,12 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var goal := offset
 	if _bones[3] >= 0:
 		goal = _global_pose(skeleton, _bones[3]) * offset
-	var above := _global_pose(skeleton, _parents[_bones[0]])
+	# The upper arm's parent's pose, up the parents (`_global_pose()` written out).
+	var above := Transform3D.IDENTITY
+	var cursor := _parents[_bones[0]]
+	while cursor >= 0:
+		above = skeleton.get_bone_pose(cursor) * above
+		cursor = _parents[cursor]
 	var fore_local := skeleton.get_bone_pose(_bones[1])
 	var hand_local := skeleton.get_bone_pose(_bones[2])
 	var upper := above * skeleton.get_bone_pose(_bones[0])
@@ -101,15 +106,32 @@ func _process_modification_with_delta(_delta: float) -> void:
 	pole = (pole - along * pole.dot(along)).normalized()
 	var elbow_at := upper.origin + along * forward + pole * out
 	var wrist_at := upper.origin + along * reach
-	upper.basis = _aimed(upper.basis, fore.origin - upper.origin, elbow_at - upper.origin)
+	# Each bone turned the short way to point at its next joint, then its rotation in its parent's
+	# space, written out here: a call costs more than most lines in the web build's GDScript (kit
+	# #1347), and each basis is orthonormalized once.
+	var from := fore.origin - upper.origin
+	var to := elbow_at - upper.origin
+	if not from.is_zero_approx() and not to.is_zero_approx():
+		upper.basis = Basis(Quaternion(from.normalized(), to.normalized())) * upper.basis
 	fore = upper * fore_local
 	hand = fore * hand_local
-	fore.basis = _aimed(fore.basis, hand.origin - fore.origin, wrist_at - fore.origin)
-	hand = fore * hand_local
-	hand.basis = goal.basis.orthonormalized()
-	skeleton.set_bone_pose_rotation(_bones[0], _local(above.basis, upper.basis))
-	skeleton.set_bone_pose_rotation(_bones[1], _local(upper.basis, fore.basis))
-	skeleton.set_bone_pose_rotation(_bones[2], _local(fore.basis, hand.basis))
+	from = hand.origin - fore.origin
+	to = wrist_at - fore.origin
+	if not from.is_zero_approx() and not to.is_zero_approx():
+		fore.basis = Basis(Quaternion(from.normalized(), to.normalized())) * fore.basis
+	var above_basis := above.basis.orthonormalized()
+	var upper_basis := upper.basis.orthonormalized()
+	var fore_basis := fore.basis.orthonormalized()
+	var hand_basis := goal.basis.orthonormalized().orthonormalized()
+	skeleton.set_bone_pose_rotation(
+		_bones[0], (above_basis.inverse() * upper_basis).get_rotation_quaternion()
+	)
+	skeleton.set_bone_pose_rotation(
+		_bones[1], (upper_basis.inverse() * fore_basis).get_rotation_quaternion()
+	)
+	skeleton.set_bone_pose_rotation(
+		_bones[2], (fore_basis.inverse() * hand_basis).get_rotation_quaternion()
+	)
 
 
 ## How far along the unit `line` a point `to_goal` from the shoulder must go to be within
@@ -136,15 +158,3 @@ func _global_pose(skeleton: Skeleton3D, index: int) -> Transform3D:
 		posed = skeleton.get_bone_pose(parent) * posed
 		parent = _parents[parent]
 	return posed
-
-
-# A bone's rotation in its parent's space, from the two bases in the skeleton's space.
-func _local(parent: Basis, child: Basis) -> Quaternion:
-	return (parent.orthonormalized().inverse() * child.orthonormalized()).get_rotation_quaternion()
-
-
-# The basis turned the short way so that `from` points along `to`.
-func _aimed(turned: Basis, from: Vector3, to: Vector3) -> Basis:
-	if from.is_zero_approx() or to.is_zero_approx():
-		return turned
-	return Basis(Quaternion(from.normalized(), to.normalized())) * turned

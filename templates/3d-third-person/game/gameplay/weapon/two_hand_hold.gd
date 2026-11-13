@@ -289,6 +289,8 @@ var _pivot_shown := -1
 var _arm := 0.0
 var _low_key := Vector2(NAN, NAN)
 var _low_turn := Quaternion.IDENTITY
+var _aim_key := Vector2(NAN, NAN)
+var _aim_turn := Quaternion.IDENTITY
 # The parents and the spine's top pose the poses are worked out from (kit #1347).
 var _bones := HoldBones.new()
 # Whether the left hand and the magazine are at rest already (nothing to write outside a reload).
@@ -381,14 +383,17 @@ func shortfall() -> Vector2:
 
 ## Puts the weights on the modifiers now (the frame's own `_process` does it too).
 func refresh() -> void:
-	_reach = _reach_now()
-	_down = _down_now()
+	# The calls a frame are few (kit #1347): a figure posed by hand has its values at hand.
+	var posed := character == null or _loadout == null
+	_reach = 1.0 if posed else _reach_now()
+	_down = posed_lowered if posed else _down_now()
 	var alive := character == null or not character.is_dead()
 	var shown := alive and is_visible_in_tree()
 	if is_instance_valid(_pivot) and _pivot_shown != int(alive):
 		_pivot.visible = alive
 		_pivot_shown = int(alive)
-	var fingers := 1.0 if shown and not _fingers_far() else 0.0
+	var far := fingers_far and fingers_far_distance > 0.0
+	var fingers := 1.0 if shown and not far else 0.0
 	# Each modifier's weight is written only when it changes: what was written last is kept
 	# here, not read back from each modifier every frame (kit #1347).
 	for index in _modifiers.size():
@@ -399,10 +404,10 @@ func refresh() -> void:
 		var share := fingers if kind >= _KIND_FINGERS else _reach
 		if not alive:
 			share = 0.0
-		elif kind == _KIND_LEFT_ARM:
+		elif kind == _KIND_LEFT_ARM and _freed > 0.0:
 			# The clip's own arm has the left hand while an action reaches with it.
 			share *= 1.0 - FreeHand.gone(_freed)
-		elif kind == _KIND_LEFT_FINGERS:
+		elif kind == _KIND_LEFT_FINGERS and _freed > 0.0:
 			share *= 1.0 - FreeHand.relaxed(_freed)
 		if not is_equal_approx(_influences[index], share):
 			modifier.influence = share
@@ -413,9 +418,11 @@ func refresh() -> void:
 	if _fingers.size() < 2:
 		return
 	# The finger is on the trigger while the gun is up, and off it through a reload.
-	var reload := _reload_progress()
+	var reload := posed_reload if character == null else _reload_progress()
 	var trigger := _raised if reload < 0.0 else 0.0
-	var to_magazine := maxf(_to_magazine(reload), _let_go())
+	var to_magazine := _to_magazine(reload) if reload >= 0.0 else 0.0
+	if _freed > 0.0:
+		to_magazine = maxf(to_magazine, _let_go())
 	# The thumb goes from the hand guard's side to its place behind the magazine while the hand
 	# comes down off the hand guard (the open pose leaves it be): a thumb still standing up
 	# on the way across went 17 mm through the magazine well. The four fingers stay open until
@@ -463,7 +470,9 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 	var to_here := global_transform.affine_inverse() * skeleton.global_transform
 	var chest_turned := Basis.IDENTITY
 	if _chest_index >= 0:
-		var chest_pose := _bones.from_top(skeleton, _chest_index)
+		var chest_pose := spine_top
+		if _bones.top != _chest_index:
+			chest_pose = _bones.from_top(skeleton, _chest_index)
 		chest = to_here * chest_pose.origin
 		var frame := to_here.basis.orthonormalized()
 		chest_turned = (
@@ -478,8 +487,17 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		_low_key = Vector2(low_pitch, low_yaw)
 		_low_turn = _turned(low_pitch, low_yaw)
 	var low := _low_turn
-	var aim := _turned(-pitch - kick_degrees * _kick, 0.0)
-	var turn := low.slerp(aim, _raised)
+	var aim_key := Vector2(pitch, _kick)
+	if _aim_key != aim_key:
+		# `_turned(-pitch - kick_degrees * _kick, 0.0)`: no turn across is the identity.
+		_aim_key = aim_key
+		_aim_turn = (
+			Basis(Vector3.RIGHT, deg_to_rad(-pitch - kick_degrees * _kick))
+			. get_rotation_quaternion()
+		)
+	var aim := _aim_turn
+	# A slerp all the way to either end is that end (its sign aside, the same turn).
+	var turn := low if _raised == 0.0 else (aim if _raised == 1.0 else low.slerp(aim, _raised))
 	var pocket := low_pocket.lerp(aim_pocket, _raised)
 	if _freed > 0.0:
 		turn = turn.slerp(_turned(free_pitch, free_yaw), smoothstep(0.0, 1.0, _freed))
@@ -488,8 +506,18 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		turn = turn.slerp(_turned(stow_pitch, stow_yaw), eased)
 		pocket = pocket.lerp(stow_pocket, eased)
 	var basis_now := Basis(turn)
-	pocket = chest + _chest_frame(chest_turned.get_rotation_quaternion()) * pocket
-	var gun_in_pivot := _between(_gun, _pivot) if _gun != null else Transform3D.IDENTITY
+	# The frame the pockets are given in: the chest's turn about the up axis, and `pocket_lean` of
+	# the rest of its turn from its rest (a lean forward, back or aside).
+	var turned := chest_turned.get_rotation_quaternion()
+	var twist := Quaternion(0.0, turned.y, 0.0, turned.w)
+	if twist.length_squared() < 1e-8:
+		twist = Quaternion.IDENTITY
+	twist = twist.normalized()
+	var lean := turned * twist.inverse()
+	pocket = chest + Basis(Quaternion.IDENTITY.slerp(lean, pocket_lean) * twist) * pocket
+	var gun_in_pivot := Transform3D.IDENTITY
+	if _gun != null:
+		gun_in_pivot = _gun.transform if _gun.get_parent() == _pivot else _between(_gun, _pivot)
 	var pivot_xf := Transform3D(basis_now, pocket)
 	# The left shoulder comes toward the hand guard with the gun where the last frame's push has
 	# it, then the butt comes to the skin as the shoulder left it (the turn brings the chest's left
@@ -503,7 +531,7 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		_reach_shoulder(skeleton, pivot_xf, gun_in_pivot, to_here)
 		# Past `fingers_far_distance` the butt keeps the push of the last near frame: the skin
 		# is not gone through for a body too far to show a centimetre.
-		if _fingers_far():
+		if fingers_far and fingers_far_distance > 0.0:
 			break
 		var before := _push
 		_push = _skin.push(
@@ -518,7 +546,9 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 	pivot_xf.origin -= basis_now.z * _pull(skeleton, pivot_xf, gun_in_pivot, to_here)
 	_pivot.transform = pivot_xf
 	var gun_here := pivot_xf * gun_in_pivot
-	_place_reload(gun_here)
+	# At rest nothing moves the left hand's place or the magazine once they are put back.
+	if not _hand_at_rest or _freed > 0.0 or _on_magazine == null or _reload_progress() >= 0.0:
+		_place_reload(gun_here)
 	var to_skeleton := to_here.affine_inverse()
 	for index in mini(_arms.size(), 2):
 		var target := _targets[index]
@@ -528,24 +558,15 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		if target.get_parent() != _gun:
 			target_here = _in_here(target)
 		_arms[index].offset = to_skeleton * target_here
-		if _poles[index] != null:
-			_arms[index].elbow = to_skeleton * _in_here(_poles[index]).origin
+		var pole := _poles[index]
+		if pole != null:
+			var pole_here := pole.transform if pole.get_parent() == self else _in_here(pole)
+			_arms[index].elbow = to_skeleton * pole_here.origin
 
 
 ## The skeleton's indexes of `spine_bones`, for the stance modifier.
 func spine_indices() -> PackedInt32Array:
 	return _spine_indices
-
-
-# The frame the pockets are given in: the chest's turn about the up axis, and `pocket_lean` of
-# the rest of its turn from its rest (a lean forward, back or aside).
-func _chest_frame(turned: Quaternion) -> Basis:
-	var twist := Quaternion(0.0, turned.y, 0.0, turned.w)
-	if twist.length_squared() < 1e-8:
-		twist = Quaternion.IDENTITY
-	twist = twist.normalized()
-	var lean := turned * twist.inverse()
-	return Basis(Quaternion.IDENTITY.slerp(lean, pocket_lean) * twist)
 
 
 # Turns the left collarbone (by `reach_turn` at most) so the left shoulder comes toward the hand
@@ -588,7 +609,7 @@ func _reach_shoulder(
 	var share := (both - length * length) / maxf(twice, 1e-9)
 	if share < 1.0:
 		high = minf(high, maxf(whole - acos(maxf(share, -1.0)), 0.0))
-	var angle := high * weight() * (1.0 - FreeHand.gone(_freed))
+	var angle := high * _reach * ((1.0 - FreeHand.gone(_freed)) if _freed > 0.0 else 1.0)
 	var turned := Transform3D(Basis(axis, angle) * root.basis, root.origin)
 	skeleton.set_bone_pose(_clavicle_index, parent.affine_inverse() * turned)
 	return angle > 0.0
@@ -758,7 +779,7 @@ func _place_reload(gun_here: Transform3D) -> void:
 	var mag := _mag
 	var mag_far := _mag_far
 	# A hand let go for an action comes off the hand guard the way a reload's does, and no further.
-	var let_go := _let_go()
+	var let_go := _let_go() if _freed > 0.0 else 0.0
 	if progress < 0.0 and let_go <= 0.0:
 		# At rest nothing but this moves the hand's place and the magazine: put them back once.
 		if not _hand_at_rest:

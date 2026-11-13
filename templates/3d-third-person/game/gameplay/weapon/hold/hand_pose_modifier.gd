@@ -125,6 +125,12 @@ func _process_modification_with_delta(_delta: float) -> void:
 		for index in _indexes.size():
 			skeleton.set_bone_pose_rotation(_indexes[index], _rotations[index])
 		return
+	# All the way on `second` and nothing over it (the trigger finger of a gun held up): the end of
+	# the way is `second`'s own rotation, so it is set as it is (kit #1347).
+	if blend and second_weight == 1.0 and not opened and not carried:
+		for index in _indexes.size():
+			skeleton.set_bone_pose_rotation(_indexes[index], _seconds[index])
+		return
 	# How far each kind of bone opens (with `open_weight`, first, after), worked out only when the
 	# hand opens; and the leg of `second_way` the blend is on, the same for every bone (kit #1347:
 	# a call a bone was most of a hand's cost in the web build).

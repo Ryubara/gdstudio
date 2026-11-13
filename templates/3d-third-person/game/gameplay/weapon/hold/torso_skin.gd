@@ -31,6 +31,7 @@ var _torso_starts := PackedInt32Array()
 # and its own local one, not every pose up to the root again (kit #1347).
 var _torso_up := PackedInt32Array()
 var _torso_posed: Array[Transform3D] = []
+var _torso_parents := PackedInt32Array()
 
 
 ## Keeps a thinned set of the torso's skin, each point in its main bone's rest space, for the butt
@@ -154,6 +155,9 @@ func measure(
 		_group_points.append(_skin_points.slice(_skin_starts[group], _skin_starts[group + 1]))
 	for bone in _torso_bones:
 		_torso_up.append(_torso_bones.find(skeleton.get_bone_parent(bone)))
+	_torso_parents.resize(skeleton.get_bone_count())
+	for bone in _torso_parents.size():
+		_torso_parents[bone] = skeleton.get_bone_parent(bone)
 	_torso_posed.resize(_torso_bones.size())
 
 
@@ -204,7 +208,13 @@ func push(
 		if up >= 0 and up < bone:
 			posed = _torso_posed[up] * skeleton.get_bone_pose(_torso_bones[bone])
 		else:
-			posed = HandPoseModifier.global_pose(skeleton, _torso_bones[bone])
+			# Up every parent (`HandPoseModifier.global_pose()` written out: a call costs more than
+			# a line in the web build).
+			var cursor := _torso_bones[bone]
+			posed = Transform3D.IDENTITY
+			while cursor >= 0:
+				posed = skeleton.get_bone_pose(cursor) * posed
+				cursor = _torso_parents[cursor]
 		_torso_posed[bone] = posed
 		var pose := to_gun * posed
 		var deepest := 0.0
