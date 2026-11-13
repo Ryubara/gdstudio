@@ -68,7 +68,8 @@ const STAGES: Array[Dictionary] = [
 var _index := -1
 var _clock := 0.0
 var _held: Array[StringName] = []
-var _caption := Label.new()
+# Made in _ready, not here: a scene instantiated and freed off the tree would orphan it.
+var _caption: Label
 
 @onready var _player: Player = $Main/PlayerRig/Player
 @onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
@@ -89,6 +90,7 @@ func _ready() -> void:
 	_player.teleport(START, PI)
 	var layer := CanvasLayer.new()
 	add_child(layer)
+	_caption = Label.new()
 	_caption.position = Vector2(24.0, 24.0)
 	_caption.add_theme_font_size_override("font_size", 28)
 	_caption.add_theme_constant_override("outline_size", 6)
