@@ -204,8 +204,8 @@ the spread's place for `restore()`.
   fire alone; walk, aim, fire, release) by reading `aiming` and the speed on the frame after release. **Watch out
   for:** #856 moved the camera to the buttons, but `aiming` stayed true 0.8 s after a shot (a hold since removed) and
   drove `aim_move_scale` and the turn, so the slow aim walk lasted about a second; the animation tree had no latch of
-  its own. List everything that reads a state that outlives its input. A tap under half the arm's raise time (about
-  75 ms) now shoots nothing. **Seen:** gdstudio #868, 2026-11-09 (`test_aim_release.gd`).
+  its own. List everything that reads a state that outlives its input. A tap fires since #1352
+  ([fire modes](fire-modes.md#tap)). **Seen:** gdstudio #868, 2026-11-09 (`test_aim_release.gd`).
 - **Approach:** Sweep the camera's yaw with aim, fire and sprint held in a four-walled room built high above the map and
   in the open, and assert the lens never nears the arm's start by less than a bound no wall can force
   (`test_camera_walls.gd`: 12 yaws and three actions, about 40 s). **Watch out for:** a first sweep stood in the map and
