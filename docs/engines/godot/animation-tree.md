@@ -361,3 +361,9 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   that frame and held the body in it, so the push clip never played and the vault's hands left the top by 0.3 m;
   the transition tests passed, since their clips existed only in their own suite. **Seen:** gdstudio #1156,
   2026-11-12 (`GaitTransitions.on_foot`; `test_player_actions.gd`, `test_push_cubes.gd`, `test_vault_contacts.gd`).
+- **Approach:** Never send a state machine somewhere because `get_current_node()` reads a state: `travel()` is only a
+  request until the tree advances. Keep the state last asked (`GaitTransitions._asked`, set in `route()`) and travel
+  there. **Watch out for:** a crouch asked during a stop clip asked for `crouch`; the same frame's `step()` still read
+  `gait_transition` and sent the machine to `ground`, the last request won, and the body stood drawn over its
+  crouched capsule for as long as it crouched (an AI in cover looked stuck, shots at its chest flew over the capsule).
+  **Seen:** gdstudio #1412, 2026-11-13 (`test_a_crouch_asked_during_a_stop_takes_the_body_to_the_crouch`).
