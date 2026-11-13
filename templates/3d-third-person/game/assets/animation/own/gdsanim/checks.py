@@ -61,6 +61,9 @@ FALL = 1.05
 ## Joins: a transition's first and last pose against the poses it joins (m, degrees), and its speed there (share).
 JOIN_PLACE = 0.001
 JOIN_TURN = 0.5
+## Targets: the furthest an `ik_` target may be from the end of the limb it is the target of (m): the reducer's
+## limit on each of the two, and the few millimetres the ends of a joined clip are moved by (`Clip.meet`).
+TARGET = 0.004
 ## Limits: hinges in degrees (straight is 0), the furthest a joint turns from its standing rest (degrees), and the
 ## largest change of a joint's speed in one frame (degrees a frame, per frame).
 HINGES = {"elbow": (-5.0, 150.0), "knee": (-5.0, 140.0)}
@@ -447,12 +450,35 @@ def check_weight(built, played: dict) -> tuple:
     accel = np.gradient(speed) * FPS
     if np.abs(accel).max() > 0.5 and built.clip.kind == "transition":
         worst = 0.0
+        over = int(built.clip.declared.get("lean_over", 0))
+        off = {}
         for f in range(1, count - 1):
-            if not down[f] or abs(accel[f]) < 0.5:
+            if not down[f] or (abs(accel[f]) < 0.5 and not over):
                 continue
-            feet = np.mean([rig.sole_points(world[f : f + 1], s)["ball"][0] for s in down[f]], axis=0)
-            lean = math.degrees(math.atan2(com[f, 2] - feet[2], com[f, 1] - feet[1]))
-            worst = max(worst, abs(lean - weight.lean_for(accel[f])))
+            want = weight.lean_for(accel[f])
+            if not over:
+                feet = np.mean([rig.sole_points(world[f : f + 1], s)["ball"][0] for s in down[f]], axis=0)
+                lean = math.degrees(math.atan2(com[f, 2] - feet[2], com[f, 1] - feet[1]))
+                worst = max(worst, abs(lean - want))
+                continue
+            # A body that steps passes over each foot, from behind it to ahead of it, and presses anywhere under
+            # the soles that are down: the lean it can hold on a frame is a range, from over the foremost point
+            # on the floor to over the rearmost, and what counts is how far the acceleration's lean is outside
+            # that range over a step (`lean_over`, the frames of one), not on a frame.
+            leans = []
+            for s in down[f]:
+                points = rig.sole_points(world[f : f + 1], s)
+                floor = rig.sole[s]["floor"]
+                for key in ("heel", "ball", "toe"):
+                    at = points[key][0]
+                    if key == "ball" or at[1] < floor + 0.015:
+                        leans.append(math.degrees(math.atan2(com[f, 2] - at[2], com[f, 1] - at[1])))
+            off[f] = want - max(leans) if want > max(leans) else min(want - min(leans), 0.0)
+        if over:
+            for first in range(1, count - over):
+                frames = [f for f in range(first, first + over) if f in off]
+                if len(frames) >= max(over // 2, 2):
+                    worst = max(worst, abs(float(np.mean([off[f] for f in frames]))))
         numbers["lean_off_deg"] = round(worst, 1)
         limit = built.clip.declared.get("lean_limit", LEAN)
         if worst > limit:
@@ -510,6 +536,25 @@ def check_travel(built, played: dict) -> tuple:
     if "turn" in declared and abs(numbers["turn"] - declared["turn"]) > 0.2:
         failures.append(f"travel: the root turns {numbers['turn']} degrees, declared {declared['turn']}")
     return {"travel": numbers}, failures
+
+
+def check_targets(built, played: dict) -> tuple:
+    """Each `ik_` target a clip keys is where its limb's end is (`ik_foot_l` at `foot_l`'s joint) on every frame,
+    within `TARGET`, on the reference body."""
+    body = next(iter(played.values()))
+    rig, worst, where = body.rig, 0.0, ""
+    for bone in built.kept["place"]:
+        if not bone.startswith("ik_") or bone[3:] not in rig.index:
+            continue
+        gap = np.linalg.norm(rig.joint(body.world, bone) - rig.joint(body.world, bone[3:]), axis=1)
+        if gap.max() > worst:
+            worst, where = float(gap.max()), f"{bone} at frame {int(gap.argmax())}"
+    if not where:
+        return {}, []
+    failures = []
+    if worst > TARGET:
+        failures.append(f"targets: {where} is {worst * 1000:.1f} mm from its limb's end")
+    return {"target_off_mm": round(worst * 1000, 2)}, failures
 
 
 def hinge_angles(body: Played) -> dict:
@@ -654,6 +699,7 @@ CHECKS = [
     check_weight,
     check_joins,
     check_travel,
+    check_targets,
     check_limits,
     check_cost,
     check_reduction,

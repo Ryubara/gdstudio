@@ -263,6 +263,12 @@ step (`hinge_passes`, `cone_passes`), so a limb the body lands on stays near a p
 ramp and a ledge in the south (`RagdollLedge`) to run off. The way it is built and tuned is in the kit's
 `docs/engines/godot/ragdoll.md`.
 
+The living walk through the dead: no capsule meets a ragdoll bone, so a pile never slows, lifts, vaults or turns the
+player. The player's `CorpseNudge` node pushes the dead's limbs out of its legs as it goes (sideways from the walk,
+capped at two fifths of the walk's speed, so a sprint moves a body and never throws it); it is a cosmetic, each
+machine's own, never sent. Untick its `enabled` to let the legs pass through; `reach`, `height`, `push_speed`,
+`speed_share` and `lead` tune it live.
+
 ## Vaulting and mantling {#vaulting}
 
 Press jump running at a wall that carries a `Vaultable` and the character vaults over it (0.45 to 1.3 m high and up to
@@ -308,9 +314,10 @@ for a hitscan shot or a blow), `hit_scanned(hit)`, `dry_fired`, `ammo_changed(am
 `stood_up`. A shot on a character finds the body part in its path (`HitZones`, eleven parts with a damage multiplier
 each) and gives the character a `HitRecord` (`take_hit(record)`): its `Health` node takes the health (`max_value`, 100;
 `enabled`) and dies at zero, the ragdoll thrown along the shot from the hit bone; a hit that does not kill makes the hit
-part flinch (`HitReaction`), and a shot on a lying body pushes the bone and leaves a mark on it. The record is all a
-network sends for a hit (`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a blow
-with no point: it takes the health too, stops the character for the stun time and throws it away from the source.
+part flinch (`HitReaction`; its bones keep their lengths through `RagdollLengths`), and a shot on a lying body pushes
+the bone and leaves a mark on it. The record is all a network sends for a hit (`encode()`, about 40 bytes); every peer
+makes the rest. `player.hit(amount, source)` is a blow with no point: it takes the health too, stops the character for
+the stun time and throws it away from the source.
 `player.teleport(spot)` moves it and the camera cuts to it (the camera would otherwise fly there).
 
 ## Animation {#animation}
@@ -416,6 +423,7 @@ is tuned in its inspector while the game runs:
 | --- | --- | --- |
 | `grip_pose`, `trigger_pose` | `pistol_grip_pose.tres`, `pistol_trigger_pose.tres` | The right hand on the grip with the index finger along the frame, and the index finger on the trigger, blended in as the character aims. |
 | `trigger_way_pose` | `pistol_trigger_way_pose.tres` | Where the index finger is half-way between the frame and the trigger: it goes round by this pose, clear of the left thumb, never straight. |
+| `trigger_way` | `pistol_trigger_way.tres` (the male body's in his fit) | The poses the index finger passes through between the frame and the trigger with both hands on the pistol: off the frame to its own side, its last two bones bent there, then into the trigger guard, clear of the guard and the left hand all the way. Written by `tools/hold/solve_pistol_trigger_way.gd`; when it is set, two-handed, `trigger_way_pose` is not used. |
 | `thumb_pose` | `pistol_thumb_pose.tres` | The right thumb while the left hand is on the pistol: on the root of the left thumb, which takes its place on the frame. |
 | `thumb_way_pose` | `pistol_thumb_way_pose.tres` | Where the right thumb is half-way between the frame and the left thumb's root: lifted clear of the frame's rear edge, which the straight blend passed through. Set by hand. |
 | `support_pose` | `pistol_support_pose.tres` | The left hand on the pistol and over the right hand, used while aiming or firing. |
