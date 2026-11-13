@@ -103,6 +103,10 @@ const _PUSH_STEP := 0.003
 ## How far off the skin the butt stays (the skin points ride one bone each, so they are a few
 ## millimetres off the drawn skin near a joint).
 @export_range(0.0, 0.03, 0.001, "suffix:m") var butt_margin := 0.01
+## How much of the barrel's fall the butt's way to the skin leaves out while the muzzle is down
+## (1: it comes level out of the pocket; 0: along the barrel). Along the barrel, a steep aim down
+## slid the butt down the chest and 10 cm off the shoulder before it was clear (kit #1346).
+@export_range(0.0, 1.0, 0.01) var push_level := 1.0
 ## The torso's skin is thinned to one point in each cell this size.
 @export_range(0.005, 0.1, 0.005, "suffix:m") var skin_spacing := 0.03
 ## The most the left collarbone turns to bring the shoulder toward the hand guard when the arm
@@ -462,10 +466,11 @@ func place(skeleton: Skeleton3D) -> void:
 	# side forward under the stock). A push that moved more than `_PUSH_STEP` since the last
 	# frame (a new pose, a switch) is gone through again, from the clip's collarbone.
 	var clip_clavicle := Transform3D.IDENTITY
+	var way := _push_way(basis_now)
 	if _clavicle_index >= 0:
 		clip_clavicle = skeleton.get_bone_pose(_clavicle_index)
 	for pass_index in _PASSES:
-		pivot_xf.origin = pocket + basis_now.z * (_push - kick_distance * _kick)
+		pivot_xf.origin = pocket + way * _push - basis_now.z * kick_distance * _kick
 		_reach_shoulder(skeleton, pivot_xf, gun_in_pivot, to_here)
 		# Past `fingers_far_distance` the butt keeps the push of the last near frame: the skin
 		# is not gone through for a body too far to show a centimetre.
@@ -473,9 +478,15 @@ func place(skeleton: Skeleton3D) -> void:
 			break
 		var before := _push
 		_push = _skin.push(
-			skeleton, Transform3D(basis_now, pocket), to_here, butt_pad, butt_depth, butt_margin
+			skeleton,
+			Transform3D(basis_now, pocket),
+			to_here,
+			butt_pad,
+			butt_depth,
+			butt_margin,
+			way
 		)
-		pivot_xf.origin = pocket + basis_now.z * (_push - kick_distance * _kick)
+		pivot_xf.origin = pocket + way * _push - basis_now.z * kick_distance * _kick
 		if absf(_push - before) <= _PUSH_STEP or _clavicle_index < 0:
 			break
 		if pass_index == _PASSES - 1:
@@ -511,6 +522,17 @@ func place(skeleton: Skeleton3D) -> void:
 ## The skeleton's indexes of `spine_bones`, for the stance modifier.
 func spine_indices() -> PackedInt32Array:
 	return _spine_indices
+
+
+# The way the butt goes from the pocket to the skin: along the barrel, its fall taken out by
+# `push_level` while the muzzle is down (kit #1346). Aimed up the barrel's way stays: the push is
+# small there, and out level it jumped between frames on a walk and shook the head on the sights.
+func _push_way(turn: Basis) -> Vector3:
+	var barrel := turn.z.normalized()
+	var level := Vector3(barrel.x, 0.0, barrel.z)
+	if push_level <= 0.0 or barrel.y >= 0.0 or level.length_squared() < 1e-6:
+		return barrel
+	return barrel.slerp(level.normalized(), push_level)
 
 
 # The frame the pockets are given in: the chest's turn about the up axis, and `pocket_lean` of
@@ -593,6 +615,12 @@ func _pull(
 	var beside := off.length_squared() - along * along
 	var reach := sqrt(maxf(length * length - beside, 0.0))
 	return clampf(-along - reach, 0.0, pull_limit)
+
+
+## How far the butt went from the pocket to the skin in the last frame it was measured, in metres
+## (along `push_level`'s way).
+func butt_push() -> float:
+	return _push
 
 
 ## The weight of the hold on the arms and the chest: with the arms.
