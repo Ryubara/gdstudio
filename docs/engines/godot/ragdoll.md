@@ -356,7 +356,8 @@ the template's `HitReaction` flinch); four things threw a flinching arm, each fi
   server, so a body waits where the last death or flinch left it, and its first kinematic move covers that whole way
   in a tick: 64 m/s after a get-up 1 m away (1.1 m in the first tick in the test). A kinematic body also keeps a
   speed the server had (481 m/s from an arm thrown by the flinch before). **Seen:** gdstudio #1326, 2026-11-12
-  (`test_a_flinch_after_getting_up_starts_from_the_clip_pose`).
+  (`test_a_flinch_after_getting_up_starts_from_the_clip_pose`); gdstudio #1338, 2026-11-12 (from the game camera: an arm
+  drawn as a rod for two to five frames).
 - **Approach:** Take the bodies a partial simulation leaves out off every layer while it runs. **Watch out for:** the
   engine leaves them kinematic on the ragdoll's layers, so a flinching arm pressed against the trunk was squeezed
   between a body the clip moves and its own joint, both immovable to it; shots and aim rays also met a living body's
@@ -372,6 +373,14 @@ the template's `HitReaction` flinch); four things threw a flinching arm, each fi
   two ticks and sent it off at 500 m/s (Jolt's linear limit), then to NaN; with one joint, every soak seed ran clean.
   A limp body lying wedged against two blocks with its braces still goes the same way (gdstudio #1372).
   **Seen:** gdstudio #1326, 2026-11-12 (`test_a_flinch_lifts_the_extra_joints_and_gives_them_back`).
+
+- **Approach:** Hold every simulated bone of a flinch, and of the get-up blend, at its rest distance from its parent
+  with a modifier right after the simulator (`RagdollLengths`: `set_bone_pose_position(bone, rest.origin)`), keeping
+  the turn the body gives it. **Watch out for:** the bones between two bodies that have no body of their own (the
+  clavicles, the neck) keep moving with the clip, and the joint holds the next body where the rest pose had it, so the
+  skin stretched 10 to 15 cm in a hit clip on a walking or crouched body; starting the bodies inside their joint
+  limits made no difference. A limp body needs none of it: the clip stops and its joints keep the bones within 1 cm.
+  **Seen:** gdstudio #1338, 2026-11-12 (`test_hit_bone_lengths.gd`, both bodies).
 
 A flinching body farther than 0.6 m from the clip or faster than 15 m/s ends the flinch at once (`FLINCH_STRAY`,
 `FLINCH_TOO_FAST`); a flinch at its strongest reads 0.36 m and 5 m/s.
@@ -430,3 +439,10 @@ into a game made from the template to run it (`scenario=`, `variants=`, `model=`
   failed a fresh death against itself; and a stage set up between frames rather than right after a tick started its
   walk a tick off and lay 0.3 m from the others. A joint made in the wrong pose lay 0.46 m off, well past the 3 cm
   allowed. **Seen:** gdstudio #1022, 2026-11-10 (`test_ragdoll_pool.gd`).
+- **Approach:** Measure what the skin gets with a modifier last on the skeleton (`BoneLengthProbe`): every bone's
+  distance from its parent against the rest's on each drawn frame, the rig's `ik_` bones and the pelvis left out, and
+  the fastest simulated body each tick; split a case into parts (run, hit, move, hit again, die) so a failure names
+  the part. **Watch out for:** `Skeleton3D.get_bone_global_pose` read from a test shows the clip, not the drawn pose
+  (the modifiers' pose is thrown away after the skin update), and a single fresh flinch on a standing body stretched
+  2 cm: the rods needed a body moved or revived since its bones were last simulated. **Seen:** gdstudio #1338,
+  2026-11-12 (`test_hit_bone_lengths.gd`).
