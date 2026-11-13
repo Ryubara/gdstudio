@@ -241,6 +241,8 @@ var aim_yaw: float:
 		return wrapf(view_yaw + PI - facing, -PI, PI)
 ## The vault and the mantle (`CharacterVault`): the running plan; its step state is `vault`.
 var vault_motion := CharacterVault.new()
+## The reversals and pivots moved by their clip's root (gdstudio #1442).
+var turn_motion := CharacterTurnMotion.new()
 ## On while the hands are busy with something else (an `ItemUse` using a bandage): the character
 ## neither aims nor shoots, and an aim held lowers until it is off again.
 var hands_busy := false
@@ -374,7 +376,7 @@ func _move(delta: float) -> void:
 	if _slide.active:
 		_slide.steer(self, wish, delta)
 		_present_facing()
-	else:
+	elif not turn_motion.drive(self, wish, delta):
 		_steer(wish, delta)
 	_vertical(delta)
 	_climb(delta)
@@ -462,6 +464,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 			ragdoll_body.stop(false)
 		CharacterDeath.come_alive(self)
 	vault_motion.cancel(self)
+	turn_motion.cancel()
 	global_position = spot
 	velocity = Vector3.ZERO
 	_rider.platform = null

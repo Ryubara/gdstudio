@@ -36,6 +36,7 @@ const NOT_STATE := {
 	&"_stand_probe": "a shape made for a query",
 	&"vault_settings": "an export",
 	&"vault_motion": "its step state is CharacterState.vault (CharacterVault.save_step_state)",
+	&"turn_motion": "its step state is CharacterState.turn (CharacterTurnMotion.save_step_state)",
 	&"_prone": "the prone stance; its step state is CharacterState.prone",
 	&"_spawn_rng": "only respawn() reads it, and the step never calls that",
 	&"is_puppet": "set once by make_puppet() before the body enters the tree; a puppet never steps",

@@ -70,6 +70,9 @@ var prone: Array = []
 ## The step state of the character's slide (`CharacterSlide.save_step_state()`: whether it slides,
 ## for how long, how low, its cooldowns and the speed a slide jump carries).
 var slide: Array = []
+## The reversal or pivot the body follows (`CharacterTurnMotion.save_step_state()`: the clip, the
+## time into it and the frame it began in), so a body put back mid-turn turns on the same path.
+var turn: Array = []
 
 
 ## Copies `body`'s step state into this one (what `Character.state_snapshot()` returns).
@@ -90,6 +93,7 @@ func take(body: Character) -> void:
 		loadout.clear()
 	body._prone.save_step_state(prone)
 	body._slide.save_step_state(slide)
+	body.turn_motion.save_step_state(turn)
 
 
 ## Puts this step state back into `body` (`Character.restore()`, which then fits the capsule and
@@ -106,3 +110,4 @@ func put_back(body: Character) -> void:
 	body.vault_motion.load_step_state(vault)
 	body._prone.load_step_state(prone)
 	body._slide.load_step_state(slide)
+	body.turn_motion.load_step_state(turn)

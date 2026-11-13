@@ -163,6 +163,30 @@ extends Resource
 ## A body slower than this on the ground counts as standing still.
 @export_range(0.0, 1.0, 0.01, "suffix:m/s") var stand_speed := 0.15
 
+@export_group("Turns")
+## Moves a body that reverses or cuts off at a run by its clip's own root (`CharacterTurnMotion`,
+## gdstudio #1442): it keeps going the old way while it brakes over the planted foot, turns, and
+## speeds up the new way, committed to the clip until its turn is made. Off: the body turns at
+## `turn_speed` under the gait, and the clip plays over it.
+@export var turn_root_motion := true
+## Degrees between where a running body moves and where the stick asks it to go from which it
+## cuts off (a pivot clip), and from `reversal_angle` reverses.
+@export_range(10.0, 180.0, 1.0, "suffix:deg") var pivot_angle := 60.0
+@export_range(90.0, 180.0, 1.0, "suffix:deg") var reversal_angle := 135.0
+## Seconds over which the body's own steering takes over from the clip's velocity once its turn is
+## made (0: at once).
+@export_range(0.0, 1.0, 0.01, "suffix:s") var turn_hand_back := 0.25
+## The reversal clips by gait (`run`, `sprint`); the body follows `<name>_L` or `<name>_R`, the
+## side it turns to, when its record in `locomotion.json` has travel and turn curves.
+@export var reversal_clips: Dictionary[StringName, StringName] = {
+	&"run": &"gds/Jog_Turn_180",
+	&"sprint": &"gds/Sprint_Turn_180",
+}
+## The pivot clips (a quarter turn) by gait, as above.
+@export var pivot_clips: Dictionary[StringName, StringName] = {
+	&"run": &"gds/Jog_Turn_90",
+}
+
 @export_group("Body")
 ## The capsule's radius.
 @export_range(0.1, 1.0, 0.01, "suffix:m") var radius := 0.34:

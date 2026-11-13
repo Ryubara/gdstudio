@@ -81,6 +81,8 @@ func _player_sprinting(body: String) -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3.ZERO)
+	# Each direction is read in steady sprint strides, not through a reversal's clip (#1442).
+	_player.controller.turn_clips = false
 	if body == "male":
 		var slot := _player.model
 		var old := slot.rig()
