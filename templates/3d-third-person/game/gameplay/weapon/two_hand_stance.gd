@@ -111,28 +111,39 @@ func _straighten_chest(skeleton: Skeleton3D) -> void:
 		parent = turned
 
 
-# How far the clip has the chest turned from the model's front now, in degrees about the chest's
-# own up axis (the way `chest_turn` counts): where the turn from the bone's rest sends the model's
-# front, from where the chest's lean alone sends it. Upright that is the turn about the model's
-# up axis; laid back by a slide, the front points up and its turn about the model's up axis came
-# from the slightest roll, a different one every slide (kit #1413).
+# How far the clip has the chest turned from the model's front now, in degrees (the way
+# `chest_turn` counts): where the turn from the bone's rest sends the model's front, about the
+# model's up axis, and in a slide about the chest's own up axis (`_lying()`). Laid back by a
+# slide, the front points up, its turn about the model's up axis came from the slightest roll, a
+# different one every slide, and a turn about that axis rolled the trunk onto its side (kit
+# #1413). Not by the chest's lean: the reload and the clips lean it as far as a slide does.
 func _chest_yaw(skeleton: Skeleton3D, bone: int) -> float:
 	if bone < 0:
 		return 0.0
 	var turned := _chest_turned(skeleton, bone)
-	var up := turned * Vector3.UP
-	if up.dot(Vector3.UP) < -0.99:
-		return 0.0
-	var leaned := Basis(Quaternion(Vector3.UP, up.normalized())) * Vector3.BACK
-	return rad_to_deg(leaned.signed_angle_to(turned * Vector3.BACK, up))
+	var ahead := turned * Vector3.BACK
+	var upright := rad_to_deg(atan2(ahead.x, ahead.z))
+	var share := _lying()
+	var up := (turned * Vector3.UP).normalized()
+	if share <= 0.0 or up.dot(Vector3.UP) < -0.99:
+		return upright
+	var leaned := Basis(Quaternion(Vector3.UP, up)) * Vector3.BACK
+	return lerpf(upright, rad_to_deg(leaned.signed_angle_to(ahead, up)), share)
 
 
-# The chest's up now, in the model's space: where the turn from the bone's rest sends the up axis.
+# The axis the chest turns about now, in the model's space (`_chest_yaw`).
 func _chest_up(skeleton: Skeleton3D, bone: int) -> Vector3:
-	if bone < 0:
+	var share := _lying()
+	if bone < 0 or share <= 0.0:
 		return Vector3.UP
-	var up := _chest_turned(skeleton, bone) * Vector3.UP
-	return up.normalized() if up.dot(Vector3.UP) >= -0.99 else Vector3.UP
+	var up := (_chest_turned(skeleton, bone) * Vector3.UP).normalized()
+	if up.dot(Vector3.UP) < -0.99:
+		return Vector3.UP
+	return Vector3.UP.slerp(up, share).normalized()
+
+
+func _lying() -> float:
+	return CharacterSlide.lying(hold.character) if hold != null else 0.0
 
 
 func _chest_turned(skeleton: Skeleton3D, bone: int) -> Basis:

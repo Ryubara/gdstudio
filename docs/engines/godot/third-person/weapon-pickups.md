@@ -377,12 +377,14 @@ stock test's 10 mm.
   of the clip left the left arm 5 to 98 mm short of the hand guard in the walk, jog and sprint clips, whose shoulders
   swing; idle and aim, which the first captures showed, were fine. **Seen:** gdstudio #889, 2026-11-11 (fix:
   `two_hand_stance.gd`, `arm_stretch`, `pull_limit`; 0.0 mm in 110 poses).
-- **Approach:** Turn the chest about its own up axis (`two_hand_stance.gd`), fade the grip pose of a weapon whose
-  clips are made upright in a slide (`CharacterSlide.grip_share()`), and test a move with each weapon against the
-  pistol's from the same keys (`test_rifle_slide.gd`). **Watch out for:** a slide lays the chest back, so its yaw
-  about the model's up axis came from the slightest roll and the turn rolled the trunk onto its side; the rifle's
-  idle laid it flat (83 degrees back against 64, the left hand 59 mm off). A lying trunk's side lean read as
-  `atan2(x, y)` gave 80 degrees from nothing: read `asin(x)`. **Seen:** gdstudio #1413, 2026-11-13.
+- **Approach:** In a slide, turn the chest about its own up axis (`two_hand_stance.gd`, by `CharacterSlide.lying()`),
+  fade the grip pose of a weapon whose clips are made upright in a slide (`CharacterSlide.grip_share()`), and test a
+  move with each weapon against the pistol's from the same keys (`test_rifle_slide.gd`). **Watch out for:** a slide lays
+  the chest back, so its yaw about the model's up axis came from the slightest roll and the turn rolled the trunk onto
+  its side; the rifle's idle laid it flat (83 degrees back against 64, the left hand 59 mm off). A lying trunk's side
+  lean read as `atan2(x, y)` gave 80 degrees from nothing: read `asin(x)`. Switching the axis by the chest's lean broke
+  the reload and an interaction (their clips lean it 55 to 103 degrees too); the full suite found it. **Seen:** gdstudio
+  #1413, 2026-11-13.
 - **Approach:** Seat a palm by the skin the hand bone carries at least half of and the forearm less than 3 % of, and
   solve on both mannequins at once. **Watch out for:** the game's IK bends the wrist 40 to 50 degrees on the rifle's
   grip and the skin at the heel of the palm follows the forearm, so a palm seated by all of its skin stood 5 to 7 mm
