@@ -15,6 +15,8 @@ Standard library plus PyYAML (only to read the conventions). Needs `gh` and GH_T
 Nothing from a pull request is run: a number, a sha and GitHub's own answers are the only inputs, and each is
 validated before it is used. Exit 0 when every pull request was evaluated (a mergeability GitHub has not computed
 within the bound is left as it was and reported as a warning), 1 on an API error, 2 when the conventions are unusable.
+A read whose answer is empty, not JSON or a server error is asked again (READ_TRIES, with a growing wait) before it
+counts as an API error: GitHub sometimes answers `GET pulls/N` with an empty body, and a rerun then passes.
 """
 
 from __future__ import annotations
@@ -44,6 +46,13 @@ SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 # GitHub computes `mergeable` lazily: the first request after a push or a merge answers null and starts the work.
 POLL_ATTEMPTS = 10
 POLL_SECONDS = 3.0
+
+# A read is asked again when GitHub's answer is empty, not JSON or a server error (gdstudio #1407: `gh api` exited
+# with "unexpected end of JSON input" on `GET pulls/1381` and `pulls/1387`, and a rerun passed). Three tries, waiting
+# 2 s, then 4 s; any other failure (a 404, a refused token) is an answer and is not asked again.
+READ_TRIES = 3
+READ_BACKOFF_SECONDS = 2.0
+TRANSIENT_RE = re.compile(r"unexpected end of JSON input|invalid character|HTTP 5\d\d")
 
 
 class Unusable(Exception):
@@ -117,20 +126,45 @@ def label_changes(current: set[str], conflict: bool | None, failing: bool | None
 class Client:
     """The few GitHub calls this needs, through `gh api` (so GH_TOKEN, proxies and retries are gh's business)."""
 
-    def __init__(self, repo: str) -> None:
+    def __init__(self, repo: str, sleep: Callable[[float], None] = time.sleep) -> None:
         if not REPO_RE.match(repo):
             raise Unusable(f"unexpected repository name {repo!r}")
         self.repo = repo
+        self.sleep = sleep
 
     def _run(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(["gh", "api", *args], capture_output=True, text=True, encoding="utf-8", check=False)
 
+    def _read(self, path: str, *extra: str) -> tuple[bool, Any, str]:
+        """(answered, the parsed JSON, gh's error). An empty, non-JSON or server-error answer is asked again with a
+        growing wait; once READ_TRIES are spent it raises ApiError naming the last problem. Any other failure is
+        returned at once as (False, None, the error)."""
+        problem = ""
+        for attempt in range(READ_TRIES):
+            if attempt:
+                wait = READ_BACKOFF_SECONDS * 2 ** (attempt - 1)
+                print(f"::warning::GET {path}: {problem}; asking again in {wait:g} s", file=sys.stderr)
+                self.sleep(wait)
+            done = self._run(f"repos/{self.repo}/{path}", *extra)
+            if done.returncode != 0:
+                problem = done.stderr.strip()
+                if not TRANSIENT_RE.search(problem):
+                    return False, None, problem
+                continue
+            if not done.stdout.strip():
+                problem = "unexpected end of JSON input (an empty answer)"
+                continue
+            try:
+                return True, json.loads(done.stdout), ""
+            except json.JSONDecodeError as err:
+                problem = f"the answer is not JSON ({err})"
+        raise ApiError(f"GET {path}: {problem} ({READ_TRIES} tries)")
+
     def get(self, path: str, paginate: bool = False) -> Any:
         extra = ["--paginate", "--slurp"] if paginate else []
-        done = self._run(f"repos/{self.repo}/{path}", *extra)
-        if done.returncode != 0:
-            raise ApiError(f"GET {path}: {done.stderr.strip()}")
-        data = json.loads(done.stdout)
+        answered, data, error = self._read(path, *extra)
+        if not answered:
+            raise ApiError(f"GET {path}: {error}")
         if paginate:  # --slurp: a list of pages; a page is a list, or an object holding a list
             flat: list[Any] = []
             for page in data:
@@ -139,8 +173,8 @@ class Client:
         return data
 
     def get_or_none(self, path: str) -> Any:
-        done = self._run(f"repos/{self.repo}/{path}")
-        return json.loads(done.stdout) if done.returncode == 0 else None
+        answered, data, _ = self._read(path)
+        return data if answered else None
 
     def post(self, path: str, **fields: str) -> None:
         args = [a for key, value in fields.items() for a in ("-f", f"{key}={value}")]
