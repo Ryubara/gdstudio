@@ -127,6 +127,8 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"shoot_additive": true,
 		&"reload_clip": CharacterClips.PISTOL_RELOAD,
 		&"prone_reload_clip": CharacterClips.PRONE_RELOAD,
+		&"rack_clip": CharacterClips.PISTOL_RACK,
+		&"rack_sound_at": 0.482,
 		&"shot_sound": pistol.shot_sound,
 		&"shot_volume_db": -22.0,
 		&"empty_sound": pistol.empty_sound,

@@ -469,7 +469,11 @@ func _plan_left() -> void:
 	_left.back = reload_return
 	if reload_weight > 0.0:
 		_left.drop = _sound_share(0, reload_drop)
-	var reloading := _reload_now()
+	# Through the rack, the reload's end (kept as two floats: a `Vector2` rounds the share to 32
+	# bits, which moved a share that sits on a boundary to the other side of it).
+	var racking := _rack != null and rack_weight > 0.0
+	var reload_now := _reload_weight_now() if racking else reload_weight
+	var share_now := 1.0 if racking else reload_share
 	_left.take = reload_take
 	_left.carry_release = carry_release
 	_left.carry_arrive = carry_arrive
@@ -479,22 +483,19 @@ func _plan_left() -> void:
 	# hand go as the aim alone would, and one that leaves the aim up lets it go by itself.
 	var gone := FreeHand.gone(free_weight)
 	var on := lerpf(1.0, SupportHandPlan.WAY_FROM, FreeHand.off(free_weight)) * (1.0 - gone)
-	var reload := reloading.x * (1.0 - gone) if _magazine != null else 0.0
+	var reload := reload_now * (1.0 - gone) if _magazine != null else 0.0
 	# One-handed, the aim never brings the left hand on: only a reload does, as from the carry.
 	var aim := 0.0 if one_handed else aim_weight
-	_left.update(minf(aim, on), reload, reloading.y)
+	_left.update(minf(aim, on), reload, share_now)
 
 
-# The reload the left hand's plan follows: the reload clip's weight and share, and through the
-# rack the reload's end (the support grip) by as much as the rack's hand leaves the slide to it
+# The reload's weight the left hand's plan follows through the rack, at the reload's end (the
+# support grip): by as much as the rack's hand leaves the slide to it
 # (`SlideRack.support_weight()`), so the plan goes on from where the reload left the hand. The
 # share stays at the end while the rack fades out: blended toward the share of no reload (0) it
 # went back through the reload's steps, the new magazine in the hand again.
-func _reload_now() -> Vector2:
-	if _rack == null or rack_weight <= 0.0:
-		return Vector2(reload_weight, reload_share)
-	var on := _rack.support_weight(rack_share)
-	return Vector2(lerpf(reload_weight, on, rack_weight), 1.0)
+func _reload_weight_now() -> float:
+	return lerpf(reload_weight, _rack.support_weight(rack_share), rack_weight)
 
 
 # How much of the upper body a reload or the rack holds now: the arm stays in and the trigger

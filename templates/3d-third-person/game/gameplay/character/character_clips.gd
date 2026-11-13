@@ -7,6 +7,8 @@ extends RefCounted
 ## #1111), the library `prone_aim`, its prone reload (gdstudio #1185), the library
 ## `prone_reload`, its own melee blows (gdstudio #1254, `assets/animation/melee/`), the library
 ## `melee`, its own rifle clips (gdstudio #1082, `assets/animation/rifle/`), the library `rifle`,
+## its own rack of the pistol's slide (gdstudio #1081, `assets/animation/pistol/`), the library
+## `pistol`,
 ## and GDStudio's own clips that replace
 ## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
 ## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
@@ -87,6 +89,9 @@ const PRONE_AIM := &"prone_aim/Prone_Aim_Neutral"
 const PRONE_AIM_UP := &"prone_aim/Prone_Aim_Up"
 const PRONE_AIM_DOWN := &"prone_aim/Prone_Aim_Down"
 const PRONE_RELOAD := &"prone_reload/Prone_Reload_Pistol"
+# The rack of the pistol's slide after an empty reload: the template's own clip (gdstudio #1081,
+# played since #1337), the library `pistol`.
+const PISTOL_RACK := &"pistol/Pistol_Rack"
 # Vaulting: the template's own clips (gdstudio #1010, `assets/animation/vault/`), the library
 # `vault`. What each was keyed on is a `VaultClip` (`gameplay/character/vault_low.tres`,
 # `vault_high.tres`).
@@ -225,6 +230,7 @@ const ALL: Array[StringName] = [
 	&"prone_aim/Prone_Aim_Neutral",
 	&"prone_aim/Prone_Aim_Up",
 	&"prone_reload/Prone_Reload_Pistol",
+	&"pistol/Pistol_Rack",
 	&"gds/Idle",
 	&"gds/Jog",
 	&"gds/Sprint",

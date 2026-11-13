@@ -362,6 +362,10 @@ run `racked` against `carried` (40 figures): 31.7 against 12.7 µs a character a
   its layout dirty and lays every bone out again on the next update; `SlideRack.set_fingers()` gave two poses on every
   frame, and the rack cost about 46 µs a character a frame headless, 22 µs once it gave them only on a change.
   **Seen:** gdstudio #1337, 2026-11-12.
+- **Approach:** Carry a share that is compared with a boundary as a `float` (64 bits in GDScript), never in a
+  `Vector2`, whose parts are 32 bits. **Watch out for:** the plan's weight and share packed in one `Vector2` rounded a
+  share of 0.54 onto the insert's end, so the prone reload's new magazine left the hand a hundredth early
+  (`test_prone_reload_hold.gd`, both bodies). **Seen:** gdstudio #1337, 2026-11-12.
 
 ## Solving two hands against each other {#solving-two-hands}
 
