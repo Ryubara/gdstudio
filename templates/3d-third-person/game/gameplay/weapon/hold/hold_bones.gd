@@ -43,3 +43,60 @@ func from_top(skeleton: Skeleton3D, bone: int) -> Transform3D:
 		if cursor == top:
 			return top_pose * posed
 	return global_pose(skeleton, bone)
+
+
+## Turns the collarbone `clavicle` (by `max_turn` radians at most, times `share`) so the shoulder
+## (the joint of `upper`, an upper arm under it) comes toward `target` (in the skeleton's space),
+## as far as an arm of `length` needs to reach it: a shooter's shoulder comes forward to the
+## fore-end. The turn is about the collarbone's root, toward the place. True when it turned.
+func reach(
+	skeleton: Skeleton3D,
+	clavicle: int,
+	upper: int,
+	target: Vector3,
+	length: float,
+	max_turn: float,
+	share: float
+) -> bool:
+	var above := parents[clavicle]
+	var parent := from_top(skeleton, above) if above >= 0 else Transform3D()
+	var root := parent * skeleton.get_bone_pose(clavicle)
+	# The upper arm's joint, from the collarbone down (a shoulder bone may lie between them).
+	var shoulder := skeleton.get_bone_pose(upper)
+	var cursor := parents[upper]
+	while cursor >= 0 and cursor != clavicle:
+		shoulder = skeleton.get_bone_pose(cursor) * shoulder
+		cursor = parents[cursor]
+	if cursor != clavicle:
+		return false
+	var from := root * shoulder.origin - root.origin
+	if (root.origin + from).distance_to(target) <= length:
+		return false
+	var toward := target - root.origin
+	var axis := from.cross(toward)
+	if axis.length_squared() < 1e-10:
+		return false
+	axis = axis.normalized()
+	# The least turn that brings the shoulder within reach: turned by `a` toward the place, the
+	# shoulder's distance to it squared is `both - twice * cos(whole - a)`, least at `whole`.
+	var whole := from.angle_to(toward)
+	var both := from.length_squared() + toward.length_squared()
+	var twice := 2.0 * from.length() * toward.length()
+	var high := minf(max_turn, whole)
+	var reached := (both - length * length) / maxf(twice, 1e-9)
+	if reached < 1.0:
+		high = minf(high, maxf(whole - acos(maxf(reached, -1.0)), 0.0))
+	var angle := high * share
+	var turned := Transform3D(Basis(axis, angle) * root.basis, root.origin)
+	skeleton.set_bone_pose(clavicle, parent.affine_inverse() * turned)
+	return angle > 0.0
+
+
+## How far a place `off` from the shoulder must come back along the unit `back` for an arm of
+## `length` to reach it: 0 when it reaches, else the nearest point of that line the arm reaches.
+static func pull(off: Vector3, back: Vector3, length: float) -> float:
+	if off.length() <= length:
+		return 0.0
+	var along := off.dot(back)
+	var beside := off.length_squared() - along * along
+	return -along - sqrt(maxf(length * length - beside, 0.0))

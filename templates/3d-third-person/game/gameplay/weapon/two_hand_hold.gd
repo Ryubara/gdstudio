@@ -63,12 +63,6 @@ const _PASSES := 3
 ## How far the push to the skin may move in a frame before the shoulder's reach is worked out
 ## again for it, in metres.
 const _PUSH_STEP := 0.003
-## What a modifier of the hold is, for its weight: the stance or the right arm, the left arm, the
-## right hand's fingers, the left hand's fingers (the hands' last: `>= _KIND_FINGERS`).
-const _KIND_OTHER := 0
-const _KIND_LEFT_ARM := 1
-const _KIND_FINGERS := 2
-const _KIND_LEFT_FINGERS := 3
 
 @export_group("Nodes")
 ## The character holding it. Empty: the `Model` slot's parent.
@@ -276,17 +270,15 @@ var _chest_rest_turn := Basis.IDENTITY
 var _clavicle_index := -1
 var _spine_indices := PackedInt32Array()
 var _left_indices := PackedInt32Array()
-# What each modifier is (`_KIND_`), and the weight and the `active` last written to it; what was
-# last written to the hands' second, open and together values; and whether `Pivot` was last
-# shown (-1: never set). Kept so a frame writes only what changed (kit #1347).
-var _kinds := PackedByteArray()
-var _influences := PackedFloat64Array()
-var _actives := PackedByteArray()
-var _hands := PackedFloat64Array([NAN, NAN, NAN, NAN])
+# What was last written to the modifiers and to `Pivot`'s visibility (-1: never), so a frame
+# writes only what changed (kit #1347).
+var _weights := HoldWeights.new()
 var _pivot_shown := -1
 # The left forearm's and hand's length this update; the low ready's turn and what it was worked
 # out from.
 var _arm := 0.0
+# Whether the skeleton has every bone `left_arm` names (three, or more).
+var _left_found := false
 var _low_key := Vector2(NAN, NAN)
 var _low_turn := Quaternion.IDENTITY
 var _aim_key := Vector2(NAN, NAN)
@@ -394,27 +386,7 @@ func refresh() -> void:
 		_pivot_shown = int(alive)
 	var far := fingers_far and fingers_far_distance > 0.0
 	var fingers := 1.0 if shown and not far else 0.0
-	# Each modifier's weight is written only when it changes: what was written last is kept
-	# here, not read back from each modifier every frame (kit #1347).
-	for index in _modifiers.size():
-		var modifier := _modifiers[index]
-		if not is_instance_valid(modifier):
-			continue
-		var kind := _kinds[index]
-		var share := fingers if kind >= _KIND_FINGERS else _reach
-		if not alive:
-			share = 0.0
-		elif kind == _KIND_LEFT_ARM and _freed > 0.0:
-			# The clip's own arm has the left hand while an action reaches with it.
-			share *= 1.0 - FreeHand.gone(_freed)
-		elif kind == _KIND_LEFT_FINGERS and _freed > 0.0:
-			share *= 1.0 - FreeHand.relaxed(_freed)
-		if not is_equal_approx(_influences[index], share):
-			modifier.influence = share
-			_influences[index] = share
-		if _actives[index] != int(share > 0.0):
-			modifier.active = share > 0.0
-			_actives[index] = int(share > 0.0)
+	_weights.weigh(_modifiers, alive, _reach, fingers, _freed)
 	if _fingers.size() < 2:
 		return
 	# The finger is on the trigger while the gun is up, and off it through a reload.
@@ -433,19 +405,7 @@ func refresh() -> void:
 	var opened := (
 		smoothstep(0.0, _WAY_OPEN, to_magazine) * (1.0 - smoothstep(_WAY_ON, 1.0, to_magazine))
 	)
-	# Written only when they change, as the weights above.
-	if trigger != _hands[0]:
-		_fingers[0].second_weight = trigger
-		_hands[0] = trigger
-	if thumb != _hands[1]:
-		_fingers[1].second_weight = thumb
-		_hands[1] = thumb
-	if opened != _hands[2]:
-		_fingers[1].open_weight = opened
-		_hands[2] = opened
-	if int(together) != int(_hands[3]):
-		_fingers[1].open_together = together
-		_hands[3] = float(together)
+	_weights.hands(_fingers[0], _fingers[1], trigger, thumb, opened, together)
 
 
 ## Puts the pocket and the gun where they are this frame, and gives each arm its hand's place.
@@ -463,7 +423,7 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 	_bones.top = _spine_indices[-1] if has_top and not _spine_indices.is_empty() else -1
 	_bones.top_pose = spine_top
 	_arm = 0.0
-	if _left_indices.size() == 3 and not _left_indices.has(-1):
+	if _left_found:
 		_arm = skeleton.get_bone_pose_position(_left_indices[1]).length()
 		_arm += skeleton.get_bone_pose_position(_left_indices[2]).length()
 	var chest := Vector3.ZERO
@@ -526,9 +486,22 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 	var clip_clavicle := Transform3D.IDENTITY
 	if _clavicle_index >= 0:
 		clip_clavicle = skeleton.get_bone_pose(_clavicle_index)
+	var to_skeleton := to_here.affine_inverse()
+	var reaches := _targets[1] != null and _clavicle_index >= 0 and reach_turn > 0.0 and _left_found
+	var support := gun_in_pivot * _left_rest.origin
+	var turn_share := _reach * ((1.0 - FreeHand.gone(_freed)) if _freed > 0.0 else 1.0)
 	for pass_index in _PASSES:
 		pivot_xf.origin = pocket + basis_now.z * (_push - kick_distance * _kick)
-		_reach_shoulder(skeleton, pivot_xf, gun_in_pivot, to_here)
+		if reaches:
+			_bones.reach(
+				skeleton,
+				_clavicle_index,
+				_left_indices[0],
+				to_skeleton * (pivot_xf * support),
+				_arm * arm_stretch,
+				deg_to_rad(reach_turn),
+				turn_share
+			)
 		# Past `fingers_far_distance` the butt keeps the push of the last near frame: the skin
 		# is not gone through for a body too far to show a centimetre.
 		if fingers_far and fingers_far_distance > 0.0:
@@ -543,13 +516,18 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		if pass_index == _PASSES - 1:
 			break
 		skeleton.set_bone_pose(_clavicle_index, clip_clavicle)
-	pivot_xf.origin -= basis_now.z * _pull(skeleton, pivot_xf, gun_in_pivot, to_here)
+	# With no pull allowed (`pull_limit` 0, as shipped) there is none to work out.
+	if _targets[1] != null and _left_found and pull_limit > 0.0:
+		var shoulder := to_here * _bones.from_top(skeleton, _left_indices[0]).origin
+		var length := _arm * to_here.basis.get_scale().x * arm_stretch
+		var back := HoldBones.pull(pivot_xf * support - shoulder, -pivot_xf.basis.z, length)
+		pivot_xf.origin -= basis_now.z * clampf(back, 0.0, pull_limit)
 	_pivot.transform = pivot_xf
 	var gun_here := pivot_xf * gun_in_pivot
 	# At rest nothing moves the left hand's place or the magazine once they are put back.
-	if not _hand_at_rest or _freed > 0.0 or _on_magazine == null or _reload_progress() >= 0.0:
+	var reload := posed_reload if character == null else _reload_progress()
+	if not _hand_at_rest or _freed > 0.0 or _on_magazine == null or reload >= 0.0:
 		_place_reload(gun_here)
-	var to_skeleton := to_here.affine_inverse()
 	for index in mini(_arms.size(), 2):
 		var target := _targets[index]
 		if target == null:
@@ -567,73 +545,6 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 ## The skeleton's indexes of `spine_bones`, for the stance modifier.
 func spine_indices() -> PackedInt32Array:
 	return _spine_indices
-
-
-# Turns the left collarbone (by `reach_turn` at most) so the left shoulder comes toward the hand
-# guard, as far as the arm needs to reach its place at `arm_stretch`: a shooter's shoulder comes
-# forward to the fore-end. The turn is about the collarbone's root, toward the place.
-func _reach_shoulder(
-	skeleton: Skeleton3D, pivot_xf: Transform3D, gun_in_pivot: Transform3D, to_here: Transform3D
-) -> bool:
-	if _targets[1] == null or _clavicle_index < 0 or reach_turn <= 0.0:
-		return false
-	if _left_indices.size() < 3 or _left_indices.has(-1):
-		return false
-	var length := _arm * arm_stretch
-	var target := to_here.affine_inverse() * (pivot_xf * (gun_in_pivot * _left_rest.origin))
-	var above := _bones.parents[_clavicle_index]
-	var parent := _bones.from_top(skeleton, above) if above >= 0 else Transform3D()
-	var root := parent * skeleton.get_bone_pose(_clavicle_index)
-	# The upper arm's joint, from the collarbone down (a shoulder bone may lie between them).
-	var shoulder := skeleton.get_bone_pose(_left_indices[0])
-	var cursor := _bones.parents[_left_indices[0]]
-	while cursor >= 0 and cursor != _clavicle_index:
-		shoulder = skeleton.get_bone_pose(cursor) * shoulder
-		cursor = _bones.parents[cursor]
-	if cursor != _clavicle_index:
-		return false
-	var from := root * shoulder.origin - root.origin
-	if (root.origin + from).distance_to(target) <= length:
-		return false
-	var toward := target - root.origin
-	var axis := from.cross(toward)
-	if axis.length_squared() < 1e-10:
-		return false
-	axis = axis.normalized()
-	# The least turn that brings the shoulder within reach: turned by `a` toward the place, the
-	# shoulder's distance to it squared is `both - twice * cos(whole - a)`, least at `whole`.
-	var whole := from.angle_to(toward)
-	var both := from.length_squared() + toward.length_squared()
-	var twice := 2.0 * from.length() * toward.length()
-	var high := minf(deg_to_rad(reach_turn), whole)
-	var share := (both - length * length) / maxf(twice, 1e-9)
-	if share < 1.0:
-		high = minf(high, maxf(whole - acos(maxf(share, -1.0)), 0.0))
-	var angle := high * _reach * ((1.0 - FreeHand.gone(_freed)) if _freed > 0.0 else 1.0)
-	var turned := Transform3D(Basis(axis, angle) * root.basis, root.origin)
-	skeleton.set_bone_pose(_clavicle_index, parent.affine_inverse() * turned)
-	return angle > 0.0
-
-
-# How far the gun must come back along its barrel for the left arm to reach its place under the
-# hand guard: the place is on the gun, the shoulder where the clip and the chest turn have it.
-func _pull(
-	skeleton: Skeleton3D, pivot_xf: Transform3D, gun_in_pivot: Transform3D, to_here: Transform3D
-) -> float:
-	if _targets[1] == null or _left_indices.size() < 3 or _left_indices.has(-1):
-		return 0.0
-	var length := _arm * to_here.basis.get_scale().x * arm_stretch
-	var shoulder := to_here * _bones.from_top(skeleton, _left_indices[0]).origin
-	var held_at := pivot_xf * (gun_in_pivot * _left_rest.origin)
-	var off := held_at - shoulder
-	if off.length() <= length:
-		return 0.0
-	# The place moves back along the barrel: the nearest point of that line the arm reaches.
-	var back := -pivot_xf.basis.z
-	var along := off.dot(back)
-	var beside := off.length_squared() - along * along
-	var reach := sqrt(maxf(length * length - beside, 0.0))
-	return clampf(-along - reach, 0.0, pull_limit)
 
 
 ## The weight of the hold on the arms and the chest: with the arms.
@@ -930,14 +841,12 @@ func _add_modifier(modifier: SkeletonModifier3D, tag: String) -> void:
 	modifier.name = _MODIFIER_PREFIX + tag
 	_skeleton.add_child(modifier)
 	_modifiers.append(modifier)
-	var kind := _KIND_FINGERS if modifier is HandPoseModifier else _KIND_OTHER
+	var kind := HoldWeights.FINGERS if modifier is HandPoseModifier else HoldWeights.OTHER
 	if tag == "LeftArm":
-		kind = _KIND_LEFT_ARM
+		kind = HoldWeights.LEFT_ARM
 	elif tag == "LeftFingers":
-		kind = _KIND_LEFT_FINGERS
-	_kinds.append(kind)
-	_influences.append(modifier.influence)
-	_actives.append(int(modifier.active))
+		kind = HoldWeights.LEFT_FINGERS
+	_weights.add(modifier, kind)
 
 
 func _drop_modifiers() -> void:
@@ -947,10 +856,7 @@ func _drop_modifiers() -> void:
 			if modifier.get_parent() != null:
 				modifier.get_parent().remove_child(modifier)
 	_modifiers.clear()
-	_kinds.clear()
-	_influences.clear()
-	_actives.clear()
-	_hands = PackedFloat64Array([NAN, NAN, NAN, NAN])
+	_weights.clear()
 	_arms.clear()
 	_fingers.clear()
 	_stance = null
@@ -983,6 +889,7 @@ func _find_bones() -> void:
 	_left_indices.clear()
 	for bone_name in left_arm:
 		_left_indices.append(_skeleton.find_bone(bone_name))
+	_left_found = _left_indices.size() >= 3 and not _left_indices.has(-1)
 
 
 ## The parents of the skeleton's bones, read once when the model was put in (for the stance).
