@@ -60,6 +60,8 @@ const AIM_PASSES := 4
 ## (0.1 s at 60 ticks) counts down to a rounding error just above zero, which would hold each shot
 ## one tick late (9 shots a second for 10).
 const COOLDOWN_SLACK := 1e-6
+## Where the burst's shots left sit in the step state (after the five numbers and the blow's eight).
+const BURST_AT := 13
 
 @export_group("Weapon")
 ## What the weapon is: its numbers, its projectile, its sounds and how it is held. Changing it
@@ -133,6 +135,18 @@ var meleeing: bool:
 var blows: int:
 	get:
 		return _blow.count
+## True while a burst is under way (`WeaponDef.FireMode.BURST`): shots of it are still to leave.
+## Its user keeps pulling, with the ray it aims along, on every tick until it ends (`pull()` fires
+## each shot as its spacing allows), whatever the button does. Set it false to end the burst (a
+## user that can no longer fire it: the aim lost, a slide): no more of its shots leave, and the
+## next press waits one shot interval from its last shot. Setting it true does nothing (a pull
+## starts a burst).
+var bursting: bool:
+	get:
+		return _burst_left > 0
+	set(value):
+		if not value:
+			_end_burst()
 
 ## The share of `spread` a shot gets now: the character that holds the weapon sets it each
 ## step (lying down is steadier, `ProneTuning.spread_share`); 1 alone.
@@ -164,6 +178,7 @@ var last_heading := Vector3.FORWARD
 ## at once, a projectile for its first `ShotRewind.flight_seconds`). Null: as it is now.
 var rewind: ShotRewind
 var _cooldown := 0.0
+var _burst_left := 0  # The shots of the burst under way still to leave (`FireMode.BURST`).
 var _magazine := 0
 var _reserve := 0
 var _reload_left := 0.0
@@ -217,6 +232,8 @@ func tick(delta: float) -> void:
 			_finish_reload()
 	elif definition != null and definition.auto_reload and _magazine == 0 and not is_cooling_down():
 		reload()
+	if _burst_left > 0 and not _burst_may_go_on():
+		_end_burst()
 	if _blow.advance(delta) and definition != null:
 		_land_blow()
 
@@ -275,6 +292,7 @@ func fire(origin := Vector3.INF, direction := Vector3.ZERO) -> Projectile:
 func make_ready() -> void:
 	_cooldown = 0.0
 	_reload_left = 0.0
+	_burst_left = 0
 	_blow.cooldown = 0.0
 	if _uses_ammo() and _magazine < definition.magazine_size:
 		_magazine = definition.magazine_size
@@ -471,7 +489,8 @@ func live_projectiles() -> Array[Projectile]:
 
 
 ## The step state of the weapon, written into `kept`: the cooldown, the place in the spread's
-## seeded order, the magazine, the reserve and the reload's time left (`CharacterState.weapon`).
+## seeded order, the magazine, the reserve, the reload's time left, the melee blow and the shots of
+## the burst under way (`CharacterState.weapon`).
 func save_step_state(kept: Array) -> void:
 	kept.resize(5)
 	kept[0] = _cooldown
@@ -481,6 +500,7 @@ func save_step_state(kept: Array) -> void:
 	kept[4] = _reload_left
 	# The melee blow (gdstudio #1254): its time, cooldown, landing, count, way and start.
 	_blow.save(kept)
+	kept.append(_burst_left)
 
 
 ## Puts back what `save_step_state()` wrote: the next shot leaves on the same tick and, with a
@@ -497,6 +517,7 @@ func load_step_state(kept: Array) -> void:
 	_reserve = kept[3]
 	_reload_left = kept[4]
 	_blow.load(kept, 5)
+	_burst_left = kept[BURST_AT] if kept.size() > BURST_AT else 0
 	if changed:
 		ammo_changed.emit(_magazine)
 
@@ -519,7 +540,7 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 	last_heading = heading
 	if _uses_ammo():
 		_magazine -= 1
-	_cooldown = _next_cooldown()
+	_cooldown = _next_cooldown(_count_burst())
 	if definition.shot_kind() == WeaponDef.Kind.PROJECTILE:
 		_launch(start, heading, _rewind_flight(start, heading))
 	else:
@@ -748,9 +769,44 @@ func _cast(start: Vector3, end: Vector3, skip: Array[RID] = [], mask := -1) -> D
 	return get_world_3d().direct_space_state.intersect_ray(query)
 
 
-# The interval to the next pull, less what the last tick ran past the end of the cooldown.
-func _next_cooldown() -> float:
-	return definition.shot_interval() + minf(_cooldown, 0.0)
+# The interval to the next pull (`interval`, the shot interval by default), less what the last tick
+# ran past the end of the cooldown.
+func _next_cooldown(interval := -1.0) -> float:
+	var wait := interval if interval >= 0.0 else definition.shot_interval()
+	return wait + minf(_cooldown, 0.0)
+
+
+# Counts the shot leaving now into the burst (starting one when none is under way) and returns the
+# wait to the next pull: the burst's spacing while shots of it are left and the magazine has a
+# round for them, else the shot interval. -1 (the shot interval) for a weapon that does not burst.
+func _count_burst() -> float:
+	if definition.fire_mode != WeaponDef.FireMode.BURST:
+		_burst_left = 0
+		return -1.0
+	_burst_left = (_burst_left if _burst_left > 0 else definition.shots_a_press()) - 1
+	if _uses_ammo() and _magazine <= 0:
+		_burst_left = 0
+	return definition.burst_interval() if _burst_left > 0 else -1.0
+
+
+# Ends the burst under way (`bursting = false`), and puts the shot interval after its last shot.
+func _end_burst() -> void:
+	if _burst_left <= 0:
+		return
+	_burst_left = 0
+	if is_cooling_down() and definition != null:
+		_cooldown += definition.shot_interval() - definition.burst_interval()
+
+
+# False when the burst under way cannot go on: put away, reloading, a blow, another fire mode.
+func _burst_may_go_on() -> bool:
+	return (
+		definition != null
+		and definition.fire_mode == WeaponDef.FireMode.BURST
+		and not lowered
+		and _reload_left <= 0.0
+		and not _blow.busy()
+	)
 
 
 func _range() -> float:
@@ -778,6 +834,7 @@ func _apply_definition(refill: bool) -> void:
 		if category != null:
 			swing.volume_db = category.melee_volume_db
 	_blow.reset()
+	_burst_left = 0
 	# Decoded now, while the weapon is set up, not at the reload's first step.
 	DecodedSounds.decoded_all(definition.reload_sounds)
 	if definition.muzzle_flash != null:

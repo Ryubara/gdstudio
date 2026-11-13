@@ -228,7 +228,9 @@ byte (`F_WEB`: the client is a browser), an `AI` event (id, what happened, a poi
 as `NetHits.AI_BASE + id` ([the AI online](third-person/ai-online.md#replication)). `NetWire.VERSION` 7 (#1277): an
 aiming player's entry ends with one signed byte, the aim's heading off the body
 ([puppets](third-person/online-client.md#puppets)). The socket buffers are 1 MB since: five
-seconds of a full AI snapshot of 120 characters every TICK is 252 KB.
+seconds of a full AI snapshot of 120 characters every TICK is 252 KB. The burst fire mode
+(#1352) changed no packet: each of its shots is a `SHOT` event, and the shot block rides on each tick one can leave
+([fire modes](third-person/fire-modes.md#modes)).
 
 A flood of commands sent as fast as a loop can is cut off after 444 packets (240 of burst, then 0.5 strike each to
 100); an honest client at 60 a second with two pings is never struck, and 3 s of stall (180 commands at once) passes.

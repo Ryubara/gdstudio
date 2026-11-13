@@ -108,6 +108,13 @@ remote-inspector message ([Changing values like the remote inspector](editor-scr
   ragdoll's 19 tests, two suites); #875, #879 and #881, 2026-11-10 (suites split per part); #981, 2026-11-10, #1094
   and #1111, 2026-11-11 (exports unpinned until the full run: run the pin suite); #965, 2026-11-10 (a class split
   too); #1085; #1337 (2 exports unpinned, a 21st method on `weapon.gd`).
+- **Approach:** Before you add a method to a game class, count its public functions (`grep -c "^func [a-z]"`). When
+  it already has twenty, add a property with a getter and setter (like `Weapon.bursting`, which ends the burst when set
+  false) or a private helper. Put a plain `var` (a computed alias) after the last `@export`, never in an export
+  group. **Watch out for:** `Weapon` had exactly twenty public functions, so `bursting()` and `end_burst()` failed
+  gdlint's `max-public-methods`. A non-exported `automatic` alias placed in `WeaponDef`'s Fire group made every export
+  after it a `class-definitions-order` error (75 at once). **Seen:** gdstudio #1352, 2026-11-12 (both caught by the
+  commit hook).
 
 - **Approach:** When a change adds a setting to an extending template's own `project.godot`, run
   `python/tests/test_new_game.py` before the push: it compares that file with the base's and lists each allowed

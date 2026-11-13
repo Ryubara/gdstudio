@@ -36,6 +36,18 @@ enum Kind {
 	MELEE,
 }
 
+## What a press of the fire button fires (gdstudio #1352). Every press fires: a tap from the hip
+## keeps the arm coming up until its shot (or its burst) has left.
+enum FireMode {
+	## One shot a press, however long the button is held.
+	SINGLE,
+	## `burst_size` shots a press, `burst_rate` apart, however short or long the press: a held
+	## button fires one burst, and the next press waits one `shot_interval()` after its last shot.
+	BURST,
+	## Shots at `fire_rate` for as long as the button is held; a tap fires one.
+	AUTOMATIC,
+}
+
 ## The bone from which the free arm keeps the locomotion clip while a `one_handed` weapon aims
 ## and shoots.
 const FREE_ARM_BONE := &"clavicle_l"
@@ -53,10 +65,19 @@ const FREE_ARM_BONE := &"clavicle_l"
 		notify_property_list_changed()
 
 @export_group("Fire")
-## On: holding the fire button keeps shooting. Off: one shot a press.
-@export var automatic := false
-## How many shots (or blows) a second.
+## What a press fires: one shot, one burst, or shots for as long as it is held. Gameplay: a server
+## fires by the same definition, and every shot of a burst is its own small `SHOT` event.
+@export var fire_mode := FireMode.SINGLE:
+	set(value):
+		fire_mode = value
+		notify_property_list_changed()
+## How many shots (or blows) a second; for a burst weapon, how soon after a burst's last shot the
+## next burst may start (one `shot_interval()`).
 @export_range(0.5, 30.0, 0.1, "suffix:shots/s") var fire_rate := 4.0
+## The shots one press fires, for `FireMode.BURST`.
+@export_range(2, 10, 1) var burst_size := 3
+## How many shots a second inside a burst, for `FireMode.BURST` (the spacing of its shots).
+@export_range(1.0, 30.0, 0.1, "suffix:shots/s") var burst_rate := 15.0
 ## The shot goes off the aim by up to this angle, picked from the weapon's seeded sequence.
 @export_range(0.0, 15.0, 0.1, "suffix:deg") var spread := 0.0
 ## How hard a shot kicks the player's view: a share of the camera's `shot_kick_amplitude` (1: as
@@ -343,6 +364,14 @@ const FREE_ARM_BONE := &"clavicle_l"
 ## Makes the flash bigger or smaller (its particles and the reach of its light).
 @export_range(0.1, 4.0, 0.05, "or_greater", "suffix:x") var muzzle_flash_size := 1.0
 
+## True when the fire mode is `AUTOMATIC`; setting it picks `AUTOMATIC` or `SINGLE`. Kept for code
+## written before the fire mode (gdstudio #1352); the inspector shows `fire_mode`.
+var automatic: bool:
+	get:
+		return fire_mode == FireMode.AUTOMATIC
+	set(value):
+		fire_mode = FireMode.AUTOMATIC if value else FireMode.SINGLE
+
 
 ## How a shot of this weapon travels now: `MELEE` for a melee weapon, `HITSCAN` when `hitscan` is
 ## on or `kind` says so, else `PROJECTILE`. The weapon reads this, never `kind` alone.
@@ -390,6 +419,17 @@ func free_bones() -> Array[StringName]:
 ## Seconds between two shots.
 func shot_interval() -> float:
 	return 1.0 / maxf(fire_rate, 0.001)
+
+
+## Seconds between two shots of one burst (`burst_rate`).
+func burst_interval() -> float:
+	return 1.0 / maxf(burst_rate, 0.001)
+
+
+## The shots one press fires: `burst_size` for a burst weapon, else 1 (an automatic weapon's held
+## shots after the first are its trigger held, not the press).
+func shots_a_press() -> int:
+	return maxi(burst_size, 1) if fire_mode == FireMode.BURST else 1
 
 
 # The blow's numbers: the category's, or this definition's own when it overrides them or has no
@@ -445,4 +485,6 @@ func blow_clip_speed() -> float:
 func _validate_property(property: Dictionary) -> void:
 	var field: String = property["name"]
 	if field in ["hitscan_range", "hitscan_mask", "tracer"] and shot_kind() != Kind.HITSCAN:
+		property["usage"] |= PROPERTY_USAGE_READ_ONLY
+	if field in ["burst_size", "burst_rate"] and fire_mode != FireMode.BURST:
 		property["usage"] |= PROPERTY_USAGE_READ_ONLY
