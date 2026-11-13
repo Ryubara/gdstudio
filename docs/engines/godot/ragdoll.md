@@ -173,6 +173,13 @@ the joints. That is physics, and not what a death looks like.
   times its run (16 m/s for 4 m/s: flung with a leg up), on any other tick it lost its run. Far targets are the
   rifle's, so it looked like a rifle fault. **Seen:** gdstudio #1343, 2026-11-12
   (`test_death_push.gd`, a far running AI killed on each tick of the step cycle; `tools/capture/kill_tour.tscn`).
+- **Approach:** Pair two pose samples only when they come from consecutive physics ticks and the later one is from
+  this tick or the one before (`RagdollPose` stamps each read with `Engine.get_physics_frames()` and starts the count
+  again after a gap). **Watch out for:** the animation throttle turns `pose_velocity` off while it holds a tree, so the
+  sampler stopped with its last read kept; a hit hands the tree back, the first read after it paired with that read
+  from seconds before as one tick, and a death on the next tick left at 6.6 m/s with a bone at 27 m/s for a 4 m/s run.
+  With the check that death leaves at the character's velocity (4.0 m/s), as any death while throttled does.
+  **Seen:** gdstudio #1388, 2026-11-13 (`test_ragdoll_hand_back.gd`: killed 0, 1 and 2 ticks after the hand-back).
 
 ## Drawing between ticks {#drawing}
 

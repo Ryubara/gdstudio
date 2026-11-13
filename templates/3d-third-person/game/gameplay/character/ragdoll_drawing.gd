@@ -61,7 +61,7 @@ static func place(current: Variant, of: CharacterRagdoll) -> RagdollDrawing:
 ## (a weapon hold's, the aim layer's): made while the body lies limp (a weapon or stance change
 ## after the death), they went after the simulator and posed the dead arm and hand over the
 ## ragdoll's, so the weapon stood off the hand (kit #1339, docs/engines/godot/ragdoll.md#underfoot).
-static func keep_last(on: Object) -> void:
+static func keep_last(on: Variant) -> void:
 	if on == null or not is_instance_valid(on) or not on is Skeleton3D:
 		return
 	var skeleton := on as Skeleton3D
