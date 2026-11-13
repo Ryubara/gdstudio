@@ -111,7 +111,8 @@ func step(
 	if is_playing():
 		_go_on(animation, blend, playback, delta)
 		return
-	if playback.get_current_node() == STATE:
+	var current := playback.get_current_node()
+	if current == STATE:
 		playback.travel(CharacterAnimation.GROUND)  # Left there by a rebuild of the tree.
 		return
 	if (
@@ -121,9 +122,10 @@ func step(
 		or settings.transition_clips == null
 	):
 		return
-	if playback.get_current_node() != CharacterAnimation.GROUND or animation.is_acting():
+	# The cheap checks first: reading the tree's action parameter costs more than the rest.
+	if current != CharacterAnimation.GROUND or not on_foot(animation.character):
 		return
-	if not on_foot(animation.character):
+	if animation.is_acting():
 		return
 	var picked := pick(animation, blend)
 	if picked.is_empty():
@@ -171,32 +173,41 @@ func _pick_standing(animation: CharacterAnimation, blend: GaitBlend) -> Dictiona
 	return picked
 
 
-# A stop, a reversal or a pivot of a moving body.
+# A stop, a reversal or a pivot of a moving body. A body going on its way (most frames of a
+# walking crowd) asks for none, so the gait and the foot are looked up only once one is called for
+# (gdstudio #1360: looked up first, they were a third of a walking character's animation script).
 func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary:
 	var body := animation.character
 	var clips := settings.transition_clips
 	var player := animation.animation_player
 	var speed := body.ground_speed()
-	var point := blend.main_point(CharacterAnimation.GROUND, speed)
-	var gait_clip := blend.main_gait(CharacterAnimation.GROUND, speed)
-	var foot := next_foot(gait_clip, blend.phase(animation.tree, CharacterAnimation.GROUND))
 	if body.goal_speed <= settings.standing_speed:
-		return _found(Kind.STOP, GaitTransitionSet.pick_in(player, clips.stops, point, foot))
+		var stop_point := blend.main_point(CharacterAnimation.GROUND, speed)
+		var stop_foot := _foot(animation, blend, speed)
+		return _found(
+			Kind.STOP, GaitTransitionSet.pick_in(player, clips.stops, stop_point, stop_foot)
+		)
 	var wish := body.last_command.world_move()
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z).normalized()
 	var angle := rad_to_deg(moving.angle_to(wish))
-	var picked := {}
+	if angle < settings.reversal_angle and angle < settings.pivot_angle:
+		return {}
+	var point := blend.main_point(CharacterAnimation.GROUND, speed)
 	if angle >= settings.reversal_angle:
 		# A reversal turns over the foot it plants (#1157: planting the left foot it turns to the
 		# left), so the clip that turns the body's way is the one for the foot on that side.
 		var plant := "r" if moving.cross(wish).y < 0.0 else "l"
-		picked = _found(
+		return _found(
 			Kind.REVERSAL, GaitTransitionSet.pick_in(player, clips.reversals, point, plant)
 		)
-	elif angle >= settings.pivot_angle:
-		var side := "r" if moving.cross(wish).y < 0.0 else "l"
-		picked = _found(Kind.PIVOT, GaitTransitionSet.pick_in(player, clips.pivots, point, side))
-	return picked
+	var side := "r" if moving.cross(wish).y < 0.0 else "l"
+	return _found(Kind.PIVOT, GaitTransitionSet.pick_in(player, clips.pivots, point, side))
+
+
+# The foot that lands next in the ground gait that weighs most at `speed`.
+func _foot(animation: CharacterAnimation, blend: GaitBlend, speed: float) -> String:
+	var gait_clip := blend.main_gait(CharacterAnimation.GROUND, speed)
+	return next_foot(gait_clip, blend.phase(animation.tree, CharacterAnimation.GROUND))
 
 
 ## The foot that lands next at `phase` (0 to 1) of `gait`'s cycle: the one whose contact begins
