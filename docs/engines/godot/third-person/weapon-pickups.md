@@ -293,6 +293,10 @@ stock test's 10 mm.
   direction on both bodies, and in the arena even the recording's commit measured clear on the female, so there was
   nothing left for a carry pose to fix; the existing stock test could not have said so, since it leaves the legs out.
   **Seen:** gdstudio #1340, 2026-11-12 (kept: `test_rifle_sprint_carry.gd` over the whole body).
+- **Approach:** In a suite, call `BodyClearance.deepest()` without `with_gap` and on a sample of updates whose step
+  shares no factor with the stride; keep the gap for probes. **Watch out for:** with the gap on every update the
+  sprint suite took 592 s in the full template run (a nearest-triangle search for every point of the rifle), against
+  11 s without it on every fifth update. **Seen:** gdstudio #1340, 2026-11-12.
 - **Approach:** When a modifier takes a clip's turn off one bone (the chest's swing in a run), give the turn back
   above it on a bone whose skin is clear of the weapon (the head), measure the head's turn through a whole stride
   against empty hands, and run the hold's own suite after any change to a bone near it. **Watch out for:** a run
