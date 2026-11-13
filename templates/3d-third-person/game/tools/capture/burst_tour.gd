@@ -2,11 +2,14 @@
 ## burst (a copy of its definition, three shots at 15 a second), a one-tick tap of fire from the
 ## hip (the arm comes up and the whole burst leaves, then the arm goes down), a tap with the aim
 ## held, a press held for a second (one burst, no more), and two taps close together (the second
-## burst follows the first once it may). The ammunition counter drops by three a press. It presses
-## the input actions the way a player would and prints each shot's tick (`SHOT <tick> <ammo>`).
+## burst follows the first once it may). The ammunition counter drops by three a press. Then the
+## same rifle with `full_burst_per_press` off (the burst lasts only while the button is held): a
+## one-tick tap aimed fires one shot, a press of five ticks two, a press held for a second the
+## whole burst. A caption names each stage. It presses the input actions the way a player would
+## and prints each shot's tick (`SHOT <tick> <ammo>`).
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
-## `gds capture frames --project game --scene res://tools/capture/burst_tour.tscn --seconds 9
+## `gds capture frames --project game --scene res://tools/capture/burst_tour.tscn --seconds 15
 ## --fps 30`
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
@@ -21,7 +24,8 @@ const PITCH := 4.0
 const TAP := 1.0 / 60.0
 
 ## Each stage: `name` (printed when it starts), `hold` the actions held, `seconds` how long, and
-## `taps`: actions pressed for `tap` seconds (one tick by default) at each of the listed seconds.
+## `taps`: actions pressed for `tap` seconds (one tick by default) at each of the listed seconds;
+## `full` the rifle's `full_burst_per_press` for the stage (on by default).
 const STAGES: Array[Dictionary] = [
 	{"name": "ready", "hold": [], "seconds": 1.0},
 	{"name": "tap from the hip", "hold": [], "seconds": 1.6, "taps": {&"fire": [0.2]}},
@@ -34,12 +38,38 @@ const STAGES: Array[Dictionary] = [
 		"tap": 1.0,
 	},
 	{"name": "two taps", "hold": [&"aim"], "seconds": 1.8, "taps": {&"fire": [0.3, 0.45]}},
+	{"name": "full burst off", "hold": [&"aim"], "seconds": 0.6, "full": false},
+	{
+		"name": "full burst off: tap aimed",
+		"hold": [&"aim"],
+		"seconds": 1.4,
+		"taps": {&"fire": [0.3]},
+		"full": false,
+	},
+	{
+		"name": "full burst off: 5 ticks",
+		"hold": [&"aim"],
+		"seconds": 1.4,
+		"taps": {&"fire": [0.3]},
+		"tap": 5.0 * TAP,
+		"full": false,
+	},
+	{
+		"name": "full burst off: held one second",
+		"hold": [&"aim"],
+		"seconds": 1.8,
+		"taps": {&"fire": [0.3]},
+		"tap": 1.0,
+		"full": false,
+	},
 	{"name": "down", "hold": [], "seconds": 0.8},
 ]
 
 var _index := -1
 var _clock := 0.0
 var _held: Array[StringName] = []
+# Made in _ready, not here: a scene instantiated and freed off the tree would orphan it.
+var _caption: Label
 
 @onready var _player: Player = $Main/PlayerRig/Player
 @onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
@@ -58,6 +88,14 @@ func _ready() -> void:
 	rifle.auto_reload = false
 	_player.loadout.give(rifle, 60)
 	_player.teleport(START, PI)
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	_caption = Label.new()
+	_caption.position = Vector2(24.0, 24.0)
+	_caption.add_theme_font_size_override("font_size", 28)
+	_caption.add_theme_constant_override("outline_size", 6)
+	_caption.add_theme_color_override("font_outline_color", Color.BLACK)
+	layer.add_child(_caption)
 	_player.weapon.fired.connect(
 		func(_shot: Projectile) -> void:
 			print("SHOT ", Engine.get_physics_frames(), " ", _player.weapon.ammo)
@@ -76,6 +114,8 @@ func _physics_process(delta: float) -> void:
 			_finish()
 			return
 		print("STAGE ", STAGES[_index]["name"], " ", Engine.get_physics_frames())
+		_caption.text = STAGES[_index]["name"]
+		_player.weapon.definition.full_burst_per_press = STAGES[_index].get("full", true)
 	var stage := STAGES[_index]
 	var actions: Array[StringName] = []
 	actions.append_array(stage["hold"])
