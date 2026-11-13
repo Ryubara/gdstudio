@@ -64,9 +64,9 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   the script's exports, before its first run. **Watch out for:** the project turns a shadowed name into a parse error,
   so four suites did not load; `gds check scripts` and `gds template test` name them at parse. **Seen:** gdstudio #881
   (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965 (`next_up`), #1047, all 2026-11-10; #906, #907,
-  #909, #1127 (`before`), #970 (a loop's `var before`), 2026-11-11; #1013, #1047, #909 and #970 after reading this.
-  A game script meets the same rule: gdstudio #1336, 2026-11-12 (a static function's parameter `amount` in a class
-  with an `amount()`, and a test's local `free`, which is `Object.free`; the import named both).
+  #909, #1127 (`before`), #970 (a loop's `var before`), 2026-11-11; #1013, #1047, #909, #970 and #1337 (`after`)
+  after reading this. A game script meets the same rule: gdstudio #1336, 2026-11-12 (a static function's parameter
+  `amount` in a class with an `amount()`, and a test's local `free`, `Object.free`).
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
   `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
@@ -231,6 +231,35 @@ game](new-game.md#proof), gdstudio #830 and #917).
   a loop that counts "no done line" as a death read "died 30 of 30" before the change as a perfect-looking result (the
   real before rates were 2, 3 and 0 of 100). **Seen:** Deadnight #764, 2026-11-03; Deadnight, 2026-11-04 (cold loop)
   (fix: a separate probe for the old tree; the lot, where the ray is never asked, matched in both arms).
+
+## A gate on time on a shared runner {#timing-gates}
+
+<!-- new section: the page said how to run the suites, not how a suite that judges a timing reads GitHub's shared
+     runners, which turned main red on unchanged code (gdstudio #1405) -->
+
+A suite that judges a time runs on GitHub's hosted runners, a pool of several processor models shared with other
+jobs, and on a desktop other agents load. Read its number as the runner's as much as the code's:
+
+- **Counts tight, time loose.** Hold what does not move with the machine exactly (paths asked, thinks, rays, nodes,
+  bodies stepped) and a time only as a ratio of a ruler timed in the same seconds, with a limit wide enough for every
+  runner ([the budgets](performance-budgets.md#budgets-counts-tight-time-loose)).
+- **Choose the ruler from CI, not from the desktop.** Print every candidate ruler beside the timing, run the suite 50
+  times on the runners (a matrix of shards with `lscpu` printed, as `.github/workflows/ai-cost-gate.yml` does) and
+  keep the ruler whose ratio spreads least from the fastest run to the slowest. Expect a spread left over: the same
+  runner reads the same code 1.3 times apart from one process to the next while every ruler holds still.
+- **A table for each system.** Linux and Windows build the same code to different speeds (the C library's `sin`, the
+  physics), so a ratio that is right on the desktop is wrong on the runner. Key the limits by `OS.get_name()`.
+- **Put the limit between the highest ratio seen and twice the lowest**, and prove it in the suite: a case that makes
+  the timed work cost twice itself (spin on the clock as long again after it) and expects the gate to fail, so the
+  gate's teeth run wherever the gate runs.
+
+- **Approach:** For a timing gate that fails on CI with nothing near it changed, collect its printed rows from 100 or
+  more CI runs (`gh api --allow-escape-sequences repos/<repo>/actions/jobs/<id>/logs`, then grep the rows; without the
+  flag `gh` refuses a log with colour codes and writes nothing), compare each candidate divisor's spread, and soak the
+  change 50 times before trusting it. **Watch out for:** the AI cost gate's ruler (a GDScript loop) was chosen on the
+  desktop and followed the step on the runners at a slope of 0.6, so the step ratio read 3.9 to 8.1 and failed main at
+  8.06 against 8.0; a physics ruler spread 1.55 times over 150 runs where the GDScript one spread 1.73. **Seen:**
+  gdstudio #1405, 2026-11-13 (fix: `PhysicsRuler`, limits by system, the teeth case `SlowAiDirector`).
 
 ## Running more than one {#parallel}
 

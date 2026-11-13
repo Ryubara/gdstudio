@@ -102,7 +102,13 @@ are named as such.
   chest: the gun then goes forward along its barrel until no point of the torso's skin is inside the butt
   (`butt_pad` 6.2 by 14.5 cm, `butt_depth` 16 cm along the stock, `butt_margin` 1 cm), the skin being points over the
   body's own torso triangles on the rest pose, one a `skin_spacing` (3 cm) cell and each ridden by its nearest
-  corner's main bone, so the butt comes to the skin of whichever body holds it (kit #1177). The chest stands turned
+  corner's main bone, so the butt comes to the skin of whichever body holds it (kit #1177). While the muzzle is down
+  the butt comes out of the pocket level, not along the barrel (`push_level`, 1; kit #1346): along a barrel 45
+  degrees down the move slides the butt down the chest, so it was 143 mm (female) and 161 mm (male) from the pocket
+  before the stock's toe was clear, against 63 and 72 aimed level, and sat on the breast, not the shoulder; out
+  level it is 89 and 107 mm, the stock still clear of the torso. Aimed up the barrel's way stays (the push is 3 to
+  41 mm there). The push is the least move no skin point forbids, so skin ahead of the stock that the move brings
+  back along it counts too. The chest stands turned
   `chest_turn` (-30 degrees) from the model's front: `two_hand_stance.gd` takes the clip's own turn of the chest off
   first, so a walk or a run that swings the shoulders keeps the left shoulder forward, and turns the head back by what
   it turned the chest, so the head keeps the facing the locomotion clip gives it (kit #1333); while the gun is up a
@@ -205,8 +211,11 @@ the rifle, measured every half hundredth, which is the test's step too (it caps 
 
 Tests, `tests/gameplay/test_rifle_hold.gd` with `tests/fixtures/rifle_stage.gd` (a mannequin and the hold posed by
 hand): both hands within the 2 mm and 5 mm in six locomotion clips at the low ready and aimed, and with the view 30
-degrees up and down, on both bodies, the right palm and thumb among the holding parts; in the same poses no point of
-the rifle more than 10 mm in the torso (`test_the_stock_stays_out_of_the_chest`); the index finger within
+and 45 degrees up and down, on both bodies, the right palm and thumb among the holding parts; in the same poses no
+point of the rifle more than 10 mm in the torso (`test_the_stock_stays_out_of_the_chest`); every 15 degrees from 45 down
+to 45 up, standing and crouched, the butt within 20 mm of the torso's skin and no more than 50 mm farther from the
+pocket than at the level aim (`test_the_butt_stays_on_the_shoulder_through_the_pitch_range`; along the barrel it was
+56 to 89 mm farther); the index finger within
 12 mm of `Trigger` only while the rifle is up and more than 20 mm from it otherwise; the reload every half
 hundredth; and on
 the live player with simulated input, every update of idle, walk, sprint, aim, fire, crouch and crouched walk, the
@@ -250,6 +259,22 @@ groups of an 8 cm cell under each bone with a box round each group and each bone
 the shoulder reaches for the gun where the last frame's push had it and the push is measured once after it, again
 only when it moved more than 3 mm (a new pose); the reach's angle is worked out in closed form; every pose comes
 from the local ones; past `fingers_far_distance` the last near push is kept.
+
+Cut again (kit #1347), the same bench, the branch and `main` in turns, two rounds a body (microseconds a character a
+frame, female / male): the rifle at the ready 39 / 36 against 54 / 54, low 39 / 36 against 51 / 55, reloading 46 / 42
+against 62 / 57, past `fingers_far_distance` 25 / 22 against 33 / 33; the pistol carried and aimed as they were (10 /
+10 and 19 / 16 against 9 / 9 and 19 / 18). A build from before the stock fix (after kit #1289), in the same session,
+read 31 / 32, 29 / 27 and 38 / 36, so the push and the shoulder's reach still cost 6 to 9 more than the hold did
+before them. Every bone came out within 2.3 micrometres of `main` in 36 poses (both bodies, six clips, up and down,
+four shares of a reload). What cut it, in order of what it saved: the small helpers written out at their callers
+(the web build pays more for a GDScript call than for a line, [what a line costs](../gdscript.md#web-cost)), the push
+turning each group's points by one engine call (`Transform3D * PackedVector3Array`, `AABB.has_point`) and meeting the
+groups' boxes in the bone's space, the stance handing `place()` the spine's top pose (`HoldBones`), what is written to
+the modifiers kept and written only when it changes (`HoldWeights`), the trigger finger set straight to its pose when
+it is all the way on, and no pull worked out while `pull_limit` is 0. With the butt's push along `push_level`'s way
+(kit #1346) merged in, the push along it (`TorsoSkin._push_along()`) takes the same three speedups; the low ready aims
+the barrel down and takes that way, so most of its cost is the new push: on a busy machine 72 / 119 against 79 / 119,
+where the ready went 50 / 74 against 70 / 93 and the reload 54 / 82 against 75 / 103.
 
 The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
 body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
@@ -419,6 +444,13 @@ stock test's 10 mm.
   one grip view (swung 125 degrees left) showed only the thumb's side, with the trigger finger, which the capture
   was made for, behind the receiver. **Seen:** gdstudio #1036, 2026-11-11 and 2026-11-12 (fix: a view swung 90
   degrees right for the trigger finger and one 80 degrees left for the support thumb).
+- **Approach:** Sweep a hold through the game's whole aim range on every body (every 15 degrees, 45 down to 45 up)
+  and choose the way a contact moves a part out, not only how far: a way along the skin needs more travel and
+  slides the part off its place. Film a section at the contact. **Watch out for:** pushed along the barrel, the butt
+  slid down the chest at 45 degrees down while the tests, aimed 30, passed; the rifle's own stock sections put the
+  male's stock 12 mm in, as a skin thinned to a point a 3 cm cell lets a tight shape between its points; a level way
+  aimed up made the push jump on a walk (`test_aim_head.gd`, 0.71 degrees a frame). **Seen:** gdstudio #1346,
+  2026-11-12 (fix: `push_level` while the muzzle is down; `rifle_stock.tscn -- pitch`).
 - **Approach:** Make the test of a moving hand step as finely as the scan that found its faults (half a hundredth
   of the reload here), and give each finger the order that suits the part: knuckles first off a part the fingers
   are hooked over, all joints together onto a part they close round. **Watch out for:** at steps of 2 hundredths

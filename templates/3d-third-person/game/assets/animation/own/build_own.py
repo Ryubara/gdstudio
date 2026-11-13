@@ -34,7 +34,7 @@ HERE = Path(__file__).resolve().parent
 QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
 sys.path.insert(0, str(HERE))
 
-from clips import crouch_idle, crouch_walk, gait, idle, jump, moves, stance  # noqa: E402
+from clips import crouch_idle, crouch_walk, directed, gait, idle, jump, lean, moves, stance  # noqa: E402
 from clips.joined import Joined, described  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
@@ -71,6 +71,17 @@ TYPES = {
     "land_soft": ("Land_Soft", jump.describe_land_soft),
     "land_hard": ("Land_Hard", jump.describe_land_hard),
     "land_to_jog": ("Land_To_Jog", jump.describe_land_to_jog),
+    "walk_back": ("Walk_Back", directed.walk_back),
+    "walk_left": ("Walk_Left", directed.walk_left),
+    "walk_right": ("Walk_Right", directed.walk_right),
+    "jog_back": ("Jog_Back", directed.jog_back),
+    "jog_left": ("Jog_Left", directed.jog_left),
+    "jog_right": ("Jog_Right", directed.jog_right),
+    "lean_left": ("Lean_Left", lean.lean_left),
+    "lean_right": ("Lean_Right", lean.lean_right),
+    "lean_fwd": ("Lean_Fwd", lean.lean_fwd),
+    "lean_back": ("Lean_Back", lean.lean_back),
+    "lean_ref": ("Lean_Ref", lean.reference),
 }
 ## The types that are a family of clips (kit #1156: a start or a stop on the left foot and on the right): a review
 ## file holds every clip of the family once per style, and one letter of `picks.json` picks them all.
@@ -95,6 +106,17 @@ GROUPS = {
         "Crouch_Walk",
         "Stand_To_Crouch",
         "Crouch_To_Stand",
+        "Walk_Back",
+        "Walk_Left",
+        "Walk_Right",
+        "Jog_Back",
+        "Jog_Left",
+        "Jog_Right",
+        "Lean_Ref",
+        "Lean_Left",
+        "Lean_Right",
+        "Lean_Fwd",
+        "Lean_Back",
         "Idle_To_Walk_L",
         "Idle_To_Walk_R",
         "Idle_To_Jog_L",
@@ -240,7 +262,9 @@ def main() -> int:
     builts = []
     for name in GROUPS[args.name]:
         pick, describe = MEMBERS[name] if name in MEMBERS else TYPES[name.lower()]
-        builts.append(build.build_clip(rig, solver, described(describe, rig, styles[picks[pick]], name, joined)))
+        # A clip that is the same in every variant (the leans' reference) has no pick.
+        one = styles[picks.get(pick, next(iter(styles)))]
+        builts.append(build.build_clip(rig, solver, described(describe, rig, one, name, joined)))
     return make(args, builts, GROUPS[args.name], rig, bodies, HERE / f"{args.name}.glb")
 
 

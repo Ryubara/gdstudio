@@ -1,6 +1,6 @@
 {
  "clips_file": "locomotion.glb",
- "sha256": "c238b16673edd7ed10d3316711b7f566a82de96b296fbb392d485e85510cb322",
+ "sha256": "e6d8ae4f43eb17c9076d37122b8a5b2a7632b87f9a776937f08e2dd2c0b82a36",
  "fps": 30,
  "limit_mm": 5.0,
  "clips": {
@@ -224,6 +224,50 @@
     "pair": null
    }
   },
+  "Jog_Back_Loop": {
+   "form_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "form_male": {
+    "deepest_mm": 1.5,
+    "frame": 3,
+    "pair": "thigh_l in thigh_r"
+   },
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
+  "Jog_Left_Loop": {
+   "form_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "form_male": {
+    "deepest_mm": 2.9,
+    "frame": 7,
+    "pair": "thigh_l in thigh_r"
+   },
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
   "Jog_Loop": {
    "form_female": {
     "deepest_mm": 0.0,
@@ -233,6 +277,28 @@
    "form_male": {
     "deepest_mm": 3.8,
     "frame": 3,
+    "pair": "thigh_l in thigh_r"
+   },
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
+  "Jog_Right_Loop": {
+   "form_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "form_male": {
+    "deepest_mm": 1.6,
+    "frame": 17,
     "pair": "thigh_l in thigh_r"
    },
    "mannequin_female": {
@@ -290,16 +356,16 @@
     "pair": null
    }
   },
-  "Jump_Apex_Loop": {
+  "Lean_Back_Loop": {
    "form_female": {
     "deepest_mm": 0.0,
     "frame": null,
     "pair": null
    },
    "form_male": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
+    "deepest_mm": 1.8,
+    "frame": 0,
+    "pair": "thigh_l in thigh_r"
    },
    "mannequin_female": {
     "deepest_mm": 0.0,
@@ -312,16 +378,16 @@
     "pair": null
    }
   },
-  "Jump_Fall_Loop": {
+  "Lean_Fwd_Loop": {
    "form_female": {
     "deepest_mm": 0.0,
     "frame": null,
     "pair": null
    },
    "form_male": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
+    "deepest_mm": 2.0,
+    "frame": 0,
+    "pair": "thigh_l in thigh_r"
    },
    "mannequin_female": {
     "deepest_mm": 0.0,
@@ -334,16 +400,16 @@
     "pair": null
    }
   },
-  "Jump_Rise_Loop": {
+  "Lean_Left_Loop": {
    "form_female": {
     "deepest_mm": 0.0,
     "frame": null,
     "pair": null
    },
    "form_male": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
+    "deepest_mm": 3.9,
+    "frame": 0,
+    "pair": "thigh_l in thigh_r"
    },
    "mannequin_female": {
     "deepest_mm": 0.0,
@@ -356,7 +422,7 @@
     "pair": null
    }
   },
-  "Jump_Start": {
+  "Lean_Ref_Loop": {
    "form_female": {
     "deepest_mm": 0.0,
     "frame": null,
@@ -378,103 +444,15 @@
     "pair": null
    }
   },
-  "Jump_Start_Run_L": {
+  "Lean_Right_Loop": {
    "form_female": {
     "deepest_mm": 0.0,
     "frame": null,
     "pair": null
    },
    "form_male": {
-    "deepest_mm": 0.7,
-    "frame": 2,
-    "pair": "thigh_l in thigh_r"
-   },
-   "mannequin_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   },
-   "mannequin_male": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   }
-  },
-  "Jump_Start_Run_R": {
-   "form_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   },
-   "form_male": {
-    "deepest_mm": 1.9,
+    "deepest_mm": 1.7,
     "frame": 0,
-    "pair": "thigh_l in thigh_r"
-   },
-   "mannequin_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   },
-   "mannequin_male": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   }
-  },
-  "Land_Hard": {
-   "form_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   },
-   "form_male": {
-    "deepest_mm": 2.1,
-    "frame": 36,
-    "pair": "thigh_l in thigh_r"
-   },
-   "mannequin_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   },
-   "mannequin_male": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   }
-  },
-  "Land_Soft": {
-   "form_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   },
-   "form_male": {
-    "deepest_mm": 2.1,
-    "frame": 21,
-    "pair": "thigh_l in thigh_r"
-   },
-   "mannequin_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   },
-   "mannequin_male": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   }
-  },
-  "Land_To_Jog": {
-   "form_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
-   },
-   "form_male": {
-    "deepest_mm": 1.9,
-    "frame": 8,
     "pair": "thigh_l in thigh_r"
    },
    "mannequin_female": {
@@ -576,6 +554,50 @@
     "pair": null
    }
   },
+  "Walk_Back_Loop": {
+   "form_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "form_male": {
+    "deepest_mm": 2.3,
+    "frame": 7,
+    "pair": "thigh_l in thigh_r"
+   },
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
+  "Walk_Left_Loop": {
+   "form_female": {
+    "deepest_mm": 0.4,
+    "frame": 16,
+    "pair": "thigh_l in thigh_r"
+   },
+   "form_male": {
+    "deepest_mm": 2.5,
+    "frame": 16,
+    "pair": "thigh_l in thigh_r"
+   },
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "mannequin_male": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   }
+  },
   "Walk_Loop": {
    "form_female": {
     "deepest_mm": 0.0,
@@ -596,6 +618,28 @@
     "deepest_mm": 0.0,
     "frame": null,
     "pair": null
+   }
+  },
+  "Walk_Right_Loop": {
+   "form_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "form_male": {
+    "deepest_mm": 2.7,
+    "frame": 0,
+    "pair": "thigh_l in thigh_r"
+   },
+   "mannequin_female": {
+    "deepest_mm": 0.0,
+    "frame": null,
+    "pair": null
+   },
+   "mannequin_male": {
+    "deepest_mm": 1.0,
+    "frame": 5,
+    "pair": "foot_l in foot_r"
    }
   },
   "Walk_Stop_L": {

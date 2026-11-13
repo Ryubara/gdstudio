@@ -1,7 +1,8 @@
 ## Films the HUD's weapon slots and hotbar over the game, through the keys a player presses: the
-## player is hurt, key 2 takes the fists (slot 2 lights), key 3 uses a bandage from the hotbar (the
-## place flashes, health rises by 25, the count drops), key 1 takes the pistol back, and a bandage
-## is put on hotbar place 4 from the inventory screen with its key. Every step holds `STEP`
+## player is hurt, key 2 takes the fists (slot 2 lights), key 3 uses a bandage from the hotbar
+## (the sign fills over its 1.6 s, then the place flashes, health rises by 25, the count drops),
+## key 1 takes the pistol back, and a bandage is put on hotbar place 4 from the inventory screen
+## with its key. Every step holds `STEP`
 ## seconds. With `phone` after the engine's `--` the touch controls come up and the page's pixel
 ## ratio is 2 (a 1688 x 780 window is an 844 x 390 phone page), and a finger on each place does
 ## what the key does.
@@ -47,8 +48,9 @@ func _ready() -> void:
 	await _place(&"weapon_2", KEY_2)
 	await _hold(1.2)
 	await _place(&"hotbar_1", KEY_3)
-	await _hold(0.15)
-	await _hold()
+	# The bandage takes 1.6 s (`ItemUse`): a shot mid-use shows its sign, the next the healed bar.
+	await _hold(0.6)
+	await _hold(1.2)
 	await _place(&"weapon_1", KEY_1)
 	await _hold(1.2)
 	if not _phone:

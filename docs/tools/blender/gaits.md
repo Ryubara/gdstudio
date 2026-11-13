@@ -102,3 +102,18 @@ feet cover a known ground speed and the new clips blend in step with the old. Le
   toes leave), and feet set down for the Quaternius pair as well stood 3.3 to 3.9 mm off the floor on the template's
   bodies. **Seen:** gdstudio #1160 (PR #1285) on #1275, 2026-11-12 (the jog and the sprint are main's bytes again;
   the walk's arms open 0.4 degrees more to clear four bodies).
+- **Approach:** Pass a strafe's legs apart in three ways at once: two lanes (the leading foot's behind the root's
+  path, the crossing foot's ahead of it, 0.24 m apart), a swing that goes 5 cm further out as it passes the
+  planted foot, and a knee turn per leg (the leading knee on toward the step, the crossing knee ahead); make the
+  open step long and the crossed one short. **Watch
+  out for:** with the hips, both knees and the toes all a third toward the step, as the recipe above says, the
+  thighs met by 50 to 60 mm as the crossing foot landed in a jog, a foot went 36 mm through the other in a walk,
+  and the thicker Quaternius calves met by 30 mm; a hip turn of 45 degrees and wider lanes did not clear them,
+  the knee turn did. **Seen:** gdstudio #1159, 2026-11-12 (`knee_turn`, `pass_wide`, `lane` in the template's
+  `clips/directed.py`; 0 to 3.1 mm on the four bodies).
+- **Approach:** Name a foot's rolls in its `Footfall` (`roll_in`, `roll_out`) even when the description writes the
+  foot's path itself, so `clips.json` says when the sole is at rest (`flat`), and keep the ball of the foot on the
+  floor for as long as the contact is declared. **Watch out for:** a backward walk whose heel left last with the
+  toes up raised the ball's joint 20 mm inside its contact, and with no rolls named the record called the whole
+  contact flat, so the Godot test of a planted foot would have held a rolling ankle to 2 mm. **Seen:** gdstudio
+  #1159, 2026-11-12 (the sole is lifted whole; `Directed.__init__`).

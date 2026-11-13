@@ -1,10 +1,10 @@
 # The parts of the gait fitting (gdstudio #1158), each an inspector choice of `GaitSettings`: the
 # ground blend space's points at the clips' speeds (a stand-in clip at the tuning's), the momentum
 # blend in place of the cross-fade, the transitions chosen from the controller's numbers and
-# played along their travel, and the lean, built only when its poses exist. The transition and
-# lean clips do not all exist yet (gdstudio #1157, #1159; the starts and stops of #1156 do): the
-# tests give the player clips of their own in a library `test`, with records registered in
-# `GaitClips`.
+# played along their travel, and the lean, built only when its poses exist. The transition clips
+# do not all exist yet (gdstudio #1157; the starts and stops of #1156 do): the tests give the
+# player clips of their own in a library `test`, with records registered in `GaitClips`. The
+# lean poses are GDStudio's own (`gds/Lean_Left` and the rest, gdstudio #1159).
 extends GdUnitTestSuite
 
 const SETTINGS := "res://gameplay/character/gait_settings.tres"
@@ -232,12 +232,28 @@ func test_the_stop_s_foot_is_the_one_that_lands_next() -> void:
 	assert_str(GaitTransitions.next_foot(CharacterClips.WALK, 0.7)).is_equal("l")
 
 
+func test_a_clip_s_contacts_are_worked_out_once_and_follow_a_new_record() -> void:
+	# Asked every frame by the blend and the transitions (gdstudio #1360): one shared, read-only
+	# list until the clip's record changes.
+	GaitClips.register(STOP, {"frames": 20.0, "contacts": {"l": [[0.0, 10.0]]}})
+	var first := GaitClips.contacts(STOP, "l")
+	assert_array(first).is_equal([[0.0, 0.5]])
+	assert_bool(is_same(GaitClips.contacts(STOP, "l"), first)).is_true()
+	assert_bool(first.is_read_only()).is_true()
+	GaitClips.register(STOP, {"frames": 20.0, "contacts": {"l": [[5.0, 15.0]]}})
+	assert_array(GaitClips.contacts(STOP, "l")).is_equal([[0.25, 0.75]])
+	GaitClips.forget(STOP)
+	assert_array(GaitClips.contacts(STOP, "l")).is_empty()
+
+
 func test_the_lean_is_built_only_with_its_poses_and_follows_the_acceleration() -> void:
+	# The template's own lean poses are in the libraries, so the player has the lean.
+	assert_bool(_animation.gait.lean.is_built()).is_true()
+	# A lean clip missing from the libraries leaves the tree without one.
+	var missing := _settings.duplicate(true) as GaitSettings
+	missing.lean_clips[&"back"] = &"test/Lean_None"
+	_animation.gait_settings = missing
 	assert_bool(_animation.gait.lean.is_built()).is_false()
-	for way: StringName in _settings.lean_clips:
-		var clip := StringName("test/Lean_" + String(way))
-		_give_clip(clip, 0.1, {})
-		_settings.lean_clips[way] = clip
 	_animation.gait_settings = _settings
 	assert_bool(_animation.gait.lean.is_built()).is_true()
 	_animation.set_throttled(true)
@@ -249,5 +265,3 @@ func test_the_lean_is_built_only_with_its_poses_and_follows_the_acceleration() -
 	assert_float(leans.max()).is_greater(0.3)
 	var forward: float = _animation.tree.get(&"parameters/LeanForward/add_amount")
 	assert_float(forward).is_greater(0.0)
-	for way: StringName in _settings.lean_clips:
-		GaitClips.forget(_settings.lean_clips[way])

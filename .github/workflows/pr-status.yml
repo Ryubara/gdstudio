@@ -8,6 +8,7 @@
 #   - the default branch moves (every merge can create a conflict in any other pull request, so all are looked at);
 #   - by hand, for a sweep.
 # GitHub computes a pull request's `mergeable` lazily, so the script asks again until it has an answer, within a bound.
+# An empty, non-JSON or 5xx answer to a read is asked again too (three tries, growing wait) before the job fails.
 #
 # It runs on `pull_request_target`, like pr.yml, so a pull request from a fork gets its labels too (a `pull_request`
 # token is read-only there). That is safe only because pr.yml's four rules hold here as well: the checkout is the

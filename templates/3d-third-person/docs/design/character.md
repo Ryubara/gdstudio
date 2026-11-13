@@ -263,6 +263,12 @@ step (`hinge_passes`, `cone_passes`), so a limb the body lands on stays near a p
 ramp and a ledge in the south (`RagdollLedge`) to run off. The way it is built and tuned is in the kit's
 `docs/engines/godot/ragdoll.md`.
 
+The living walk through the dead: no capsule meets a ragdoll bone, so a pile never slows, lifts, vaults or turns the
+player. The player's `CorpseNudge` node pushes the dead's limbs out of its legs as it goes (sideways from the walk,
+capped at two fifths of the walk's speed, so a sprint moves a body and never throws it); it is a cosmetic, each
+machine's own, never sent. Untick its `enabled` to let the legs pass through; `reach`, `height`, `push_speed`,
+`speed_share` and `lead` tune it live.
+
 ## Vaulting and mantling {#vaulting}
 
 Press jump running at a wall that carries a `Vaultable` and the character vaults over it (0.45 to 1.3 m high and up to
@@ -308,9 +314,10 @@ for a hitscan shot or a blow), `hit_scanned(hit)`, `dry_fired`, `ammo_changed(am
 `stood_up`. A shot on a character finds the body part in its path (`HitZones`, eleven parts with a damage multiplier
 each) and gives the character a `HitRecord` (`take_hit(record)`): its `Health` node takes the health (`max_value`, 100;
 `enabled`) and dies at zero, the ragdoll thrown along the shot from the hit bone; a hit that does not kill makes the hit
-part flinch (`HitReaction`), and a shot on a lying body pushes the bone and leaves a mark on it. The record is all a
-network sends for a hit (`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a blow
-with no point: it takes the health too, stops the character for the stun time and throws it away from the source.
+part flinch (`HitReaction`; its bones keep their lengths through `RagdollLengths`), and a shot on a lying body pushes
+the bone and leaves a mark on it. The record is all a network sends for a hit (`encode()`, about 40 bytes); every peer
+makes the rest. `player.hit(amount, source)` is a blow with no point: it takes the health too, stops the character for
+the stun time and throws it away from the source.
 `player.teleport(spot)` moves it and the camera cuts to it (the camera would otherwise fly there).
 
 ## Animation {#animation}
@@ -457,12 +464,14 @@ each has its own hold: `gameplay/weapon/hold/pistol_slide_rack.tres` (a `SlideRa
 `pistol_slide_rack_male.tres` in `fits`, and `SlideRack.fit()` gives the one solved on the model's file. A rack says
 where the left hand's bone is in the pistol's space on its way over the slide, how its fingers are closed on the
 slide and opened over it, how far the slide travels and at which shares of the clip the hand grips, pulls and lets
-go; what plays the clip reaches the hand there with a `HoldArm`, puts the fingers on with a `HandPoseModifier`
-(`SlideRack.set_fingers()`) and moves the pistol's `Slide` node, as `tests/fixtures/rack_stage.gd` does. On both
+go. A reload of an empty pistol ends with it (kit #1337): the character's `RackLayer` plays the clip as the reload
+clip ends, and the `WeaponHold` (its `rack`) reaches the hand there with a `HoldArm`, puts the fingers on with a
+`HandPoseModifier` (`SlideRack.set_fingers()`) and moves the pistol's `Slide` node from where it stands locked back,
+as `tests/fixtures/rack_stage.gd` drives it on a stage. A shot or a switch cuts it short. On both
 bodies the hands are within the hold's 2 mm and 5 mm on every frame, the index finger's and the thumb's pads on the
 serrations (`tests/gameplay/test_pistol_rack.gd`). The folder's `README.md` has the beats, the numbers, why it is an
 overhand rack and how to build it;
-`tools/capture/rack_closeups.tscn` films it.
+`tools/capture/rack_closeups.tscn` films it, and `tools/capture/rack_live.tscn` films it in the running game.
 
 ### Vault clips {#vault-clips}
 

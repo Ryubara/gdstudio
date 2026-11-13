@@ -2,7 +2,8 @@
 ## rifle (`RifleStage`), each pose from the body's right and from its front, in one frame of a
 ## grid, the pose's name and the stock's depth in the body on each view. The poses are the low
 ## ready and the aim in the idle, a sprint and a crouched walk. With `-- <pose>` (`stand`,
-## `move`) it shows another set of poses.
+## `move`, `pitch`) it shows another set of poses: `pitch` is the aim with the view 45 degrees
+## down, level and 45 up, standing and crouched (kit #1346).
 ##
 ## Record it with Movie Maker through the kit (the frames land where `--write-movie` says):
 ## `gds godot -- --path game --write-movie <folder>/f.png --fixed-fps 10 --quit-after 6
@@ -11,7 +12,8 @@
 ## point). It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node3D
 
-## The poses, one row each: the name, the clip, its time, how far the rifle is up (1 aimed).
+## The poses, one row each: the name, the clip, its time, how far the rifle is up (1 aimed) and,
+## when given, the view's pitch in degrees (up).
 const SETS: Dictionary[String, Array] = {
 	"stand":
 	[
@@ -27,14 +29,26 @@ const SETS: Dictionary[String, Array] = {
 		["crouched, low ready", CharacterClips.CROUCH_IDLE, 0.0, 0.0],
 		["crouched, aimed", CharacterClips.CROUCH_IDLE, 0.0, 1.0],
 	],
+	"pitch":
+	[
+		["idle, aimed 45 down", CharacterClips.IDLE, 0.0, 1.0, -45.0],
+		["idle, aimed level", CharacterClips.IDLE, 0.0, 1.0, 0.0],
+		["idle, aimed 45 up", CharacterClips.IDLE, 0.0, 1.0, 45.0],
+		["crouched, aimed 45 down", CharacterClips.CROUCH_IDLE, 0.0, 1.0, -45.0],
+	],
 }
 const MODELS: Array[String] = ["female", "male"]
 ## The views: the name and where the camera is from the chest, in the body's space (+Z its
-## front, +X its left).
+## front, +X its left); the last is a section through the body at the butt (the hold's `Pivot`),
+## from its right: an orthographic camera just right of the butt's middle, so the arm and the
+## stock's right half are cut away and the pad shows against the torso's outline behind it.
 const VIEWS: Array[Array] = [
 	["right", Vector3(-1.3, 0.05, 0.25)],
 	["front", Vector3(-0.25, 0.05, 1.3)],
+	["right, cut at the butt", Vector3(-0.035, 0.0, 0.0)],
 ]
+## The section's height, in metres.
+const SECTION_SIZE := 0.45
 ## How far apart the figures stand, in metres.
 const SPACING := 40.0
 const FRAME := Vector2i(1920, 1080)
@@ -111,7 +125,7 @@ func _show() -> void:
 	for index in _stages.size():
 		var stage := _stages[index]
 		var pose: Array = _poses[index / MODELS.size()]
-		stage.pose_rifle(pose[1], pose[2], pose[3])
+		stage.pose_rifle(pose[1], pose[2], pose[3], pose[4] if pose.size() > 4 else 0.0)
 	for stage in _stages:
 		await stage.settle()
 	for index in _stages.size():
@@ -130,6 +144,14 @@ func _show() -> void:
 		for view in VIEWS.size():
 			var cell := index * VIEWS.size() + view
 			var camera := _cameras[cell]
-			camera.global_position = chest + facing * (VIEWS[view][1] as Vector3)
-			camera.look_at(chest + facing * Vector3(-0.08, 0.0, 0.15), Vector3.UP)
+			if view == VIEWS.size() - 1:
+				var butt := (stage.hold.get_node(^"Pivot") as Node3D).global_position
+				camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+				camera.size = SECTION_SIZE
+				camera.near = 0.001
+				camera.global_position = butt + facing * (VIEWS[view][1] as Vector3)
+				camera.look_at(butt + facing * Vector3(1.0, 0.0, 0.0), Vector3.UP)
+			else:
+				camera.global_position = chest + facing * (VIEWS[view][1] as Vector3)
+				camera.look_at(chest + facing * Vector3(-0.08, 0.0, 0.15), Vector3.UP)
 			_labels[cell].text += "\nstock %.0f mm in the body" % (found.depth * 1e3)

@@ -231,6 +231,46 @@
    "Sharp: more lean (the trunk 12 degrees forward), a higher knee, the elbows held at a right angle, the hips turn 14 degrees and tip 5, the right arm tighter, later and its shoulder lower.",
    "Not tried: 16 frames a cycle (225 steps a minute, over the range): a contact would be under four frames."
   ],
+  "walk_left": [
+   "Sharp: 1.2 m/s on the forward walk's 26-frame cycle; the hips stay turned 22 degrees toward the step, the open step is 0.77 m and the crossing foot lands 0.27 m past the other, in a lane 0.24 m ahead of it; the chest leans 1 degrees into the step, the forearm trails 1 frames and the chest 1.",
+   "Could not be done: both knees a third toward the step. The leading knee points 46 degrees toward it and the crossing one 6: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0.5, 2.7, 0, 2.6 mm (form_male's thighs meet by 2 at rest). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
+  ],
+  "walk_right": [
+   "Sharp: 1.2 m/s on the forward walk's 26-frame cycle; the hips stay turned 19 degrees toward the step, the open step is 0.82 m and the crossing foot lands 0.22 m past the other, in a lane 0.25 m ahead of it; the chest leans 0.8 degrees into the step, the forearm trails 1 frames and the chest 1.",
+   "Could not be done: both knees a third toward the step. The leading knee points 47 degrees toward it and the crossing one 6: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0, 1.8, 0, 0 mm (form_male's thighs meet by 2 at rest). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
+  ],
+  "jog_left": [
+   "Sharp: 3 m/s on the forward jog's 20-frame cycle; the hips stay turned 26 degrees toward the step, the open step is 1.34 m and the crossing foot lands 0.66 m past the other, in a lane 0.27 m ahead of it; the chest leans 2.5 degrees into the step, the forearm trails 1 frames and the chest 1.",
+   "Could not be done: both knees a third toward the step. The leading knee points 58 degrees toward it and the crossing one 2: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0, 1.8, 0, 0 mm (form_male's thighs meet by 2 at rest). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
+  ],
+  "jog_right": [
+   "Sharp: 3 m/s on the forward jog's 20-frame cycle; the hips stay turned 22 degrees toward the step, the open step is 1.36 m and the crossing foot lands 0.64 m past the other, in a lane 0.27 m ahead of it; the chest leans 2 degrees into the step, the forearm trails 1 frames and the chest 1.",
+   "Could not be done: both knees a third toward the step. The leading knee points 57 degrees toward it and the crossing one 1: with one turn for both, the thighs met by 50 mm as the crossing foot landed. Limbs inside limbs on the four bodies: 0, 1.3, 0, 0 mm (form_male's thighs meet by 2 at rest). The fingers hold their curl: these gaits play while aiming, a weapon in the hands."
+  ],
+  "walk_back": [
+   "Sharp: 1.3 m/s on the forward walk's 26-frame cycle, 0.56 m steps, a foot down 62% of the cycle; the ball of the foot lands with the heel 22 degrees up and the sole is lifted whole; the trunk leans 1 degrees forward, the hips turn 4, the pelvis rises and falls 26 mm; the forearm trails 1 frames.",
+   "Could not be done: the heel leaving last with the toes up (a forward walk played backward). The ball of the foot rose 20 mm inside its declared contact, and no source we could open says which part of the foot leaves last. Limbs inside limbs on the four bodies: 0, 1.7, 0, 0 mm. The fingers hold their curl (a weapon in the hands)."
+  ],
+  "jog_back": [
+   "Sharp: 3 m/s on the forward jog's 20-frame cycle, 1.00 m steps, a foot down 35% of the cycle; the ball of the foot lands with the heel 20 degrees up and the foot leaves over its ball, the heel 22 degrees up; the trunk leans 7 degrees forward, the hips turn 5, the pelvis rises and falls 49.8 mm; the forearm trails 1 frames.",
+   "Not tried: the game's 4.0 m/s. People run backward on shorter strides at a quicker step (2.5 m strides at 5.1 m/s flat out), so the clip is 3.0 m/s on the forward jog's cycle and the tree plays it faster. Limbs inside limbs on the four bodies: 0, 1.5, 0, 0 mm. The fingers hold their curl."
+  ],
+  "lean_left": [
+   "Sharp: the centre of mass 10 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 9.5 degrees, the chest 10.0, the head 0.0, the ankles take what is left; the knees bend 22.8 and 7.0 degrees.",
+   "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 1.6, 0, 0 mm."
+  ],
+  "lean_right": [
+   "Sharp: the centre of mass 10 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 10.5 degrees, the chest 8.5, the head 1.5, the ankles take what is left; the knees bend 6.9 and 33.8 degrees.",
+   "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 1.8, 0, 0 mm."
+  ],
+  "lean_fwd": [
+   "Sharp: the centre of mass 12 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 12.0 degrees, the chest 12.6, the head 2.4, the ankles take what is left; the knees bend 8.3 and 15.9 degrees.",
+   "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 1.9, 0, 0 mm."
+  ],
+  "lean_back": [
+   "Sharp: the centre of mass 8 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 7.2 degrees, the chest 8.0, the head 0.0, the ankles take what is left; the knees bend 6.9 and 17.1 degrees.",
+   "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 2, 0, 0 mm."
+  ],
   "jump_start": [
    "Sharp: a push of 5 frames, the legs straight by frame 1.8 with the toes at 53 and 48 degrees.",
    "The game gives a take-off no frame on the floor (the capsule leaves on the tick of the press at 6.25 m/s), so no variant crouches first: at 0.2 m a frame the feet would be 0.2 to 0.4 m under the capsule."
@@ -479,6 +519,409 @@
   "chest_tip_rest": 1.2,
   "head_turn_rest": 0.8,
   "head_tip_rest": 0.8
+ },
+ "walk_back": {
+  "left": {
+   "toe_out": 5.0,
+   "arm_fore": 12.0,
+   "arm_back": 10.0
+  },
+  "right": {
+   "toe_out": 10.0,
+   "width": 0.092,
+   "arm_fore": 8.0,
+   "arm_back": 7.0,
+   "elbow": 31.0,
+   "arm_out": 10.0,
+   "roll_out": 3.2,
+   "kick_at": 0.43,
+   "arm_at": 1.0,
+   "curl": [
+    30.0,
+    58.0,
+    68.0,
+    74.0,
+    78.0
+   ]
+  },
+  "hip_turn_rest": 0.8,
+  "hip_tip_rest": 0.8,
+  "chest_tip_rest": 1.2,
+  "head_tip_rest": 0.8,
+  "chest_turn_rest": -1.6,
+  "head_turn_rest": 1.2,
+  "hip_turn": 2.0,
+  "hip_tip": 1.8,
+  "counter_turn": 2.5,
+  "bob": 0.022,
+  "kick": 0.03,
+  "carry_height": 0.035,
+  "heel_strike": -22.0,
+  "roll_in": 3.5,
+  "elbow": 28.0,
+  "uneven": 0.4,
+  "lean": 1.0
+ },
+ "walk_left": {
+  "left": {
+   "toe_out": 5.0,
+   "arm_fore": 10.0,
+   "arm_back": 11.0,
+   "ahead": 0.7,
+   "foot_turn": 26.0
+  },
+  "right": {
+   "toe_out": 8.0,
+   "arm_fore": 7.0,
+   "arm_back": 8.0,
+   "elbow": 29.0,
+   "arm_out": 10.0,
+   "roll_out": 5.5,
+   "kick_at": 0.38,
+   "arm_at": 0.52,
+   "curl": [
+    30.0,
+    58.0,
+    68.0,
+    74.0,
+    78.0
+   ],
+   "ahead": 0.28,
+   "foot_turn": 18.0
+  },
+  "hip_turn_rest": 0.8,
+  "hip_tip_rest": 0.8,
+  "chest_tip_rest": 1.2,
+  "head_tip_rest": 0.8,
+  "head_turn_rest": -1.6,
+  "face": 22.0,
+  "hip_turn": 2.5,
+  "hip_tip": 2.0,
+  "kick": 0.035,
+  "carry_height": 0.04,
+  "lean_side": 1.0,
+  "chest_turn_rest": 5.0,
+  "uneven": 0.4,
+  "elbow": 26.0
+ },
+ "walk_right": {
+  "left": {
+   "toe_out": 4.0,
+   "arm_fore": 11.0,
+   "arm_back": 9.0,
+   "roll_out": 6.4,
+   "kick_at": 0.33,
+   "ahead": 0.24,
+   "foot_turn": -16.0,
+   "pass_wide": 0.11,
+   "lane": 0.135
+  },
+  "right": {
+   "toe_out": 9.0,
+   "arm_fore": 6.0,
+   "arm_back": 9.0,
+   "elbow": 30.0,
+   "arm_out": 11.0,
+   "arm_at": 0.52,
+   "curl": [
+    30.0,
+    58.0,
+    68.0,
+    74.0,
+    78.0
+   ],
+   "ahead": 0.74,
+   "foot_turn": -25.0,
+   "pass_wide": 0.07
+  },
+  "hip_turn_rest": 0.8,
+  "hip_tip_rest": 0.8,
+  "chest_tip_rest": 1.2,
+  "head_tip_rest": 0.8,
+  "head_turn_rest": 2.0,
+  "face": -19.0,
+  "hip_turn": 2.5,
+  "hip_tip": 2.0,
+  "kick": 0.035,
+  "carry_height": 0.04,
+  "lean_side": -0.8,
+  "chest_turn_rest": -3.5,
+  "uneven": 0.4,
+  "elbow": 26.0
+ },
+ "jog_back": {
+  "left": {
+   "toe_out": 4.0,
+   "arm_fore": 18.0,
+   "arm_back": 24.0
+  },
+  "right": {
+   "toe_out": 9.0,
+   "width": 0.082,
+   "arm_fore": 13.0,
+   "arm_back": 19.0,
+   "elbow": 90.0,
+   "arm_out": 16.0,
+   "shrug": 1.5,
+   "roll_out": 2.3,
+   "kick_at": 0.43,
+   "arm_at": 1.0
+  },
+  "hip_turn_rest": 0.8,
+  "hip_tip_rest": 0.8,
+  "chest_tip_rest": 1.2,
+  "head_tip_rest": 0.8,
+  "chest_turn_rest": -2.0,
+  "head_turn_rest": 1.2,
+  "hip_turn": 2.5,
+  "hip_tip": 2.0,
+  "counter_turn": 4.0,
+  "bob": 0.045,
+  "kick": 0.08,
+  "carry_height": 0.07,
+  "lean": 7.0,
+  "uneven": 0.4,
+  "elbow": 86.0
+ },
+ "jog_left": {
+  "left": {
+   "toe_out": 4.0,
+   "arm_fore": 20.0,
+   "arm_back": 26.0,
+   "ahead": 0.76,
+   "foot_turn": 28.0,
+   "knee_turn": 30.0,
+   "lane": -0.135
+  },
+  "right": {
+   "toe_out": 7.0,
+   "arm_fore": 15.0,
+   "arm_back": 21.0,
+   "elbow": 85.0,
+   "arm_out": 16.0,
+   "shrug": 1.5,
+   "roll_out": 2.8,
+   "kick_at": 0.39,
+   "arm_at": 0.32,
+   "ahead": 0.2,
+   "foot_turn": 20.0,
+   "knee_turn": -18.0,
+   "lane": 0.135
+  },
+  "hip_turn_rest": 0.8,
+  "hip_tip_rest": 0.8,
+  "chest_tip_rest": 1.2,
+  "head_tip_rest": 0.8,
+  "head_turn_rest": -1.6,
+  "arm_at": 0.3,
+  "face": 26.0,
+  "hip_turn": 4.0,
+  "hip_tip": 2.5,
+  "counter_turn": 4.0,
+  "kick": 0.12,
+  "carry_height": 0.08,
+  "lean_side": 2.5,
+  "chest_turn_rest": 6.0,
+  "uneven": 0.4
+ },
+ "jog_right": {
+  "left": {
+   "toe_out": 3.0,
+   "arm_fore": 21.0,
+   "arm_back": 23.0,
+   "roll_out": 3.2,
+   "kick_at": 0.34,
+   "ahead": 0.18,
+   "foot_turn": -17.0,
+   "knee_turn": 18.0,
+   "lane": 0.135
+  },
+  "right": {
+   "toe_out": 8.0,
+   "arm_fore": 14.0,
+   "arm_back": 22.0,
+   "elbow": 86.0,
+   "arm_out": 17.0,
+   "shrug": 1.5,
+   "arm_at": 0.32,
+   "ahead": 0.78,
+   "foot_turn": -27.0,
+   "knee_turn": -30.0,
+   "lane": -0.13
+  },
+  "hip_turn_rest": 0.8,
+  "hip_tip_rest": 0.8,
+  "chest_tip_rest": 1.2,
+  "head_tip_rest": 0.8,
+  "head_turn_rest": 2.0,
+  "arm_at": 0.3,
+  "face": -22.0,
+  "hip_turn": 4.0,
+  "hip_tip": 2.5,
+  "counter_turn": 4.0,
+  "kick": 0.12,
+  "carry_height": 0.08,
+  "lean_side": -2.0,
+  "chest_turn_rest": -4.0,
+  "uneven": 0.4
+ },
+ "lean_left": {
+  "hips": 0.95,
+  "chest": 1.0,
+  "head": 0.0,
+  "hips_turn": 0.5
+ },
+ "lean_right": {
+  "hips": 1.05,
+  "chest": 0.85,
+  "head": 0.15,
+  "hips_turn": 0.0,
+  "chest_turn": -1.0
+ },
+ "lean_fwd": {
+  "hips": 1.0,
+  "chest": 1.05,
+  "head": 0.2,
+  "chest_turn": 0.5
+ },
+ "lean_back": {
+  "hips": 0.9,
+  "chest": 1.0,
+  "head": 0.0,
+  "nod": 1.0,
+  "chest_turn": -0.5
+ },
+ "overlap_walk_back": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.5,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.15
+  ],
+  "hand": [
+   1.0,
+   0.2
+  ]
+ },
+ "overlap_walk_left": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.5,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.15
+  ],
+  "hand": [
+   1.0,
+   0.2
+  ]
+ },
+ "overlap_walk_right": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.5,
+   0.05
+  ],
+  "upperarm": [
+   1.0,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.15
+  ],
+  "hand": [
+   1.0,
+   0.2
+  ]
+ },
+ "overlap_jog_back": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.0,
+   0.05
+  ],
+  "upperarm": [
+   0.8,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.15
+  ],
+  "hand": [
+   1.0,
+   0.2
+  ]
+ },
+ "overlap_jog_left": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.0,
+   0.05
+  ],
+  "upperarm": [
+   0.8,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.15
+  ],
+  "hand": [
+   1.0,
+   0.2
+  ]
+ },
+ "overlap_jog_right": {
+  "chest": [
+   1.0,
+   0.0
+  ],
+  "head": [
+   1.0,
+   0.05
+  ],
+  "upperarm": [
+   0.8,
+   0.1
+  ],
+  "forearm": [
+   1.0,
+   0.15
+  ],
+  "hand": [
+   1.0,
+   0.2
+  ]
  },
  "jump_start": {
   "frames": 5,

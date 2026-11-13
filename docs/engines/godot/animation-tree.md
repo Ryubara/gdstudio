@@ -227,6 +227,21 @@ again every frame, so a body that crouches or stands during the stun gets its ne
 went from 0.47 m to 0.88 m for each hit before and stays within 6 cm after; lying, from 0.18 m to 0.88 m
 (`tests/gameplay/test_hit_stance.gd`, the capture `tools/capture/stance_hit_tour.tscn`; gdstudio #1292).
 
+The clip is also made empty-handed, so with a weapon held (the weapon layer's grip on) the filter leaves the arms out
+(`clavicle_l`, `clavicle_r` and below) and the arms keep the weapon layer's pose while the trunk and head flinch; and
+because the stun takes the aim away, the drawn arm is held up through it (`AimBrace.Driver.hold_up()`, the shot hold's
+mechanism) while the gameplay aim stays off. Before, an aimed pistol swung 0.7 m from its aim to the hip for every hit
+(the hand measured in the clavicle's space); after, under 5 cm (`test_an_aimed_pistol_stays_up_while_hit`, the capture
+`tools/capture/enemy_pose_tour.tscn`; gdstudio #1345).
+
+- **Approach:** Before playing a whole-body clip on the upper body alone, compare the clip's turn of the bones above
+  the filter (the root and the pelvis) with the locomotion's, and turn the first spine bone by the difference in a
+  modifier eased with the action (3D Third Person's `UseTurn`, made by `UseLayer`); capture it from in front. **Watch
+  out for:** `ual2/Consume` turns the root and hips 28 degrees and the spine 34 back; filtered from `spine_01` down,
+  only the spine's turn was left, the chest swung 28 degrees off and the hand that reaches the face in the clip
+  reached out to the side. Reading `get_bone_global_pose()` from a script did not show the modifier's turn; the
+  capture did. **Seen:** gdstudio #1342, 2026-11-12.
+
 - **Approach:** For every movement state (walk, run, sprint, crouch, air), list what each body layer plays and capture
   it from the player's camera; a layered rig never leaves a layer in a pose meant for another state. **Watch out for:**
   a sprint is a whole-body action, but the legs played `Run` while the upper layer kept looping `Aim_<Class>`, so arms
@@ -245,6 +260,14 @@ went from 0.47 m to 0.88 m for each hit before and stays within 6 cm after; lyin
   lying character stood up for the stun and popped down after it, bobbing under fire while its capsule and hit zones
   stayed low; the existing test only checked that the hit clip was the one asked for. **Seen:** gdstudio #1292,
   2026-11-11 (found filming the pistol's shot in #1280; fix: `HitLayer`, as above).
+- **Approach:** Give a whole-body action a rule per hand state too: a clip made empty-handed leaves the arms to the
+  weapon layer while a weapon is held, and anything the action's stun turns off (the aim) is held in the drawn pose
+  for its length. Test the gun hand in its shoulder's space through the action, not only that the clip played.
+  **Watch out for:** the action one-shot sits above the weapon layer, so `ual1/Hit_Chest` replaced the held pistol's
+  arms with its own hanging ones, and filtering the arms alone still dropped the gun, because the stun had also taken
+  the aim to 0. A pose log of every AI character's layers from a seeded soak (`tools/soak/ai_pose_log.tscn`) traced the
+  playtest's frames to their clips. **Seen:** gdstudio #1345, 2026-11-12 (enemies' arms hanging while hit; fix: the
+  arms left out of the hit filter and the arm held up, as above).
 
 ## Two clips half a turn apart on a bone {#two-clips-half-a-turn-apart-on-a-bone}
 
@@ -338,6 +361,13 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   the whole new pose arrived a frame later unblended (the arms 20 degrees in a tick, a bone up to 1.8 radians in a
   crouch); its test read `largest_offset()`, which stayed small, and passed. **Seen:** gdstudio #1369, 2026-11-12
   (fix: `_again` in `momentum_blend.gd`; `test_the_arms_float_through_a_played_jump`).
+- **Approach:** Set every `AnimationNodeSub2`'s `sub_amount` (and every `Add2`'s `add_amount`) on the tree after
+  building it, and test an additive layer with the real poses at full weight on the real tree: the head goes the
+  pose's way, the feet and the `ik_` targets stay on their limbs. **Watch out for:** both amounts are tree parameters
+  that start at 0; the lean set `add_amount` each tick and never `sub_amount`, so each difference was the whole lean
+  pose and the tree added it over the gait (a hand rose 0.3 m, the targets moved 0.7 to 0.9 m, the feet 24 to 43 mm),
+  while a stand-in clip of the test's own showed nothing. **Seen:** gdstudio #1159, 2026-11-12 (`gait_lean.gd` sets
+  the differences once a built tree; `test_own_directions.gd`'s player lean test).
 - **Approach:** Start a transition clip only while the character's own state is one the transition plays over
   (standing, walking, running), and end one that plays when the state leaves those; test the tree with real clips
   in the libraries, not only made-up ones in a test library. **Watch out for:** a push, a vault or a hit begins on a
