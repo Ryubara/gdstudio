@@ -228,7 +228,8 @@ static func _after_move(body: Character, wish: Vector3) -> void:
 
 # `Character._use_weapon()` with no switch and no reload asked for and the body up: the fire buffer
 # counts, a press fills it, and the shot leaves once the aim is up; the trigger held on an automatic
-# weapon pulls on the ticks it is held (`Character._trigger_held`).
+# weapon pulls on the ticks it is held (`Character._trigger_held`), and a burst under way pulls
+# until it ends.
 static func _trigger(body: Character, delta: float) -> void:
 	body._fire_buffer = maxf(body._fire_buffer - delta, 0.0)
 	var weapon := body.weapon
@@ -238,7 +239,10 @@ static func _trigger(body: Character, delta: float) -> void:
 	weapon.spread_share = 1.0
 	if body.fire_press(command):
 		body._fire_buffer = body.tuning.fire_buffer_time
-	var wanted := body._fire_buffer > 0.0 or body._trigger_held(command)
+	var burst := weapon.bursting
+	var wanted := body._fire_buffer > 0.0 or body._trigger_held(command) or burst
 	if wanted and body.aiming and body.aim_amount >= body.tuning.shot_aim_amount:
-		if weapon.pull(body._aim_origin(), body._aim_direction()) != Weapon.Pull.BUSY:
+		if weapon.pull(body._aim_origin(), body._aim_direction()) != Weapon.Pull.BUSY and not burst:
 			body._fire_buffer = 0.0
+	elif burst:
+		weapon.bursting = false

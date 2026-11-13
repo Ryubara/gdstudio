@@ -5,7 +5,7 @@ extends Resource
 ## hooks its fingers on the latch, pulls the `Bolt` node back by `travel`, lets it go (the bolt
 ## runs home alone, where the bolt's sound plays) and goes back under the hand guard. `TwoHandHold`
 ## asks it, by the weapon's reload progress, where the left hand's bone is (`hand_place()`), how
-## the fingers lie (`set_fingers()`, with `third` on the `HandPoseModifier` closed on the handle)
+## the fingers lie (`finger_weights()`, with `third` on the `HandPoseModifier` closed on the handle)
 ## and how far back the bolt is (`bolt_pull()`). The hand's place on the handle is the hold's
 ## `ChargeHand` marker and its fingers the hold's `charge_pose`, both solved on each body by
 ## `tools/hold/solve_rifle_hold.py` (a `HoldFit` holds another body's). The last leg, from under
@@ -48,9 +48,11 @@ func holds_way(progress: float, home: float) -> bool:
 ## the hold's fingers and its last leg (`way`: the shares of that way where the fingers are open,
 ## where the hand is beside the magazine and where it is under the hand guard): on the magazine
 ## until the hand lets go of the handle, then from open to beside the magazine and on to under the
-## hand guard by `home`, as the hand passes those places, then onto it by `rest` (the hold's
-## `reload_return`). Below 0 before the pull's way.
-func to_magazine(progress: float, way: Vector3, home: float, rest: float) -> float:
+## hand guard by `home_rest.x`, as the hand passes those places, then onto it by `home_rest.y`
+## (the hold's `reload_return`). Below 0 before the pull's way.
+func to_magazine(progress: float, way: Vector3, home_rest: Vector2) -> float:
+	var home := home_rest.x
+	var rest := home_rest.y
 	if progress < leave.x:
 		return -1.0
 	if progress < release.y:
@@ -100,20 +102,17 @@ func hand_place(
 	return start.interpolate_with(leg[1], smoothstep(shares.x, shares.y, progress))
 
 
-## Puts the fingers for the pull's first part on the left hand's `fingers` (pose: the support
-## pose, `second` the magazine's, `open` the opened hand, `third` the hand closed on the handle):
-## on the magazine, opened as one off it, closed on the latch and opened again. After `release.y`
-## the hold's own fingers take over (`to_magazine()`); outside the pull `third` is off.
-func set_fingers(fingers: HandPoseModifier, progress: float) -> void:
+## The left hand's finger weights through the pull's first part (pose: the support pose, `second`
+## the magazine's, `open` the opened hand, `third` the hand closed on the handle): on the magazine,
+## opened as one off it, closed on the latch and opened again. `own` is the hold's own (`second`,
+## `open`, `open_together` as 0 or 1, `third`), given back with `third` 0 outside the first part.
+func finger_weights(progress: float, own: Vector4) -> Vector4:
 	if progress < leave.x or progress >= release.y:
-		fingers.third_weight = 0.0
-		return
-	fingers.second_weight = 1.0
-	fingers.open_together = true
-	fingers.open_weight = smoothstep(leave.x, leave.y, progress)
-	fingers.third_weight = (
+		return Vector4(own.x, own.y, own.z, 0.0)
+	var closed := (
 		smoothstep(grip.x, grip.y, progress) * (1.0 - smoothstep(release.x, release.y, progress))
 	)
+	return Vector4(1.0, smoothstep(leave.x, leave.y, progress), 1.0, closed)
 
 
 ## Whether the hand's fingers are closed on the handle at a share of the reload.

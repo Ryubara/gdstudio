@@ -16,6 +16,7 @@ const HOLD_PINS := {
 	&"butt_pad": Vector2(0.062, 0.145),
 	&"butt_depth": 0.16,
 	&"butt_margin": 0.01,
+	&"push_level": 1.0,
 	&"skin_spacing": 0.03,
 	&"reach_turn": 55.0,
 	&"pitch_limit": 60.0,

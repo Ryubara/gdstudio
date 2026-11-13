@@ -30,12 +30,12 @@ def test_no_length_outside_the_api_range_is_requested(data):
         sfx.request_cost(data, 31.0)
 
 
-def test_the_plan_of_the_set_is_4768_credits_and_inside_the_budget(data, tmp_path):
+def test_the_plan_of_the_set_is_4960_credits_and_inside_the_budget(data, tmp_path):
     # The effects (3900, #1083), the menu sounds (708, #1100) and the weapon pickup (160, #889), asked again from an
     # empty cache.
     rows = sfx.plan_rows(data, tmp_path)
-    assert sum(r["credits"] for r in rows) == 4768
-    assert sfx.check_budget(data, tmp_path, rows) == (0, 4768)
+    assert sum(r["credits"] for r in rows) == 4960
+    assert sfx.check_budget(data, tmp_path, rows) == (0, 4960)
     assert data["budget"] <= 5000
 
 

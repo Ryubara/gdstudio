@@ -20,7 +20,8 @@ Found building Deadnight's muzzle flash, bullet impacts and camera shake in Godo
 
 - **In the 3D Third Person template the flash is an `EffectDef`** played on the weapon's `Muzzle` marker by the level's
   pooled `EffectEmitter` ([Effects](third-person-template.md#effects)): a star (one `flash_star.gdshader` quad drawn
-  by a one-shot `CPUParticles3D`, scaled and faded by the particle), a few short sparks and a 0.06 s light, so the same
+  by a one-shot `CPUParticles3D`, scaled and faded by the particle), a few short sparks and a 0.04 s light ([the
+  flash's light](#flash-light)), so the same
   rules apply (additive, no depth write, one light at a time on the map) and the emitter caps the lights. The marker's
   -Z is the flash's direction, a scaled marker does not scale it, and the weapon switches it off or resizes it.
 - **Approach:** Size a flash against the weapon in a slow-motion capture from the game camera (`Engine.time_scale` 0.12
@@ -28,6 +29,53 @@ Found building Deadnight's muzzle flash, bullet impacts and camera shake in Godo
   m across, was larger than the pistol it came from and, additive over a purple body, read pink; at 0.2 m with a
   brighter core it reads as a flash. A flash that lasts 0.07 s is one frame at 10 fps and none at 60 in a still
   capture. **Seen:** gdstudio #888, 2026-11-10.
+
+## The flash's light {#flash-light}
+
+<!-- new section: the muzzle flash section sized the star; nothing said how bright, how far or how long its light
+     should be, and the rifle's light turned shadowed walls orange (gdstudio #1341) -->
+
+A muzzle flash's light is a cue that a shot went off, not a lamp: it brightens what is within a metre or two for a
+frame or two and leaves every surface its own colour. Measured in 3D Third Person (a shadowed wall 0.72 m from the
+rifle's muzzle, and in the open; `tools/capture/muzzle_light_tour.tscn` draws each lit frame again without the light
+and compares, by [the method](measuring-effects-on-screen.md#method)):
+
+| Light | Renderer | Wall: screen lit | Wall: luma gain | Wall: hue turned >20° | Wall: clipped | Open: lit | On, 10 shots/s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2.5 energy, 3.5 m (4.0 on the rifle), attenuation 1, 0.06 s, orange (1, 0.72, 0.38) | Forward+ | 87 % | 3.7x | 76 % | 6.1 % | 16 % | 62 % |
+| the same | Compatibility | 87 % | 4.7x | 75 % | 2.8 % | 21 % | 62 % |
+| 0.3 energy, 2.5 m (2.9), attenuation 0.5, 0.04 s, warm white (1, 0.95, 0.88), alone | Forward+ | 71 % | 2.4x | 0.1 % | 0 | 0.9 % | 37 % |
+| the same | Compatibility | 71 % | 2.8x | 0.2 % | 0 | 3.6 % | 37 % |
+
+- **The colour sets the hue, the energy the brightness.** A shadowed wall's colour is the sky's blue ambient on its
+  albedo; a coloured light much brighter than that ambient replaces its hue. A near-white light only brightens it
+  (adding the same to each channel keeps the hue), so the flash's warmth belongs to the star, not the light. Lowering
+  the energy alone (0.8, then 0.5, still orange-ish) left 43 to 49 % of the pixels' hue turned; the near-white colour
+  took it under 1 %.
+- **Attenuation below 1 for a light at the muzzle.** Godot's omni falloff (the same in Forward+ and Compatibility) is
+  `energy * d^-attenuation * (1 - (d/range)^4)^2`: at attenuation 1 a wall 0.25 m from the muzzle gets four times what
+  one at 1 m gets, and a muzzle is often that close to a wall; at 0.5 it gets twice. `EffectDef.light_attenuation`
+  sets it (Godot's default, 1, for every other effect).
+- **One flash light at a time, short.** At 10 shots a second a 0.06 s light was on 62 % of a burst; at 0.04 s, 37 %.
+  `EffectDef.light_alone` lets a new shot take the light over from the one before, so a weapon faster than one shot
+  per `light_time` never stacks two lights on one wall (Forward+ drew about 90 fewer draw calls a frame at 30 shots a
+  second with it).
+- **Compatibility brightens the same light more** (4.7x against 3.7x before, 2.8x against 2.4x after): judge it in
+  both renderers, and in Compatibility for the web.
+- **Cost.** Desktop (1080p, both renderers): frames with and without the light within 0.1 ms, before and after. Web
+  (headless Chrome, `effects_cost` through [bench-web](web-probes.md#bench-web), probed A B A B): every run's mean
+  frame 5.11 to 5.15 ms, light or none, before or after (the frame is paced, so the light costs under about 0.03 ms
+  there), and no program linked after the warm-up (`light_attenuation` builds no new shader variant).
+- **Tests.** `tests/gameplay/test_muzzle_flash_light.gd` holds the budget: peak energy at most 0.5, reach at most 3 m,
+  on time at most 0.05 s a shot, colour saturation at most 0.15, the light a wall gets at 1 m and at 0.25 m (by the
+  falloff above), and a 2 s burst at the rifle's rate and at 30 a second with never two lights and, at the rifle's
+  rate, the light on at most half the time.
+
+- **Approach:** Judge a flash light on a shadowed surface next to the muzzle, from the game camera, in both renderers,
+  by drawing the frame again without it; keep the light near white, short and weak, with attenuation below 1, and let
+  the colour come from the star. **Watch out for:** a warm 2.5-energy light at Godot's default falloff, judged in the
+  open where the sun drowns it, turned a shadowed wall 0.72 m away solid orange (hue turned on 76 % of the screen), and
+  at 10 shots a second it was on 62 % of the time. **Seen:** gdstudio #1341, 2026-11-12.
 
 ## Impacts {#impacts}
 

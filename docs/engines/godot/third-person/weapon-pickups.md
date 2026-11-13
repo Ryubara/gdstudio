@@ -46,7 +46,9 @@ weapon back), `test_rifle_hold.gd` ([the rifle in both hands](#rifle-hands)) and
 the sprint and the slide with the rifle are the same fresh, after a switch, after a burst, after a reload and after
 going unarmed, and the pistol's run the same after the rifle, on both bodies; `tools/capture/rifle_run_tour.tscn`
 films it from the game camera with a side view, and with `RUN_STAGES=directions` the sprint in every direction and a
-reload on it) and `test_rifle_sprint_carry.gd` ([the sprint](#rifle-hands)). Captures:
+reload on it), `test_rifle_sprint_carry.gd` ([the sprint](#rifle-hands)) and `test_rifle_draw_trunk.gd` (no spine bone
+past `chest_turn` and the head within 15 degrees of the front through a pickup and a switch to the rifle, standing, out
+of a run and a sprint, on both bodies, kit #1327). Captures:
 `tools/capture/rifle_tour.tscn` from the game camera (the floating rifle, taking it, the low ready, a walk, the aim, a
 burst, the aim up and down, the reload, hip fire, a crouch, a switch to the pistol and back) and
 `tools/capture/rifle_hands.tscn` (six close-ups at once in every state).
@@ -100,7 +102,13 @@ are named as such.
   chest: the gun then goes forward along its barrel until no point of the torso's skin is inside the butt
   (`butt_pad` 6.2 by 14.5 cm, `butt_depth` 16 cm along the stock, `butt_margin` 1 cm), the skin being points over the
   body's own torso triangles on the rest pose, one a `skin_spacing` (3 cm) cell and each ridden by its nearest
-  corner's main bone, so the butt comes to the skin of whichever body holds it (kit #1177). The chest stands turned
+  corner's main bone, so the butt comes to the skin of whichever body holds it (kit #1177). While the muzzle is down
+  the butt comes out of the pocket level, not along the barrel (`push_level`, 1; kit #1346): along a barrel 45
+  degrees down the move slides the butt down the chest, so it was 143 mm (female) and 161 mm (male) from the pocket
+  before the stock's toe was clear, against 63 and 72 aimed level, and sat on the breast, not the shoulder; out
+  level it is 89 and 107 mm, the stock still clear of the torso. Aimed up the barrel's way stays (the push is 3 to
+  41 mm there). The push is the least move no skin point forbids, so skin ahead of the stock that the move brings
+  back along it counts too. The chest stands turned
   `chest_turn` (-30 degrees) from the model's front: `two_hand_stance.gd` takes the clip's own turn of the chest off
   first, so a walk or a run that swings the shoulders keeps the left shoulder forward, and turns the head back by what
   it turned the chest, so the head keeps the facing the locomotion clip gives it (kit #1333); while the gun is up a
@@ -171,6 +179,9 @@ are named as such.
   the chest's turn eases off ([Using something with a weapon in the hands](interact.md#interact-held)). The torso's
   skin the butt meets is a class of its own since then (`gameplay/weapon/hold/torso_skin.gd`, `TorsoSkin`), moved out
   of `two_hand_hold.gd` at the 1000 lines a script may have.
+- **A melee blow** keeps both hands on the rifle: its clip carries the rifle on the right hand while it plays and the
+  hold's chest turn and shoulder reach ease off by the clip's share (`HoldBlow`,
+  [melee](melee.md#melee)).
 
 The body under the hold is the rifle's own clips (kit #1082, the library `rifle`): `rifle.tres` names
 `Rifle_Idle` as the grip clip on `spine_01` and all under it, the three aims, `Rifle_Shoot` added on top of the aim
@@ -183,48 +194,8 @@ first). The
 left arm's way to the charging handle and its pull are the hold's `ChargePull`, ported to the build's `Hold`
 (kit #1266).
 
-- **The charging handle** (kit #1266, `gameplay/weapon/hold/charge_pull.gd`, the hold's `charge`). After the new
-  magazine is seated the left hand comes off it the way it came on with its fingers opening as one
-  (`leave`, 0.63 to 0.69 of the reload), goes up the rifle's left side to 8 cm left of the handle (`reach`, to
-  0.77), comes onto the `ChargeHand` marker as its fingers close on the latch (`grip`, to 0.80: the
-  `HandPoseModifier`'s `third` pose, the hold's `charge_pose`), pulls the `Bolt` node back its `travel` of 6 cm
-  (`pull`, to 0.86, the bolt's sound, moved there from 0.88), lets go out to the left while the bolt runs home in
-  `slam` (`release`, to 0.88), goes forward beside the magazine and under the hand guard by `reload_return.x`
-  (0.94) and onto it by 0.98, the hold's own last leg, its fingers following the hold's own way back from where
-  they are open. The far level's `Bolt` moves with the near one, and a reload cut off puts the bolt home. A hold
-  with no `charge`, `ChargeHand` or `charge_pose` keeps the straight way back.
-- **How the handle is held.** The model's latch was a 1.4 cm bar within the stock's width with its rear face on
-  the stock's front, so no finger fitted in front of it and a pull ran it into the stock: `build_rifle.py` now
-  runs the handle 5 mm higher (`BOLT_Z`, 1 mm over the stock's top) and gives the latch an extended left side, the
-  bar 2.2 cm past the stock and a tab dropping beside it (3.2 cm tall, 3 mm clear of the stock). The hand is left
-  of the stock with the palm toward the shooter, the index finger hooked round the bar's front and the middle
-  finger round the tab's, the ring and little fingers curled clear and the thumb bent in, tilted 25 degrees
-  (fingers up, toward the forearm from the low elbow). `solve_rifle_hold.py` solves it on each body (`charge`)
-  against the `Bolt` part for the touch and against the rest of the rifle at three shares of the pull, so the
-  hand riding the handle stays off the stock; `write_hold.gd` writes `ChargeHand` and `rifle_charge_pose.tres`,
-  or the male's `charge_hand` and `charge_pose` in his fit. While it holds (0.80 to 0.86, every half hundredth,
-  against the rifle with the bolt where it is): female 0.8 to 0.9 mm in and the fingertips 0.9 mm off at most,
-  male 1.1 mm in and 3.1 mm off; on the way the hand passes 1.2 mm (female) and 5.1 mm (male) through the rifle
-  at most. Captures: `tools/capture/rifle_charge_closeups.tscn` (from the rifle's left, above, the front and
-  left, and the player's camera, at the reach, the grip, the pull's end and the release, both bodies).
-
-- **Approach:** Give a hooking finger a bend in the solver's cost, not only a touch, and look at the hand from
-  the weapon's side before the numbers. **Watch out for:** with only the tips held on the latch the solver laid
-  the index and middle fingers straight across its front, and the close-up read as a hand poking the handle
-  with a thumb standing out like a spike, though every contact passed. **Seen:** gdstudio #1266, 2026-11-12
-  (fix: `hook` and `thumb_rest` cost a straight joint).
-- **Approach:** Put the place a hand ships at in the solver's `MOVES` for each body, so a solve with no option
-  writes the shipped numbers again, and check it by solving once with no option and comparing with the files.
-  **Watch out for:** a place found with `--charge=` and left out of `MOVES` is lost at the next merge: a fit
-  file the solver writes is taken from main and solved again, and the plain solve put the charge hand 25 degrees
-  off and 7 cm from where it shipped. **Seen:** gdstudio #1370, 2026-11-12 (the charge's 25-degree tilt moved
-  into `MOVES` for every body; both bodies' solves then matched the shipped files exactly).
-- **Approach:** Route a hand's way between two places on opposite ends of a long gun through a place beside it
-  (the magazine's `beside`), and measure the way every half hundredth against the gun as it is then (the bolt
-  back or home). **Watch out for:** the straight way from the handle's let-go to under the hand guard went 13 to
-  29 mm through the receiver's left side, and the thumb 13.6 mm through the hand guard until the fingers' share
-  of the hold's way matched the places the hand passed (`to_magazine` at `_WAY_BESIDE` beside the magazine).
-  **Seen:** gdstudio #1266, 2026-11-12 (`home_beside`).
+- **The charging handle**: after the new magazine the left hand pulls it (kit #1266, `ChargePull`), on
+  [its own page](rifle-charge.md#rifle-charge).
 
 Measured on the skinned mesh against the rifle (`HandContact`, the same in every clip, since the fingers are absolute
 and the arms reach their places), on the prototype bodies:
@@ -245,8 +216,11 @@ the rifle, measured every half hundredth, which is the test's step too (it caps 
 
 Tests, `tests/gameplay/test_rifle_hold.gd` with `tests/fixtures/rifle_stage.gd` (a mannequin and the hold posed by
 hand): both hands within the 2 mm and 5 mm in six locomotion clips at the low ready and aimed, and with the view 30
-degrees up and down, on both bodies, the right palm and thumb among the holding parts; in the same poses no point of
-the rifle more than 10 mm in the torso (`test_the_stock_stays_out_of_the_chest`); the index finger within
+and 45 degrees up and down, on both bodies, the right palm and thumb among the holding parts; in the same poses no
+point of the rifle more than 10 mm in the torso (`test_the_stock_stays_out_of_the_chest`); every 15 degrees from 45 down
+to 45 up, standing and crouched, the butt within 20 mm of the torso's skin and no more than 50 mm farther from the
+pocket than at the level aim (`test_the_butt_stays_on_the_shoulder_through_the_pitch_range`; along the barrel it was
+56 to 89 mm farther); the index finger within
 12 mm of `Trigger` only while the rifle is up and more than 20 mm from it otherwise; the reload every half
 hundredth; and on
 the live player with simulated input, every update of idle, walk, sprint, aim, fire, crouch and crouched walk, the
@@ -290,6 +264,22 @@ groups of an 8 cm cell under each bone with a box round each group and each bone
 the shoulder reaches for the gun where the last frame's push had it and the push is measured once after it, again
 only when it moved more than 3 mm (a new pose); the reach's angle is worked out in closed form; every pose comes
 from the local ones; past `fingers_far_distance` the last near push is kept.
+
+Cut again (kit #1347), the same bench, the branch and `main` in turns, two rounds a body (microseconds a character a
+frame, female / male): the rifle at the ready 39 / 36 against 54 / 54, low 39 / 36 against 51 / 55, reloading 46 / 42
+against 62 / 57, past `fingers_far_distance` 25 / 22 against 33 / 33; the pistol carried and aimed as they were (10 /
+10 and 19 / 16 against 9 / 9 and 19 / 18). A build from before the stock fix (after kit #1289), in the same session,
+read 31 / 32, 29 / 27 and 38 / 36, so the push and the shoulder's reach still cost 6 to 9 more than the hold did
+before them. Every bone came out within 2.3 micrometres of `main` in 36 poses (both bodies, six clips, up and down,
+four shares of a reload). What cut it, in order of what it saved: the small helpers written out at their callers
+(the web build pays more for a GDScript call than for a line, [what a line costs](../gdscript.md#web-cost)), the push
+turning each group's points by one engine call (`Transform3D * PackedVector3Array`, `AABB.has_point`) and meeting the
+groups' boxes in the bone's space, the stance handing `place()` the spine's top pose (`HoldBones`), what is written to
+the modifiers kept and written only when it changes (`HoldWeights`), the trigger finger set straight to its pose when
+it is all the way on, and no pull worked out while `pull_limit` is 0. With the butt's push along `push_level`'s way
+(kit #1346) merged in, the push along it (`TorsoSkin._push_along()`) takes the same three speedups; the low ready aims
+the barrel down and takes that way, so most of its cost is the new push: on a busy machine 72 / 119 against 79 / 119,
+where the ready went 50 / 74 against 70 / 93 and the reload 54 / 82 against 75 / 103.
 
 The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
 body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
@@ -358,7 +348,16 @@ stock test's 10 mm.
   counters the shoulders' swing in the neck, so with the chest held at `chest_turn` the head swung 109 degrees at
   every stride; turning `neck_01` back put its collar skin 12 to 24 mm into the stock in the crouch. Since #1267 the
   rifle's own idle holds the upper body, so little swing is left (head 1.8 degrees, 1.0 with the turn back).
-  **Seen:** gdstudio #1333, 2026-11-12 (fix: `two_hand_stance.gd` turns `Head` back; `test_rifle_hold.gd` green).
+  **Seen:** gdstudio #1333, 2026-11-12 (fix: `two_hand_stance.gd` turns `Head` back; `test_rifle_hold.gd` green);
+  gdstudio #1327, 2026-11-12 (the same missing turn back was the head's 77 degrees in the rifle's draw).
+- **Approach:** Before fixing a pose fault seen in a capture, probe it frame by frame on today's main and on the
+  commit it was seen on (`gds template game` in a detached worktree), each spine bone's turn from the front after
+  every modifier, and name what cured which part. **Watch out for:** the stance takes the gap to `chest_turn` off in
+  even thirds over `spine_01` to `spine_03`: under the library run's stop the clip's chest stood 47 degrees left, so
+  `spine_02` stood 42 right and the head, riding the chest, 77 (the draw's three frames). Kit #1333 cured the head,
+  our run loops (#1275, 7 degrees of swing) the spine; a wider clip brings it back (gdstudio #1379).
+  `test_rifle_draw_trunk.gd` holds it: 30.0 and 7.2 at most on main, 43.6 and 80.9 on the old commit. **Seen:**
+  gdstudio #1327, 2026-11-12 (gone on main; the test keeps it gone).
 - **Approach:** Sample a skin for a run-time contact over its triangles at the spacing you thin to, not at its
   vertices alone, take only the nearest level of detail (`CharacterBodies.near_meshes`), and measure again on every
   body the template wears when the bodies change. **Watch out for:** the push to the skin was built on the
@@ -450,6 +449,13 @@ stock test's 10 mm.
   one grip view (swung 125 degrees left) showed only the thumb's side, with the trigger finger, which the capture
   was made for, behind the receiver. **Seen:** gdstudio #1036, 2026-11-11 and 2026-11-12 (fix: a view swung 90
   degrees right for the trigger finger and one 80 degrees left for the support thumb).
+- **Approach:** Sweep a hold through the game's whole aim range on every body (every 15 degrees, 45 down to 45 up)
+  and choose the way a contact moves a part out, not only how far: a way along the skin needs more travel and
+  slides the part off its place. Film a section at the contact. **Watch out for:** pushed along the barrel, the butt
+  slid down the chest at 45 degrees down while the tests, aimed 30, passed; the rifle's own stock sections put the
+  male's stock 12 mm in, as a skin thinned to a point a 3 cm cell lets a tight shape between its points; a level way
+  aimed up made the push jump on a walk (`test_aim_head.gd`, 0.71 degrees a frame). **Seen:** gdstudio #1346,
+  2026-11-12 (fix: `push_level` while the muzzle is down; `rifle_stock.tscn -- pitch`).
 - **Approach:** Make the test of a moving hand step as finely as the scan that found its faults (half a hundredth
   of the reload here), and give each finger the order that suits the part: knuckles first off a part the fingers
   are hooked over, all joints together onto a part they close round. **Watch out for:** at steps of 2 hundredths

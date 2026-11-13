@@ -11,6 +11,12 @@ extends RefCounted
 const _SKIN_CHUNK := 0.08
 ## Where round the chest bone (on the rest pose, +X its left) the torso's skin can meet the stock.
 const _SKIN_REGION := AABB(Vector3(-0.32, -0.2, 0.0), Vector3(0.47, 0.5, 0.3))
+## How far ahead of the stock a point of the skin is still looked at when the gun goes another way
+## than its barrel, in metres: the move brings the skin ahead back along the stock (longer than
+## any push the arms reach).
+const _PUSH_MOST := 0.25
+## The least share of a move along the barrel: the hold's pitch limit keeps it over 0.5.
+const _LEAST_ALONG := 0.1
 
 # Each point in its main bone's rest space, in groups (a cell of `_SKIN_CHUNK` under one bone):
 # the points of group `i` run from `_skin_starts[i]` to the next start, inside `_skin_boxes[i]`,
@@ -18,11 +24,20 @@ const _SKIN_REGION := AABB(Vector3(-0.32, -0.2, 0.0), Vector3(0.47, 0.5, 0.3))
 var _skin_points := PackedVector3Array()
 var _skin_starts := PackedInt32Array()
 var _skin_boxes: Array[AABB] = []
+# The points of each group as an array of their own, turned into the gun's space by one call a
+# group rather than one a point (kit #1347).
+var _group_points: Array[PackedVector3Array] = []
 # The bones the groups ride, in the groups' order: each bone's index, the box round all its
 # points and its first group (one more entry ends the last).
 var _torso_bones := PackedInt32Array()
 var _torso_boxes: Array[AABB] = []
 var _torso_starts := PackedInt32Array()
+# For each of those bones, the place in them of its parent (below 0: its parent is none of them),
+# and its pose of the push being worked out: a bone under another of them takes that one's pose
+# and its own local one, not every pose up to the root again (kit #1347).
+var _torso_up := PackedInt32Array()
+var _torso_posed: Array[Transform3D] = []
+var _torso_parents := PackedInt32Array()
 
 
 ## Keeps a thinned set of the torso's skin, each point in its main bone's rest space, for the butt
@@ -34,9 +49,12 @@ func measure(
 	_skin_points = PackedVector3Array()
 	_skin_starts = PackedInt32Array()
 	_skin_boxes.clear()
+	_group_points.clear()
 	_torso_bones = PackedInt32Array()
 	_torso_boxes.clear()
 	_torso_starts = PackedInt32Array()
+	_torso_up = PackedInt32Array()
+	_torso_posed.clear()
 	if chest < 0:
 		return
 	var origin := skeleton.get_bone_global_rest(chest).origin
@@ -139,6 +157,14 @@ func measure(
 		_skin_boxes.append(box)
 	_skin_starts.append(_skin_points.size())
 	_torso_starts.append(_skin_boxes.size())
+	for group in _skin_boxes.size():
+		_group_points.append(_skin_points.slice(_skin_starts[group], _skin_starts[group + 1]))
+	for bone in _torso_bones:
+		_torso_up.append(_torso_bones.find(skeleton.get_bone_parent(bone)))
+	_torso_parents.resize(skeleton.get_bone_count())
+	for bone in _torso_parents.size():
+		_torso_parents[bone] = skeleton.get_bone_parent(bone)
+	_torso_posed.resize(_torso_bones.size())
 
 
 # Keeps `rest` (a point of the skin on the rest pose, `ahead` of the chest bone) as its cell's
@@ -160,20 +186,28 @@ func _keep(
 	cells[cell] = [bone, skeleton.get_bone_global_rest(bone).affine_inverse() * rest, ahead]
 
 
-## How far the gun goes forward along its barrel from the pocket so no point of the torso's skin is
-## inside its stock: a box `butt_pad` across and `butt_depth` long from the butt's place, facing
-## back along the barrel, kept `butt_margin` off the skin; `gun` is the butt's place and
-## `to_here` the skeleton's, both in the hold's space. The skin points ride their main bones in
-## the pose of this update (the clip, the crouch and the chest turn, from the local poses up the
-## parents), so the butt comes to the skin of whichever body holds it.
+## How far the gun goes from the pocket so no point of the torso's skin is inside its stock: a box
+## `butt_pad` across and `butt_depth` long from the butt's place, facing back along the barrel,
+## kept `butt_margin` off the skin; `gun` is the butt's place and `to_here` the skeleton's, both
+## in the hold's space. The gun goes along its barrel, or along `way` (a unit direction in the
+## hold's space with no part across the barrel: `TwoHandHold.push_level`, kit #1346). The skin
+## points ride their main bones in the pose of this update (the clip, the crouch and the chest
+## turn, from the local poses up the parents), so the butt comes to the skin of whichever body
+## holds it.
 func push(
 	skeleton: Skeleton3D,
 	gun: Transform3D,
 	to_here: Transform3D,
 	butt_pad: Vector2,
 	butt_depth: float,
-	butt_margin: float
+	butt_margin: float,
+	way := Vector3.ZERO
 ) -> float:
+	if not way.is_zero_approx():
+		var local := gun.basis.inverse() * way
+		if absf(local.y) > 1e-4:
+			var move := Vector2(local.y, maxf(local.z, _LEAST_ALONG)).normalized()
+			return _push_along(skeleton, gun, to_here, butt_pad, butt_depth, butt_margin, move)
 	var deepest_of_all := 0.0
 	var to_gun := gun.affine_inverse() * to_here
 	var wide := butt_pad.x * 0.5 + butt_margin
@@ -183,16 +217,87 @@ func push(
 		Vector3(wide * 2.0, high * 2.0, butt_depth + butt_margin)
 	)
 	for bone in _torso_bones.size():
-		var pose := to_gun * HandPoseModifier.global_pose(skeleton, _torso_bones[bone])
+		var pose := to_gun * _posed(skeleton, bone)
 		var deepest := 0.0
-		if (pose * _torso_boxes[bone]).intersects(stock):
+		# The stock's box in the bone's rest space (a box round it): the boxes of the bone and its
+		# groups are met against that as they are, not each turned into the gun's space. A point
+		# inside the stock is inside both, so the same points are gone through (kit #1347).
+		var near := pose.affine_inverse() * stock
+		if _torso_boxes[bone].intersects(near):
 			for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
-				if not (pose * _skin_boxes[group]).intersects(stock):
+				if not _skin_boxes[group].intersects(near):
 					continue
-				for index in range(_skin_starts[group], _skin_starts[group + 1]):
-					var at := pose * _skin_points[index]
-					if at.z > -butt_margin and at.z < butt_depth and absf(at.x) < wide:
-						if absf(at.y) < high:
-							deepest = maxf(deepest, at.z + butt_margin)
+				for at in pose * _group_points[group]:
+					if stock.has_point(at):
+						deepest = maxf(deepest, at.z + butt_margin)
 		deepest_of_all = maxf(deepest_of_all, deepest)
 	return deepest_of_all
+
+
+# The push along `move` (up the gun and along its barrel, in the gun's space): each point of the
+# skin near the stock forbids the moves that leave it inside the stock, one open run (low, high),
+# and the push is the least move forward no run forbids, so the skin ahead of the stock that the
+# move brings back along it counts too.
+func _push_along(
+	skeleton: Skeleton3D,
+	gun: Transform3D,
+	to_here: Transform3D,
+	butt_pad: Vector2,
+	butt_depth: float,
+	butt_margin: float,
+	move: Vector2
+) -> float:
+	var to_gun := gun.affine_inverse() * to_here
+	var wide := butt_pad.x * 0.5 + butt_margin
+	var high := butt_pad.y * 0.5 + butt_margin
+	var rise := absf(move.x) * _PUSH_MOST
+	var near := AABB(
+		Vector3(-wide, -high - rise, -butt_margin),
+		Vector3(wide * 2.0, (high + rise) * 2.0, butt_depth + butt_margin + _PUSH_MOST)
+	)
+	var runs := PackedVector2Array()
+	for bone in _torso_bones.size():
+		var pose := to_gun * _posed(skeleton, bone)
+		# As in `push()`: the boxes are met against the near box in the bone's rest space.
+		var near_bone := pose.affine_inverse() * near
+		if not _torso_boxes[bone].intersects(near_bone):
+			continue
+		for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
+			if not _skin_boxes[group].intersects(near_bone):
+				continue
+			for at in pose * _group_points[group]:
+				if not near.has_point(at) or absf(at.x) >= wide:
+					continue
+				# Moved by `d` the point is at `at.y - d * move.x` up and `at.z - d * move.y` along.
+				var one := (at.y - high) / move.x
+				var other := (at.y + high) / move.x
+				var low := maxf((at.z - butt_depth) / move.y, minf(one, other))
+				var top := minf((at.z + butt_margin) / move.y, maxf(one, other))
+				if top > maxf(low, 0.0):
+					runs.append(Vector2(low, top))
+	runs.sort()
+	var pushed := 0.0
+	for run in runs:
+		if run.x >= pushed:
+			break
+		pushed = maxf(pushed, run.y)
+	return pushed
+
+
+# The pose of the torso bone at `bone` (its place in `_torso_bones`) in the skeleton's space, kept
+# for the bones under it: a bone under another of them takes that one's pose and its own local
+# one, the others go up every parent (`HandPoseModifier.global_pose()` written out: a call costs
+# more than a line in the web build). The bones are gone through in their order (kit #1347).
+func _posed(skeleton: Skeleton3D, bone: int) -> Transform3D:
+	var up := _torso_up[bone]
+	var posed: Transform3D
+	if up >= 0 and up < bone:
+		posed = _torso_posed[up] * skeleton.get_bone_pose(_torso_bones[bone])
+	else:
+		var cursor := _torso_bones[bone]
+		posed = Transform3D.IDENTITY
+		while cursor >= 0:
+			posed = skeleton.get_bone_pose(cursor) * posed
+			cursor = _torso_parents[cursor]
+	_torso_posed[bone] = posed
+	return posed

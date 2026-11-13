@@ -21,7 +21,17 @@ const CARRIED: Dictionary[StringName, Array] = {
 }
 ## The clips the view's pitch is tried in, and the pitches, in degrees.
 const PITCHED: Array[StringName] = [CharacterClips.IDLE, CharacterClips.CROUCH_IDLE]
-const PITCHES: Array[float] = [-30.0, 30.0]
+const PITCHES: Array[float] = [-45.0, -30.0, 30.0, 45.0]
+## The game's whole pitch range (`CharacterAnimation.aim_pitch_range`), in degrees, and the
+## pitches between that the butt is followed through.
+const PITCH_RANGE := 45.0
+const PITCH_STEP := 15.0
+## How far the butt's pad may be from the torso's skin at any pitch, in metres.
+const PAD_TO_SKIN := 0.02
+## How much farther than at the level aim the butt may go from the pocket at any pitch, in metres:
+## along the barrel it went 56 to 89 mm farther at 45 degrees down and slid down the chest
+## (kit #1346); out level it is 26 to 43 mm.
+const PUSH_OVER_LEVEL := 0.05
 ## How far a hand's bone may be from its place on the rifle, in metres (a clamped arm stops short).
 const REACH := 0.005
 ## How far the palm's skin may be from the socket it holds, in metres: `Grip` is in the middle of
@@ -122,6 +132,56 @@ func test_the_stock_stays_out_of_the_chest() -> void:
 				. is_less(STOCK_DEPTH)
 			)
 			_assert_holds(stage, tag)
+		stage.free()
+
+
+# The butt stays on the shoulder through the whole pitch range (kit #1346): on both bodies,
+# standing and crouched, at every `PITCH_STEP` from 45 degrees down to 45 up, the pad is within
+# `PAD_TO_SKIN` of the torso's skin, it is no more than `PUSH_OVER_LEVEL` farther from the pocket
+# than at the level aim (along the barrel, a steep aim down slid it down the chest and off the
+# shoulder), no point of the rifle is deeper than `STOCK_DEPTH` in the torso and both hands are
+# on their places.
+func test_the_butt_stays_on_the_shoulder_through_the_pitch_range() -> void:
+	for model in MODELS:
+		var stage := RifleStage.make_rifle(_holder, model)
+		var clearance := BodyClearance.new(stage.skeleton, stage.contact, _near(stage))
+		var held := stage.hold as TwoHandHold
+		for clip_name in PITCHED:
+			stage.pose_rifle(clip_name, 0.0, 1.0, 0.0)
+			await stage.settle()
+			var level := held.butt_push()
+			var pitch := -PITCH_RANGE
+			while pitch <= PITCH_RANGE:
+				stage.pose_rifle(clip_name, 0.0, 1.0, pitch)
+				await stage.settle()
+				var tag := "%s %s pitch %.0f" % [model, clip_name, pitch]
+				var found := clearance.deepest(_near(stage), true)
+				(
+					assert_float(found.depth)
+					. override_failure_message(
+						"%s: the rifle is %.1f mm in the %s" % [tag, found.depth * 1e3, found.bone]
+					)
+					. is_less(STOCK_DEPTH)
+				)
+				(
+					assert_float(found.gap)
+					. override_failure_message(
+						"%s: the butt is %.1f mm off the skin" % [tag, found.gap * 1e3]
+					)
+					. is_less_equal(PAD_TO_SKIN)
+				)
+				(
+					assert_float(held.butt_push() - level)
+					. override_failure_message(
+						(
+							"%s: the butt went %.1f mm from the pocket, %.1f at the level aim"
+							% [tag, held.butt_push() * 1e3, level * 1e3]
+						)
+					)
+					. is_less_equal(PUSH_OVER_LEVEL)
+				)
+				_assert_holds(stage, tag)
+				pitch += PITCH_STEP
 		stage.free()
 
 

@@ -144,6 +144,10 @@ bench of `tools/bench/` as its main scene and exports it to the web ([A bench's 
 Its tests are `python/tests/test_template_test.py` (a fake Godot: unique folder, outside the real workspace, removed on
 every exit, kept with `--keep`, two calls at once).
 
+- **Approach:** Remove a kept game with `gds template clean <the path it printed>`, one folder at a time, as soon as
+  its captures are made. **Watch out for:** every agent's kept games and logs sit side by side in the user's temp
+  folder as `gds-tt-*`; a cleanup by that glob deleted other agents' kept games, some mid-run, before it was
+  stopped. **Seen:** gdstudio #1156, 2026-11-12.
 - **Approach:** Prove a new game or template change with a parse of every script (`gds check scripts`) and an editor
   open, and when a script fails, find the registration or file it needs, never an export exclusion. **Watch out
   for:** a new 3D Blank game opened with five parse errors from the `gds_ui` demo (`Identifier "UIRouter" not
@@ -167,7 +171,7 @@ every exit, kept with `--keep`, two calls at once).
   template's own folder cannot be opened to make one, so agents copied uids back from a kept game or wrote them by
   hand, and hand-made ones held text Godot never writes. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR
   #1092), 2026-11-11; gdstudio #1148, 2026-11-11 (a suite written after the scripts); kit #1129, 2026-11-11 (the
-  command).
+  command); gdstudio #1405, 2026-11-13 (fixtures tried in a kept game).
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game` (the
   `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree (the kit is the
   `--project` checkout, not your folder). Send a run's log to a new name in your own scratch folder or from `mktemp`,
@@ -197,7 +201,8 @@ every exit, kept with `--keep`, two calls at once).
   icons); an `.import` written by hand from a sibling's keeps its path hash and has no `uid`, so the import rewrites
   it. **Seen:** gdstudio #884, 2026-11-10; gdstudio #887, 2026-11-10 (nine weapon sounds copied from
 another game with no `.import`: the full local run was green and CI's step failed); #1293 (PR #1323), 2026-11-12
-  (two clip files' `.glb.import` copied from `prone.glb.import` and renamed).
+  (two clip files' `.glb.import` copied from `prone.glb.import` and renamed); #1342 (PR #1389), 2026-11-12 (the
+  bandage's two sounds written by `tools/audio/sfx.py encode`, which makes no `.import`).
 - **Approach:** After merging main into a template branch, run the command again: it always makes a fresh game from the
   merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
   every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
@@ -279,6 +284,7 @@ What each template plays, and on which bus (the buses and the volume node are in
 | `3d-third-person` | the weapon pickup (two files, `assets/audio/weapon_pickup/`, ElevenLabs on the paid plan: commercial use, no attribution) | the `Sound` node of every `WeaponPickup` at -20 dB, one file a pickup (pitch spread 3%) | `SFX` |
 | `3d-third-person` | the rifle (a shot in five files, the empty click, three reload steps and the draw, `assets/audio/rifle/`, Deadnight's M4A1, MIT) | the `Weapon`'s players from `rifle.tres`: the shot an `AudioStreamRandomizer` at -27 dB | `SFX` |
 | `3d-third-person` | the pistol's empty click, reload steps and draw (`assets/audio/pistol/`) and the fists' swing (`assets/audio/fists/`) | `EmptySound` (-12 dB), `ReloadSound` (-16) and `DrawSound` (-10) of `Weapon`, and its `ShotSound` with the fists' `shot_volume_db` (-27) | `SFX` |
+| `3d-third-person` | the bandage's use (two files, `assets/audio/bandage/`, ElevenLabs on the paid plan) | the `Sound` of the player's `ItemUse` at -14 dB, from `gameplay/inventory/bandage_use.tres` (an `AudioStreamRandomizer`, pitch spread 4%, +-1 dB) | `SFX` |
 | `3d-third-person` | bullet impacts (nine files, `assets/audio/impacts/`: default, wood and metal, three each) | the `sound` of each `ImpactSurface`'s `EffectDef`, played at -10 to -14 dB from the `EffectEmitter`'s pool | `SFX` |
 | `3d-third-person` | the menus' sounds (fourteen files, `assets/audio/ui/`: hint, press, confirm, move, toggle, swish) | the twelve players of the `MenuSounds` autoload (`ui/menus/menu_sound_service.tscn`), from the cues of every `gds_ui` control, the router and the inventory's slots ([Menu sounds](audio.md#menu-sounds)) | `UI` |
 

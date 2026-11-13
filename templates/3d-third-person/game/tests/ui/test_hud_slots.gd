@@ -39,6 +39,15 @@ func _tap_key(code: Key) -> void:
 	await InputSim.ticks(get_tree(), 2)
 
 
+# Waits until the player's item use is over (a bandage takes 1.6 s: `ItemUse`).
+func _wait_for_the_use() -> void:
+	var use := ItemUse.of(_player)
+	for _tick in 240:
+		if use == null or not use.is_using():
+			return
+		await get_tree().physics_frame
+
+
 # Waits until the loadout's switch is over (the pistol's and the fists' times are well under 1 s).
 func _wait_for_the_switch() -> void:
 	for _tick in 120:
@@ -142,6 +151,7 @@ func test_key_3_uses_a_bandage_on_a_hurt_player_and_is_refused_at_full_health() 
 	assert_int(_player.inventory.count_of_id(&"bandage")).is_equal(3)
 	health.value = 50.0
 	await _tap_key(KEY_3)
+	await _wait_for_the_use()
 	assert_float(health.value).is_equal(75.0)
 	assert_int(_player.inventory.count_of_id(&"bandage")).is_equal(2)
 	assert_str(_hotbar.cells()[0].count_text()).is_equal("2")
@@ -155,6 +165,7 @@ func test_the_last_bandage_leaves_the_place_dim_with_0() -> void:
 	health.value = 1.0
 	for _use in 3:
 		await _tap_key(KEY_3)
+		await _wait_for_the_use()
 	assert_int(_player.inventory.count_of_id(&"bandage")).is_equal(0)
 	assert_int(_hotbar.cells()[0].state).is_equal(HudSlot.State.SPENT)
 	assert_str(_hotbar.cells()[0].count_text()).is_equal("0")
@@ -209,6 +220,7 @@ func test_a_finger_on_a_place_does_what_its_key_does() -> void:
 	await InputSim.ticks(get_tree(), 2)
 	_touch(2, bandage_place.get_center(), false)
 	await InputSim.ticks(get_tree(), 2)
+	await _wait_for_the_use()
 	assert_float(Health.of(_player).value).is_equal(65.0)
 	assert_int(_player.inventory.count_of_id(&"bandage")).is_equal(2)
 	var fists_place: Rect2 = _slots.touch_zones()[1]["rect"]

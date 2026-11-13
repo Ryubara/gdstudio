@@ -31,8 +31,9 @@ side moves.
 The rifle is carried by `TwoHandHold` (`gameplay/weapon/two_hand_hold.gd`), not by a bone: after the clip it
 turns the chest (and raises one that leans past `aim_lean_limit` while the rifle is up), puts the butt in the
 shoulder's pocket from the chest bone's place in the chest's frame, brings the left shoulder toward the hand
-guard and the butt forward to the torso's skin (kit #1177), reaches both arms to their places on the rifle and
-closes the fingers, on whichever body plays the clip, with the places and the finger poses solved on that body
+guard and the butt to the torso's skin (kit #1177; out of the pocket level while the muzzle is down, kit #1346),
+reaches both arms to their places on the rifle and closes the fingers, on whichever body plays the clip, with the
+places and the finger poses solved on that body
 (the scene's own for the female, `rifle_fit_male.tres` for the male). The build works the same hold out in Python
 (`Hold`, from the numbers in the hold's script and scenes, each body's fit and the five finger poses, none typed
 in the build; the torso's skin for the butt from each body's own mesh, `Hold.measure_chest`), shapes the body

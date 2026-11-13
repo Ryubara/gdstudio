@@ -204,8 +204,8 @@ the spread's place for `restore()`.
   fire alone; walk, aim, fire, release) by reading `aiming` and the speed on the frame after release. **Watch out
   for:** #856 moved the camera to the buttons, but `aiming` stayed true 0.8 s after a shot (a hold since removed) and
   drove `aim_move_scale` and the turn, so the slow aim walk lasted about a second; the animation tree had no latch of
-  its own. List everything that reads a state that outlives its input. A tap under half the arm's raise time (about
-  75 ms) now shoots nothing. **Seen:** gdstudio #868, 2026-11-09 (`test_aim_release.gd`).
+  its own. List everything that reads a state that outlives its input. A tap fires since #1352
+  ([fire modes](fire-modes.md#tap)). **Seen:** gdstudio #868, 2026-11-09 (`test_aim_release.gd`).
 - **Approach:** Sweep the camera's yaw with aim, fire and sprint held in a four-walled room built high above the map and
   in the open, and assert the lens never nears the arm's start by less than a bound no wall can force
   (`test_camera_walls.gd`: 12 yaws and three actions, about 40 s). **Watch out for:** a first sweep stood in the map and
@@ -490,14 +490,10 @@ It is cosmetic: the rounds go in at the end of `reload_time`.
 How the two hands hold the pistol together, the trigger finger's way to the trigger and the hand's retreat when the
 arm is short are on [The two-handed pistol grip](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses).
 
-The slide's rack is a clip of the template's own, `pistol/Pistol_Rack` (kit #1081); its `SlideRack` resource
-(`pistol_slide_rack.tres`; `SlideRack.fit()` gives the model's body's) holds the left hand's place and fingers on
-the slide, the slide's travel and the shares of its grip, pull and release. The reload does not play it yet
-(kit #1337): the hold releases the slide at the last sound and writes the `Slide` node only on a change, so a rack can
-move it. `test_pistol_rack.gd` and the `rack_closeups` capture play it on a stage whose `reload_weight` is
-`SlideRack.support_weight(share)`, which also takes off the carry arm's swing: there the pistol swings 7 cm out
-and back, and the game's player keeps the arm in
-([the clip and its numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
+A reload of an empty pistol ends with the template's own rack of the slide, `pistol/Pistol_Rack` (kit #1081 and
+kit #1337): the `RackLayer` plays it, the `WeaponHold` puts the body's `SlideRack` hand on the slide, locked back until
+then ([the rack in the game](../../../tools/blender/weapon-hands/pistol-slide-rack.md#the-slide-rack),
+[the clip](../../../tools/blender/weapons.md#the-third-person-template-pistol)).
 
 - **Approach:** Count a press of an action that can come as an event too short for a physics tick (a wheel notch) as
   the action going down between two commands, or an event seen while the action is up again, never both: keep the

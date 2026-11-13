@@ -234,7 +234,14 @@ func _assert_same_motion(what: String) -> void:
 		. is_equal_approx(body.ground_speed(), 0.1 * maxf(body.ground_speed(), 0.5))
 	)
 	assert_int(puppet.state).override_failure_message(what).is_equal(body.state)
-	assert_str(_animation(puppet).body_state()).is_equal(_animation(body).body_state())
+	assert_str(_drawn(puppet)).override_failure_message(what).is_equal(_drawn(body))
+
+
+# The body state a machine draws, a start or a stop (gdstudio #1156) read as the ground it plays
+# over: each machine picks those from the body it draws, a tenth of a second apart (#1367).
+func _drawn(character: Character) -> String:
+	var state := String(_animation(character).body_state())
+	return "ground" if state == String(GaitTransitions.STATE) else state
 
 
 # The head bone's height over the body's feet, metres.

@@ -262,14 +262,14 @@ sent; the rounds still go in at the end of `reload_time`.
   `SupportHandPlan.down_back` is that part of `down`.
 - **A reload cut short leaves the pistol whole**: with no reload weight the plan has the pistol's magazine in its grip
   and none in the hand, whatever share the clip was at (`SupportHandPlan.magazine_in_gun`, `magazine_in_hand`).
-- **The slide: moved by the hold, not by a hand.** The clip has no rack and the library no other pistol reload; the rack
-  clip of the template's own (kit #1081) is not played by the reload yet (kit #1337). Of the two ways open until it is,
-  a release by the right thumb does not fit this model: its slide stop lever is on the gun's right side, under the right
-  hand's fingers, and the right thumb lies high on the left side (on the left thumb's root while both hands hold). So
-  the `Slide` node stands back 4 cm (`slide_travel`) while the pistol is empty, as a pistol's slide locks open on its
-  last round, and runs forward when the reload's last sound plays (0.85, the slide's sound): the slide released. With
-  rounds left it stays forward and only the sound plays. The hold writes the node only when its lock changes, so the
-  rack clip can drive the same node (`slide_part`) with the left hand between.
+- **The slide: locked back while the pistol is empty, racked by the left hand.** The `Slide` node stands back 4 cm
+  (`slide_travel`) while the pistol is empty, as a pistol's slide locks open on its last round. The reload of an empty
+  pistol keeps it there and ends with the rack clip, whose hand closes on it where it stands and lets it run home
+  ([the rack](pistol-slide-rack.md#the-slide-rack), kit #1337). A weapon with no rack (`WeaponDef.rack_clip` empty) has
+  the slide run forward when the reload's last sound plays (0.85, the slide's sound), as the pistol did before the rack:
+  a release by the right thumb does not fit this model, its slide stop lever is on the gun's right side under the right
+  hand's fingers. With rounds left the slide stays forward and only the sound plays. The hold writes the node only when
+  its lock changes or the rack has it (`slide_part`).
 
 Tests: `tests/gameplay/test_reload_magazine.gd` (the magazine's place, the fingers on it and the magazine against the
 gun at every hundredth of the reload on both mannequins; the drop, the cut-short reload and the slide on the live
