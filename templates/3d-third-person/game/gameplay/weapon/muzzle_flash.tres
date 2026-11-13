@@ -6,7 +6,10 @@
 [resource]
 script = ExtResource("1_def")
 particles = ExtResource("2_flash")
-light_energy = 2.5
-light_range = 3.5
-light_time = 0.06
+light_energy = 0.3
+light_color = Color(1, 0.95, 0.88, 1)
+light_range = 2.5
+light_time = 0.04
+light_attenuation = 0.5
+light_alone = true
 max_instances = 3
