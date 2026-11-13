@@ -271,7 +271,10 @@ four shares of a reload). What cut it, in order of what it saved: the small help
 turning each group's points by one engine call (`Transform3D * PackedVector3Array`, `AABB.has_point`) and meeting the
 groups' boxes in the bone's space, the stance handing `place()` the spine's top pose (`HoldBones`), what is written to
 the modifiers kept and written only when it changes (`HoldWeights`), the trigger finger set straight to its pose when
-it is all the way on, and no pull worked out while `pull_limit` is 0.
+it is all the way on, and no pull worked out while `pull_limit` is 0. With the butt's push along `push_level`'s way
+(kit #1346) merged in, the push along it (`TorsoSkin._push_along()`) takes the same three speedups; the low ready aims
+the barrel down and takes that way, so most of its cost is the new push: on a busy machine 72 / 119 against 79 / 119,
+where the ready went 50 / 74 against 70 / 93 and the reload 54 / 82 against 75 / 103.
 
 The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
 body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
