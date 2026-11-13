@@ -68,6 +68,12 @@ func test_the_bandage_takes_time_and_plays_its_clip_on_the_upper_body() -> void:
 	assert_bool(action.is_path_filtered(NodePath("Armature/Skeleton3D:upperarm_l"))).is_true()
 	assert_bool(action.is_path_filtered(NodePath("Armature/Skeleton3D:upperarm_r"))).is_false()
 	assert_bool(action.is_path_filtered(NodePath("Armature/Skeleton3D:thigh_l"))).is_false()
+	# The chest is turned back to where the clip's hips have it (`UseTurn`), eased in.
+	var turn := UseLayer.turn_of(animation, false)
+	assert_object(turn).is_not_null()
+	assert_bool(turn.is_following()).is_true()
+	await InputSim.ticks(get_tree(), 10)
+	assert_float(turn.weight()).is_equal(1.0)
 	# The sign shows the bandage above the hotbar, and the sound plays.
 	assert_bool(_sign.visible).is_true()
 	assert_str(_sign.name_label.text).is_equal("Bandage")
@@ -78,6 +84,8 @@ func test_the_bandage_takes_time_and_plays_its_clip_on_the_upper_body() -> void:
 	await _wait_until_idle()
 	assert_float(_health.value).is_equal(40.0 + HEAL)
 	assert_int(_bandages()).is_equal(2)
+	await InputSim.ticks(get_tree(), 4)
+	assert_bool(turn.is_following()).is_false()
 	# The sign lingers a moment, then goes.
 	await InputSim.ticks(get_tree(), 30)
 	assert_bool(_sign.visible).is_false()

@@ -466,7 +466,7 @@ func play_clip(clip: StringName, duration: float = 0.0, upper_body := false) -> 
 		push_warning("CharacterAnimation: no clip called %s" % clip)
 		return
 	_upper_only = upper_body
-	UseLayer.keep_arm(tree, _bone_paths([UseLayer.KEPT_ARM]), upper_body)
+	UseLayer.begin(self, _bone_paths([UseLayer.KEPT_ARM]), clip, duration, upper_body)
 	_action_clip = clip
 	_action_clip_node.animation = clip
 	var length := animation_player.get_animation(clip).length
@@ -534,6 +534,7 @@ func held_definition() -> WeaponDef:
 func stop_clip() -> void:
 	if tree != null:
 		tree.set(_P_ACTION_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+		UseLayer.end(self)
 
 
 # Points the animation player at the model the slot holds: the clips' tracks
