@@ -105,6 +105,9 @@ var last_step_usec := 0
 var refused := 0
 
 var _entries: Array[Entry] = []
+# The entries of this tick's loop, copied before it starts: a think or a step may let characters
+# go (a death the spawner answers with a release, a despawn, a free) or take new ones.
+var _turn: Array[Entry] = []
 var _think_load := PackedInt32Array()
 var _viewers: Array[Node3D] = []
 var _full_count := 0
@@ -121,6 +124,8 @@ class Entry:
 	var last_think := 0
 	var last_step := 0
 	var distance := INF
+	## False once the character is let go: a loop that copied the entry skips it.
+	var managed := true
 
 
 ## The director of the tree, or null.
@@ -277,6 +282,7 @@ func unregister(character: AiCharacter) -> void:
 	if character.tier == Tier.FULL:
 		_full_count -= 1
 	_entries.remove_at(index)
+	entry.managed = false
 	slots.release(character)
 	character.director = null
 	character.budget = null
@@ -295,15 +301,22 @@ func _physics_process(delta: float) -> void:
 	_apply_slot_counts()
 	if tick % TIER_PERIOD == 0:
 		_refresh_viewers()
-	# Starts one further along each tick, so a think the budget put off is not put off again.
-	var size := _entries.size()
+	# Starts one further along each tick, so a think the budget put off is not put off again. It
+	# walks a copy: a think or a step can let characters go or take new ones (kit #1406), and one
+	# let go before its turn is skipped; one taken this tick waits for the next.
+	_turn.assign(_entries)
+	var size := _turn.size()
 	for offset in size:
-		var entry := _entries[(tick + offset) % size]
+		var entry := _turn[(tick + offset) % size]
+		if not entry.managed:
+			continue
 		if (tick + entry.slot) % TIER_PERIOD == 0:
 			_update_tier(entry)
 		if entry.next_think >= 0 and tick >= entry.next_think:
 			_think(entry, delta)
-		_step(entry, delta)
+		if entry.managed:
+			_step(entry, delta)
+	_turn.clear()
 	last_step_usec = Time.get_ticks_usec() - start
 
 

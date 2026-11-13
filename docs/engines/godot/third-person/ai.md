@@ -95,6 +95,18 @@ finds it through the group; a character with no director steps itself and never 
   at the rest cadence, and is not counted, so a population at the cap respawns while its dead lie (kit #1247). What
   lies on top is bounded by the spawners' `max_corpses` ([The spawner and its pool](ai-characters.md#spawner)). A pool's
   spare readied in the tree (`warming`) never asks; `refused` counts the refusals.
+- **Let go mid-tick.** A think or a step can let characters go (a shot that kills, which a spawner past `max_corpses`
+  answers by taking a body to its pool from `died`; a despawn; a free) or take one. Each tick walks a copy of the list
+  made before it starts: an entry let go before its turn is skipped (`Entry.managed` is false), and one taken waits
+  for the next tick (kit #1406, `test_ai_director_let_go.gd`).
+
+- **Approach:** Walk a list whose items run game code (a think, a body's step) over a copy made before the loop, and
+  mark an item let go so the loop skips it; test it by letting several go from the first item's own turn, in each way
+  the game does. **Watch out for:** the director kept the size from the loop's start and indexed `(tick + offset) %
+  size`, so an AI's shot that killed a guard (released at once past the corpse cap: the only way a body leaves the
+  tree inside the loop in the soak) shrank the list mid-tick and the read went past
+  its end; no suite let a character go inside a tick, and only a 120 s soak seed on Linux hit it. **Seen:** gdstudio
+  #1406, 2026-11-13 (the soak's index 14 at 96 s of seed 21).
 
 ## The navigator {#navigator}
 
@@ -296,7 +308,8 @@ on one is met where the shooter's screen drew it: [the AI online](ai-online.md).
 
 `tests/gameplay/test_ai_director.gd` (thinks at the rate and on ticks of their own, the ray budget shared and reset, the
 think budget, a profile edit while running, tiers with the margin and the cap, the population cap, the rest cadence,
-far characters walking as far), `test_ai_situation.gd` (rising, dwell, hysteresis, death) and `test_ai_character.gd`
+far characters walking as far), `test_ai_director_let_go.gd` (characters let go inside a tick: a despawn, a death
+released at once, a free, all but one in one think), `test_ai_situation.gd` (rising, dwell, hysteresis, death) and `test_ai_character.gd`
 (the parts, the channels, a hit that kills into the ragdoll, the overlay, the profiles), `test_ai_animation_throttle.gd`
 (a Dormant tree does not advance and a Full one near the camera does every frame, Reduced and far periods with the
 missed time, an unseen character held and caught up, footsteps only near, a death, `enabled` off and `unregister`

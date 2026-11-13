@@ -260,6 +260,22 @@ the shoulder reaches for the gun where the last frame's push had it and the push
 only when it moved more than 3 mm (a new pose); the reach's angle is worked out in closed form; every pose comes
 from the local ones; past `fingers_far_distance` the last near push is kept.
 
+Cut again (kit #1347), the same bench, the branch and `main` in turns, two rounds a body (microseconds a character a
+frame, female / male): the rifle at the ready 39 / 36 against 54 / 54, low 39 / 36 against 51 / 55, reloading 46 / 42
+against 62 / 57, past `fingers_far_distance` 25 / 22 against 33 / 33; the pistol carried and aimed as they were (10 /
+10 and 19 / 16 against 9 / 9 and 19 / 18). A build from before the stock fix (after kit #1289), in the same session,
+read 31 / 32, 29 / 27 and 38 / 36, so the push and the shoulder's reach still cost 6 to 9 more than the hold did
+before them. Every bone came out within 2.3 micrometres of `main` in 36 poses (both bodies, six clips, up and down,
+four shares of a reload). What cut it, in order of what it saved: the small helpers written out at their callers
+(the web build pays more for a GDScript call than for a line, [what a line costs](../gdscript.md#web-cost)), the push
+turning each group's points by one engine call (`Transform3D * PackedVector3Array`, `AABB.has_point`) and meeting the
+groups' boxes in the bone's space, the stance handing `place()` the spine's top pose (`HoldBones`), what is written to
+the modifiers kept and written only when it changes (`HoldWeights`), the trigger finger set straight to its pose when
+it is all the way on, and no pull worked out while `pull_limit` is 0. With the butt's push along `push_level`'s way
+(kit #1346) merged in, the push along it (`TorsoSkin._push_along()`) takes the same three speedups; the low ready aims
+the barrel down and takes that way, so most of its cost is the new push: on a busy machine 72 / 119 against 79 / 119,
+where the ready went 50 / 74 against 70 / 93 and the reload 54 / 82 against 75 / 103.
+
 The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
 body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
 out), the deepest in the six locomotion clips at the low ready and aimed and aimed 30 degrees up and down, on the
