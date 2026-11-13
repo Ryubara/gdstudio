@@ -247,6 +247,13 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   seeds; a change anywhere moved the failing seed (5 and 27, then 26 on a later main), so judge a fix by the probe's
   counts over several seeds, not by one seed turning green. **Seen:** gdstudio #1326, 2026-11-12 (the cause was the
   flinch's partial ragdoll: [A partial ragdoll](../engines/godot/ragdoll.md#partial)).
+- **Approach:** When a playtest reports AI standing stuck and the soak's stuck gates pass, log what each still
+  character holds (its active task, its navigator's mode, its controller's channels) beside how it is drawn (the
+  state machine's node, the drawn head's height against the capsule's): a body doing its task as asked can still
+  look wrong. **Watch out for:** the "stuck" enemies were in their cover task, still as designed, crouched in the
+  body and drawn standing (a crouch asked during a stop clip was sent back to `ground`,
+  [the cause](../engines/godot/animation-tree.md#gait-fitting)); no gate reads the drawn pose. **Seen:** gdstudio
+  #1412, 2026-11-13.
 - **Approach:** Check a soak's replay in fresh processes, and look for static counters (`static var`) before calling a
   run nondeterministic. **Watch out for:** two runs of the same seed in one GdUnit process gave different hashes
   while separate processes matched. **Seen:** gdstudio #971, 2026-11-11 (`test_the_same_seed_repeats_its_commands`).
