@@ -70,6 +70,11 @@ var _holding := false
 var _release := 0.0
 
 
+## True while a shot's recoil keeps the turn (`hold_turn`) or the turn eases back after it.
+func is_settling() -> bool:
+	return hold_turn or _release > 0.0
+
+
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
 	_bones.clear()
 	_attachment = null
@@ -103,19 +108,25 @@ func _process_modification_with_delta(delta: float) -> void:
 			_held + Vector2(angles.y - _held_angles.y, wrapf(angles.x - _held_angles.x, -PI, PI))
 		)
 		_release = release_time
-	else:
+	# How much of the last pass's correction this update takes: all of it, but while the turn eases
+	# back after a recoil only as much as it has eased (gdstudio #1369: taken whole, the last pass
+	# put back on one frame all that the ease spread out, and the chest snapped 10 to 20 degrees
+	# as a recoil kept in the air ran out, the jump's pose having moved under the kept turn).
+	var eased := 1.0
+	if not hold_turn:
 		_holding = false
 		if _release > 0.0:
 			# Ease from the kept turn back to the measured one.
 			var share := clampf(delta / _release, 0.0, 1.0)
 			_release = maxf(_release - delta, 0.0)
 			wanted = turn.lerp(wanted, share)
+			eased = 1.0 - _release / maxf(release_time, 0.001)
 	var turned := solved
 	if not as_solved:
 		turned = _turned(_locals, wanted)
 		if not hold_turn and trust > 0.0:
 			# One more pass on the drawn pose, by as much as it is trusted.
-			var more := _solve(turned, _below, point) * trust
+			var more := _solve(turned, _below, point) * trust * eased
 			turned = _turned(turned, more)
 			wanted += more
 	_write(skeleton, turned)

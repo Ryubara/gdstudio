@@ -21,6 +21,11 @@ const SKIPPED: Array[String] = [
 	"thumb", "index", "middle", "ring", "pinky", "twist", "socket", "ik_", "root"
 ]
 
+## The body states whose changes in or out may start the blend again: the jump's.
+const AIRBORNE: Array[StringName] = [
+	CharacterAnimation.JUMP, CharacterAnimation.FALL, CharacterAnimation.LAND
+]
+
 ## The node whose body state it follows (`CharacterGait.pose_key()`).
 var animation: CharacterAnimation
 ## Seconds in which the difference halves.
@@ -45,6 +50,7 @@ var _pelvis_j0 := Vector3.ZERO
 var _t := 0.0
 var _blending := false
 var _again := false
+var _state: StringName = &""
 
 
 ## True while a difference is dying away.
@@ -78,17 +84,21 @@ func _process_modification_with_delta(delta: float) -> void:
 		_forget()
 		_follow(skeleton)
 	var key: Variant = animation.gait.pose_key(animation)
+	var state := animation.body_state()
 	if key != _key and _seen >= 2 and delta > 0.0:
 		_begin(skeleton, delta)
-		_again = true
+		_again = state in AIRBORNE or _state in AIRBORNE
 	elif _again and delta > 0.0:
-		# The state machine names its new state a frame before the new state's pose reaches the
-		# skeleton: begun on the change alone, the blend carried a few hundredths of a radian and
-		# the pose jumped whole on the next frame (the arms 20 degrees in a tick as a landing
-		# gave way to the ground, gdstudio #1369). Begun again here from the pose last shown.
+		# The state machine can name its new state a frame before the new state's pose reaches
+		# the skeleton: begun on the change alone, the blend carried a few hundredths of a radian
+		# and the pose jumped whole on the next frame (the arms 20 degrees in a tick as a landing
+		# gave way to the ground, gdstudio #1369). Begun again here from the pose last shown, on
+		# the jump's changes only: begun again on every change, it carried the old speed twice and
+		# a vault's planted hand slid 20 to 29 mm (10 mm with one start).
 		_begin(skeleton, delta)
 		_again = false
 	_key = key
+	_state = state
 	if _blending:
 		_apply(skeleton, delta)
 	_remember(skeleton)

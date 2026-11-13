@@ -356,11 +356,11 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
   **Seen:** gdstudio #1158, 2026-11-12 (the lean's base pose, three errors for four poses).
 - **Approach:** Test a blend between states on the pose as drawn, every frame, as joint speed through the change
-  (read after the skeleton's modifiers, `modification_processed`), not by the blend's own offset. **Watch out
-  for:** the momentum blend began on the frame the state's name changed, carried a few hundredths of a radian, and
-  the whole new pose arrived a frame later unblended (the arms 20 degrees in a tick, a bone up to 1.8 radians in a
-  crouch); its test read `largest_offset()`, which stayed small, and passed. **Seen:** gdstudio #1369, 2026-11-12
-  (fix: `_again` in `momentum_blend.gd`; `test_the_arms_float_through_a_played_jump`).
+  (after the modifiers, `modification_processed`), not by the blend's own offset. **Watch out for:** the momentum
+  blend began as the state's name changed and the new pose came a frame later unblended (arms 20 degrees in a tick)
+  while `largest_offset()` stayed small; starting it again on every change slid a vault's planted hand 21 to 29 mm
+  (10 with one start), so only the jump's changes start it again (`MomentumBlend.AIRBORNE`): rerun every planted-hand
+  test after a blend change. **Seen:** gdstudio #1369, 2026-11-12 and 13 (`test_net_puppet_vault.gd` in CI).
 - **Approach:** Set every `AnimationNodeSub2`'s `sub_amount` (and every `Add2`'s `add_amount`) on the tree after
   building it, and test an additive layer with the real poses at full weight on the real tree: the head goes the
   pose's way, the feet and the `ik_` targets stay on their limbs. **Watch out for:** both amounts are tree parameters
