@@ -155,8 +155,19 @@ func test_a_crouch_during_a_stop_is_kept() -> void:
 	assert_str(String(_animation.body_state())).is_equal(String(CharacterAnimation.CROUCH))
 
 
-func test_a_start_plays_when_the_body_is_asked_to_move() -> void:
+func test_a_start_plays_when_the_body_is_asked_to_move(
+	walk: bool,
+	sprint: bool,
+	start: String,
+	_test_parameters := [
+		[true, false, "gds/Idle_To_Walk"],
+		[false, false, "gds/Idle_To_Jog"],
+		[false, true, "gds/Idle_To_Sprint"],
+	]
+) -> void:
+	# The template's acceleration has the body past `standing_speed` on the first tick of the
+	# press; the start is picked all the same.
 	await _largest(_command(0.0), 40)
-	await _largest(_command(1.0, true), 2)
+	await _largest(_command(1.0, walk, sprint), 2)
 	assert_bool(_animation.gait.transitions.is_playing()).is_true()
-	assert_str(String(_animation.gait.transitions.clip)).starts_with("gds/Idle_To_Walk")
+	assert_str(String(_animation.gait.transitions.clip)).starts_with(start)
