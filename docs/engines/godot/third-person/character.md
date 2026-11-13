@@ -475,7 +475,8 @@ targets (8 of 61 tracks), which the tree blends too. What #1360 left is
   however inactive), raise `NODES_ALIVE` in `test_parts_budget.gd` by as many, with a line on what it is, in the same
   commit; grep the suites for `NODES_ALIVE` before the full run. **Watch out for:** the aim suites pass and only the
   full run counts the body, so the extra node shows up as an off-by-one in a suite that looks unrelated. **Seen:**
-  gdstudio #1351, 2026-11-12 (`AimUprightModifier`, 65 to 66).
+  gdstudio #1351, 2026-11-12 (`AimUprightModifier`, 65 to 66); #1435, 2026-11-13 (`LeftShoulder` and its two
+  modifiers, 72 to 75, found by the full run).
 
 ## Prone and the crawl {#prone}
 
