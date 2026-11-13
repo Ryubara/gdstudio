@@ -126,6 +126,16 @@ func test_the_entry_says_when_the_player_asked_for_no_move() -> void:
 	# A puppet drawn from a halted entry has no goal whatever its drawn motion.
 	assert_bool(_drawn_goal(true).is_zero_approx()).is_true()
 	assert_vector(_drawn_goal(false)).is_equal(Vector3.LEFT * 6.0)
+	# Its goal over the network: none once halted; asked to move, where the snapshots head, but the
+	# goal it had while they head too slowly to tell a way (a reversal's speed passes through 0).
+	var asked := PlayerEntry.new()
+	var kept := Vector3.LEFT * 6.0
+	assert_vector(PlayerPuppet.goal_of(asked, Vector3.RIGHT * 3.0, kept)).is_equal(
+		Vector3.RIGHT * 3.0
+	)
+	assert_vector(PlayerPuppet.goal_of(asked, Vector3.RIGHT * 0.2, kept)).is_equal(kept)
+	asked.halt = true
+	assert_vector(PlayerPuppet.goal_of(asked, Vector3.RIGHT * 3.0, kept)).is_equal(Vector3.ZERO)
 
 
 # The goal of a puppet `PlayerPuppet.place` puts where an entry (halted or not) says, moving at

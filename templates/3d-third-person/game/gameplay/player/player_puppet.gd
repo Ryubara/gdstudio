@@ -19,6 +19,10 @@ extends RefCounted
 ## Metres the floor test starts above the point and moves down through it (the point is in whole
 ## centimetres, up to half of one inside the floor).
 const FLOOR_PROBE := 0.03
+## Metres a second below which the velocity the snapshots head for is too slow to tell a way: a
+## body asked to move keeps the goal it had (a reversal's speed passes through 0, and the stepped
+## body's goal never does).
+const GOAL_HOLD_BELOW := 0.5
 
 
 ## Makes `player` a puppet; call before it enters the tree (its `_ready` then joins no group and
@@ -92,6 +96,19 @@ static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: fl
 	puppet.state = entry.state as Character.State
 	# A vault or a mantle: its plan and clip are worked out here (nothing about it is sent).
 	PuppetVault.follow(puppet, delta, PhysicsLayers.WORLD)
+
+
+## The goal (`Character.motion_goal`) of a puppet drawn from `entry` whose snapshots head for
+## `heading` (`InterpolationTrack.heading`), `kept` the goal it had: none once the player asked for
+## no move (`PlayerEntry.halt`), else the heading, or `kept` while the heading is too slow to tell
+## (`GOAL_HOLD_BELOW`). The stepped body's starts and stops read its command's goal; the puppet's
+## read this (gdstudio #1420).
+static func goal_of(entry: PlayerEntry, heading: Vector3, kept: Vector3) -> Vector3:
+	if entry.halt:
+		return Vector3.ZERO
+	if Vector2(heading.x, heading.z).length() < GOAL_HOLD_BELOW:
+		return kept
+	return heading
 
 
 ## Puts `puppet` at `spot` at once (a join, a warp): nothing eased is left over.
