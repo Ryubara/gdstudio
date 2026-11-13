@@ -44,7 +44,8 @@ rifle carried it gives only rounds, with a full reserve it stays, the rifle fire
 no loadout leaves it, both hands reach their places and let go when it is put away, the step state takes a given
 weapon back), `test_rifle_hold.gd` ([the rifle in both hands](#rifle-hands)) and `test_rifle_run_state.gd` (the run,
 the sprint and the slide with the rifle are the same fresh, after a switch, after a burst, after a reload and after
-going unarmed, and the pistol's run the same after the rifle, on both bodies; `tools/capture/rifle_run_tour.tscn`
+going unarmed, and the pistol's run the same after the rifle, on both bodies; the rifle's run and sprint lean
+`carry_lean_limit` on average, [the carry](#rifle-hands); `tools/capture/rifle_run_tour.tscn`
 films it from the game camera with a side view, and with `RUN_STAGES=directions` the sprint in every direction and a
 reload on it) and `test_rifle_sprint_carry.gd` ([the sprint](#rifle-hands)). Captures:
 `tools/capture/rifle_tour.tscn` from the game camera (the floating rifle, taking it, the low ready, a walk, the aim, a
@@ -110,6 +111,16 @@ are named as such.
   the gun where the last frame's push had it; the butt is brought to the skin after it, since the turn brings the
   chest's left side forward under the stock, and both again in the same frame only when the push moved more than 3 mm.
   What is still short then brings the gun back along its barrel (`pull_limit`, 0 now: nothing is short).
+- **The carry** (kit #1348). On its feet at the low ready (`TwoHandHold.CARRY_STATES`: standing, walking, running,
+  sprinting, in the air; not crouched, sliding, vaulting, lying down or with the left hand away), the trunk is carried
+  upright: the stance averages the trunk's forward lean (the line from the pelvis to `neck_01`, in the model's space)
+  over half a second (`LEAN_SMOOTHING`) and takes what that average has over `carry_lean_limit` (9 degrees) off, as a
+  turn about the model's side axis spread evenly over the spine bones, so the stride's own rise and fall of the trunk
+  stays and no twist is added. The head keeps the facing the clip gave it. It comes in and goes over `carry_time`
+  (0.25 s) and fades out as the gun comes up (`carry_amount()`). The run's own trunk under the rifle's idle leaned
+  13.2 degrees (female) and 13.0 (male) on average and the sprint's 14.2 and 14.0 (the unarmed run 7.8 and 7.5); with
+  the carry both read 9.1 to 9.3, the stride's rise and fall 0.7 to 1.0 degrees (0.5 to 0.7 before; holding each
+  frame's lean at the limit left it at 0). Standing still the trunk is under the limit and nothing changes.
 - **The arms** are a `HoldArm` each (the pistol's own reach, given the hand's place in the skeleton's space by the
   stance in the same update), toward `RightHandTarget` and `LeftHandTarget` on the rifle, the elbows toward
   `RightPole` and `LeftPole`. Both are on their places in every update of every state (0.0 mm in 110 poses of both
@@ -293,6 +304,12 @@ stock test's 10 mm.
   direction on both bodies, and in the arena even the recording's commit measured clear on the female, so there was
   nothing left for a carry pose to fix; the existing stock test could not have said so, since it leaves the legs out.
   **Seen:** gdstudio #1340, 2026-11-12 (kept: `test_rifle_sprint_carry.gd` over the whole body).
+- **Approach:** To bring a measured line (the trunk from the pelvis to the neck) to a limit by turning bones above its
+  base, turn once, measure what the line moved and take the rest at that rate; and limit the line's average over a
+  stride, not each frame's. **Watch out for:** the spine's turn moved the trunk's line by about half of it, so the
+  first carry left the run at 9.9 degrees against 9; holding each frame's lean at the limit then stood the trunk still
+  through the stride (its rise and fall 0.0 degrees, 0.5 before). **Seen:** gdstudio #1348, 2026-11-12 (fix: the
+  stance's second pass and `LEAN_SMOOTHING`; `test_rifle_run_state.gd` reads the mean and the rise and fall).
 - **Approach:** In a suite, call `BodyClearance.deepest()` without `with_gap` and on a sample of updates whose step
   shares no factor with the stride; keep the gap for probes. **Watch out for:** with the gap on every update the
   sprint suite took 592 s in the full template run (a nearest-triangle search for every point of the rifle), against
