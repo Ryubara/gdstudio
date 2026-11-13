@@ -28,6 +28,10 @@ var prone := false
 var aim := false
 var fire := false
 var jump := false
+## Held while the player peeks around cover to the left or the right (the input turns a lean
+## toggle into a held bit; both at once lean neither way: `CharacterPeek`, gdstudio #1400).
+var lean_left := false
+var lean_right := false
 
 # Pressed since the last command (a press survives two commands arriving together).
 var jump_pressed := false
@@ -92,6 +96,8 @@ func copy_from(other: PlayerCommand) -> PlayerCommand:
 	aim = other.aim
 	fire = other.fire
 	jump = other.jump
+	lean_left = other.lean_left
+	lean_right = other.lean_right
 	jump_pressed = other.jump_pressed
 	fire_pressed = other.fire_pressed
 	interact_pressed = other.interact_pressed
@@ -125,6 +131,8 @@ func clear() -> void:
 	aim = false
 	fire = false
 	jump = false
+	lean_left = false
+	lean_right = false
 	clear_edges()
 
 

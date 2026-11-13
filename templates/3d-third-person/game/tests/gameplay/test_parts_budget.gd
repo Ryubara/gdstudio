@@ -32,8 +32,9 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## The slide's rack (#1337) adds 2: the hold's `HoldRackArm` and `HoldRackFingers` modifiers,
 ## inactive but through the rack after an empty reload. The hold's `HandFloor` (#1356) adds 1, a
 ## modifier inactive unless the body lies and aims. The aim layer's `AimUprightModifier` (kit #1351)
-## adds 1, inactive until the fists aim.
-const NODES_ALIVE := 69
+## adds 1, inactive until the fists aim. The peek lean (#1400) adds 3: the body's `PeekShape`,
+## disabled unless it leans, the `PeekLayer` and its `PeekModifier`, idle while upright.
+const NODES_ALIVE := 72
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120

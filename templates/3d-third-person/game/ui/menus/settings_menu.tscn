@@ -252,6 +252,15 @@ hint = "Off: the world goes on while the bag is open."
 [node name="Control" type="Button" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage/PauseInInventory"]
 script = ExtResource("10_toggle")
 
+[node name="LeanToggle" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage"]
+script = ExtResource("7_row")
+title = "Toggle lean"
+key = &"controls/lean_toggle"
+hint = "On: a press of a lean button leans until the next press. Off: hold it."
+
+[node name="Control" type="Button" parent="Fit/Margin/Center/Card/Column/Scroll/Pages/ControlsPage/LeanToggle"]
+script = ExtResource("10_toggle")
+
 [node name="Footer" type="HBoxContainer" parent="Fit/Margin/Center/Card/Column"]
 theme_override_constants/separation = 16
 

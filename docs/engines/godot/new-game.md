@@ -148,6 +148,11 @@ every exit, kept with `--keep`, two calls at once).
   its captures are made. **Watch out for:** every agent's kept games and logs sit side by side in the user's temp
   folder as `gds-tt-*`; a cleanup by that glob deleted other agents' kept games, some mid-run, before it was
   stopped. **Seen:** gdstudio #1156, 2026-11-12.
+- **Approach:** To try a change in a kept game, copy the template's changed scripts and scenes over and make the game
+  again (`gds template game`) when `project.godot` changed. **Watch out for:** the made game's `project.godot` is the
+  template's with the autoloads and addon settings `gds template game` adds; copying the template's over it dropped
+  `UIRouter` and the other autoloads, and every suite that loads `main.tscn` failed on parse errors with nothing of
+  the change in them. **Seen:** gdstudio #1400, 2026-11-13.
 - **Approach:** Prove a new game or template change with a parse of every script (`gds check scripts`) and an editor
   open, and when a script fails, find the registration or file it needs, never an export exclusion. **Watch out
   for:** a new 3D Blank game opened with five parse errors from the `gds_ui` demo (`Identifier "UIRouter" not

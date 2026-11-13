@@ -135,7 +135,7 @@ func test_a_copy_has_every_field_and_clear_keeps_only_the_view() -> void:
 				. override_failure_message(property["name"])
 				. is_equal(command.get(property["name"]))
 			)
-	assert_int(fields).is_equal(25)
+	assert_int(fields).is_equal(27)
 	copy.clear()
 	assert_float(copy.yaw).is_equal(command.yaw)
 	assert_float(copy.pitch).is_equal(command.pitch)

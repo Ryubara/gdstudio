@@ -720,14 +720,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion and _mouse_orbits():
 		orbit((event as InputEventMouseMotion).relative * mouse_sensitivity * player_sensitivity)
+	elif InputMap.has_action(&"shoulder_swap") and event.is_action_pressed(&"shoulder_swap"):
+		# Before the click that captures the mouse: the swap is the middle button (gdstudio #1400).
+		swap_shoulder()
 	elif event is InputEventMouseButton and capture_mouse:
 		var click := event as InputEventMouseButton
 		if click.pressed and not DisplayServer.is_touchscreen_available():
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif InputMap.has_action(&"pause") and event.is_action_pressed(&"pause"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	elif InputMap.has_action(&"shoulder_swap") and event.is_action_pressed(&"shoulder_swap"):
-		swap_shoulder()
 
 
 func _get_configuration_warnings() -> PackedStringArray:
@@ -961,6 +962,9 @@ func _pivot() -> Vector3:
 
 # -1 for the left shoulder, 0 for the center, 1 for the right.
 func _shoulder_side() -> float:
+	# A peek lean puts the view on the lean's shoulder while it lasts (gdstudio #1400).
+	if is_instance_valid(_player) and _player.peek_motion.leaning() and not Engine.is_editor_hint():
+		return float(_player.peek_motion.side())
 	match shoulder:
 		Shoulder.LEFT:
 			return -1.0
