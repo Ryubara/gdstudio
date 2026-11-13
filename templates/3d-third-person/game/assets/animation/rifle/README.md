@@ -101,13 +101,14 @@ and fails before it exports over a limit:
 | The head's skin inside the rifle | 5 mm | 0.0 mm | 0.0 mm |
 | The right eye off the sight line: level, up, down | reported (the game's test holds 81 mm) | 61.7, 59.9, 65.8 mm | 73.1, 61.3, 78.4 mm |
 | A limb inside another (`../limb_overlap.py`): idle, the aims, the shot | 5 mm, or what the hold alone does plus 3 mm | 0.0 mm | 1.9 mm (his thighs meet by that at rest) |
-| The same in `Rifle_Reload` | the same | 0.0 mm | 8.2 mm (the left hand in the right, frame 10) |
+| The same in `Rifle_Reload` | the same | 0.0 mm | 8.4 mm (the left hand in the right, frame 42) |
 
 The floor is the hold run on the idle pose with no rifle clip: 0 mm on the female and 1.9 mm on the male at the
 low ready and aimed, and 10.6 and 18.2 mm through the reload (27.0 mm at the low ready and 38.9 and 35.8 mm
 through the reload before the butt was brought to the skin, kit #1177). Under the clips only the male's reload is
-over nothing: his opened left hand passes 8.2 mm through the fingers of the right on its way to the magazine,
-which is the hold's way (`reload_clearance`, `magazine_approach`), the same under any clip.
+over nothing: his opened left hand passes 8.2 mm through the fingers of the right on its way to the magazine
+(frame 10) and 8.4 mm as it comes off the seated one for the charging handle (frame 42), which are the hold's
+ways (`reload_clearance`, `magazine_approach`, `ChargePull.leave`), the same under any clip.
 
 Reported and not failed, since they are the hold's pocket and not the clip's:
 
