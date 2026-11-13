@@ -1,6 +1,9 @@
 # A shoulder swap keeps the point under the crosshair where it is (`keep_aim_on_swap`): the view
 # turns inward as it slides, so the point the weapon aims at stays on the crosshair through the
-# swap, on a near board, a far one and the empty sky, and a shot fired mid-swap goes there. The
+# swap, on a near board and a far one, and a shot fired mid-swap goes there. The point is kept
+# only on a character (`keep_aim_layers`, the Characters and Ragdoll layers): aimed at a wall, the
+# floor or the sky the view slides without turning (test_camera_swap_target.gd). The boards here
+# are on the Characters layer, stand-ins for a character whose flat face makes the angle exact. The
 # player's look during the swap adds to the turn (`SwapLook.ADD`) or lets the point go past an
 # angle (`RELEASE`); with the anchor off the view slides and the aim drifts as before. By default
 # the point is kept only on a swap made while aiming (`keep_aim_when_not_aiming` off): a swap
@@ -48,8 +51,9 @@ func after_test() -> void:
 	AudioDrain.stop_all(_scene)
 
 
-func _block(centre: Vector3, size: Vector3) -> void:
+func _block(centre: Vector3, size: Vector3, layer := PhysicsLayers.WORLD) -> void:
 	var body := StaticBody3D.new()
+	body.collision_layer = layer
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = size
@@ -59,9 +63,10 @@ func _block(centre: Vector3, size: Vector3) -> void:
 	_scene.add_child(body)
 
 
-# A board straight ahead of the spot, `distance` metres out, as tall and wide as the view.
+# A board straight ahead of the spot, `distance` metres out, as tall and wide as the view, on the
+# Characters layer: a swap keeps the point on it as it would on a character.
 func _board(distance: float) -> void:
-	_block(SPOT + Vector3(0.0, 1.5, -distance), Vector3(40.0, 30.0, 0.5))
+	_block(SPOT + Vector3(0.0, 1.5, -distance), Vector3(40.0, 30.0, 0.5), PhysicsLayers.CHARACTERS)
 
 
 # One frame of the rig and then the engine's, so the arm, the host and the `Camera3D` follow.
@@ -144,6 +149,7 @@ func test_the_anchor_is_on_by_default_and_every_choice_is_exported() -> void:
 		"aim_point_range",
 		"aim_point_min_distance",
 		"aim_point_mask",
+		"keep_aim_layers",
 	]:
 		assert_array(names).contains([wanted])
 
@@ -160,13 +166,18 @@ func test_a_near_board_stays_under_the_crosshair_through_the_swap() -> void:
 	assert_float((result["point"] as Vector3).z).is_equal_approx(SPOT.z - 3.75, 0.05)
 
 
-func test_with_nothing_hit_the_ray_end_stays_under_the_crosshair() -> void:
-	# Looking up at the empty sky: the point is the ray's end, `aim_point_range` out.
+func test_with_nothing_hit_the_point_is_the_ray_end_and_the_view_does_not_turn() -> void:
+	# Looking up at the empty sky: the point is the ray's end, `aim_point_range` out, and it is
+	# no character, so the swap only slides the view.
 	_rig.pitch = -20.0
-	var result := await _swap_and_track()
-	_assert_kept(result, "sky")
+	await _settle()
 	var ray := _crosshair()
-	assert_float(ray[0].distance_to(result["point"])).is_greater(90.0)
+	assert_float(ray[0].distance_to(_rig.crosshair_point())).is_greater(90.0)
+	var yaw_before := _rig.yaw
+	var result := await _swap_and_track()
+	assert_bool(_rig.aim_anchored()).is_false()
+	assert_float(_rig.yaw).is_equal(yaw_before)
+	assert_float(result["last"]).is_greater(0.2)
 
 
 func test_with_the_anchor_off_the_view_slides_and_the_aim_drifts() -> void:

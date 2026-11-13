@@ -164,6 +164,10 @@ every exit, kept with `--keep`, two calls at once).
   (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
   **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
   gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template); #1274.
+- **Approach:** Run a desktop probe or a bench of a template in a kept game (`gds template game`, or the game
+  `bench-web` keeps without `--run`), never with `--path templates/<t>/game`. **Watch out for:** an import there
+  failed to parse the menus and settings (37 errors: their classes come with the game) and rewrote three levels'
+  lightmap `.import` files in the worktree. **Seen:** gdstudio #1433, 2026-11-13 (put back with `git checkout`).
 - **Approach:** Give a new script or shader its `.uid` before `gds template test` with `gds template uids
   <template>` (the template's name, or a folder holding `project.godot`): it writes each missing file in Godot's form
   and leaves every valid one alone. A new asset's `.import` still comes from the kept game (`gds template game
