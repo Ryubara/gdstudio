@@ -10,9 +10,10 @@ extends Node3D
 ## left hand cupped under the hand guard. Both hands stay on the gun in every state; only a reload
 ## takes the left hand away, to the magazine and the belt and back, and an action that reaches
 ## with it (using a door: `FreeHand`, kit #1336), for which the gun goes down in the right hand
-## alone. The legs and the head stay on the locomotion clips. `two_hand_hold.tscn` is the part
-## with no gun; the rifle's `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and
-## the hands' places under `Pivot`.
+## alone. A melee blow's clip carries the rifle in both hands while it plays (`HoldBlow`). The
+## legs and the head stay on the locomotion clips. `two_hand_hold.tscn` is the part with no gun;
+## the rifle's `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and the hands'
+## places under `Pivot`.
 ##
 ## The parts a person tunes are scene nodes: `Pivot` (the shoulder's pocket, which this node moves
 ## and turns), the gun under it, the hands' places on the gun (`RightHandTarget`,
@@ -102,6 +103,10 @@ const _PUSH_STEP := 0.003
 ## How far off the skin the butt stays (the skin points ride one bone each, so they are a few
 ## millimetres off the drawn skin near a joint).
 @export_range(0.0, 0.03, 0.001, "suffix:m") var butt_margin := 0.01
+## How much of the barrel's fall the butt's way to the skin leaves out while the muzzle is down
+## (1: it comes level out of the pocket; 0: along the barrel). Along the barrel, a steep aim down
+## slid the butt down the chest and 10 cm off the shoulder before it was clear (kit #1346).
+@export_range(0.0, 1.0, 0.01) var push_level := 1.0
 ## The torso's skin is thinned to one point in each cell this size.
 @export_range(0.005, 0.1, 0.005, "suffix:m") var skin_spacing := 0.03
 ## The most the left collarbone turns to bring the shoulder toward the hand guard when the arm
@@ -230,6 +235,8 @@ var posed_reload := -1.0
 var posed_lowered := 0.0
 ## For a figure posed by hand: how far the left hand is let go (`FreeHand.amount()`).
 var posed_free := 0.0
+## How much of the upper body a melee blow's clip holds, for a figure posed by hand (`HoldBlow`).
+var posed_blow := 0.0
 ## True while the camera is past `fingers_far_distance` (set by `CharacterAnimationThrottle`).
 var fingers_far := false
 
@@ -246,6 +253,8 @@ var _down := 0.0
 var _leaving := false
 # The left hand let go for an action that reaches with it, and how far it is gone this frame.
 var _free := FreeHand.new()
+var _blow := HoldBlow.new()
+var _hand_index := -1
 var _freed := 0.0
 var _chest := Vector3.ZERO
 var _left_rest := Transform3D.IDENTITY
@@ -320,6 +329,12 @@ func raised_amount() -> float:
 	return _raised
 
 
+## How much of the upper body a melee blow's clip holds now: by as much the rifle rides the clip's
+## right hand and the hold's own turns ease off (`HoldBlow`, gdstudio #1288).
+func blow_amount() -> float:
+	return _blow.amount
+
+
 ## How far the left hand is let go for an action that reaches with it (`FreeHand.amount()`).
 func free_amount() -> float:
 	return _freed
@@ -337,6 +352,12 @@ func free_hand(seconds: float) -> void:
 ## The character used something: the interact clip reaches with the left hand.
 func free_hand_for_interact() -> void:
 	free_hand(character.tuning.interact_time)
+
+
+## The action the hand was let go for ended early (a use cut short): the hand comes back onto the
+## weapon its own way, from wherever it is.
+func take_hand_back() -> void:
+	_free.finish()
 
 
 ## How far the arms are on the gun's places: 1 while the gun is in the hands, and the way there
@@ -370,6 +391,8 @@ func refresh() -> void:
 	for modifier in _modifiers:
 		if not is_instance_valid(modifier):
 			continue
+		if modifier is HoldArm:  # a blow's clip has the elbows (`HoldBlow`)
+			(modifier as HoldArm).keep_elbow = _blow.amount
 		var share := fingers if modifier is HandPoseModifier else _reach
 		if not alive:
 			share = 0.0
@@ -443,10 +466,11 @@ func place(skeleton: Skeleton3D) -> void:
 	# side forward under the stock). A push that moved more than `_PUSH_STEP` since the last
 	# frame (a new pose, a switch) is gone through again, from the clip's collarbone.
 	var clip_clavicle := Transform3D.IDENTITY
+	var way := _push_way(basis_now)
 	if _clavicle_index >= 0:
 		clip_clavicle = skeleton.get_bone_pose(_clavicle_index)
 	for pass_index in _PASSES:
-		pivot_xf.origin = pocket + basis_now.z * (_push - kick_distance * _kick)
+		pivot_xf.origin = pocket + way * _push - basis_now.z * kick_distance * _kick
 		_reach_shoulder(skeleton, pivot_xf, gun_in_pivot, to_here)
 		# Past `fingers_far_distance` the butt keeps the push of the last near frame: the skin
 		# is not gone through for a body too far to show a centimetre.
@@ -454,15 +478,31 @@ func place(skeleton: Skeleton3D) -> void:
 			break
 		var before := _push
 		_push = _skin.push(
-			skeleton, Transform3D(basis_now, pocket), to_here, butt_pad, butt_depth, butt_margin
+			skeleton,
+			Transform3D(basis_now, pocket),
+			to_here,
+			butt_pad,
+			butt_depth,
+			butt_margin,
+			way
 		)
-		pivot_xf.origin = pocket + basis_now.z * (_push - kick_distance * _kick)
+		pivot_xf.origin = pocket + way * _push - basis_now.z * kick_distance * _kick
 		if absf(_push - before) <= _PUSH_STEP or _clavicle_index < 0:
 			break
 		if pass_index == _PASSES - 1:
 			break
 		skeleton.set_bone_pose(_clavicle_index, clip_clavicle)
 	pivot_xf.origin -= basis_now.z * _pull(skeleton, pivot_xf, gun_in_pivot, to_here)
+	if _blow.amount > 0.0 and _targets[0] != null:
+		pivot_xf = HoldBlow.carried(
+			pivot_xf,
+			_blow.amount,
+			skeleton,
+			_hand_index,
+			to_here,
+			_targets[0].transform,
+			gun_in_pivot
+		)
 	_pivot.transform = pivot_xf
 	var gun_here := pivot_xf * gun_in_pivot
 	_place_reload(gun_here)
@@ -482,6 +522,17 @@ func place(skeleton: Skeleton3D) -> void:
 ## The skeleton's indexes of `spine_bones`, for the stance modifier.
 func spine_indices() -> PackedInt32Array:
 	return _spine_indices
+
+
+# The way the butt goes from the pocket to the skin: along the barrel, its fall taken out by
+# `push_level` while the muzzle is down (kit #1346). Aimed up the barrel's way stays: the push is
+# small there, and out level it jumped between frames on a walk and shook the head on the sights.
+func _push_way(turn: Basis) -> Vector3:
+	var barrel := turn.z.normalized()
+	var level := Vector3(barrel.x, 0.0, barrel.z)
+	if push_level <= 0.0 or barrel.y >= 0.0 or level.length_squared() < 1e-6:
+		return barrel
+	return barrel.slerp(level.normalized(), push_level)
 
 
 # The frame the pockets are given in: the chest's turn about the up axis, and `pocket_lean` of
@@ -537,7 +588,7 @@ func _reach_shoulder(
 	var share := (both - length * length) / maxf(twice, 1e-9)
 	if share < 1.0:
 		high = minf(high, maxf(whole - acos(maxf(share, -1.0)), 0.0))
-	var angle := high * weight() * (1.0 - FreeHand.gone(_freed))
+	var angle := high * weight() * (1.0 - FreeHand.gone(_freed)) * (1.0 - _blow.amount)
 	var turned := Transform3D(Basis(axis, angle) * root.basis, root.origin)
 	skeleton.set_bone_pose(_clavicle_index, parent.affine_inverse() * turned)
 	return angle > 0.0
@@ -566,6 +617,12 @@ func _pull(
 	return clampf(-along - reach, 0.0, pull_limit)
 
 
+## How far the butt went from the pocket to the skin in the last frame it was measured, in metres
+## (along `push_level`'s way).
+func butt_push() -> float:
+	return _push
+
+
 ## The weight of the hold on the arms and the chest: with the arms.
 func weight() -> float:
 	return _reach
@@ -573,9 +630,9 @@ func weight() -> float:
 
 ## The weight of the chest's turn toward the hand guard: with the arms, and none while the left
 ## hand is away for an action, whose clip then has the shoulders (the turn would bring its
-## reaching arm across the gun).
+## reaching arm across the gun), nor while a melee blow's clip has the upper body.
 func chest_weight() -> float:
-	return _reach * (1.0 - smoothstep(0.0, 1.0, _freed))
+	return _reach * (1.0 - smoothstep(0.0, 1.0, _freed)) * (1.0 - _blow.amount)
 
 
 # How far the arms are on the gun's places now. In the hands: all the way. While the weapon
@@ -645,7 +702,8 @@ func _step(delta: float) -> void:
 		if _reload_progress() >= 0.0 or not visible:
 			_free.stop()
 		_freed = _free.amount()
-		var wants := character.aim_amount
+		_blow.step(character)
+		var wants := _blow.aim(character)
 		_shot_left = maxf(_shot_left - delta, 0.0)
 		if _shot_left > 0.0:
 			wants = 1.0
@@ -655,6 +713,7 @@ func _step(delta: float) -> void:
 	else:
 		_raised = posed_aim
 		_freed = posed_free
+		_blow.amount = posed_blow
 	_kick = move_toward(_kick, 0.0, delta / maxf(kick_recover_time, 0.001))
 
 
@@ -897,6 +956,7 @@ func _find_bones() -> void:
 	_spine_indices.clear()
 	for bone_name in spine_bones:
 		_spine_indices.append(_skeleton.find_bone(bone_name))
+	_hand_index = _skeleton.find_bone(right_arm[2]) if right_arm.size() > 2 else -1
 	_left_indices.clear()
 	for bone_name in left_arm:
 		_left_indices.append(_skeleton.find_bone(bone_name))

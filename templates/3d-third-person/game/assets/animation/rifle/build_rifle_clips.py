@@ -471,7 +471,9 @@ class Hold:
         """`body_file`: the model's file name. A body that one of the hold's `fits` was solved on gets that
         fit's places and poses (`TwoHandHold._fit_body`); any other the scene's own."""
         weapon = GAME / "gameplay/weapon"
+        # The torso's skin the butt meets is a class of its own (`TorsoSkin`): its constants are the hold's too.
         script = (weapon / "two_hand_hold.gd").read_text(encoding="utf-8")
+        script += "\n" + (weapon / "hold/torso_skin.gd").read_text(encoding="utf-8")
         held = weapon / "rifle_held.tscn"
         self.n = read_numbers(script, held.read_text(encoding="utf-8"), "RifleHeld")
         self.rifle = read_transform(held, "Rifle")
@@ -588,14 +590,32 @@ class Hold:
         lean = q @ about_up.inverted()
         return np.array((Quaternion().slerp(lean, self.n["pocket_lean"]) @ about_up).to_matrix())
 
-    def butt_push(self, rig, pose, gun):
-        """How far the gun goes forward along its barrel from the pocket (`gun`: the pivot there) so no point
-        of the torso's skin is inside its stock (`_butt_push`)."""
+    def push_way(self, basis):
+        """The way the butt goes from the pocket to the skin: along the barrel, its fall taken out by
+        `push_level` while the muzzle is down (`TwoHandHold._push_way`, kit #1346)."""
+        barrel = basis[:, 2] / np.linalg.norm(basis[:, 2])
+        level = np.array((barrel[0], 0.0, barrel[2]))
+        if self.n["push_level"] <= 0.0 or barrel[1] >= 0.0 or level @ level < 1e-6:
+            return barrel
+        level /= np.linalg.norm(level)
+        angle = np.arccos(np.clip(barrel @ level, -1.0, 1.0))
+        if angle < 1e-6:
+            return barrel
+        t = self.n["push_level"]
+        return (np.sin((1.0 - t) * angle) * barrel + np.sin(t * angle) * level) / np.sin(angle)
+
+    def butt_push(self, rig, pose, gun, way=None):
+        """How far the gun goes from the pocket (`gun`: the pivot there), along its barrel or along `way`, so no
+        point of the torso's skin is inside its stock (`TorsoSkin.push`)."""
         n = self.n
         margin = n["butt_margin"]
         wide, high = n["butt_pad"][0] * 0.5 + margin, n["butt_pad"][1] * 0.5 + margin
         push = 0.0
         to_gun = np.linalg.inv(gun)
+        if way is not None:
+            local = gun[:3, :3].T @ way
+            if abs(local[1]) > 1e-4:
+                return self.push_along(rig, pose, to_gun, wide, high, np.array((local[1], max(local[2], n["_LEAST_ALONG"]))))
         for bone, points in self.skin.items():
             at = ((to_gun @ rig.chain(pose, bone)) @ np.c_[points, np.ones(len(points))].T).T[:, :3]
             inside = (at[:, 2] > -margin) & (at[:, 2] < n["butt_depth"])
@@ -603,6 +623,32 @@ class Hold:
             if inside.any():
                 push = max(push, float(at[inside, 2].max()) + margin)
         return push
+
+    def push_along(self, rig, pose, to_gun, wide, high, move):
+        """The push along `move` (up the gun, along its barrel): each point near the stock forbids the moves
+        that leave it inside, one open run, and the push is the least move forward no run forbids
+        (`TorsoSkin._push_along`)."""
+        n = self.n
+        move = move / np.linalg.norm(move)
+        margin, depth, most = n["butt_margin"], n["butt_depth"], n["_PUSH_MOST"]
+        rise = abs(move[0]) * most
+        runs = []
+        for bone, points in self.skin.items():
+            at = ((to_gun @ rig.chain(pose, bone)) @ np.c_[points, np.ones(len(points))].T).T[:, :3]
+            near = (at[:, 2] >= -margin) & (at[:, 2] <= depth + most) & (np.abs(at[:, 1]) <= high + rise)
+            near &= np.abs(at[:, 0]) < wide
+            for x, y, z in at[near].tolist():
+                one, other = (y - high) / move[0], (y + high) / move[0]
+                low = max((z - depth) / move[1], min(one, other))
+                top = min((z + margin) / move[1], max(one, other))
+                if top > max(low, 0.0):
+                    runs.append((low, top))
+        pushed = 0.0
+        for low, top in sorted(runs):
+            if low >= pushed:
+                break
+            pushed = max(pushed, top)
+        return pushed
 
     def reach_shoulder(self, rig, pose, pivot):
         """Turns the left collarbone (by `reach_turn` at most) so the left shoulder comes toward the hand guard,
@@ -683,13 +729,14 @@ class Hold:
         # `_PUSH_STEP`, from the push of the frame before, and so settles within that of this.
         clip_clavicle = pose["local"][self.clavicle]
         push, back = 0.0, n["kick_distance"] * kick
+        way = self.push_way(basis)
         for _ in range(PUSH_PASSES):
             pose["local"][self.clavicle] = clip_clavicle
-            self.reach_shoulder(rig, pose, place_of(basis, pocket + basis[:, 2] * (push - back)))
-            before, push = push, self.butt_push(rig, pose, place_of(basis, pocket))
+            self.reach_shoulder(rig, pose, place_of(basis, pocket + way * push - basis[:, 2] * back))
+            before, push = push, self.butt_push(rig, pose, place_of(basis, pocket), way)
             if abs(push - before) <= PUSH_SETTLED:
                 break
-        pivot = place_of(basis, pocket + basis[:, 2] * (push - back))
+        pivot = place_of(basis, pocket + way * push - basis[:, 2] * back)
         pivot[:3, 3] -= basis[:, 2] * self.pull(rig, pose, pivot)
         left, magazine, shown = self.left_place(state, pivot, chest)
         gun = pivot @ self.rifle

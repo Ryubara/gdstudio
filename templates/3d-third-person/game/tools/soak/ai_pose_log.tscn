@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://tools/soak/ai_soak.tscn" id="1_soak"]
+[ext_resource type="Script" path="res://tools/soak/ai_pose_log.gd" id="2_log"]
+
+[node name="AiPoseLog" type="Node"]
+script = ExtResource("2_log")
+seconds = 90.0
+
+[node name="Soak" parent="." instance=ExtResource("1_soak")]
+seconds = 600.0
+pathing_count_each = 0

@@ -13,6 +13,9 @@
 [ext_resource type="Script" path="res://addons/gds_game/inventory/item_def.gd" id="11_def"]
 [ext_resource type="Script" path="res://gameplay/ai/relations/ai_faction_member.gd" id="ai_faction_member"]
 [ext_resource type="Script" path="res://addons/gds_game/inventory/hotbar.gd" id="12_hotbar"]
+[ext_resource type="Script" path="res://gameplay/character/item_use.gd" id="13_item_use"]
+[ext_resource type="AudioStream" path="res://gameplay/inventory/bandage_use.tres" id="14_bandage_sound"]
+[ext_resource type="Script" path="res://gameplay/character/corpse_nudge.gd" id="13_nudge"]
 
 [sub_resource type="Resource" id="ItemStack_bandages"]
 script = ExtResource("8_stack")
@@ -42,6 +45,22 @@ script = ExtResource("12_hotbar")
 start_items = Array[ExtResource("11_def")]([ExtResource("10_bandage")])
 inventory = NodePath("../Inventory")
 
+[node name="ItemUse" type="Node" parent="." node_paths=PackedStringArray("character", "hotbar", "sound")]
+script = ExtResource("13_item_use")
+character = NodePath("..")
+hotbar = NodePath("../Hotbar")
+sound = NodePath("../UseSound")
+
+[node name="UseSound" type="AudioStreamPlayer3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+stream = ExtResource("14_bandage_sound")
+volume_db = -14.0
+bus = &"SFX"
+
 [node name="AiFactionMember" type="Node" parent="."]
 script = ExtResource("ai_faction_member")
 faction = &"player"
+
+[node name="CorpseNudge" type="Node" parent="." node_paths=PackedStringArray("body")]
+script = ExtResource("13_nudge")
+body = NodePath("..")

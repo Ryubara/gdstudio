@@ -213,10 +213,16 @@ func test_a_reload_cut_short_leaves_the_pistol_whole() -> void:
 	AudioDrain.stop_all(arena)
 
 
+# A pistol with no rack (`WeaponDef.rack_clip` empty): the reload releases the slide itself. The
+# template's pistol racks it after the reload instead (`test_pistol_rack_live.gd`, kit #1337).
 func test_the_slide_stands_back_on_an_empty_pistol_until_the_reload_releases_it() -> void:
 	var arena: PlayArena = auto_free(PlayArena.new())
 	add_child(arena)
 	var player := arena.add_player(Vector3.ZERO)
+	var pistol := player.weapon.definition.duplicate() as WeaponDef
+	pistol.rack_clip = &""
+	player.loadout.slots[0] = pistol
+	player.weapon.definition = pistol
 	await InputSim.ticks(get_tree(), 20)
 	var hold := player.get_node("WeaponHold") as WeaponHold
 	var slide := player.get_node("Model/PistolHeld/Pistol/Pistol/Slide") as Node3D

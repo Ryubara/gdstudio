@@ -103,6 +103,13 @@ class Driver:
 		_shot_hold = animation.shot_hold_time
 		_shot_arm = maxf(_shot_arm, animation.character.aim_amount)
 
+	## A hit's stun (gdstudio #1345): an arm that was up stays up `seconds` from where it is now.
+	## The stun takes the aim away (`Character`), but a flinch that drops the weapon to the hip
+	## and raises it again reads as a wrong pose; only the drawn arm is held.
+	func hold_up(animation: CharacterAnimation, seconds: float) -> void:
+		_shot_hold = maxf(_shot_hold, seconds)
+		_shot_arm = maxf(_shot_arm, animation.character.aim_amount)
+
 	## Frees the brace, so the next aim makes it again from the model, the bone and the aim clip
 	## there are then, and forgets the last shot; called whenever the tree is built.
 	func build(_animation: CharacterAnimation) -> void:

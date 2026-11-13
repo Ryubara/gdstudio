@@ -3,7 +3,9 @@
 ## (or by `?run=` in the web build's address): `no_hold` (no hold scene), `carried` (the grip's
 ## finger pose, the wrist's turn and the arm's swing), `aimed` (those and the left arm's reach and
 ## the left fingers) or `one_handed` (the grip and the one-handed stance of kit #1085: the chest's
-## turn and the right arm's reach); or with `rifle_held.tscn` in the model's space: `rifle` (aimed:
+## turn and the right arm's reach), `racked` (carried, the slide's rack of kit #1337 at the pull:
+## the rack's reach and fingers on the left hand and the slide moved every frame); or with
+## `rifle_held.tscn` in the model's space: `rifle` (aimed:
 ## the stance, both arms' reach and both hands' fingers), `rifle_low` (the same at the low ready)
 ## or `rifle_reload` (aimed, 0.3 of a reload: the left hand taking the magazine out). A camera
 ## looks on from `NEAR_CAMERA` (every figure inside the rifle hold's `fingers_far_distance`, as the
@@ -48,6 +50,7 @@ const RUNS: Dictionary[String, Dictionary] = {
 	"carried": {"hold": true, "aim": 0.0, "camera": NEAR_CAMERA},
 	"aimed": {"hold": true, "aim": 1.0, "camera": NEAR_CAMERA},
 	"one_handed": {"hold": true, "aim": 1.0, "one_handed": true, "camera": NEAR_CAMERA},
+	"racked": {"hold": true, "aim": 0.0, "rack": 0.42, "camera": NEAR_CAMERA},
 	"rifle": {"rifle": true, "aim": 1.0, "camera": NEAR_CAMERA},
 	"rifle_low": {"rifle": true, "aim": 0.0, "camera": NEAR_CAMERA},
 	"rifle_reload": {"rifle": true, "aim": 1.0, "reload": 0.3, "camera": NEAR_CAMERA},
@@ -185,6 +188,9 @@ func _figure(run: Dictionary) -> Node3D:
 		hold.set(&"seat", seat)
 		hold.set(&"aim_weight", run.aim)
 		hold.set(&"one_handed", run.get("one_handed", false))
+		if run.has("rack"):
+			hold.set(&"rack_weight", 1.0)
+			hold.set(&"rack_share", run.rack)
 		figure.add_child(hold)
 	return figure
 

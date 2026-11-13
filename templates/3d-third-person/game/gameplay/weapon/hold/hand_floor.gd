@@ -11,6 +11,12 @@ extends SkeletonModifier3D
 ## the shoulder the arms keep the clips' shape, and where no hand is that low (both clips' own
 ## poses) nothing moves.
 
+## The name a weapon hold gives it on the skeleton.
+const NODE_NAME := &"HoldHandFloor"
+## How far into a lying aim the hands are fully kept over the floor: from nothing at no aim, so a
+## crawl's fists are never moved.
+const FLOOR_FROM_AIM := 0.1
+
 ## The upper bone of each arm; its hand is two bones below it.
 @export var arms: Array[StringName] = [&"upperarm_r", &"upperarm_l"]
 ## The lowest any bone of either hand may be over the floor, in metres. A finger's skin is about
@@ -26,6 +32,23 @@ var lifted := 0.0
 # first.
 var _chains: Array[PackedInt32Array] = []
 var _hands: Array[PackedInt32Array] = []
+
+
+## A floor keeper for a hold's two arms, by their upper bones (an empty one keeps the default).
+static func made(right: StringName, left: StringName) -> HandFloor:
+	var keeper := HandFloor.new()
+	keeper.name = NODE_NAME
+	if not right.is_empty():
+		keeper.arms[0] = right
+	if not left.is_empty():
+		keeper.arms[1] = left
+	return keeper
+
+
+## Its weight in a hold: `keep` (the hold's elbow keep) by how far the aim has come, all of it
+## from `FLOOR_FROM_AIM`.
+static func share(keep: float, aim: float) -> float:
+	return keep * clampf(aim / FLOOR_FROM_AIM, 0.0, 1.0)
 
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:

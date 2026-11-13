@@ -116,8 +116,9 @@ extends Resource
 @export_range(1.0, 60.0, 0.5, "suffix:rad/s") var aim_turn_speed := 18.0
 ## Seconds the arm takes to come up to aim and to go down again.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var aim_pose_time := 0.15
-## A press of the fire button is kept this long while the arm comes up, then it shoots. Shorter
-## than half of `aim_pose_time` and a quick tap from the hip shoots nothing.
+## A press of the fire button is kept this long while the arm comes up, then it shoots; the arm
+## keeps coming up for it after the button is let go. Shorter than half of `aim_pose_time` and a
+## quick tap from the hip shoots nothing.
 @export_range(0.0, 1.0, 0.01, "suffix:s") var fire_buffer_time := 0.3
 ## How far the arm must be up (0 down, 1 aiming) before a shot leaves.
 @export_range(0.0, 1.0, 0.01) var shot_aim_amount := 0.5

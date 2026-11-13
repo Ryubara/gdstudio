@@ -18,12 +18,13 @@ random_pitch = 0.85
 [resource]
 script = ExtResource("1_category")
 display_name = "Rifle"
+melee_clips = Array[StringName]([&"melee/Melee_Rifle_Butt_Stroke", &"melee/Melee_Rifle_Butt_Jab", &"melee/Melee_Rifle_Smash"])
 melee_clip_speed = 1.0
 melee_reach = 1.4
 melee_damage = 30.0
 melee_impulse = 45.0
 melee_cooldown = 0.8
-melee_hit_start = 0.22
-melee_hit_end = 0.34
+melee_hit_start = 0.25
+melee_hit_end = 0.44
 melee_sound = SubResource("AudioStreamRandomizer_swing")
 melee_volume_db = -24.0

@@ -82,6 +82,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"wall_mask": PhysicsLayers.CAMERA_MASK,
 		&"wall_shape": null,
 		&"wall_margin": 0.25,
+		&"lens_return_speed": 4.0,
 		&"prone_aim_view": true,
 		&"prone_aim_distance": 1.8,
 		&"prone_aim_ahead": 0.55,
