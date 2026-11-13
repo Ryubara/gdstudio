@@ -396,8 +396,9 @@ func refresh() -> void:
 		var share := fingers if modifier is HandPoseModifier else _reach
 		if not alive:
 			share = 0.0
-		elif _arms.size() > 1 and modifier == _arms[1]:
-			# The clip's own arm has the left hand while an action reaches with it.
+		elif _arms.size() > 1 and (modifier == _arms[1] or not shown and modifier is HoldArm):
+			# The clip's own arm has the left hand while an action reaches with it, and both
+			# while the gun is put away for it (a high vault: gdstudio #1409).
 			share *= 1.0 - FreeHand.gone(_freed)
 		elif _fingers.size() > 1 and modifier == _fingers[1]:
 			share *= 1.0 - FreeHand.relaxed(_freed)
@@ -699,7 +700,8 @@ func _on_switch_finished() -> void:
 func _step(delta: float) -> void:
 	if character != null:
 		_free.step(delta)
-		if _reload_progress() >= 0.0 or not visible:
+		# Put away by a switch, not for the action (a high vault hides the gun it frees).
+		if _reload_progress() >= 0.0 or not visible and _reach <= 0.0:
 			_free.stop()
 		_freed = _free.amount()
 		_blow.step(character)

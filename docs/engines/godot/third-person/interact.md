@@ -105,6 +105,14 @@ reaches with it (a use animation, a pickup) by calling the hold's `free_hand(sec
   from the hand guard took the fingers 32 mm through the rifle, and so did the hold's chest turn, which swings the
   clip's reaching arm across the gun (ease it off with the hand). **Seen:** gdstudio #1336, 2026-11-12
   (`test_interact_held.gd`).
+- **Approach:** Free a held weapon's hand for every action whose clip uses that hand, not only for the one it was
+  built for: a vault calls the view's `free_hand(seconds)` as it starts (`VaultAnimation._free_hands()`, any view
+  that has the method), and a weapon hidden for the action (a high vault's `puts_weapon_away`) lets both arms go by
+  the same amount and keeps its free running while hidden (only a switch, with the arms' reach down to 0, stops it).
+  **Watch out for:** the vault turned off only the pistol's layer (`VaultAnimation.hands`), so with the rifle the
+  low vault's left wrist stayed 0.3 m over the top on the hand guard and, with the rifle hidden for the high vault,
+  both arms still went to where it would be (the left 0.3 m off); the hold also stopped any free once hidden.
+  **Seen:** gdstudio #1409, 2026-11-13 (`test_vault_rifle.gd`).
 - **Approach:** A hold weighs its modifiers by a shared layer's weights only while its own weapon is in the hands,
   and a test lists every skeleton modifier with its `active` and `influence` on the update that looks wrong.
   **Watch out for:** once the rifle had grip and aim clips, the pistol's hold ran its grip and its left arm with the
