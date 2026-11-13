@@ -339,9 +339,13 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   half and half let a planted foot slide 10 mm forward and 4 mm across in a contact, a turn blended not being a place
   blended. So each gait plays alone over a range of paces (`stretch`), the blend is kept to the speeds between, its
   stride is the weights' geometric mean, and a trim measured from the planted foot itself corrects the rest.
-- **Momentum.** A state machine transition with `xfade_time` 0 shows the new state in the same process; the
-  modifier then adds the decaying difference from the last drawn pose. A `SkeletonModifier3D` added as an internal
-  child at the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
+- **Momentum.** A state machine transition with `xfade_time` 0 shows the new state one update late: on the update
+  the travel switches, the playback's `get_current_node()` already names the new state while the pose the tree mixes
+  (read at `mixer_applied`) is still the old state's, and the new state's pose comes on the next update (measured in
+  4.7.2 at the slide's start, its exit and the crouch after it). So the modifier that adds the decaying difference
+  from the last drawn pose begins on the change and again on the update after it. A `SkeletonModifier3D` added as an
+  internal child at the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's
+  modifiers.
 
 - **Approach:** Play a gait alone, slowed or sped up, for as many speeds as it looks right at, and blend two gaits
   only across the speeds between; measure a planted foot's slide in the world in a test that steps the body and the
@@ -350,6 +354,15 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   idle and the walk slid 13.6 mm across; the test at the three points alone passed. **Seen:** gdstudio #1158,
   2026-11-12 (`test_gait_speed_match.gd`: every speed under 7 mm after the stretch and the trim; 167 mm between the
   jog and the sprint before).
+- **Approach:** Start a blend that reads the pose a state change hands over from on the update the new state's pose
+  is drawn, not the update the playback names it, and test it on every drawn update (`skeleton_updated`) for a
+  joint moving further in one update than the blend lets it. **Watch out for:** `MomentumBlend` began on the update
+  `get_current_node()` changed, saw the old state's pose there, measured no difference, and the new pose came in
+  whole on the next update: the head moved 0.75 to 0.95 m in one frame as a slide ended in the crouch, the slide's
+  start 0.48 to 0.68 m, with every weapon and on both bodies; `test_gait_parts.gd` read only the blend's largest
+  offset, which a blend begun a frame early still showed.
+  **Seen:** gdstudio #1439, 2026-11-13 (fix: it begins again on the next update; `test_slide_end_blend.gd`, 0.17 to
+  0.19 m after).
 - **Approach:** Feed each `AnimationNodeBlendTree` node's output to one input only; a pose used twice (the base of
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
