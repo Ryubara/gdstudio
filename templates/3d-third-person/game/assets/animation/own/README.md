@@ -590,7 +590,7 @@ What each tried and could not do is in the style files' notes and on the review 
 | `Land_Hard` | 38 | `fall_speed` from 9, `control` 20, `lowest` at 5 |
 | `Land_To_Jog` | 8 | `speed` 4.0, `fall_speed` 4.5 to 9, `join_frames.last` 10 |
 
-- **Cost (A, as shipped):** up to 61 tracks each (40 to 56 bones move, plus the 5 places); keys kept of every frame 64
-  to 92 % in the take-offs and `Land_To_Jog` (short and fast), 12 to 13 % in the air's loops, 25 and 34 % in the
-  landings; key bytes 5.9 to 7.5 KB for a take-off, 15 to 20 KB a loop, 17.1 and 24.9 KB for the landings. The nine
-  add 255 KB to the file and 53 KB to the import, which stays at 5.9 KB a second.
+- **Cost (A, as shipped, since kit #1369):** up to 61 tracks each (40 to 56 bones move, plus the 5 places); keys
+  kept of every frame 39 to 58 % in the 12-frame take-offs and 81 % in `Land_To_Jog` (short and fast), 12 to 13 % in
+  the air's loops, 32 and 22 % in the landings; key bytes 10.4 to 11.4 KB for a take-off, 15.6 to 19.9 KB a loop,
+  17.4 and 23.5 KB for the landings. The import stays inside the budget (`test_own_clips.gd`).
