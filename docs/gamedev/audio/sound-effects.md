@@ -278,8 +278,9 @@ and so may the sounds of ElevenLabs' own premade library of sound effects. That 
   length, the same as the free tier) make four takes of a short sound cheap; list the ones you keep in the sound's
   `keep` (numbers from 1) and `encode` makes files of those only.
 - **The licence entry** is the folder's `LICENSE.md`, written by `encode` from the plan the take's request file
-  recorded (`tier`, read from `GET /v1/user/subscription` at generation): on any plan other than `free` it says the
-  output is licensed for commercial use, needs no attribution and has nothing to replace (the data file's `licences`).
+  recorded (`tier`, read from `GET /v1/user/subscription` at generation): on any plan other than `free` it names the
+  plan, links the Sound Effects terms (Exhibit 4), says the sounds may be used in a game combined with other material
+  but not sold, licensed or shared on their own, and asks no attribution (the data file's `licence_paid`).
   A premade library sound gets the same file by hand: its name in the library, the plan it was downloaded on, the date
   and the same licence line. Neither needs the maintainer's yes; a sound from anywhere else still does (a third-party
   asset is a maintainer decision).
@@ -294,6 +295,11 @@ and so may the sounds of ElevenLabs' own premade library of sound effects. That 
   too quiet for a pickup. Take 4 was peak limited at -23.7 LUFS-M, 1.7 LU under the set's old -22 target, so the set's
   target moved to -23.5 (`check` allows 1 LU inside a set) and the level in the game was measured again. **Seen:**
   gdstudio #889, 2026-11-10 (takes 4 and 1 kept).
+- **Approach:** Let `encode` write every generated folder's `LICENSE.md`, and when the wording in the data file
+  changes, encode again or copy the new wording into each folder by hand, with the folder's own rows. **Watch out
+  for:** the weapon pickup's entry kept the first paid wording (a commercial-use line, a Credits note, the model in the
+  generator line) after the other folders moved to the terms' wording; search the templates for the old phrases
+  before calling a wording change done. **Seen:** gdstudio #1350, 2026-11-12 (the entry from #1040).
 
 ## 7. Proof {#proof}
 
