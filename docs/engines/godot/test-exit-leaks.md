@@ -173,7 +173,9 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   use` before the pull request, even when the full run is green. **Watch out for:** `LoopbackLink.pair()` made ends
   that held each other strongly, so every pair a test made stayed alive: 526 template tests passed with one line `4
   resources still in use at exit`, which only a run of each suite alone traced to the loopback suite. **Seen:**
-  gdstudio #903, 2026-11-10 (fix: weak references and a test that frees one end).
+  gdstudio #903, 2026-11-10 (fix: weak references and a test that frees one end); gdstudio #1386, 2026-11-13
+  (`ClientItems` kept the `ClientCombat` that owns it: 18 instances leaked; fix: the owner is an argument of each
+  call, never kept).
 - **Approach:** A scene's script makes its nodes in `_ready` (or adds them as children at once), never in a member
   initializer (`var _dummy := Node3D.new()`) that only `_ready` adds to the tree. **Watch out for:** a test that
   `instantiate()`s every scene and frees it outside the tree (the layer check) frees the children, not a node held

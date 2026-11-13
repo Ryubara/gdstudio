@@ -133,6 +133,10 @@ func test_on_two_screens_the_use_plays_and_the_health_and_count_follow_the_serve
 	assert_bool(await rig.until(puppet_playing, 30)).is_true()
 	var animation := puppet.get_node("Animation") as CharacterAnimation
 	assert_bool(animation.is_acting()).is_true()
+	# The puppet's own sound, at the puppet, and the left hand off the weapon, all from the event.
+	assert_bool(puppet_use.sound.playing).is_true()
+	assert_float(puppet_use.sound.global_position.distance_to(puppet.global_position)).is_less(2.0)
+	assert_bool(puppet.hands_busy).is_true()
 	await rig.wait(window - (Engine.get_physics_frames() - pressed_at))
 	assert_bool(puppet_use.is_using()).is_false()
 	var use_down := _down(rig) - down_before
