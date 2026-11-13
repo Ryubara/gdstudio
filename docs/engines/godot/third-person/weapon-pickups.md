@@ -46,7 +46,9 @@ weapon back), `test_rifle_hold.gd` ([the rifle in both hands](#rifle-hands)) and
 the sprint and the slide with the rifle are the same fresh, after a switch, after a burst, after a reload and after
 going unarmed, and the pistol's run the same after the rifle, on both bodies; `tools/capture/rifle_run_tour.tscn`
 films it from the game camera with a side view, and with `RUN_STAGES=directions` the sprint in every direction and a
-reload on it) and `test_rifle_sprint_carry.gd` ([the sprint](#rifle-hands)). Captures:
+reload on it), `test_rifle_sprint_carry.gd` ([the sprint](#rifle-hands)) and `test_rifle_draw_trunk.gd` (no spine bone
+past `chest_turn` and the head within 15 degrees of the front through a pickup and a switch to the rifle, standing, out
+of a run and a sprint, on both bodies, kit #1327). Captures:
 `tools/capture/rifle_tour.tscn` from the game camera (the floating rifle, taking it, the low ready, a walk, the aim, a
 burst, the aim up and down, the reload, hip fire, a crouch, a switch to the pistol and back) and
 `tools/capture/rifle_hands.tscn` (six close-ups at once in every state).
@@ -170,6 +172,9 @@ are named as such.
   the chest's turn eases off ([Using something with a weapon in the hands](interact.md#interact-held)). The torso's
   skin the butt meets is a class of its own since then (`gameplay/weapon/hold/torso_skin.gd`, `TorsoSkin`), moved out
   of `two_hand_hold.gd` at the 1000 lines a script may have.
+- **A melee blow** keeps both hands on the rifle: its clip carries the rifle on the right hand while it plays and the
+  hold's chest turn and shoulder reach ease off by the clip's share (`HoldBlow`,
+  [melee](melee.md#melee)).
 
 The body under the hold is the rifle's own clips (kit #1082, the library `rifle`): `rifle.tres` names
 `Rifle_Idle` as the grip clip on `spine_01` and all under it, the three aims, `Rifle_Shoot` added on top of the aim
@@ -313,7 +318,16 @@ stock test's 10 mm.
   counters the shoulders' swing in the neck, so with the chest held at `chest_turn` the head swung 109 degrees at
   every stride; turning `neck_01` back put its collar skin 12 to 24 mm into the stock in the crouch. Since #1267 the
   rifle's own idle holds the upper body, so little swing is left (head 1.8 degrees, 1.0 with the turn back).
-  **Seen:** gdstudio #1333, 2026-11-12 (fix: `two_hand_stance.gd` turns `Head` back; `test_rifle_hold.gd` green).
+  **Seen:** gdstudio #1333, 2026-11-12 (fix: `two_hand_stance.gd` turns `Head` back; `test_rifle_hold.gd` green);
+  gdstudio #1327, 2026-11-12 (the same missing turn back was the head's 77 degrees in the rifle's draw).
+- **Approach:** Before fixing a pose fault seen in a capture, probe it frame by frame on today's main and on the
+  commit it was seen on (`gds template game` in a detached worktree), each spine bone's turn from the front after
+  every modifier, and name what cured which part. **Watch out for:** the stance takes the gap to `chest_turn` off in
+  even thirds over `spine_01` to `spine_03`: under the library run's stop the clip's chest stood 47 degrees left, so
+  `spine_02` stood 42 right and the head, riding the chest, 77 (the draw's three frames). Kit #1333 cured the head,
+  our run loops (#1275, 7 degrees of swing) the spine; a wider clip brings it back (gdstudio #1379).
+  `test_rifle_draw_trunk.gd` holds it: 30.0 and 7.2 at most on main, 43.6 and 80.9 on the old commit. **Seen:**
+  gdstudio #1327, 2026-11-12 (gone on main; the test keeps it gone).
 - **Approach:** Sample a skin for a run-time contact over its triangles at the spacing you thin to, not at its
   vertices alone, take only the nearest level of detail (`CharacterBodies.near_meshes`), and measure again on every
   body the template wears when the bodies change. **Watch out for:** the push to the skin was built on the

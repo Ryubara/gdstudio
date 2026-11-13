@@ -4,7 +4,7 @@
 ## label names each part and shows the ground speed, the blend's place and the walk's pace.
 ## `GAIT_OFF=1` films it with the speed matching, the momentum blend and the transitions off (the
 ## template before #1158), for a before and after. Every physics frame it prints the part, the
-## speed and the body state on a line starting `GAITTOUR`.
+## speed, the body state and the transition's clip on a line starting `GAITTOUR`.
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
 ## `gds capture frames --project game --seconds 14 --fps 30 --name gait`
@@ -65,14 +65,15 @@ func _physics_process(delta: float) -> void:
 	var pace: float = tree.get(&"parameters/Locomotion/ground/walk/Pace/scale")
 	var speed := _player.ground_speed()
 	_label.text = (
-		"%s%s\nspeed %.2f m/s   blend at %.2f   walk pace %.2f   %s"
+		"%s%s\nspeed %.2f m/s   blend at %.2f   walk pace %.2f   %s %s"
 		% [
 			part[0],
 			"  (fitting off)" if OS.get_environment("GAIT_OFF") == "1" else "",
 			speed,
 			at,
 			pace,
-			_animation.body_state()
+			_animation.body_state(),
+			_animation.gait.transitions.clip,
 		]
 	)
 	print(
@@ -83,7 +84,9 @@ func _physics_process(delta: float) -> void:
 		" ",
 		snappedf(speed, 0.01),
 		" ",
-		_animation.body_state()
+		_animation.body_state(),
+		" ",
+		_animation.gait.transitions.clip
 	)
 	if _clock >= part[1]:
 		_next()
