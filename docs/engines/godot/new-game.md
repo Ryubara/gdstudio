@@ -197,7 +197,8 @@ every exit, kept with `--keep`, two calls at once).
   icons); an `.import` written by hand from a sibling's keeps its path hash and has no `uid`, so the import rewrites
   it. **Seen:** gdstudio #884, 2026-11-10; gdstudio #887, 2026-11-10 (nine weapon sounds copied from
 another game with no `.import`: the full local run was green and CI's step failed); #1293 (PR #1323), 2026-11-12
-  (two clip files' `.glb.import` copied from `prone.glb.import` and renamed).
+  (two clip files' `.glb.import` copied from `prone.glb.import` and renamed); #1342 (PR #1389), 2026-11-12 (the
+  bandage's two sounds written by `tools/audio/sfx.py encode`, which makes no `.import`).
 - **Approach:** After merging main into a template branch, run the command again: it always makes a fresh game from the
   merged tree. **Watch out for:** a copy loop that skips `.glb` and `.exr` files (to keep the import cache) leaves out
   every model or texture main added, so the copied game ran new scripts against old assets and its tests failed for no
