@@ -367,7 +367,8 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   **Watch out for:** a held clip costs every track it holds; normalization counts negative weights, so a trimmed base
   holds exactly its poses' tracks; `Quaternion.angle_to` reads 0.03 to 0.08 degrees for equal turns (acos), so
   compare by `2 atan2(|xyz|, w)`. **Seen:** gdstudio #1403, 2026-11-13 (`GaitLean`, `LeanClips`; the first
-  comparison read 0.07 degrees on finger leaves).
+  comparison read 0.07 degrees on finger leaves; the made library broke the shipped clip count in
+  `test_character_clips.gd`, which now leaves `LeanClips.LIBRARY` out).
 - **Approach:** Start a transition clip only while the character's own state is one the transition plays over
   (standing, walking, running), and end one that plays when the state leaves those; test the tree with real clips
   in the libraries, not only made-up ones in a test library. **Watch out for:** a push, a vault or a hit begins on a
