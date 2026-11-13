@@ -50,6 +50,9 @@ var _along := Vector3.FORWARD
 var _facing := 0.0
 var _turn_to := 0.0
 var _pending := false
+# The state `route()` handed the body to when it ended a transition, until the machine has left
+# the transition's state for it.
+var _left_for: StringName = &""
 
 
 ## The state's node: the clip behind a seek and a time scale of 0.
@@ -98,6 +101,7 @@ func route(state: StringName) -> StringName:
 	if state == CharacterAnimation.GROUND:
 		return STATE
 	_end()
+	_left_for = state
 	return state
 
 
@@ -113,8 +117,14 @@ func step(
 		return
 	var current := playback.get_current_node()
 	if current == STATE:
-		playback.travel(CharacterAnimation.GROUND)  # Left there by a rebuild of the tree.
+		# Left there by a rebuild of the tree. Not when `route()` has just sent the body on: the
+		# machine names the transition's state until its next update, and this travel took the
+		# jump's place, so the body flew through the whole jump on the ground's pose and the
+		# stop clip's held pose gave way to it in one tick (gdstudio #1462).
+		if _left_for == &"":
+			playback.travel(CharacterAnimation.GROUND)
 		return
+	_left_for = &""
 	if (
 		not _any
 		or settings == null
@@ -346,6 +356,7 @@ func _hand_over(
 ## Ends what plays, without a hand-over (the tree is built again, the body died).
 func stop() -> void:
 	_end()
+	_left_for = &""
 
 
 func _end() -> void:
