@@ -260,6 +260,11 @@ jobs, and on a desktop other agents load. Read its number as the runner's as muc
   desktop and followed the step on the runners at a slope of 0.6, so the step ratio read 3.9 to 8.1 and failed main at
   8.06 against 8.0; a physics ruler spread 1.55 times over 150 runs where the GDScript one spread 1.73. **Seen:**
   gdstudio #1405, 2026-11-13 (fix: `PhysicsRuler`, limits by system, the teeth case `SlowAiDirector`).
+- **Approach:** When one timing gate is found reading the runner, list every other gate on time in the suites (`grep
+  -rln "calibration\|ruler" tests/`) and give each the same treatment in the same week. **Watch out for:** the AI cost
+  gate was fixed while the walking crowd's frame budget, set on the desktop over the same kind of GDScript loop, read
+  2.21 and 2.40 against 1.70 on CI the same day on code whose parts' costs held still, and turned main red. **Seen:**
+  gdstudio #1451, 2026-11-13.
 
 ## Running more than one {#parallel}
 
