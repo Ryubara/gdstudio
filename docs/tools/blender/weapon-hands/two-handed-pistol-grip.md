@@ -60,16 +60,16 @@ own, and both hands, the rack's hand on the slide among them, were solved again 
 
 What the rig cannot do, and where it differs from the taught grip:
 
-- **Two-handed, on the male body the trigger finger grazes the inside of the guard's front strut as it swings in** (on
-  kit #1213's seat, swept at every hundredth of its way: 1.9 mm deep at 0.68, over 1 mm from 0.66 to 0.80, the last
-  bone's tip on the strut's inner face near its lower corner). On the female body the way no longer touches the guard
-  (0.1 mm at most until 0.95, then 0.6 to 0.75 mm on the trigger itself as it arrives). Half-way the finger is drawn out
-  to the gun's right side, its middle bone 7 mm (female) and 16 mm (male) off the frame. Against the left hand it is
-  never more than 0.4 mm in (male, at the frame end of the way). One-handed the finger has a way of its own
-  ([one-handed](../../../engines/godot/third-person/one-handed.md#one-handed)). On kit #1001's seat the graze was 1.4 mm
-  (female) and 2.2 mm (male) from 0.69 to 0.81 of the way (kit #1273); on the earlier bodies the solved way crossed the
-  strut whole (3.7 mm, the most a point can read inside that 8 mm bar), and moving the strut 6, 12 and 18 mm forward did
-  not clear it (kit #1212); the guard is unchanged.
+- **Two-handed, the trigger finger comes to the trigger by a way of its own, with room** (kit #1272,
+  [between the poses](#between-the-poses)): measured at every hundredth, it is at most 0.75 mm (female) and 0.83 mm
+  (male) into the gun, read through the part's thickness, and the deepest of that is the pad arriving on the trigger;
+  against the left hand it is never more than 0.5 mm in (at the frame end, where it holds). Before, the way had one
+  pose between and swung the finger in from the gun's right: on kit #1213's seat the male's last bone rubbed the
+  inner face of the guard's front strut (1.9 mm at 0.68 of the way, kit #1273), on kit #1001's seat both bodies did
+  (1.4 and 2.2 mm), and on the earlier bodies the way crossed the strut whole (3.7 mm, the most a point can read
+  inside that 8 mm bar), which moving the strut 6, 12 and 18 mm forward did not clear (kit #1212). The guard is
+  unchanged: the way, not the guard, was at fault. One-handed the finger has a way of its own
+  ([one-handed](../../../engines/godot/third-person/one-handed.md#one-handed)).
 
 **Poses set by hand** (kit #1084, on the prototype bodies of kit #1187). Where the solver's search ended in a pose
 that passed no test or did not read as a hand, the finger's angles are set by hand in
@@ -129,12 +129,23 @@ on the hold were all solved or built again, in that order. The rifle's hold has 
 
 A solved pose is clear where it holds; the blend the game plays between two of them is not, unless it is solved too.
 
-- **The trigger finger goes by a pose between** (kit #1079, `pistol_trigger_way_pose.tres`,
-  `HandPoseModifier.second_way`). The straight blend from along the frame to the trigger left the guard on the gun's
-  far side: 7.3 mm through the left thumb's tip and 7.0 mm through the gun. The pose between (the finger lowered and
-  drawn out to its own side, nearly straight) is solved as the nearest to both ends that keeps the finger out of the
-  left hand at every twentieth (0.4 mm in at the most now) and as little in the gun as it can be (1.9 mm on the
-  strut's inner face on the male body, above).
+- **The trigger finger goes by a way** (kit #1079, kit #1272; `pistol_trigger_way.tres` and the male fit's
+  `trigger_way`, `WeaponHold.trigger_way`, `HandPoseModifier.second_way`). The straight blend from along the frame
+  to the trigger left the guard on the gun's far side: 7.3 mm through the left thumb's tip and 7.0 mm through the
+  gun. One pose between (kit #1079, `pistol_trigger_way_pose.tres`: the finger lowered and drawn out to its own
+  side, nearly straight) kept it out of the left hand, but swinging in from there the male finger's tip rubbed the
+  guard's front strut (above). The way now has two poses between, as a trigger finger is taught to come in: lifted
+  off the frame and spread out to its own side, straight (the male's knuckle 17 degrees past flat, the female's
+  hardly moves), then its last two bones bent to the trigger's bend there, outside the guard, and only then the
+  knuckle turned so the bent finger drops into the guard's open side onto the trigger. `tools/hold/solve_pistol_trigger_way.gd
+  -- <body>` searches it in the solver's angles from a few such first guesses and the old pose between, each leg
+  blended as the game blends it and measured with the tests' `HandContact` on the tests' stage, the depth into the
+  gun read against the part's thickness (`HandContact.measure_through`: a point more than three quarters of the way
+  to a part's middle reads the part's whole thickness, so a crossing reads as a crossing). It writes nothing when
+  any hundredth is deeper than 1.5 mm. Run it after `write_hold.gd`, for each body, then the hold suite. The female's
+  trigger pose is nearly straight (bends of 13 and 9 degrees), so her way is near the old one; the male's is bent
+  (37 and 24 degrees), which is why his tip met the strut. `test_the_trigger_finger_has_room_on_its_way_to_the_trigger`
+  holds it to 1 mm at every hundredth; one-handed the finger keeps its one pose between.
 - **The right thumb makes room while the left hand waits** (kit #1084, `SupportHandPlan.room`). The left thumb's
   root takes the right thumb's place on the frame, so the right thumb is lifted onto it; blended while the left hand
   came in, it was 16 mm inside that hand. The plan now has a step for it: the hold's arm takes the left hand to the
@@ -254,11 +265,11 @@ sent; the rounds still go in at the end of `reload_time`.
 - **The slide: locked back while the pistol is empty, racked by the left hand.** The `Slide` node stands back 4 cm
   (`slide_travel`) while the pistol is empty, as a pistol's slide locks open on its last round. The reload of an empty
   pistol keeps it there and ends with the rack clip, whose hand closes on it where it stands and lets it run home
-  ([the rack](#the-slide-rack), kit #1337). A weapon with no rack (`WeaponDef.rack_clip` empty) has the slide run
-  forward when the reload's last sound plays (0.85, the slide's sound), as the pistol did before the rack: a release by
-  the right thumb does not fit this model, its slide stop lever is on the gun's right side under the right hand's
-  fingers. With rounds left the slide stays forward and only the sound plays. The hold writes the node only when its
-  lock changes or the rack has it (`slide_part`).
+  ([the rack](pistol-slide-rack.md#the-slide-rack), kit #1337). A weapon with no rack (`WeaponDef.rack_clip` empty) has
+  the slide run forward when the reload's last sound plays (0.85, the slide's sound), as the pistol did before the rack:
+  a release by the right thumb does not fit this model, its slide stop lever is on the gun's right side under the right
+  hand's fingers. With rounds left the slide stays forward and only the sound plays. The hold writes the node only when
+  its lock changes or the rack has it (`slide_part`).
 
 Tests: `tests/gameplay/test_reload_magazine.gd` (the magazine's place, the fingers on it and the magazine against the
 gun at every hundredth of the reload on both mannequins; the drop, the cut-short reload and the slide on the live
@@ -314,59 +325,6 @@ player's camera (`*_carry_*.png`).
   `test_pistol_rack.gd`, none in either branch alone). **Seen:** gdstudio #1052 merged with #1103, 2026-11-12 (fix:
   `WeaponHold` writes the slide when its lock changes).
 
-## The slide's rack after an empty reload {#the-slide-rack}
-
-<!-- new section: the rack clip (kit #1081) had a stage and no player; nothing said how the game plays it after the
-     reload, from a slide locked back, or what cuts it short (gdstudio #1337) -->
-
-A reload of an empty pistol ends with `pistol/Pistol_Rack` (`WeaponDef.rack_clip`), played by the character's
-`RackLayer` (`gameplay/character/rack_layer.gd`): a one-shot on the upper body over the reload's, at the clip's own
-speed (0.93 s). The clip starts on the reload's last frame, so the rack comes in over the reload's last 0.07 s
-(`FADE_IN` 0.03 s, `START_EARLY` 0.04 s) and the reload's one-shot is told not to fade out for that reload; with both
-fading, the arms sank a quarter of the way to the carry. A reload with rounds left, or lying down, has none. It is
-cosmetic: the rounds go in at the end of `reload_time` as before, and a shot, a blow, a switch or a new reload fades
-it out (0.2 s).
-
-`WeaponHold` follows it by `RackLayer.progress()` (`rack_weight`, `rack_share`, the caller's for a body posed by hand)
-with the body's own `SlideRack` (`rack`, `rack_fit()`): two more modifiers after the left hand's (`HoldRackArm` to the
-hand's place on the slide, `HoldRackFingers`), the left hand's plan at the reload's end by `SlideRack.support_weight()`
-(on its grip at the clip's ends), the carried arm kept in and the trigger finger off through it, as through the
-reload. The slide stays locked back until the rack: the rack starts with `rack_lock` (`slide_travel` over the rack's
-travel, 0.889), the hand closes on the slide 4 cm back, pulls it the last 5 mm and lets it go, and the slide's sound
-(the reload's last, held back for the rack: `Weapon.reload_steps_held`) plays there (`WeaponDef.rack_sound_at`, 0.482).
-`SlideRack.hand_place()` and `slide_pull()` take the lock: before the hand lets go its places are that far back, so
-the hand solved on a closed slide (`solve_rack_hand.py`) needed no new solve. `tests/fixtures/rack_stage.gd` drives the
-same hold, so the stage and the game use the same weights.
-
-Measured: on the stage, every frame and half frame on both bodies with the slide closed and locked (the left hand on
-the slide 1.3 mm in at most on the female body, 0.9 mm on the male, palm and every fingertip on it, the pads on the
-serrations; `test_pistol_rack.gd`); on the live player, every update of the rack on both bodies within the 2 mm and
-5 mm while it grips and nothing deeper than 6 mm on the way (`test_pistol_rack_live.gd`, with the slide's place, the
-sound's share, the rounds' time and the shot and the switch that cut it short). The cost, `tools/bench/hold_cost.tscn`
-run `racked` against `carried` (40 figures): 31.7 against 12.7 µs a character a frame in headless Chrome, for the rack's
-0.93 s. Close-ups: `tools/capture/rack_closeups.tscn` (`RACK_LOCK=0` for a closed slide) and the game itself,
-`tools/capture/rack_live.tscn` (`RACK_VIEW=game`, `close` or `side`, `RACK_MODEL=male`).
-
-- **Approach:** Have a hold read a layer's state that is true from the frame the layer asks the tree for its clip
-  (`RackLayer.is_racking()`: pending or asked for), not the clip's weight, which the tree gives a frame later.
-  **Watch out for:** the hold released the slide on the one frame between the rack being asked for and the tree
-  playing it, so the rack started from a closed slide and the slide jumped forward at the reload's end
-  (`test_an_empty_reload_ends_with_the_rack`). **Seen:** gdstudio #1337, 2026-11-12.
-- **Approach:** While one clip hands over to another that starts on its last frame, give the part that follows them
-  the second clip's whole weight at once (`rack_weight` is the rack's and the reload's weights together while both
-  play), and hold the first clip's share at its end while the second fades out. **Watch out for:** blended by the
-  rack's own fade-in, the left hand was half the reload's plan and half the rack's, and its fingers went 12.8 mm into
-  the slide; blended toward a share of 0 as the rack faded out, the plan went back through the reload's steps and
-  showed the new magazine in the hand for 3 frames. **Seen:** gdstudio #1337, 2026-11-12.
-- **Approach:** Give a `HandPoseModifier` its poses only when they change. **Watch out for:** each pose given marks
-  its layout dirty and lays every bone out again on the next update; `SlideRack.set_fingers()` gave two poses on every
-  frame, and the rack cost about 46 µs a character a frame headless, 22 µs once it gave them only on a change.
-  **Seen:** gdstudio #1337, 2026-11-12.
-- **Approach:** Carry a share that is compared with a boundary as a `float` (64 bits in GDScript), never in a
-  `Vector2`, whose parts are 32 bits. **Watch out for:** the plan's weight and share packed in one `Vector2` rounded a
-  share of 0.54 onto the insert's end, so the prone reload's new magazine left the hand a hundredth early
-  (`test_prone_reload_hold.gd`, both bodies). **Seen:** gdstudio #1337, 2026-11-12.
-
 ## Solving two hands against each other {#solving-two-hands}
 
 <!-- new section: what the solver had to learn to measure one hand against the other (gdstudio #1084) -->
@@ -413,9 +371,16 @@ run `racked` against `carried` (40 figures): 31.7 against 12.7 µs a character a
   graze. Before changing a model for room, move the obstacle in the solver's data and solve again. **Watch out for:**
   the trigger finger read 3.6 mm into the guard's 8 mm strut, taken for a finger too thick for the opening; with the
   strut 6 to 18 mm further forward it read the same, in the strut's middle. **Seen:** gdstudio #1079 and #1212,
-  2026-11-11 (the guard left as it was; the way is kit #1272); gdstudio #1273, 2026-11-12 (the prototype bodies'
-  hold: 1.4 and 2.2 mm on the strut's inner face, a graze; on kit #1213's seat 1.9 mm, male only; the test's
-  allowance cut to 2.5 mm).
+  2026-11-11; gdstudio #1273, 2026-11-12 (a graze of 1.4 to 2.2 mm on the strut's inner face); gdstudio #1272,
+  2026-11-12 (fix: two poses between, the last two bones bent outside the guard; 0.83 mm at most; depth read
+  through the part, `HandContact.measure_through`).
+- **Approach:** When a search for a way between two poses ends with a pose between pinned at an angle limit, run
+  it again with that limit opened a little within a person's range, and probe the last leg alone (every pose that
+  reaches the end pose clear) before searching the whole way. **Watch out for:** the trigger way's search kept the
+  male knuckle at the hold's own pose limits (spread 20, straightened 15 degrees) and ended 1.6 mm deep, which
+  read as no way existing; a probe of the last leg showed most bent poses with the knuckle straightened 20 degrees
+  reach the trigger clear, and with the limits at 25 the way passed at 0.83 mm. **Seen:** gdstudio #1272,
+  2026-11-12.
 - **Approach:** Measure the other arm's reach on each mannequin's own skeleton, in the reload clip's first pose as
   well as the aim poses, after moving a hand's place. **Watch out for:** the solver's merged rig is the female
   skeleton with both skins, so the male arm was never measured: the canted place, 4 cm higher, was 6.5 mm out of

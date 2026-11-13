@@ -16,12 +16,14 @@
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_one_hand_pose.tres" id="14_one_hand"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_one_hand_way_pose.tres" id="15_one_hand_way"]
 [ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_slide_rack.tres" id="16_rack"]
+[ext_resource type="Resource" path="res://gameplay/weapon/hold/pistol_trigger_way.tres" id="16_trigger_way"]
 
 [node name="WeaponHold" type="Node"]
 script = ExtResource("1_hold")
 grip_pose = ExtResource("2_grip")
 trigger_pose = ExtResource("3_trigger")
 trigger_way_pose = ExtResource("7_trigger_way")
+trigger_way = ExtResource("16_trigger_way")
 thumb_pose = ExtResource("8_thumb")
 thumb_way_pose = ExtResource("11_thumb_way")
 support_pose = ExtResource("4_support")

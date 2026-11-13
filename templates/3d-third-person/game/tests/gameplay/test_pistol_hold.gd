@@ -50,12 +50,8 @@ const LIVE_NEAR := 0.2
 ## The equal parts of the trigger finger's way between the frame and the trigger that are
 ## measured (kit #1079).
 const TRIGGER_WAY_STEPS := 20
-## How deep the trigger finger may graze the trigger guard between its two places, in metres: as it
-## swings in on the male body, the last bone's tip rubs the inner face of the guard's front strut,
-## 1.9 mm at the deepest hundredth of the way (kit #1273, on kit #1213's seat; the female body's
-## way no longer touches it; a way that clears it is kit #1272). At its two places and against the
-## left hand the limit is the usual one.
-const TRIGGER_GUARD_GRAZE := 0.0025
+## The trigger finger's parts, read through the gun's thickness on its way (kit #1272).
+const TRIGGER_FINGER: Array[String] = ["index_base", "index_mid", "index_tip"]
 ## The equal parts of the right thumb's way between the frame and the left thumb's root that are
 ## measured (kit #1084): the plan's `on` from `SupportHandPlan.ARM_UNTIL` to `WAY_FROM`.
 const THUMB_WAY_STEPS := 40
@@ -577,8 +573,11 @@ func test_the_left_hand_passes_through_nothing_as_the_male_players_aim_comes_up(
 # The trigger finger between the frame and the trigger (kit #1079), at every twentieth of its
 # way while both hands hold the aimed pistol: neither hand is more than `HandContact.MAX_DEPTH`
 # inside the other (the left thumb lies along the frame on the guard's other side, where the
-# straight blend took the finger through it) or inside the gun, but for the finger's own graze of
-# the trigger guard on the way (`TRIGGER_GUARD_GRAZE`). The reload's weight takes the finger off
+# straight blend took the finger through it) or inside the gun. Depth into the gun is read against
+# the part's thickness there too (`HandContact.measure_through`), so a finger that crosses the
+# trigger guard reads the guard's whole thickness, not the half its nearest face is away (kit
+# #1212 found the way through the strut at 3.7 mm, the most a point in it can read; kit #1272
+# solved the way round it, `WeaponHold.trigger_way`). The reload's weight takes the finger off
 # the trigger, as in the game.
 func test_the_trigger_finger_passes_through_nothing_on_its_way_to_the_trigger() -> void:
 	for model in MODELS:
@@ -590,15 +589,16 @@ func test_the_trigger_finger_passes_through_nothing_on_its_way_to_the_trigger() 
 			stage.hold.call(&"refresh")
 			await stage.settle()
 			var tag := "%s, the finger %.2f on the trigger" % [model, on_trigger]
-			var on_the_way := step > 0 and step < TRIGGER_WAY_STEPS
 			var fails: Array[String] = []
+			var through := stage.contact.measure_through("r", TRIGGER_FINGER)
 			for side: String in ["r", "l"]:
 				var parts := stage.contact.measure(side, true)
 				for part: String in parts:
 					var in_gun: float = -parts[part].gun
+					if side == "r" and through.has(part):
+						in_gun = maxf(in_gun, -(through[part] as Vector2).x)
 					var in_hand: float = -parts[part].hand
-					var grazes := side == "r" and part.begins_with("index") and on_the_way
-					if in_gun > (TRIGGER_GUARD_GRAZE if grazes else HandContact.MAX_DEPTH):
+					if in_gun > HandContact.MAX_DEPTH:
 						fails.append("%s %s %.1f mm inside the gun" % [side, part, in_gun * 1e3])
 					if in_hand > HandContact.MAX_DEPTH:
 						fails.append(

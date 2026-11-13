@@ -268,7 +268,7 @@ shooting page once that work lands).
   (`pistol_slide_rack.tres` lists the male's in `fits`; `SlideRack.fit()` chooses by the model's file) with the
   hand bone's place in the pistol's space on every frame it is near the slide, the fingers closed on the slide and
   opened over it, the slide's travel and the beats. `WeaponHold` plays it after an empty reload (kit #1337,
-  [the rack in the game](weapon-hands/two-handed-pistol-grip.md#the-slide-rack)): it reaches the left hand there with
+  [the rack in the game](weapon-hands/pistol-slide-rack.md#the-slide-rack)): it reaches the left hand there with
   a `HoldArm`, puts the fingers on with a `HandPoseModifier` (`SlideRack.set_fingers()`) and moves the `Slide` node,
   locked back until the rack. Measured on
   every frame on both bodies: the right hand 1.2 mm in and 3.1 mm off at most, the left hand on the slide 1.4 mm in
