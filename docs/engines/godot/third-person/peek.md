@@ -61,8 +61,8 @@ bones on each drawn frame, only while it leans.
 
 **What it does not do yet.** A right-handed weapon stays to the right of the head: leaning left, the head clears an
 edge before the muzzle does, so a left peek needs the edge a little closer than a right one (the capture's pillar is
-0.64 m wide for that). Crouched with the rifle and leaning right, the right upper arm meets the chest's skin on the
-close aim view.
+0.64 m wide for that; a left-shoulder hold is gdstudio #1435). Crouched with the rifle and leaning right, the right
+upper arm meets the chest's skin on the close aim view (gdstudio #1436).
 
 **Proof.** `tests/gameplay/test_peek_lean.gd`: the eye goes 0.32 to 0.37 m to the side with the feet within 1 mm, over
 a fifth of a second; both bits lean neither way; the shape stands for the shoulders and the head; a wall beside the body
