@@ -31,8 +31,9 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## The momentum blend (#1158) adds 1: `MomentumBlend`, the skeleton's first modifier.
 ## The slide's rack (#1337) adds 2: the hold's `HoldRackArm` and `HoldRackFingers` modifiers,
 ## inactive but through the rack after an empty reload. The hold's `HandFloor` (#1356) adds 1, a
-## modifier inactive unless the body lies and aims.
-const NODES_ALIVE := 68
+## modifier inactive unless the body lies and aims. The aim layer's `AimUprightModifier` (kit #1351)
+## adds 1, inactive until the fists aim.
+const NODES_ALIVE := 69
 const BODIES_ALIVE := 2
 const CROWD := 10
 const FRAMES := 120
