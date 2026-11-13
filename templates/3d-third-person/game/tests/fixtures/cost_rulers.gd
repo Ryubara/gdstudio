@@ -13,6 +13,8 @@ extends Node3D
 const SCRIPT_ROUNDS := 60000
 ## Moves and rays of the physics ruler.
 const PHYSICS_ROUNDS := 400
+## Node visits of the tree ruler.
+const TREE_VISITS := 20000
 ## Where the ruler's floor and body stand, metres, far off every arena.
 const SPOT := Vector3(400.0, 0.0, 400.0)
 
@@ -84,3 +86,34 @@ func physics_ms() -> float:
 	_body.global_position = SPOT
 	_body.velocity = Vector3.ZERO
 	return spent
+
+
+## Milliseconds the tree ruler takes now: a fixed number of visits to the nodes of `nodes` (read
+## their place, children and flags, cycling through the list), work spread over memory the way
+## an AI step reads its characters, so it slows with the same cache and memory a busy machine
+## takes from the step. The work is fixed whatever the list holds.
+static func tree_ms(nodes: Array[Node]) -> float:
+	if nodes.is_empty():
+		return 0.0
+	var start := Time.get_ticks_usec()
+	var total := 0.0
+	var size := nodes.size()
+	for index in TREE_VISITS:
+		var node := nodes[(index * 7919) % size]
+		total += node.get_child_count()
+		var spatial := node as Node3D
+		if spatial != null:
+			total += spatial.position.x + spatial.rotation.y
+			if spatial.visible:
+				total += 1.0
+	return (Time.get_ticks_usec() - start + int(total * 0.0)) / 1000.0
+
+
+## Every node under `root`, itself included.
+static func nodes_under(root: Node) -> Array[Node]:
+	var found: Array[Node] = [root]
+	var index := 0
+	while index < found.size():
+		found.append_array(found[index].get_children())
+		index += 1
+	return found

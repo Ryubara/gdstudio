@@ -111,6 +111,10 @@ func _measure(count: int) -> Dictionary:
 	var sin_loop := AiSoakWatch.calibrate()
 	var calibrations := PackedFloat64Array([CostRulers.script_ms()])
 	var physics_rulers := PackedFloat64Array([_rulers.physics_ms()])
+	var crowd_nodes: Array[Node] = []
+	for character in crowd:
+		crowd_nodes.append_array(CostRulers.nodes_under(character))
+	var tree_rulers := PackedFloat64Array([CostRulers.tree_ms(crowd_nodes)])
 	var thinks := PackedInt32Array()
 	var queries := PackedInt32Array()
 	var rays := PackedInt32Array()
@@ -152,6 +156,7 @@ func _measure(count: int) -> Dictionary:
 		if (tick + 1) % CALIBRATE_TICKS == 0:
 			calibrations.append(CostRulers.script_ms())
 			physics_rulers.append(_rulers.physics_ms())
+			tree_rulers.append(CostRulers.tree_ms(crowd_nodes))
 	var seconds := float(TICKS) / Engine.physics_ticks_per_second
 	var storms := 0
 	var fast_thinkers := 0
@@ -176,6 +181,7 @@ func _measure(count: int) -> Dictionary:
 	var history_each := _median(histories)
 	var physics_ruler := maxf(_median(physics_rulers), 0.001)
 	var step_low := _quantile(steps, 0.1)
+	var tree_ruler := maxf(_median(tree_rulers), 0.001)
 	return {
 		"count": count,
 		"ruler_ms": snappedf(calibration, 0.01),
@@ -184,6 +190,10 @@ func _measure(count: int) -> Dictionary:
 		"step_p10_us_each": snappedf(step_low, 0.01),
 		"step_p25_us_each": snappedf(_quantile(steps, 0.25), 0.01),
 		"think_p25_us": snappedf(_quantile(think_times, 0.25), 0.1),
+		"tree_ruler_ms": snappedf(tree_ruler, 0.01),
+		"crowd_nodes": crowd_nodes.size(),
+		"step_tree_ratio": snappedf(step_each / tree_ruler, 0.001),
+		"think_tree_ratio": snappedf(think_each / tree_ruler, 0.001),
 		"step_physics_ratio": snappedf(step_each / physics_ruler, 0.001),
 		"think_physics_ratio": snappedf(think_each / physics_ruler, 0.001),
 		"step_us_each": snappedf(step_each, 0.01),
