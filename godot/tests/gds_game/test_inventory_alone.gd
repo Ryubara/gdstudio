@@ -75,6 +75,10 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"drop_scene": null,
 		&"use_effect": null,
 		&"consumed_on_use": true,
+		&"use_time": 0.0,
+		&"use_apply_share": 0.75,
+		&"use_clip": &"",
+		&"use_sound": null,
 	}
 	assert_array(ExportPins.differences(item, item_pins)).is_empty()
 	assert_array(ExportPins.wrong_values(item, item_pins)).is_empty()

@@ -14,3 +14,5 @@ against each other; the numbers of a shipped hold. **Not here:** the model's soc
 
 - [The two-handed pistol grip](two-handed-pistol-grip.md): the thumbs-forward grip as it is taught, finger by finger,
   and the 3D Third Person pistol's hold rebuilt to it.
+- [The pistol slide rack](pistol-slide-rack.md): the left hand's overhand rack of the pistol's slide after an empty
+  reload, and how the game plays it.

@@ -130,6 +130,12 @@ func stop(notify := false) -> void:
 		finished.emit(self)
 
 
+## Switches the light off before its time (a newer play of the same effect took it over).
+func end_light() -> void:
+	if _light != null:
+		_light.visible = false
+
+
 ## True while this slot's light is on.
 func light_on() -> bool:
 	return active and _light != null and _light.visible
@@ -227,5 +233,7 @@ func _start_light(def: EffectDef, with_light: bool) -> void:
 		add_child(_light)
 	_light.light_color = def.light_color
 	_light.light_energy = _energy()
+	if _light.omni_attenuation != def.light_attenuation:
+		_light.omni_attenuation = def.light_attenuation
 	_light.omni_range = def.light_range * _size * (QUIET_REACH if _quiet else 1.0)
 	_light.visible = true

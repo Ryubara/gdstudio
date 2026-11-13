@@ -38,17 +38,29 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `hit_received(record)` with `killed` set. `health` and `max_health` on the character read the `Health` node's `value`
   and `max_value` (read only: a game sets the `Health` node). `hit(amount, source)` is still there: a blow with no point
   that also stops and throws the character (`hit_stun_time`, `knockback_speed`), as before. The hit clip plays over the
-  whole body standing and over the upper body only crouched, lying or sliding (`HitLayer`), so a low body stays down
+  whole body standing and over the upper body only crouched, lying or sliding (`HitLayer`), so a low body stays down,
+  and with a weapon held it leaves the arms to the weapon, held up through the stun
   ([one action state for every body](animation-tree.md#one-action-state-for-every-body)). A dead character takes no
   damage, but its `hit_received` still fires (the lying-body push). Getting up gives the health back, and `die()` with
   no record sets it to 0. The HUD's health part reads `health` and `max_health` and shows them.
 - **The reaction.** `HitReaction` listens to `hit_received`. A record that killed pushes the hit bone at the hit point
   along the shot by `death_push` times its strength; a hit on a lying body by `lying_push`. A hit that does not kill
   starts a flinch: the hit body and every body hanging from it go physical (`physical_bones_start_simulation` with that
-  list, never a leg; a hit on the pelvis or a leg starts from `spine_01`), pushed by `flinch_push`, shown at
-  `flinch_strength` through the simulator's `influence`, held for `flinch_hold` of `flinch_time` and blended back to
-  the clip, then the bones stop. A death during a flinch hands the whole skeleton to the ragdoll. The marks shots left
+  list, never a leg; a hit on the pelvis or a leg starts from `spine_01`), pushed at its middle by `flinch_push` (at
+  most `flinch_most_speed`), shown at `flinch_strength` through the simulator's `influence`, held for `flinch_hold` of
+  `flinch_time` and blended back to the clip, then the bones stop. The bodies it leaves out are put on the clip's pose
+  in the server, at rest and off every layer, and the ragdoll's extra joints go for the flinch ([A partial
+  ragdoll](ragdoll.md#partial)); `RagdollLengths` keeps its bones, and the get-up's, at their rest lengths (gdstudio
+  #1338). A death during a flinch hands the whole skeleton to the ragdoll. The marks shots left
   on the bones go when the body gets up (`Impacts.clear_marks_on(simulator)`).
+
+- **Approach:** Push a body by a speed, not only by the shot's strength: the kill's and the lying body's push land on
+  the hit body's middle and give it at most `push_most_speed` (the impulse limited to `mass * push_most_speed`).
+  **Watch out for:** the same 40 N·s is a nudge to the 14 kg chest and a launch to a 1 kg forearm (26 m/s) or a shin
+  (12 m/s); a rifle sprays limbs and keeps firing into the falling body. Measured per weapon, one kill on each part of
+  a standing target (pistol 40 N·s, rifle 25 N·s, `death_push` 1.5): the fastest bone was 5 to 6 m/s on the head,
+  chest, pelvis and thigh for both, and 10 to 26 m/s on an arm, forearm or shin before the cap, under 9 after.
+  **Seen:** gdstudio #1343, 2026-11-12 (`test_death_push.gd`).
 
 ### The inspector {#inspector}
 
@@ -59,8 +71,9 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `offset` (in the bone's frame, Y along the bone; the node's own transform is overwritten), `damage_multiplier` and
   `enabled`. The eleven: `head` (sphere, 3.0), `chest` and `pelvis` (1.0), `arm_l`, `arm_r`, `forearm_l`, `forearm_r`
   (0.6), `thigh_l`, `thigh_r`, `shin_l`, `shin_r` (0.7); the forearm capsules reach over the hands, the feet have none.
-- **On `HitReaction`**: `death_push` (1.5), `lying_push` (0.5), `flinch_enabled`, `flinch_push` (0.6),
-  `flinch_strength` (0.85), `flinch_time` (0.45 s), `flinch_hold` (0.25).
+- **On `HitReaction`**: `death_push` (1.5), `push_most_speed` (5 m/s: the most a kill's or a lying body's push
+  gives the body it hits, on its middle), `lying_push` (0.5), `flinch_enabled`, `flinch_push` (0.6),
+  `flinch_most_speed` (3 m/s), `flinch_strength` (0.85), `flinch_time` (0.45 s), `flinch_hold` (0.25).
 - **On the character's `Health` node** (in `character.tscn`): `enabled` (off: hits still flinch and push but take
   nothing), `max_value` (100) and the rest of [the component](#health). **On the `WeaponDef`** (`pistol.tres`):
   `damage` (34: three chest shots, one headshot), passed to the projectile's `damage` and to a hitscan shot's or a
@@ -97,6 +110,9 @@ The zones' shapes are sized on the template's two prototype bodies (kit #1187, `
 [the bodies](third-person/character.md#mannequins)). `tools/capture/hit_tour.tscn` films it from the player's camera
 (`HIT_MODEL=male` for the male body):
 `gds capture frames --project game --scene res://tools/capture/hit_tour.tscn --seconds 26`.
+`tools/capture/enemy_pose_tour.tscn` films an armed body on the enemy's mannequin taking chest shots while it aims,
+beside one that fires dry and reloads (`--seconds 9`); `tools/soak/ai_pose_log.tscn` prints every AI character's
+state, locomotion node and layers (`POSE` lines) through a seeded soak, to trace a pose seen in play to its clip.
 
 - **Approach:** Run a shot's second test along the projectile's own line (its centre at the touch), not from the
   contact point. **Watch out for:** a sphere that touches a curved capsule touches it off its centre line, so a ray

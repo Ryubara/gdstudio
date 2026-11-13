@@ -12,7 +12,7 @@ extends CharacterController
 ## holding the player's `ragdoll_key`). A weapon chosen on a screen (`request_weapon`) is sent as
 ## those same weapon presses, one a tick, so a screen adds nothing to the command. The number keys
 ## of the HUD's places (`QuickKeys`: `weapon_1`, `weapon_2`, `hotbar_1`...) request the place's
-## weapon the same way and use a hotbar place on the player's `Hotbar`.
+## weapon the same way and use a hotbar place on the player's `Hotbar` (by its `ItemUse`).
 ## `Player.input_enabled` off gives a command that asks for nothing; the view, a crouch or prone
 ## that was toggled on and a held jump stay. How prone is asked for (a toggle, a hold, a long hold
 ## of crouch) is the player's `ProneTuning.input_mode`.
@@ -202,15 +202,19 @@ func _weapon_presses() -> Array[bool]:
 
 
 # The HUD's places pressed since the last command: a weapon place requests its weapon, a hotbar
-# place is used.
+# place is used (through the player's `ItemUse` when it has one: an item that takes time is one
+# use a press, and a press during a use does nothing).
 func _press_places() -> void:
 	for place in _quick_keys.pressed(QuickKeys.WEAPON_ACTION):
 		var slot := QuickKeys.weapon_slot_at(player.loadout if player != null else null, place)
 		if slot != QuickKeys.NO_SLOT:
 			request_weapon(slot)
 	var hotbar := Hotbar.of(player)
+	var user := ItemUse.of(player)
 	for place in _quick_keys.pressed(QuickKeys.HOTBAR_ACTION):
-		if hotbar != null:
+		if user != null:
+			user.request(place)
+		elif hotbar != null:
 			hotbar.use(place)
 
 

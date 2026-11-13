@@ -7,6 +7,8 @@ extends RefCounted
 ## #1111), the library `prone_aim`, its prone reload (gdstudio #1185), the library
 ## `prone_reload`, its own melee blows (gdstudio #1254, `assets/animation/melee/`), the library
 ## `melee`, its own rifle clips (gdstudio #1082, `assets/animation/rifle/`), the library `rifle`,
+## its own rack of the pistol's slide (gdstudio #1081, `assets/animation/pistol/`), the library
+## `pistol`,
 ## and GDStudio's own clips that replace
 ## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
 ## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
@@ -87,6 +89,9 @@ const PRONE_AIM := &"prone_aim/Prone_Aim_Neutral"
 const PRONE_AIM_UP := &"prone_aim/Prone_Aim_Up"
 const PRONE_AIM_DOWN := &"prone_aim/Prone_Aim_Down"
 const PRONE_RELOAD := &"prone_reload/Prone_Reload_Pistol"
+# The rack of the pistol's slide after an empty reload: the template's own clip (gdstudio #1081,
+# played since #1337), the library `pistol`.
+const PISTOL_RACK := &"pistol/Pistol_Rack"
 # Vaulting: the template's own clips (gdstudio #1010, `assets/animation/vault/`), the library
 # `vault`. What each was keyed on is a `VaultClip` (`gameplay/character/vault_low.tres`,
 # `vault_high.tres`).
@@ -100,6 +105,9 @@ const MELEE_UNARMED_HOOK := &"melee/Melee_Unarmed_Hook"
 const MELEE_PISTOL_WHIP := &"melee/Melee_Pistol_Whip"
 const MELEE_PISTOL_BACKHAND := &"melee/Melee_Pistol_Backhand"
 const MELEE_PISTOL_JAB := &"melee/Melee_Pistol_Jab"
+const MELEE_RIFLE_BUTT_STROKE := &"melee/Melee_Rifle_Butt_Stroke"
+const MELEE_RIFLE_BUTT_JAB := &"melee/Melee_Rifle_Butt_Jab"
+const MELEE_RIFLE_SMASH := &"melee/Melee_Rifle_Smash"
 
 ## The library clip each clip of our own replaced, kept as a stand-in, and the library clip
 ## each fixed clip was made from: the same clip, as Quaternius keyed it. A game whose bodies it
@@ -225,11 +233,24 @@ const ALL: Array[StringName] = [
 	&"prone_aim/Prone_Aim_Neutral",
 	&"prone_aim/Prone_Aim_Up",
 	&"prone_reload/Prone_Reload_Pistol",
+	&"pistol/Pistol_Rack",
 	&"gds/Idle",
+	&"gds/Idle_To_Jog_L",
+	&"gds/Idle_To_Jog_R",
+	&"gds/Idle_To_Sprint_L",
+	&"gds/Idle_To_Sprint_R",
+	&"gds/Idle_To_Walk_L",
+	&"gds/Idle_To_Walk_R",
 	&"gds/Jog",
+	&"gds/Jog_Stop_L",
+	&"gds/Jog_Stop_R",
 	&"gds/Sprint",
+	&"gds/Sprint_Stop_L",
+	&"gds/Sprint_Stop_R",
 	&"gds/Stand_To_Crouch",
 	&"gds/Walk",
+	&"gds/Walk_Stop_L",
+	&"gds/Walk_Stop_R",
 	&"vault/Vault_High",
 	&"vault/Vault_Land",
 	&"vault/Vault_Low",
@@ -247,6 +268,9 @@ const ALL: Array[StringName] = [
 	&"melee/Melee_Pistol_Backhand",
 	&"melee/Melee_Pistol_Jab",
 	&"melee/Melee_Pistol_Whip",
+	&"melee/Melee_Rifle_Butt_Jab",
+	&"melee/Melee_Rifle_Butt_Stroke",
+	&"melee/Melee_Rifle_Smash",
 	&"melee/Melee_Unarmed_Cross",
 	&"melee/Melee_Unarmed_Hook",
 	&"melee/Melee_Unarmed_Jab",

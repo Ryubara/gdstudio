@@ -17,6 +17,9 @@ var _spawners: Dictionary[StringName, AiSpawner] = {}
 
 
 func before_test() -> void:
+	# A button an earlier suite left down (a left click is `fire`) would make the player shoot,
+	# and a guard turns to a shot behind it (kit #1357): start with nothing pressed.
+	InputSim.release_all()
 	_runner = scene_runner("res://main.tscn")
 	_scene = _runner.scene()
 	_player = _scene.get_node("PlayerRig/Player")
