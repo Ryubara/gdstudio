@@ -276,6 +276,12 @@ other style files stay in the repository, so a game picks another vision by rebu
   from B to A, and A still had the jolt the review had asked out (pelvis path harmonic 3.69 against the library's
   1.88, the calf's speed changing 36.9 degrees in a frame) with every check green. **Seen:** gdstudio #1155
   (PR #1275), 2026-11-12 (fix: A's walk given `pelvis_waves`, `swing_ease`, no `swing_early` and a 27 degree limit).
+- **Approach:** After `ship` with a new pick, run the Godot suites that read the clips before anything else: a
+  suite may hold the clips tighter than the build, tuned on the variant that was shipped. **Watch out for:** the
+  strafes' B passed every build check (limbs under 5 mm) and failed `test_own_directions.gd`'s 3.5 mm for the
+  legs, `form_male`'s thighs 4.6 mm into each other in `Walk_Right` and 3.5 in `Jog_Left`; A, shipped until the
+  pick, read 2.8 and 2.6. **Seen:** gdstudio #1159 (PR #1374), 2026-11-12 (fix: B's two strafes set their feet
+  0.02 m off the middle line, `width`, 2.7 and 2.9 mm; the limit stays).
 
 ## How a chosen clip replaces the library's {#replacing}
 
@@ -303,6 +309,12 @@ other style files stay in the repository, so a game picks another vision by rebu
    time goes in the project setting `gds_game/clip_export/keep`, or the export leaves it out.
 5. **Docs.** The clip's row on `engines/godot/third-person/clips.md` and the template's inspector list change in
    the same pull request.
+
+- **Approach:** List every clip a build adds to the shipped file in `CharacterClips.ALL` (and its count in
+  `test_character_clips.gd`), new clips that replace nothing as well, and run that suite with the clip's own before
+  the full one. **Watch out for:** the eleven directions and leans shipped in `locomotion.glb` without a line in
+  `ALL`; every suite of their own passed, and only the full run's count (133 clips for 122 listed) showed it.
+  **Seen:** gdstudio #1159, 2026-11-12.
 
 ## The rig, and other proportions {#rig}
 
@@ -359,7 +371,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | #1156 starts and stops (done) | `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`; `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`; each `_L` and `_R`, three variants, A shipped; one description, `clips/moves.py` ([start and stop clips](start-stop-clips.md#description)) |
 | #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |
 | #1158 the tree (Godot) (done) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost ([gaits fitted to the body](../../engines/godot/animation-tree.md#gait-fitting)) |
-| #1159 directions and lean | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`; `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` |
+| #1159 directions and lean (done; the strafes and backpedals B, the leans A) | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`, in step with `Walk` and `Jog` at their own speeds (1.3, 1.2 and 3.0 m/s); `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` as poses with their reference `Lean_Ref`; one description each, `clips/directed.py` and `clips/lean.py` ([the toolkit's rows](clip-toolkit.md#toolkit)) |
 | #1160 crouch (done) | `Crouch_Idle`, `Crouch_Walk`, `Stand_To_Crouch` (B, chosen), `Crouch_To_Stand` (A, chosen), solved on `form_female`; the prone transitions rebuilt on the new crouch |
 | #1161 jumps | `Jump_Start` (standing, running), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog` |
 

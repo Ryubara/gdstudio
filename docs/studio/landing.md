@@ -132,6 +132,13 @@ Open pull requests come before new work: each one left open goes stale against `
   into a held pull request four times while waiting on CI, each push restarting a full run that `main` outran again,
   and the briefs had not said that a held pull request need not chase `main`. **Seen:** gdstudio #1154 (PR #1195) and
   #1084 (PR #1171), 2026-11-11 (fix: the batch brief says it; coordinator's mistake).
+- **Approach:** When a coordinator lands from a queue, a task agent reports its green head and stops: no auto-merge,
+  no merge call, no refresh unless DIRTY. Repeat that line to an agent each time it is resumed after its context was
+  summarised, and check `gh pr list --json number,autoMergeRequest` after each report. **Watch out for:** a resumed
+  agent can lose its starting prompt and fall back to the auto-merge entry above; three did, pushing refreshes that
+  restarted CI and turning auto-merge on against the queue. **Seen:** gdstudio PR #1424, #1426 and #1434, 2026-11-13
+  (fix: auto-merge off, rule resent); PR #1448 and #1459, 2026-11-13: the agent pages and the batch brief still said
+  to merge, so #1448 merged past the queue (fix: both now stop under a queue or a lost prompt).
 
 **Landing a green head behind `main` (the coordinator's practice since 2026-11-11, a maintainer question).** A hand
 merge on a busy day can starve: `main` takes a new commit before each full CI run ends, so the refresh above never

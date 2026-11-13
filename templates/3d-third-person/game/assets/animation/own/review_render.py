@@ -6,7 +6,8 @@
 "shots": [{"clip", "frame", "view", "out", "shift"}]}]}`. A shot is one clip at one frame from one side: `side` (the
 character faces right), `left` (its other side), `front`, `back`, `top` (the character faces up the picture) or
 `quarter`. Each is drawn with no
-perspective over a floor of 0.25 m squares that is moved back by `shift` metres, so a foot that slides is seen
+perspective over a floor of 0.25 m squares that is moved back by `shift` metres (or by `[x, y]` metres, to the
+character's left and backward, for a clip that goes another way than it faces), so a foot that slides is seen
 sliding over its square, with back faces culled as the game draws them.
 """
 
@@ -123,7 +124,10 @@ def main() -> None:
             arm.animation_data.action_slot = action.slots[0]
             scene.frame_set(int(shot["frame"]))
             # The floor moves back under a clip in place; it repeats every two squares.
-            ground.location = (0.0, math.fmod(shot.get("shift", 0.0), 2.0 * SQUARE), 0.0)
+            # A clip that goes another way than it faces gives the shift as (x, y): to its left and backward.
+            shift = shot.get("shift", 0.0)
+            across, back = shift if isinstance(shift, list) else (0.0, shift)
+            ground.location = (math.fmod(across, 2.0 * SQUARE), math.fmod(back, 2.0 * SQUARE), 0.0)
             aim(cam, shot["view"], tuple(jobs["top_size"] if shot["view"] == "top" else jobs["size"]))
             scene.render.filepath = shot["out"]
             bpy.ops.render.render(write_still=True)

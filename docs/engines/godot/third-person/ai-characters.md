@@ -138,32 +138,40 @@ soak's director step (180 s, desktop native) was 650 µs mean, 998 p95, with a m
 enemy's (seen and fled from), 300 ticks after a 120-tick warm-up, under the director's shipped budgets with its desktop
 cap raised to 200. Counts are held exactly: no character asks for more paths than its `repath_seconds` allows, thinks
 more often than its `think_rate` or casts more than `max_rays_per_think` (2) rays a think, and the shared budget is
-never overspent. Time is held as medians: the step a character and a think over the median of a ruler loop timed
-every 50 ticks of the window (GDScript work of the AI's kind: vectors, an array, a dictionary, about 10 ms here), and
-the hit history over the step of the same ticks (a section of a few microseconds that a loop does not follow:
-[the ruler](../performance-budgets.md#budgets-counts-tight-time-loose)). Each limit sits between the highest ratio seen
-and twice the lowest, so a step, a think or a record twice as slow fails (a run with each made twice as slow by a wait
-failed every row), and a failure prints the row. Native debug build, Windows, 2026-11-11, on the prototype bodies;
-the step and think columns are 4 runs with the ruler (2 of them side by side), the history column 11 runs (5 with two
-or three copies of the gate beside it, 4 beside the full template suite):
+never overspent. Time is held as medians: the step a character and a think over the median of a ruler timed every 50
+ticks of the window (`tests/fixtures/physics_ruler.gd`: a capsule's `move_and_slide` round a post and a ray at it, 400
+times, the engine's work an AI step spends most on, about 8 ms here and 7 to 11 on a runner), and the hit history over
+the step of the same ticks (a section of a few microseconds that a ruler does not follow:
+[the ruler](../performance-budgets.md#budgets-counts-tight-time-loose)). The limits have a table for Linux (the CI
+runners) and one for Windows (the desktop), since the same code builds to different speeds on each, and each limit
+sits between the highest ratio seen and twice the lowest. The suite's second case, `test_a_step_twice_as_slow_fails_the_gate`,
+runs the same crowds on `SlowAiDirector` (`tests/fixtures/`: the step spins on the clock as long again as its work
+took, so it costs twice itself on any machine) and must see the step fail at every size with no count broken: the
+gate's teeth run wherever the gate runs. A failure prints the row. `.github/workflows/ai-cost-gate.yml` runs the suite
+50 times on the runners (by hand, and on a pull request that changes the gate). Linux: 150 CI runs on four processor
+models (AMD EPYC 7763, 9V74, 9V45, Intel Xeon 8573C), 2026-11-13; Windows: 4 desktop runs with 25 Godot processes
+beside them:
 
 | Civilians | Step a character a tick | A think | Hit history a character (`ai_history_us`) | Paths / thinks a second each | Rays a think | Walking |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 50 | 48 to 56 us (4.6 to 5.1 a ruler ms; limit 8.0) | 72 to 84 us (6.9 to 7.7; limit 13) | 1.7 to 3.0 us (0.031 to 0.038 of the step; limit 0.055) | 0.60 / 10.0 | 0.17 | 57 % |
-| 100 | 44 to 47 us (4.1 to 5.1; limit 7.5) | 91 to 97 us (8.5 to 10.4; limit 14) | 2.1 to 3.8 us (0.034 to 0.049; limit 0.06) | 0.51 / 6.7 | 0.10 | 50 % |
-| 200 | 35 to 40 us (3.3 to 4.0; limit 6.5) | 108 to 119 us (10.0 to 12.2; limit 18) | 2.6 to 3.5 us (0.046 to 0.063; limit 0.09) | 0.39 / 3.6 | 0.11 | 35 % |
+| 50 | 41 to 103 us; a ruler ms: Linux 6.2 to 9.6 (limit 11), Windows 10.5 to 12.2 (limit 15) | 58 to 144 us; Linux 8.7 to 13.4 (limit 15.5), Windows 12.7 to 15.4 (limit 19) | 1.1 to 3.4 us (0.024 to 0.040 of the step; limit 0.055) | 0.58 / 10.0 | 0.18 | 54 % |
+| 100 | 39 to 88 us; Linux 5.9 to 8.1 (limit 9.5), Windows 9.4 to 11.6 (limit 14) | 78 to 166 us; Linux 11.1 to 15.4 (limit 18), Windows 17.4 to 20.2 (limit 25) | 1.3 to 3.3 us (0.028 to 0.044; limit 0.06) | 0.50 / 6.7 | 0.09 | 53 % |
+| 200 | 33 to 69 us; Linux 5.0 to 6.4 (limit 7.5), Windows 8.0 to 8.9 (limit 11.5) | 105 to 210 us; Linux 14.8 to 19.6 (limit 23), Windows 23.6 to 26.0 (limit 32) | 1.7 to 3.5 us (0.037 to 0.060; limit 0.09) | 0.36 / 3.6 | 0.09 | 39 % |
 
+- Twice as slow, the step read 19.7 to 22.8, 20.3 to 21.3 and 15.1 to 17.5 a ruler ms on the desktop; on Linux twice
+  the lowest ratio of the 150 runs is 12.4, 11.8 and 9.9, over every limit.
+- The ruler before this one (#1405) was a GDScript loop of vector, array and dictionary work, chosen on the desktop:
+  on the runners it followed the step at a slope of 0.6, so the step read 3.9 to 8.1 loops on unchanged code and
+  failed main at 8.06 against a limit of 8.0. Over the same 150 runs the step spread 1.73 times over that loop, 1.86
+  over a `sin` and physics mix and 1.55 over the physics ruler. On one runner the step moved 1.38 times from one
+  process to the next while every ruler held within 2 %: the spread that is left is the step's own.
 - The first ruler was the soak's `sin` loop: on the Linux CI runner it took 7.5 ms against 12.5 on this desktop while
-  the AI's step cost the same (60 us a character at 50), so the step read 7.9 to 5.9 loops there against 4.3 to 6.2
-  here and failed CI. The C library's `sin` is not the AI's kind of work; the ruler now is.
-- With the `sin` loop, 11 runs on a loaded machine (two or three copies of the gate, or the full suite, beside it)
-  read the step at 46 to 95 us a character: load moves the microseconds 2 times and the ratio 1.6 times.
+  the AI's step cost the same; the C library's `sin` is not the AI's kind of work.
 - The branch before the prototype bodies (Quaternius's mannequins), measured turn about with these, read the same: the
-  body's look is not in the AI's step. The first table of this gate (34.9 us a character at 50, ratio 3.2) was a mean
-  over one calibration on a quieter day.
-- A think grows with the crowd (about 80 us at 50, 115 at 200) where the step a character falls: a frightened
-  civilian's think walks more beliefs and tellings in a bigger crowd. The calm crowd (no raider) is 31 to 46 us a
-  think.
+  body's look is not in the AI's step.
+- A think grows with the crowd (about 80 us at 50, 140 at 200 on a runner) where the step a character falls: a
+  frightened civilian's think walks more beliefs and tellings in a bigger crowd. The calm crowd (no raider) is 31 to
+  46 us a think.
 - The server's record of every AI character's hit volume (`AiHitHistory`, #1198) is 2 to 3.5 us a character a tick:
   120 characters add about 0.3 ms to a server tick.
 

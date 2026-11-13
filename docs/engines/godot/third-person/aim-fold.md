@@ -48,7 +48,7 @@ standing and crouched and a shot from the carry, from the game camera; record at
   the carry pose, so the solve asked for a 70 degree lift there, and with each bone written once per pass the
   `influence` did not scale it: the chest folded back by 80 degrees at a tenth of the aim, and a hip shot held that
   lift through its recoil. The layer's own tests read only frames at full aim. **Seen:** gdstudio #1318, 2026-11-11
-  (`test_aim_fold.gd`, found by the Blender artist on PR #1315).
+  (`test_aim_fold.gd`, found by the Blender artist on PR #1315); #1356, 11-12 (lying).
 - **Approach:** Work a pose out from the clips the way the tree blends them, with every input the drawn pose has at
   full weight (a bone a clip leaves out at its rest, each modifier that runs before, the state's own clips), and test
   it in every state against the drawn pose at full weight, with a probe that prints both. **Watch out for:** after
