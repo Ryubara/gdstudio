@@ -16,9 +16,9 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
   --import` to the end, logged to a file with its exit code read; a worktree from `gds issue start` has them already.
   **Watch out for:** the addons are git-excluded, so a hand-made worktree has none: `GdUnitCmdTool.gd` is "File not
   found", a windowed run exits 1 with no test result and reads as a failing suite, and an import cut short by `| tail`
-  looked done. **Seen:** Deadnight, 2026-11-01, 2026-11-03 (twice), 2026-11-05 ("exit 1 and no `Overall Summary`" is
-  a run that never started); gdstudio #952, 2026-11-10 (a kit worktree had no `godot/addons/gdUnit4`; #1128 made
-  `gds issue start` install it).
+  looked done. **Seen:** Deadnight, 11-01 to 11-05 ("exit 1 and no `Overall Summary`" is a run that never started);
+  gdstudio #952, 11-10 (no `godot/addons/gdUnit4`; #1128: `gds issue start` installs it); #1274, 11-12 (the kit's
+  `godot/`: `GdUnitTestCIRunner` not found until `--path godot --import`).
 - **Approach:** After every merge of main or checkout that adds a `class_name` script, run `godot --headless --path
   game --import` before any test, capture or soak, give each windowed run a `--timeout` (or a `quit()` watchdog timer)
   and read the first minute of its log for `Parse Error`. **Watch out for:** the global class cache is rebuilt only by
@@ -259,13 +259,15 @@ jobs, and on a desktop other agents load. Read its number as the runner's as muc
   change 50 times before trusting it. **Watch out for:** the AI cost gate's ruler (a GDScript loop) was chosen on the
   desktop and followed the step on the runners at a slope of 0.6, so the step ratio read 3.9 to 8.1 and failed main at
   8.06 against 8.0; a physics ruler spread 1.55 times over 150 runs where the GDScript one spread 1.73. **Seen:**
-  gdstudio #1405, 2026-11-13 (fix: `PhysicsRuler`, limits by system, the teeth case `SlowAiDirector`).
+  gdstudio #1405, 2026-11-13 (fix: `PhysicsRuler`, limits by system, the teeth case `SlowAiDirector`); before it,
+  8.52 and 8.349 on #1364 and #1399, 11-12.
 - **Approach:** When one timing gate is found reading the runner, list every other gate on time in the suites (`grep
   -rln "calibration\|ruler" tests/`) and treat each the same way in the same week; print the processor beside each
   row and read the spread model by model. **Watch out for:** the walking crowd's frame budget, set on the desktop,
   read 2.40 against 1.70 on CI the day the AI gate was fixed; one processor model's runs agreed within a few percent
-  while the models stood 1.5 times apart over every ruler tried, so the limit, not the ruler, was wrong. **Seen:**
-  gdstudio #1451, 2026-11-13 (limits 2.2 Linux, 2.4 Windows, the best of three windows, a twice-as-slow case).
+  while the models stood 1.5 times apart over every ruler tried, so the limit, not the ruler, was wrong; in the full
+  template run the gate read 5 to 17 % over the same gate run alone. **Seen:** gdstudio #1451, 2026-11-13 (limits
+  2.2 Linux, 2.4 Windows, the best of three windows, a twice-as-slow case).
 
 ## Running more than one {#parallel}
 

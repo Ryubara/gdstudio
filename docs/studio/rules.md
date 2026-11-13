@@ -154,7 +154,9 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
 
 ## Page size {#size}
 
-A page holds at most 50 KB. When one nears it, the simplest move is one subject to a sibling page (as `landing.md`
+A page holds at most 50 KB: 51,200 bytes as the check counts them (`MAX_PAGE_KB` in `lessons.py`, for the pages
+under `docs/`), so a 50.5 KB page still passes. When one nears it, the simplest move is one subject to a sibling page
+(as `landing.md`
 left `starting-work.md` and `ai-online.md` left `third-person/ai.md`), with a short section left behind for each moved
 `{#anchor}`; a topic that has outgrown its page altogether becomes a folder of subpages (as `gamedev/audio/` did).
 Those are the times a learning makes a new page. The check names the page and its size.
@@ -172,7 +174,8 @@ Those are the times a learning makes a new page. The check names the page and it
   **Watch out for:** nothing on a page says it is near the limit, so entries kept landing on `online-client.md`,
   `third-person/ai.md` and `hooks.md` until each sat within a few hundred bytes of 50 KB and the next entry, or a
   merge of two that each fitted, failed the check. **Seen:** gdstudio #1193 (PR #1199), #1198 (PR #1223), #1208
-  (PR #1219) and #1222 (PR #1227), 2026-11-11.
+  (PR #1219) and #1222 (PR #1227), 2026-11-11; #1267 and #1191, 11-12 (each split `tools/blender/animation.md` its own
+  way: before a split, look for an open pull request splitting the same page).
 - **Approach:** After merging main into a branch that adds to a page, run `python .github/scripts/mistakes.py check`
   on the merge result; when the page is over 50 KB, move the branch's own section to a subpage of its subject and leave
   a pointer under the old anchor. **Watch out for:** each side was under the limit, so neither pull request's checks

@@ -119,6 +119,12 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   outer variable inside the lambda is the same trap. **Seen:** Deadnight #226, 2026-11-02 (bot counts, a
   mesh); gdstudio #836, 2026-11-08 (`hits += 1` read 0); gdstudio #1251, 2026-11-11 (`met = {...}` left the
   dict empty); gdstudio #1206, 2026-11-11 (a `maxf` into a captured float read 0 mm); #1158, 2026-11-12 (the same).
+- **Approach:** Defer a bound method (`_method.call_deferred()`) or a static callable (`Class.f.call_deferred(arg)`)
+  whose function checks `is_instance_valid()` on an untyped argument; never defer a lambda that captures `self` on a
+  node a test may free. **Watch out for:** a deferred bound method on a freed object is dropped quietly, but a
+  deferred lambda raises `Error calling deferred method: '<anonymous lambda>': Instance is null` when its node was
+  freed before the idle frame. **Seen:** PR #1397's merge, 2026-11-13 (`WeaponHold._build` deferred
+  `(func() -> void: X.f(_skeleton))`; the AI, senses and shot-rewind suites failed in CI).
 
 ## What a line costs in the web build {#web-cost}
 

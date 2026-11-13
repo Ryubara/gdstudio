@@ -298,3 +298,18 @@ headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdst
   turning it off saved 34 (warm data, an early return the first run made possible); each span's clock read is a call
   into JavaScript (about a microsecond); one round each moved a row 5 to 10 microseconds. **Seen:** gdstudio #1347,
   2026-11-12 (the kept game in the temporary folder was gone between two exports).
+- **Approach:** In a before and after of two builds, swap which build runs first in each round (A B, then B A), and
+  read the median of the rounds. When the bench's own probe takes the pair of runs to compare as an argument (the
+  fourth of `gait_cost.py`: `off,on` by default, `lean_off,on` for the lean alone), compare one part in one build
+  rather than two exports. **Watch out for:** with `main` always first on a busy machine the branch read 3 to 9
+  microseconds higher on code that adds about 0.2, and single rounds moved up to 20. **Seen:** gdstudio #1348 (PR
+  #1393), 2026-11-12; #1403 (PR #1458), 11-13 (the pair argument).
+- **Approach:** Before planning a web measurement on a bench, check what its probe reads: not every bench has a
+  `<name>.py` for `--run`, and some probes measure another thing than a cost. **Watch out for:** `effects_cost.tscn`
+  has no `effects_cost.py`, and `effects_first_use.py` counts the programs linked and reports Chrome's steady frame
+  rate, so it cannot resolve an effect's cost under about 0.03 ms. **Seen:** gdstudio #1341 (PR #1383), 2026-11-12.
+- **Approach:** Pass a bench's probe what it needs besides the build with `--probe-args` (they follow the build
+  folder), and read what the game writes (a log, a result file) from a run kept with `--keep`. **Watch out for:**
+  `--run` starts the probe with the build folder alone (`bench_web.probe_command`) and removes the game when it ends,
+  so a probe that looked for the game's folder or options of its own found neither. **Seen:** gdstudio #1270 (PR
+  #1301), 2026-11-11.

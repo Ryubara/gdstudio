@@ -246,6 +246,13 @@ guard's status line (checked for gdstudio #1003, from tether #27).
 Rules the maintainer set for how agents work live in `AGENTS.md` and these docs, never only in one machine's Claude
 memory, so every clone and every agent gets them.
 
+- **Approach:** When `/plugin` shows a kit mod as `not cached at marketplaces\gdstudio`, check
+  `~/.claude/plugins/installed_plugins.json` for its entry; with none, run `claude plugin marketplace update gdstudio`
+  and `claude plugin install gdstudio-disk@gdstudio --scope user`, then restart the session. **Watch out for:** the
+  mod stayed enabled in `.claude/settings.json` and its cache folder was there, but the install record was gone (what
+  dropped it is not known), so it never loaded; the marketplace's clone is the whole kit, 42 Git LFS pointers
+  included. **Seen:** gdstudio coordinator, 2026-11-10.
+
 ## Tools {#tools}
 
 `tools.toml` pins each tool's version, per-platform download and hash, copied from the vendor's own checksum file.

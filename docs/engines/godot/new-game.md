@@ -133,7 +133,8 @@ with the first line of its message). The folder is removed when the run ends, pa
 else is: it refuses a folder that is not one of its own. The exit code is GdUnit4's (100 failed tests, 105 a script that
 does not parse; 1 for a layout or parse failure, a run that ran no suite, or a `leaked at exit` line, which CI refuses).
 Options: `--suite tests/core/test_x.gd` (repeat it; one `-a` per suite in the order given, default all of
-`res://tests`), `--keep` (keep the game and print its path), `--fixed-fps N` (default 60, the clock CI runs the suites
+`res://tests`), `--keep` (keep the game and print its path: the repository folder, whose `game/` is the Godot
+project that `--path` names), `--fixed-fps N` (default 60, the clock CI runs the suites
 at: Godot runs a frame per tick with no waiting, [test-speed.md](test-speed.md#time-driven-values)) and `--real-clock`
 (no flag, for a check on the wall clock), `--godot-args='...'` and `--gdunit-args='...'` for any other argument (joined
 with `=`, since a bare `--flag` looks like an option to the command), `--timeout`. `gds template game <name>` makes the
@@ -203,7 +204,8 @@ every exit, kept with `--keep`, two calls at once).
   **Watch out for:** `gds template test` passes without them, since it imports in its own copy, but CI imports inside
   the template and its step that nothing the build made is left for git fails on each missing `.import` (six minimap
   icons); an `.import` written by hand from a sibling's keeps its path hash and has no `uid`, so the import rewrites
-  it. **Seen:** gdstudio #884, 2026-11-10; gdstudio #887, 2026-11-10 (nine weapon sounds copied from
+  it ([import checks](../../tools/blender/export.md#import-checks)). **Seen:** gdstudio #884, 2026-11-10; gdstudio #887,
+  2026-11-10 (nine weapon sounds copied from
 another game with no `.import`: the full local run was green and CI's step failed); #1293 (PR #1323), 2026-11-12
   (two clip files' `.glb.import` copied from `prone.glb.import` and renamed); #1342 (PR #1389), 2026-11-12 (the
   bandage's two sounds written by `tools/audio/sfx.py encode`, which makes no `.import`).
@@ -232,10 +234,12 @@ another game with no `.import`: the full local run was green and CI's step faile
   its cost suites, or run those suites again alone on a quiet machine before believing a failure. **Watch out for:**
   the cost tests time real work against budgets, so a capture or an export running beside them made a fast step read
   slow and failed a suite the change never touched. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11.
-- **Approach:** To read a number a suite prints (a measured cost, a count), run `gds template test` with `--keep` and
-  read the kept folder's `gdunit.log`, then remove it with `gds template clean <path>`. **Watch out for:** a
-  passing run removes its folder, log included, so the numbers a passing suite printed were gone once it ended.
-  **Seen:** gdstudio #1198 (PR #1223), 2026-11-11.
+- **Approach:** To read a number a suite prints (a measured cost, a count, a `print` line), run `gds template test`
+  with `--keep` and read the kept folder's `gdunit.log`, then remove it with `gds template clean <path>`; after a
+  failing run, read the log named on the run's line starting `log` (a `gds-tt-*.log` in the temporary folder).
+  **Watch out for:** the run shows each suite's counts and failure lines, never a test's `print` output, and a
+  passing run removes its folder, log included, so the newest `gds-tt-*.log` belongs to an earlier failing run.
+  **Seen:** gdstudio #1198 (PR #1223), 2026-11-11; #1273, #1356, #1362 and #1344, 11-12; #1410 (PR #1425), 11-13.
 - **Approach:** Give a new script of a synced addon (`godot/addons/<name>/` in the kit) its `.uid` in the addon's
   source, then sync: `uv run --project python python -c "from pathlib import Path; from gds_tools import uids;
   print(uids.write(uids.uid_file(Path('<script>.gd'))))"`. **Watch out for:** `gds template uids` skips every

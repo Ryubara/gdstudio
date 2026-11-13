@@ -250,3 +250,14 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
 - **Approach:** Check a soak's replay in fresh processes, and look for static counters (`static var`) before calling a
   run nondeterministic. **Watch out for:** two runs of the same seed in one GdUnit process gave different hashes
   while separate processes matched. **Seen:** gdstudio #971, 2026-11-11 (`test_the_same_seed_repeats_its_commands`).
+- **Approach:** To prove a fix for a seed the nightly soak broke on Linux, dispatch the soak on the branch (`gh workflow
+  run ai-soak.yml --ref <branch>`) and read all five shards; run seeds locally only as a second look. **Watch out
+  for:** the soak diverges by platform, so the same seed on Windows took another course: seed 21 never showed the
+  director's fault there and broke on another error instead. **Seen:** gdstudio #1419, 2026-11-13 (the dispatch ran 50
+  seeds green, seed 21 included).
+- **Approach:** When `think_p99` (or any time gate) fails in a full local run on the shared machine, run that suite
+  again alone before treating it as a failure, and put both readings in the pull request's body; CI on the branch is
+  the judge. **Watch out for:** the full run beside other agents' Godot processes read think p99 just over its gate
+  (2764 against 2678 us) on a change to the first shot; run again alone it passed. **Seen:** gdstudio #1411 (PR #1424)
+  and #1412 (PR #1432), 2026-11-13 (with `test_parts_budget.gd`: [Reading a timing on a shared
+  machine](../engines/godot/performance-budgets.md#reading-a-timing-on-a-shared-machine)).

@@ -137,3 +137,8 @@ says where it was learned (Deadnight, the first game).
   on main moves the expected number with it. **Watch out for:** the hitscan suite counted `PLAYER_SIZE` for every
   player; once main gave an aiming entry an aim byte, every TICK it checked was one byte over and both cases failed
   only after the branch merged main. **Seen:** gdstudio #1252, 2026-11-11 (PR #1269, after #1300).
+- **Approach:** Before taking a protocol version, ask the agents whose branches touch the net files which number
+  they hold (through the coordinator), not only the open pull requests. **Watch out for:** the search for a higher
+  number in open pull requests cannot see a branch not pushed yet, so #1300 and #1254's branch both raised
+  `NetWire.VERSION` from 6 to 7 without either seeing the other. **Seen:** gdstudio #1277 (PR #1300) and #1254,
+  2026-11-11 (#1254, landing second, took 8).
