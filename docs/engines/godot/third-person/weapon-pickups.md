@@ -213,6 +213,12 @@ left arm's way to the charging handle and its pull are the hold's `ChargePull`, 
   the index and middle fingers straight across its front, and the close-up read as a hand poking the handle
   with a thumb standing out like a spike, though every contact passed. **Seen:** gdstudio #1266, 2026-11-12
   (fix: `hook` and `thumb_rest` cost a straight joint).
+- **Approach:** Put the place a hand ships at in the solver's `MOVES` for each body, so a solve with no option
+  writes the shipped numbers again, and check it by solving once with no option and comparing with the files.
+  **Watch out for:** a place found with `--charge=` and left out of `MOVES` is lost at the next merge: a fit
+  file the solver writes is taken from main and solved again, and the plain solve put the charge hand 25 degrees
+  off and 7 cm from where it shipped. **Seen:** gdstudio #1370, 2026-11-12 (the charge's 25-degree tilt moved
+  into `MOVES` for every body; both bodies' solves then matched the shipped files exactly).
 - **Approach:** Route a hand's way between two places on opposite ends of a long gun through a place beside it
   (the magazine's `beside`), and measure the way every half hundredth against the gun as it is then (the bolt
   back or home). **Watch out for:** the straight way from the handle's let-go to under the hand guard went 13 to
