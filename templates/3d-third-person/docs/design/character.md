@@ -314,9 +314,10 @@ for a hitscan shot or a blow), `hit_scanned(hit)`, `dry_fired`, `ammo_changed(am
 `stood_up`. A shot on a character finds the body part in its path (`HitZones`, eleven parts with a damage multiplier
 each) and gives the character a `HitRecord` (`take_hit(record)`): its `Health` node takes the health (`max_value`, 100;
 `enabled`) and dies at zero, the ragdoll thrown along the shot from the hit bone; a hit that does not kill makes the hit
-part flinch (`HitReaction`), and a shot on a lying body pushes the bone and leaves a mark on it. The record is all a
-network sends for a hit (`encode()`, about 40 bytes); every peer makes the rest. `player.hit(amount, source)` is a blow
-with no point: it takes the health too, stops the character for the stun time and throws it away from the source.
+part flinch (`HitReaction`; its bones keep their lengths through `RagdollLengths`), and a shot on a lying body pushes
+the bone and leaves a mark on it. The record is all a network sends for a hit (`encode()`, about 40 bytes); every peer
+makes the rest. `player.hit(amount, source)` is a blow with no point: it takes the health too, stops the character for
+the stun time and throws it away from the source.
 `player.teleport(spot)` moves it and the camera cuts to it (the camera would otherwise fly there).
 
 ## Animation {#animation}

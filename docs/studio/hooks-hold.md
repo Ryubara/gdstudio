@@ -23,15 +23,17 @@ stays out of `merge.required_checks`, so `pr-status` does not label it `S-ci-fai
   holds, from the last 24 hours, a message the maintainer typed that names N with lift, remove, approve, land, merge or
   yes in the same sentence, or any sentence with no digit that approves or says yes, in any words and in a message of
   any length, answering the coordinator's last message when that message named N and the hold or an approval; a sentence
-  naming N with a negation vetoes N for the whole message. There is no set wording to ask for. Only a `user` entry whose
-  `origin` kind is `human`, not `isMeta`, not a sidechain and not a tool result counts: a prompt tether submits (origin
-  kind `plugin`), agent reports and monitor events (`task-notification`), peers, hook output and tool results do not.
-  Pasted blocks (`<pasted_content>`), `>` lines, fenced code and quoted text are dropped first; a question, a negation
-  or a condition (if, once, after, until) does not approve. Each approval lifts once: `scratch/hold-lifts.log` gets the
-  pull request, the approving message's timestamp (never its text) and the session, and a spent timestamp is refused.
-  Name the number, not a branch. Task agents, the API, `gh label` and merges stay refused. No session writes a
-  transcript (`[protect]` for Edit and Write; a redirect, `tee`, `sed -i`, `Set-Content` or a copy onto one) or spells
-  an entry with a human origin in a shell line or new file text. Code: `gds_tools/hold_approval.py`.
+  naming N with a negation vetoes N for the whole message. A run ("#A through #B", "A-B", at most 30 apart) names every
+  number in it, and "looks good", "is good" or "is great" says yes. There is no set wording to ask for. Only a `user`
+  entry whose `origin` kind is `human`, not `isMeta`, not a sidechain and not a tool result counts: a prompt tether
+  submits (origin kind `plugin`), agent reports and monitor events (`task-notification`), peers, hook output and tool
+  results do not. Pasted blocks (`<pasted_content>`), `>` lines, fenced code and quoted text are dropped first; a
+  question, a negation or a condition (if, once, after, until) does not approve. Each approval lifts once:
+  `scratch/hold-lifts.log` gets the pull request, the approving message's timestamp (never its text) and the session,
+  and a spent timestamp is refused. Name the number, not a branch. Task agents, the API, `gh label` and merges stay
+  refused. No session writes a transcript (`[protect]` for Edit and Write; a redirect, `tee`, `sed -i`, `Set-Content` or
+  a copy onto one) or spells an entry with a human origin in a shell line or new file text. Code:
+  `gds_tools/hold_approval.py`.
 - **While it waits**, its agent merges `main` only when the pull request is DIRTY at report time; the coordinator
   refreshes it right before it lands ([Landing](landing.md#landing): an agent merged `main` four times into a held
   pull request, each push restarting CI).
@@ -64,3 +66,9 @@ name would let any other label replace a failed run. `python/tests/test_hold.py`
   and it matched inside an approval that named the label and then "off" with the numbers (`S-hold off 7`, also "take
   the hold off 7"), so a clear yes was refused. **Seen:** gdstudio #1332, 2026-11-12 (fix: `hold off` refuses only as
   a verb, not after `S-`, `the`, `that`, `this`, `its` or `their`; `test_hook_hold_approval.py` has both sides).
+- **Approach:** Read a run of numbers ("#A through #B", "A-B", "A to B", at most 30 apart) as naming every number in
+  it, and a reviewer's "looks good", "is good" or "is great" next to a number as a yes. **Watch out for:** a review
+  that gave picks per pull request ("for #N, B looks good") and closed with an approval of the whole run named only
+  the run's two ends, so the guard lifted the last one and refused the three between; a "not a fan" of one number in
+  the same message still vetoes that one. **Seen:** gdstudio #1369-#1378 holds, 2026-11-12 (fix: `_RANGE` and the
+  plain-good words in `hold_approval.py`; `test_hook_hold_approval.py` has both sides).
