@@ -53,6 +53,14 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   #1338). A death during a flinch hands the whole skeleton to the ragdoll. The marks shots left
   on the bones go when the body gets up (`Impacts.clear_marks_on(simulator)`).
 
+- **Approach:** Push a body by a speed, not only by the shot's strength: the kill's and the lying body's push land on
+  the hit body's middle and give it at most `push_most_speed` (the impulse limited to `mass * push_most_speed`).
+  **Watch out for:** the same 40 N·s is a nudge to the 14 kg chest and a launch to a 1 kg forearm (26 m/s) or a shin
+  (12 m/s); a rifle sprays limbs and keeps firing into the falling body. Measured per weapon, one kill on each part of
+  a standing target (pistol 40 N·s, rifle 25 N·s, `death_push` 1.5): the fastest bone was 5 to 6 m/s on the head,
+  chest, pelvis and thigh for both, and 10 to 26 m/s on an arm, forearm or shin before the cap, under 9 after.
+  **Seen:** gdstudio #1343, 2026-11-12 (`test_death_push.gd`).
+
 ### The inspector {#inspector}
 
 - **On `HitZones`** (a `StaticBody3D` on layer 6, Hit Zones, mask none): `receiver` (the character), `model` (the slot
@@ -62,7 +70,8 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   `offset` (in the bone's frame, Y along the bone; the node's own transform is overwritten), `damage_multiplier` and
   `enabled`. The eleven: `head` (sphere, 3.0), `chest` and `pelvis` (1.0), `arm_l`, `arm_r`, `forearm_l`, `forearm_r`
   (0.6), `thigh_l`, `thigh_r`, `shin_l`, `shin_r` (0.7); the forearm capsules reach over the hands, the feet have none.
-- **On `HitReaction`**: `death_push` (1.5), `lying_push` (0.5), `flinch_enabled`, `flinch_push` (0.6),
+- **On `HitReaction`**: `death_push` (1.5), `push_most_speed` (5 m/s: the most a kill's or a lying body's push
+  gives the body it hits, on its middle), `lying_push` (0.5), `flinch_enabled`, `flinch_push` (0.6),
   `flinch_most_speed` (3 m/s), `flinch_strength` (0.85), `flinch_time` (0.45 s), `flinch_hold` (0.25).
 - **On the character's `Health` node** (in `character.tscn`): `enabled` (off: hits still flinch and push but take
   nothing), `max_value` (100) and the rest of [the component](#health). **On the `WeaponDef`** (`pistol.tres`):

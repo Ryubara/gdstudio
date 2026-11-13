@@ -44,6 +44,11 @@ const TRUNK := &"spine_01"
 ## How hard a hit that kills throws the bone it hit, as a share of the hit's strength (a shot's
 ## impulse): real bullets barely move a body, games make it plain. 0: the body only falls.
 @export_range(0.0, 10.0, 0.05, "or_greater") var death_push := 1.5
+## The most speed a push (a kill's, or a hit on a lying body) gives the body it hits, in m/s, on
+## the body's middle. The push is a share of the shot's strength whatever the part weighs: a
+## pistol kill on a forearm (a kilogram) threw it at 26 m/s and a rifle burst into a falling body
+## flung its hands and shins (gdstudio #1343); the chest (14 kg) takes a pistol kill whole.
+@export_range(0.0, 20.0, 0.1, "or_greater", "suffix:m/s") var push_most_speed := 5.0
 
 @export_group("Lying body")
 ## How hard a hit on a body already lying pushes the bone it hit, as a share of the hit's
@@ -146,20 +151,16 @@ func _on_hit(record: HitRecord) -> void:
 		_flinch(record)
 
 
-# Pushes the body the record hit at its point along its direction.
+# Pushes the body the record hit along its direction, on its middle, by at most
+# `push_most_speed`: a push at the hit point spun a light limb about its own length (gdstudio
+# #1326) and an uncapped one flung it (#1343).
 func _push(record: HitRecord, share: float) -> void:
 	var key := body_for(record.bone)
 	var bone := ragdoll.body(key)
 	if bone == null or share <= 0.0 or record.strength <= 0.0:
 		return
-	bone.apply_impulse(record.direction * record.strength * share, _arm(bone, record))
-
-
-# Where on `bone` the push lands, from its centre: the hit point, or the centre for a point that
-# lies far from the bone (a record from a peer whose pose differed).
-func _arm(bone: PhysicalBone3D, record: HitRecord) -> Vector3:
-	var arm := record.point - bone.global_position
-	return arm if arm.length() < 0.5 else Vector3.ZERO
+	var push := record.direction * record.strength * share
+	bone.apply_central_impulse(push.limit_length(bone.mass * push_most_speed))
 
 
 func _flinch(record: HitRecord) -> void:
