@@ -252,6 +252,12 @@ lands (a squash merge makes a new commit on `main`), so the line keeps naming th
   and folded its page into another section while the stacked branch was resolving `main` alone, so the fold made
   there (a section of its own) was redone into the base's section, and the clip that joins the base's would have
   been solved on the base's old files. **Seen:** gdstudio #1265 on #1191, 2026-11-12.
+- **Approach:** When merging an open base into a stacked branch conflicts in one hunk of a file, resolve that hunk
+  only (or take `main`'s file and re-apply the base's diff of it, `git diff origin/main...<base> -- <file>`), then
+  check `git diff origin/main -- <file>` shows nothing but the base's change. **Watch out for:** `git checkout --theirs`
+  takes the base's whole file, which is `main`'s file from before the base last merged it: it dropped #1444's cost
+  work in `gait_transitions.gd` (three other hunks, merged cleanly by git on its own) while keeping the base's one
+  line, and only the diff against `main` showed it. **Seen:** gdstudio #1431 on #1432, 2026-11-13.
 
 ### The worktree is removed when the work is finished {#sweep}
 

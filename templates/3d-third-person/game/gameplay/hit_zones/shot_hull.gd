@@ -32,7 +32,7 @@ func _enter_tree() -> void:
 
 func _exit_tree() -> void:
 	if _character != null and is_instance_valid(_character):
-		if _character.get_meta(&"shot_hull", null) == self:
+		if _character.has_meta(&"shot_hull") and _character.get_meta(&"shot_hull") == self:
 			_character.remove_meta(&"shot_hull")
 
 

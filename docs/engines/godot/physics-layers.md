@@ -11,7 +11,7 @@ and labels the inspector's layer grid.
 
 ## The template layers {#template-layers}
 
-3D Blank's `project.godot` names the seven layers (3D Third Person's adds only its own keys and gets them from it), and
+3D Blank's `project.godot` names the eight layers (3D Third Person's adds only its own keys and gets them from it), and
 `core/physics_layers/physics_layers.gd` (`PhysicsLayers`, in 3D Blank, so every template has it) holds them as bits,
 so code and the inspector say the same thing. The constants script moves to the synced gameplay addon
 (`addons/gds_game/physics/physics_layers.gd`) with kit #923's second step; the names stay in each game's `project.godot`.
@@ -20,11 +20,12 @@ so code and the inspector say the same thing. The constants script moves to the 
 | --- | --- | --- | --- | --- |
 | 1 | World | `WORLD` | floors, walls, `ProtoBlock`s, doors, moving platforms, targets | none needed (static) |
 | 2 | Characters | `CHARACTERS` | the player's capsule (later AI and networked bodies) | World, Props (`CHARACTER_MASK`) |
-| 3 | Projectiles | `PROJECTILES` | shots in flight (`projectile.tscn`) | World, Characters, Props, Ragdoll (`SHOT_MASK`); then Hit Zones inside a capsule it met (`HIT_ZONE_MASK`) |
+| 3 | Projectiles | `PROJECTILES` | shots in flight (`projectile.tscn`) | World, Characters, Props, Ragdoll, Shot Hulls (`SHOT_MASK`); then Hit Zones inside a capsule it met (`HIT_ZONE_MASK`) |
 | 4 | Props | `PROPS` | `PhysicsProp` (pushed crates, balls) | World, Characters, Props (`PROP_MASK`) |
 | 5 | Ragdoll | `RAGDOLL` | the bones of a limp body (`CharacterRagdoll`) | World, Props, Ragdoll (`RAGDOLL_MASK`) |
 | 6 | Hit Zones | `HIT_ZONES` | the `HitZones` body of a character (its parts, [Hit zones](third-person-hits.md)) | none (scanned only by a shot's second test) |
 | 7 | Sensors | `SENSORS` | `Pickup`, `TriggerZone`, a door's `Sensor`, an `Interactable` | Characters (`CHARACTER_SENSOR_MASK`); a trigger zone Characters and Props (`TRIGGER_MASK`); an `Interactable` none (an `Interactor`'s query on `SENSORS` finds it) |
+| 8 | Shot Hulls | `SHOT_HULLS` | a living character's `ShotHull`, a capsule a little wider and taller than its own that only shots meet ([the hull](third-person-hits.md#shot-hull)) | none (only `SHOT_MASK` lists it; a shot's mark and the network's hit probe use `SURFACE_MASK`, without it) |
 
 Rays and other masks: the camera's spring arm (`PlayerCamera.wall_mask`) is World and Props (`CAMERA_MASK`); the
 weapon's aim ray (`Weapon.aim_mask`) is `SHOT_MASK`, so the crosshair's point is on what the shot will hit; the
