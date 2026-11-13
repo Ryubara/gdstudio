@@ -1,15 +1,14 @@
 # 3D Third Person's AI cost gate (game/tests/gameplay/test_ai_cost_gate.gd) run many times on unchanged code, to show
 # it holds on GitHub's shared runners: a game made from the template, then the gate's suite run ten times in each of
-# five shards (fifty runs), each run's rows (`AI_COST_GATE`) and the runner's processor written to the summary and to
-# one JSON line a row in the artifact. The template job of ci.yml runs the gate once on every pull request; a gate on
-# time that reads the runner as much as the code fails there now and then, which this soak counts. Kit docs:
+# five shards (fifty runs). Each run is both cases: the gate, which must pass, and its teeth (the director's step made
+# twice as slow), which must see the step fail. Each run's rows (`AI_COST_GATE`, `AI_COST_GATE_SLOW`) and the runner's
+# processor go to one JSON line a row in the artifact. The template job of ci.yml runs the suite once on every pull
+# request; this counts how often a gate on time reads the runner instead of the code. Kit docs:
 # docs/engines/godot/third-person/ai-characters.md#cost-gate. It runs by hand and on a pull request that changes the
-# gate, its rulers or this file. Not a required check.
+# gate, its ruler or this file. Not a required check.
 name: ai-cost-gate
 
 on:
-  push:
-    branches: [godot-fix-the-ai-cost-gate-failing-on-slow-ci]
   workflow_dispatch:
     inputs:
       runs:
@@ -18,7 +17,8 @@ on:
   pull_request:
     paths:
       - templates/3d-third-person/game/tests/gameplay/test_ai_cost_gate.gd
-      - templates/3d-third-person/game/tests/fixtures/cost_rulers.gd
+      - templates/3d-third-person/game/tests/fixtures/physics_ruler.gd
+      - templates/3d-third-person/game/tests/fixtures/slow_ai_director.gd
       - .github/workflows/ai-cost-gate.yml
 
 permissions:
@@ -81,8 +81,11 @@ jobs:
               grep -iE "over budget|over the rate|overspent|did not walk|FAILED" "gate/run_$index.log" | head -8 \
                 | tee -a "$GITHUB_STEP_SUMMARY" || tail -20 "gate/run_$index.log"
             fi
-            grep -A3 "^AI_COST_GATE" "gate/run_$index.log" | grep "^{" \
-              | jq -c --arg cpu "$cpu" --arg run "$SHARD.$index" '. + {cpu: $cpu, run: $run}' >> "gate/rows_$SHARD.jsonl"
+            for case in AI_COST_GATE AI_COST_GATE_SLOW; do
+              grep -A3 "^$case\$" "gate/run_$index.log" | grep "^{" \
+                | jq -c --arg cpu "$cpu" --arg run "$SHARD.$index" --arg case "$case" \
+                  '. + {cpu: $cpu, run: $run, case: $case}' >> "gate/rows_$SHARD.jsonl" || true
+            done
           done
           echo "Shard $SHARD: $failed of $RUNS runs failed" >> "$GITHUB_STEP_SUMMARY"
           exit $((failed > 0))

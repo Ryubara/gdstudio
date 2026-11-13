@@ -1,9 +1,12 @@
-# On the clock: the gate times the AI's step and thinks, held as a ratio of a ruler loop timed
-# between the measured ticks, medians on both sides, so a busy machine slows both
-# (`performance-budgets.md#reading-a-timing-on-a-shared-machine`). The ruler is GDScript work of
-# the AI's kind (vectors, an array, a dictionary), not the soak's `sin` loop: the C library's
-# `sin` ran 1.65 times faster on the Linux runner than on Windows while the AI's step cost the
-# same, so a limit in `sin` loops failed CI and held loose on the desktop.
+# On the clock: the gate times the AI's step and thinks, held as a ratio of a ruler of the
+# engine's physics (`PhysicsRuler`: a capsule's `move_and_slide` and rays) timed between the
+# measured ticks, medians on both sides, so a slow runner or a busy machine slows both
+# (`performance-budgets.md#reading-a-timing-on-a-shared-machine`). Over 150 runs on GitHub's
+# Linux runners (four processor models) the step read 1.55 times from the fastest run to the
+# slowest over this ruler, against 1.7 over a loop of GDScript and 1.9 over a `sin` loop: the
+# step varies from run to run on one runner while every ruler holds, so no ruler follows all of
+# it, and the limits sit 14 to 18 % over the highest ratio of those runs and under twice the
+# lowest. Linux and Windows have tables of their own (the same code builds to different speeds).
 #
 # The AI's cost gate (kit #971): 50, 100 and 200 civilians (the template's `civilian.tscn`) going
 # about a 28 m mesh round a visitor in the player's faction and a raider in the enemy's (seen,
@@ -15,9 +18,9 @@
 # record of the AI's hit volumes (`AiHitHistory`, the `ai_history_us` of the server's `stats`
 # line) a character, each a median: the step and a think over the median of the ruler timed
 # every `CALIBRATE_TICKS` ticks, the history (a section of a few microseconds that a
-# loop of arithmetic does not follow) over the step of the same ticks; limits sit between the
-# highest ratio seen with a second suite loading the machine and twice the lowest, so a step
-# twice as slow fails (the docs table: `third-person/ai-characters.md#cost-gate`). A failure
+# ruler does not follow) over the step of the same ticks. The second case runs the gate on a
+# director whose step costs twice its work (`SlowAiDirector`) and must see the step fail at every
+# size: the gate's teeth (the docs table: `third-person/ai-characters.md#cost-gate`). A failure
 # says the number. The crowd must walk (a crowd whose paths all fail costs nothing: `crowds.md`).
 extends GdUnitTestSuite
 
@@ -30,26 +33,38 @@ const SPACING := 1.6
 ## Ticks between two timings of the ruler in the measured window.
 const CALIBRATE_TICKS := 50
 ## The director's step a character a tick (median), microseconds a ruler millisecond (median),
-## at most, by crowd size.
-const STEP_RATIO_LIMITS: Dictionary[int, float] = {50: 8.0, 100: 7.5, 200: 6.5}
-## A think (median), microseconds a ruler millisecond, at most, by crowd size (a think
-## grows with the crowd it reads).
-const THINK_RATIO_LIMITS: Dictionary[int, float] = {50: 13.0, 100: 14.0, 200: 18.0}
+## at most, by system and crowd size. Linux: 150 CI runs read 6.2 to 9.6, 5.9 to 8.1 and 5.0 to
+## 6.4; Windows: four desktop runs with 25 Godot processes beside them, 10.5 to 12.2, 9.4 to
+## 11.6 and 8.0 to 8.9 (twice as slow: 19.7, 20.3 and 15.1 at the least).
+const STEP_RATIO_LIMITS := {
+	"Linux": {50: 11.0, 100: 9.5, 200: 7.5},
+	"Windows": {50: 15.0, 100: 14.0, 200: 11.5},
+}
+## A think (median), microseconds a ruler millisecond, at most, by system and crowd size (a think
+## grows with the crowd it reads). Linux: 150 CI runs read 8.7 to 13.4, 11.1 to 15.4 and 14.8 to
+## 19.6; Windows: the four desktop runs, 12.7 to 15.4, 17.4 to 20.2 and 23.6 to 26.0.
+const THINK_RATIO_LIMITS := {
+	"Linux": {50: 15.5, 100: 18.0, 200: 23.0},
+	"Windows": {50: 19.0, 100: 25.0, 200: 32.0},
+}
 ## The hit history's record (median) over the director's step (median) of the same ticks, at
-## most, by crowd size.
+## most, by crowd size (278 CI runs read at most 0.043, 0.051 and 0.062; the desktop 0.034, 0.041
+## and 0.058).
 const HISTORY_RATIO_LIMITS: Dictionary[int, float] = {50: 0.055, 100: 0.06, 200: 0.09}
 ## The share of the time the crowd must spend walking, at least.
 const WALKING_SHARE_MIN := 0.2
+## How many times its work the teeth case's step costs.
+const SLOW_FACTOR := 2.0
 
 var _arena: BehaviourArena
-var _rulers: CostRulers
+var _ruler: PhysicsRuler
 
 
 func before_test() -> void:
 	_arena = auto_free(BehaviourArena.new())
 	add_child(_arena)
-	_rulers = CostRulers.new()
-	_arena.add_child(_rulers)
+	_ruler = PhysicsRuler.new()
+	_arena.add_child(_ruler)
 	_arena.build()
 	await _arena.settle()
 
@@ -59,37 +74,84 @@ func after_test() -> void:
 
 
 func test_the_ai_holds_its_counts_and_its_cost() -> void:
+	var rows := await _measure_all()
+	print("AI_COST_GATE\n" + _table(rows))
+	for row in rows:
+		var faults := _judge(row)
+		(
+			assert_array(faults)
+			. override_failure_message(
+				"%s at %d: %s" % [", ".join(faults), row.count, JSON.stringify(row)]
+			)
+			. is_empty()
+		)
+
+
+func test_a_step_twice_as_slow_fails_the_gate() -> void:
+	var slow := SlowAiDirector.new()
+	slow.name = "AiDirector"
+	slow.factor = SLOW_FACTOR
+	_arena.add_child(slow)
+	_arena.director = slow
+	var rows := await _measure_all()
+	print("AI_COST_GATE_SLOW\n" + _table(rows))
+	for row in rows:
+		var faults := _judge(row)
+		var where := "at %d: %s" % [row.count, JSON.stringify(row)]
+		(
+			assert_array(faults)
+			. override_failure_message("a step twice as slow passed the gate " + where)
+			. contains(["step over budget"])
+		)
+		for fault in faults:
+			(
+				assert_bool(fault in ["step over budget", "think over budget"])
+				. override_failure_message("the slow step broke a count: %s %s" % [fault, where])
+				. is_true()
+			)
+
+
+## What a row breaks, empty when it holds.
+static func _judge(row: Dictionary) -> PackedStringArray:
+	var faults := PackedStringArray()
+	if row.storms > 0:
+		faults.append("path queries over the rate")
+	if row.fast_thinkers > 0:
+		faults.append("thinks over the rate")
+	if row.rays_over > 0:
+		faults.append("rays over 2 a think")
+	if row.budget_over > 0:
+		faults.append("budget overspent")
+	if row.walking_share < WALKING_SHARE_MIN:
+		faults.append("the crowd did not walk")
+	if row.step_ratio > _limits(STEP_RATIO_LIMITS)[row.count]:
+		faults.append("step over budget")
+	if row.think_ratio > _limits(THINK_RATIO_LIMITS)[row.count]:
+		faults.append("think over budget")
+	if row.history_ratio > HISTORY_RATIO_LIMITS[row.count]:
+		faults.append("history over budget")
+	return faults
+
+
+## This system's limits of `table` (Linux's on a system with none of its own).
+static func _limits(table: Dictionary) -> Dictionary:
+	return table.get(OS.get_name(), table["Linux"])
+
+
+func _measure_all() -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
 	for count in COUNTS:
 		rows.append(await _measure(count))
 		_clear_crowd()
 		await get_tree().physics_frame
+	return rows
+
+
+static func _table(rows: Array[Dictionary]) -> String:
 	var table := PackedStringArray()
 	for row in rows:
 		table.append(JSON.stringify(row))
-	print("AI_COST_GATE\n" + "\n".join(table))
-	for row in rows:
-		var where := "at %d: %s" % [row.count, JSON.stringify(row)]
-		(
-			assert_int(row.storms)
-			. override_failure_message("path queries over the rate " + where)
-			. is_zero()
-		)
-		(
-			assert_int(row.fast_thinkers)
-			. override_failure_message("thinks over the rate " + where)
-			. is_zero()
-		)
-		assert_int(row.rays_over).override_failure_message("rays over 2 a think " + where).is_zero()
-		assert_int(row.budget_over).override_failure_message("budget overspent " + where).is_zero()
-		assert_float(row.walking_share).override_failure_message("the crowd did not walk " + where)
-		assert_float(row.walking_share).is_greater_equal(WALKING_SHARE_MIN)
-		assert_float(row.step_ratio).override_failure_message("step over budget " + where)
-		assert_float(row.step_ratio).is_less_equal(STEP_RATIO_LIMITS[row.count])
-		assert_float(row.think_ratio).override_failure_message("think over budget " + where)
-		assert_float(row.think_ratio).is_less_equal(THINK_RATIO_LIMITS[row.count])
-		assert_float(row.history_ratio).override_failure_message("history over budget " + where)
-		assert_float(row.history_ratio).is_less_equal(HISTORY_RATIO_LIMITS[row.count])
+	return "\n".join(table)
 
 
 func _measure(count: int) -> Dictionary:
@@ -108,14 +170,7 @@ func _measure(count: int) -> Dictionary:
 		crowd.append(_arena.add_kind(CIVILIAN, spot, TAU * index / count))
 	for _i in WARM_TICKS:
 		await get_tree().physics_frame
-	var sin_loop := AiSoakWatch.calibrate()
-	var calibrations := PackedFloat64Array([CostRulers.script_ms()])
-	var physics_rulers := PackedFloat64Array([_rulers.physics_ms()])
-	var crowd_nodes: Array[Node] = []
-	for character in crowd:
-		crowd_nodes.append_array(CostRulers.nodes_under(character))
-	var tree_rulers := PackedFloat64Array([CostRulers.tree_ms(crowd_nodes)])
-	var memory_rulers := PackedFloat64Array([CostRulers.memory_ms()])
+	var calibrations := PackedFloat64Array([_ruler.measure_ms()])
 	var thinks := PackedInt32Array()
 	var queries := PackedInt32Array()
 	var rays := PackedInt32Array()
@@ -155,10 +210,7 @@ func _measure(count: int) -> Dictionary:
 				if (character.senses as AiSenses).last_rays > character.profile.max_rays_per_think:
 					rays_over += 1
 		if (tick + 1) % CALIBRATE_TICKS == 0:
-			calibrations.append(CostRulers.script_ms())
-			physics_rulers.append(_rulers.physics_ms())
-			tree_rulers.append(CostRulers.tree_ms(crowd_nodes))
-			memory_rulers.append(CostRulers.memory_ms())
+			calibrations.append(_ruler.measure_ms())
 	var seconds := float(TICKS) / Engine.physics_ticks_per_second
 	var storms := 0
 	var fast_thinkers := 0
@@ -181,24 +233,10 @@ func _measure(count: int) -> Dictionary:
 	var step_each := _median(steps)
 	var think_each := _median(think_times)
 	var history_each := _median(histories)
-	var physics_ruler := maxf(_median(physics_rulers), 0.001)
-	var step_low := _quantile(steps, 0.1)
-	var tree_ruler := maxf(_median(tree_rulers), 0.001)
 	return {
 		"count": count,
 		"ruler_ms": snappedf(calibration, 0.01),
-		"sin_loop_ms": snappedf(sin_loop, 0.01),
-		"physics_ruler_ms": snappedf(physics_ruler, 0.01),
-		"step_p10_us_each": snappedf(step_low, 0.01),
-		"step_p25_us_each": snappedf(_quantile(steps, 0.25), 0.01),
-		"think_p25_us": snappedf(_quantile(think_times, 0.25), 0.1),
-		"tree_ruler_ms": snappedf(tree_ruler, 0.01),
-		"memory_ruler_ms": snappedf(_median(memory_rulers), 0.01),
-		"crowd_nodes": crowd_nodes.size(),
-		"step_tree_ratio": snappedf(step_each / tree_ruler, 0.001),
-		"think_tree_ratio": snappedf(think_each / tree_ruler, 0.001),
-		"step_physics_ratio": snappedf(step_each / physics_ruler, 0.001),
-		"think_physics_ratio": snappedf(think_each / physics_ruler, 0.001),
+		"system": OS.get_name(),
 		"step_us_each": snappedf(step_each, 0.01),
 		"think_us": snappedf(think_each, 0.1),
 		"history_us_each": snappedf(history_each, 0.001),
@@ -233,11 +271,3 @@ static func _median(values: PackedFloat64Array) -> float:
 	var sorted := values.duplicate()
 	sorted.sort()
 	return sorted[sorted.size() / 2]
-
-
-static func _quantile(values: PackedFloat64Array, share: float) -> float:
-	if values.is_empty():
-		return 0.0
-	var sorted := values.duplicate()
-	sorted.sort()
-	return sorted[mini(int(sorted.size() * share), sorted.size() - 1)]
