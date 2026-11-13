@@ -44,6 +44,14 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   asserted in a test (`ALL.size()`) moves with every clip added. **Seen:** gdstudio #1154, 2026-11-11
   (`tools/capture/own_clips_review.gd`); gdstudio #1160, 2026-11-11 (the crouch clips: `CROUCH_IDLE` and
   `CROUCH_WALK` moved to `gds/`, and the count test failed at 91 for 95, as this entry warns).
+- **Approach:** Add a pose over a gait as a difference of two clips of the library: `AnimationNodeSub2` (the lean
+  pose, less `gds/Lean_Ref`) into `AnimationNodeAdd2`, with the weight the lean wanted over the `degrees` the
+  pose's record gives (`lean` in `locomotion.json`); read a directed gait's `heading`, `speed` and `in_step_with`
+  from its record. **Watch out for:** nothing plays `gds/Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`,
+  `Jog_Left`, `Jog_Right` or the four lean poses yet (the tree is kit #1158); their speeds are their own (1.3, 1.2
+  and 3.0 m/s), not the tuned ones, and over a gait a lean's leg share moves the feet, which only foot placement
+  holds. **Seen:** gdstudio #1159, 2026-11-12 (`tests/gameplay/test_own_directions.gd`: the sum over the reference
+  is the pose within 0.06 degrees, the soles within 0.7 mm of the floor).
 - **Approach:** Test a gait of our own by what holds for a rolling foot and a run: the patch of the sole on the
   floor stays put along the travel curve (the toes' joint, after the first quarter of the contact, which is the
   roll onto it; the ankle travels), each arm goes with the other side's leg, the
@@ -336,7 +344,12 @@ The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each
 so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are kit #1157's.
 
 **What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
-pose's difference from the idle's first frame.
+pose's difference from the idle's first frame, so it keys every bone the idle keys, the `ik_` targets too (where
+its hands and feet are), or the difference pulls an unkeyed one back toward its rest. The template's own are
+`gds/Lean_Left`, `Lean_Right`, `Lean_Fwd` and `Lean_Back` (`assets/animation/own/clips/lean.py`); each record says
+its `lean` (`way`, degrees to the left of ahead, and the `degrees` the full pose leans) and its `reference`
+(`Lean_Ref`, within 0.3 degrees a bone of the idle's first frame). On the player at full weight the head goes 210
+to 330 mm the pose's way and the feet and targets stay within 0.1 mm (`test_own_directions.gd`).
 
 The cost, from `tools/bench/gait_cost.tscn` (`gds template bench-web 3d-third-person gait_cost --run`, headless
 Chrome on a workstation, the settings off and on in turns, players walking, blending, sprinting and stopping): 38 µs a
