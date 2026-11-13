@@ -241,6 +241,44 @@ func test_a_turn_is_held_inside_the_limits_of_its_joint() -> void:
 	assert_float(rad_to_deg(swing_part.get_angle())).is_equal_approx(hip.swing, 0.5)
 
 
+# gdstudio #1326: a turn read off the animated pose is a rotation only to a few thousandths (the
+# AI soak met columns 0.99 long); cast to a quaternion as it is, the engine logged an error,
+# which breaks the soak's error gate. It is held as the nearest rotation, with no error.
+func test_a_turn_a_little_off_square_is_held_with_no_error() -> void:
+	var ragdoll := auto_free(CharacterRagdoll.new()) as CharacterRagdoll
+	var elbow := _entry(&"lowerarm_l")
+	var half: float = (elbow.range.y - elbow.range.x) / 2.0
+	var turn := Basis(Vector3.BACK, deg_to_rad(half - 10.0))
+	turn.x *= 0.995
+	turn.y += turn.x * 0.003
+	var errors := ErrorLines.new()
+	OS.add_logger(errors)
+	var held := Quaternion(ragdoll.inside_limits(elbow, turn))
+	OS.remove_logger(errors)
+	assert_array(errors.lines).is_empty()
+	var square := Quaternion(ragdoll.inside_limits(elbow, turn.orthonormalized()))
+	assert_float(rad_to_deg(held.angle_to(square))).is_less(0.5)
+
+
+## Keeps the engine's errors while it is added.
+class ErrorLines:
+	extends Logger
+	var lines: Array[String] = []
+
+	func _log_error(
+		function: String,
+		_file: String,
+		_line: int,
+		code: String,
+		_rationale: String,
+		_editor_notify: bool,
+		error_type: int,
+		_backtraces: Array[ScriptBacktrace]
+	) -> void:
+		if error_type != ERROR_TYPE_WARNING:
+			lines.append("%s: %s" % [function, code])
+
+
 # --- mass ---
 
 
