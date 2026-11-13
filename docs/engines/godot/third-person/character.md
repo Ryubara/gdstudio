@@ -449,6 +449,11 @@ on a machine other agents were using; a range is the lowest and the highest run.
   `setup_simulator`): `find_children` lists it. **Watch out for:** handing a set to the pool left its `RagdollDrawing`
   on the skeleton that made it: 57 nodes alone, 56 in the full run, where earlier suites had filled the pool;
   `_release` now drops it. **Seen:** gdstudio #1210, 2026-11-11.
+- **Approach:** When a change adds a node or a skeleton modifier to every character (a modifier the `AimLayer` makes,
+  however inactive), raise `NODES_ALIVE` in `test_parts_budget.gd` by as many, with a line on what it is, in the same
+  commit; grep the suites for `NODES_ALIVE` before the full run. **Watch out for:** the aim suites pass and only the
+  full run counts the body, so the extra node shows up as an off-by-one in a suite that looks unrelated. **Seen:**
+  gdstudio #1351, 2026-11-12 (`AimUprightModifier`, 65 to 66).
 
 ## Prone and the crawl {#prone}
 
