@@ -254,6 +254,26 @@
   "sprint_stop": [
    "Five landings after the strike, not six: 55 frames over 3.95 m.",
    "Lean 17.5 degrees off (declared 22)."
+  ],
+  "turn_in_place_90": [
+   "Quick and planted: 34 and 32 frames, the hips turning 3 frames before the lead foot lifts, steps of 6 and 7 frames with one-frame rests and a 7 frame settle.",
+   "Tried: at this speed the hanging hand met the stepping thigh 7.5 mm on the Quaternius female; the arm opens 18 degrees and swings 14 back while its foot is up (2.3 mm)."
+  ],
+  "jog_turn_90": [
+   "Four landings, not five: 50 frames over 4.6 m, the root turning from 10 frames before its slowest moment to 16 after, the steps more the gait's own.",
+   "It turns sharper than a body leans: 20.6 degrees into the bend (declared 23) and 16.6 forward (declared 20)."
+  ],
+  "turn_in_place_180": [
+   "Quick: 44 and 42 frames, four steps of 6 to 8 frames with one-frame rests, the hips turning before the lead foot lifts.",
+   "Tried: the left hand went 9.5 mm into its thigh on the Quaternius female at this speed; the arms open 15 and 12 degrees as the body turns and the left 16 more while its foot is up (an arm swung back further straightened the elbow past its range)."
+  ],
+  "jog_turn_180": [
+   "Five landings, not six: 58 frames ending 1.6 m from the start, braking in one step to 0.1 of the jog, the plant set turned 0.7 of the turn, a short turn window (12 frames before, 16 after).",
+   "It brakes harder than a body can lean: 17.4 degrees forward and 10.2 to the side (declared 25 and 20); the plant sole wanders 5.1 mm on the Quaternius male, within its floor allowance."
+  ],
+  "sprint_turn_180": [
+   "86 frames, 2.9 s: shorter braking, the plant foot landing after a short flight, a short turn window (11 frames before, 16 after), back up to the sprint in four steps.",
+   "Lean 21.7 forward (declared 30) and 9.8 to the side (declared 20); the plant sole wanders 5.5 mm on the Quaternius bodies, within their floor allowance."
   ]
  },
  "overlap_walk": {

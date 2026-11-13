@@ -119,6 +119,26 @@
   "sprint_stop": [
    "Shipped as the recommendation until a letter is picked. 67 frames over 4.82 m and six landings after the strike; the first three contacts are as short as the sprint's (4 to 5 frames), then the steps lengthen on the floor as the speed goes.",
    "Could not be done: the lean inside 5 degrees (15.0, declared 16). Tried: a brake step held 6 frames at 6 m/s: it covered more ground than two legs span and the pelvis went under the floor."
+  ],
+  "turn_in_place_90": [
+   "Shipped as the recommendation until a letter is picked. 46 and 44 frames (1.5 s): the head leads the hips by 3 frames and the chest by 1.5; the foot on the turn's side steps half the angle, the other all of it, then the first finishes: three steps, as people take (2.95 over 1.72 s for a 180, Khobkhun et al. 2021).",
+   "Could not be done: the game turns the body in 0.13 s, so the tree plays the clip by the angle turned and the head-first start is cut short in play (#1415). The thighs meet 4.6 mm on form_male in the right turn (limit 5)."
+  ],
+  "jog_turn_90": [
+   "Shipped as the recommendation until a letter is picked. 60 frames over 5.6 m: the jog dips to 0.6 of its speed (2.4 m/s) on the plant, the outside foot, set turned 0.6 of the turn over its 8 frame contact; the root turns from 12 frames before its slowest moment to 18 after.",
+   "Could not be done: the lean inside 5 degrees (16.7 forward, 19.2 into the bend; declared 18 and 20): a 90 degree turn at 2.4 m/s asks for near 25 degrees, which the feet landing outside the bend share with the trunk."
+  ],
+  "turn_in_place_180": [
+   "Shipped as the recommendation until a letter is picked. 58 and 56 frames (1.9 s, the study's 1.72): the head, then the chest, then the hips; four steps, the turn's side foot first at 0.4 of the angle, the other at 0.6, then both to their idle places turned.",
+   "Could not be done: the three steps of the study (2.95, Khobkhun et al. 2021) put the trailing thigh into the standing one; four steps keep it to 4.8 mm on form_male (limit 5). The game turns in 0.13 s, so play skips most of it (#1415)."
+  ],
+  "jog_turn_180": [
+   "Shipped as the recommendation until a letter is picked. 69 frames, 2.3 s, ending 2.3 m from where it began: the jog brakes over two steps to 0.08 of its speed on the plant foot, turns over that foot (`_L` plants the left and turns left) and runs back out over three.",
+   "Could not be done: the lean inside 5 degrees (16.3 forward, 8.1 to the side; declared 18 and 18): braking from 4 m/s in under a second asks for near 25 degrees; the plant stands 8 frames, not the studies' 0.5 s, or its sole wanders past 5 mm on form_male."
+  ],
+  "sprint_turn_180": [
+   "Shipped as the recommendation until a letter is picked. 96 frames, 3.2 s: three braking steps from 6.5 m/s, the plant the fourth landing, set turned 0.7 of the turn, then five steps back up to the sprint; the trunk leans back up to 22 degrees.",
+   "Could not be done: the lean inside 5 degrees (22.0 forward, 9.0 to the side; declared 24 and 20), and a faster stop: steps longer than a leg spans at speed left the ankle out of reach."
   ]
  },
  "overlap_walk": {

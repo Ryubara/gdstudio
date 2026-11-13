@@ -43,7 +43,7 @@ on the floor; the next turning clip (a curved run, a landing into a turn) starts
 | --- | --- |
 | Check the lean of a body whose root turns | `check_weight` reads the acceleration from the travel's place in the root's frame (`checks._turning_accel`) once the travel turns, not from the change of its speed; the lean into the bend is held to `declared["side_lean_limit"]` over a step, as the forward lean is to `lean_limit` |
 | See a turn on the review sheet | a shot's `root` (`[x, z, yaw]`) in `review_render.py`: the character is put on a floor that stays still and the camera follows its place, so the strip shows the turn as the body makes it |
-| Pick a reversal in the game | `GaitTransitions` picks a reversal by the foot outside the way the body turns (`l` when it turns right), since the clip for that foot turns that way |
+| Pick a reversal in the game | `GaitTransitions` picks a reversal by the side the body turns to (`r` when it turns right), since a reversal turns over the foot it plants and is named for it |
 
 ## What the turns taught {#taught}
 
