@@ -46,21 +46,35 @@ category's blow.
   `WeaponHold` reads is taken away, so the left hand leaves the pistol and the finger the trigger.
 - **The clips** are the template's own (`assets/animation/melee/`, the library `melee`, with its `README.md`):
   `Melee_Unarmed_Jab`, `_Cross` and `_Hook`, and `Melee_Pistol_Whip`, `_Backhand` and `_Jab`, made by script with
-  their checks. The rifle (a weapon of the template since kit #1040) names its category, so its blow has the
-  category's reach, damage and window, but plays no clip until the category has its own (kit #1288).
+  their checks, keyed on the prototype female and measured on both `form` bodies, the male with his own hold (kit
+  #1319), and the rifle's `Melee_Rifle_Butt_Stroke`, `_Butt_Jab` and `_Smash` (kit #1288), keyed with both hands
+  on the rifle, each in three variants for review (`review/melee_rifle.glb`, which Godot does not import).
+- **The rifle's two-hand hold under a blow.** `HoldBlow` (`gameplay/weapon/hold/hold_blow.gd`) reads
+  `MeleeLayer.share` each frame; by that much `TwoHandHold` carries the rifle on the clip's right hand (the body's own
+  seat, `RightHandTarget`, in place of the shoulder's pocket), eases off the chest's turn and the left collarbone's
+  reach, and has each `HoldArm` keep the clip's elbow (`keep_elbow`), while both arms still reach the rifle's
+  places: on the female the hands are where the clip keys them, on the male his own hold puts his left hand on his
+  own place. A blow raises no aim (`MeleeLayer.aim_of`), so the finger stays off the trigger, and the aimed head
+  (`AimLayer.head_weight()`) reads the same, so an aimed rifle's head does not follow the swinging sights.
+  `blow_amount()` says how far it is; `posed_blow` poses it by hand. The rifle's window is the span of its clips'
+  measured contacts on both bodies, 0.25 to 0.44 s: a heavy rifle comes into contact slower (3.4 to 4.2 m/s, the
+  fists 6.8 to 8.7) and lingers near it.
 
 | Category | Reach | Damage | Cooldown | Hit window | Hits to kill: head, chest, arm, thigh |
 | --- | --- | --- | --- | --- | --- |
 | Unarmed | 1.1 m | 15 | 0.55 s | 0.14 to 0.30 s | 3, 7, 12, 10 |
 | Pistol | 1.2 m | 25 | 0.70 s | 0.20 to 0.34 s | 2, 4, 7, 6 |
-| Rifle | 1.4 m | 30 | 0.80 s | 0.22 to 0.34 s | 2, 4, 6, 5 |
+| Rifle | 1.4 m | 30 | 0.80 s | 0.25 to 0.44 s | 2, 4, 6, 5 |
 
 The target, written first: no blow kills at once anywhere, the empty hands take three blows to the head and seven to
 the chest, a gun's blow two and four (health 100, the head 3x, the arms 0.6, the legs 0.7). `test_melee.gd` holds the
 table through the real blow and hit zones, and V, the pad, the touch button, the empty hands' click, the window, the
 cooldown, the reload and the overrides; `test_net_melee.gd` the event, the refusal and the rewind at 150 ms each way
-(a blow drawn on a running guard lands, and misses with the rewind off). Capture: `tools/capture/melee_tour.tscn`
-(three pistol blows and three of the fists on an enemy grunt, from the game camera). Inspector: `WeaponCategory`
+(a blow drawn on a running guard lands, and misses with the rewind off); `test_rifle_melee.gd` the rifle's clips and
+window against `melee_clips.json`, V with the rifle landing in it once, the hold taken off and given back, and both
+hands on the rifle at every frame of every blow on both bodies. Capture: `tools/capture/melee_tour.tscn`
+(three pistol blows, three of the fists and three of the rifle on an enemy grunt, from the game camera;
+`MELEE_RIFLE=1` films the rifle alone). Inspector: `WeaponCategory`
 `display_name`, Melee (`melee_clips`, `melee_clip_speed`, `melee_reach`, `melee_damage`, `melee_impulse`,
 `melee_cooldown`, `melee_hit_start`, `melee_hit_end`), Sound (`melee_sound`, `melee_volume_db`); `WeaponDef` Melee
 (`category`, `override_melee` and the `melee_*` numbers). The weapon's `MeleeSound` player is one node more on a
@@ -80,3 +94,7 @@ living character (`NODES_ALIVE`).
   four after: the chest folded 66 to 70 degrees back, in an attached clip nobody read frame by frame; the Blender
   sheets cannot show it, and a 3 degree keyed lean was first taken for the whole cause. **Seen:** gdstudio #1254 (PR
   #1315), 2026-11-11, from the maintainer's review (`test_a_pistol_blow_never_folds_the_body_back`).
+- **Approach:** Film a blow landing from the over-the-shoulder camera, and read the clip's shape on the build's
+  front, side and top sheets. **Watch out for:** a blow turns the body to the aim, which is the camera's forward, so
+  the tour's side view (`MELEE_SIDE=1`) turned the player away from the grunt for every rifle blow and showed its
+  back; the hits only land from the over-the-shoulder camera. **Seen:** gdstudio #1288, 2026-11-12.

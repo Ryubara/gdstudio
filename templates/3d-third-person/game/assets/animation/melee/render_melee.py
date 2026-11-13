@@ -1,6 +1,7 @@
 """Review sheets of the melee clips (used by `build_melee.py -- --render <folder>`).
 
-For each clip and each mannequin (`female`, `male`), with the pistol in the hand for the pistol clips:
+For each clip and each body (`female`, `male`), with the pistol in the hand for the pistol clips and the rifle in
+both hands for the rifle's (each body's own hold on it):
 
 - `<clip>_<body>_side.png`, `_front.png`, `_top.png`: every frame, from the striking hand's side, from the front
   and from above (the character faces up the picture);
@@ -119,8 +120,7 @@ def render(rig, clips, actions, out, bodies=("female", "male"), every_frame=True
         obj.hide_render = True
     female.mesh.color = (0.80, 0.82, 0.86, 1.0)
     male.mesh.color = (0.72, 0.80, 0.90, 1.0)
-    gun = rig.gun
-    for obj in gun.objects:
+    for obj in rig.gun.objects + rig.rifle.objects:
         obj.color = (0.16, 0.16, 0.18, 1.0)
     camera = _camera()
     _floor()
@@ -128,8 +128,11 @@ def render(rig, clips, actions, out, bodies=("female", "male"), every_frame=True
     for clip, action in zip(clips, actions):
         arm.animation_data.action = action
         arm.animation_data.action_slot = action.slots[0]
-        for obj in gun.objects:
+        gun = rig.gun_of(clip.weapon)
+        for obj in rig.gun.objects:
             obj.hide_render = clip.weapon != "pistol"
+        for obj in rig.rifle.objects:
+            obj.hide_render = clip.weapon != "rifle"
         side = 6.0 if clip.side == "l" else -6.0
         views = {
             "side": (((side, -0.25, 1.05), (0.0, -0.25, 1.05)), False),
@@ -159,10 +162,11 @@ def render(rig, clips, actions, out, bodies=("female", "male"), every_frame=True
             female.mesh.hide_render = body is not female
             male.mesh.hide_render = body is not male
 
-            def pose(frame, body=body):
+            def pose(frame, body=body, clip=clip, gun=gun):
                 scene.frame_set(frame)
-                body.pose_from(arm)
-                gun.root.matrix_world = gun.matrix(body.arm.matrix_world @ body.arm.pose.bones["hand_r"].matrix)
+                rig.pose_body(body, "rifle" if clip.weapon == "rifle" else clip.weapon == "pistol")
+                hand = body.arm.matrix_world @ body.arm.pose.bones["hand_r"].matrix
+                gun.root.matrix_world = gun.matrix(hand, rig.holds_of(clip.weapon)[body.name])
                 bpy.context.view_layer.update()
 
             rows = []

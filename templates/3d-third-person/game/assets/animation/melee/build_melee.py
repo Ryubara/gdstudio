@@ -1,7 +1,7 @@
 """Build the template's melee clips and export them as an animation library (kit #1254).
 
-GDStudio's own clips, keyed from scratch on Quaternius's universal rig (the template's mannequins and the Universal
-Animation Library share it): three blows of the fists (`Melee_Unarmed_Jab`, `Melee_Unarmed_Cross`,
+GDStudio's own clips, keyed from scratch on the bodies the template's characters wear (the prototype `form` pair,
+`assets/characters/prototype/`, on the Universal Animation Library's 65 bones; kit #1319): three blows of the fists (`Melee_Unarmed_Jab`, `Melee_Unarmed_Cross`,
 `Melee_Unarmed_Hook`) and three of the pistol in the right hand (`Melee_Pistol_Whip`, `Melee_Pistol_Backhand`,
 `Melee_Pistol_Jab`). Nothing is copied from another clip but the first and last poses, which are frame 0 of the
 library's `Idle_Loop` (fists) and `Pistol_Idle_Loop` (pistol), so a blow leaves and rejoins the pose the game stands
@@ -25,6 +25,12 @@ collarbones and the arms. A clip is a table of keys on a few controls:
   fist (the fists of the prone clips, `FIST_CURL`) or, for the pistol's hand, the grip the game's `WeaponHold` puts
   on after the clip (`gameplay/weapon/hold/pistol_grip_pose.tres`, read here, never typed).
 
+Two bodies play the one file. The clips are keyed on the female and every check runs on both skinned meshes, the
+male posed as Godot plays the clip on him (each bone's rotation in its parent, on his bone lengths) with his own
+hold: his seat, his wrist's turn and his fingers on the grip (`pistol_fit_male.tres`), which `WeaponHold` puts on
+after the clip. The prototype rig's 17 bones the library lacks (twist bones, sockets, IK targets) get no key and are
+not in the file; the twist bones are turned as the game's `MannequinTwist` turns them before any skin is read.
+
 Smooth curves through the keys (`Channel`) give every frame, a two-bone solver turns the wrists into arm rotations,
 and every bone is keyed on every frame.
 
@@ -40,7 +46,6 @@ import argparse
 import hashlib
 import json
 import math
-import re
 import struct
 import sys
 from pathlib import Path
@@ -53,12 +58,17 @@ from mathutils.bvhtree import BVHTree
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE.parent.parent
 GAME = ASSETS.parent
-MANNEQUIN = ASSETS / "characters" / "mannequin" / "mannequin_female.glb"
-MANNEQUIN_MALE = ASSETS / "characters" / "mannequin" / "mannequin_male.glb"
+## The bodies the template's characters wear (kit #1187; `CharacterBodies.FEMALE` and `MALE` in Godot): the clips
+## are keyed on the first and measured on both.
+MANNEQUIN = ASSETS / "characters" / "prototype" / "form_female.glb"
+MANNEQUIN_MALE = ASSETS / "characters" / "prototype" / "form_male.glb"
 LIBRARY = ASSETS / "animation" / "universal" / "ual1.glb"
 PISTOL = ASSETS / "weapons" / "pistol" / "pistol.glb"
-PISTOL_HELD = ASSETS / "weapons" / "pistol" / "pistol_held.tscn"
-GRIP_POSE = GAME / "gameplay" / "weapon" / "hold" / "pistol_grip_pose.tres"
+RIFLE = ASSETS / "weapons" / "rifle" / "rifle.glb"
+## The rifle's own clips (`../rifle/build_rifle_clips.py`): the rifle's blows join their idle.
+RIFLE_CLIPS = ASSETS / "animation" / "rifle" / "rifle_clips.glb"
+## Reads each body's pistol and rifle holds out of the game's files (`hold_files.read`, `hold_files.read_rifle`).
+HOLD_TOOLS = GAME / "tools" / "hold"
 ## The library's rate: these clips play beside its clips (kit docs/tools/blender/animation.md#conventions).
 FPS = 30
 ## The clips this file carries, and nothing else (kit docs/tools/blender/build-scripts.md#rebuilding).
@@ -66,15 +76,28 @@ FILE_CLIPS = [
     "Melee_Pistol_Backhand",
     "Melee_Pistol_Jab",
     "Melee_Pistol_Whip",
+    "Melee_Rifle_Butt_Jab",
+    "Melee_Rifle_Butt_Stroke",
+    "Melee_Rifle_Smash",
     "Melee_Unarmed_Cross",
     "Melee_Unarmed_Hook",
     "Melee_Unarmed_Jab",
 ]
+## The rifle's blows come in three variants each (`A`, `B`, `C`; kit #1288): every variant is built and checked,
+## the review file (`review/melee_rifle.glb`) carries all nine as `<clip>_<letter>`, and `melee.glb` carries the
+## picked one under the clip's own name. A maintainer's pick is a letter here.
+RIFLE_PICKS = {
+    "Melee_Rifle_Butt_Stroke": "A",
+    "Melee_Rifle_Butt_Jab": "A",
+    "Melee_Rifle_Smash": "A",
+}
+VARIANTS = ("A", "B", "C")
 ## The poses the clips join (frame 0 of each).
 IDLE = "Idle_Loop"
 PISTOL_IDLE = "Pistol_Idle_Loop"
+RIFLE_IDLE = "Rifle_Idle_Loop"  # the file names a loop so (Godot plays it as `rifle/Rifle_Idle`)
 
-## How deep one body part may be inside another that no joint joins it to (mm), on either mannequin, on any frame.
+## How deep one body part may be inside another that no joint joins it to (mm), on either body, on any frame.
 OVERLAP_LIMIT = 5.0
 ## How deep the pistol may be inside the body, or the body inside the pistol (mm); the hand that holds it aside.
 GUN_LIMIT = 5.0
@@ -113,11 +136,17 @@ SNAP_LIMIT = {
 ## further from the forearm's line than this (degrees), as the game shows it.
 ARM_LIMIT = 0.975
 WRIST_LIMIT = 40.0
-## A closed fist: every fingertip within this distance of the wrist joint (m): curled back onto the palm (0.09 on
-## these hands). An open finger's tip is 0.20 from it, a half-closed one's 0.15.
+## Both hands on a rifle have the rifle's turn, not one keyed for the blow (the hold's own, kit #1288), so a wrist
+## follows the rifle where its forearm cannot: the support hand, cupped under the hand guard, bends back as the rifle
+## is drawn across the body, and the grip hand cocks as the butt comes up. A wrist bends 70 to 80 degrees each way
+## at the most (20 to 30 to the sides); the joined pose's support wrist is already at 19.
+RIFLE_WRIST_LIMIT = 60.0
+## A closed fist: every fingertip within this distance of the wrist joint (m): curled back onto the palm (0.07 on
+## these hands).
 FIST_TIP_LIMIT = 0.105
-## The pistol clips join the library's two-handed pose, whose left hand is wrapped round the right one (26 mm
-## inside it on the mesh, and in the grip): two hands that start inside each other cannot part without crossing.
+## The pistol clips join the library's two-handed pose, whose left hand is wrapped round the right one (14 mm
+## inside it on the female's mesh, 8 mm on the male's and 8 mm in his grip): two hands that start inside each other
+## cannot part without crossing.
 ## So while the game fades the clip in and out (its first `FADE_IN` and last `FADE_OUT` frames; the game holds the
 ## left hand on the pistol by its own solver until then), the left arm against the right hand, forearm and pistol
 ## is held to the joined pose's own depth and `JOINED_SLACK` more (mm), not to the limits above. Every other pair,
@@ -133,6 +162,8 @@ HEIGHT = (1.25, 1.75)
 TIMES = {
     "fists": {"contact": (0.15, 0.22), "length": (0.5, 0.6)},
     "pistol": {"contact": (0.22, 0.30), "length": (0.6, 0.75)},
+    # a rifle is heavier and swung with both arms: a later contact, and done within its 0.8 s cooldown
+    "rifle": {"contact": (0.22, 0.32), "length": (0.7, 0.8)},
 }
 ## A blow is wound up by the arm, not by leaning away from it: up to contact, the chest's and the head's up axes
 ## are never tipped further back of the joined pose than this (degrees, in the character's own forward and back;
@@ -142,19 +173,23 @@ LEAN_BACK_LIMIT = 0.1
 HEAD_BACK_LIMIT = 5.0
 ## The hit window is while the striking point is within this distance of where it is at contact (m).
 WINDOW = 0.1
+## How far the rifle's left hand may be from its place on the hand guard (mm) when the game's reach has brought it
+## there, on either body: an arm too short leaves the hand off the rifle.
+RIFLE_REACH_LIMIT = 1.0
 
 FINGERS = ["thumb", "index", "middle", "ring", "pinky"]
 TRUNK = ["spine_01", "spine_02", "spine_03"]
 ## The chest's turn is shared out over the three spine bones, most at the top.
 TRUNK_SHARE = (0.25, 0.35, 0.40)
-## The fist of the prone clips (`../prone/build_prone_clips.py`, kit #1020: measured there on both mannequins):
-## degrees each finger joint bends from the knuckle to the tip, and the way each thumb bone points on the left
-## hand in the rest pose's axes (mirrored for the right), which lays the thumb across the index and middle fingers.
+## The fist of the prone clips (`../prone/build_prone_clips.py`, its `form_female` numbers, kit #1293: measured
+## there on the prototype hands): degrees each finger joint bends from the knuckle to the tip, and the way each
+## thumb bone points on the left hand in the rest pose's axes (mirrored for the right), which lays the thumb across
+## the index and middle fingers.
 FIST_CURL = {
-    "index": (75.0, 88.0, 25.0),
-    "middle": (75.0, 88.0, 20.0),
-    "ring": (75.0, 88.0, 25.0),
-    "pinky": (75.0, 98.0, 25.0),
+    "index": (80.0, 100.0, 52.0),
+    "middle": (80.0, 100.0, 40.0),
+    "ring": (80.0, 98.0, 43.0),
+    "pinky": (80.0, 105.0, 45.0),
 }
 FIST_THUMB = (
     (0.660, -0.472, -0.585),
@@ -170,6 +205,15 @@ TO_Y_UP = TO_Z_UP.inverted()
 GUN_POINTS = {
     "butt": Vector((0.016, -0.052, 0.0)),
     "slide": Vector((-0.150, 0.120, -0.020)),
+}
+## Where the rifle strikes, in the `Rifle` node's own space (m; -X is the muzzle's way, +Y up, -Z its right side):
+## the butt plate's middle (it spans 0.02 to 0.17 m up at 0.257 m behind the node), its heel (the top corner,
+## which leads a butt stroke and a jab) and the receiver's right flat between the hands (which leads the level
+## smash). Measured on `rifle.glb`; `rifle_self_test` holds them on its surface.
+RIFLE_POINTS = {
+    "butt": Vector((0.257, 0.095, 0.0)),
+    "heel": Vector((0.257, 0.160, 0.0)),
+    "side": Vector((-0.100, 0.100, -0.036)),
 }
 
 
@@ -291,35 +335,64 @@ class Channel:
 # ---------------------------------------------------------------------------------------------------------------
 # The pistol as the game holds it
 # ---------------------------------------------------------------------------------------------------------------
-def godot_quat(text):
-    x, y, z, w = (float(v) for v in text.split(","))
+def godot_quat(value):
+    x, y, z, w = value
     return Quaternion((w, x, y, z))
 
 
-def read_hold():
-    """The pistol's seat on `hand_r` (a 4x4 in the bone's space), the wrist's turn `WeaponHold` adds after the
-    clip, and the right hand's finger rotations on the grip (each in its parent's space), from the game's files."""
-    text = PISTOL_HELD.read_text(encoding="utf-8")
-    found = re.search(r'\[node name="Pistol"[^\[]*?transform = Transform3D\(([^)]*)\)', text, re.S)
-    v = [float(x) for x in found.group(1).split(",")]
-    seat = Matrix((v[0:3] + [v[9]], v[3:6] + [v[10]], v[6:9] + [v[11]], [0, 0, 0, 1]))
-    text = GRIP_POSE.read_text(encoding="utf-8")
-    rotations, turns = text.split("turns = ")
-    quat = r'&"(\w+)": Quaternion\(([^)]*)\)'
-    fingers = {name: godot_quat(value) for name, value in re.findall(quat, rotations)}
-    turn = {name: godot_quat(value) for name, value in re.findall(quat, turns)}["hand_r"]
-    return seat, turn, fingers
+class Hold:
+    """One body's pistol hold, from the game's files (`tools/hold/hold_files.py`: the female's is the hold scene's
+    own, the male's his `HoldFit`, `gameplay/weapon/hold/pistol_fit_male.tres`): the pistol's seat on `hand_r` (a
+    4x4 in the bone's space, in Blender's axes), the wrist's turn `WeaponHold` adds after the clip, and the right
+    hand's finger rotations on the grip (each in its parent's space)."""
+
+    def __init__(self, body):
+        import hold_files
+
+        found = hold_files.read(GAME, body)
+        self.seat = Matrix(found["seat"].tolist()) @ TO_Y_UP
+        self.turn = godot_quat(found["grip"]["turns"]["hand_r"])
+        self.fingers = {name: godot_quat(value) for name, value in found["grip"]["rotations"].items()}
+
+
+def godot_matrix(array):
+    """A 4 x 4 of Godot's axes (numpy, from `hold_files`) as a `Matrix`. A bone's own frame is the same in both
+    programs, so a place given in a bone's or a weapon node's space needs no change of axes."""
+    return Matrix(np.asarray(array).tolist())
+
+
+class RifleHold:
+    """One body's rifle hold, from the game's files (`hold_files.read_rifle`: the female's is `rifle_held.tscn`'s
+    own, the male's his `HoldFit`, `gameplay/weapon/hold/rifle_fit_male.tres`). In a blow `TwoHandHold` puts the
+    rifle on the clip's right hand (`seat`, the inverse of `RightHandTarget`: the `Rifle` node in `hand_r`'s space,
+    with `TO_Y_UP` after it for the mesh Blender imports), reaches the left hand to `LeftHandTarget` on it
+    (`to_left`: `hand_l`'s place in `hand_r`'s space) with the clip's own elbow (`HoldArm.keep_elbow`), and closes
+    the fingers on the grip and the hand guard (`fingers`: each finger bone's rotation in its parent)."""
+
+    def __init__(self, body):
+        import hold_files
+
+        found = hold_files.read_rifle(GAME, body)
+        right = godot_matrix(found["right"])
+        self.right = right
+        self.left = godot_matrix(found["left"])
+        self.seat = right.inverted() @ TO_Y_UP
+        self.to_left = right.inverted() @ self.left
+        self.turn = Quaternion()  # the rifle's hand bone is the target's: no wrist turn after the clip
+        self.fingers = {name: godot_quat(value) for name, value in found["grip"]["rotations"].items()}
+        self.fingers.update({name: godot_quat(value) for name, value in found["support"]["rotations"].items()})
 
 
 class Gun:
-    """The pistol's mesh (in the axes Blender imports it in), for the checks and the renders."""
+    """A weapon's mesh (in the axes Blender imports it in), for the checks and the renders: the pistol (`PISTOL`,
+    struck with `GUN_POINTS`) or the rifle (`RIFLE`, `RIFLE_POINTS`), each in its node's own space."""
 
-    def __init__(self, seat):
+    def __init__(self, path=PISTOL, points=None):
+        self.points = GUN_POINTS if points is None else points
         before = set(bpy.data.objects)
-        bpy.ops.import_scene.gltf(filepath=str(PISTOL))
+        bpy.ops.import_scene.gltf(filepath=str(path))
         self.objects = [o for o in bpy.data.objects if o not in before]
         self.root = next(o for o in self.objects if o.parent is None)
-        self.seat = seat @ TO_Y_UP
         bpy.context.view_layer.update()
         verts, tris = [], []
         for obj in self.objects:
@@ -340,17 +413,19 @@ class Gun:
         self.low, self.high = self.verts.min(axis=0), self.verts.max(axis=0)
         self.root.rotation_mode = "QUATERNION"
 
-    def matrix(self, hand):
-        """The pistol's world matrix from the world matrix of `hand_r` as the game shows it (the wrist turned)."""
-        return hand @ self.seat
+    @staticmethod
+    def matrix(hand, hold):
+        """The weapon's world matrix from the world matrix of `hand_r` as the game shows it (the wrist turned) and
+        the body's hold."""
+        return hand @ hold.seat
 
-    def point(self, hand, name):
-        return hand @ self.seat @ TO_Z_UP @ GUN_POINTS[name]
+    def point(self, hand, hold, name):
+        return hand @ hold.seat @ TO_Z_UP @ self.points[name]
 
     def against(self, body, coords, matrix, skip=("hand_r",)):
-        """The pistol against a body's skin now: `(deepest mm, part, nearest mm to the head or the trunk)`. Both
-        ways: the pistol's samples inside a part (rays, as `limb_overlap.py` tells inside from outside) and the
-        part's vertices inside the pistol. The hand that holds it (`skip`) is not measured."""
+        """The weapon against a body's skin now: `(deepest mm, part, nearest mm to the head or the trunk)`. Both
+        ways: the weapon's samples inside a part (rays, as `limb_overlap.py` tells inside from outside) and the
+        part's vertices inside the weapon. The hands that hold it (`skip`) are not measured."""
         m = np.array(matrix)
         points = self.samples @ m[:3, :3].T + m[:3, 3]
         low, high = points.min(axis=0), points.max(axis=0)
@@ -413,7 +488,8 @@ class Gun:
 # The rig
 # ---------------------------------------------------------------------------------------------------------------
 class Rig:
-    """The mannequin's armature, its rest pose, poses read from the library's clips, and the hands' closed poses."""
+    """The keyed body's armature, its rest pose, poses read from the library's clips, the hands' closed poses, and
+    both bodies with their holds."""
 
     def __init__(self):
         bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -433,20 +509,42 @@ class Rig:
         for track in self.library_arm.animation_data.nla_tracks:
             track.mute = True
         self.library_actions = list(bpy.data.actions)
+        # The rifle's own clips: its blows join `Rifle_Idle`'s first pose, the body the game shows under the hold.
+        mine = set(bpy.data.objects)
+        bpy.ops.import_scene.gltf(filepath=str(RIFLE_CLIPS))
+        self.library_objects += [o for o in bpy.data.objects if o not in mine]
+        self.rifle_arm = next(o for o in bpy.data.objects if o not in mine and o.type == "ARMATURE")
+        for track in self.rifle_arm.animation_data.nla_tracks:
+            track.mute = True
         import limb_overlap
 
         male = limb_overlap.load_body(MANNEQUIN_MALE, "male")
         self.bodies = [limb_overlap.Body(self.arm, self.mesh, "female"), male]
-        self.order = [b.name for b in self.arm.data.bones]  # parents before children
-        self.parent = {b.name: (b.parent.name if b.parent else None) for b in self.arm.data.bones}
-        self.rest = {b.name: b.matrix_local.copy() for b in self.arm.data.bones}
+        # The clips key the library's bones. A bone the library does not have (the prototype rig's twist bones,
+        # sockets and IK targets, all leaves) gets no key: the game turns the twist bones from the limbs' pose
+        # (`MannequinTwist`), and so does every measure here (`limb_overlap.apply_twist`, in `Body.pose_from`).
+        library = self.library_arm.pose.bones
+        bones = self.arm.data.bones
+        self.unkeyed = [b.name for b in bones if b.name not in library]
+        for name in self.unkeyed:
+            assert not bones[name].children, f"{name} is not in the library and has bones under it"
+        self.order = [b.name for b in bones if b.name in library]  # parents before children
+        self.parent = {n: (bones[n].parent.name if bones[n].parent else None) for n in self.order}
+        self.rest = {n: bones[n].matrix_local.copy() for n in self.order}
         self.rest_rel = {
             n: (self.rest[self.parent[n]].inverted() @ self.rest[n]) if self.parent[n] else self.rest[n].copy()
             for n in self.order
         }
         self.rest_rot = {n: self.rest[n].to_3x3() for n in self.order}
-        seat, self.grip_turn, grip = read_hold()
-        self.gun = Gun(seat)
+        sys.path.insert(0, str(HOLD_TOOLS))
+        self.holds = {body.name: Hold(body.name) for body in self.bodies}
+        self.rifle_holds = {body.name: RifleHold(body.name) for body in self.bodies}
+        sys.path.remove(str(HOLD_TOOLS))
+        # The clips are keyed for the body they are keyed on: its grip's fingers, and its wrist's turn taken out.
+        self.grip_turn = self.holds["female"].turn
+        grip = self.holds["female"].fingers
+        self.gun = Gun()
+        self.rifle = Gun(RIFLE, RIFLE_POINTS)
         # The closed poses of each hand, as each finger bone's own rotation (what Blender keys).
         self.fist, self.grip = {}, {}
         for side, sign in (("l", 1.0), ("r", -1.0)):
@@ -467,19 +565,94 @@ class Rig:
                 above = turn @ rest
         for name, quat in grip.items():
             self.grip[name] = (self.rest_rel[name].to_3x3().inverted() @ quat.to_matrix()).to_quaternion()
+        # The rifle's hands, keyed as the female's hold closes them: the grip and the hand guard.
+        self.rifle_grip = {
+            name: (self.rest_rel[name].to_3x3().inverted() @ quat.to_matrix()).to_quaternion()
+            for name, quat in self.rifle_holds["female"].fingers.items()
+        }
+
+    def holds_of(self, weapon):
+        return self.rifle_holds if weapon == "rifle" else self.holds
+
+    def gun_of(self, weapon):
+        return self.rifle if weapon == "rifle" else self.gun
+
+    def pose_body(self, body, holds):
+        """Pose `body` as the game shows the pose the keyed armature holds now. With `holds` (a pistol clip baked
+        as shown), another body than the keyed one gets its own hold in place of the keyed body's, as
+        `WeaponHold` puts it on after the clip: its own wrist's turn and its own fingers on the grip. With
+        `holds` "rifle", every body gets its own rifle hold as `TwoHandHold` puts it on in a blow (`rifle_hold`)."""
+        body.pose_from(self.arm)
+        if holds == "rifle":
+            return self.rifle_hold(body)
+        if not holds or body.arm is self.arm:
+            return
+        import limb_overlap
+
+        hold = self.holds[body.name]
+        bones = body.arm.pose.bones
+        swap = self.grip_turn.inverted() @ hold.turn
+        bones["hand_r"].matrix_basis = bones["hand_r"].matrix_basis @ swap.to_matrix().to_4x4()
+        for name, quat in hold.fingers.items():
+            local = Matrix.LocRotScale(body.rest_rel[name].translation, quat, None)
+            bones[name].matrix_basis = body.rest_rel[name].inverted() @ local
+        bpy.context.view_layer.update()
+        limb_overlap.apply_twist(body.arm)  # the forearm's twist follows the hand's turn
+
+    def rifle_hold(self, body):
+        """`TwoHandHold` in a blow, on `body` posed from the clip: the body's own fingers on the grip and the hand
+        guard, and its left arm reached to its `LeftHandTarget` on the rifle its right hand carries, the elbow
+        kept in the clip's own bend (`HoldArm.keep_elbow` 1). Returns how far the left wrist is from that place
+        (m): on the keyed body the clip's own hand, which the game's reach leaves where it is."""
+        hold = self.rifle_holds[body.name]
+        bones = body.arm.pose.bones
+        goal = bones["hand_r"].matrix @ hold.to_left
+        if body.arm is self.arm:
+            return (bones["hand_l"].matrix.translation - goal.translation).length
+        import limb_overlap
+
+        for name, quat in hold.fingers.items():
+            local = Matrix.LocRotScale(body.rest_rel[name].translation, quat, None)
+            bones[name].matrix_basis = body.rest_rel[name].inverted() @ local
+        bpy.context.view_layer.update()
+        upper, fore, hand = (bones[f"{b}_l"] for b in ("upperarm", "lowerarm", "hand"))
+        a, b, c = upper.matrix.translation, fore.matrix.translation, hand.matrix.translation
+        first, second = (b - a).length, (c - b).length
+        to_goal = goal.translation - a
+        reach = min(max(to_goal.length, abs(first - second) + 0.001), first + second - 0.001)
+        short = abs(to_goal.length - reach)
+        along = to_goal.normalized()
+        forward = (first * first - second * second + reach * reach) / (2.0 * reach)
+        out = math.sqrt(max(first * first - forward * forward, 0.0))
+        pole = (b - a) - along * (b - a).dot(along)
+        elbow = a + along * forward + pole.normalized() * out
+        wrist = a + along * reach
+        turn = (b - a).rotation_difference(elbow - a).to_matrix()
+        upper.matrix = placed(a, turn @ upper.matrix.to_3x3())
+        bpy.context.view_layer.update()
+        b, c = fore.matrix.translation, hand.matrix.translation
+        turn = (c - b).rotation_difference(wrist - b).to_matrix()
+        fore.matrix = placed(b, turn @ fore.matrix.to_3x3())
+        bpy.context.view_layer.update()
+        hand.matrix = placed(hand.matrix.translation, goal.to_3x3())
+        bpy.context.view_layer.update()
+        limb_overlap.apply_twist(body.arm)
+        return short
 
     def finger_bones(self, side):
         return [f"{f}_0{i}_{side}" for f in FINGERS for i in (1, 2, 3)]
 
-    def library_pose(self, clip, frame):
+    def library_pose(self, clip, frame, arm=None):
         """The armature-space matrix of every bone of this rig in a library clip's pose (the clip's local
-        rotations on this rig's own bone lengths, which is what Godot plays)."""
+        rotations on this rig's own bone lengths, which is what Godot plays). `arm`: the armature whose clip it
+        is (the library's by default, or the rifle clips')."""
+        arm = arm or self.library_arm
         action = bpy.data.actions[clip]
-        data = self.library_arm.animation_data
+        data = arm.animation_data
         data.action = action
         data.action_slot = action.slots[0]
         bpy.context.scene.frame_set(int(frame))
-        bones = self.library_arm.pose.bones
+        bones = arm.pose.bones
         out = {}
         for name in self.order:
             parent = self.parent[name]
@@ -533,17 +706,21 @@ class Clip:
         self.frames = frames
         self.joins = joins
         self.contact = contact
-        self.side = side  # the hand that strikes
-        self.weapon = weapon  # "fists" or "pistol"
-        self.point = point  # "knuckles", or a name of GUN_POINTS
+        self.side = side  # the hand that strikes (the rifle's: the hand nearest the striking point)
+        self.weapon = weapon  # "fists", "pistol" or "rifle"
+        self.point = point  # "knuckles", or a name of GUN_POINTS or RIFLE_POINTS
         self.what = ""
+        self.variant = ""  # a rifle blow's letter (`VARIANTS`)
+        self.notes = ""  # what this variant does its own way
         self.channels = {}
-        self.base = rig.library_pose(joins, 0)
+        self.base = rig.library_pose(joins, 0, rig.rifle_arm if weapon == "rifle" else None)
         self.base_rel = {
             n: (self.base[rig.parent[n]].inverted() @ self.base[n]) if rig.parent[n] else self.base[n].copy()
             for n in rig.order
         }
         self.closed = {"l": rig.fist, "r": rig.grip if weapon == "pistol" else rig.fist}
+        if weapon == "rifle":  # both hands hold the rifle on every frame, as the game's hold closes them
+            self.closed = {"l": rig.rifle_grip, "r": rig.rifle_grip}
         self.open = {n: rig.basis(n, self.base) for side in "lr" for n in rig.finger_bones(side)}
         # The clip leaves the joined pose at once (the game fades it in) and comes to rest on it: the pose is
         # keyed again two frames after the end, so every curve arrives flat.
@@ -552,7 +729,7 @@ class Clip:
         shut = 1.0  # the fists are closed, and the grip held, on every frame
         for frame in (0, frames):
             self.fingers(frame, "r", shut)
-            self.fingers(frame, "l", shut if weapon == "fists" else 0.0)
+            self.fingers(frame, "l", shut if weapon in ("fists", "rifle") else 0.0)
 
     def key(self, channel, frame, value):
         self.channels.setdefault(channel, Channel()).key(frame, value)
@@ -576,6 +753,48 @@ class Clip:
             self.key(f"hand_{side}_palm", frame, palm)
             self.key(f"hand_{side}_wrist", frame, Vector((0.0, 0.0)))
             self.key(f"hand_{side}_aim", frame, 0.0)
+        if self.weapon == "rifle":
+            grip, turn = self.rifle_of(self.base)
+            self.key("rifle_grip", frame, grip)
+            self.key("rifle_turn", frame, turn.to_quaternion())
+            for side in "lr":
+                self.key(f"elbow_{side}_swivel", frame, 0.0)
+
+    def rifle_of(self, mats):
+        """Where the rifle is in a pose: the right hand bone's place and the `Rifle` node's turn in the world (the
+        female's hold: the clips are keyed on her)."""
+        hand = mats["hand_r"]
+        node = hand @ self.rig.rifle_holds["female"].right.inverted()
+        return hand.translation.copy(), node.to_3x3().normalized()
+
+    def rifle(self, frame, grip, muzzle, top):
+        """The rifle, carried by both hands: where the right hand bone (on the grip) is, the way the muzzle points
+        and the way the rifle's top faces (as near as the muzzle allows), all `(left, forward, up)`."""
+        self.key("rifle_grip", frame, P(*grip))
+        self.key("rifle_turn", frame, frame_of(-P(*muzzle), P(*top)).to_quaternion())
+
+    def rifle_targets(self, at):
+        """Each hand bone's place for the rifle of a frame: the female's `RightHandTarget` and `LeftHandTarget` on
+        it, as world matrices; and the rifle node's own."""
+        hold = self.rig.rifle_holds["female"]
+        turn = at["rifle_turn"].to_matrix()
+        node = placed(at["rifle_grip"] - turn @ hold.right.translation, turn)
+        return {"r": node @ hold.right, "l": node @ hold.left}, node
+
+    def elbow(self, frame, side, swivel):
+        """Where an arm whose hand holds the rifle points its elbow: by default toward the place the elbow has from
+        the hand in the joined pose (in the hand's own axes, so the wrist keeps the hold's bend), swung `swivel`
+        degrees about the line from the shoulder to the hand, outward (away from the body's middle) for a positive
+        number. The right forearm runs under the stock, so an elbow that comes up toward it as the wrist bends puts
+        the stock in the forearm: it is swung out."""
+        self.key(f"elbow_{side}_swivel", frame, float(swivel))
+
+    def elbow_aim(self, side, target):
+        """The point a rifle arm's elbow is pointed at before its swivel, for a hand bone's place `target`."""
+        upper, lower, end, _axis = ARMS[side]
+        hand = self.base[end]
+        offset = hand.to_3x3().inverted() @ (self.base[lower].translation - hand.translation)
+        return target.translation + target.to_3x3() @ offset
 
     def chest(self, frame, yaw=0.0, pitch=0.0, roll=0.0):
         """The chest's turn from the joined pose, shared out over the spine."""
@@ -643,9 +862,10 @@ class Clip:
             want = (turn @ base[name].to_3x3()).to_quaternion()
             quat = carried.to_quaternion().slerp(aligned(want, carried.to_quaternion()), hold)
             mats[name] = placed(carried.translation, quat.to_matrix())
+        targets = self.rifle_targets(at)[0] if self.weapon == "rifle" else None
         for side, (upper, lower, end, axis) in ARMS.items():
             root = self.collarbone(frame, side, mats, chest)
-            target = at[f"hand_{side}_pos"]
+            target = targets[side].translation if targets else at[f"hand_{side}_pos"]
             to_mid, to_end = (
                 rig.rest_rel[lower].translation,
                 rig.rest_rel[end].translation,
@@ -655,7 +875,14 @@ class Clip:
             distance = min(line.length, (first + second) * 0.9995)
             line.normalize()
             pole = at[f"hand_{side}_pole"]
+            if targets:
+                pole = self.elbow_aim(side, targets[side]) - root
             out = (pole - line * pole.dot(line)).normalized()
+            if targets:  # swung outward about the line: away from the body's middle (+X is the rig's left)
+                swivel = Matrix.Rotation(math.radians(at[f"elbow_{side}_swivel"]), 3, line)
+                if (swivel @ out).x * (1.0 if side == "l" else -1.0) < out.x * (1.0 if side == "l" else -1.0):
+                    swivel.transpose()
+                out = swivel @ out
             along = (first * first - second * second + distance * distance) / (2.0 * distance)
             height = math.sqrt(max(first * first - along * along, 0.0))
             mid = root + line * along + out * height
@@ -680,6 +907,8 @@ class Clip:
             turn = turn_lower @ joined.slerp(aligned(local, joined), weight).to_matrix()
             if holds and shown:
                 turn = turn @ rig.grip_turn.to_matrix()
+            if targets:  # the hand bone has its place's turn on the rifle (`HoldArm`)
+                turn = targets[side].to_3x3()
             mats[end] = placed(tip, turn)
             curl = max(0.0, min(1.0, at[f"curl_{side}"]))
             for name in rig.finger_bones(side):
@@ -690,11 +919,12 @@ class Clip:
                     mats[name] = mats[rig.parent[name]] @ rig.rest_rel[name]
         return mats
 
-    def strike(self, hand, knuckle):
-        """The striking point, from the world matrix of the striking hand as the game shows it."""
+    def strike(self, hand, knuckle, hold):
+        """The striking point, from the world matrix of the striking hand as the game shows it and its body's
+        hold."""
         if self.point == "knuckles":
             return knuckle.copy()
-        return self.rig.gun.point(hand, self.point)
+        return self.rig.gun_of(self.weapon).point(hand, hold, self.point)
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -798,14 +1028,14 @@ def unarmed_hook(rig):
     c.hand(8, "l", at=(-0.17, 0.42, 1.46), elbow=(1.0, 0.6, -0.15), palm=DOWN)
     c.hand(13, "l", at=(0.27, 0.17, 1.14), elbow=(0.6, -0.5, -1.0), palm=(-1.0, 0.0, -0.3))
     c.hand(2, "r", at=c.from_shoulder(2, "r", -0.08, 0.20, -0.30), elbow=(-0.6, -0.5, -1.0), palm=(1.0, 0.2, -0.1))
-    guard(c, "r", (4, 5, 6, 7, 8, 10, 12), 16)
+    guard(c, "r", (5, 6, 7, 8, 10, 12), 16)
     return c
 
 
 def left_off(c, out, back):
     """The pistol clips join a two-handed pose: the left hand leaves the pistol sideways by `out` and comes back
     to it sideways from `back`, never through the right hand or the grip."""
-    aside = c.base["hand_l"].translation + P(0.10, -0.03, -0.04)
+    aside = c.base["hand_l"].translation + P(0.12, 0.02, -0.02)
     c.key("hand_l_pos", out, aside)
     c.key("hand_l_pos", back, aside)
 
@@ -898,10 +1128,10 @@ def pistol_backhand(rig):
     c.hand(
         8,
         "r",
-        at=(-0.12, 0.43, 1.44),
+        at=(-0.12, 0.44, 1.44),
         elbow=(-1.0, -0.2, -0.6),
         palm=(1.0, 0.0, 0.0),
-        cock=20,
+        cock=8,
     )
     c.hand(
         11,
@@ -987,6 +1217,211 @@ def pistol_jab(rig):
     return c
 
 
+# The rifle's blows (kit #1288). Both hands stay on the rifle as `TwoHandHold` holds it, so a blow is keyed as the
+# rifle's own path: where the right hand bone is on the grip, the way the muzzle points and the way the rifle's top
+# faces (`Clip.rifle`), and each hand bone is put on its place on the rifle (the female's `RightHandTarget` and
+# `LeftHandTarget`) by the arm's two-bone reach, the elbow where the keys point it. Each blow comes in three
+# variants, each with its own numbers (`RIFLE_BLOWS`): a table a frame for the chest (yaw, pitch, roll), the
+# collarbones (forward, up), the head, the rifle (grip, muzzle, top) and the elbows.
+RIFLE_BLOWS = {
+    "Melee_Rifle_Butt_Stroke": {
+        "what": "the butt swung up and forward in an arc into the jaw, the muzzle pulled down and back by the left "
+        "hand",
+        "point": "heel",
+        "A": {
+            "notes": "the reference: a short drop of the butt by the right hip, then up through the jaw",
+            "frames": 24,
+            "contact": 9,
+            "chest": [(3, -7, 3, -2), (6, 6, 8, 2), (9, 14, 10, 3), (11, 15, 9, 3), (17, 4, 3, 0)],
+            "shoulder_r": [(3, -4, 3), (9, 12, 6), (16, 2, 1)],
+            "shoulder_l": [(3, 4, 0), (6, 6, 2), (9, 4, -2), (15, 6, 1)],
+            "head": [(4, 3, 2, 2), (9, -4, 5, -3), (16, -1, 1, 0)],
+            "rifle": [
+                (3, (-0.22, 0.10, 1.05), (0.18, 0.95, -0.25), (0.0, 0.25, 0.97)),
+                (6, (-0.18, 0.33, 1.18), (0.22, 0.45, -0.86), (0.05, 0.88, 0.47)),
+                (9, (-0.13, 0.46, 1.32), (0.20, -0.15, -0.97), (0.03, 0.98, -0.17)),
+                (11, (-0.12, 0.47, 1.34), (0.20, -0.22, -0.95), (0.03, 0.97, -0.24)),
+                (16, (-0.19, 0.28, 1.16), (0.20, 0.60, -0.78), (0.0, 0.78, 0.60)),
+            ],
+            "elbow_r": [(3, 40.0), (6, 15.0), (9, 0.0)],
+            "elbow_l": [],
+        },
+        "B": {
+            "notes": "high: the same drop, the arc carried up to the temple, the chest rolling further into it",
+            "frames": 24,
+            "contact": 9,
+            "chest": [(3, -7, 3, -1), (6, 6, 7, 2), (9, 15, 9, 4), (11, 16, 8, 4), (17, 4, 3, 0)],
+            "shoulder_r": [(3, -4, 3), (9, 13, 8), (16, 2, 1)],
+            "shoulder_l": [(3, 4, 0), (6, 5, 2), (9, 5, -2), (15, 6, 1)],
+            "head": [(4, 3, 2, 2), (9, -5, 4, -2), (16, -1, 1, 0)],
+            "rifle": [
+                (3, (-0.22, 0.10, 1.05), (0.18, 0.95, -0.25), (0.0, 0.25, 0.97)),
+                (6, (-0.18, 0.30, 1.17), (0.22, 0.47, -0.85), (0.05, 0.87, 0.49)),
+                (9, (-0.13, 0.46, 1.34), (0.20, -0.18, -0.96), (0.03, 0.97, -0.20)),
+                (11, (-0.12, 0.47, 1.36), (0.20, -0.24, -0.95), (0.03, 0.96, -0.26)),
+                (16, (-0.19, 0.28, 1.16), (0.20, 0.60, -0.78), (0.0, 0.78, 0.60)),
+            ],
+            "elbow_r": [(3, 40.0), (6, 15.0), (9, 0.0)],
+            "elbow_l": [],
+        },
+        "C": {
+            "notes": "short: no drop, the butt rising straight up from the low ready into the chin, a frame sooner",
+            "frames": 22,
+            "contact": 8,
+            "chest": [(2, -4, 3, -1), (5, 6, 8, 2), (8, 12, 10, 3), (10, 13, 9, 3), (15, 3, 3, 0)],
+            "shoulder_r": [(2, -2, 3), (8, 11, 5), (14, 2, 1)],
+            "shoulder_l": [(2, 3, 0), (5, 6, 2), (8, 5, -1), (14, 5, 1)],
+            "head": [(3, 2, 2, 1), (8, -3, 5, -3), (14, -1, 1, 0)],
+            "rifle": [
+                (2, (-0.21, 0.18, 1.07), (0.18, 0.93, -0.32), (0.0, 0.32, 0.95)),
+                (5, (-0.18, 0.32, 1.18), (0.22, 0.45, -0.86), (0.05, 0.88, 0.47)),
+                (8, (-0.13, 0.45, 1.30), (0.22, -0.10, -0.97), (0.03, 0.99, -0.12)),
+                (10, (-0.12, 0.46, 1.32), (0.22, -0.17, -0.96), (0.03, 0.98, -0.19)),
+                (15, (-0.19, 0.28, 1.16), (0.20, 0.60, -0.78), (0.0, 0.78, 0.60)),
+            ],
+            "elbow_r": [(2, 30.0), (5, 15.0), (8, 0.0)],
+            "elbow_l": [],
+        },
+    },
+    "Melee_Rifle_Butt_Jab": {
+        "what": "the butt lifted beside the right shoulder, the muzzle down by the left hip, then driven a short "
+        "way straight out and back like a jab",
+        "point": "heel",
+        "A": {
+            "notes": "the reference: lifted in four frames, out in four, the chest turning a little behind it",
+            "frames": 22,
+            "contact": 9,
+            "chest": [(5, -4, 3, -1), (9, 10, 9, 2), (11, 11, 9, 2), (17, 3, 2, 0)],
+            "shoulder_r": [(5, -2, 8), (9, 12, 6), (16, 2, 1)],
+            "shoulder_l": [(5, 4, 0), (9, 6, -2), (16, 3, 0)],
+            "head": [(5, 2, 2, 1), (9, -4, 4, -2), (16, -1, 1, 0)],
+            "rifle": [
+                (6, (-0.20, 0.24, 1.30), (0.32, -0.05, -0.95), (0.02, 1.0, -0.05)),
+                (9, (-0.13, 0.46, 1.33), (0.30, -0.15, -0.94), (0.02, 0.99, -0.16)),
+                (11, (-0.13, 0.45, 1.33), (0.30, -0.15, -0.94), (0.02, 0.99, -0.16)),
+                (17, (-0.19, 0.28, 1.17), (0.25, 0.60, -0.76), (0.0, 0.80, 0.60)),
+            ],
+            "elbow_r": [(6, 20.0), (9, 0.0)],
+            "elbow_l": [],
+        },
+        "B": {
+            "notes": "high: lifted by the cheek and driven a little down into the face, the lift a frame slower",
+            "frames": 22,
+            "contact": 9,
+            "chest": [(6, -4, 3, -1), (9, 9, 10, 2), (11, 10, 10, 2), (17, 3, 2, 0)],
+            "shoulder_r": [(5, -1, 9), (9, 11, 7), (16, 2, 1)],
+            "shoulder_l": [(5, 3, 0), (9, 6, -2), (16, 3, 0)],
+            "head": [(5, 3, 1, 2), (9, -4, 5, -2), (16, -1, 1, 0)],
+            "rifle": [
+                (7, (-0.21, 0.28, 1.34), (0.32, -0.02, -0.95), (0.02, 1.0, -0.02)),
+                (9, (-0.13, 0.46, 1.31), (0.30, -0.12, -0.95), (0.02, 0.99, -0.13)),
+                (11, (-0.13, 0.45, 1.31), (0.30, -0.12, -0.95), (0.02, 0.99, -0.13)),
+                (17, (-0.19, 0.28, 1.17), (0.25, 0.60, -0.76), (0.0, 0.80, 0.60)),
+            ],
+            "elbow_r": [(7, 25.0), (9, 0.0)],
+            "elbow_l": [],
+        },
+        "C": {
+            "notes": "low: lifted only to the ribs and driven up into the chin, the chest turning more",
+            "frames": 22,
+            "contact": 9,
+            "chest": [(5, -6, 3, -1), (9, 14, 9, 2), (11, 15, 9, 2), (17, 4, 2, 0)],
+            "shoulder_r": [(5, -3, 6), (9, 13, 6), (16, 2, 1)],
+            "shoulder_l": [(5, 4, 0), (9, 5, -2), (16, 3, 0)],
+            "head": [(5, 2, 2, 1), (9, -5, 4, -2), (16, -1, 1, 0)],
+            "rifle": [
+                (6, (-0.21, 0.24, 1.23), (0.32, -0.08, -0.94), (0.02, 1.0, -0.08)),
+                (9, (-0.13, 0.45, 1.35), (0.30, -0.18, -0.94), (0.02, 0.98, -0.19)),
+                (11, (-0.13, 0.44, 1.35), (0.30, -0.18, -0.94), (0.02, 0.98, -0.19)),
+                (17, (-0.19, 0.28, 1.17), (0.25, 0.60, -0.76), (0.0, 0.80, 0.60)),
+            ],
+            "elbow_r": [(6, 20.0), (9, 0.0)],
+            "elbow_l": [],
+        },
+    },
+    "Melee_Rifle_Smash": {
+        "what": "the rifle swung level from the right across the front behind a turn of the chest and smashed "
+        "forward, the receiver's right flat leading",
+        "point": "side",
+        "A": {
+            "notes": "the reference: the rifle raised level and drawn to the right, swung across at the chin's height",
+            "frames": 23,
+            "contact": 9,
+            "chest": [(3, -8, 3, -2), (5, -9, 4, -2), (9, 20, 10, 2), (11, 22, 10, 2), (17, 4, 3, 0)],
+            "shoulder_r": [(3, -3, 4), (5, -3, 4), (9, 13, 4), (16, 2, 1)],
+            "shoulder_l": [(3, 2, 2), (5, 2, 2), (9, 12, 2), (16, 3, 0)],
+            "head": [(4, 3, 2, 1), (9, -4, 5, -2), (16, -1, 1, 0)],
+            "rifle": [
+                (3, (-0.22, 0.25, 1.19), (0.25, 0.96, -0.08), (-0.33, 0.09, 0.94)),
+                (5, (-0.22, 0.26, 1.22), (0.30, 0.95, -0.05), (-0.33, 0.10, 0.94)),
+                (9, (-0.07, 0.52, 1.40), (0.90, 0.42, 0.0), (-0.15, 0.32, 0.94)),
+                (11, (-0.06, 0.52, 1.40), (0.91, 0.39, 0.0), (-0.14, 0.33, 0.94)),
+                (17, (-0.17, 0.30, 1.15), (0.30, 0.80, -0.52), (0.0, 0.55, 0.83)),
+            ],
+            "elbow_r": [],
+            "elbow_l": [(1, -12.0), (3, -30.0), (5, -28.0), (7, -14.0), (10, 0.0)],
+        },
+        "B": {
+            "notes": "wide: wound further to the right and carried further through to the left, the chest turning "
+            "26 degrees",
+            "frames": 23,
+            "contact": 9,
+            "chest": [(3, -10, 3, -2), (5, -11, 4, -2), (9, 24, 10, 2), (11, 27, 10, 2), (17, 5, 3, 0)],
+            "shoulder_r": [(3, -4, 4), (5, -4, 4), (9, 14, 4), (16, 2, 1)],
+            "shoulder_l": [(3, 1, 2), (5, 1, 2), (9, 12, 2), (16, 3, 0)],
+            "head": [(4, 4, 2, 1), (9, -5, 5, -2), (16, -1, 1, 0)],
+            "rifle": [
+                (3, (-0.23, 0.24, 1.19), (0.22, 0.97, -0.08), (-0.33, 0.08, 0.94)),
+                (5, (-0.23, 0.25, 1.22), (0.27, 0.96, -0.05), (-0.33, 0.09, 0.94)),
+                (9, (-0.06, 0.52, 1.40), (0.92, 0.38, 0.0), (-0.14, 0.33, 0.94)),
+                (11, (-0.04, 0.51, 1.40), (0.94, 0.33, 0.0), (-0.12, 0.34, 0.94)),
+                (17, (-0.17, 0.30, 1.15), (0.30, 0.80, -0.52), (0.0, 0.55, 0.83)),
+            ],
+            "elbow_r": [],
+            "elbow_l": [(1, -12.0), (3, -30.0), (5, -28.0), (7, -14.0), (10, 0.0)],
+        },
+        "C": {
+            "notes": "rising: from the waist up into the chin, the rifle levelling as it comes",
+            "frames": 23,
+            "contact": 9,
+            "chest": [(3, -7, 4, -2), (5, -8, 5, -2), (9, 19, 9, 2), (11, 21, 9, 2), (17, 4, 3, 0)],
+            "shoulder_r": [(3, -3, 2), (5, -3, 2), (9, 12, 6), (16, 2, 1)],
+            "shoulder_l": [(3, 2, 1), (5, 2, 1), (9, 11, 3), (16, 3, 0)],
+            "head": [(4, 2, 3, 1), (9, -4, 4, -2), (16, -1, 1, 0)],
+            "rifle": [
+                (3, (-0.22, 0.25, 1.18), (0.25, 0.96, -0.10), (-0.33, 0.10, 0.94)),
+                (5, (-0.22, 0.26, 1.21), (0.30, 0.95, -0.07), (-0.33, 0.11, 0.94)),
+                (9, (-0.07, 0.51, 1.44), (0.90, 0.42, 0.04), (-0.15, 0.32, 0.94)),
+                (11, (-0.06, 0.51, 1.45), (0.91, 0.39, 0.05), (-0.14, 0.33, 0.94)),
+                (17, (-0.17, 0.30, 1.15), (0.30, 0.80, -0.52), (0.0, 0.55, 0.83)),
+            ],
+            "elbow_r": [],
+            "elbow_l": [(1, -12.0), (3, -30.0), (5, -28.0), (7, -14.0), (10, 0.0)],
+        },
+    },
+}
+
+
+def rifle_blow(rig, name, variant):
+    """A rifle blow's variant from its table (`RIFLE_BLOWS`), as the clip `<name>_<variant>`."""
+    blow = RIFLE_BLOWS[name]
+    spec = blow[variant]
+    c = Clip(rig, f"{name}_{variant}", spec["frames"], RIFLE_IDLE, spec["contact"], "r", "rifle", blow["point"])
+    c.what, c.variant, c.notes = blow["what"], variant, spec["notes"]
+    for frame, yaw, pitch, roll in spec["chest"]:
+        c.chest(frame, yaw, pitch, roll)
+    for side in "rl":
+        for frame, forward, up in spec[f"shoulder_{side}"]:
+            c.shoulder(frame, side, forward, up)
+        for frame, way in spec[f"elbow_{side}"]:
+            c.elbow(frame, side, way)
+    for frame, yaw, pitch, roll in spec["head"]:
+        c.head(frame, yaw, pitch, roll)
+    for frame, grip, muzzle, top in spec["rifle"]:
+        c.rifle(frame, grip, muzzle, top)
+    return c
+
+
 CLIPS = {
     "Melee_Unarmed_Jab": unarmed_jab,
     "Melee_Unarmed_Cross": unarmed_cross,
@@ -1055,7 +1490,11 @@ def check(rig, clip, action, shown):
     scene = bpy.context.scene
     arm = rig.arm
     female, male = rig.bodies
-    gun = rig.gun if clip.weapon == "pistol" else None
+    gun = rig.gun_of(clip.weapon) if clip.weapon != "fists" else None
+    rifle = clip.weapon == "rifle"
+    holding = "rifle" if rifle else gun is not None
+    held_by = ("hand_r", "hand_l") if rifle else ("hand_r",)
+    short = {body.name: [0.0, None] for body in rig.bodies}  # the rifle's left hand off its place (mm)
     frames = range(clip.frames + 1)
     hand, knuckle = f"hand_{clip.side}", f"middle_01_{clip.side}"
 
@@ -1075,7 +1514,7 @@ def check(rig, clip, action, shown):
             problems.append(f"the {label} pose is {join[label][0]} mm from {clip.joins} at {worst}")
     report["join_mm"] = join
 
-    # As the game shows it, on every frame, on both mannequins' skinned meshes.
+    # As the game shows it, on every frame, on both bodies' skinned meshes.
     import limb_overlap
 
     play(rig, shown)
@@ -1099,12 +1538,15 @@ def check(rig, clip, action, shown):
             if behind > lean["head_back_mm"][0]:
                 lean["head_back_mm"] = [round(behind, 1), frame]
         for body in rig.bodies:
-            body.pose_from(arm)
+            off = rig.pose_body(body, holding)
+            if rifle and off * 1000.0 > short[body.name][0]:
+                short[body.name] = [round(off * 1000.0, 2), frame]
+            hold = rig.holds_of(clip.weapon)[body.name]
             bones = body.arm.pose.bones
             world = body.arm.matrix_world
             now = joints_of(body.arm, watched)
             places[body.name].append(now)
-            strikes[body.name].append(clip.strike(world @ bones[hand].matrix, world @ bones[knuckle].head))
+            strikes[body.name].append(clip.strike(world @ bones[hand].matrix, world @ bones[knuckle].head, hold))
             chests.setdefault(body.name, now["spine_03"].copy())
             for side in "lr":
                 upper, lower, end = (world @ bones[f"{b}_{side}"].head for b in ("upperarm", "lowerarm", "hand"))
@@ -1127,9 +1569,10 @@ def check(rig, clip, action, shown):
                             ]
             pairs = {f"{a} in {b}": depth * 1000.0 for (a, b), (depth, _place) in body.overlaps().items()}
             if gun:
-                deep, part, near = gun.against(body, body.skinned(), gun.matrix(world @ bones["hand_r"].matrix))
+                held = gun.matrix(world @ bones["hand_r"].matrix, hold)
+                deep, part, near = gun.against(body, body.skinned(), held, skip=held_by)
                 if deep > 0.0:
-                    pairs[f"pistol in {part}"] = deep
+                    pairs[f"{clip.weapon} in {part}"] = deep
                 if near < gun_near[body.name][0]:
                     gun_near[body.name] = [near, frame]
             for pair, depth in pairs.items():
@@ -1152,7 +1595,7 @@ def check(rig, clip, action, shown):
                 f"(the limit is {limit}: the arm winds a blow up, the trunk does not lean away)"
             )
     report["wrist_bend_deg"] = wrist_bend
-    if wrist_bend[0] > WRIST_LIMIT:
+    if wrist_bend[0] > (RIFLE_WRIST_LIMIT if rifle else WRIST_LIMIT):
         problems.append(f"the {wrist_bend[2]} wrist is bent {wrist_bend[0]} degrees at frame {wrist_bend[1]}")
     if clip.weapon == "fists":
         report["fist_open_mm"] = [round(tips[0] * 1000.0, 1), tips[1], tips[2]]
@@ -1172,7 +1615,7 @@ def check(rig, clip, action, shown):
         deepest = max(joined.values(), default=0.0)
         faded = [0.0, None, None]
         for pair, depths in crossed[body.name].items():
-            of_gun = pair.startswith("pistol")
+            of_gun = pair.startswith(("pistol", "rifle"))
             limit = GUN_LIMIT if of_gun else OVERLAP_LIMIT
             hands = any(n in pair for n in left) and any(n in pair for n in right)
             for frame, depth in enumerate(depths):
@@ -1194,7 +1637,15 @@ def check(rig, clip, action, shown):
         print(f"OVERLAP {clip.name} {body.name}: {json.dumps(crossed[body.name])}")
     if gun:
         report["gun_nearest_head_or_trunk_mm"] = gun_near
-    else:
+    if rifle:
+        report["left_hand_off_rifle_mm"] = short
+        for body, (off, frame) in short.items():
+            if off > RIFLE_REACH_LIMIT:
+                problems.append(
+                    f"{body}: the left hand is {off} mm off the hand guard at frame {frame} (the arm is too short for "
+                    f"it; the limit is {RIFLE_REACH_LIMIT} mm)"
+                )
+    if not gun:
         del report["gun_in_body_mm"]
     del limb_overlap
 
@@ -1281,10 +1732,10 @@ def self_test(rig):
     bpy.context.view_layer.update()
     out = {}
     for body in rig.bodies:
-        body.pose_from(rig.arm)
+        rig.pose_body(body, True)
         world = body.arm.matrix_world
         coords = body.skinned()
-        held = rig.gun.matrix(world @ body.arm.pose.bones["hand_r"].matrix)
+        held = rig.gun.matrix(world @ body.arm.pose.bones["hand_r"].matrix, rig.holds[body.name])
         # the joined pose's left hand lies on the pistol (the game's own solver holds it there): set aside here
         clear = rig.gun.against(body, coords, held, skip=("hand_r", "hand_l", "lowerarm_l"))
         # the hand that holds it, measured for once: the seat and the grip read here are the game's
@@ -1312,6 +1763,54 @@ def self_test(rig):
     return out
 
 
+def rifle_self_test(rig):
+    """The rifle check reads the rifle's joined pose (`Rifle_Idle`'s first, the hold's own hands) as clear, each
+    hand on its part of the rifle as the hold's solver left it, and a rifle pushed into the head as deep inside it;
+    the striking points lie on the rifle."""
+    clip = Clip(rig, "SelfTestRifle", 2, RIFLE_IDLE, 1, "r", "rifle", "butt")
+    action = bake(rig, clip)
+    play(rig, action)
+    bpy.context.scene.frame_set(0)
+    out = {}
+    for body in rig.bodies:
+        off = rig.pose_body(body, "rifle")
+        world = body.arm.matrix_world
+        coords = body.skinned()
+        held = rig.rifle.matrix(world @ body.arm.pose.bones["hand_r"].matrix, rig.rifle_holds[body.name])
+        clear = rig.rifle.against(body, coords, held, skip=("hand_r", "hand_l"))
+        hands = {
+            side: rig.rifle.against(body, coords, held, skip=[p for p in body.parts if p != f"hand_{side}"])
+            for side in "rl"
+        }
+        head = world @ body.arm.pose.bones["Head"].matrix
+        inside = placed(head.translation + Vector((0.0, 0.0, 0.08)), held.to_3x3())
+        deep = rig.rifle.against(body, coords, inside)
+        out[body.name] = {
+            "carried": clear[0],
+            "hand_on_grip": hands["r"][0],
+            "hand_on_hand_guard": hands["l"][0],
+            "left_hand_off_mm": round(off * 1000.0, 2),
+            "in_the_head": deep[0],
+        }
+        print(f"SELFTEST rifle {body.name}: {out[body.name]}")
+        assert clear[0] <= GUN_LIMIT, f"{body.name}: the rifle as carried reads {clear} mm in the body"
+        for side, found in hands.items():
+            assert found[0] <= 10.0, f"{body.name}: hand_{side} is {found[0]} mm in the rifle: the hold read wrongly"
+        assert off * 1000.0 <= RIFLE_REACH_LIMIT, f"{body.name}: the left hand is {off * 1000:.2f} mm off its place"
+        assert deep[0] > 15.0 and deep[1] == "head", f"{body.name}: a rifle in the head reads {deep}"
+    for name, point in RIFLE_POINTS.items():
+        _place, _normal, _index, off = rig.rifle.tree.find_nearest(TO_Z_UP @ point)
+        out[f"{name}_off_the_rifle"] = round(off * 1000.0, 1)
+        print(f"SELFTEST rifle point {name}: {off * 1000:.1f} mm from the rifle's surface")
+        assert off < 0.006, f"the striking point {name} is {off * 1000:.1f} mm off the rifle"
+    rig.arm.animation_data.action = None
+    bpy.data.actions.remove(action)
+    for bone in rig.arm.pose.bones:
+        bone.rotation_quaternion = Quaternion()
+        bone.location = Vector()
+    return out
+
+
 def sidecar(clips, path):
     out = {
         "fps": FPS,
@@ -1330,53 +1829,83 @@ def sidecar(clips, path):
             "hit_window_m": WINDOW,
         },
         "gun_points": {name: [round(x, 4) for x in point] for name, point in GUN_POINTS.items()},
+        "rifle_points": {name: [round(x, 4) for x in point] for name, point in RIFLE_POINTS.items()},
+        "rifle_picks": RIFLE_PICKS,
         "clips": {},
     }
     for clip in clips:
-        blow = clip.report["blow"]["female"]
-        out["clips"][clip.name] = {
-            "length": round(clip.frames / FPS, 4),
-            "frames": clip.frames,
-            "loop": False,
-            "weapon": clip.weapon,
-            "joins": clip.joins,
-            "what": clip.what,
-            "contact": round(clip.contact / FPS, 4),
-            "hit_start": blow["hit_start"],
-            "hit_end": blow["hit_end"],
-            "striking_bone": f"hand_{clip.side}",
-            "striking_point": (
-                "the middle finger's knuckle (the middle_01 bone's joint)"
-                if clip.point == "knuckles"
-                else f"the pistol's {clip.point} (gun_points, in the Pistol node's space)"
-            ),
-            "reach": blow["reach"],
-            "point_at_contact": blow["point"],
-            "into_contact_m_s": blow["into_contact_m_s"],
-            "male": {key: clip.report["blow"]["male"][key] for key in ("reach", "point", "hit_start", "hit_end")},
-            "checks": {key: value for key, value in clip.report.items() if key != "blow"},
-        }
+        out["clips"][clip.name] = entry(clip)
+        if clip.weapon == "rifle":
+            out["clips"][clip.name] = {"variant": clip.variant, **out["clips"][clip.name]}
     return out
 
 
-def export(rig, actions, out):
-    """Write the armature and its clips, with a one-triangle skin so Godot makes a Skeleton3D of every bone."""
+def entry(clip):
+    """A clip's numbers for the json."""
+    blow = clip.report["blow"]["female"]
+    return {
+        "length": round(clip.frames / FPS, 4),
+        "frames": clip.frames,
+        "loop": False,
+        "weapon": clip.weapon,
+        "joins": clip.joins,
+        "what": clip.what,
+        "contact": round(clip.contact / FPS, 4),
+        "hit_start": blow["hit_start"],
+        "hit_end": blow["hit_end"],
+        "striking_bone": f"hand_{clip.side}",
+        "striking_point": (
+            "the middle finger's knuckle (the middle_01 bone's joint)"
+            if clip.point == "knuckles"
+            else f"the pistol's {clip.point} (gun_points, in the Pistol node's space)"
+            if clip.weapon == "pistol"
+            else f"the rifle's {clip.point} (rifle_points, in the Rifle node's space)"
+        ),
+        "reach": blow["reach"],
+        "point_at_contact": blow["point"],
+        "into_contact_m_s": blow["into_contact_m_s"],
+        "male": {key: clip.report["blow"]["male"][key] for key in ("reach", "point", "hit_start", "hit_end")},
+        "checks": {key: value for key, value in clip.report.items() if key != "blow"},
+        **({"notes": clip.notes} if clip.notes else {}),
+    }
+
+
+def export(rig, actions, path, keep=None):
+    """Write the armature and `actions` to `path`, with a one-triangle skin so Godot makes a Skeleton3D of every
+    bone. The first call clears the scene down to the armature and every action but `keep` (all that any file
+    will carry); a second file is written from what is left."""
     arm = rig.arm
     male = rig.bodies[1]
-    for obj in rig.library_objects + male.objects + rig.gun.objects + rig.extras + [rig.mesh]:
-        bpy.data.objects.remove(obj, do_unlink=True)
-    keep = set(actions)
-    for action in list(bpy.data.actions):
-        if action not in keep:
-            bpy.data.actions.remove(action)
-    mesh = bpy.data.meshes.new("MeleeRig")
-    mesh.from_pydata([(0, 0, 0), (0.01, 0, 0), (0, 0, 0.01)], [], [(0, 1, 2)])
-    proxy = bpy.data.objects.new("MeleeRig", mesh)
-    bpy.context.scene.collection.objects.link(proxy)
-    proxy.parent = arm
-    proxy.vertex_groups.new(name="root").add([0, 1, 2], 1.0, "REPLACE")
-    proxy.modifiers.new("Armature", "ARMATURE").object = arm
+    if not getattr(rig, "cleared", False):
+        rig.cleared = True
+        objects = rig.library_objects + male.objects + rig.gun.objects + rig.rifle.objects + rig.extras
+        for obj in objects + [rig.mesh]:
+            bpy.data.objects.remove(obj, do_unlink=True)
+        # The file carries the library's skeleton: the bones no clip keys go.
+        for bone in arm.pose.bones:
+            bone.matrix_basis = Matrix.Identity(4)
+        bpy.context.view_layer.objects.active = arm
+        bpy.ops.object.mode_set(mode="EDIT")
+        for name in rig.unkeyed:
+            arm.data.edit_bones.remove(arm.data.edit_bones[name])
+        bpy.ops.object.mode_set(mode="OBJECT")
+        assert [b.name for b in arm.data.bones] == rig.order, "the exported skeleton is not the library's"
+        keep = set(keep or actions)
+        for action in list(bpy.data.actions):
+            if action not in keep:
+                bpy.data.actions.remove(action)
+        mesh = bpy.data.meshes.new("MeleeRig")
+        mesh.from_pydata([(0, 0, 0), (0.01, 0, 0), (0, 0, 0.01)], [], [(0, 1, 2)])
+        proxy = bpy.data.objects.new("MeleeRig", mesh)
+        bpy.context.scene.collection.objects.link(proxy)
+        proxy.parent = arm
+        proxy.vertex_groups.new(name="root").add([0, 1, 2], 1.0, "REPLACE")
+        proxy.modifiers.new("Armature", "ARMATURE").object = arm
+        rig.proxy = proxy
+    proxy = rig.proxy
     arm.animation_data.action = None
+    for track in list(arm.animation_data.nla_tracks):
+        arm.animation_data.nla_tracks.remove(track)
     for action in sorted(actions, key=lambda a: a.name):
         track = arm.animation_data.nla_tracks.new()
         track.name = action.name
@@ -1386,7 +1915,7 @@ def export(rig, actions, out):
     for obj in (arm, proxy):
         obj.select_set(True)
     bpy.context.view_layer.objects.active = arm
-    path = out / "melee.glb"
+    path.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.gltf(
         filepath=str(path),
         export_format="GLB",
@@ -1404,7 +1933,7 @@ def export(rig, actions, out):
 
 def strip(path):
     """Keep only what a clip should drive: every bone's rotation and the pelvis's place. The exporter also writes
-    each bone's rest translation and scale, which would press this rig's bone lengths onto the other mannequin."""
+    each bone's rest translation and scale, which would press this rig's bone lengths onto the other body."""
     data = path.read_bytes()
     length = struct.unpack_from("<I", data, 12)[0]
     gltf = json.loads(data[20 : 20 + length])
@@ -1474,6 +2003,40 @@ def played_back(rig, clips, path):
     return round(worst * 1000.0, 3)
 
 
+def clips_named(rig, name):
+    """The clips a name builds: a clip of `CLIPS`, every variant of a rifle blow, or one variant
+    (`Melee_Rifle_Smash_B`)."""
+    if name in CLIPS:
+        return [CLIPS[name](rig)]
+    if name in RIFLE_BLOWS:
+        return [rifle_blow(rig, name, letter) for letter in VARIANTS]
+    blow, _, letter = name.rpartition("_")
+    return [rifle_blow(rig, blow, letter)]
+
+
+def picked(rig, clip, blow):
+    """The picked variant of a rifle blow under the blow's own name (the same keys), and its baked action."""
+    out = rifle_blow(rig, blow, clip.variant)
+    out.name, out.report = blow, clip.report
+    return out, bake(rig, out)
+
+
+def check_file(path, clips, rig):
+    """The exported file read back: exactly these clips, their lengths, and only rotations and the pelvis's place."""
+    strip(path)
+    found = read_back(path)
+    names = sorted(clip.name for clip in clips)
+    assert sorted(found) == names, f"{path.name} carries {sorted(found)}, not {names}"
+    for clip in clips:
+        assert abs(found[clip.name]["length"] - clip.frames / FPS) < 1e-3, (
+            clip.name,
+            found[clip.name],
+        )
+        assert found[clip.name]["translation"] == ["pelvis"], found[clip.name]["translation"]
+        assert found[clip.name]["channels"] == len(rig.order) + 1, found[clip.name]["channels"]
+    return found
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
@@ -1488,8 +2051,9 @@ def main():
 
     rig = Rig()
     hold = self_test(rig)
-    names = [args.only] if args.only else FILE_CLIPS
-    clips = [CLIPS[name](rig) for name in names]
+    rifle_hold = rifle_self_test(rig)
+    names = args.only.split(",") if args.only else FILE_CLIPS
+    clips = [clip for name in names for clip in clips_named(rig, name)]
     actions, shown, failed = [], [], False
     for clip in clips:
         action = bake(rig, clip)
@@ -1511,22 +2075,38 @@ def main():
         sys.exit("the clips fail their checks; nothing was exported")
     if args.only or failed:
         return
-    path = export(rig, actions, out)
-    strip(path)
-    found = read_back(path)
+    # melee.glb: the fists' and the pistol's clips and the picked variant of each rifle blow, by its own name.
+    variants = [clip for clip in clips if clip.weapon == "rifle"]
+    shipped, carried = [], []
+    for clip, action in zip(clips, actions):
+        if clip.weapon != "rifle":
+            shipped.append(clip)
+            carried.append(action)
+    for blow, letter in RIFLE_PICKS.items():
+        clip = next(c for c in variants if c.name == f"{blow}_{letter}")
+        clip, action = picked(rig, clip, blow)
+        shipped.append(clip)
+        carried.append(action)
+    variant_actions = [action for clip, action in zip(clips, actions) if clip.weapon == "rifle"]
+    path = out / "melee.glb"
+    export(rig, carried, path, keep=carried + variant_actions)
+    found = check_file(path, shipped, rig)
     assert sorted(found) == sorted(FILE_CLIPS), f"the file carries {sorted(found)}, not {FILE_CLIPS}"
-    for clip in clips:
-        assert abs(found[clip.name]["length"] - clip.frames / FPS) < 1e-3, (
-            clip.name,
-            found[clip.name],
-        )
-        assert found[clip.name]["translation"] == ["pelvis"], found[clip.name]["translation"]
-        assert found[clip.name]["channels"] == len(rig.order) + 1, found[clip.name]["channels"]
-    off = played_back(rig, clips, path)
+    off = played_back(rig, shipped, path)
     assert off < 0.5, f"the exported file plays {off} mm from the solved poses"
-    report = sidecar(clips, path)
+    # review/melee_rifle.glb: every variant of the rifle's blows, for the maintainer's pick.
+    review = out / "review" / "melee_rifle.glb"
+    export(rig, variant_actions, review)
+    check_file(review, variants, rig)
+    report = sidecar(shipped, path)
     report["measured"]["played_back_mm"] = off
     report["measured"]["pistol_hold_mm"] = hold
+    report["measured"]["rifle_hold_mm"] = rifle_hold
+    report["review"] = {
+        "file": f"review/{review.name}",
+        "sha256": hashlib.sha256(review.read_bytes()).hexdigest(),
+        "clips": {clip.name: {"variant": clip.variant, **entry(clip)} for clip in variants},
+    }
     text = json.dumps(report, indent=2) + "\n"
     (out / "melee_clips.json").write_text(text, encoding="utf-8", newline="\n")
     print("EXPORTED", path, f"played back within {off} mm", json.dumps(found)[:300])
@@ -1539,13 +2119,16 @@ def trace(rig, clip):
         chest = mats["spine_03"].to_3x3() @ clip.base["spine_03"].to_3x3().inverted()
         ahead = chest @ Vector((0, -1, 0))
         yaw = math.degrees(math.atan2(ahead.x, -ahead.y))
-        strike = clip.strike(mats[f"hand_{clip.side}"], mats[f"middle_01_{clip.side}"].translation)
+        strike = clip.strike(
+            mats[f"hand_{clip.side}"], mats[f"middle_01_{clip.side}"].translation, rig.holds_of(clip.weapon)["female"]
+        )
         line = f"TRACE {clip.name} {frame:2d} chest {yaw:+5.1f} | strike {lfu(strike)}"
         for side in "lr":
             a, b, c = (mats[f"{n}_{side}"].translation for n in ("upperarm", "lowerarm", "hand"))
             share = (c - a).length / ((b - a).length + (c - b).length)
             line += f" | {side} shoulder {lfu(a)} wrist {lfu(c)} elbow {math.degrees((a - b).angle(c - b)):3.0f}"
-            line += f" {share:.2f}"
+            _palm, fingers = rig.palm_of(side, mats[f"hand_{side}"].to_3x3())
+            line += f" {share:.2f} bend {math.degrees(fingers.angle(c - b)):3.0f}"
         print(line)
 
 

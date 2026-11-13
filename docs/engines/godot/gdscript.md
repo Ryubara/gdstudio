@@ -47,8 +47,10 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
 - **Approach:** Write the type (`var cooked: float = ...`) when a value comes out of an untyped Dictionary or Array,
   or keep the record in a small typed class. **Watch out for:** an element of an untyped `Dictionary` is a Variant, so
   `var cooked := now - _cooks[id]["started"]` has nothing to infer (`Cannot infer the type of "cooked" variable`); in
-  a project that raises warnings, `:=` from a Dictionary value is an error that also hangs a headless `-s` run.
-  **Seen:** Deadnight, 2026-11-01 (fix: explicit types).
+  a project that raises warnings, `:=` from a Dictionary value is an error that also hangs a headless `-s` run. The
+  same goes for a property of an addon's component reached through a static lookup (`Health.of(body).value`): the
+  template's parse check refused the whole suite (`The variable type is being inferred from a Variant value`).
+  **Seen:** Deadnight, 2026-11-01 (fix: explicit types); gdstudio #1288, 2026-11-12 (`test_rifle_melee.gd`).
 
 - **Approach:** Test a node with `node == null` or `is_instance_valid(node)`, never against a bool, and keep a test
   that runs the real game path. **Watch out for:** GDScript parses a comparison of an Object with a bool and fails
@@ -115,7 +117,7 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   navigation mesh built in a lambda had no vertices (every path `[]`); assigning a whole Array or Dictionary to the
   outer variable inside the lambda is the same trap. **Seen:** Deadnight #226, 2026-11-02 (bot counts, a
   mesh); gdstudio #836, 2026-11-08 (`hits += 1` read 0); gdstudio #1251, 2026-11-11 (`met = {...}` left the
-  dict empty); gdstudio #1206, 2026-11-11 (a `maxf` into a captured float read 0 mm).
+  dict empty); gdstudio #1206, 2026-11-11 (a `maxf` into a captured float read 0 mm); #1158, 2026-11-12 (the same).
 
 ## Project and scene files {#project-and-scene-files}
 
