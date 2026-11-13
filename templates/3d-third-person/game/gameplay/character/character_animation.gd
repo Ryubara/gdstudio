@@ -282,6 +282,7 @@ const _RELOAD_FADE_OUT := 0.2
 		_rebuild()
 
 var melee := MeleeLayer.new()  # The melee blow's one-shot (gdstudio #1254).
+var hits := HitLayer.new()  # where a hit's clip plays: stance and weapon (gdstudio #1292, #1345)
 var gait := CharacterGait.new()  # speed matching, transitions, momentum, lean (gdstudio #1158)
 var _machine: AnimationNodeStateMachine
 var _tuning: CharacterTuning  # its speeds are the blend spaces' (its `changed` is connected)
@@ -435,7 +436,7 @@ func _drive(delta: float) -> void:
 	_prone_look.step_crawl_share(speed, blend_time, delta)
 	_drive_pistol(delta)
 	var active: bool = tree.get(_P_ACTION_ACTIVE)
-	HitLayer.follow(tree, active and _action_clip == hit_clip, body_state())
+	hits.follow(tree, active and _action_clip == hit_clip, body_state(), _weights.x > 0.0)
 	if _action_was_active and not active:
 		action_finished.emit(_action_clip)
 	_action_was_active = active
@@ -742,7 +743,8 @@ func _on_interacted(_target: Node3D) -> void:
 
 func _on_hit(_amount: float, _source: Node3D) -> void:
 	play_clip(hit_clip, character.tuning.hit_stun_time)
-	HitLayer.follow(tree, true, body_state())
+	hits.follow(tree, true, body_state(), _weights.x > 0.0)
+	_brace.hold_up(self, character.tuning.hit_stun_time + action_blend_time)
 
 
 # A vault or a mantle plays its clip over the whole body (`VaultAnimation.start()`).
@@ -810,7 +812,8 @@ func _build_root() -> AnimationNodeBlendTree:
 	var action := AnimationNodeOneShot.new()
 	action.fadein_time = action_blend_time
 	action.fadeout_time = action_blend_time
-	HitLayer.prepare(action, _bone_paths([upper_body_bone]))
+	var arms := _bone_paths([&"clavicle_l", &"clavicle_r"])
+	hits.prepare(action, _bone_paths([&"root", &"pelvis"]), _bone_paths([upper_body_bone]), arms)
 	root.add_node(_ACTION, action, Vector2(1400, 0))
 	_add_pistol_layer(root)
 	root.connect_node(_ACTION, 0, MeleeLayer.NODE)

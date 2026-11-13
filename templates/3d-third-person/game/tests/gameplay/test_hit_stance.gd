@@ -1,17 +1,24 @@
 # A hit on a crouched or lying character keeps it in its stance (kit #1292): the hit clip is made
 # standing, so in a low stance it plays on the upper body only and the hips stay at the stance's
-# height through the stun, while a standing hit still plays on the whole body.
+# height through the stun, while a standing hit still plays on the whole body. With a weapon in the
+# hands the hit leaves the arms out (kit #1345), so an aimed pistol stays up through the stun
+# instead of dropping to the hip with the clip's empty hands.
 extends GdUnitTestSuite
 
 ## How far the hips may move up from the stance's height while the hit plays (the standing hit
 ## clip lifts a crouched pelvis by about 0.3 m).
 const HIPS_RISE := 0.06
+## How far the gun hand may move from the shoulder's aim while the hit plays (the empty-handed hit
+## clip swung it down to the hip, about 0.5 m).
+const HAND_MOVE := 0.05
 
 var _arena: PlayArena
 var _player: Player
 var _animation: CharacterAnimation
 var _skeleton: Skeleton3D
 var _pelvis := -1
+var _hand := -1
+var _shoulder := -1
 
 
 func before_test() -> void:
@@ -23,6 +30,8 @@ func before_test() -> void:
 	var rig := (_player.get_node("Model") as CharacterModel).rig()
 	_skeleton = rig.get_node("Armature/Skeleton3D") as Skeleton3D
 	_pelvis = _skeleton.find_bone(&"pelvis")
+	_hand = _skeleton.find_bone(&"hand_r")
+	_shoulder = _skeleton.find_bone(&"clavicle_r")
 	await InputSim.ticks(get_tree(), 4)
 
 
@@ -98,11 +107,50 @@ func test_a_lying_character_keeps_its_hips_down_while_hit() -> void:
 
 
 func test_a_standing_hit_still_plays_on_the_whole_body() -> void:
+	_player.loadout.equip_now(WeaponLoadout.UNARMED)
+	await InputSim.ticks(get_tree(), 40)
 	_player.hit(1.0)
 	await InputSim.ticks(get_tree(), 2)
 	assert_bool(_animation.is_acting()).is_true()
 	assert_str(String(_animation.last_action())).is_equal(String(_animation.hit_clip))
 	assert_bool(_action_filtered()).is_false()
+
+
+# Where the gun hand is from its shoulder (the clavicle's own space), as the skeleton shows it this
+# frame: the arm's pose, whatever the trunk does.
+func _gun_hand() -> Vector3:
+	var shoulder := _skeleton.get_bone_global_pose(_shoulder)
+	return shoulder.affine_inverse() * _skeleton.get_bone_global_pose(_hand).origin
+
+
+func test_an_aimed_pistol_stays_up_while_hit() -> void:
+	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
+	await InputSim.ticks(get_tree(), 40)
+	await get_tree().process_frame
+	var aimed := _gun_hand()
+	_player.hit(1.0)
+	var farthest := 0.0
+	var until := _player.tuning.hit_stun_time + _animation.action_blend_time
+	var waited := 0.0
+	while waited < until:
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+		farthest = maxf(farthest, _gun_hand().distance_to(aimed))
+	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, false)
+	(
+		assert_float(farthest)
+		. override_failure_message("the gun hand moved %.3f m from its aim" % farthest)
+		. is_less(HAND_MOVE)
+	)
+
+
+func test_a_held_weapon_keeps_the_arms_in_every_stance() -> void:
+	for state: StringName in [CharacterAnimation.GROUND, CharacterAnimation.JUMP]:
+		assert_int(HitLayer.part_for(state, true)).is_equal(HitLayer.Part.WHOLE_BUT_ARMS)
+		assert_int(HitLayer.part_for(state, false)).is_equal(HitLayer.Part.WHOLE)
+	for state: StringName in [CharacterAnimation.CROUCH, CharacterAnimation.PRONE]:
+		assert_int(HitLayer.part_for(state, true)).is_equal(HitLayer.Part.UPPER_BUT_ARMS)
+		assert_int(HitLayer.part_for(state, false)).is_equal(HitLayer.Part.UPPER)
 
 
 func test_the_low_stances_play_the_hit_on_the_upper_body() -> void:

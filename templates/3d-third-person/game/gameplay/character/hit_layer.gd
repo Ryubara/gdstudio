@@ -1,10 +1,17 @@
 class_name HitLayer
 extends RefCounted
-## Where a hit's clip plays on the body. The hit clip (`CharacterClips.HIT`) is made standing, so it
-## holds the whole body only in a standing body state; crouched, lying or sliding it plays on the
-## upper body alone (the bones from `CharacterAnimation.upper_body_bone` down) and the hips and legs
-## keep the state's pose, so a crouched body under fire stays down (gdstudio #1292). It is the
-## action one-shot's filter, turned on for a hit in a low state and off for every other action.
+## Where a hit's clip plays on the body. The hit clip (`CharacterClips.HIT`) is made standing and
+## empty-handed, so it holds the whole body only in a standing body state with nothing in the
+## hands. Crouched, lying or sliding it plays on the upper body alone (the bones from
+## `CharacterAnimation.upper_body_bone` down) and the hips and legs keep the state's pose, so a
+## crouched body under fire stays down (gdstudio #1292). With a weapon held (the weapon layer's
+## grip on), it leaves the arms out (the clavicles down), so they keep holding and aiming the
+## weapon while the trunk and head take the hit; before, the clip's empty-handed arms dropped the
+## pistol to the hip for the whole stun (gdstudio #1345). It is the action one-shot's filter, set
+## for a hit and off for every other action. `CharacterAnimation` owns one (`hits`).
+
+## The share of the action that plays a hit, as `part_for()` names it.
+enum Part { WHOLE, UPPER, WHOLE_BUT_ARMS, UPPER_BUT_ARMS }
 
 ## The body states whose hit plays on the upper body only.
 const UPPER_BODY_STATES: Array[StringName] = [
@@ -15,28 +22,64 @@ const UPPER_BODY_STATES: Array[StringName] = [
 	CharacterAnimation.SLIDE_EXIT,
 ]
 
+var _whole: Array[NodePath] = []
+var _upper: Array[NodePath] = []
+var _arms: Array[NodePath] = []
+var _part := Part.WHOLE
+
 
 ## True when a hit in the body state `state` plays on the upper body only.
 static func upper_body_only(state: StringName) -> bool:
 	return UPPER_BODY_STATES.has(state)
 
 
-## Gives the action one-shot `action` the upper body's filter `paths` (the bones' tracks), off
-## until a hit in a low state turns it on.
-static func prepare(action: AnimationNodeOneShot, paths: Array[NodePath]) -> void:
-	for path in paths:
-		action.set_filter_path(path, true)
+## The part of the body a hit plays on in body state `state`, with a weapon held (`armed`) or not.
+static func part_for(state: StringName, armed: bool) -> Part:
+	if upper_body_only(state):
+		return Part.UPPER_BUT_ARMS if armed else Part.UPPER
+	return Part.WHOLE_BUT_ARMS if armed else Part.WHOLE
+
+
+## Takes the bones' tracks the parts are made of (`whole`: every bone; `upper`: the upper body;
+## `arms`: both arms from the clavicles) and leaves `action`'s filter off until a hit.
+func prepare(
+	action: AnimationNodeOneShot,
+	whole: Array[NodePath],
+	upper: Array[NodePath],
+	arms: Array[NodePath]
+) -> void:
+	_whole = whole
+	_upper = upper
+	_arms = arms
+	_part = Part.WHOLE
 	action.filter_enabled = false
 
 
-## Turns the filter of `tree`'s action one-shot on while a hit plays (`hit`) in a low body state
-## `state`, and off otherwise: called when a hit lands and every frame after, so a body that
-## crouches or stands up during the stun gets the share of the clip its new state takes.
-static func follow(tree: AnimationTree, hit: bool, state: StringName) -> void:
+## The part of the action `tree`'s one-shot plays now (`Part.WHOLE` while its filter is off).
+func part() -> Part:
+	return _part
+
+
+## Sets the filter of `tree`'s action one-shot for a hit that plays (`hit`) in body state `state`,
+## with a weapon held (`armed`) or not, and turns it off for every other action: called when a hit
+## lands and every frame after, so a body that crouches, stands up or puts its weapon away during
+## the stun gets the share of the clip its new state takes. The paths are written only on a change.
+func follow(tree: AnimationTree, hit: bool, state: StringName, armed: bool) -> void:
 	var root := tree.tree_root as AnimationNodeBlendTree if tree != null else null
 	if root == null or not root.has_node(&"Action"):
 		return
 	var action := root.get_node(&"Action") as AnimationNodeOneShot
-	var upper := hit and upper_body_only(state)
-	if action != null and action.filter_enabled != upper:
-		action.filter_enabled = upper
+	if action == null:
+		return
+	var wanted := part_for(state, armed) if hit else Part.WHOLE
+	if wanted == _part and action.filter_enabled == (wanted != Part.WHOLE):
+		return
+	_part = wanted
+	action.filter_enabled = wanted != Part.WHOLE
+	if wanted == Part.WHOLE:
+		return
+	var upper := wanted == Part.UPPER or wanted == Part.UPPER_BUT_ARMS
+	var but_arms := wanted == Part.WHOLE_BUT_ARMS or wanted == Part.UPPER_BUT_ARMS
+	for path in _whole:
+		var on := (not upper or _upper.has(path)) and not (but_arms and _arms.has(path))
+		action.set_filter_path(path, on)
