@@ -19,6 +19,12 @@ extends Node
 ##   the pistol's own again once it is in, and the slide, locked back on an empty pistol, runs
 ##   forward when the reload's last sound plays (`slide_travel`); a reload cut short leaves the
 ##   pistol whole;
+## - the slide's rack after a reload of an empty magazine (kit #1337, `rack`): while the rack clip
+##   plays (`RackLayer`), the left hand leaves its support grip, closes on the slide where it
+##   stands locked back, pulls it the rest of the way and lets it run home, and comes back, its
+##   place and fingers the body's own `SlideRack` (two more modifiers, after the left hand's);
+##   the slide stays locked until then, and the carried arm stays in and the trigger finger off
+##   the trigger through it, as through the reload;
 ## - the left hand's one way on and off the weapon (kit #1051): its fingers open where it holds
 ##   (`open_pose`), then the opened hand leaves along `support_way`, and it comes on the same way
 ##   backwards, for the aim and from the magazine alike. `SupportHandPlan` says where on all of
@@ -53,6 +59,8 @@ const _GRIP := &"HoldGrip"
 const _SUPPORT_ARM := &"HoldSupportArm"
 const _SUPPORT_FINGERS := &"HoldSupportFingers"
 const _STANCE := &"HoldOneHandStance"
+const _RACK_ARM := &"HoldRackArm"
+const _RACK_FINGERS := &"HoldRackFingers"
 ## The share of the kick's time over which a one-handed kick rises (the shot clip's own climb peaks
 ## at about a fifth of it).
 const KICK_RISE := 0.08
@@ -75,8 +83,14 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 @export var trigger_pose: HandPose
 ## Where the index finger is half-way between the frame and the trigger (kit #1079): it leaves
 ## the trigger guard on its own side before it lifts, so it never crosses the left thumb, which
-## lies along the frame on the other side. Solved with the poses, never typed.
+## lies along the frame on the other side. Solved with the poses, never typed; the way
+## `trigger_way` goes by instead when there is one, and one-handed this pose's other bones.
 @export var trigger_way_pose: HandPose
+## The poses the index finger passes through between the frame and the trigger with both hands
+## on the gun (kit #1272): off the frame to its own side, its last two bones bent there, then
+## dropped into the trigger guard's open side and onto the trigger, clear of the guard and the
+## left hand all the way (`tools/hold/solve_pistol_trigger_way.gd`). Null: `trigger_way_pose`.
+@export var trigger_way: HandPoseWay
 ## The right thumb while the left hand is on the weapon too (kit #1084): it rests on the root of
 ## the left thumb, which takes its place on the frame, as a two-handed grip is taught. Blended
 ## over `grip_pose` while the left hand waits at the far end of `support_way`, before it comes in
@@ -246,6 +260,19 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 ## definition to read it from (the definition's last reload sound).
 @export_range(0.0, 1.0, 0.01) var reload_slide := 0.85
 
+@export_group("Rack")
+## The left hand on the slide through the rack after an empty reload (`pistol_slide_rack.tres`; the
+## model's body's is its `fit()`). None: no rack, and the slide runs forward at the last sound.
+@export var rack: SlideRack
+## How much of the upper body the rack clip holds now, and the share of it played; from
+## `animation` (`RackLayer.progress()`), or the caller's for a character posed by hand.
+@export_range(0.0, 1.0, 0.01) var rack_weight := 0.0
+@export_range(0.0, 1.0, 0.001) var rack_share := 0.0
+## How far back along the rack's travel the slide stands as the rack starts (0 closed): an empty
+## pistol's slide is locked back (`slide_travel`), and the hand closes on it there. Set as each
+## rack starts from `animation`, or the caller's.
+@export_range(0.0, 1.0, 0.001) var rack_lock := 0.0
+
 @export_group("Bodies")
 ## Holds solved on other bodies than the one the scene's own poses and the weapon's seat and
 ## markers were solved on (`HoldFit`, written by `tools/hold/write_hold.gd`): a model whose file
@@ -278,6 +305,13 @@ var _slide_rest := Transform3D.IDENTITY
 var _slide_released := false
 # Whether this node has the slide back now (what it last wrote).
 var _slide_locked := false
+# The rack of the model's body and its two modifiers; whether the rack moved the slide last frame
+# and whether a rack played on the last refresh (its start sets `rack_lock`).
+var _rack: SlideRack
+var _rack_arm: HoldArm
+var _rack_fingers: HandPoseModifier
+var _slide_racked := false
+var _was_racking := false
 # Where the left hand is now: on its way on or off the weapon, at the magazine, with the clip.
 var _left := SupportHandPlan.new()
 # The left hand let go for an action that reaches with it.
@@ -331,6 +365,12 @@ func free_hand_for_interact() -> void:
 	free_hand(animation.character.tuning.interact_time)
 
 
+## The action the hand was let go for ended early (a use cut short): the hand comes back onto the
+## weapon its own way, from wherever it is.
+func take_hand_back() -> void:
+	_free.finish()
+
+
 ## Puts the weights on the modifiers now (the frame's own `_process` does it too).
 func refresh() -> void:
 	if animation != null and animation.tree != null:
@@ -345,6 +385,14 @@ func refresh() -> void:
 		reload_weight = reload.x
 		support_keep_elbow = animation.prone_hold_share()
 		reload_share = reload.y
+		var racked := animation.rack.progress() if playing else Vector2.ZERO
+		if racked.x > 0.0 and not _was_racking and _rack != null:
+			rack_lock = _lock_share() if _slide_locked else 0.0
+		_was_racking = racked.x > 0.0
+		# While the rack comes in the reload under it is on its last frame, the rack's first: the
+		# body is the rack's by both together, and no hand is half one plan and half the other.
+		rack_weight = minf(racked.x + reload.x, 1.0) if racked.x > 0.0 else 0.0
+		rack_share = racked.y
 		shot_kick = kick_at(_shot_age / kick_time) if animation.tree.active else 0.0
 		var held := animation.held_definition()
 		one_handed = held != null and held.one_handed
@@ -352,14 +400,17 @@ func refresh() -> void:
 	if _grip == null or not is_instance_valid(_grip):
 		return
 	_weigh(_grip, held_weight)
-	# The finger leaves the trigger for the reload, and while an action's clip has the arm.
+	# The finger leaves the trigger for the reload and the rack, and while an action's clip has
+	# the arm.
 	var aim := minf(aim_weight, 1.0 - FreeHand.gone(free_weight))
-	_grip.second_weight = aim * (1.0 - reload_weight)
+	var busy := _busy()
+	_grip.second_weight = aim * (1.0 - busy)
 	_grip.swing_bone = carry_arm
 	# The arm comes back in for a reload as for the aim: the reload clip holds the weapon in front of
 	# the body, and swung out the weapon was past the left hand's reach (13 mm on the Quaternius male,
-	# 9 to 29 mm on the prototype bodies at the clip's start and end: kit #1187).
-	_grip.swing_degrees = carry_arm_out * (1.0 - aim) * (1.0 - reload_weight)
+	# 9 to 29 mm on the prototype bodies at the clip's start and end: kit #1187). The rack's clip
+	# holds it where the rack's hand was solved, so the arm stays in through it too (kit #1337).
+	_grip.swing_degrees = carry_arm_out * (1.0 - aim) * (1.0 - busy)
 	if _stance != null:
 		_pose_stance()
 	if _arm == null:
@@ -367,6 +418,7 @@ func refresh() -> void:
 	_plan_left()
 	_place_magazines()
 	_place_slide()
+	_place_rack()
 	# The right thumb makes room while the left hand waits at the far end of its way, before it
 	# comes in, and lies on the weapon again once that hand is back out there.
 	_grip.open_weight = _left.room
@@ -429,6 +481,11 @@ func _plan_left() -> void:
 	_left.back = reload_return
 	if reload_weight > 0.0:
 		_left.drop = _sound_share(0, reload_drop)
+	# Through the rack, the reload's end (kept as two floats: a `Vector2` rounds the share to 32
+	# bits, which moved a share that sits on a boundary to the other side of it).
+	var racking := _rack != null and rack_weight > 0.0
+	var reload_now := _reload_weight_now() if racking else reload_weight
+	var share_now := 1.0 if racking else reload_share
 	_left.take = reload_take
 	_left.carry_release = carry_release
 	_left.carry_arrive = carry_arrive
@@ -438,10 +495,25 @@ func _plan_left() -> void:
 	# hand go as the aim alone would, and one that leaves the aim up lets it go by itself.
 	var gone := FreeHand.gone(free_weight)
 	var on := lerpf(1.0, SupportHandPlan.WAY_FROM, FreeHand.off(free_weight)) * (1.0 - gone)
-	var reload := reload_weight * (1.0 - gone) if _magazine != null else 0.0
+	var reload := reload_now * (1.0 - gone) if _magazine != null else 0.0
 	# One-handed, the aim never brings the left hand on: only a reload does, as from the carry.
 	var aim := 0.0 if one_handed else aim_weight
-	_left.update(minf(aim, on), reload, reload_share)
+	_left.update(minf(aim, on), reload, share_now)
+
+
+# The reload's weight the left hand's plan follows through the rack, at the reload's end (the
+# support grip): by as much as the rack's hand leaves the slide to it
+# (`SlideRack.support_weight()`), so the plan goes on from where the reload left the hand. The
+# share stays at the end while the rack fades out: blended toward the share of no reload (0) it
+# went back through the reload's steps, the new magazine in the hand again.
+func _reload_weight_now() -> float:
+	return lerpf(reload_weight, _rack.support_weight(rack_share), rack_weight)
+
+
+# How much of the upper body a reload or the rack holds now: the arm stays in and the trigger
+# finger off by it.
+func _busy() -> float:
+	return maxf(reload_weight, rack_weight if _rack != null else 0.0)
 
 
 # False while the weapon in the hands has a view of its own that is not on this hold's seat (the
@@ -461,7 +533,7 @@ func _holds_it() -> bool:
 # The one-handed stance's weight and numbers: it holds while the weapon is aimed and gives way to
 # the reload clip, which brings the weapon in front of the chest for the left hand.
 func _pose_stance() -> void:
-	_weigh(_stance, held_weight * aim_weight * (1.0 - reload_weight))
+	_weigh(_stance, held_weight * aim_weight * (1.0 - _busy()))
 	_stance.side_on = side_on
 	_stance.reach = one_hand_reach
 	_stance.elbow = one_hand_elbow
@@ -599,15 +671,69 @@ func _place_slide() -> void:
 	if not empty:
 		_slide_released = false
 	elif reload_weight > 0.0 and reload_share >= _sound_share(-1, reload_slide):
-		_slide_released = true
+		# With a rack to come the hand releases the slide; without one it runs forward here.
+		_slide_released = not _rack_follows() and rack_weight <= 0.0
 	var locked := empty and not _slide_released
-	if locked == _slide_locked:
-		return
-	_slide_locked = locked
 	var place := _slide_rest
 	if locked:
 		place.origin += _slide_rest.basis.x.normalized() * slide_travel
+	if _rack != null and rack_weight > 0.0:
+		# The rack has the slide, from where this node had it as the rack comes in (locked back,
+		# or at rest once a shot cuts it short) to where the hand pulls it.
+		var pulled := _slide_rest.origin + _rack.travel * _rack.slide_pull(rack_share, rack_lock)
+		place.origin = place.origin.lerp(pulled, rack_weight)
+		_slide.transform = place
+		_slide_locked = locked
+		_slide_racked = true
+		return
+	if locked == _slide_locked and not _slide_racked:
+		return
+	_slide_locked = locked
+	_slide_racked = false
 	_slide.transform = place
+
+
+# True from a reload that ends with the rack until the rack is over (`RackLayer.is_racking()`):
+# the rack is asked for a frame before the tree plays it.
+func _rack_follows() -> bool:
+	return _rack != null and animation != null and animation.rack.is_racking()
+
+
+# How far back along the rack's travel the locked slide stands (`slide_travel` of it).
+func _lock_share() -> float:
+	return clampf(slide_travel / maxf(_rack.travel.length(), 0.0001), 0.0, 1.0)
+
+
+# The rack's hand and fingers (`SlideRack`): reached to the hand's place on the slide by the rack's
+# weight and the share of the hand the rack takes from the clip's arm, its fingers over the hold's
+# own opened hand. Off with no rack playing.
+func _place_rack() -> void:
+	if _rack_arm == null or not is_instance_valid(_rack_arm):
+		return
+	var weight := held_weight * rack_weight if _rack != null else 0.0
+	if weight <= 0.0:
+		_weigh(_rack_arm, 0.0)
+		_weigh(_rack_fingers, 0.0)
+		return
+	var weapon := seat.get_child(0) as Node3D
+	_rack_arm.offset = weapon.transform * _rack.hand_place(rack_share, rack_lock)
+	_rack_arm.elbow = _rack.elbow
+	_weigh(_rack_arm, weight * _rack.hand_weight(rack_share))
+	_rack.set_fingers(_rack_fingers, open_pose, rack_share)
+	_weigh(_rack_fingers, _rack_fingers.influence * weight if _rack_fingers.active else 0.0)
+
+
+## The rack's two modifiers on the skeleton now (the reach to the slide and its fingers), or none.
+func rack_modifiers() -> Array[SkeletonModifier3D]:
+	var found: Array[SkeletonModifier3D] = []
+	if _rack_arm != null and is_instance_valid(_rack_arm):
+		found.append_array([_rack_arm, _rack_fingers])
+	return found
+
+
+## The rack of the model's body (`rack.fit()`), or null with no rack.
+func rack_fit() -> SlideRack:
+	return _rack
 
 
 # A node's place in `root`'s space, from the transforms between them.
@@ -630,7 +756,7 @@ func _weigh(modifier: SkeletonModifier3D, weight: float) -> void:
 
 # Makes the modifiers on the model's skeleton, after freeing the ones made on the last model.
 func _build() -> void:
-	for modifier in modifiers():
+	for modifier in modifiers() + rack_modifiers():
 		# Out of the tree at once, so the new ones can take the names.
 		modifier.get_parent().remove_child(modifier)
 		modifier.queue_free()
@@ -638,15 +764,18 @@ func _build() -> void:
 	_arm = null
 	_fingers = null
 	_stance = null
+	_rack_arm = null
+	_rack_fingers = null
 	if _held_magazine != null and is_instance_valid(_held_magazine):
 		_held_magazine.get_parent().remove_child(_held_magazine)
 		_held_magazine.queue_free()
 	_held_magazine = null
 	_gun_magazine = null
-	if _slide != null and is_instance_valid(_slide) and _slide_locked:
+	if _slide != null and is_instance_valid(_slide) and (_slide_locked or _slide_racked):
 		# The same weapon may be built on again: its slide is at rest when its place is read.
 		_slide.transform = _slide_rest
 	_slide_locked = false
+	_slide_racked = false
 	_slide = null
 	_skeleton = model.skeleton() if model != null else null
 	if _skeleton == null or seat == null or seat.get_child_count() == 0:
@@ -664,12 +793,15 @@ func _build() -> void:
 	_grip.name = _GRIP
 	_grip.pose = grip_pose
 	_grip.second = _with_one_hand(trigger_pose, one_hand_pose)
-	# The trigger finger's pose between is a way of one stop (`HandPoseModifier.second_way`).
-	var trigger_way: Array[HandPose] = []
-	if trigger_way_pose != null:
+	# The trigger finger's poses between (`HandPoseModifier.second_way`): in two hands its way,
+	# one-handed (and with no way) one pose.
+	var stops: Array[HandPose] = []
+	if trigger_way != null and not one_handed:
+		stops.assign(trigger_way.poses)
+	elif trigger_way_pose != null:
 		var thumb_way := _with_one_hand(trigger_way_pose, thumb_way_pose)
-		trigger_way.append(_with_one_hand(thumb_way, one_hand_way_pose))
-	_grip.second_way = trigger_way
+		stops.append(_with_one_hand(thumb_way, one_hand_way_pose))
+	_grip.second_way = stops
 	_grip.open = thumb_pose
 	_grip.open_via = thumb_way_pose
 	_skeleton.add_child(_grip)
@@ -691,8 +823,48 @@ func _build() -> void:
 		_magazine = seat.get_child(0).get_node_or_null(magazine_marker) as Node3D
 		_skeleton.add_child(_fingers)
 		_build_magazines(seat.get_child(0) as Node3D)
+		_build_rack()
+	_keep_ragdoll_last.call_deferred()
 	refresh()
 	built.emit()
+
+
+# The rack's reach to the slide and its fingers, after the left hand's (they read the arm and the
+# fingers as the hold left them), with the rack of the model's body.
+func _build_rack() -> void:
+	var rig := model.rig() if model != null else null
+	var file := rig.scene_file_path.get_file() if rig != null else ""
+	_rack = rack.fit(file) if rack != null else null
+	if _rack == null:
+		return
+	_rack_arm = HoldArm.new()
+	_rack_arm.name = _RACK_ARM
+	_rack_arm.arm = support_arm
+	_rack_arm.bone = seat.bone_name
+	_rack_arm.active = false
+	_skeleton.add_child(_rack_arm)
+	_rack_fingers = HandPoseModifier.new()
+	_rack_fingers.name = _RACK_FINGERS
+	_rack_fingers.active = false
+	_skeleton.add_child(_rack_fingers)
+
+
+# Puts a simulating ragdoll back after the modifiers made just now (and the aim layer's, made on
+# `built`): made while the body lies limp (a weapon or stance change after the death), they went
+# after the simulator and posed the dead arm and hand over the ragdoll's, so the weapon stood off
+# the hand (kit #1339, docs/engines/godot/ragdoll.md#underfoot).
+func _keep_ragdoll_last() -> void:
+	if _skeleton == null or not is_instance_valid(_skeleton):
+		return
+	for child in _skeleton.get_children():
+		var simulator := child as PhysicalBoneSimulator3D
+		if simulator == null or not simulator.is_simulating_physics():
+			continue
+		_skeleton.move_child(simulator, -1)
+		var drawing := _skeleton.get_node_or_null(NodePath(RagdollDrawing.NODE_NAME))
+		if drawing != null:
+			_skeleton.move_child(drawing, -1)
+		return
 
 
 # The new magazine on the left hand's bone, placed as the pistol's own is seen from the magazine
@@ -748,6 +920,7 @@ func _fit_body() -> void:
 		_own.grip_pose = grip_pose
 		_own.trigger_pose = trigger_pose
 		_own.trigger_way_pose = trigger_way_pose
+		_own.trigger_way = trigger_way
 		_own.thumb_pose = thumb_pose
 		_own.thumb_way_pose = thumb_way_pose
 		_own.support_pose = support_pose
@@ -770,6 +943,7 @@ func _fit_body() -> void:
 	grip_pose = chosen.grip_pose
 	trigger_pose = chosen.trigger_pose
 	trigger_way_pose = chosen.trigger_way_pose
+	trigger_way = chosen.trigger_way
 	thumb_pose = chosen.thumb_pose
 	thumb_way_pose = chosen.thumb_way_pose
 	support_pose = chosen.support_pose

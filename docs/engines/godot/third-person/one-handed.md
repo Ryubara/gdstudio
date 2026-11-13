@@ -48,7 +48,7 @@ made: the stance is put on the two-handed aim clips after the tree.
   the frame's rear edge: it leaves from that body's carried grip, whose thumb lies elsewhere on each body (kit
   #1262), and fitted to the female stop the male thumb went 6 mm into the frame. Neither finger grazes the trigger
   guard in one hand: at most 1.5 mm in, at the trigger (the male finger's own way rubbed it 2.1 mm deep; the
-  two-handed graze is [between the poses](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses)).
+  two-handed way is [between the poses](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses)).
   Separate poses existed before because each body's hold is solved on its own (kit #1187), and the one-handed pose
   only patched a body whose solved thumb did not lie along the frame: the female's was set by hand, the male's solved
   thumb was kept, and nothing compared the two hands on the gun.

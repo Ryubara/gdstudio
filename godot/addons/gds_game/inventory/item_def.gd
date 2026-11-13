@@ -35,6 +35,22 @@ extends Resource
 @export var use_effect: ItemEffect
 ## On: using it takes one out of the bag. Off: it stays (a torch switched on and off).
 @export var consumed_on_use := true
+## Seconds a use takes, from the press to the end of its clip: the hands are busy for that long
+## and the use can be cut short (an `ItemUse` says how). Zero: the item works at the press.
+@export_range(0.0, 10.0, 0.05, "or_greater", "suffix:s") var use_time := 0.0
+## The share of `use_time` at which the item works: its effect lands and one leaves the bag on the
+## same tick. A use cut short before it changes nothing.
+@export_range(0.0, 1.0, 0.01) var use_apply_share := 0.75
+## The clip a character plays over its upper body while it uses the item, stretched to
+## `use_time` (a clip of its animation libraries: `ual2/Consume`). Empty: no clip.
+@export var use_clip: StringName = &""
+## The sound played as the use starts (an `AudioStreamRandomizer` for variants). Empty: none.
+@export var use_sound: AudioStream
+
+
+## True when using the item takes time (`use_time` above zero) rather than working at the press.
+func takes_time() -> bool:
+	return use_time > 0.0
 
 
 ## Whether the item does something when used (it has a `use_effect`).

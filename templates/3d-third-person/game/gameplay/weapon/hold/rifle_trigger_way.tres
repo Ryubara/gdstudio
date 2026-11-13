@@ -6,19 +6,59 @@
 [sub_resource type="Resource" id="Resource_l18dx"]
 script = ExtResource("1_l18dx")
 rotations = Dictionary[StringName, Quaternion]({
-&"index_01_r": Quaternion(-0.07836865, -0.9957691, 0.047835782, -0.0037689214),
-&"index_02_r": Quaternion(0, 0, 0, 1),
-&"index_03_r": Quaternion(0, 0, 0, 1)
+&"index_01_r": Quaternion(-0.07921587, -0.687804, -0.032924455, 0.72080964),
+&"index_02_r": Quaternion(-0.013089595, -1.1642598e-08, 3.69351e-08, 0.99991435),
+&"index_03_r": Quaternion(1.2621775e-29, 6.2032797e-16, -1.0714825e-08, 1)
 })
 
 [sub_resource type="Resource" id="Resource_rumtl"]
 script = ExtResource("1_l18dx")
 rotations = Dictionary[StringName, Quaternion]({
-&"index_01_r": Quaternion(-0.07836865, -0.9957691, 0.047835782, -0.0037689214),
-&"index_02_r": Quaternion(0.74895763, 0, 0, 0.66261786),
-&"index_03_r": Quaternion(0.30278924, 0, 0, 0.9530576)
+&"index_01_r": Quaternion(-0.12377056, -0.68445206, -0.08024412, 0.7139798),
+&"index_02_r": Quaternion(-0.013089595, -1.1642598e-08, 3.69351e-08, 0.99991435),
+&"index_03_r": Quaternion(1.2621775e-29, 6.2032797e-16, -1.0714825e-08, 1)
+})
+
+[sub_resource type="Resource" id="Resource_acp2l"]
+script = ExtResource("1_l18dx")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.3311315, -0.8430809, 0.088724956, 0.41436026),
+&"index_02_r": Quaternion(0.2419219, -1.8551791e-09, 3.8682163e-08, 0.9702957),
+&"index_03_r": Quaternion(0.19080903, -2.0444846e-09, -1.0517964e-08, 0.9816273)
+})
+
+[sub_resource type="Resource" id="Resource_wcok0"]
+script = ExtResource("1_l18dx")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.33670804, -0.8573593, 0.12557027, 0.36850354),
+&"index_02_r": Quaternion(0.34202015, 2.198371e-09, 3.866418e-08, 0.9396926),
+&"index_03_r": Quaternion(0.21643962, -2.3191118e-09, -1.046084e-08, 0.976296)
+})
+
+[sub_resource type="Resource" id="Resource_0jkr8"]
+script = ExtResource("1_l18dx")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.3868088, -0.8485583, 0.121958606, 0.339785),
+&"index_02_r": Quaternion(0.5948228, 1.3089063e-08, 3.644761e-08, 0.80385697),
+&"index_03_r": Quaternion(0.3665012, -3.9269956e-09, -9.969261e-09, 0.9304176)
+})
+
+[sub_resource type="Resource" id="Resource_q5gjl"]
+script = ExtResource("1_l18dx")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.36664966, -0.8514602, 0.13501069, 0.34979403),
+&"index_02_r": Quaternion(0.6946584, 1.773445e-08, 3.4427327e-08, 0.7193398),
+&"index_03_r": Quaternion(0.31730467, -3.399863e-09, -1.0161122e-08, 0.94832367)
+})
+
+[sub_resource type="Resource" id="Resource_h30y5"]
+script = ExtResource("1_l18dx")
+rotations = Dictionary[StringName, Quaternion]({
+&"index_01_r": Quaternion(-0.22655493, -0.79136974, 0.20756395, 0.52851117),
+&"index_02_r": Quaternion(0.6946584, 1.773445e-08, 3.4427327e-08, 0.7193398),
+&"index_03_r": Quaternion(0.2419219, -2.59215e-09, -1.03965485e-08, 0.9702957)
 })
 
 [resource]
 script = ExtResource("2_rumtl")
-poses = Array[ExtResource("1_l18dx")]([SubResource("Resource_l18dx"), SubResource("Resource_rumtl")])
+poses = Array[ExtResource("1_l18dx")]([SubResource("Resource_l18dx"), SubResource("Resource_rumtl"), SubResource("Resource_acp2l"), SubResource("Resource_wcok0"), SubResource("Resource_0jkr8"), SubResource("Resource_q5gjl"), SubResource("Resource_h30y5")])

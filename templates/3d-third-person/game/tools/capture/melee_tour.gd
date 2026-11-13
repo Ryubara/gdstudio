@@ -1,13 +1,16 @@
 ## Films the melee blow of each weapon category from the game camera (gdstudio #1254): an enemy
 ## grunt (its deciding parts taken out, so it stands and takes the blows) a pace in front of the
 ## player, three blows of V with the pistol (the whip, the backhand, the jab), H to the fists and
-## three left clicks (the jab, the cross, the hook). It presses the input actions the way a player
-## would; each blow's landing is printed (`HIT <zone> <damage> <health left>`).
+## three left clicks (the jab, the cross, the hook), then the rifle given and three blows of V
+## with it (the butt stroke, the butt jab, the smash; gdstudio #1288). It presses the input
+## actions the way a player would; each blow's landing is printed (`HIT <zone> <damage> <health
+## left>`).
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
 ## `gds capture frames --project game --scene res://tools/capture/melee_tour.tscn --seconds 9
 ## --fps 30`
-## `MELEE_SIDE=1` films from the player's right side instead of over the shoulder.
+## `MELEE_SIDE=1` films from the player's right side instead of over the shoulder, and
+## `MELEE_RIFLE=1` films the rifle's stages alone (`--seconds 5`).
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -22,18 +25,24 @@ const PITCH := 4.0
 
 ## Each stage: `name` (printed when it starts), `seconds` how long, and `taps`: actions pressed for
 ## 0.1 s at each of the listed seconds into the stage.
+## `give` names a weapon handed to the player as the stage starts.
 const STAGES: Array[Dictionary] = [
 	{"name": "ready", "seconds": 0.8},
 	{"name": "pistol blows", "seconds": 2.8, "taps": {&"melee": [0.1, 0.95, 1.8]}},
 	{"name": "to the fists", "seconds": 0.8, "taps": {&"toggle_unarmed": [0.1]}},
 	{"name": "fist blows", "seconds": 2.6, "taps": {&"fire": [0.1, 0.8, 1.5]}},
+	{"name": "to the rifle", "seconds": 1.0, "give": "res://gameplay/weapon/rifle.tres"},
+	{"name": "rifle blows", "seconds": 3.0, "taps": {&"melee": [0.1, 1.0, 1.9]}},
 	{"name": "rest", "seconds": 0.8},
 ]
+## The stages `MELEE_RIFLE=1` keeps.
+const RIFLE_STAGES: Array[String] = ["ready", "to the rifle", "rifle blows", "rest"]
 
 var _index := -1
 var _clock := 0.0
 var _held: Array[StringName] = []
 var _side := OS.get_environment("MELEE_SIDE") == "1"
+var _stages: Array[Dictionary] = []
 var _grunt: AiCharacter
 
 @onready var _player: Player = $Main/PlayerRig/Player
@@ -41,6 +50,10 @@ var _grunt: AiCharacter
 
 
 func _ready() -> void:
+	var rifle_only := OS.get_environment("MELEE_RIFLE") == "1"
+	for stage in STAGES:
+		if not rifle_only or RIFLE_STAGES.has(stage["name"]):
+			_stages.append(stage)
 	var floor_block := (load("res://world/blocks/proto_block.tscn") as PackedScene).instantiate()
 	floor_block.size = Vector3(40.0, 1.0, 40.0)
 	floor_block.position = FLOOR_AT - Vector3(0.0, 0.5, 0.0)
@@ -79,16 +92,18 @@ func _physics_process(delta: float) -> void:
 	var yaw := 90.0 if _side else 0.0
 	_rig.orbit(Vector2(-clampf(wrapf(yaw - _rig.yaw, -180.0, 180.0), -6.0, 6.0), 0.0))
 	_rig.orbit(Vector2(0.0, clampf(PITCH - _rig.pitch, -2.0, 2.0)))
-	if _index >= STAGES.size():
+	if _index >= _stages.size():
 		return
-	if _index < 0 or _clock >= float(STAGES[_index]["seconds"]):
+	if _index < 0 or _clock >= float(_stages[_index]["seconds"]):
 		_index += 1
 		_clock = 0.0
-		if _index >= STAGES.size():
+		if _index >= _stages.size():
 			_finish()
 			return
-		print("STAGE ", STAGES[_index]["name"])
-	var stage := STAGES[_index]
+		print("STAGE ", _stages[_index]["name"])
+		if _stages[_index].has("give"):
+			_player.loadout.give(load(_stages[_index]["give"]) as WeaponDef, 60)
+	var stage := _stages[_index]
 	_clock += delta
 	var actions: Array[StringName] = []
 	var taps: Dictionary = stage.get("taps", {})
