@@ -105,16 +105,25 @@ static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: fl
 
 
 ## The goal (`CharacterGoal.motion`) of a puppet drawn from `entry` whose snapshots head for
-## `heading` (`InterpolationTrack.heading`), `kept` the goal it had: none once the player asked for
-## no move (`PlayerEntry.halt`), else the heading, or `kept` while the heading is too slow to tell
-## (`GOAL_HOLD_BELOW`). The stepped body's starts and stops read its command's goal; the puppet's
-## read this (gdstudio #1420).
-static func goal_of(entry: PlayerEntry, heading: Vector3, kept: Vector3) -> Vector3:
+## `heading` (`InterpolationTrack.heading`), `kept` the goal it had, `full_speed` its sprint speed:
+## none once the player asked for no move (`PlayerEntry.halt`); else along the heading, or along
+## `kept` while the heading is too slow to tell a way (`GOAL_HOLD_BELOW`), or along the facing with
+## neither, at the speed the entry's goal says (`PlayerEntry.goal_step`). The stepped body's starts
+## and stops read its command's goal; the puppet's read this (gdstudio #1420). The speed comes from
+## the entry, not the heading: from standing the heading still rises through the walk's speed
+## when the start is picked, so a jog or a sprint played the walk's start (gdstudio #1453).
+static func goal_of(
+	entry: PlayerEntry, heading: Vector3, kept: Vector3, full_speed: float
+) -> Vector3:
 	if entry.halt:
 		return Vector3.ZERO
-	if Vector2(heading.x, heading.z).length() < GOAL_HOLD_BELOW:
-		return kept
-	return heading
+	var fast := Vector2(heading.x, heading.z).length() >= GOAL_HOLD_BELOW
+	if entry.goal_step <= 0:
+		return heading if fast else kept
+	var way := Vector3(heading.x, 0.0, heading.z) if fast else Vector3(kept.x, 0.0, kept.z)
+	if way.is_zero_approx():
+		way = Vector3.BACK.rotated(Vector3.UP, entry.yaw)
+	return way.normalized() * SnapshotCodec.goal_from_step(entry.goal_step, full_speed)
 
 
 ## Puts `puppet` at `spot` at once (a join, a warp): nothing eased is left over.

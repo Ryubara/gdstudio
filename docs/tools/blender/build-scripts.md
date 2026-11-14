@@ -36,7 +36,7 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1150, 2026-11-11 (a page section
   written through a heredoc); gdstudio #1149, 2026-11-11 (a heredoc that wrote `styles.py` held "an artist's"; and a
   patch that matched whole lines stopped matching once `gdformat` had rewritten the file with CRLF: read the file
-  with its line ends folded to LF before matching); gdstudio #1151, #1154 and #1155, 2026-11-11 (the same).
+  with its line ends folded to LF before matching); #1151, #1154, #1155 (11-11), #1289, #1291 (11-12), the same.
 - **Approach:** Run every build stage with `--python-exit-code 1` and stop on a non-zero exit. **Watch out for:**
   without it Blender exits 0 when the script raises, so a runner that reads the exit code printed `exit 0` above a
   traceback and the next stage opened the last good file. **Seen:** gdstudio #1151, 2026-11-11 (fix: the flag in
@@ -101,8 +101,8 @@ again ([checked in CI](#ci)).
   rebuilds before it lands. **Watch out for:** a file held only to the hash its own build wrote (`fixed.glb`) stays
   green while the measure under it changes: once the measure turned the `form` bodies' twist bones, a rebuild keyed
   the dash's leg swivel at 34 degrees for 41. **Seen:** gdstudio #1325 after #1323, 2026-11-12 (fix: rebuilt after
-  merging `main`); #1479, 2026-11-14 (the limb overlap reports carry the hash of the measure's code and of each
-  body, and `BodiesOverlap.problems` fails on another; `fixed_clips.json` and `vault_clips.json` do not yet).
+  merging `main`); #1479 and #1491, 2026-11-14 (the limb reports and the fixed, vault and melee numbers carry the
+  hash of the measure's code and of each body, `measure_hash.made_by`; `BodiesOverlap.stale` fails on another).
 - **Approach:** After any edit to `limb_overlap.py`, measure every `*_overlap.json` report again with the pinned
   Blender (the commands in `check_clip_builds.py`'s `overlap_*` entries, and `own/build_own.py ship locomotion
   --blender` for `own/bodies_overlap.json`) and commit them in the same pull request. **Watch out for:** an edit

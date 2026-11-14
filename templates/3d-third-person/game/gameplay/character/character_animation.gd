@@ -667,7 +667,8 @@ func _drive_pistol(delta: float) -> void:
 	var stow := maxf(stowed, _vault_look.hands)
 	var hidden := stowed > 0.5 or _vault_look.away
 	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, hidden)
-	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
+	var grip := up_share * CharacterSlide.grip_share(character, hold)
+	var armed := grip * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
 	var arm := _brace.arm(self, delta)
 	# Lying with a prone aim, its clips (in the prone state) stand in for the standing layers.

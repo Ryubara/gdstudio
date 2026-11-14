@@ -107,8 +107,9 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   for:** browser pages whose every skinned body read twice its cost were put down to 100 % processor load for an
   hour; the same pages on a quieter machine still read twice, and the cause was a GL buffer state the bench set in
   some pages and not others ([the buffer hint](web-export.md#skin-buffer-hint)). **Seen:** gdstudio #1260,
-  2026-11-11; gdstudio #1323, 2026-11-12 (three template time budgets red locally with about nine Godot runs up;
-  `origin/main` in a detached worktree failed the same ones in the same hour, so the branch went to CI).
+  2026-11-11; #1323, 11-12 (three time budgets red locally; `origin/main` in a detached worktree failed the same
+  ones in the same hour, so the branch went to CI); #1275, #1191, 11-12 (the walkers' ratio 1.46 to 2.27 on `main`
+  itself, the AI soak's think p99 about 10,000 µs against 3,200; green in CI).
 - **Approach:** Trace a frame rise across commits by the parts, not the frame: a game at each commit (`git restore
   --source=<sha> --staged --worktree -- templates/`, `gds template game <t>`), the parts bench in each, interleaved,
   each part read as a share of one no commit touched (the body's step); split the part that rose with a probe of
@@ -116,6 +117,11 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   case's ratio spread 1.47 to 1.86 on one build, too wide for a 0.3 ms change, where the step share split the rise
   into three commits; at the printed path itself Godot finds no project and waits silent until the timeout.
   **Seen:** gdstudio #1360, 2026-11-13 (10 minutes lost to the path).
+- **Approach:** Time a candidate ruler outside the measured window (before it, after it, or in a run of its own), never
+  between the frames being measured. **Watch out for:** heavy rulers (a tree of its own, physics, a walk through a
+  large table) timed between the measured frames made the frame about a third slower on the runners, so the trial
+  measured the rulers' cost as well as the frame's. **Seen:** gdstudio #1451 (PR #1455), 2026-11-13 ([the parts'
+  cost](third-person/character.md#parts-cost)).
 
 ## A leak is read as a count at the same crowd, round after round {#leak-count}
 

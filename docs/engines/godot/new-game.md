@@ -133,7 +133,8 @@ with the first line of its message). The folder is removed when the run ends, pa
 else is: it refuses a folder that is not one of its own. The exit code is GdUnit4's (100 failed tests, 105 a script that
 does not parse; 1 for a layout or parse failure, a run that ran no suite, or a `leaked at exit` line, which CI refuses).
 Options: `--suite tests/core/test_x.gd` (repeat it; one `-a` per suite in the order given, default all of
-`res://tests`), `--keep` (keep the game and print its path), `--fixed-fps N` (default 60, the clock CI runs the suites
+`res://tests`), `--keep` (keep the game and print its path: the repository folder, whose `game/` is the Godot
+project that `--path` names), `--fixed-fps N` (default 60, the clock CI runs the suites
 at: Godot runs a frame per tick with no waiting, [test-speed.md](test-speed.md#time-driven-values)) and `--real-clock`
 (no flag, for a check on the wall clock), `--godot-args='...'` and `--gdunit-args='...'` for any other argument (joined
 with `=`, since a bare `--flag` looks like an option to the command), `--timeout`. `gds template game <name>` makes the
@@ -210,7 +211,8 @@ every exit, kept with `--keep`, two calls at once).
   **Watch out for:** `gds template test` passes without them, since it imports in its own copy, but CI imports inside
   the template and its step that nothing the build made is left for git fails on each missing `.import` (six minimap
   icons); an `.import` written by hand from a sibling's keeps its path hash and has no `uid`, so the import rewrites
-  it. **Seen:** gdstudio #884, 2026-11-10; gdstudio #887, 2026-11-10 (nine weapon sounds copied from
+  it ([import checks](../../tools/blender/export.md#import-checks)). **Seen:** gdstudio #884, 2026-11-10; gdstudio #887,
+  2026-11-10 (nine weapon sounds copied from
 another game with no `.import`: the full local run was green and CI's step failed); #1293 (PR #1323), 2026-11-12
   (two clip files' `.glb.import` copied from `prone.glb.import` and renamed); #1342 (PR #1389), 2026-11-12 (the
   bandage's two sounds written by `tools/audio/sfx.py encode`, which makes no `.import`).
@@ -239,10 +241,12 @@ another game with no `.import`: the full local run was green and CI's step faile
   its cost suites, or run those suites again alone on a quiet machine before believing a failure. **Watch out for:**
   the cost tests time real work against budgets, so a capture or an export running beside them made a fast step read
   slow and failed a suite the change never touched. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11.
-- **Approach:** To read a number a suite prints (a measured cost, a count), run `gds template test` with `--keep` and
-  read the kept folder's `gdunit.log`, then remove it with `gds template clean <path>`. **Watch out for:** a
-  passing run removes its folder, log included, so the numbers a passing suite printed were gone once it ended.
-  **Seen:** gdstudio #1198 (PR #1223), 2026-11-11.
+- **Approach:** To read a number a suite prints (a measured cost, a count, a `print` line), run `gds template test`
+  with `--keep` and read the kept folder's `gdunit.log`, then remove it with `gds template clean <path>`; after a
+  failing run, read the log named on the run's line starting `log` (a `gds-tt-*.log` in the temporary folder).
+  **Watch out for:** the run shows each suite's counts and failure lines, never a test's `print` output, and a
+  passing run removes its folder, log included, so the newest `gds-tt-*.log` belongs to an earlier failing run.
+  **Seen:** gdstudio #1198 (PR #1223), 2026-11-11; #1273, #1356, #1362 and #1344, 11-12; #1410 (PR #1425), 11-13.
 - **Approach:** Give a new script of a synced addon (`godot/addons/<name>/` in the kit) its `.uid` in the addon's
   source, then sync: `uv run --project python python -c "from pathlib import Path; from gds_tools import uids;
   print(uids.write(uids.uid_file(Path('<script>.gd'))))"`. **Watch out for:** `gds template uids` skips every
@@ -298,15 +302,15 @@ What each template plays, and on which bus (the buses and the volume node are in
 | `3d-third-person` | the wind loop, at -20 dB (replace it by changing the `stream` of the one `Wind` player; level and bus stay) | the same `Wind` player | `Ambient` |
 | `3d-third-person` | footsteps (four soft sneaker steps, `assets/audio/footsteps/`) | `Footsteps` (`Step` at -20 dB, `CrouchStep` at -29, `LandStep` at -15), a step each time a foot of the animated skeleton lands | `SFX` |
 | `3d-third-person` | the coin (four files, `assets/audio/coin/`) | the `Sound` node of every `Pickup` at -16 dB, one file a pickup | `SFX` |
-| `3d-third-person` | a pistol shot (five files, `assets/audio/pistol/`, Deadnight's House Pistol, MIT) | the `ShotSound` of `Weapon`: an `AudioStreamRandomizer` (pitch spread 4%, +-1 dB) at -22 dB, three voices | `SFX` |
+| `3d-third-person` | a pistol shot (five files of 0.47 s, `assets/audio/pistol/`, ElevenLabs on the paid plan, kit #1414) | the `ShotSound` of `Weapon`: an `AudioStreamRandomizer` (pitch spread 4%, +-1 dB) at -24 dB, three voices | `SFX` |
 | `3d-third-person` | the weapon pickup (two files, `assets/audio/weapon_pickup/`, ElevenLabs on the paid plan: commercial use, no attribution) | the `Sound` node of every `WeaponPickup` at -20 dB, one file a pickup (pitch spread 3%) | `SFX` |
-| `3d-third-person` | the rifle (a shot in five files, the empty click, three reload steps and the draw, `assets/audio/rifle/`, Deadnight's M4A1, MIT) | the `Weapon`'s players from `rifle.tres`: the shot an `AudioStreamRandomizer` at -27 dB | `SFX` |
+| `3d-third-person` | the rifle (a shot in four files of 0.29 s, ElevenLabs on the paid plan, kit #1414; the empty click, three reload steps and the draw, Deadnight's M4A1, MIT; `assets/audio/rifle/`) | the `Weapon`'s players from `rifle.tres`: the shot an `AudioStreamRandomizer` at -24.5 dB | `SFX` |
 | `3d-third-person` | the pistol's empty click, reload steps and draw (`assets/audio/pistol/`) and the fists' swing (`assets/audio/fists/`) | `EmptySound` (-12 dB), `ReloadSound` (-16) and `DrawSound` (-10) of `Weapon`, and its `ShotSound` with the fists' `shot_volume_db` (-27) | `SFX` |
 | `3d-third-person` | the bandage's use (two files, `assets/audio/bandage/`, ElevenLabs on the paid plan) | the `Sound` of the player's `ItemUse` at -14 dB, from `gameplay/inventory/bandage_use.tres` (an `AudioStreamRandomizer`, pitch spread 4%, +-1 dB) | `SFX` |
 | `3d-third-person` | bullet impacts (nine files, `assets/audio/impacts/`: default, wood and metal, three each) | the `sound` of each `ImpactSurface`'s `EffectDef`, played at -10 to -14 dB from the `EffectEmitter`'s pool | `SFX` |
 | `3d-third-person` | the menus' sounds (fourteen files, `assets/audio/ui/`: hint, press, confirm, move, toggle, swish) | the twelve players of the `MenuSounds` autoload (`ui/menus/menu_sound_service.tscn`), from the cues of every `gds_ui` control, the router and the inventory's slots ([Menu sounds](audio.md#menu-sounds)) | `UI` |
 
-Every template sound but the pistol shots is generated with ElevenLabs Sound Effects on a paid plan by the kit's
+Every template sound but the rifle's mechanics is generated with ElevenLabs Sound Effects on a paid plan by the kit's
 `tools/audio/sfx.py` ([Sound effects](../../gamedev/audio/sound-effects.md), kit #1083).
 
 - **Approach:** Prove a workflow written for games with a real run in a real game repository: make a throwaway game with
@@ -347,11 +351,12 @@ Every template sound but the pistol shots is generated with ElevenLabs Sound Eff
 - **Approach:** Capture and import in a made game, never in the template's own `game/` folder, and read the capture's
   error count before its frames. **Watch out for:** the template's folder lacks the synced addons, so `AudioSettings`
   and the other shared classes do not parse there: a capture run in it wrote 255 frames of a scene whose script never
-  loaded (571 error lines), and an import there rewrote the lightmaps' `.import` files. **Seen:** gdstudio #1295,
+  loaded, and an import there rewrote the lightmaps' `.import` files. **Seen:** gdstudio #1295,
   2026-11-11 (fix: `gds template test --keep`, the tour copied into the kept game, `gds template clean` after);
   gdstudio #1320, 2026-11-11 (a probe script run with `--path` at the kept folder the command prints, which is the
   game's repository: the Godot project is its `game/` folder, the script found no resource, did not quit and held
-  the shell for its ten minutes; run every such probe under `timeout 120`); #1274 and #1319, 2026-11-12.
+  the shell for its ten minutes; run every such probe under `timeout 120`); #1274 and #1319, 2026-11-12; #1508,
+  11-14.
 
 ## What every template is built and reviewed against {#template-checklist}
 

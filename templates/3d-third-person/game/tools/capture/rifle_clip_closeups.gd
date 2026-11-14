@@ -28,6 +28,7 @@ const POSES: Dictionary[StringName, Array] = {
 	&"Rifle_Aim_Down": [1.0, -45.0, false, [0.0]],
 	&"Rifle_Shoot": [1.0, 0.0, false, [0.0, 0.0834, 0.25, 0.4167]],
 	&"Rifle_Reload": [0.0, 0.0, true, [0.06, 0.12, 0.2, 0.3, 0.42, 0.56, 0.62, 0.7, 0.76, 0.88]],
+	&"Rifle_Reload_Empty": [0.0, 0.0, true, [0.7, 0.76, 0.82, 0.88]],
 }
 ## The views: the name, where the camera is, what it looks at and which way is up, in the
 ## model's space (it faces +Z, its left is +X).
@@ -93,6 +94,8 @@ func _pose(stage: RifleStage, clip_name: StringName, clip: Animation, share: flo
 	held.posed_aim = state[0]
 	held.posed_pitch = state[1]
 	held.posed_reload = share if state[2] else -1.0
+	# Only the empty magazine's reload pulls the charging handle (kit #1508).
+	held.charge_bolt.posed_pulls = clip_name == &"Rifle_Reload_Empty"
 	# The kick is whole on the tick of the shot and gone `kick_recover_time` of real time later.
 	var kick := 0.0
 	if clip_name == &"Rifle_Shoot" and share > 0.0:
