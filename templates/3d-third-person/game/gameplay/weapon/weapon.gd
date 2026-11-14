@@ -478,21 +478,7 @@ func aim_point(origin := Vector3.INF, direction := Vector3.ZERO) -> Vector3:
 	var along := direction.normalized()
 	var start := _at_shooter_depth(origin, along)
 	var end := start + along * reach
-	var skipped: Array[RID] = []
-	for _pass in AIM_PASSES:
-		var found := _cast(start, end, skipped)
-		if found.is_empty():
-			return end
-		var zones := (
-			HitZones.of(found["collider"]) if found["collider"] is CharacterBody3D else null
-		)
-		if zones == null:
-			return found["position"]
-		var on_part := zones.aimed_point(found["position"], along)
-		if on_part.is_finite():
-			return on_part
-		skipped.append(found["rid"])
-	return end
+	return WeaponRay.aim_point(self, start, end, along, AIM_PASSES)
 
 
 ## The projectiles of this weapon in flight now.
@@ -699,8 +685,14 @@ func _scan(
 		)
 		if record != null:
 			zones.deliver(record)
+			if found["collider"] != zones.body_met(found["collider"]):
+				# Met on the shot hull, which is nowhere drawn: the hit is on the part.
+				found["collider"] = zones.body_met(found["collider"])
+				found["position"] = record.point
 			break
 		skip.append((found["collider"] as CollisionObject3D).get_rid())
+		for body in zones.shot_bodies():
+			skip.append(body.get_rid())
 		if shot_rewind != null:
 			shot_rewind.skip(found["collider"])
 		found = {}
@@ -761,12 +753,7 @@ func _scan(
 func _cast(start: Vector3, end: Vector3, skip: Array[RID] = [], mask := -1) -> Dictionary:
 	if not is_inside_tree():
 		return {}
-	var query := PhysicsRayQueryParameters3D.create(start, end, aim_mask if mask < 0 else mask)
-	var excluded: Array[RID] = skip.duplicate()
-	if shooter != null:
-		excluded.append(shooter.get_rid())
-	query.exclude = excluded
-	return get_world_3d().direct_space_state.intersect_ray(query)
+	return WeaponRay.cast(self, start, end, skip, aim_mask if mask < 0 else mask)
 
 
 # The interval to the next pull (`interval`, the shot interval by default), less what the last tick
@@ -961,11 +948,10 @@ func _trace(start: Vector3, end: Vector3) -> void:
 
 
 # Where a cosmetic hitscan ray from `start` along `heading` ends on this screen (a puppet's shot:
-# what it meets first, or its reach); the server's HIT may end its tracer sooner.
+# the drawn part or the thing it meets first, or its reach); the server's HIT may end it sooner.
 func _ray_end(start: Vector3, heading: Vector3) -> Vector3:
-	var reach := definition.ray_reach()
-	var found := _cast(start, start + heading * reach, [], definition.ray_mask(aim_mask))
-	return found["position"] if not found.is_empty() else start + heading * reach
+	var mask := definition.ray_mask(aim_mask)
+	return WeaponRay.end_of(self, start, heading, definition.ray_reach(), mask)
 
 
 func _player(node_name: StringName) -> AudioStreamPlayer3D:
