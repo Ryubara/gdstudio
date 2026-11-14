@@ -45,6 +45,7 @@ func _all_events() -> Array[NetEvent]:
 			Vector3(2.0, 1.4, -6.0),
 			Vector3(0.0, -0.1, 1.0).normalized()
 		),
+		NetEvent.use(4, NetEvent.UseCode.APPLIED, 2, 9_001, 1, 80),
 	]
 	return events
 
@@ -84,6 +85,8 @@ func _assert_event(actual: NetEvent, expected: NetEvent) -> void:
 	assert_int(actual.tick).override_failure_message(label).is_equal(expected.tick)
 	assert_str(actual.player_name).override_failure_message(label).is_equal(expected.player_name)
 	assert_array(actual.state).override_failure_message(label).is_equal(expected.state)
+	assert_int(actual.amount).override_failure_message(label).is_equal(expected.amount)
+	assert_int(actual.detail).override_failure_message(label).is_equal(expected.detail)
 	assert_vector(actual.point).is_equal_approx(expected.point, Vector3.ONE * 0.005)
 	if expected.kind in [NetEvent.Kind.SHOT, NetEvent.Kind.HIT]:
 		assert_vector(actual.direction).is_equal_approx(expected.direction, Vector3.ONE * 0.001)
@@ -190,6 +193,7 @@ func test_each_event_size_matches_its_layout() -> void:
 		NetEvent.Kind.PICKUP: 4,
 		NetEvent.Kind.REJECTED: 6,
 		NetEvent.Kind.AI: 14,
+		NetEvent.Kind.USE: 8,
 	}
 	var lines := PackedStringArray()
 	for event in _all_events():
@@ -248,8 +252,9 @@ func test_the_longest_welcome_fits_its_limit_and_round_trips() -> void:
 	var players := _players(NetLimits.MAX_PLAYERS)
 	for player in players:
 		player.player_name = "n".repeat(NetLimits.NAME_BYTES)
-		# The longest: every player aims, so every entry carries its aim byte.
+		# The longest: every player aims and leans, so every entry carries its aim and lean bytes.
 		player.aim = true
+		player.peek = 0.5
 	var packet := SnapshotCodec.welcome(7, 555, 0xABCDEF01, entities, players)
 	assert_int(packet.size()).is_equal(SnapshotCodec.MAX_WELCOME)
 	var welcome := SnapshotCodec.read_welcome(packet)
@@ -274,6 +279,18 @@ func test_an_empty_welcome_round_trips() -> void:
 	assert_object(welcome).is_not_null()
 	assert_int(welcome.entities.size()).is_equal(0)
 	assert_int(welcome.players.size()).is_equal(0)
+
+
+func test_a_use_event_with_a_code_this_version_does_not_know_is_dropped() -> void:
+	var event := NetEvent.use(1, NetEvent.UseCode.STARTED, 0, 5)
+	assert_object(SnapshotCodec.snap_event(event)).is_not_null()
+	event.code = NetEvent.UseCode.REFUSED + 1
+	assert_object(SnapshotCodec.snap_event(event)).is_null()
+	event.code = 0
+	assert_object(SnapshotCodec.snap_event(event)).is_null()
+	# A place past one byte cannot travel.
+	var far := NetEvent.use(1, NetEvent.UseCode.STARTED, 256, 5)
+	assert_int(SnapshotCodec.event_size(far)).is_equal(-1)
 
 
 func test_what_cannot_travel_is_not_sent() -> void:

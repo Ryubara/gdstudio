@@ -99,7 +99,7 @@ func test_each_held_button_is_its_bit() -> void:
 func test_a_press_is_in_exactly_one_command_however_long_it_is_held() -> void:
 	var presses := {&"jump_pressed": 0, &"interact_pressed": 0, &"ragdoll_pressed": 0}
 	InputSim.key(KEY_SPACE, true)
-	InputSim.key(KEY_E, true)
+	InputSim.key(KEY_F, true)
 	InputSim.key(KEY_Y, true)
 	for tick in 20:
 		await get_tree().physics_frame
@@ -119,7 +119,7 @@ func test_two_physics_ticks_in_one_frame_still_see_one_press() -> void:
 	_player.jumped.connect(func() -> void: jumps[0] += 1)
 	for tick in 8:
 		await get_tree().physics_frame
-	InputSim.key(KEY_E, true)
+	InputSim.key(KEY_F, true)
 	var presses := 0
 	var frames := Engine.get_process_frames()
 	for tick in 12:
@@ -129,7 +129,7 @@ func test_two_physics_ticks_in_one_frame_still_see_one_press() -> void:
 			presses += 1
 	frames = Engine.get_process_frames() - frames
 	Engine.physics_ticks_per_second = usual_rate
-	InputSim.key(KEY_E, false)
+	InputSim.key(KEY_F, false)
 	await InputSim.ticks(get_tree(), 4)
 	assert_int(presses).is_equal(1)
 	# The run did put more than one tick in a frame, or it proved nothing.
@@ -161,7 +161,7 @@ func test_input_off_asks_for_nothing_and_keeps_the_view_and_a_toggled_crouch() -
 	_player.input_enabled = false
 	InputSim.key(KEY_W, true)
 	InputSim.key(KEY_SHIFT, true)
-	InputSim.key(KEY_E, true)
+	InputSim.key(KEY_F, true)
 	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
 	await InputSim.ticks(get_tree(), 6)
 	var command := _stepped()
