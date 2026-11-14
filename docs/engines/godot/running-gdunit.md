@@ -100,7 +100,9 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   clip's time there from the tree (`parameters/<node>/current_position`), not from the body or a clock. **Watch out
   for:** bones read before that signal, or set from a node that runs after the tree, show the frame before: a planted
   wrist read 67 mm off for each frame of lag at 4 m/s. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11
-  (`test_vault_contacts.gd`).
+  (`test_vault_contacts.gd`); gdstudio #1347, 2026-11-13 (a pose dump for a before and after read
+  `get_bone_global_pose` after awaiting the update and found every bone 0.00 micrometres from `main` while the rifle's
+  pivot moved 0.53: those were the bones before the modifiers; the hold stage's `skeleton_updated` snapshot read 0.84).
 
 - **Approach:** To iterate on one suite, keep a game (`gds template test <t> --keep`), copy the files you change into
   its `game/` and rerun that suite there with the command line above; make a fresh game for the full run before the

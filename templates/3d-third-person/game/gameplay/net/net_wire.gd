@@ -29,9 +29,9 @@ extends RefCounted
 ## PONG     S->C  u8 type=7, the same u32 and u16, u32 server tick. 11 bytes
 ##
 ## A player entry: u8 slot, s16 x/y/z (cm), u16 yaw, u8 state, u8 flags (crouch, aim, sprint,
-## air, rising, dead, peek), s8 pitch, with the aim flag s8 the aim's heading off the body, and
-## with the peek flag s8 the lean (`SnapshotCodec`). 12 bytes, 13 while aiming or leaning, 14
-## while both.
+## air, rising, dead, peek, halt), s8 pitch, with the aim flag s8 the aim's heading off the
+## body, and with the peek flag s8 the lean (`SnapshotCodec`). 12 bytes, 13 while aiming or
+## leaning, 14 while both.
 ##
 ## Every decoder checks each length before it reads, answers null (or -1) for a packet that is
 ## not exactly one message, and counts why in a `NetDrops` (never silent). The version is read
@@ -52,12 +52,14 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## the melee press, a MELEE event and an AI event's `MELEE` code (gdstudio #1254); 9: a COMMAND's
 ## byte 14 carries the hotbar place used, and a USE event (gdstudio #1386); 11: a COMMAND's byte
 ## 13 carries the peek lean and a leaning player's entry ends with it (gdstudio #1400; 10 is named
-## by open pull requests beside it); 12: a server's left-leaning body starts a muzzleless shot on
-## the left (gdstudio #1435), so a client predicts its shots as the server steps them.
-const VERSION := 12
+## by open pull requests beside it); 13: a player entry's flags carry `halt`, asked for no move
+## (bit 7, gdstudio #1420); 16: a server's left-leaning body starts a muzzleless shot on the left
+## (gdstudio #1435; 12, 14 and 15 are named by open pull requests beside it), so a client
+## predicts its shots as the server steps them.
+const VERSION := 16
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 12
+const MIN_VERSION := 16
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1

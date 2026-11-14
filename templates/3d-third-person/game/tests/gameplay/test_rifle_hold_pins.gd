@@ -77,6 +77,7 @@ const CHARGE_PINS := {
 	&"pull": Vector2(0.8, 0.86),
 	&"release": Vector2(0.86, 0.88),
 	&"slam": 0.015,
+	&"straight_return": Vector2(0.66, 0.86),
 }
 const MODIFIER_PINS := {
 	&"pose": null,
