@@ -59,7 +59,7 @@ func test_the_held_hostile_s_episode_prints_its_ticks() -> void:
 	var columns: Array = held.columns
 	var rows: Array = held.rows
 	# The episode passed the gate's 10 s; the block keeps the ring's last 10 s of it, a row a tick
-	# up to its last (the held hostile may be shot dead before the run's end closes the episode).
+	# up to its last (the held hostile may be shot dead: its death closes the episode).
 	assert_float(float(held.seconds)).is_greater(10.0)
 	assert_int(rows.size()).is_equal(600)
 	var last: Array = rows[-1]

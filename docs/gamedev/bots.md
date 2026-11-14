@@ -187,7 +187,7 @@ each an exported threshold:
 | --- | --- |
 | `error` | the engine logs an error (a `Logger`) |
 | `stuck_episode` | a living character keeps asking its navigator for a goal and moves under 0.5 m for 10 s (a gap of a second without a goal ends the episode; a death or a respawn starts it again) |
-| `stuck_share` | the stuck seconds of all characters (episodes past 2 s) are over 1 % of their walking seconds |
+| `stuck_share` | the stuck seconds of all characters (episodes past 2 s) are over 1 % of their walking seconds; a death or leaving the tree ends the episode at the character's last watched tick |
 | `idle_with_threat` | its brain has a hostile in view and its controller asks for nothing (no reload, no switch) for 5 s |
 | `task_overdue` | the runner's active task, or the fallback it failed into, is active without a break past its hard timeout and 1 s |
 | `path_storm` | more queries in 5 s than 5 s over the navigator's `repath_seconds`, and one |
@@ -213,10 +213,11 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
 - **Probe:** `--probe` (every kind), `--probe Civilian,Grunt` (those kinds, by profile name) or the environment variable
   `SOAK_PROBE` (same values; the watch's `probe_episodes` in the inspector) keeps a row a tick of each probed character
   and prints an `AI_SOAK_EPISODE {json}` block when a stuck episode that counts toward `stuck_share` ends: the
-  character, `from`, `seconds`, `walking`, `alive` and `until` (a body shot dead in an episode keeps it open until the
-  run's end, as the share counts it), the columns and up to `--probe-ticks` (600) rows from a second before the
-  episode: time, x, z, speed, the watch's "going", the navigator's mode, arrived, path left, refusal, stuck rung and
-  goal, the controller's push and sprint, the situation and the active task. The result gains `probe_episodes`. Off,
+  character, `from`, `seconds`, `walking`, `alive` and `until` (a body shot dead in an episode ends it at its last
+  watched tick, so the block comes then, with `alive` false), the columns and up to `--probe-ticks` (600) rows from a
+  second before the episode: time, x, z, speed, the watch's "going", the navigator's mode, arrived, path left,
+  refusal, stuck rung and goal, the controller's push and sprint, the situation and the active task. The result gains
+  `probe_episodes`. Off,
   nothing is recorded; on, it makes no object (`AiSoakProbe` is static functions), so the run is the run without it
   (`test_ai_soak_probe.gd` compares the hashes of seed 11 for 120 s and reads the held body's block in the stuck
   fault's run).
@@ -232,7 +233,11 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
 - **Approach:** Reset everything a watch keeps of a character when it was out of sight for a tick (dead, back in the
   pool, spawned again), since a pooled character is the same object across lives. **Watch out for:** the first stuck
   gate kept a shooter's anchor and goal time through its death and broke 20 s after it respawned on the marker it died
-  near. **Seen:** gdstudio #971, 2026-11-11 (`AiSoakWatch._begin_life`).
+  near. Close the open episode on the tick the character is first missing, at its last watched tick, rather than at
+  the run's end: a grunt shot dead 0.2 s into an episode kept it open 15 s and its walking counted as stuck (deaths
+  were every enemy's stuck seconds on seeds 1 to 8 and 11; the share's mean fell from 0.14 % to 0.09 %, the commands
+  unchanged). **Seen:** gdstudio #971, 2026-11-11 (`AiSoakWatch._begin_life`); #1548, 2026-11-14
+  (`AiSoakWatch._close_unseen`).
 - **Approach:** Give a soak's autopilot what it needs to keep the scenario going (ammunition refilled, aim at the
   target's chest as it stands now) and count the rescues apart, so a round that needs the safety net says so.
   **Watch out for:** the pilot ran dry after its 24 rounds and clicked an empty pistol for minutes, and it aimed over
