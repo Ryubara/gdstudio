@@ -102,6 +102,14 @@ are the body under that.
   another way, and each bone is keyed in its parent), while every test of the hands on the rifle still passed,
   because the hold moves the arms. Only the own-arms test saw it. **Seen:** gdstudio #1267, 2026-11-12 (fix:
   `BASE_CLIP`, `library_pose()`'s steadiest frame, `base` in `rifle_clips.json`; 0.9 mm).
+- **Approach:** When a pose a clip joins changes (the rifle idle under the rifle's blows), rebuild every clip that
+  joins it in the same change, and re-key by the idle's move: the way back follows the idle in full, the contact
+  half of it (the target stays where it was), and a collarbone the new idle raises is keyed down against it.
+  **Watch out for:** the blows key the rifle in the character's space but leave and rejoin the idle, so after #1399
+  raised the idle's grip 76 mm (and the left collarbone with the hold's reach) the left arm locked and stood 3 to
+  19 mm short of the hand guard on the way back and nothing could be rebuilt; no check ran the melee build, and
+  moving every key by the full 76 mm put the stroke's dropped butt 27 mm into the right upper arm. **Seen:**
+  gdstudio #1493, 2026-11-13 (`RIFLE_BLOWS`; all nine variants pass, the contact 38 mm higher).
 - **Approach:** When the hold a build mirrors changes on `main`, port every step of its diff that moves the weapon
   or a bone, build, and read what the search solved and where the weapon ended before any test; a state the hold
   settles over frames (the push) is worked out to its settled value. **Watch out for:** after the hold gained the

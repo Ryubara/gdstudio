@@ -57,7 +57,7 @@ category's blow.
   own place. A blow raises no aim (`MeleeLayer.aim_of`), so the finger stays off the trigger, and the aimed head
   (`AimLayer.head_weight()`) reads the same, so an aimed rifle's head does not follow the swinging sights.
   `blow_amount()` says how far it is; `posed_blow` poses it by hand. The rifle's window is the span of its clips'
-  measured contacts on both bodies, 0.25 to 0.44 s: a heavy rifle comes into contact slower (3.4 to 4.2 m/s, the
+  measured contacts on both bodies, 0.25 to 0.44 s: a heavy rifle comes into contact slower (3.5 to 4.4 m/s, the
   fists 6.8 to 8.7) and lingers near it.
 
 | Category | Reach | Damage | Cooldown | Hit window | Hits to kill: head, chest, arm, thigh |
