@@ -280,7 +280,7 @@ jobs, and on a desktop other agents load. Read its number as the runner's as muc
   under the twice-as-slow case's lowest. **Watch out for:** limits set from a soak of the suite alone failed twice a
   day in the template job, which runs it after other suites in one process: there the AI's counters and heap differ
   and the same code read 1.6 to 1.8 times apart, against 1.4 fresh. **Seen:** gdstudio #1526, 2026-11-14 (fix:
-  `AiCostBench`, three processes, score limit 1.45; 50 soak runs read 0.88 to 1.22, twice as slow 1.76 to 2.44).
+  `AiCostBench`, three processes, score limit 1.48; 150 soak runs read 0.88 to 1.26, twice as slow 1.76 to 2.54).
 - **Approach:** When collecting a gate's rows from many CI runs, fetch only the job that prints them and wait on a run
   with one background `gh run watch --interval 60`; put everything the change needs (the shard time table too) in
   before the pull request's soak starts. **Watch out for:** 270 runs' job lists and logs beside three `gh run watch`

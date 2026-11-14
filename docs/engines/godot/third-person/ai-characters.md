@@ -149,7 +149,7 @@ history over the step of the same ticks (a section of a few microseconds that a 
 [the ruler](../performance-budgets.md#budgets-counts-tight-time-loose)). The step is judged as one **score**: each
 size's step ratio over the ratio unchanged code typically reads (`STEP_RATIO_TYPICAL`, a table for Linux, the CI
 runners, and one for Windows, the desktop, since the same code builds to different speeds), pooled as a geometric
-mean, the median of the three processes, at most 1.45; one size alone may read at most 1.6 times its typical ratio, so
+mean, the median of the three processes, at most 1.48; one size alone may read at most 1.6 times its typical ratio, so
 a step that grows only with the crowd does not hide in the pool. The suite's second case,
 `test_a_step_twice_as_slow_fails_the_gate`, runs the bench on `SlowAiDirector` (`tests/fixtures/`: the step spins on
 the clock as long again as its work took, so it costs twice itself on any machine) and must see the score fail with no
@@ -165,11 +165,12 @@ Intel Xeon 8573C), 2026-11-13; Windows: 4 desktop runs with 25 Godot processes b
 | 200 | 33 to 69 us; Linux 5.0 to 6.4 (typical 6.2), Windows 8.0 to 8.9 (typical 7.8) | 105 to 210 us; Linux 14.8 to 19.6 (limit 23), Windows 23.6 to 26.0 (limit 32) | 1.7 to 3.5 us (0.037 to 0.060; limit 0.09) | 0.36 / 3.6 | 0.09 | 39 % |
 
 - Twice as slow, the step read 19.7 to 22.8, 20.3 to 21.3 and 15.1 to 17.5 a ruler ms on the desktop.
-- The score (#1526), 50 suite runs of fresh processes on CI, 2026-11-14 (AMD EPYC 9V45 and Intel Xeon 6975P-C): the
-  gate scored 0.88 to 1.22 (the median of three processes; one process 0.87 to 1.23), twice as slow 1.76 to 2.44, and a
-  step made twice as slow in `AiDirector` itself 1.86 on the desktop. The typical ratios are the medians of those runs:
-  8.7, 7.65 and 6.2 a ruler ms. Per-size limits of a ratio (11.0, 9.5 and 7.5) had failed twice that day on unchanged
-  code (11.27 at 50 on main, 9.97 at 100) inside the template job, whose 153 runs read the step 1.6 to 1.8 times apart.
+- The score (#1526), 150 suite runs of fresh processes on CI in three soaks, 2026-11-14 (AMD EPYC 9V45, 9V74, 7763,
+  Intel Xeon 6975P-C, 8573C): the gate scored 0.88 to 1.26 (the median of three processes; one process 0.87 to 1.27),
+  twice as slow 1.76 to 2.54, and a step made twice as slow in `AiDirector` itself 1.86 on the desktop. The typical
+  ratios are the medians of the first soak: 8.7, 7.65 and 6.2 a ruler ms. Per-size limits of a ratio (11.0, 9.5 and
+  7.5) had failed twice that day on unchanged code (11.27 at 50 on main, 9.97 at 100) inside the template job, whose
+  153 runs read the step 1.6 to 1.8 times apart; replayed, those rows score 0.80 to 1.30 and their slow rows 1.61 up.
 - What is left is the runner's neighbours, not its speed: one runner read every process at 0.88 for half an hour while
   another of the same model drifted from 1.0 to 1.2 and back within minutes, and the physics ruler held on both. A ruler
   that follows that drift has to feel what the step feels there (most likely the memory the neighbours share); a ruler

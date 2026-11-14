@@ -40,13 +40,13 @@ const STEP_RATIO_TYPICAL := {
 	"Windows": {50: 11.0, 100: 9.5, 200: 7.8},
 }
 ## The step's score at most: the geometric mean over the three sizes of the step ratio over its
-## typical value, the median of the runs. Those 50 suite runs scored 0.88 to 1.22 (a single
-## process 0.87 to 1.23) and the step made twice as slow 1.76 to 2.44: the limit sits about a
-## fifth above the one and below the other.
-const STEP_SCORE_LIMIT := 1.45
+## typical value, the median of the runs. Over 150 suite runs on CI (three soaks, five processor
+## models) the gate scored 0.88 to 1.26 (a single process 0.87 to 1.27) and the step made twice as
+## slow 1.76 to 2.54: the limit sits about 18 % above the one and below the other.
+const STEP_SCORE_LIMIT := 1.48
 ## One size's step ratio over its typical value (the median of the runs) at most: a size that grew
-## alone (a step that grows with the crowd) does not hide in the pool. The 50 suite runs read at
-## most 1.32, 1.20 and 1.14.
+## alone (a step that grows with the crowd) does not hide in the pool. The 150 suite runs read at
+## most 1.32, 1.29 and 1.19.
 const STEP_SIZE_LIMIT := 1.6
 ## A think (median), microseconds a ruler millisecond, at most, by system and crowd size (a think
 ## grows with the crowd it reads). Linux: 150 CI runs read 8.7 to 13.4, 11.1 to 15.4 and 14.8 to
