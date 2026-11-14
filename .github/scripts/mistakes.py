@@ -1,6 +1,7 @@
 """The checks of what is learned in topic sections (docs/studio/rules.md).
 
     python .github/scripts/mistakes.py check [--base REF]   fail on what the rules refuse (below)
+    python .github/scripts/mistakes.py near                 list the pages within 2 KB of the size limit
 
 `check` refuses, from the checkout alone: a page over the size limit, an entry without its three parts (Approach,
 Watch out for, Seen) or in the old form or too long or in a section without an explicit anchor, a malformed or repeated
@@ -9,7 +10,9 @@ corrections-log row that quotes the maintainer or links no section, and an old l
 closed. Against a base (`--base REF`; by default where the branch left origin/main and origin/main itself,
 skipped with a note when they are not known) it also refuses a file added to docs/lessons/ and a new heading without a
 reason line. It runs in pre-commit, in pytest and in the docs job of CI (`--base HEAD^1` on the merge commit of a pull
-request). Standard library only; the logic is python/src/gds_tools/lessons.py.
+request). Both commands list, as warnings that do not fail, every page within 2 KB of the size limit with its size
+(`lessons.near_limit`, gdstudio #1542), so the list of full pages is never kept by hand. Standard library only; the
+logic is python/src/gds_tools/lessons.py.
 """
 
 from __future__ import annotations
@@ -34,14 +37,21 @@ def check(argv: list[str]) -> int:
             found += lessons.base_problems(ROOT, base)
         except lessons.LessonsError as error:
             found.append(str(error))
-    print("\n".join(found), file=sys.stderr)
+    print("\n".join(lessons.near_limit(ROOT) + found), file=sys.stderr)
     return 1 if found else 0
+
+
+def near() -> int:
+    print("\n".join(lessons.near_limit(ROOT)) or f"no page is within {lessons.NEAR_PAGE_KB} KB of the size limit")
+    return 0
 
 
 def main(argv: list[str]) -> int:
     command = argv[0] if argv else "check"
     if command == "check":
         return check(argv[1:])
+    if command == "near":
+        return near()
     print(__doc__, file=sys.stderr)
     return 2
 

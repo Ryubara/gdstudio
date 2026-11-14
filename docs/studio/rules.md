@@ -180,15 +180,16 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
 
 ## Page size {#size}
 
-A page holds at most 50 KB: 51,200 bytes as the check counts them (`MAX_PAGE_KB` in `lessons.py`, for the pages
-under `docs/`), so a 50.5 KB page still passes. When one nears it, the simplest move is one subject to a sibling page
-(as `landing.md`
-left `starting-work.md` and `ai-online.md` left `third-person/ai.md`), with a short section left behind for each moved
-`{#anchor}`; a topic that has outgrown its page altogether becomes a folder of subpages (as `gamedev/audio/` did).
-Those are the times a learning makes a new page. The check names the page and its size. The section left behind is a
-short note, `Moved to [Title](new-page.md#anchor).`, linking to the same anchor on its new page (or a `<!-- moved: -->`
-note and one link): `gds brief` and `gds learn` follow it and name the new page, and an issue naming an anchor whose
-pointer was removed later still finds the one section that holds it (`lessons.moved_to`, gdstudio #1471).
+A page holds at most 50 KB: 51,200 bytes as the check counts them (`MAX_PAGE_KB` in `lessons.py`, for the pages under
+`docs/`), so a 50.5 KB page still passes. When one nears it, the simplest move is one subject to a sibling page (as
+`landing.md` left `starting-work.md` and `ai-online.md` left `third-person/ai.md`), with a short section left behind for
+each moved `{#anchor}`; a topic that has outgrown its page altogether becomes a folder of subpages (as `gamedev/audio/`
+did). Those are the times a learning makes a new page. The check names the page and its size. The pages near the limit
+are listed by `python .github/scripts/mistakes.py near` (every page within 2 KB of it, with its size; `check` prints the
+same lines as warnings that do not fail, gdstudio #1542): read that list, never a list kept by hand. The section left
+behind is a short note, `Moved to [Title](new-page.md#anchor).`, linking to the same anchor on its new page (or a
+`<!-- moved: -->` note and one link): `gds brief` and `gds learn` follow it and name the new page, and an issue naming an
+anchor whose pointer was removed later still finds the one section that holds it (`lessons.moved_to`, gdstudio #1471).
 
 - **Approach:** Split a page that is filling up at about 40 KB, not at the limit: make a folder of subpages by subject,
   named apart from the page (`third-person/` beside `third-person-template.md`), with its own `index.md`; keep the old
@@ -198,11 +199,12 @@ pointer was removed later still finds the one section that holds it (`lessons.mo
   its path (grep `.github`, `.claude`, `python`) learns the folder in the same pull request; a subpage titled like the
   one section it holds repeats its anchor, which the check refuses. **Seen:** gdstudio #983, #1029 (templates);
   #1016 (`clips.md`); #1067 (`audio-mixing/`); #1115 (`corrections-log/`); #1123 (`multiplayer-server/`).
-- **Approach:** Before adding to a page, read its size (`wc -c`): over about 45 KB, move one subject to a sibling page
-  first, in the same pull request, rather than a whole folder split; say in its reason line which page it left.
-  **Watch out for:** nothing on a page says it is near the limit, so entries kept landing on `online-client.md`,
-  `third-person/ai.md` and `hooks.md` until each sat within a few hundred bytes of 50 KB and the next entry, or a
-  merge of two that each fitted, failed the check. **Seen:** gdstudio #1193 (PR #1199), #1198 (PR #1223), #1208
+- **Approach:** Before adding to a page, run `mistakes.py near` and read its size (`wc -c`): over about 45 KB, move one
+  subject to a sibling page first, in the same pull request, rather than a whole folder split; say in its reason line
+  which page it left. **Watch out for:** nothing on a page says it is near the limit, so entries kept landing on
+  `online-client.md`, `third-person/ai.md` and `hooks.md` until each sat within a few hundred bytes of 50 KB and the
+  next entry, or a merge of two that each fitted, failed the check; a hand-kept list of full pages went stale
+  (#1542). **Seen:** gdstudio #1193 (PR #1199), #1198 (PR #1223), #1208
   (PR #1219) and #1222 (PR #1227), 2026-11-11; #1267 and #1191, 11-12 (each split `tools/blender/animation.md` its own
   way: before a split, look for an open pull request splitting the same page).
 - **Approach:** After merging main into a branch that adds to a page, run `python .github/scripts/mistakes.py check`
