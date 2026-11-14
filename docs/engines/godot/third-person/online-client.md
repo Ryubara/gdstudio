@@ -121,8 +121,13 @@ under 0.5 m/s (a reversal passes through 0; a stepped body's goal never does). T
 the drawn move heads to, so a stop begins with the move toward the halted snapshot. On the gait tour (Ada's screen beside
 Bo's) the puppet now plays `Walk_Stop`, `Jog_Stop` and `Sprint_Stop` where her own body does, about 6 frames after it
 (the draw delay), and its largest bone turns 10 to 20 degrees a frame while it moves, against 0.1 to 0.2 before; tested
-by `test_net_puppet_gait.gd`. A start picks its gait from the heading while the body still speeds up, so a jog or
-sprint start from standing shows the walk's start.
+by `test_net_puppet_gait.gd`. The goal's speed comes from the entry (gdstudio #1453): the server puts the command's
+goal speed in the state byte's top four bits, in fifteenths of the body's sprint speed (`PlayerEntry.goal_step`,
+`SnapshotCodec.goal_step`; the 15 states fit the low four; protocol 17, no byte more), and `goal_of` scales the heading's
+way to it (along the goal it had, or the facing, while the heading is too slow to tell a way). On the gait tour the
+puppet now plays `Idle_To_Jog` and `Idle_To_Sprint` where her own body does, 6 frames after it; tested by
+`test_net_starts.gd`, which also proves her own predicted body plays all three starts from standing (it did once
+`START_GRACE` landed, gdstudio #1427).
 
 Its animation throttle and render layer: [what a puppet costs](puppet-cost.md#puppet-cost). How a puppet shows a
 vault it never stepped: [a puppet's vault](traversal.md#online).
@@ -144,7 +149,8 @@ vault it never stepped: [a puppet's vault](traversal.md#online).
   on a puppet, so every moving puppet was taken for a body asked to stop and slid along in the walk's stop clip's last
   frame; the drawn motion alone could not tell a stop from a slow-down to a jog in the first 0.1 s of the brake (a
   brake guess either picked the jog's stop for a sprint or a stop for a slow-down), so one free flag bit carries the
-  stop. **Seen:** gdstudio #1420, 2026-11-13 (`PlayerPuppet.goal_of`, `PlayerEntry.halt`).
+  stop. **Seen:** gdstudio #1420, 2026-11-13 (`PlayerPuppet.goal_of`, `PlayerEntry.halt`); #1453, 2026-11-14 (the
+  heading's speed made jog and sprint starts the walk's; the goal speed rides in the state byte).
 - **Approach:** Film a puppet's turn off its body (an aim to the side) from ahead of it, on a lane read from the level's
   scene (each block's place and size) before the first run, with the watcher's camera turned to follow it; put a test's
   route on the same lane. **Watch out for:** from beside or above at 5 to 10 m a 50 degree aim and an aim along the
