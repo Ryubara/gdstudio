@@ -29,9 +29,9 @@ the male strikes 0.04 to 0.05 m higher.
 | `Melee_Pistol_Whip` | 0.733 | 0.267 | 0.241 to 0.300 | 0.58 / 0.62 | 1.58 | The pistol up beside the head and down and forward, the butt leading |
 | `Melee_Pistol_Backhand` | 0.700 | 0.267 | 0.249 to 0.296 | 0.59 / 0.63 | 1.66 | The pistol across to the left shoulder and out to the right, the slide's flat leading |
 | `Melee_Pistol_Jab` | 0.633 | 0.233 | 0.195 to 0.342 | 0.62 / 0.67 | 1.45 | The pistol back to the ribs and driven forward and up, the butt leading |
-| `Melee_Rifle_Butt_Stroke` | 0.800 | 0.300 | 0.255 to 0.436 | 0.63 / 0.67 | 1.51 | The butt swung up and forward in an arc into the jaw, the muzzle pulled down and back by the left hand |
-| `Melee_Rifle_Butt_Jab` | 0.733 | 0.300 | 0.256 to 0.437 | 0.64 / 0.67 | 1.52 | The butt lifted beside the right shoulder, the muzzle down by the left hip, then driven a short way out and back |
-| `Melee_Rifle_Smash` | 0.767 | 0.300 | 0.253 to 0.440 | 0.59 / 0.64 | 1.49 | The rifle swung level from the right across the front behind a turn of the chest, the receiver's right flat leading |
+| `Melee_Rifle_Butt_Stroke` | 0.800 | 0.300 | 0.257 to 0.437 | 0.64 / 0.68 | 1.55 | The butt swung up and forward in an arc into the jaw, the muzzle pulled down and back by the left hand |
+| `Melee_Rifle_Butt_Jab` | 0.733 | 0.300 | 0.257 to 0.438 | 0.64 / 0.68 | 1.56 | The butt lifted beside the right shoulder, the muzzle down by the left hip, then driven a short way out and back |
+| `Melee_Rifle_Smash` | 0.767 | 0.300 | 0.252 to 0.445 | 0.60 / 0.64 | 1.53 | The rifle swung level from the right across the front behind a turn of the chest, the receiver's right flat leading |
 
 The striking point is the middle finger's knuckle for the fists (`hand_l` for the jab and the hook, `hand_r` for the
 cross) and a point of the pistol for the pistol clips (`hand_r`; `gun_points` in the json, in the `Pistol` node's
@@ -40,7 +40,7 @@ within 0.1 m of where it is at contact. The swings pass through that place and a
 backhand 0.05 s); the straight blows stay near it longer. A game that wants a kinder window widens it. The
 weapon categories' windows (`gameplay/weapon/categories/`: the fists 0.14 to 0.30 s, the pistol 0.20 to 0.34 s, the
 rifle 0.25 to 0.44 s) are each the span of its three clips' windows, to a hundredth (the rifle's on both bodies, held
-by `test_rifle_melee.gd`). The rifle's windows are the longest: a heavy rifle is slower into contact (3.4 to 4.2 m/s
+by `test_rifle_melee.gd`). The rifle's windows are the longest: a heavy rifle is slower into contact (3.5 to 4.4 m/s
 against the fists' 6.8 to 8.7) and lingers near it, so its striking point stays within 0.1 m for 0.18 s; the rifle's
 cooldown (0.8 s) leaves room for it.
 
@@ -78,7 +78,7 @@ cooldown (0.8 s) leaves room for it.
 
 | Check | Limit | Worst measured |
 | --- | --- | --- |
-| A body part inside another, both bodies, every frame (`limb_overlap.py`) | 5 mm | 0.0 mm; the rifle's 1.0 mm (the stroke B's left forearm at the hip, frame 3) and the male's thighs 1.9 mm, as in the rifle idle they join |
+| A body part inside another, both bodies, every frame (`limb_overlap.py`) | 5 mm | 0.0 mm; the male's thighs 1.9 mm, as in the rifle idle they join |
 | The pistol in the body or the body in the pistol, both bodies, every frame (the holding hand aside) | 5 mm | 0.0 mm |
 | First and last pose against the pose it joins (16 main joints) | 10 mm | 0.00 mm |
 | A joint's velocity changing in one frame: wrists 6.5, elbows 6.0, shoulders 2.0, head 1.0, chest 1.0 m/s | by joint | 5.54 m/s (the cross's striking elbow), wrists 5.62 |
@@ -129,11 +129,13 @@ Both hands stay on the rifle as `TwoHandHold` holds it, so a rifle blow is keyed
 wrists: per key frame the right hand bone's place, the way the muzzle points and the way the rifle's top faces
 (`Clip.rifle`), and each hand bone is then put on its place on the rifle (the female's `RightHandTarget` and
 `LeftHandTarget`, from `tools/hold/hold_files.py`) by the arm's two-bone reach, with the elbow swung about the
-shoulder-to-hand line by a keyed angle (`Clip.elbow`). The clips start and end on frame 0 of the rifle's
-`Rifle_Idle` (`assets/animation/rifle/rifle_clips.glb`). The male is measured with his own hold (`rifle_fit_male.tres`):
-his fingers, and his left arm reaching his own `LeftHandTarget` keeping the clip's elbow, as `HoldArm.keep_elbow`
-does in the game. In the game `HoldBlow` (`gameplay/weapon/hold/hold_blow.gd`) lets the clip's right hand carry the
-rifle while a blow plays.
+shoulder-to-hand line by a keyed angle (`Clip.elbow`). The clips start and end on frame 0 of the rifle's `Rifle_Idle`
+(`assets/animation/rifle/rifle_clips.glb`), so their keys are made for that pose: when the idle moves (kit #1399
+raised its grip 76 mm and its left collarbone with the hold's reach), the way back follows it, the contact goes half
+of the way and the left collarbone is keyed against the new one (kit #1493). The male is measured with his own hold
+(`rifle_fit_male.tres`): his fingers, and his left arm reaching his own `LeftHandTarget` keeping the clip's elbow, as
+`HoldArm.keep_elbow` does in the game. In the game `HoldBlow` (`gameplay/weapon/hold/hold_blow.gd`) lets the clip's
+right hand carry the rifle while a blow plays.
 
 Each blow has three variants (`RIFLE_BLOWS`, each with its `notes`); the A of each is in `melee.glb` under the plain
 name (`RIFLE_PICKS`), all nine are in `review/melee_rifle.glb`, and every variant's numbers are in the json's
@@ -146,9 +148,9 @@ name (`RIFLE_PICKS`), all nine are in `review/melee_rifle.glb`, and every varian
 | Smash | raised level, drawn to the right, swung across at the chin's height | wide: wound further right and carried further left | rising: from the waist up into the chin, the rifle levelling |
 
 The rifle's own checks, on top of the table below (all nine variants pass): the rifle in the body with both hands
-left out (5 mm; the deepest 4.1 mm, the smash C's frame 4, the rifle's stock touching the left forearm as it winds
-up), the left hand off its place on the hand guard (1 mm; 0.0), and the wrist's bend at 60 degrees, not 40 (the
-deepest 53.8 degrees, the left wrist in the smash A's wind-up). Before the clips the build tests the rifle check
+left out (5 mm; the deepest 3.9 mm, the stroke B's frame 3, the stock touching the right upper arm as the butt
+drops), the left hand off its place on the hand guard (1 mm; 0.0), and the wrist's bend at 60 degrees, not 40 (the
+deepest 55.6 degrees, the left wrist in the smash A's wind-up). Before the clips the build tests the rifle check
 itself (`rifle_self_test`): the rifle as carried reads 0.0 mm, the hands on it 6.4 and 3.6 mm (female), a rifle
 pushed into the head 78 and 83 mm, and the three striking points (`rifle_points`: the butt, its heel, the receiver's
 side) lie on its surface.
