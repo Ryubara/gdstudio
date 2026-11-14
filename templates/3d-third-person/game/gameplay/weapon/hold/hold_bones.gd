@@ -114,8 +114,8 @@ static func between(node: Node3D, ancestor: Node) -> Transform3D:
 	return xf
 
 
-## Where an elbow points, in `holder`'s space: its `pole` marker, moved toward `left` (the right
-## elbow's `RightPoleLeft`, a child of `holder`) by `side`, the gun's share on the left shoulder.
-static func pole(holder: Node3D, pole: Node3D, left: Node3D, side: float) -> Vector3:
-	var at := pole.position if pole.get_parent() == holder else between(pole, holder).origin
+## Where an elbow points, in `holder`'s space: its `marker`, moved toward `left` (the right elbow's
+## `RightPoleLeft`, a child of `holder`) by `side`, the gun's share on the left shoulder.
+static func pole(holder: Node3D, marker: Node3D, left: Node3D, side: float) -> Vector3:
+	var at := marker.position if marker.get_parent() == holder else between(marker, holder).origin
 	return at if side <= 0.0 or left == null else at.lerp(left.position, side)
