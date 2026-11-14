@@ -7,12 +7,15 @@ extends CharacterController
 ##
 ## It reads these actions (all devices): `move_left`, `move_right`, `move_forward`, `move_back`,
 ## `jump`, `sprint`, `walk`, `interact`, `crouch`, `prone`, `aim`, `fire`, the weapon presses
-## `reload`, `next_weapon`, `previous_weapon` and `toggle_unarmed`, the melee button `melee`, and
+## `reload`, `next_weapon`, `previous_weapon` and `toggle_unarmed`, the melee button `melee`, the
+## peek lean `lean_left` and `lean_right` (and on a pad `lean_left_pad` and `lean_right_pad`, the
+## d-pad's left and right, while aim is held: `PeekInput`), and
 ## `ragdoll` (made at run time,
 ## holding the player's `ragdoll_key`). A weapon chosen on a screen (`request_weapon`) is sent as
 ## those same weapon presses, one a tick, so a screen adds nothing to the command. The number keys
 ## of the HUD's places (`QuickKeys`: `weapon_1`, `weapon_2`, `hotbar_1`...) request the place's
-## weapon the same way and use a hotbar place on the player's `Hotbar` (by its `ItemUse`).
+## weapon the same way and use a hotbar place: the command's `use_place`, which the player's
+## `ItemUse` reads after the step (a player with none uses its `Hotbar` at once).
 ## `Player.input_enabled` off gives a command that asks for nothing; the view, a crouch or prone
 ## that was toggled on and a held jump stay. How prone is asked for (a toggle, a hold, a long hold
 ## of crouch) is the player's `ProneTuning.input_mode`.
@@ -61,6 +64,7 @@ var _bound_key: Key = KEY_NONE
 var _wanted_slot := NO_REQUEST
 var _request_ticks := 0
 var _quick_keys := QuickKeys.new()
+var _peek := PeekInput.new()
 
 
 func _ready() -> void:
@@ -148,6 +152,9 @@ func sample() -> PlayerCommand:
 	command.crouch = _crouch_latch
 	_step_prone(enabled)
 	command.prone = _prone_latch
+	_peek.step(player, enabled, self)
+	command.lean_left = _peek.side < 0
+	command.lean_right = _peek.side > 0
 	# As before the command: a jump held when the input is turned off still rises its full height.
 	command.jump = Input.is_action_pressed(&"jump")
 	if not enabled:
@@ -167,12 +174,16 @@ func sample() -> PlayerCommand:
 	# The action exists: `_ready` made it.
 	command.ragdoll_pressed = Input.is_action_just_pressed(RAGDOLL_ACTION)
 	var presses := _weapon_presses()
+	if _peek.pad_leaning:
+		# The d-pad leans while aim is held: its left and right switch no weapon then.
+		presses[1] = presses[1] and not Input.is_action_pressed(&"lean_right_pad")
+		presses[2] = presses[2] and not Input.is_action_pressed(&"lean_left_pad")
 	command.reload_pressed = presses[0]
 	command.next_weapon_pressed = presses[1]
 	command.previous_weapon_pressed = presses[2]
 	command.unarmed_pressed = presses[3]
 	command.melee_pressed = presses[4]
-	_press_places()
+	_press_places(command)
 	_press_requested(command)
 	if camera != null and player != null and player.shot_wanted(command):
 		_write_shot(command, camera)
@@ -202,9 +213,9 @@ func _weapon_presses() -> Array[bool]:
 
 
 # The HUD's places pressed since the last command: a weapon place requests its weapon, a hotbar
-# place is used (through the player's `ItemUse` when it has one: an item that takes time is one
-# use a press, and a press during a use does nothing).
-func _press_places() -> void:
+# place is the command's `use_place` (the player's `ItemUse` reads it after the step, as a server
+# does: an item that takes time is one use a press, and a press during a use does nothing).
+func _press_places(command: PlayerCommand) -> void:
 	for place in _quick_keys.pressed(QuickKeys.WEAPON_ACTION):
 		var slot := QuickKeys.weapon_slot_at(player.loadout if player != null else null, place)
 		if slot != QuickKeys.NO_SLOT:
@@ -213,7 +224,8 @@ func _press_places() -> void:
 	var user := ItemUse.of(player)
 	for place in _quick_keys.pressed(QuickKeys.HOTBAR_ACTION):
 		if user != null:
-			user.request(place)
+			if command.use_place < 0:
+				command.use_place = place
 		elif hotbar != null:
 			hotbar.use(place)
 
@@ -339,3 +351,4 @@ func _step_crouch_hold(tuning: ProneTuning) -> void:
 func _on_died() -> void:
 	_crouch_latch = false
 	_prone_latch = false
+	_peek.side = 0

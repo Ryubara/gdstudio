@@ -186,7 +186,9 @@ A `PhysicsProp` has a `push_speed` of its own: the cubes of the map are 60 kg, g
 m/s, so the character (15 percent faster than the cube, to stay against it) walks slowly into them and the push clip
 plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The pistol's
 definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full automatic,
-spread, damage (34 before the hit zone's multiplier), aim range, the push it gives a body (40 N·s), the magazine (12),
+spread (none on a first shot from rest; `spread`, `first_shot_spread`, `spread_build_shots` and
+`spread_recovery_time` say how it grows over shots in a row and falls back), damage (34 before the hit zone's
+multiplier), aim range, the push it gives a body (40 N·s), the magazine (12),
 the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when the magazine is
 empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0, so it flies
 straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random pitch, two
