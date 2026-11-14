@@ -7,6 +7,8 @@ extends Node
 ## with a `ScriptedController` in place of its `PlayerInput`. `loopback` joins every client through
 ## a `LoopbackListener` (lockstep: a packet is read the tick after it is sent); otherwise over a
 ## real socket on 127.0.0.1. Every clock is the physics frame count. Free it with `auto_free`.
+## In a run that draws, `join` also draws the new screen's reflection probes to the end at once, so
+## a capture never films a body dark from a probe still drawing (`ProbeSettle`).
 
 const SERVER_SCENE := "res://gameplay/net/net_server.tscn"
 const ARENA_SCENE := "res://tests/fixtures/online_arena.tscn"
@@ -80,7 +82,20 @@ func join(player_name: String, frames := 240) -> NetClient:
 		link = conditioner
 	client.join_with(link)
 	var welcomed := await until(func() -> bool: return client.is_seated(), frames)
+	await settle(view)
 	return client if welcomed else null
+
+
+## Draws the reflection probes of `view`'s world to the end now, within this frame, so no frame
+## a capture records shows one half drawn (`ProbeSettle`; nothing to do in a headless run). `join`
+## calls it for each client's screen; a capture calls it for `server_view` after giving the
+## server's world a camera.
+func settle(view: Viewport) -> void:
+	if ProbeSettle.draws_nothing():
+		return
+	# Drawn once first, so its camera has seen its probes.
+	await get_tree().process_frame
+	ProbeSettle.draw_through(ProbeSettle.probes_to_draw([view]))
 
 
 ## Waits physics frames until `condition` holds; false after `frames`.

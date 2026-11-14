@@ -19,6 +19,8 @@ signal listening_changed(listening: bool)
 	&"crouch",
 	&"prone",
 	&"interact",
+	&"lean_left",
+	&"lean_right",
 	&"aim",
 	&"fire",
 	&"reload",
