@@ -203,7 +203,8 @@ they are rerun, replayed or read from another branch -->
   alone but not after a merge of `main`; `gdlint` ran only in local hooks, so two merges put `lobby_screen.gd` over
   1,000 with `main` green and blocked three pushes of branches that never touched it. When a push is refused for a file
   the branch never touched, read `main` first; never push past the hook. **Seen:** Deadnight #1128 and #1129,
-  2026-11-04; Deadnight #1225, 2026-11-05 (fix: a piece moved out, `gdlint` added to CI).
+  2026-11-04; Deadnight #1225, 2026-11-05 (fix: a piece moved out, `gdlint` added to CI); gdstudio #1473, 2026-11-13
+  (a saved patch's two doc lines put `two_hand_hold.gd` at 1,001 on a newer `main`).
 - **Approach:** Fetch a CI tool as its release binary, check it against a sha256 written in the workflow (from the
   release's checksums file) and retry the download (`curl -fsSL --retry 6 --retry-all-errors --retry-delay 10`); never
   `go install` a tool in CI. For `not in gzip format`, ask the URL for its status (`curl -sSIL`) first. **Watch out
