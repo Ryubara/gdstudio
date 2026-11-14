@@ -111,6 +111,11 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   named only in a comment (`SWORD_ATTACK`, `DANCE`), in `ALL` or in `STAND_INS` plays in the editor and in every
   suite and is missing from the web build; `test_export_clips.gd` catches one in the tree, the clip settings or a
   definition, and CI's pack check one the game names and the pack lacks. **Seen:** kit #1366, 2026-11-13.
+- **Approach:** When a clip of our own replaces a library clip, run `test_export_clips.gd` and point any case that
+  names the old constant's stand-in at one still in `ual1` or `ual2`. **Watch out for:** the stand-in case read
+  `CharacterClips.stand_in(LAND)`, and once our landing replaced the fixed one its stand-in was `fixed/Jump_Land`,
+  in no pruned library, so the scene that set it kept nothing and the case failed. **Seen:** gdstudio #1369,
+  2026-11-14 (the merge with #1428, in the full suite).
 - **Approach:** When a new library joins the character's `AnimationPlayer` (`prone`, `melee`, `gds`), add a
   `LIBRARY_*` constant, a constant per clip and every clip name to `CharacterClips.ALL` in the same commit, and raise
   the count in `test_character_clips.gd`. **Watch out for:** `test_every_listed_clip_exists_and_every_clip_is_listed`
