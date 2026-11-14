@@ -40,6 +40,11 @@ request's failure. Tests: `python/tests/test_main_green.py` (the steps run under
   auto-merge on, went green and landed while #1279 (main red) was open; the hook guard of #1241 refuses `gh pr merge`
   and the merge API, never a merge GitHub makes by itself. **Seen:** gdstudio #1302, 2026-11-11 (fix: the required
   `main-green` check and its sweep).
+- **Approach:** When a rerun turns `main` green with no fix to land (a flake, an outage), close the `CI failing on the
+  default branch` issue yourself, then check that the sweep ran (`gh run list --workflow main-green-sweep.yml`) and
+  run it by hand if not. **Watch out for:** nothing closes the issue on a green run, so #1404 stayed open and every
+  open pull request kept the red `main-green` the sweep had written, and the landing script waited on them. **Seen:**
+  gdstudio #1404 and #1381, 2026-11-13.
 - **Approach:** Use `cancel-in-progress` for pull requests only; every run on the default branch finishes. **Watch out
   for:** main's CI cancelled its run when the next merge landed, so four of five merges in three minutes were never
   checked. **Seen:** Deadnight #290, 2026-11-01 (fix: the evening review found it (Deadnight #290) and Deadnight #296
@@ -267,6 +272,11 @@ personal account, and it would rerun every required check, the full `ci` run inc
   `504` and the download script had no retry. The hash is what makes a retry safe. **Seen:** gdstudio #823, 2026-11-08
   (#825's retry failed; the next built from the Go proxy); gdstudio #962, 2026-11-10 (fix: the pinned binary in `docs.yml`
   and the game template's `ci.yml`, whose script checked no hash).
+- **Approach:** To replay a red template run's order, pass the job log's `Run Test Suite` lines, in order, as
+  `--suite` arguments to `gds template test`. **Watch out for:** CI shuffles the suite order, so a suite that fails
+  only after another one left something behind (a held key) passes in the local default order and alone.
+  **Seen:** gdstudio #1274, 2026-11-12 (`test_character_split.gd` after `test_player_input.gd`'s held Y,
+  [Input tests](../engines/godot/ui-input-tests.md#leaks)).
 
 ## Workflow files {#workflows}
 

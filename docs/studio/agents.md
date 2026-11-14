@@ -3,17 +3,23 @@
 A small roster of broad agents, each with its own instructions and the hooks' rules. No `general-purpose` agent: it
 has neither (the hooks refuse it). Every agent researches as part of its own work; there is no research agent.
 
+## The roster {#roster}
+
+<!-- new section: the roster sat under the page title, so nothing could link the model each agent runs on -->
+
 | Agent | Model | Covers |
 | --- | --- | --- |
 | Coordinator (the main session) | Opus 5.5, medium | plans, writes issues, briefs and starts agents, merges, talks to the maintainer |
 | `godot-engineer` | Opus 5.5, medium | GDScript, scenes, UI and motion, gameplay, networking, shaders, tests, captures |
-| `blender-artist` | Fable 5.2, medium | modelling, decimation, rigging, animation, retexturing, variants, weapons, import to Godot |
+| `blender-artist` | Fable 5.2, medium; animation briefs pass Opus 5.5, medium | modelling, decimation, rigging, animation, retexturing, variants, weapons, import to Godot |
 | `level-designer` | Fable 5.2, medium | map layout and review: loops, sightlines, spawns, pacing, landmarks, light, reach, escape and roost sweeps, phone reading ([principles](../gamedev/level-design.md)) |
 | `backend-engineer` | Opus 5.5, high | platform backend (sign-in, lobbies, matchmaking, saves), game-server deployment |
 | `reviewer` | Sonnet 5.5, high | reviews a pull request it did not write (code, docs, assets, captures) and runs [structure reviews](#structure-reviews) with web search; never edits |
 
 Design and modelling work (Blender assets, level layout, visual and UI design) runs on Fable unless the maintainer
 says otherwise for a task (decided 2026-11-10 after a Fable-Opus head-to-head on a rifle and a rigged character).
+Animation is the exception: modelling and level design run on Fable 5.2, medium, and animation work (clips,
+poses, hand placement) on Opus 5.5, medium (decided 2026-11-12).
 
 Definitions: `.claude/agents/*.md`. A new agent is added only when a kind of work keeps recurring that none of these
 covers well.
@@ -116,3 +122,10 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
   checks <n>`, `gh pr view <n> --json state`) instead of waiting for the wait's own answer. **Watch out for:** a
   foreground wait for CI was moved to the background when a SendMessage arrived, and its result never reached the
   agent, so the wait-for-CI step ended with no answer. **Seen:** gdstudio #1149 (PR #1172), 2026-11-11.
+- **Approach:** On each status pass, compare each open pull request's `updatedAt` with its agent's newest transcript
+  entry: an agent quiet for over an hour, or one whose pull request went DIRTY with no push since, has stalled, even
+  while `ListAgents` says `running`; stop it, push its commits and start a fresh agent from the branch. **Watch out
+  for:** an agent can end with no task notification (its last message trusted a monitor to wake it) or hang on a
+  tool call that never returns, and Tether's lost-agent notice did not fire either time. **Seen:** gdstudio #904 (PR
+  #1017), 2026-11-10: three hours silent, DIRTY for two of them; #1047, 2026-11-11: 1 h 39 min after a short
+  heredoc edit with no result.
