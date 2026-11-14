@@ -508,6 +508,10 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   stopgap sent Quick join to the Play together screen until the rooms flow replaced it; that issue closed and the route
   stayed, so Quick join was a second Play together. **Seen:** Deadnight #526, 2026-11-02 (fix: quick join joins the
   first game found).
+- **Approach:** When a check fails in CI but passed on your branch, merge main first (`gds merge-main`) and run the
+  failing suite on the merge: CI tests the merge with main, not your head. **Watch out for:** a suite run in the
+  shard's own order on the branch alone read 28 where CI read 36, because a clip change on main moved the blend's
+  restarts. **Seen:** gdstudio #1530, 2026-11-14 (after #1536 landed).
 - **Approach:** Before opening a pull request, run the whole suite folder of every file it changes, not only the test it
   aims at. **Watch out for:** a balance fix ran only the gate test; four simulator tests around the code it changed
   failed in CI, and `main` stayed red past the deadline. **Seen:** Deadnight, 2026-11-01 (fix: CI on the fix caught it).
