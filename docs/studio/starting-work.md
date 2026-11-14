@@ -430,6 +430,11 @@ they exist.
   `CharacterGoal`) as parallel work, so its agent found the dependency alone, and the protocol numbers the coordinator
   had assigned collided (14 twice). **Seen:** gdstudio PR #1503, 2026-11-14 (coordinator's mistake; #1503 took 17).
 
+- **Approach:** After an edit that adds words or links to a doc line, run `pytest python/tests/test_moved_sections.py`
+  before the push: it pins the sections `gds brief` proposes for sample issues. **Watch out for:** a link added to a
+  row of `own-animation.md#waves` lifted that section into issue #1435's six and pushed `parts-cost.md#parts-cost`
+  out, red on every `test` job. **Seen:** gdstudio #1371, 2026-11-14.
+
 ## The report {#the-report}
 
 <!-- new section: the agent definitions held the report's parts; nothing for the coordinator said what comes back -->
