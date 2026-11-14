@@ -8,7 +8,9 @@ extends Node
 ## board in the tree (or on a client of a remote server) it does nothing.
 ##
 ## It reads the body's movement, never the animation, so a server with no model hears the same
-## steps as a desktop game. It checks every `check_ticks` physics ticks, not every tick.
+## steps as a desktop game. It checks every `check_ticks` physics ticks, not every tick, at a
+## phase taken from its character's node path: never from an instance id, which moves with every
+## object made before it (so one more object anywhere would change a seeded run).
 
 ## Makes noises. Off: the character is silent to the AI.
 @export var enabled := true
@@ -48,7 +50,7 @@ func _ready() -> void:
 		set_physics_process(false)
 		return
 	_last = _character.global_position
-	_ticks = _character.get_instance_id() % check_ticks
+	_ticks = check_phase(_character, check_ticks)
 	_character.landed.connect(_on_landed)
 	_watch_weapon(_character.weapon)
 
@@ -71,6 +73,12 @@ func _physics_process(_delta: float) -> void:
 		return
 	_walked = fmod(_walked, stride)
 	AiNoise.emit(self, AiNoise.FOOTSTEP, at, footstep_loudness(), _character)
+
+
+## The tick, of `ticks`, at which `character`'s checks fall: a hash of its node path, the same
+## in every run of one scene whatever else was made before it, and spread across characters.
+static func check_phase(character: Node, ticks: int) -> int:
+	return posmod(hash(String(character.get_path())), maxi(ticks, 1))
 
 
 ## How loud a footstep of the character is now: its ground speed over `loud_speed`, between
