@@ -24,6 +24,11 @@ Open pull requests come before new work: each one left open goes stale against `
   passed, and new commits that look unrelated are no exception. Several land one at a time. On 2026-11-06 three parked
   pull requests landed unrefreshed and `main` went red: a shorter reload met a test added after its last run; on
   2026-11-10 #972 and #977 landed past unrelated-looking commits, and #954 nearly did the same with #986 and #989.
+- **On a green merge result.** A pull request lands only when its newest `merge-result` check passed against the
+  current tip of `main` (the sweep's title names that commit), or the local dry run passed just before the merge call
+  (`python .github/scripts/merge_result.py --head origin/<branch>`). It runs the limit checks on the head merged into
+  the newest `main`, so two pull requests that each pass gdlint's 1000 lines or the 50 KB page limit and break them
+  together are refused before the second one lands ([CI: the merge result](ci.md#merge-result)).
 - **Not on a red main.** While a `CI failing on the default branch` issue is open, only its fix forward (a body
   saying `Fixes #<that issue>`) lands; the merge guard refuses the rest ([Red main](hooks-red-main.md#red-main)), and
   the required `main-green` check stops auto-merge too, then turns green when the issue closes ([CI](ci.md#main-runs)).
@@ -170,10 +175,12 @@ Open pull requests come before new work: each one left open goes stale against `
 merge on a busy day can starve: `main` takes a new commit before each full CI run ends, so the refresh above never
 catches up (#1202 went through three refreshes). The coordinator's landing script now lands a green head that is
 behind when every commit `main` gained since the head's base touches no file the pull request changes and `git
-merge-tree` merges the two cleanly; otherwise it refreshes. Branch protection does not require an up-to-date head, so
-GitHub takes the merge; the [merge guard](hooks.md#what-it-refuses) refuses a behind head from a shell command, so
-this is the script's route only. It relaxes "Refresh a parked pull request" above, which exists because unrelated
-commits broke `main` before; whether it stays is for the maintainer to decide, and agents keep refreshing as above.
+merge-tree` merges the two cleanly; otherwise it refreshes. A clean text merge proves no limit, so such a head also
+needs a green `merge-result` against the current `main`, or the local dry run ([above](#landing)). Branch protection
+does not require an up-to-date head, so GitHub takes the merge; the [merge guard](hooks.md#what-it-refuses) refuses a
+behind head from a shell command, so this is the script's route only. It relaxes "Refresh a parked pull request"
+above, which exists because unrelated commits broke `main` before; whether it stays is for the maintainer to decide,
+and agents keep refreshing as above.
 
 ## Merging main into a pull request {#merging-main-into-a-pull-request}
 
@@ -222,14 +229,14 @@ force push, which is the maintainer's decision: open the same change from a new 
   the merge is clean but they fail. **Seen:** gdstudio #1298 on #1187, 2026-11-11 (the online enemy look and
   `test_net_ai_section.gd` from #1243 still used the Quaternius male).
 
-- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, through `gds merge-main` (the message
+- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, through `gds merge-main` (message
   from a file, nothing after the trailer); run `uvx pre-commit run --files <resolved files>` before `--continue`, run it
-  unpiped, and check that `git log -1` shows the merge (no `MERGE_HEAD`) before rebuilding or pushing. **Watch out
-  for:** a hand-written title (`ui: Merge main into x`) is refused (`Merge` is not a verb on the list); `--continue`
-  commits through pre-commit, where a 155-character licence line met the 120 limit, a merge staged for hours met
-  `gdlint` at 1,016 lines, and two `Seen:` lists joined in a conflict passed the 900-character rule limit. **Seen:**
-  Deadnight #539, #656, #410, 11-02; gdstudio #1023, #1256, #1323, 11-10 to 11-12 (`--no-edit`: no trailer); #1397,
-  11-13 (`gdlint` refused the commit and a local-against-remote head check read "pushed").
+  unpiped, and check that `git log -1` shows the merge (no `MERGE_HEAD`) before rebuild or push. **Watch out for:** a
+  hand-written title (`ui: Merge main into x`) is refused (`Merge`: not a listed verb); `--continue` commits through
+  pre-commit, where a 155-character licence line met the 120 limit, a merge staged for hours met `gdlint` at 1,016
+  lines, two `Seen:` lists joined in a conflict passed 900. A fix after a refusal counts once staged.
+  **Seen:** Deadnight #539, #656, #410, 11-02; kit #1023, #1256, #1323, 11-10 to 12 (`--no-edit`: no trailer);
+  #1397 (`gdlint` refused it, a local-vs-remote head check read "pushed"), PR #1488 (a split unstaged), 11-13.
 - **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
   after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
   HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply

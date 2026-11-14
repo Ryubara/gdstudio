@@ -94,11 +94,11 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
   #1016, 2026-11-11 (an old glb read back with `git show`).
 - **Approach:** When a change touches a measure that builds solve against (`limb_overlap.py`), rebuild every file
   whose build imports it in the same pull request and read the numbers again; a branch that merges such a change
-  rebuilds before it lands. **Watch out for:** the fixed clips' test holds `fixed.glb` to the hash its build wrote,
-  so it stays green while the measure under it changes: once the measure turned the `form` bodies' twist bones, a
-  rebuild keyed the dash's leg swivel at 34 degrees for 41 and the combo's at 28 for 22, and the library's own
-  numbers moved 0.1 mm. **Seen:** gdstudio #1325 after #1323, 2026-11-12 (fix: rebuilt after merging `main`; the
-  build does not yet record the measure's hash).
+  rebuilds before it lands. **Watch out for:** a file held only to the hash its own build wrote (`fixed.glb`) stays
+  green while the measure under it changes: once the measure turned the `form` bodies' twist bones, a rebuild keyed
+  the dash's leg swivel at 34 degrees for 41. **Seen:** gdstudio #1325 after #1323, 2026-11-12 (fix: rebuilt after
+  merging `main`); #1479, 2026-11-14 (the limb overlap reports carry the hash of the measure's code and of each
+  body, and `BodiesOverlap.problems` fails on another; `fixed_clips.json` and `vault_clips.json` do not yet).
 
 ## Checks in the build {#checks}
 

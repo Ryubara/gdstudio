@@ -1,6 +1,13 @@
 {
  "clips_file": "locomotion.glb",
  "sha256": "e6d8ae4f43eb17c9076d37122b8a5b2a7632b87f9a776937f08e2dd2c0b82a36",
+ "measure_sha256": "fb342c8ac8b3f7e566dfec22c792caf3abe94c3493d9177faab3bfc4f8be606a",
+ "bodies_sha256": {
+  "mannequin_female": "2ee6cc3fe888d9b144afa8cc4b2ab7bfc5d13a0d5b7548df777f61f64ad65fa6",
+  "mannequin_male": "0a67bc1965336dff6d6e61c997719dcae2824b00b97c130d18acbbca31e7dcc6",
+  "form_female": "8aaf3c4dc9a853a685b3a1575836b6f3b6603f2b20e3a87675cc6b53fbfdeaec",
+  "form_male": "849173d1d1bf583ff7135713da7ddfdebcabc7b709c93476fd4c67d0790cbe3d"
+ },
  "fps": 30,
  "limit_mm": 5.0,
  "clips": {

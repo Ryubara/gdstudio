@@ -238,6 +238,14 @@ Read in the engine (`RendererSceneCull::render_probes` and `_render_reflection_p
   (`Camera3D.get_frustum()`, a box wholly over one plane is out) and wait 15 frames for each that updates once, one
   for each that updates always (3D Third Person's `EffectEmitter.probe_frames()`). Those frames also build the level's
   own probe programs behind the loading, which before were an 11-program, 1.2 s frame just after it.
+- **A probe is read from its first step, and the queue is the whole process's.** The probe has its atlas slot at its
+  first face and is sampled from then on (reflection and, in its default ambient mode, the diffuse light at the most
+  blurred level) while the faces not yet drawn are black, so a body inside it goes almost black above the hips for the
+  six face frames (Forward+, Godot 4.7: `reflection_probe_instance_has_reflection` is true once the atlas is set).
+  One such probe steps per frame for every world in the process (`render_probes` keeps one list), so with several
+  `SubViewport` worlds the later worlds' probes wait behind the earlier ones and their dark frames come seconds in.
+  `RenderingServer.force_draw(false)` draws every viewport once more within the frame, a probe step each, and nothing
+  that Movie Maker records (3D Third Person's `tests/fixtures/probe_settle.gd`).
 - **What moves under a probe is drawn with its program too, and so is what has none.** A probe in view at the start is
   drawn then, and the walls inside it with it, but a character, an effect or a mark only builds its program for that
   probe (or for two, `SECOND_REFLECTION_PROBE`, in a room inside the outdoor probe's box) when it is first drawn there.
@@ -263,6 +271,15 @@ Read in the engine (`RendererSceneCull::render_probes` and `_render_reflection_p
   left an effect drawn without a probe now and then (1 program, about 35 ms) until it also drew outside them all.
   **Seen:** gdstudio #981, 2026-11-10 (fix: `EffectEmitter` visits every probe from a `SubViewport` of its own and
   draws `warm_up_groups` materials there; 0 programs in four runs after).
+
+- **Approach:** When several worlds draw in one process (an online rig, a split screen, a menu's 3D view), draw each
+  new world's probes to the end before anything films it (`force_draw` for each probe's steps, `OnlineRig.settle`),
+  and prove it by the brightness of the bodies across the first seconds of frames. **Watch out for:** the dark frames
+  were blamed on a shadow or the sun at first; a run with the probes removed showed none, and the engine's probe queue
+  explained why only the second client's screen went dark, 2.2 to 2.7 s in: its probes waited behind the first
+  client's. Waiting the steps out in frames instead left 4 to 7 s of empty screens at the start of every 10 fps
+  capture. **Seen:** gdstudio #1430, 2026-11-13 (fix: the rig draws the probes through within the join; Bo's back
+  stayed at 120 to 121 instead of falling from 143 to 55 in `online_tour.tscn`).
 
 ## Linking every program at once {#prelink}
 

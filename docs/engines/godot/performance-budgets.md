@@ -213,7 +213,7 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   twice in every window. **Watch out for:** a runner slows game work for a while with every ruler holding still (the
   AI step and the walkers' frame 1.2 to 1.7 times slower in one run, the physics ruler within 3 %): one window of 450
   read 2.24 where the best of three read at most 1.78. **Seen:** gdstudio #1451, 2026-11-13 (3D Third Person
-  `test_parts_budget.gd`; [the numbers](third-person/character.md#parts-cost)).
+  `test_parts_budget.gd`; [the numbers](third-person/parts-cost.md#parts-cost)).
 
 ## In the editor {#in-the-editor}
 

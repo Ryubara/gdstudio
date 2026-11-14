@@ -490,3 +490,10 @@ stock test's 10 mm.
 - **Approach:** Make a stage that a suite will `settle()` with `RifleStage.make_rifle(holder, model)`, the measured
   default. **Watch out for:** `measured = false` connects nothing to `skeleton_updated`, so `settle()` waits forever
   and GdUnit stops the suite at 5 minutes. **Seen:** gdstudio #1433, 2026-11-13 (`test_torso_skin_push.gd`).
+- **Approach:** Keep `Pivot` (and so the rifle and its hand places) out of physics interpolation
+  (`physics_interpolation_mode` OFF in `two_hand_hold.tscn`), and prove the hands on the rifle where the engine draws
+  them (`test_rifle_drawn_hands.gd`), not only in `skeleton_updated`. **Watch out for:** the hold places the pivot in
+  the skeleton's update, every frame; interpolated, the rifle was drawn where the last ticks had it while the skin
+  had this frame's bones, 145 mm off both hands at each landing (the land clip drops the chest fast), and every pose
+  test passed ([physics interpolation](../physics-interpolation.md#using-it)). **Seen:** gdstudio #1464, 2026-11-13
+  (found by the jump captures of #1369).
