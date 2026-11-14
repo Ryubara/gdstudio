@@ -340,11 +340,12 @@ Every template sound but the pistol shots is generated with ElevenLabs Sound Eff
 - **Approach:** Capture and import in a made game, never in the template's own `game/` folder, and read the capture's
   error count before its frames. **Watch out for:** the template's folder lacks the synced addons, so `AudioSettings`
   and the other shared classes do not parse there: a capture run in it wrote 255 frames of a scene whose script never
-  loaded (571 error lines), and an import there rewrote the lightmaps' `.import` files. **Seen:** gdstudio #1295,
+  loaded, and an import there rewrote the lightmaps' `.import` files. **Seen:** gdstudio #1295,
   2026-11-11 (fix: `gds template test --keep`, the tour copied into the kept game, `gds template clean` after);
   gdstudio #1320, 2026-11-11 (a probe script run with `--path` at the kept folder the command prints, which is the
   game's repository: the Godot project is its `game/` folder, the script found no resource, did not quit and held
-  the shell for its ten minutes; run every such probe under `timeout 120`); #1274 and #1319, 2026-11-12.
+  the shell for its ten minutes; run every such probe under `timeout 120`); #1274 and #1319, 2026-11-12; #1508,
+  11-14.
 
 ## What every template is built and reviewed against {#template-checklist}
 
