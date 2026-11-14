@@ -313,23 +313,24 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   in the inspector or the remote inspector to kill, untick to get up) and `ragdoll_by_command`; on `Player`,
   `ragdoll_key` (Y by default; None turns the key off). The key is added to the input action `ragdoll` when the game
   runs, next to anything a game binds there in the Project Settings, and stays there while any `PlayerInput` holds it
-  (`RagdollKeyHolders` counts the holders, not `PlayerInput`: [why](test-exit-leaks.md)); it is a testing aid, so a game
-  that ships without it sets None. On `Ragdoll`: `mass` (the whole body, shared out by the segment masses of a person),
-  `thickness` (the capsules), `joint_range` (how far the joints swing, as a share of a person's range), `hinge_passes`
-  (how many hinges hold each elbow and knee, 6: one lets a limb the body lands on fold past its range, [why](#limits)),
-  `cone_passes` (the same for every cone, 6: one lets a shoulder twist 50 to 115 degrees past a person's range),
-  `brace_time` (seconds the copies hold after the death, 1.5: then the body lies on its own joints, [why](#limits)),
-  `linear_damp`, `angular_damp`, `friction`, `bounce`; Editor: `editor_preview` (the bones shown in the editor, on);
-  Death and getting up: `carry_velocity`, `pose_velocity` (each bone's own velocity, on), `relax_gravity` and
-  `relax_time` (the limbs let drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost: `draw_between_ticks` (the skin
-  drawn between physics ticks, on, [why](#drawing)), `max_active` (4 limp at once in the game), `settle_time` (8 s, then
-  `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance); Collision: `collision_layer`
-  (`PhysicsLayers.RAGDOLL`, the ragdoll's own, layer 5) and `collision_mask` (`RAGDOLL_MASK`: the level, props and its
-  own layer, so limbs rest on the floor, a crate, the body and each other, never on the bone they hang from; no player
-  capsule, camera wall, ground probe or trigger area sees a bone, and a shot does: it stops at the bone, pushes it and
-  leaves a mark on it, [Physics layers](physics-layers.md#shots-meet-bones); hit zones are layer 6). A shot that kills
-  throws the bone it hit, and one that does not makes the hit part flinch, a partial ragdoll on the same bones ([Hit
-  zones](third-person-hits.md)). Every one applies live, has a pinned default and a test.
+  (`RagdollKeyHolders` counts the holders, not `PlayerInput`: [why](test-exit-leaks.md#a-subclass-with-statics));
+  it is a testing aid, so a game that ships without it sets None. On `Ragdoll`: `mass` (the whole body, shared out by
+  the segment masses of a person), `thickness` (the capsules), `joint_range` (how far the joints swing, as a share of a
+  person's range), `hinge_passes` (how many hinges hold each elbow and knee, 6: one lets a limb the body lands on fold
+  past its range, [why](#limits)), `cone_passes` (the same for every cone, 6: one lets a shoulder twist 50 to 115
+  degrees past a person's range), `brace_time` (seconds the copies hold after the death, 1.5: then the body lies on its
+  own joints, [why](#limits)), `linear_damp`, `angular_damp`, `friction`, `bounce`; Editor: `editor_preview` (the bones
+  shown in the editor, on); Death and getting up: `carry_velocity`, `pose_velocity` (each bone's own velocity, on),
+  `relax_gravity` and `relax_time` (the limbs let drop, 12 m/s squared for 0.35 s), `get_up_time`; Cost:
+  `draw_between_ticks` (the skin drawn between physics ticks, on, [why](#drawing)), `max_active` (4 limp at once in the
+  game), `settle_time` (8 s, then `settled` and the cap's slot is free) and `ragdoll_range` (0, any distance);
+  Collision: `collision_layer` (`PhysicsLayers.RAGDOLL`, the ragdoll's own, layer 5) and `collision_mask`
+  (`RAGDOLL_MASK`: the level, props and its own layer, so limbs rest on the floor, a crate, the body and each other,
+  never on the bone they hang from; no player capsule, camera wall, ground probe or trigger area sees a bone, and a shot
+  does: it stops at the bone, pushes it and leaves a mark on it, [Physics layers](physics-layers.md#shots-meet-bones);
+  hit zones are layer 6). A shot that kills throws the bone it hit, and one that does not makes the hit part flinch, a
+  partial ragdoll on the same bones ([Hit zones](third-person-hits.md)). Every one applies live, has a pinned default
+  and a test.
 - **Why the bones are generated.** The 16 `PhysicalBone3D`s (no fingers) hang off a `PhysicalBoneSimulator3D` named
   `RagdollBones` under the `Model` slot's skeleton, made from `CharacterRagdoll.BODIES` (or taken from the
   `RagdollPool`, which makes a few sets after the level loads and takes back those of a character that is freed,
