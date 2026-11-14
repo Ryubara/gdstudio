@@ -31,3 +31,9 @@ How the 3D Third Person rifle's hold carries the trunk upright while the charact
   first carry left the run at 9.9 degrees against 9; holding each frame's lean at the limit then stood the trunk still
   through the stride (its rise and fall 0.0 degrees, 0.5 before). **Seen:** gdstudio #1348, 2026-11-12 (fix: the
   stance's second pass and `LEAN_SMOOTHING`; `test_rifle_run_state.gd` reads the mean and the rise and fall).
+- **Approach:** Take a pose layer of a held weapon off at the pace of whatever lets go of the weapon (the hand freed
+  for a vault, an interact), not only by its own ease, and keep it off while the hand is away and the gun hidden.
+  **Watch out for:** the carry eased out over its own 0.25 s from the run into a vault, but the vault frees the left
+  hand by the hand plant, sooner: the straightened spine put the planted wrists 2 to 7 cm off the top on both bodies
+  (`test_vault_rifle.gd`, 24 failures, merged in from main). **Seen:** gdstudio #1348 (PR #1393), 2026-11-13 (fix:
+  `HoldCarry.step()` caps the carry by the freed hand's share and wants none while the gun is hidden).

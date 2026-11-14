@@ -22,9 +22,14 @@ var amount := 0.0
 
 
 ## Eases `amount` toward what `body` wants (`wanted()`) over `seconds`, by `delta` seconds;
-## `freed` is how far the left hand is let go (`FreeHand.amount()`).
-func step(body: Character, freed: float, seconds: float, delta: float) -> void:
-	amount = move_toward(amount, wanted(body, freed), delta / maxf(seconds, 0.001))
+## `freed` is how far the left hand is let go (`FreeHand.amount()`) and `shown` whether the gun is
+## in sight. A hand let go takes the carry off as fast as it leaves (a vault frees it by the hand
+## plant, quicker than `seconds`: a carry still on put the planted wrists 2 to 7 cm off the top,
+## `test_vault_rifle.gd`), and it stays off until the hand is back, the gun put away included.
+func step(body: Character, freed: float, shown: bool, seconds: float, delta: float) -> void:
+	var wants := wanted(body, freed) if shown else 0.0
+	amount = move_toward(amount, wants, delta / maxf(seconds, 0.001))
+	amount = minf(amount, 1.0 - smoothstep(0.0, 1.0, freed))
 
 
 ## How far `body`'s trunk is to be carried upright: in `STATES`, from none at the walk's speed to

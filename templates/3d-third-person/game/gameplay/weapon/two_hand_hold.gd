@@ -732,7 +732,7 @@ func _step(delta: float) -> void:
 		if _freed > 0.0:
 			wants = 0.0
 		_raised = move_toward(_raised, wants, delta / maxf(raise_time, 0.001))
-		_carry.step(character, _freed, carry_time, delta)
+		_carry.step(character, _freed, visible, carry_time, delta)
 	else:
 		_raised = posed_aim
 		_freed = posed_free
