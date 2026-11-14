@@ -140,7 +140,7 @@ default_install_hook_types: [pre-commit, commit-msg, pre-push]
 ```
 
 `gds issue start` installs the three hook types in a game and runs the `pre-push` hook once
-([Starting work](starting-work.md#worktree)), but a game whose config has no `pre-push` hook has nothing to run;
+([Starting work](worktrees.md#worktree)), but a game whose config has no `pre-push` hook has nothing to run;
 syncing the blocks is what gives it one.
 
 - **Approach:** When a file enforces a rule and a game also carries it, put it on the sync list in the same pull request

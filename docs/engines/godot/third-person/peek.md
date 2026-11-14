@@ -156,12 +156,13 @@ shoulder are `tools/capture/left_stock_closeups.tscn` (`CLOSEUP_BODY`, `CLOSEUP_
   left hand stopped 15 mm short of the hand guard; square on (0 degrees) both hands reach (0.0 mm). **Seen:** gdstudio
   #1435, 2026-11-13 (`left_chest_turn`).
 - **Approach:** Measure a weapon moved to the other side over the whole body (`BodyClearance.HOLDING`), the arms and
-  legs included, not only against the torso the butt's push sees, and move its pocket rather than the arm when an
-  arm reaching along the weapon is in the way. **Watch out for:** the mirrored pocket put the stock over the left
-  upper arm, which reaches forward under it to the hand guard (on the right shoulder that arm is the firing one and
-  hangs clear), 34 mm in; turning the elbow out took 5 mm off it on the female, since the stretched arm barely
-  bends, while 4.5 cm in toward the chest's middle cleared it, at 1 cm of the muzzle's reach per cm. **Seen:**
-  gdstudio #1484, 2026-11-14 (`left_pocket_in`).
+  legs included, not only against the torso the butt's push sees, and move its pocket rather than the arm when an arm
+  reaching along the weapon is in the way; name beside each number what it was measured against. **Watch out for:** the
+  mirrored pocket put the stock over the left upper arm, which reaches forward under it to the hand guard (on the right
+  shoulder that arm is the firing one and hangs clear), 34 mm in; turning the elbow out took 5 mm off it on the female,
+  since the stretched arm barely bends, while 4.5 cm in toward the chest's middle cleared it, at 1 cm of the muzzle's
+  reach per cm. **Seen:** gdstudio #1484, 2026-11-14 (`left_pocket_in`; a hold read 0.0 mm against the torso with the
+  stock 32 mm in the arm, PR #1519).
 - **Approach:** Move a weapon to the other side across the leaning chest, along the bend's roll, not level.
   **Watch out for:** a level move put the left lean's pistol 20 cm higher than the right lean's mirror (the bend
   drops the right side on a right lean), and the server's mirrored shot start left 13 cm under the client's.

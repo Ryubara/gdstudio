@@ -11,7 +11,8 @@ extends SkeletonModifier3D
 ## The first modifier of the skeleton, so the weapon hold, the aim and the rest work on the pose
 ## it hands on. Each frame it keeps the pose it handed on and the one before; at a change it takes
 ## each bone's turn from the new pose to the last one shown (`x0`, an axis times an angle) and the
-## turn's speed (`v0`, from the last two frames, held to `speed_limit`), and adds
+## turn's speed (`v0`, from the last two frames, held to `speed_limit`; none into a state that
+## does not carry it, `CharacterGait.carries_speed()`: the standing take-off), and adds
 ## `exp(x(t)) * pose` with `x(t) = (x0 + (v0 + x0 y) t) e^(-y t)`, `y = 2 ln 2 / half_life`, to
 ## every bone that differed, and the same to the pelvis's place. Nothing while the tree is off (a
 ## ragdoll holds the skeleton). Cosmetic, never sent.
@@ -19,9 +20,10 @@ extends SkeletonModifier3D
 ## The new state's pose reaches the skeleton a frame or two after the key changes (the state
 ## machine reports its new node in the frame it travels, and the tree draws it on a later update),
 ## so the blend starts again from the pose last shown on each of `SETTLE_FRAMES` frames after a
-## change: each start keeps the drawn pose and its speed, and the one on the frame the new pose
-## arrives takes the whole jump (gdstudio #1416). Nothing while an action clip covers the whole
-## body (`CharacterAnimation.is_acting(true)`): the action cross-fades in the tree.
+## change (more for a state that asks, `CharacterGait.extra_settle()`): each start keeps the
+## drawn pose and its speed, and the one on the frame the new pose arrives takes the whole jump
+## (gdstudio #1416). Nothing while an action clip covers the whole body
+## (`CharacterAnimation.is_acting(true)`): the action cross-fades in the tree.
 
 ## Parts of the bone names it leaves to the clip alone.
 const SKIPPED: Array[String] = [
@@ -89,7 +91,7 @@ func _process_modification_with_delta(delta: float) -> void:
 		_follow(skeleton)
 	var key: Variant = animation.gait.pose_key(animation)
 	if key != _key and _seen >= 2:
-		_settle = SETTLE_FRAMES
+		_settle = SETTLE_FRAMES + animation.gait.extra_settle(animation)
 	_key = key
 	if animation.is_acting(true):
 		# The action's own cross-fade covers the body, and the clip moves fast (a vault's hands):
@@ -109,11 +111,12 @@ func _begin(skeleton: Skeleton3D, delta: float) -> void:
 	_x0.clear()
 	_j0.clear()
 	var y := _damping()
+	var limit := speed_limit if animation.gait.carries_speed(animation) else 0.0
 	for slot in _followed.size():
 		var bone := _followed[slot]
 		var now := skeleton.get_bone_pose_rotation(bone)
 		var x0 := _turn(_last[slot] * now.inverse())
-		var v0 := (_turn(_last[slot] * _before[slot].inverse()) / delta).limit_length(speed_limit)
+		var v0 := (_turn(_last[slot] * _before[slot].inverse()) / delta).limit_length(limit)
 		if x0.length() < 0.002 and v0.length() < 0.05:
 			continue
 		_bones.append(bone)

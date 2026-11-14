@@ -272,6 +272,12 @@ func go_to(point: Vector3, speed := 1.0) -> bool:
 	return true
 
 
+## True when `go_to(point)` would be refused at once: a goal it gave up on or could not reach a
+## moment ago. A task choosing among points asks this first (gdstudio #1532).
+func refuses(point: Vector3) -> bool:
+	return _dropped.holds(point, _clock) or _unreachable.holds(point, _clock)
+
+
 ## Keeps within `band` metres of `node`, walking at `speed`.
 func follow(node: Node3D, band := 2.0, speed := 1.0) -> void:
 	follow_node = node

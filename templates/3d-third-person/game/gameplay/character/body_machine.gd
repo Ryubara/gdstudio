@@ -43,9 +43,7 @@ func build(animation: CharacterAnimation, brace: AimBrace.Driver) -> AnimationNo
 		animation, brace.stance.idle_point(animation, animation.idle_clip)
 	)
 	machine.add_node(CharacterAnimation.GROUND, ground, Vector2(200, 0))
-	_add(CharacterAnimation.JUMP, animation.jump_clip, Vector2(400, -100))
-	_add(CharacterAnimation.FALL, animation.air_clip, Vector2(600, 0))
-	_add(CharacterAnimation.LAND, animation.land_clip, Vector2(400, 100))
+	animation.gait.add_jump(animation, machine)  # the jump: `JumpAnimation`
 	_add(CharacterAnimation.PUSH, animation.push_clip, Vector2(200, 160))
 	var crouch := animation.gait.build_crouch(animation)
 	machine.add_node(CharacterAnimation.CROUCH, crouch, Vector2(0, 160))
