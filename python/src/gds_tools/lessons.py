@@ -700,6 +700,12 @@ MIN_BODY_CHARS = 80
 #: 120 kit issues of 2026-11-11: the mentions far from the task scored 0.17 to 0.31, those that fit 0.35 and up.
 MENTION_FLOOR = 1 / 3
 
+#: How many sections that mention one path the issue names a brief proposes, closest to the issue's words first. A
+#: file's lesson often sits on two pages, the one beside its code and the one about the cause, and the brief carries
+#: both: with one, a new entry beside the code took the place of the cause's section (gdstudio #1474: `ai.md#proof`
+#: named `test_ai_section.gd` and took the place of `ui-input-tests.md#leaks`, which the issue's words ranked ninth).
+MENTIONS_PER_PATH = 2
+
 
 @dataclass(frozen=True)
 class Proposal:
@@ -791,8 +797,9 @@ def propose(
     1. every `page.md#anchor` the issue names that exists, or the section it moved to (`resolve_ref`; any section
        proposed that a split left as a pointer is replaced by the one it leads to, gdstudio #1471);
     2. for each path it names (then `paths`, such as a pull request's changed files): a docs page gives its section
-       closest to the issue's words, any other path the closest section that mentions it, when its words are not far
-       from the issue's (`MENTION_FLOOR`; a pull request's changed files need no such closeness);
+       closest to the issue's words, any other path the closest `MENTIONS_PER_PATH` sections that mention it, when
+       their words are not far from the issue's (`MENTION_FLOOR`; a pull request's changed files need no such
+       closeness);
     3. the rest by the issue's words (`_query`: title, area labels with their descriptions, body), at most `PER_PAGE`
        from one page.
 
@@ -836,8 +843,11 @@ def propose(
             mentions = [s for s in sections if alone.search(s.body)]
         floor = MENTION_FLOOR * ranked[0][0] if ranked and path not in (paths or []) else 0.0
         mentions = [s for s in mentions if score.get(s.ref, 0.0) >= floor]
-        if mentions:
-            add(max(mentions, key=lambda s: (score.get(s.ref, 0.0), -len(s.body))), f"mentions {path}")
+        taken = 0
+        for s in sorted(mentions, key=lambda s: (-score.get(s.ref, 0.0), len(s.body))):
+            if taken >= MENTIONS_PER_PATH:
+                break
+            taken += add(s, f"mentions {path}")
     from_page: dict[str, int] = {}
     for _, s in ranked:
         if len(out) >= limit:
