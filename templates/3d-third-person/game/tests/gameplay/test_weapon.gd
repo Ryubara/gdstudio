@@ -66,6 +66,9 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"burst_rate": 15.0,
 		&"full_burst_per_press": true,
 		&"spread": 0.0,
+		&"first_shot_spread": 0.0,
+		&"spread_build_shots": 4,
+		&"spread_recovery_time": 0.3,
 		&"recoil": 1.0,
 		&"damage": 34.0,
 		&"aim_range": 100.0,
@@ -218,6 +221,8 @@ func test_the_fire_rate_is_how_many_shots_a_second() -> void:
 
 func test_the_spread_turns_a_shot_off_the_aim_in_a_seeded_order() -> void:
 	_weapon.definition.spread = 5.0
+	# Every shot on the most spread, the first one too (a first shot has none by default).
+	_weapon.definition.first_shot_spread = 5.0
 	var first := _shoot()
 	var second := _shoot()
 	var straight := -_muzzle.global_basis.z
