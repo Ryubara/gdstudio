@@ -371,6 +371,20 @@ itself, and the sampler adds 3 to 9 µs a tick for each human.
 The desktop rows are the mean of two or three headless runs, the browser rows one run each of the web export in
 headless Chrome (`tools/bench/player_step_bench.py`, under `gds quiet`), on a machine other agents were using.
 
+## What the map and the character cost to draw {#draw-cost}
+
+<!-- new section: moved from the template page's "What is in it" when that page reached its size limit (gdstudio
+     #1400); it measures the map and this character -->
+
+Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview
+camera 0.34 ms CPU, 0.19 ms GPU, 145 draw calls, 84.4 MB of texture memory; with the character 0.38 / 0.21 ms, 149
+draw calls, the same texture memory (the mannequin has two flat materials and no texture) and 1.9 MB more video memory.
+The whole game from the third-person camera draws 64 calls. The trimmed 3D Blank (floor and walls) is 0.17 / 0.16 ms,
+10 draw calls and 64.2 MB. Forward+ is 0.21 / 0.68 ms and 348 MB for the character in the map. The web export is a
+0.92 MB `index.pck` for 3D Blank and 3.26 MB for 3D Third Person (the character and the two libraries are most of the
+difference), and both load in headless Chromium with no console error, page error or failed request (a SwiftShader
+frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says it runs with no GPU).
+
 ## What the parts cost {#parts-cost}
 
 <!-- new section: the step bench timed the body alone; nothing said what a dressed character's other parts or the world

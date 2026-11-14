@@ -345,7 +345,11 @@ spot). The defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Spri
 or a stop is played at the time its travel has covered the ground the body really covered), `turn` (a reversal, a
 pivot or a turn: the time it has turned as far as the body), and `exit_phase` (the share of the gait's cycle it ends
 on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose body has finished its
-part plays on at its own pace; a body asked for something else leaves it at once. Until the clips exist nothing
+part plays on at its own pace; a body asked for something else leaves it at once. A start is picked while the body
+stood at most `GaitTransitions.START_GRACE` (4) frames ago, since the controller's acceleration has it past
+`standing_speed` on the tick it is asked to move (gdstudio #1416); a state asked for while a clip plays (a crouch in a
+stop) is the one the machine goes on to. `tools/capture/own_blend_tour.tscn` films each start, stop and crouch from
+the game camera, printing the largest move of a bone each frame. Until the clips exist nothing
 plays and the states change as before.
 The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
 so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are kit #1157's.
@@ -377,3 +381,34 @@ of the old build (`test_gait_lean.gd`). Nothing depends on distance or sight. In
 | --- | ---: | ---: |
 | Before | 32 to 37 µs (frame 1.82 to 1.92 ms) | 35 to 51 µs (7.9 to 8.9 ms) |
 | After | 14 to 26 µs (1.74 ms) | 12 to 15 µs (6.2 to 6.7 ms) |
+
+### Filmed online and on the local body {#gait-online}
+
+<!-- new section: the gait settings said a puppet plays the same tree; nothing filmed or measured it, and the faults
+     it found (gdstudio #1367) need a place the next clip and tree issues read -->
+
+`tools/capture/puppet_gait_tour.tscn` (gdstudio #1367) films the starts, stops, the sprint reversal, a jog pivot and
+the turns on the spot on Ada's own screen beside Bo's, where Ada is a puppet, both cameras across the lane
+(`gds godot -- --path <game> --write-movie <folder>/pg.png --fixed-fps 60 --log-file <file>`, one movie frame a
+physics frame; the views fill the window's top half). Each frame prints a `PUPPETGAIT` line per body: the speed, the
+place, the body state, the transition clip, the largest turn of one bone since the last drawn pose (`PoseJump`,
+`tools/capture/pose_jump.gd`, read in `skeleton_updated`, after every modifier) and the momentum blend's offset.
+What it found on main at dc9dc2fb:
+
+- **A puppet never plays its own clips.** `goal_speed` comes from `last_command`, which a puppet never fills, so any
+  puppet above `standing_speed` starts `Walk_Stop`, finishes it within a few frames and starts it again: it glides
+  frozen in the stop's last frame at every speed (gdstudio #1420).
+- **The starts never play from standing.** The tree first sees the body at 0.47 m/s (one tick at 28 m/s²), past
+  `standing_speed` (gdstudio #1421).
+- **The stops play in place.** The body halts at `deceleration` (36 m/s²: 0.53 m from a sprint, against the clip's
+  4.82 m) and the clip runs on in place (gdstudio #1415).
+- **The cuts land a frame after the momentum blend starts.** Into or out of a stop, the drawn pose jumps 25 to 77
+  degrees in one bone on the frame after the clip changes, against 13 to 19 a frame in the steady gaits, while the
+  blend's offset at the change read 0.3 to 4.5 degrees; the pistol hold switches in one frame at a sprint stop
+  (gdstudio #1416).
+
+- **Approach:** Measure a snap on the drawn skeleton: each followed bone's turn against its parent, copied in
+  `skeleton_updated`, compared with the last drawn pose, beside the same number in the steady gait before. **Watch out
+  for:** the momentum blend's own offset read under 5 degrees at every cut while the drawn pose jumped up to 77 the
+  next frame, and a running gait alone turns a calf 15 to 20 degrees a frame at 60 frames a second, so a bare
+  threshold reads every sprint as a snap. **Seen:** gdstudio #1367, 2026-11-13 (`pose_jump.gd`).
