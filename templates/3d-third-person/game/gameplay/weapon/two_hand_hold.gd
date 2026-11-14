@@ -80,8 +80,9 @@ const _PUSH_STEP := 0.003
 ## Where it sits at rest (the low ready).
 @export var low_pocket := Vector3(-0.16, 0.1, 0.08)
 ## How much nearer the chest's middle the pockets are on the left shoulder (`side`): mirrored, the
-## stock lay over the reaching left upper arm, up to 34 mm inside it (gdstudio #1484).
-@export_range(0.0, 0.1, 0.005, "suffix:m") var left_pocket_in := 0.045
+## stock lay over the reaching left upper arm, up to 34 mm inside it (gdstudio #1484). Tuned with
+## `left_chest_turn`: at 4.5 cm with 10 degrees the left hand stopped 5.4 mm short (#1505).
+@export_range(0.0, 0.1, 0.005, "suffix:m") var left_pocket_in := 0.04
 ## How far the muzzle points down at rest.
 @export_range(0.0, 80.0, 0.5, "suffix:deg") var low_pitch := 35.0
 ## How far the muzzle points across the body at rest (toward the left). More lies the stock along
@@ -92,8 +93,9 @@ const _PUSH_STEP := 0.003
 ## The clip's own turn of the chest is taken off, so the shoulders keep this in a walk or a run.
 @export_range(-60.0, 60.0, 0.5, "suffix:deg") var chest_turn := -30.0
 ## `chest_turn` with the gun on the left shoulder (a left peek lean, #1435): turned the mirrored 30
-## degrees the left hand was 15 mm short, square on the right arm was in the chest (#1436).
-@export_range(-60.0, 60.0, 0.5, "suffix:deg") var left_chest_turn := 10.0
+## degrees the left hand was 15 mm short, square on the right arm was in the chest (#1436); less
+## than 7.5 brings the left lean's muzzle over 4 cm nearer the middle than the right lean's.
+@export_range(-60.0, 60.0, 0.5, "suffix:deg") var left_chest_turn := 7.5
 ## The most the chest leans (from its rest, the way the clip has it) while the gun is up: a chest
 ## that leans more (a crouch's hunch) is raised toward this as the gun comes to the shoulder.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var aim_lean_limit := 25.0
