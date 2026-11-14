@@ -5,8 +5,8 @@ runs on the machine -->
 
 How the continuous integration runs on the default branch and how a merge reaches the live deploy: every commit of
 `main` is checked, and a deploy that can skip itself is sized against the real merge rate. Below are the pull request
-checks and their reruns, the time limits and shards of the test jobs, how to read a red run, and how a workflow file is
-checked before its first run.
+checks and their reruns, the check on the merge result before landing, the time limits and shards of the test jobs,
+how to read a red run, and how a workflow file is checked before its first run.
 
 ## Runs on the default branch {#main-runs}
 
@@ -124,6 +124,39 @@ they are rerun, replayed or read from another branch -->
   a rerun passed. The job runs the default branch's script, so the fix reaches open pull requests once it merges.
   **Seen:** gdstudio #1381 and #1387, 2026-11-13 (fix: `Client._read` in `pr_status.py`, gdstudio #1407;
   `test_the_job_passes_when_the_first_answer_is_empty_and_fails_when_every_one_is`).
+
+## The merge result {#merge-result}
+
+<!-- new section: the pull request checks above run once per push, on the main of that moment; nothing held a check of
+a head against the main it lands on, which kit #1468 adds -->
+
+A pull request's checks ran on `main` as it was at its last push. `main` has no up-to-date requirement, so a head that
+was green on an older `main` can land after `main` moved. Two pull requests that each pass a limit can also break it
+together with no run on the pair: on 2026-11-12, `character_animation.gd` sat at 1000 lines (gdlint's limit) while every
+open branch was at 993 to 1000, and `tools/blender/animation.md` went over 50 KB through two merges at once. The
+`merge-result` check (`.github/workflows/merge-result.yml`) runs the limit checks on the head merged into the newest
+`main`, in a minute or two, without restarting the full `ci` run:
+
+- **What it runs:** `.github/scripts/merge_result.py --base <main> --head <head>` builds the merge the way a squash
+  lands it (`git merge-tree`, nothing touched in the checkout). In a throwaway worktree it runs `mistakes.py check`
+  (page sizes, topic sections) and the tree's own pre-commit hooks on the files the merge changes (`pre-commit run
+  --from-ref`): gdlint's max-file-lines, gdformat, ruff, markdownlint, the large-file limit and the conventions render.
+  A conflict fails too, with the files named.
+- **When:** on each pull request event, merging with `main` as it is when the job starts, and on every push to `main`
+  (each landing). That sweep first sets `merge-result` in progress on every open, ready pull request from this
+  repository. It checks each one with a read-only token and writes the results through the Checks API, titled
+  `merged with main at <sha>`, without a push or an event. A newer landing cancels the sweep before it, and drafts
+  and forks wait for their own events.
+- **Locally:** the same command is the dry run before a merge call:
+  `git fetch origin main && python .github/scripts/merge_result.py --head origin/<branch>` (exit 1 names the limit and
+  the file; `--no-pre-commit` runs `mistakes.py check` alone). `test_merge_result.py` shows two branches under the page
+  limit refused together. The dry run in kit #1468 shows the same for gdlint (999 lines each, 1001 merged).
+- **Not required yet:** the ruleset does not require `merge-result`, and `pr-status` does not count it, because
+  changing the required checks is the maintainer's decision. Until it is required, the landing queue reads it
+  ([Landing](landing.md#landing)).
+
+GitHub's merge queue, which runs the checks on the queued merge itself, is not offered for a repository owned by a
+personal account, and it would rerun every required check, the full `ci` run included, for each entry.
 
 ## Reruns {#reruns}
 
