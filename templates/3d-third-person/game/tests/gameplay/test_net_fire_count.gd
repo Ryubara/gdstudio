@@ -6,7 +6,9 @@
 # same shot for shot, and each press gave what it gives offline (`test_fire_count.gd`): one shot or
 # one burst a press, the rate while held on automatic. A press of one tick with the aim down fires
 # too, on both. The fists' press is a blow (gdstudio #1254), counted as a shot: one a press, held or
-# not, whatever the fire mode.
+# not, whatever the fire mode. With a burst weapon's `full_burst_per_press` off, the release ends
+# the burst on both alike (the held button travels in the command): a one-tick tap fires one shot,
+# a 2-tick hold what the spacing allows, a long hold the whole burst.
 extends GdUnitTestSuite
 
 const WEAPONS: Array[String] = [
@@ -28,11 +30,13 @@ var _aim_from := 1 << 30
 ## Whether aim is held with the presses (off: the arm comes up for the press alone).
 var _aim := true
 var _modes: Dictionary[String, WeaponDef.FireMode] = {}
+var _full: Dictionary[String, bool] = {}
 
 
 func before_test() -> void:
 	for path in WEAPONS:
 		_modes[path] = (load(path) as WeaponDef).fire_mode
+		_full[path] = (load(path) as WeaponDef).full_burst_per_press
 	_rig = auto_free(OnlineRig.new())
 	add_child(_rig)
 	assert_bool(_rig.start()).is_true()
@@ -46,6 +50,7 @@ func before_test() -> void:
 func after_test() -> void:
 	for path in _modes:
 		(load(path) as WeaponDef).fire_mode = _modes[path]
+		(load(path) as WeaponDef).full_burst_per_press = _full[path]
 	_rig = null
 	_client = null
 
@@ -105,6 +110,53 @@ func test_the_client_predicts_the_shots_the_server_fires() -> void:
 					. is_between(expected - slack, expected + slack)
 				)
 	prints("shots online:", seen)
+
+
+func test_with_the_full_burst_off_the_client_and_server_end_the_burst_alike() -> void:
+	var client_shots := [0]
+	var server_shots := [0]
+	var server_body := _rig.server_body(_client)
+	_client.player.weapon.fired.connect(func(_s: Projectile) -> void: client_shots[0] += 1)
+	server_body.weapon.fired.connect(func(_s: Projectile) -> void: server_shots[0] += 1)
+	_client.player.weapon.melee_started.connect(func(_b: int) -> void: client_shots[0] += 1)
+	server_body.weapon.melee_started.connect(func(_b: int) -> void: server_shots[0] += 1)
+	var seen: Array[String] = []
+	var hold := roundi(HOLD_SECONDS * Engine.physics_ticks_per_second)
+	for path in WEAPONS:
+		var definition := load(path) as WeaponDef
+		definition.fire_mode = WeaponDef.FireMode.BURST
+		definition.full_burst_per_press = false
+		for body: Character in [_client.player, server_body]:
+			body.weapon.definition = definition
+			body.weapon.make_ready()
+		await _rig.wait(SETTLE_TICKS)
+		var spacing := roundi(definition.burst_interval() * Engine.physics_ticks_per_second)
+		# -1: a press of one tick with the aim down.
+		for entry: int in [1, 2, hold, -1]:
+			var press := absi(entry)
+			_aim = entry > 0
+			var at := _rig.controllers[0].ticks
+			_aim_from = at
+			_fire_ticks.clear()
+			for tick in press:
+				_fire_ticks[at + AIM_TICKS + tick] = true
+			client_shots[0] = 0
+			server_shots[0] = 0
+			await _rig.wait(AIM_TICKS + press + SETTLE_TICKS)
+			var expected := mini(ceili(float(press) / spacing), definition.shots_a_press())
+			if definition.kind == WeaponDef.Kind.MELEE or entry < 0:
+				expected = 1
+			seen.append(
+				(
+					"%s, %d ticks, aim %s: client %d server %d"
+					% [path.get_file(), press, _aim, client_shots[0], server_shots[0]]
+				)
+			)
+			assert_int(client_shots[0]).override_failure_message(seen.back()).is_equal(
+				server_shots[0]
+			)
+			assert_int(client_shots[0]).override_failure_message(seen.back()).is_equal(expected)
+	prints("shots online, full burst off:", seen)
 
 
 # Aim straight ahead from the eye, with the shot block, and hold fire on the planned ticks.

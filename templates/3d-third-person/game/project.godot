@@ -11,6 +11,14 @@ MenuSounds="*res://ui/menus/menu_sound_service.tscn"
 
 window/handheld/orientation=0
 
+[gds_game]
+
+clip_export/libraries={
+"ual1": "res://assets/animation/universal/ual1.glb",
+"ual2": "res://assets/animation/universal/ual2.glb"
+}
+clip_export/catalogue="res://gameplay/character/character_clips.gd"
+
 [input]
 
 move_left={

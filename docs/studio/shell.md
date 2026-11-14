@@ -44,11 +44,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** In an edit script on Windows open both ends with `newline=""` and `encoding="utf-8"` (or
   `read_text(encoding="utf-8")` and `write_bytes(text.encode("utf-8"))`), keep an `assert old in text`, or use the Edit
   tool; after the script, or a `gdformat` run, `sed -i 's/\r$//' <files>` and `file <path>` (`ASCII text`, not `with
-  CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n`, whatever the file had, and reading
+  CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n` and reading
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds
-  nothing. A bare `write_text` used cp1252, so one `m²` broke the docs build. **Seen:** Deadnight #415, #429,
+  nothing. A bare `write_text` used cp1252, so one `m²` broke the docs. **Seen:** Deadnight #415, #429,
   #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
-  #1127 (`write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154, #1260 and #1270, 11-11, #1356.
+  #1127 (`write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154, #1260, #1270, 11-11, #1356;
+  #1360, 11-13.
 
 ## Scripted edits {#scripted-edits}
 
@@ -97,13 +98,14 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   gdstudio, 2026-11-02; Deadnight, 2026-11-01 and 2026-11-05 (fix: read the line that names the scanned folder before
   trusting a result); gdstudio #879, #903, #966, #970, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
   branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
-- **Approach:** From a session that sits in the kit's main checkout, commit in a worktree with `git -C <worktree>
-  commit ...`, not `cd <worktree> && git commit`. **Watch out for:** the Git guard judges the command from the
-  session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would have run in the
-  worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11; gdstudio #1178, 2026-11-11 (a line that set a variable
-  before its `cd <worktree> &&` was refused; the same commit with the `cd` first passed, and `git -C` passes always);
-  #1293, 2026-11-11 (the same from a worktree's own agent: a command that sourced a helper file first and changed
-  folder after it was refused as a commit on `main`).
+- **Approach:** From a session that sits in the kit's main checkout, commit and push in a worktree with `git -C
+  <worktree> commit|push ...`, not `cd <worktree> && git commit|push`. **Watch out for:** the Git guard judges the
+  command from the session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would
+  have run in the worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11; gdstudio #1178, 2026-11-11 (a line that set
+  a variable before its `cd <worktree> &&` was refused; the same commit with the `cd` first passed, and `git -C` passes
+  always); #1293, 2026-11-11 (the same from a worktree's own agent: a command that sourced a helper file first and
+  changed folder after it was refused as a commit on `main`); gdstudio PR #1424, 2026-11-13 (a push after `cd <worktree>
+  &&` was refused as one to `main`).
 
 ## Background commands and processes {#background}
 
@@ -116,12 +118,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   above; a monitor script also ends on its own, [Agents](agents.md#the-loop)).
 - **Approach:** Stop only a process you started: keep its PID (`echo $! > pid`) or find it by your worktree's path in
   its command line, print the candidates before the first `Stop-Process`, end it by tree (`taskkill /PID <pid> /T /F`),
-  give each run its own log, and list what is left after the stop. **Watch out for:** every agent shares one pinned
-  Godot, so a name does not say whose it is; `taskkill /IM` and a `GdUnitCmdTool` pattern ended other agents' suites;
-  stopping a background task ends the shell, not the `timeout` and Godot under it. **Seen:** Deadnight, 2026-11-01;
-  Deadnight #1086, 2026-11-04; gdstudio, 2026-11-06 (fix: the hooks refuse a kill by name ([Hooks](hooks.md))); #1149,
-  2026-11-11 (a stopped task's `bash record.sh` started its next capture); #1324, 2026-11-12 (`$3` in a load loop's
-  shell function was its own empty argument, so the loops outlived the run).
+  give each run its own log, and list what is left after the stop before a rerun. **Watch out for:** every agent shares
+  one pinned Godot, so a name does not say whose it is (`taskkill /IM` ended other agents' suites); stopping a
+  background task ends the shell, not the script, `timeout` or Godot under it. **Seen:** Deadnight #1086, 2026-11-04;
+  gdstudio, 2026-11-06 (the hooks refuse a kill by name ([Hooks](hooks.md))); #1149, 2026-11-11 (`record.sh` started
+  its next capture); #1324, 2026-11-12 (load loops outlived the run); #1391, 2026-11-13 (a stopped bench's `ab.sh` ran
+  on beside the rerun).
 - **Approach:** Leave a shell script alone while a background run executes it: edit the source, and copy it over the
   running copy only after the run ends (or run a copy made for that run). **Watch out for:** bash reads a script as
   it goes, by byte offset, so a `cp` over `check.sh` during a 10 minute bot run made bash resume inside the new text:
@@ -148,7 +150,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
   lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went); gdstudio #963,
   2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red); #1154;
-  #1400, 2026-11-13 (four).
+  #1403, 2026-11-13; #1411 (a test's); #1400 (four).
 
 ## Reverting and checking out {#checkout}
 

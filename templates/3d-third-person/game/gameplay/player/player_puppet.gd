@@ -30,6 +30,10 @@ static func make(player: Player) -> void:
 	player.ragdoll_by_command = false
 	player.collision_layer = 0
 	player.collision_mask = PhysicsLayers.WORLD
+	# Its item uses are the server's USE events (gdstudio #1386).
+	var use := ItemUse.of(player)
+	if use != null:
+		use.role = ItemUse.Role.PUPPET
 	var input := player.controller
 	player.controller = null
 	if input != null:

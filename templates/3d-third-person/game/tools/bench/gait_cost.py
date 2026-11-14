@@ -5,7 +5,8 @@ docs/engines/godot/web-probes.md#bench-web) cross-origin isolated (so the page's
 once a run and a count of players (`?run=off&players=40`; one page a run, as the bench measures one set of players a
 process), in turns off, on, off, on, waits for `window.__gait_cost` and prints each run's mean and median frame work
 and the fitting's cost a character a frame: `on`'s mean less `off`'s, over the players. The optional second argument is
-a CPU throttle (4 is the weak-machine stand-in), the third a comma-separated list of player counts (default 1,40).
+a CPU throttle (4 is the weak-machine stand-in), the third a comma-separated list of player counts (default 1,40), the
+fourth the two runs to compare (default `off,on`; `lean_off,on` reads the lean alone, gdstudio #1403).
 
     uv run --project <kit>/python gds quiet -- \
         uv run --with playwright==1.64.1 python tools/bench/gait_cost.py build/web 1
@@ -27,7 +28,6 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 RUN_TIMEOUT_S = 300.0
-TURNS = ["off", "on", "off", "on"]
 
 
 class IsolatedHandler(http.server.SimpleHTTPRequestHandler):
@@ -46,6 +46,8 @@ def main() -> int:
     folder = Path(sys.argv[1])
     throttle = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
     counts = [int(c) for c in sys.argv[3].split(",")] if len(sys.argv) > 3 and sys.argv[3] else [1, 40]
+    pair = sys.argv[4].split(",") if len(sys.argv) > 4 else ["off", "on"]
+    turns = pair * 2
     handler = functools.partial(IsolatedHandler, directory=str(folder))
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -54,7 +56,7 @@ def main() -> int:
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome", headless=True)
         for count in counts:
-            for run in TURNS:
+            for run in turns:
                 page = browser.new_page(viewport={"width": 640, "height": 360})
                 page.on("console", lambda m: messages.append(f"{m.type}: {m.text}"))
                 page.on("pageerror", lambda e: messages.append(f"pageerror: {e}"))
@@ -78,13 +80,16 @@ def main() -> int:
     failed = [m for m in messages if m.startswith(("error", "pageerror"))][:5]
     print(f"throttle {throttle:g}x")
     for count in counts:
-        means = {run: [r["mean_ms"] for r in results.get(f"{run} {count}", [])] for run in ("off", "on")}
-        if not means["off"] or not means["on"]:
+        means = {run: [r["mean_ms"] for r in results.get(f"{run} {count}", [])] for run in pair}
+        if not all(means.values()):
             continue
-        off = statistics.mean(means["off"])
-        on = statistics.mean(means["on"])
+        off = statistics.mean(means[pair[0]])
+        on = statistics.mean(means[pair[1]])
         each = (on - off) * 1000.0 / count
-        print(f"{count:>3} players: off {off:7.3f} ms, on {on:7.3f} ms a frame; the fitting {each:6.1f} us a character")
+        print(
+            f"{count:>3} players: {pair[0]} {off:7.3f} ms, {pair[1]} {on:7.3f} ms a frame;"
+            f" the difference {each:6.1f} us a character"
+        )
     print("JSON " + json.dumps({"throttle": throttle, "runs": results}))
     for line in failed:
         print("FAIL", line)
