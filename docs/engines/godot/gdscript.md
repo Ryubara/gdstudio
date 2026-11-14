@@ -107,7 +107,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   freed) is not a subclass of the expected argument class`), before the function's own `is_instance_valid()` check
   runs, and only one test of the whole run met it. A deferred call (`Class.f.call_deferred(node)`) meets it on the
   idle frame as `Cannot convert argument 1 from Object to Object`. **Seen:** gdstudio #1126, 2026-11-11
-  (`RagdollDrawing.place`); PR #1397's merge, 2026-11-13 (`keep_last`, 174 errors a run; coordinator's mistake).
+  (`RagdollDrawing.place`); PR #1397's merge, 2026-11-13 (`keep_last`, 174 errors a run; coordinator's mistake);
+  gdstudio #1478, 2026-11-13 (`AimLayer`'s rest check: 122 errors, in the full run only).
 
 ## Lambdas {#lambdas}
 
