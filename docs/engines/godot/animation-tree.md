@@ -342,7 +342,7 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
 - **Momentum.** A state machine transition with `xfade_time` 0 reports its new node from
   `get_current_node()` in the update it travels, but the skeleton shows the new pose a frame later (measured at
   `skeleton_updated`, stepped by hand and in the running game alike), so the modifier starts the decaying difference
-  from the last drawn pose again on each of the three frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
+  from the last drawn pose again on each of the four frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
   start on the frame the new pose arrives takes the whole jump. A `SkeletonModifier3D` added as an internal child at
   the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
 
@@ -400,7 +400,8 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   its new node, a frame before the skeleton showed it, so it carried nothing and the new pose arrived whole: 88 cm in
   one frame at a walk's stop, 70 cm into the crouch, for our clips and the library's alike; the blend's own test
   checked only that it was blending. **Seen:** gdstudio #1416, 2026-11-13 (the maintainer's playtest;
-  `test_own_clip_blends.gd`).
+  `test_own_clip_blends.gd`); PR #1422, 11-14 (slower stops: a 1.3 rad gap at a sprint stop's start moved 23 cm in
+  the frame after the last restart; `SETTLE_FRAMES` 4).
 - **Approach:** Keep a state-change blend out while an action clip covers the whole body
   (`CharacterAnimation.is_acting(true)`); the action cross-fades in the tree. **Watch out for:** the body state
   under a vault still changes, and a restart then took the clip's own fast motion for a jump and held it back: a
@@ -419,3 +420,11 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   `gait_transition` and sent the machine to `ground`, the last request won, and the body stood drawn over its
   crouched capsule for as long as it crouched (an AI in cover looked stuck, shots at its chest flew over the capsule).
   **Seen:** gdstudio #1412, 2026-11-13 (`test_a_crouch_asked_during_a_stop_takes_the_body_to_the_crouch`).
+- **Approach:** A transition played by the ground the body covers needs a body that covers the clip's ground: give the
+  controller a deceleration (or an acceleration) per gait that covers the clip's `travel`, follow the clip until the
+  body is at rest, count from the tick the input changed (its velocity times a tick), and test the distance and a
+  planted foot's slide over the whole transition. **Watch out for:** the stops were played by travel while the body
+  stopped by one 36 m/s² in a tenth of the clip's ground; the clip then played the rest at its own pace, in place, its
+  feet sliding 106 mm; the tests checked only that a stop clip played. `get_position_delta()` is no tick's ground on a
+  puppet (placed, never stepped): an AI puppet's stop seeked to its end at once. **Seen:** gdstudio #1415, 2026-11-13
+  (0.19 m of the jog stop's 1.96 before, 1.965 after); PR #1422, 11-14 (an AI puppet).

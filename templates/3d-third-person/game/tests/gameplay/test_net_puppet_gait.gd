@@ -20,7 +20,9 @@ const BO_AT := Vector3(3.5, 0.0, 14.0)
 ## start and the snapshots' delay).
 const WALK_FRAMES := 70
 const SPRINT_FRAMES := 70
-const STOP_FRAMES := 60
+## A sprint's stop slows the body over its clip's ground, 1.67 s (gdstudio #1415), and the
+## snapshots' delay comes after it.
+const STOP_FRAMES := 130
 const SETTLE := 30
 ## The least mean turn of the puppet's largest-turning bone a frame, in degrees, while it walks
 ## and sprints: the stepped body's gait turns 10 to 19; one held in a stop clip's last frame 0.2.
