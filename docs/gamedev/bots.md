@@ -209,7 +209,9 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
 - **Replay:** the same seed in a fresh process gives the same `command_hash`; another seed does not. In one process the
   second run differs: the navigators take their phase and seed from a static counter of navigators made. A run also
   depends on every object made before the AI: a noise maker takes its check phase from its instance id, so one more
-  `RefCounted.new()` in the soak changed seed 11's commands at 120 s (not at 60 s).
+  `RefCounted.new()` in the soak changed seed 11's commands at 120 s (not at 60 s), and so does any edit of a script the
+  soak loads (the watch's new exports and lines moved seed 40 off main's hash, the same once the phase was fixed), so a
+  soak-script change can make a nightly seed meet a fault main has on other seeds (#1547).
 - **Probe:** `--probe` (every kind), `--probe Civilian,Grunt` (those kinds, by profile name) or the environment variable
   `SOAK_PROBE` (same values; the watch's `probe_episodes` in the inspector) keeps a row a tick of each probed character
   and prints an `AI_SOAK_EPISODE {json}` block when a stuck episode that counts toward `stuck_share` ends: the
@@ -298,5 +300,7 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
 - **Approach:** Make a soak probe that records without making an object (static functions, rows in plain arrays on
   the watch), and prove it by comparing the run's `command_hash` with and without it in fresh processes. **Watch out
   for:** the probe's first version was one `RefCounted`, and seed 11 for 120 s took another course with it (its hash
-  and its episodes changed): a probe that changes the run cannot explain it. **Seen:** gdstudio #1543, 2026-11-14
-  (`AiSoakProbe`, `test_the_probe_leaves_the_run_as_it_was`).
+  and its episodes changed): a probe that changes the run cannot explain it. Off, the soak's lines are as before but
+  its hash is not main's (the scripts changed), and the pull request's soak broke seed 40 on Linux at `stuck_share`
+  1.69 %, Civilian1 6.1 s: main's refused flee points (#1532), met on a course the id shift opened. **Seen:**
+  gdstudio #1543, 2026-11-14 (`AiSoakProbe`, `test_the_probe_leaves_the_run_as_it_was`).
