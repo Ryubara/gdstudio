@@ -361,6 +361,19 @@ plays and the states change as before.
 The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
 so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are kit #1157's.
 
+**How a stop moves the body** (gdstudio #1415). A body on its feet with the stick let go slows by the stop deceleration
+of the gait whose speed band it is in (`CharacterTuning` > Ground > Stops): `walk_stop_deceleration` 2.84 m/s² up to
+`walk_speed`, `run_stop_deceleration` 4.38 up to `run_speed`, `sprint_stop_deceleration` 4.57 above. At the template's
+60 ticks a second they cover each stop clip's travel: 0.48 m from the walk, 1.96 m from the jog, 4.82 m from the sprint,
+in 0.60, 1.13 and 1.67 s (0.11 and 0.18 s from the jog and the sprint before). The stop clip is played by that ground
+until the body is at rest (`GaitTransitions.STOP_DONE`, 0.02 m/s), counted from the tick the stick was let go, so its
+planted feet hold the floor (under 3 mm in `test_gait_stops.gd`). Crouched, in the air or held by an action the body
+stops by `deceleration` (36) as before. The rate is a function of the speed alone, so a predicting client and the server
+stop a body at the same place (`test_net_gait_stops.gd`), and an AI's navigator lets go that far before its goal
+([stopping](ai-navigator.md#navigator)). A game that changes a gait's speed or its stop clip sets the matching stop
+deceleration to `(v_top² - v_bottom²) / (2 × travel)` over the band; a faster stop leaves the clip's feet sliding under
+a body at rest.
+
 **What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
 pose's difference from the idle's first frame, so it keys every bone the idle keys, the `ik_` targets too (where
 its hands and feet are), or the difference pulls an unkeyed one back toward its rest. The template's own are
