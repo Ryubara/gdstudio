@@ -317,6 +317,11 @@ they exist.
   coordinator had assigned collided (14 twice). **Seen:** gdstudio PR #1503, 2026-11-14 (coordinator's mistake; #1503
   took 17).
 
+- **Approach:** After an edit that adds words or links to a doc line, run `pytest python/tests/test_moved_sections.py`
+  before the push: it pins the sections `gds brief` proposes for sample issues. **Watch out for:** a link added to a
+  row of `own-animation.md#waves` lifted that section into issue #1435's six and pushed `parts-cost.md#parts-cost`
+  out, red on every `test` job. **Seen:** gdstudio #1371, 2026-11-14.
+
 ## The report {#the-report}
 
 <!-- new section: the agent definitions held the report's parts; nothing for the coordinator said what comes back -->
@@ -385,6 +390,10 @@ too, so the label can be taken off.
   stopgap sent Quick join to the Play together screen until the rooms flow replaced it; that issue closed and the route
   stayed, so Quick join was a second Play together. **Seen:** Deadnight #526, 2026-11-02 (fix: quick join joins the
   first game found).
+- **Approach:** When a check fails in CI but passed on your branch, merge main first (`gds merge-main`) and run the
+  failing suite on the merge: CI tests the merge with main, not your head. **Watch out for:** a suite run in the
+  shard's own order on the branch alone read 28 where CI read 36, because a clip change on main moved the blend's
+  restarts. **Seen:** gdstudio #1530, 2026-11-14 (after #1536 landed).
 - **Approach:** Before opening a pull request, run the whole suite folder of every file it changes, not only the test it
   aims at. **Watch out for:** a balance fix ran only the gate test; four simulator tests around the code it changed
   failed in CI, and `main` stayed red past the deadline. **Seen:** Deadnight, 2026-11-01 (fix: CI on the fix caught it).

@@ -147,17 +147,41 @@ mass keeps its place against the capsule: it flies the arc the controller flies.
 | State | Export of `CharacterAnimation` | Clip | Stand-in (`CharacterClips.STAND_INS`) |
 | --- | --- | --- | --- |
 | `JUMP` (rising) | `jump_clip` | `gds/Jump_Start`: the whole 0.4 s rise from the idle's first pose to the rise's, the arms floating up over all of it | `ual1/Jump_Start` |
-| `FALL` | `air_clip` | `gds/Jump_Fall`: a 1.2 s loop, the soles at the capsule's bottom | `ual1/Jump` |
-| `LAND` (a fall of `land_clip_speed` or more, for `land_time`) | `land_clip` | `gds/Land_Soft`: control back at frame 9 (0.3 s), the settle after | `fixed/Jump_Land` |
+| `JUMP` from a run | `GaitSettings.run_takeoff_left`, `_right` | `gds/Jump_Start_Run_L` and `_R`: from the jog's left and right foot strikes (its frames 0 and 10), at its speed | the standing take-off |
+| `FALL` | `air_clip` (with `rise_clip`, `apex_clip`) | `gds/Jump_Fall`, `Jump_Rise`, `Jump_Apex`: 1.2 s loops in a blend space on the vertical speed, the soles at the capsule's bottom | `ual1/Jump` |
+| `LAND` (a fall of `land_clip_speed` or more) | `land_clip` | `gds/Land_Soft`: control back at frame 9 (0.3 s), the settle after | `fixed/Jump_Land` |
+| `LAND` from 9 m/s | `GaitSettings.hard_land_clip` | `gds/Land_Hard`: control back at frame 20 (0.67 s), 1.27 s with its settle | `land_clip` |
+| `LAND` asked to run | `GaitSettings.run_land_clip` | `gds/Land_To_Jog`: 0.27 s, ends on the jog's right foot strike (frame 10) | `land_clip` |
 
-Six more are in the library and in `CharacterClips` for the tree that picks them (kit #1371), and no state
-plays them yet: `Jump_Start_Run_L` and `_R` (from the jog's left and right foot strikes, at its speed),
-`Jump_Rise` and `Jump_Apex` (with `Jump_Fall`, three poses to blend by vertical speed), `Land_Hard` (falls
-from 9 m/s) and `Land_To_Jog` (0.27 s, ends on the jog's right foot strike). `locomotion.json` says of each
-what the tree needs: `carried` (the capsule carries it), `made_for` (the tuning numbers it was built to,
-which `tests/gameplay/test_own_jump_clips.gd` holds to `CharacterTuning`'s defaults), `fall_speed` (`from`,
-`to`), `control` (the frame control is back at), `joins` (the clip each end is, and `first_frame` or
-`last_frame`, the frame of it).
+**How the tree picks them** (`JumpAnimation`, kit #1371). A jump from the ground state at `run_takeoff_speed` (2.5 m/s)
+or more takes off from the foot that pushes: the one down at the gait's phase (`clips.json` contacts: the jog's left
+from 0 to 0.3 of its cycle, its right from 0.5 to 0.8), else the one that lands next; a gait with no record picks the
+take-off whose `joins.first_frame` is nearest the phase. The momentum blend carries no pose speed into the standing
+take-off and starts again on one frame more (PR #1530). The take-off plays to its end while the body is in the air, then
+the air plays at the body's vertical speed. A landing is picked by the fall speed (`Character.landed`'s on a stepped
+body, the fastest fall it was drawn with on a puppet) against each clip's `fall_speed` range. While the body stands it
+plays through its settle (the tree stays in `land` after the body's `LAND` state ends); asked to move it gives the body
+back at its `control` frame, or at once when the body already moves; `Land_To_Jog` hands over to the jog at the phase of
+its `joins.last_frame` (0.5). A clip missing from the libraries leaves its choice to `CharacterAnimation`'s clip, so the
+library's play as stand-ins. Cosmetic, never sent: a puppet picks from the state, velocity and goal it is drawn with.
+`tests/gameplay/test_jump_tree.gd` holds each case; `tools/capture/jump_tour.tscn` films them on a player's own screen
+beside the puppet of it on another's.
+
+`locomotion.json` says of each clip what the tree reads: `carried` (the capsule carries it), `made_for` (the
+tuning numbers it was built to, which `tests/gameplay/test_own_jump_clips.gd` holds to `CharacterTuning`'s
+defaults), `fall_speed` (`from`, `to`), `control` (the frame control is back at), `joins` (the clip each end is,
+and `first_frame` or `last_frame`, the frame of it).
+
+- **Approach:** Pick a take-off (or any clip that starts from a gait) by the foot that is on the floor at the gait's
+  phase, from the record's contacts, and test the pick at phases between the strikes too, against the gait's pose
+  bone by bone. **Watch out for:** the first pick took the take-off whose join frame was nearest the phase; at 0.2 of
+  the jog the drawn pose was 593 mm (a hand) from the left strike's frame and 401 mm from the right's, so neither
+  nearness by phase nor by pose says which foot pushes; on a strike the joined take-off is 46 to 51 mm from the jog.
+  **Seen:** gdstudio #1371, 2026-11-14 (`test_jump_tree.gd`).
+- **Approach:** Read what a seek on the ground state set (`GaitBlend.seek_phase`, a hand-over) one update after the
+  `travel()` that goes there. **Watch out for:** in the update of the travel the walk point's `current_position`
+  still read the phase the ground state was left at (0.22 before a jump; 0.50 the update after), the same frame of
+  lag as the drawn pose ([gait fitting](../animation-tree.md#gait-fitting)). **Seen:** gdstudio #1371, 2026-11-14.
 
 ## The fixed clips {#fixed-clips}
 
@@ -203,6 +227,7 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the controller's numbers that pick them |
 | `momentum_blend`, `momentum_half_life`, `momentum_speed_limit` | on, 0.05 s, 720 degrees a second | a change of body state shows at once and the difference from the drawn pose dies away (`MomentumBlend`), in place of the cross-fade over `blend_time` |
 | `lean`, `lean_clips`, `lean_full_at`, `lean_time` | on, `gds/Lean_Left` and the rest, 20 m/s², 0.12 s | the lean into the acceleration, built only when the four lean clips exist |
+| `jump_choices` and the Jump group | on; `gds/Jump_Start_Run_L` and `_R` from 2.5 m/s, `gds/Jump_Rise` and `gds/Jump_Apex` at 3 m/s up and 4 down, `gds/Land_Hard` from 9 m/s of fall, `gds/Land_To_Jog` asked to run at 2.5 m/s | the jump's clips picked by the body's numbers ([the jump's clips](#jump-clips), `JumpAnimation`); off, `jump_clip`, `air_clip` and `land_clip` alone |
 | `helper_tracks` | off | the clips' `ik_` target tracks blended; off, switched off in the game (`HelperTracks`, gdstudio #1438): nothing drawn follows them, the pose is the same and the tree 4 to 5 µs a character cheaper |
 
 **What a transition clip needs** (gdstudio #1156, #1157). A name in `GaitTransitionSet` is a base: the tree plays
@@ -266,6 +291,12 @@ of the old build (`test_gait_lean.gd`). Nothing depends on distance or sight. In
 | --- | ---: | ---: |
 | Before | 32 to 37 µs (frame 1.82 to 1.92 ms) | 35 to 51 µs (7.9 to 8.9 ms) |
 | After | 14 to 26 µs (1.74 ms) | 12 to 15 µs (6.2 to 6.7 ms) |
+
+- **Approach:** Add every new `GaitSettings` export to `test_gait_parts.gd`'s pinned defaults in the same commit, and
+  grep the tests for a state read as one clip (`get_node(state) as AnimationNodeAnimation`) when a state becomes a
+  blend space. **Watch out for:** `ExportPins.differences` fails on an export the table lacks, and
+  `test_player_animation_live.gd` read the air as a clip; both passed the jump's own suite and failed only in the full
+  run. **Seen:** gdstudio #1371, 2026-11-14.
 
 ### Filmed online and on the local body {#gait-online}
 
