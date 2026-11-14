@@ -25,6 +25,7 @@ const SLOW_FACTOR := 2.0
 
 var _arena: BehaviourArena
 var _ruler: PhysicsRuler
+var _candidates: RulerCandidates
 
 
 func _ready() -> void:
@@ -50,6 +51,8 @@ func measure_all(slow := false) -> Array[Dictionary]:
 	add_child(_arena)
 	_ruler = PhysicsRuler.new()
 	_arena.add_child(_ruler)
+	_candidates = RulerCandidates.new()
+	_arena.add_child(_candidates)
 	_arena.build()
 	await _arena.settle()
 	if slow:
@@ -83,6 +86,8 @@ func _measure(count: int) -> Dictionary:
 	for _i in WARM_TICKS:
 		await get_tree().physics_frame
 	var calibrations := PackedFloat64Array([_ruler.measure_ms()])
+	var candidates: Dictionary[String, PackedFloat64Array] = {}
+	_time_candidates(candidates)
 	var thinks := PackedInt32Array()
 	var queries := PackedInt32Array()
 	var rays := PackedInt32Array()
@@ -123,6 +128,7 @@ func _measure(count: int) -> Dictionary:
 					rays_over += 1
 		if (tick + 1) % CALIBRATE_TICKS == 0:
 			calibrations.append(_ruler.measure_ms())
+			_time_candidates(candidates)
 	var seconds := float(TICKS) / Engine.physics_ticks_per_second
 	var storms := 0
 	var fast_thinkers := 0
@@ -145,8 +151,9 @@ func _measure(count: int) -> Dictionary:
 	var step_each := median(steps)
 	var think_each := median(think_times)
 	var history_each := median(histories)
-	return {
+	var row := {
 		"count": count,
+		"pid": OS.get_process_id(),
 		"ruler_ms": snappedf(calibration, 0.01),
 		"system": OS.get_name(),
 		"step_us_each": snappedf(step_each, 0.01),
@@ -164,6 +171,19 @@ func _measure(count: int) -> Dictionary:
 		"rays_over": rays_over,
 		"budget_over": budget_over,
 	}
+	for key in candidates:
+		row[key] = snappedf(median(candidates[key]), 0.001)
+	return row
+
+
+## Times every `RulerCandidates` ruler once (right after the physics ruler) into `into`, by name:
+## printed beside the step for the soak to compare, never judged (kit #1534).
+func _time_candidates(into: Dictionary[String, PackedFloat64Array]) -> void:
+	var times := _candidates.measure_ms()
+	for key in times:
+		var values: PackedFloat64Array = into.get(key, PackedFloat64Array())
+		values.append(times[key])
+		into[key] = values
 
 
 func _clear_crowd() -> void:
