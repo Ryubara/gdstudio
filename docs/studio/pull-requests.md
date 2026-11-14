@@ -88,6 +88,9 @@ A clip is a GIF or an MP4 by the rule on [GIF or MP4](capture.md#gif-or-mp4), an
   in the body and appended the upload after `## AI use`; the guard reads the body and command before they run, so a body
   edited in the same command, or a path in a variable, is read as it was. **Seen:** Deadnight #553 and #586, 2026-11-02;
   Deadnight #611, #637 and #787, 2026-11-03; Deadnight, 2026-11-04 (fix: the guard compares files, not names).
+- **Approach:** Edit an open pull request's body from its read-back (`gh pr view N --json body -q .body > <file>`), not
+  from the file it was created from. **Watch out for:** `gh pr edit --body-file` with the original file and no
+  `--attach` put its `./` paths back in place of the uploaded images. **Seen:** gdstudio #1409 (PR #1423), 2026-11-13.
 - **Approach:** After the pull request is open, read the description back (`gh pr view N --json body -q .body`) and look
   for a `github.com/user-attachments` URL on the `Before:` and `After:` lines; move any appended upload into place and
   delete the extra block, then `gh pr edit N --body-file <file>` without `--attach`. **Watch out for:** a report said

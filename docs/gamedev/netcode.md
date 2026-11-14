@@ -127,7 +127,7 @@ says where it was learned (Deadnight, the first game).
   **Seen:** gdstudio #1012 (PR #1021) and #887, 2026-11-10
   ([the template's packets](../engines/godot/multiplayer.md#template-packets)); gdstudio #1254, 2026-11-11 (the
   command's byte 13 was spare; it and #1277 both took version 7, so #1254, landing second, took 8); #1420 (entry flag
-  bit 7 beside #1437's bit 6; version 13).
+  bit 7 beside #1437's bit 6; version 13); #1453 (17).
 - **Approach:** When you raise the protocol version, search the tests for the old number pinned as a literal
   (`grep -rn "is_equal(<old>)" tests`, the join suite's refusal case) and change it with the bump, before the full
   suite. **Watch out for:** the codec and wire suites read `NetWire.VERSION` and stay green, so the net suites run
@@ -139,3 +139,8 @@ says where it was learned (Deadnight, the first game).
   on main moves the expected number with it. **Watch out for:** the hitscan suite counted `PLAYER_SIZE` for every
   player; once main gave an aiming entry an aim byte, every TICK it checked was one byte over and both cases failed
   only after the branch merged main. **Seen:** gdstudio #1252, 2026-11-11 (PR #1269, after #1300).
+- **Approach:** Before taking a protocol version, ask the agents whose branches touch the net files which number
+  they hold (through the coordinator), not only the open pull requests. **Watch out for:** the search for a higher
+  number in open pull requests cannot see a branch not pushed yet, so #1300 and #1254's branch both raised
+  `NetWire.VERSION` from 6 to 7 without either seeing the other. **Seen:** gdstudio #1277 (PR #1300) and #1254,
+  2026-11-11 (#1254, landing second, took 8).

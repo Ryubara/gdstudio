@@ -329,3 +329,10 @@ has it, a late joiner's one snapshot, a death's ragdoll on another screen from o
 the puppet, a browser's cap) and `test_net_ai_section.gd` (the AI section's population on a server, drawn by a
 client); the capture is `tools/capture/ai_online_tour.tscn` (the server's world beside Bo's
 screen) and the cost `tools/net/bandwidth.py --ai` ([the numbers](ai-online.md#replication-cost)).
+
+- **Approach:** When `test_ai_section.gd` fails in a full run with a guard noticing a player behind it, and passes
+  alone, look for a suite before it that left the left button down (a held left button is `fire`, and the guard turns
+  to the shot), not for machine load or the senses ([What a suite leaves behind](../ui-input-tests.md#leaks)).
+  **Watch out for:** it failed in nearly every local full run on 2026-11-12 and was put down to load, on six branches
+  that never touched the senses. **Seen:** gdstudio #1357 (PR #1396), 2026-11-12 (3D Blank's touch test kept the
+  button down).

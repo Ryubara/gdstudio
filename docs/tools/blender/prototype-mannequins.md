@@ -94,6 +94,9 @@ far it has rolled), lighter palms and dark soles (the hand's and the foot's turn
   0.92, 0.214 m, 12.2 % of her height and 0.86 of her forearm, and the male's 12.9 %: a kit mannequin's hand is
   larger than a person's. **Seen:** gdstudio #1149, 2026-11-11, after the maintainer's review of #1151 found a
   woman's hands far too large (fix: scales 0.78 and 0.84, the table above).
+- **Approach:** Measure a finger pose or curl made on the library's hand again on each `form` hand before it plays
+  there. **Watch out for:** the `form` hands rest their fingers and thumb differently from the Quaternius hand, so a
+  curl keyed against one does not close the same way on the other. **Seen:** gdstudio #1155 (PR #1275), 2026-11-12.
 
 ## Proof in Godot {#proof}
 

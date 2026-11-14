@@ -148,9 +148,33 @@ Open pull requests come before new work: each one left open goes stale against `
   no merge call, no refresh unless DIRTY. Repeat that line to an agent each time it is resumed after its context was
   summarised, and check `gh pr list --json number,autoMergeRequest` after each report. **Watch out for:** a resumed
   agent can lose its starting prompt and fall back to the auto-merge entry above; three did, pushing refreshes that
-  restarted CI and turning auto-merge on against the queue. **Seen:** gdstudio PR #1424, #1426 and #1434, 2026-11-13
-  (fix: auto-merge off, rule resent); PR #1448 and #1459, 2026-11-13: the agent pages and the batch brief still said
-  to merge, so #1448 merged past the queue (fix: both now stop under a queue or a lost prompt).
+  restarted CI and turning auto-merge on against the queue. **Seen:** gdstudio PR #1424, #1426, #1434, #1422 and
+  #1437, 2026-11-13 (fix: auto-merge off, rule resent); PR #1448 and #1459, 2026-11-13: the agent pages and the
+  batch brief still said to merge, so #1448 merged past the queue (fix: both now stop under a queue or a lost prompt).
+- **Approach:** When checks take longer than the gap between merges, land from an order: the oldest green pull
+  request lands, the others keep testing but do not land, and one waiting its turn leaves `main` alone when it goes
+  DIRTY, then merges once on its turn and lands. After a push, wait until the head's required checks exist before the
+  merge call. **Watch out for:** without an order #1306 was refreshed three times and #1285 merged `main` five times
+  while others landed ahead, each push a new full run that `main` outran; a merge fired straight after a push was
+  refused (405, the required checks expected but not yet registered). **Seen:** gdstudio #1306, #1325 and #1285,
+  2026-11-12; #1362, 11-12 (about six refreshes in 3 h) (fix: the coordinator lands from a queue, [above](#landing)).
+- **Approach:** Order a landing queue by readiness, and sort it again each time a pull request turns green: the ones
+  green and mergeable now land first, and one whose CI is still running waits behind them. **Watch out for:** a queue
+  ordered once, when it started, sat waiting on #1394's running CI while #1398, #1399 and #1370 were green and
+  mergeable. **Seen:** gdstudio coordinator, 2026-11-13 (a maintainer correction; fix: the queue is re-sorted on
+  each green).
+- **Approach:** Before starting a landing queue, read the session's background tasks (their notifications, `TaskStop`)
+  and stop every older queue there; when a pull request leaves the queue for more work, check that no other queue
+  still holds it. **Watch out for:** a queue started before a `/clear` kept running as a background task of the
+  session, `ps` in Git Bash does not list those, and a second queue started; the old one merged #1394 while the
+  maintainer was asking for a change to it, so the change became a follow-up pull request. **Seen:** gdstudio #1380
+  and #1401, 11-12 (two copies on one `queue.txt`; one merge answered HTTP 405; a PID lock file beside it would
+  refuse the second); #1394, 11-13.
+- **Approach:** Give every open pull request an agent, held ones included, unless it waits on a named pull request (a
+  `Depends on:` line or a stacked base); a held one that goes DIRTY is refreshed now, so it lands the moment it is
+  approved. After each landing, count the running agents against the open pull requests. **Watch out for:** with 18
+  kit pull requests open two agents were working, and held DIRTY ones sat with no owner because held was read as
+  waiting. **Seen:** gdstudio coordinator, 2026-11-12 (a maintainer correction).
 
 **Landing a green head behind `main` (the coordinator's practice since 2026-11-11, a maintainer question).** A hand
 merge on a busy day can starve: `main` takes a new commit before each full CI run ends, so the refresh above never
@@ -210,14 +234,14 @@ force push, which is the maintainer's decision: open the same change from a new 
   the merge is clean but they fail. **Seen:** gdstudio #1298 on #1187, 2026-11-11 (the online enemy look and
   `test_net_ai_section.gd` from #1243 still used the Quaternius male).
 
-- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, through `gds merge-main` (the message
+- **Approach:** Commit a merge of `main` the moment its conflicts are resolved, through `gds merge-main` (message
   from a file, nothing after the trailer); run `uvx pre-commit run --files <resolved files>` before `--continue`, run it
-  unpiped, and check that `git log -1` shows the merge before rebuilding or pushing. **Watch out for:** a hand-written
-  title (`ui: Merge main into x`) is refused (`Merge` is not a verb on the list); `--continue` commits through
+  unpiped, and check that `git log -1` shows the merge (no `MERGE_HEAD`) before rebuild or push. **Watch out for:** a
+  hand-written title (`ui: Merge main into x`) is refused (`Merge`: not a listed verb); `--continue` commits through
   pre-commit, where a 155-character licence line met the 120 limit, a merge staged for hours met `gdlint` at 1,016
-  lines, two `Seen:` lists joined in a conflict passed the 900-character rule limit; a fix made after a refusal
-  counts once staged. **Seen:** Deadnight #539, #656, #410, 2026-11-02; gdstudio #1023 (`--no-edit`), #1256, #1323
-  (`git merge --no-edit`: no trailer), 2026-11-10 to 12; PR #1488, 2026-11-13 (a page split unstaged).
+  lines, two `Seen:` lists joined in a conflict passed 900. A fix after a refusal counts once staged.
+  **Seen:** Deadnight #539, #656, #410, 11-02; kit #1023, #1256, #1323, 11-10 to 12 (`--no-edit`: no trailer);
+  #1397 (`gdlint` refused it, a local-vs-remote head check read "pushed"), PR #1488 (a split unstaged), 11-13.
 - **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
   after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
   HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply
@@ -245,3 +269,13 @@ force push, which is the maintainer's decision: open the same change from a new 
   matches each trailer against the body's `Model:` line; the coordinator resolved conflicts on two pull requests with
   its own trailer and left `Model:` naming only the agent's model, so #1016 failed the check and cost a run.
   **Seen:** gdstudio #1016 and #1113, 2026-11-11 (coordinator's mistake).
+- **Approach:** Fetch again right before the push when the tests after a merge ran long. Scope the run to the merge:
+  a clean merge whose new commits touch nothing the branch changes reruns the touched suites and leaves the full run to
+  CI's template job; a merge that touches the same subsystem runs the full template suite before the push. **Watch out
+  for:** #1265 pushed after a 32-minute run and was DIRTY on arrival; #1285 ran a 30-minute full suite after each of
+  seven clean merges and `main` moved during each; #1267's rifle clips broke the interact reach in a suite no targeted
+  run would have picked. **Seen:** gdstudio #1265, #1285, #1355 and #1275, 2026-11-12.
+- **Approach:** After a merge that touches shared build code (the Blender clip builds, a measure they import), rebuild
+  the binary files the branch ships and compare them key by key with the commit that last built them before the push.
+  **Watch out for:** every check passed while the merged build code had changed the gaits' feet. **Seen:** gdstudio
+  #1285, 2026-11-12 (its final merge; see [Build scripts](../tools/blender/build-scripts.md#rebuilding)).

@@ -96,7 +96,9 @@ func row_of(id: int, character: AiCharacter) -> AiRow:
 	row.id = id
 	row.position = character.global_position - origin
 	row.yaw = character.facing
-	row.speed = Vector2(character.velocity.x, character.velocity.z).length()
+	# The speed the body is asked for, not the one it has: a client's puppet starts its stop when
+	# this body does, which its drawn motion alone cannot tell from a slow-down (gdstudio #1452).
+	row.speed = character.goal_speed
 	row.situation = character.situation.current
 	row.state = character.state
 	row.aiming = character.aiming
