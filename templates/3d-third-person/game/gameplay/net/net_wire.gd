@@ -52,11 +52,12 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## the melee press, a MELEE event and an AI event's `MELEE` code (gdstudio #1254); 9: a COMMAND's
 ## byte 14 carries the hotbar place used, and a USE event (gdstudio #1386); 11: a COMMAND's byte
 ## 13 carries the peek lean and a leaning player's entry ends with it (gdstudio #1400; 10 is named
-## by open pull requests beside it).
-const VERSION := 11
+## by open pull requests beside it); 12: a server's left-leaning body starts a muzzleless shot on
+## the left (gdstudio #1435), so a client predicts its shots as the server steps them.
+const VERSION := 12
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 11
+const MIN_VERSION := 12
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1
