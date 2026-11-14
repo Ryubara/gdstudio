@@ -128,6 +128,11 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   compressed library (`gds`) is refused ("Compressed tracks can't be manually removed"), and the switch holds for
   every player in the process, tests included: a suite that reads the switched-off bones switches them on for itself.
   **Seen:** gdstudio #1438, 2026-11-13 (the `ik_` targets, 286 tracks; `test_own_directions.gd` reads them).
+- **Approach:** Compare the rifle's clips (`rifle/rifle_clips.glb`) in Godot within the importer's error, never key for
+  key: they import at Godot's defaults, the lossy optimizer on, unlike our locomotion clips (optimizer off, compression
+  on: above). **Watch out for:** keys equal in the file came in up to 0.35 degrees apart, so a test that held two
+  reloads equal up to their shared seat failed though the build's keys matched. **Seen:** gdstudio #1508 (PR #1515),
+  2026-11-14 ([the rifle charge](rifle-charge.md#rifle-charge)).
 
 ## The jump's clips {#jump-clips}
 

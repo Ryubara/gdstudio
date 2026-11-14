@@ -36,7 +36,7 @@ How the 3D Third Person rifle's left hand pulls the charging handle at the end o
   Tests: `tests/gameplay/test_rifle_charge_reloads.gd` (the player's own scene on both bodies, each reload's clip,
   and the tactical way on the stage every half hundredth, `charge_bolt.posed_pulls`), `test_rifle_clips.gd`
   (`test_only_the_empty_reload_has_the_bolts_beat`). Captures:
-  `tools/capture/rifle_reload_live.tscn` (`RELOAD_ROUNDS`, `RELOAD_VIEW=game`, `close` or `left`, `RELOAD_MODEL`).
+  `tools/capture/rifle_reload_live.tscn` (`RELOAD_ROUNDS`, `RELOAD_VIEW=game`, `close`, `left` or `body`, `RELOAD_MODEL`).
 - **How the handle is held.** The model's latch was a 1.4 cm bar within the stock's width with its rear face on
   the stock's front, so no finger fitted in front of it and a pull ran it into the stock: `build_rifle.py` now
   runs the handle 5 mm higher (`BOLT_Z`, 1 mm over the stock's top) and gives the latch an extended left side, the
@@ -87,3 +87,9 @@ How the 3D Third Person rifle's left hand pulls the charging handle at the end o
   them equal to there failed: a spline key's slope reads the keys beside it, so the seat's key already leant
   toward each reload's own end, and the imported clips differed by up to 0.35 degrees even where the file's keys
   were equal. **Seen:** gdstudio #1508, 2026-11-14 (`test_only_the_empty_reload_has_the_bolts_beat`, to 0.50).
+- **Approach:** Film the reloads with `tools/capture/rifle_reload_live.tscn` in a game made from the branch (`gds
+  template game`, then `gds capture frames --project <path>/game`), and use `RELOAD_VIEW=body` (farther out on the left
+  front, the head, the chest and the rifle in view) for a clip's head and chest beats; `close` and `left` frame the
+  hands. **Watch out for:** run in the template's own `game/`, which lacks the shared addons, the scene drew blank
+  frames and the import rewrote the levels' `.exr.import` files in the worktree. **Seen:** gdstudio #1508 (PR #1515),
+  2026-11-14.

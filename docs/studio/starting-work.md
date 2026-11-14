@@ -409,6 +409,11 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   agent's last word, "waiting on its checks", in several updates while #808's Windows job had failed and its agent had
   stopped, until the maintainer found the failure. **Seen:** gdstudio #797, 2026-11-08 (fix: the coordinator found the
   cause, a leaked `GDS_QUIET`, fixed it in #808 and landed it).
+- **Approach:** Park an issue in progress that waits on a maintainer's answer with `gds issue block <ref> --on
+  maintainer --why "<the question>"`, which releases it, sets `S-blocked` and writes the reason in its body in one step;
+  never change its labels with `gh issue edit`. **Watch out for:** a label taken off by hand leaves the start in the
+  ledger and no reason in the body, so `gds issue list` cannot class the block; on #1490 `S-in-progress` came off by
+  hand before the block ran. **Seen:** gdstudio #1490, 2026-11-14 (coordinator).
 
 ## Landing pull requests {#landing}
 

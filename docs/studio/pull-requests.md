@@ -193,6 +193,11 @@ read it prints `commits: cannot tell`, as the docs rule does (kit #1303). The gu
   one; do not rerun the failed run. **Watch out for:** `pr` runs on `pull_request_target`, and a rerun reads the
   body from the event that started it, so the old body fails again however it was fixed. **Seen:** gdstudio #1016,
   2026-11-11 (coordinator's finding).
+- **Approach:** Run `gds pr check-body <file>` from the pull request's worktree, or give `--repo <worktree>` when you
+  stand in a scratch folder beside the body file. **Watch out for:** the check reads the conventions of the checkout
+  round the current folder; from `scratch/` there is none, so it exits 2 ("not in a git checkout; pass --repo") and
+  judges nothing. **Seen:** gdstudio PR #1440 and PR #1523 refreshes, 2026-11-14 (the coordinator's refresh brief now
+  passes `--repo`).
 
 ## Which paths the image guard covers {#attach-paths}
 

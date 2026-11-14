@@ -56,13 +56,13 @@ check on the branch's commits since `origin/main` and refuses a `Model:` line th
 guard](pull-requests.md#pr-body)); run it before `gh pr create`. The base's commits stay on the list after the base
 lands (a squash merge makes a new commit on `main`), so the line keeps naming their models.
 
-- **Approach:** When the base has landed as a squash, merge `main` into the stacked branch, put `main`'s whole tree
-  in the merge (`git read-tree --reset -u origin/main` while the merge is open), re-apply only the branch's own
-  change (`git diff <base tip> <branch tip> | git apply --3way`) and resolve what is left. **Watch out for:** a plain
-  merge conflicts in every file of the base that changed before it landed (37 files, most of them the base's own
-  and none of them the stacked branch's), and resolving them by hand risks keeping an old side of the base; the
-  re-applied patch conflicted in 10 files, all the branch's own, and three of those `main` had since taken whole.
-  **Seen:** gdstudio #1267 on #1040, 2026-11-12.
+- **Approach:** When the base has landed as a squash, merge `main` into the stacked branch, put `main`'s whole tree in
+  the merge (`git read-tree --reset -u origin/main` while the merge is open), re-apply only the branch's own change
+  (`git diff <the last base head it merged> <branch tip> | git apply --3way`) and resolve what is left. **Watch out
+  for:** a plain merge conflicts in every file of the base that changed before it landed (37 files, most of them the
+  base's own and none of them the stacked branch's), and resolving them by hand risks keeping an old side of the base;
+  the re-applied patch conflicted in 10 files, all the branch's own, and three of those `main` had since taken whole.
+  **Seen:** gdstudio #1267 on #1040, 2026-11-12; PR #1505 on #1436, 11-14.
 - **Approach:** While the base is still open, fetch it and merge its head into the stacked branch right after
   `main`, before resolving any docs fold or rebuilding anything solved on the base's files; where both merged the
   same `main`, take the stacked branch's code and the base's docs with the branch's own lines added. **Watch out
@@ -93,6 +93,11 @@ lands (a squash merge makes a new commit on `main`), so the line keeps naming th
   `main` meets every file the base touched, and a patch taken from the base's tip alone carries the `main` the base
   merged, so either way the base's old side can come back. **Seen:** gdstudio PR #1456, 2026-11-14 (on #1437; `main`'s
   side of each of #1437's files kept, only the branch's change on top).
+- **Approach:** Before refreshing a stacked branch whose base has landed, look on `main` for the same fix landed by
+  another route (`git log origin/main -S <a name the fix adds>`, the tests that read it), and keep only what `main`
+  lacks. **Watch out for:** #1482's fix was already on `main` through #1432's `_asked`, so a merge of its own copy would
+  have kept two ways to one result; the pull request became a test and a tour only. **Seen:** gdstudio PR #1482,
+  2026-11-14.
 
 ### The worktree is removed when the work is finished {#sweep}
 
@@ -149,3 +154,8 @@ one, whose folder is the pull request's branch.
   `git worktree add` yourself. **Watch out for:** nothing said when to use `--fresh`, so the agent on #1473 made its new
   worktree by calling the worktree code directly, around the start's checks and its ledger. **Seen:** gdstudio #1473
   (found on #1511), 2026-11-14.
+- **Approach:** When the worktree the ledger records for your issue is another pull request's branch, run `gds issue
+  release <ref>` and then `gds issue start <ref> --agent <name> --fresh` (the start still keeps the window's order); if
+  an open pull request still closes the issue, it stays in progress: report that rather than make a worktree by hand.
+  **Watch out for:** `--fresh` alone was refused ("is already in progress"), since the label and the ledger still held
+  the first start, and nothing said how to get a worktree of your own. **Seen:** gdstudio #1525 (PR #1536), 2026-11-14.

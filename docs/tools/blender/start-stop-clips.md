@@ -165,3 +165,7 @@ that follow -->
   rad on a calf, hand or upper arm on both bodies, 21 to 23 cm in a frame through the momentum blend (limit 21). The
   sprint's calf turns 0.42 rad a frame near a strike: entries 2 frames apart keep it near 0.4. **Seen:** gdstudio
   #1525, 2026-11-14 (36 let-go phases probed).
+- **Approach:** Film a let-go side on with `tools/capture/gait_stop_tour.tscn` (the body runs east across a camera that
+  looks north) and name each let-go's phase from the stop entry its `STOPTOUR` lines print (`Sprint_Stop_05`); no scene
+  lets go at a chosen phase yet. **Watch out for:** `own_blend_tour.tscn` cannot film it from the side: its player's
+  movement follows its camera, so a side camera turns the run. **Seen:** gdstudio PR #1536, 2026-11-14.
