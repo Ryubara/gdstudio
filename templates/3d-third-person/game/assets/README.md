@@ -40,9 +40,10 @@
   reload and draw in `assets/audio/pistol/` are generated with ElevenLabs
   Sound Effects on the studio's paid plan, like the base's wind: commercial use in a game allowed, no attribution
   required, not to be shared on their own as sound files (each folder's `LICENSE.md`).
-- The five pistol shots in `assets/audio/pistol/` are synthesised by Deadnight's code (MIT, GDStudio's own; the
-  folder's `LICENSE.md`): no attribution and nothing to replace. `assets/shaders/impacts/` and
-  `assets/materials/impacts/` are the mark's shader and its default material (original).
+- The pistol's five shots and the rifle's four (`assets/audio/pistol/`, `assets/audio/rifle/`, kit #1414) are
+  generated with ElevenLabs Sound Effects on the paid plan too; the rifle's clicks, reload and draw are synthesised by
+  Deadnight's code (MIT, GDStudio's own; the folder's `LICENSE.md`): no attribution and nothing to replace.
+  `assets/shaders/impacts/` and `assets/materials/impacts/` are the mark's shader and its default material (original).
 - `assets/ui/minimap/` is the minimap's six icon shapes (dot, ring, square, diamond, arrow, triangle: white on
   clear, 64 px, GDStudio's own, drawn by `tools/minimap/make_icons.py`; a marker tints them). The scripts and scenes
   that use them are in `ui/minimap/` and `core/minimap/`.

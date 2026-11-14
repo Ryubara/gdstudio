@@ -298,15 +298,15 @@ What each template plays, and on which bus (the buses and the volume node are in
 | `3d-third-person` | the wind loop, at -20 dB (replace it by changing the `stream` of the one `Wind` player; level and bus stay) | the same `Wind` player | `Ambient` |
 | `3d-third-person` | footsteps (four soft sneaker steps, `assets/audio/footsteps/`) | `Footsteps` (`Step` at -20 dB, `CrouchStep` at -29, `LandStep` at -15), a step each time a foot of the animated skeleton lands | `SFX` |
 | `3d-third-person` | the coin (four files, `assets/audio/coin/`) | the `Sound` node of every `Pickup` at -16 dB, one file a pickup | `SFX` |
-| `3d-third-person` | a pistol shot (five files, `assets/audio/pistol/`, Deadnight's House Pistol, MIT) | the `ShotSound` of `Weapon`: an `AudioStreamRandomizer` (pitch spread 4%, +-1 dB) at -22 dB, three voices | `SFX` |
+| `3d-third-person` | a pistol shot (five files of 0.47 s, `assets/audio/pistol/`, ElevenLabs on the paid plan, kit #1414) | the `ShotSound` of `Weapon`: an `AudioStreamRandomizer` (pitch spread 4%, +-1 dB) at -24 dB, three voices | `SFX` |
 | `3d-third-person` | the weapon pickup (two files, `assets/audio/weapon_pickup/`, ElevenLabs on the paid plan: commercial use, no attribution) | the `Sound` node of every `WeaponPickup` at -20 dB, one file a pickup (pitch spread 3%) | `SFX` |
-| `3d-third-person` | the rifle (a shot in five files, the empty click, three reload steps and the draw, `assets/audio/rifle/`, Deadnight's M4A1, MIT) | the `Weapon`'s players from `rifle.tres`: the shot an `AudioStreamRandomizer` at -27 dB | `SFX` |
+| `3d-third-person` | the rifle (a shot in four files of 0.29 s, ElevenLabs on the paid plan, kit #1414; the empty click, three reload steps and the draw, Deadnight's M4A1, MIT; `assets/audio/rifle/`) | the `Weapon`'s players from `rifle.tres`: the shot an `AudioStreamRandomizer` at -24.5 dB | `SFX` |
 | `3d-third-person` | the pistol's empty click, reload steps and draw (`assets/audio/pistol/`) and the fists' swing (`assets/audio/fists/`) | `EmptySound` (-12 dB), `ReloadSound` (-16) and `DrawSound` (-10) of `Weapon`, and its `ShotSound` with the fists' `shot_volume_db` (-27) | `SFX` |
 | `3d-third-person` | the bandage's use (two files, `assets/audio/bandage/`, ElevenLabs on the paid plan) | the `Sound` of the player's `ItemUse` at -14 dB, from `gameplay/inventory/bandage_use.tres` (an `AudioStreamRandomizer`, pitch spread 4%, +-1 dB) | `SFX` |
 | `3d-third-person` | bullet impacts (nine files, `assets/audio/impacts/`: default, wood and metal, three each) | the `sound` of each `ImpactSurface`'s `EffectDef`, played at -10 to -14 dB from the `EffectEmitter`'s pool | `SFX` |
 | `3d-third-person` | the menus' sounds (fourteen files, `assets/audio/ui/`: hint, press, confirm, move, toggle, swish) | the twelve players of the `MenuSounds` autoload (`ui/menus/menu_sound_service.tscn`), from the cues of every `gds_ui` control, the router and the inventory's slots ([Menu sounds](audio.md#menu-sounds)) | `UI` |
 
-Every template sound but the pistol shots is generated with ElevenLabs Sound Effects on a paid plan by the kit's
+Every template sound but the rifle's mechanics is generated with ElevenLabs Sound Effects on a paid plan by the kit's
 `tools/audio/sfx.py` ([Sound effects](../../gamedev/audio/sound-effects.md), kit #1083).
 
 - **Approach:** Prove a workflow written for games with a real run in a real game repository: make a throwaway game with

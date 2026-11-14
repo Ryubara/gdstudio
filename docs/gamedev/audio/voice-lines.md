@@ -151,8 +151,9 @@ plan ──> generate ──> encode ──> check ──> (flagged?) retake onl
 ### Plan {#plan}
 
 `plan` prints every take (file, moment, characters, text) and the characters still to request, sends nothing, and
-refuses when that is over `--budget`. Take names are `<moment>_<n>` in the order of the data file, so a file name is
-stable as long as lines are appended, not inserted. `--only reload,kill` limits any command to some moments.
+refuses when that is over `--budget`, which is the account's credits left read just before (there is no fixed budget:
+quality first, [Credits](#credits-and-budget)). Take names are `<moment>_<n>` in the order of the data file, so a file
+name is stable as long as lines are appended, not inserted. `--only reload,kill` limits any command to some moments.
 
 ### Generate {#generate}
 
@@ -162,7 +163,7 @@ stable as long as lines are appended, not inserted. `--only reload,kill` limits 
 - **Never request a take twice.** The raw mp3 and the exact request body (`<take>.json`) are kept in the cache folder;
   `generate` only requests takes not in the cache, so a rerun after an error costs nothing. Keep the cache in the
   workspace's `scratch/` (it is not committed), and do not delete it until the pull request is merged.
-- `generate` runs `plan` first, so it too refuses over budget.
+- `generate` runs `plan` first, so it too refuses a plan that passes the credits left.
 
 - **Approach:** Before generating with a vendor API, list its current models (`GET /v1/models`), pick from that list,
   and say in the pull request which model and why. **Watch out for:** the first soldier voice samples were made on
@@ -205,17 +206,17 @@ untested.) Then `encode` and `check` again.
 
 ### Adding moments to voices that exist {#adding-moments-to-voices-that-exist}
 
-New moments for a finished cast (Deadnight's eight progression cheers, [#1063](https://github.com/Ryubara/deadnight/issues/1063),
-24 takes a voice) go to the **end** of each voice's data file, so that every earlier take keeps its file name and its
-seed (names and seeds count takes in file order). Then, with `--only <the new moments>` on every command: `plan` (the
-budget is for these takes alone), `generate`, `check`, `encode`. `encode --only` keeps the other takes in the manifest
-and writes only what it encoded, so a partial run no longer loses the rest. `encode --plan free --generated <date>`
-writes the plan and the day into each new manifest entry: when a game cheers on the free tier now and means to
-regenerate under a commercial plan later, that field is the list to regenerate from, and the folder's `LICENSE.md`
-names the same files with their prompts. Read the plan from `GET /v1/user/subscription` (`tier`) before and after the
-requests, not from the account page: the tier is what made the file. A game that has the moments table as a resource
-adds a row per moment, the take count with the files, and the tests that count takes (a total of 278 sounds for two
-voices of 139) move with it.
+New moments for a finished cast (Deadnight's eight progression cheers,
+[#1063](https://github.com/Ryubara/deadnight/issues/1063), 24 takes a voice) go to the **end** of each voice's data
+file, so that every earlier take keeps its file name and its seed (names and seeds count takes in file order). Then,
+with `--only <the new moments>` on every command: `plan` (it counts these takes alone), `generate`, `check`, `encode`.
+`encode --only` keeps the other takes in the manifest and writes only what it encoded, so a partial run no longer loses
+the rest. `encode --plan free --generated <date>` writes the plan and the day into each new manifest entry: when a game
+cheers on the free tier now and means to regenerate under a commercial plan later, that field is the list to regenerate
+from, and the folder's `LICENSE.md` names the same files with their prompts. Read the plan from `GET
+/v1/user/subscription` (`tier`) before and after the requests, not from the account page: the tier is what made the
+file. A game that has the moments table as a resource adds a row per moment, the take count with the files, and the
+tests that count takes (a total of 278 sounds for two voices of 139) move with it.
 
 ### Credits and budget {#credits-and-budget}
 
@@ -227,7 +228,8 @@ voices of 139) move with it.
 | Billed for Scribe on all 115 takes (about 8.5 a take of about 4 s) | 976 |
 
 - **Audio tags are not billed**; the plan counts them anyway, the safe number.
-- **Scribe bills the same character quota as speech.** Budget for the check before generating, or it may not fit.
+- **Scribe bills the same character quota as speech.** Count the check in the plan before generating, or it may not
+  fit in the credits left.
 - **The counter lags the requests.** A reading right after a batch is too low (Deadnight's female set read 3,419, then
   6,333, then 6,457 for the same work); read the total once, after a pause, and record that (Deadnight #679: 6,457 of
   10,000 for 115 lines and their check; estimate a batch from what the last set billed, about 1.08 times the characters
@@ -235,9 +237,10 @@ voices of 139) move with it.
 - **A second voice is a second data file.** Deadnight's female soldier (#679) is `soldier_voice_female.json` and
   `--voice female` on the same recipe: the same moments and takes, another premade voice, the same settings, her own
   words only where a line names a sex. Compare loudness per moment against the first voice (within 0.1 LU there).
-- The budget (6,500 for this work) is in the recipe's `--budget` and in a test that sums the manifest's
-  `text-to-speech` characters, so a later change cannot overspend silently. Read `credits` (`GET /v1/user/subscription`)
-  before and after, and put both numbers in the pull request.
+- **No fixed budget: quality first.** Use as many credits as the sound needs; takes, variants, length and quality are
+  never cut to save credits (the subscription has 30,000 a month, gdstudio #1447). The only limit is the account's
+  credits left: read `credits` (`GET /v1/user/subscription`) before and after, and put both numbers in the pull
+  request.
 - The free tier allows no commercial use and needs attribution: the game records it in the folder's `LICENSE.md` and
   on its Credits screen, and relicensing before a commercial release is the maintainer's call. The studio is now on a
   paid plan (Starter, kit #889), whose output is licensed for commercial use: read `tier` and record it, and the
@@ -332,12 +335,13 @@ score out of it.
    in the words, a tag only where it adds; read every line aloud. Original lines only.
 6. Put voice, model, settings, target loudness and lines in a data file; copy Deadnight's recipe and change only its
    paths and seed base.
-7. `credits`, then `plan` with a `--budget` that leaves room for the Scribe check (about 8.5 characters a take).
+7. `credits`, then `plan` with `--budget` set to the credits left, the Scribe check counted in (about 8.5 characters
+   a take). No fixed budget: quality first.
 8. `generate` (cache in `scratch/`), `encode` (-20 LUFS, -1 dBFS, Ogg q3 bit-exact), `check`; retake only what was
    flagged, with a changed tag or seed.
 9. Commit the Oggs, `manifest.json` and a `LICENSE.md` entry; name the service on the Credits screen; the licence
    question goes to the maintainer.
-10. Wire catalog, node and director; tests for approved settings, budget, caption lines, lengths, every take on disk
+10. Wire catalog, node and director; tests for approved settings, caption lines, lengths, every take on disk
     and in the catalog, and the director's priority, cooldown, variety and no overlap.
 11. Capture a night with stems, measure the voice against the guns and the beds, and attach the chart, the script's
     contact sheet and a clip with sound to the pull request.

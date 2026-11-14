@@ -27,6 +27,11 @@ extends Resource
 @export var sound_bus: StringName = &"SFX"
 ## The distance past which the sound cannot be heard.
 @export_range(1.0, 500.0, 1.0, "or_greater", "suffix:m") var sound_max_distance := 60.0
+## How much the sound darkens as it is heard quieter (the player's `attenuation_filter_db`): -24 is
+## Godot's default, 0 turns the filter off. Godot scales it by the heard gain with `sound_volume_db`
+## included, so a trimmed sound is darkened near its full amount even up close; the web build
+## (samples) ignores it (docs/gamedev/audio/sound-effects.md#fire).
+@export_range(-80.0, 0.0, 0.5, "suffix:dB") var sound_filter_db := -24.0
 
 @export_group("Light")
 ## The brightness of the flash of light at the start. Zero makes no light. The Compatibility

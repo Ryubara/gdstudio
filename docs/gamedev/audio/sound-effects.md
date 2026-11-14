@@ -21,7 +21,8 @@ the templates' `assets/audio/` folders, each with a `LICENSE.md`.
 | Fists | `3d-third-person` `assets/audio/fists/` | 4 takes of 0.5 s | 3 punch whooshes of 0.15 to 0.17 s, high-passed at 120 Hz |
 | Impacts | `3d-third-person` `assets/audio/impacts/` | 6, 8 and 8 takes of 0.5 s | 3 files each for stone, wood and metal, 0.15 to 0.31 s |
 | Pistol mechanics | `3d-third-person` `assets/audio/pistol/` | 2 to 4 takes of 0.5 s each | 2 empty clicks, magazine out and in, the slide, the draw (0.06 to 0.30 s) |
-| Pistol shot | `3d-third-person` `assets/audio/pistol/` | none: Deadnight's House Pistol, synthesised | 5 shots of 0.10 s, MIT, kept (picked by ear in #857) |
+| Pistol shot | `3d-third-person` `assets/audio/pistol/` | 8 takes of 0.8 s (#1414) | 5 shots of 0.47 s from takes 2, 3, 4, 6 and 7: a bright crack, a punchy body and a short open-air tail; Deadnight's synthesised House Pistol shots (0.10 s, #857) before them |
+| Rifle shot | `3d-third-person` `assets/audio/rifle/` | 8 + 8 takes of 0.8 s, two prompts (#1414) | 4 shots of 0.22 s from takes 3, 6, 16 and 10: a heavy, deep report with a crack on top and a tight decay; Deadnight's synthesised M4A1 shots before them (its mechanics stay) |
 | Menu sounds | `3d-third-person` `assets/audio/ui/` | 5 + 3 hint, 5 press, 4 confirm, 4 move, 4 toggle and 4 swish takes, of 0.5 to 1 s (#1100) | 14 files: 3 hints of 0.05 s (a low wooden tock), 3 presses of 0.07 to 0.14 s, 2 confirms of 0.42 s (a click into a two-note marimba chime), 2 tab moves of 0.13 s, 2 switch snaps of 0.06 to 0.07 s, 2 swishes of 0.36 to 0.39 s |
 | Wind | `3d-blank` `assets/audio/wind/` | 2 takes of 30 s, `loop` (and 3 of a second prompt) | one seamless loop of 28 s: gusts every 7 s or so, with a soft whistle layered in them ([A wind that reads as wind](#wind)) |
 
@@ -58,14 +59,14 @@ POST https://api.elevenlabs.io/v1/sound-generation?output_format=mp3_44100_128
 
 ### What a request costs {#what-a-request-costs}
 
-- **Approach:** Plan every request at 40 credits a second of requested length (the quoted figure), stop the total at
-  the budget in the data file, and record what the API says it billed (the response's `character-cost` header); read
-  the balance once, a few seconds after the last request. **Watch out for:** on the free tier on 2026-11-08 the header
-  said 5 credits for 0.5 s, 50 for 5 s and 120 for 12 s (10 a second) and the balance moved by exactly that, 240 for
-  the set, a quarter of the plan; it read zero right after the coin takes and 20 a few seconds later. Planning at 40
-  stays safe, but a budget counted from the plan would refuse retakes the account can afford, so the ledger counts
-  `billed`. **Seen:** gdstudio #835, 2026-11-08 (planned 960, charged 240); #1083, 2026-11-11 (paid starter plan, v3:
-  the same 10 a second, 735 for 51 takes of 73.5 s).
+- **Approach:** Plan every request at 40 credits a second of requested length (the quoted figure), check the total
+  against the credits left (no fixed budget: quality first, gdstudio #1447), and record what the API says it billed (the
+  response's `character-cost` header); read the balance once, a few seconds after the last request. **Watch out for:**
+  on the free tier on 2026-11-08 the header said 5 credits for 0.5 s, 50 for 5 s and 120 for 12 s (10 a second) and the
+  balance moved by exactly that, 240 for the set, a quarter of the plan; it read zero right after the coin takes and 20
+  a few seconds later. Planning at 40 stays safe, but a limit counted from the plan would refuse retakes the account can
+  afford, so the ledger counts `billed`. **Seen:** gdstudio #835, 2026-11-08 (planned 960, charged 240); #1083,
+  2026-11-11 (paid starter plan, v3: the same 10 a second, 735 for 51 takes of 73.5 s).
 
 ## 2. Prompts and what came back {#prompts}
 
@@ -135,31 +136,34 @@ credits ──> plan ──> generate ──> encode ──> check
 
 - `credits` reads `GET /v1/user/subscription` and prints the plan and the credits left. **Read it before and after**,
   and put both in the pull request. The plan (`tier`) is what decides the licence (section 6).
-- `plan` prints every take with its seconds and cost (cached takes cost 0) and the total against the budget; it
-  sends nothing and refuses over the budget. `generate` runs it first, requests only takes not in the cache, and prints
-  the balance before and after.
+- `plan` prints every take with its seconds and cost (cached takes cost 0) and the total; it sends nothing. With a key
+  it reads the credits left (`GET /v1/user/subscription`) and refuses only a plan that passes them; with none it prints
+  the cost alone. There is no fixed budget: quality first, the account's credits left are the only limit. `generate`
+  runs it first, requests only takes not in the cache, stops only before a request that would pass the credits left,
+  and prints the balance before and after.
 - `encode` cuts, levels and encodes (below) and writes each folder's `LICENSE.md` from the request files (model, plan,
   date, the prompt of each take) with the licence of that plan, then the folder's `folder_notes` (the pistol's
   synthesised shots share its folder). `check` measures the committed files and exits 1 on a failure.
 - **The data file's keys for picking:** `takes` is how many are asked for and `use_takes` (numbers from 1) which are
   cut, after listening and measuring; `take_prompts` holds an earlier prompt for the takes made with it; `names` gives
   fixed file names (`pistol_draw.ogg`) instead of `<prefix>_<n>.ogg`; `highpass_hz` works on a hit as on steps;
-  `model` on a sound overrides the set's. A loop takes `flatten_seconds` (even it out; never for a wind),
+  `model` on a sound overrides the set's; a shot takes `decay_ms`, `presence_db` and `crest_db`
+  ([A fire sound that stays pleasant](#fire)). A loop takes `flatten_seconds` (even it out; never for a wind),
   `min_spread_lu` and `max_spread_lu` (the range its momentary level may move, checked) and `whistle` (`hz`, `q`,
   `mix`, `seed`: a whistle layered over its gusts, [A wind that reads as wind](#wind)). `licence_free` and
   `licence_paid` are the two licence texts, chosen by the plan the take was made on.
 
 - **Approach:** After adding a sound to the data file, run `uv run --project python pytest
-  python/tests/test_sfx_recipe.py` and move the set's pinned plan (the whole set asked again from an empty cache) and,
-  when it passes, the `budget`, in the same commit. **Watch out for:** a new cache holds only the new takes, so `plan`
-  and `generate` passed while the whole set's plan went from 3900 to 4608 credits, over the 4000 budget, and the
-  recipe's test failed after the commit. **Seen:** gdstudio #1100, 2026-11-11 (the budget is 5000 now).
+  python/tests/test_sfx_recipe.py` and move the set's pinned plan (the whole set asked again from an empty cache) in
+  the same commit. **Watch out for:** a new cache holds only the new takes, so `plan` and `generate` passed while the
+  whole set's plan went from 3900 to 4608 credits, and the recipe's test failed after the commit. **Seen:** gdstudio
+  #1100, 2026-11-11 (then over a fixed budget; #1447 removed the budget, the pinned plan stays).
 
 **Where it lives.** It is a script in the kit's `tools/audio/`, laid out as Deadnight's voice recipe is (a script and
 a data file that holds every prompt, length and target), not a `gds` subcommand: it needs numpy for the cutting and
 the checks and the kit's Python depends on Pillow alone, so a subcommand would add a package to every agent's
-environment for one recipe. `uv run --with numpy` fetches it for the run. The parts that need no package (cost, budget,
-names) are tested in `python/tests/test_sfx_recipe.py`.
+environment for one recipe. `uv run --with numpy` fetches it for the run. The parts that need no package (cost, the
+credits check, names) are tested in `python/tests/test_sfx_recipe.py`.
 
 ## 4. Trimming, cutting and looping {#trimming}
 
@@ -217,8 +221,15 @@ crouch step -46, landing -37, coin -37, shot -31 LUFS-M and the wind -50 LUFS in
 has how it was measured). The weapon pickup at -20 dB reads -35 LUFS-M in the rifle tour's mix (between the coin
 and the shot, its draw sound right after it at -29) and the rifle's automatic burst at -27 dB -25 (#889). Within a
 set the files match to 0.3 LU (`check` fails over 1 LU). Every file starts within 5 ms
-of its first sample and none peaks over -1 dBFS decoded, apart from the pistol's: the five Deadnight shots are
-full-scale files (peak about 0 dBFS), made to be played at a trim, and play here at -22 dB.
+of its first sample and none peaks over -1 dBFS decoded.
+
+The shots of #1414 (pistol -17.5 LUFS-M as files, played at -22.5 dB; rifle -18.5, at -23 dB) were measured with
+`tools/capture/fire_sounds_tour.tscn` in two games made from the template, the old shots and the new, the median of
+three runs each (loudest 400 ms at the mix, before then after): pistol single shots -28.5 and -27.5, a burst of three
+at 15 a second -23.5 and -22.9, held fire at 4 a second -25.2 and -24.6; rifle single -30.8 and -28.7, a burst -26.5
+and -24.8, held fire at 10 a second -24.4 and -23.1 LUFS-M. The mix's highest sample in any of them is -10.3 dBFS (it
+was -9.7), no sample of any run passes -1 dBFS, and the new pistol (centroid 1.1 kHz in the game, 14% at 2 to 5 kHz)
+sits apart from the rifle (0.7 kHz, 43% under 250 Hz).
 
 - **Approach:** Read short sounds as the loudest momentary loudness (the file zero-padded to one second) and level to
   that, with `framelog=info` in ffmpeg's `ebur128` filter to get the per-frame `M:` lines. **Watch out for:** the
@@ -250,11 +261,13 @@ Credits screen named ElevenLabs. #1083 regenerated the set under the paid starte
 commands): `encode` writes the paid licence from the plan in the request files, so a game made from the template now
 carries no replace note.
 
-The pistol shots in `assets/audio/pistol/` are not ElevenLabs output: they are Deadnight's House Pistol shots,
-synthesised by its own code (`tools/audio/gun_recipes_2.py`, nothing sampled) and covered by the same MIT licence as
-the kit, so their `LICENSE.md` names no generator and asks for no attribution and no replacement
-([#857](https://github.com/Ryubara/gdstudio/issues/857)). Check how a sound's source documents its origin before
-copying it across repositories; only the folders its design page lists as synthesised (here `guns/`) are plain MIT.
+The rifle's empty clicks, reload steps and draw in `assets/audio/rifle/` are not ElevenLabs output: they are
+Deadnight's M4A1 sounds, synthesised by its own code (`tools/audio/gun_recipes_2.py`, nothing sampled) and covered by
+the same MIT licence as the kit, so the folder's `LICENSE.md` lists them under a note of their own (`folder_notes`) that
+names no generator and asks for no attribution and no replacement. The pistol's and the rifle's shots were synthesised
+the same way until [#1414](https://github.com/Ryubara/gdstudio/issues/1414) generated new ones. Check how a sound's
+source documents its origin before copying it across repositories; only the folders its design page lists as
+synthesised (here `guns/`) are plain MIT.
 
 ### On the paid plan {#paid-plan}
 
@@ -306,7 +319,8 @@ and so may the sounds of ElevenLabs' own premade library of sound effects. That 
 - `check` output (length, lead-in, peak, loudness per file, the loop's seam and spread) in the pull request.
 - A [listening clip](../../studio/capture.md#sound-a-clip-you-can-listen-to): an mp4 with the sounds as its track, one
   card a section, the sounds in order and then together, nothing normalised.
-- The credits before and after, the plan, and the sum of the requests against the budget.
+- The credits left before and after (both, read with `credits`), the plan and the sum of the requests. There is no
+  fixed budget: quality first, the account's credits left are the only limit.
 
 - **Approach:** For a Before of sounds being replaced, copy the files from a checkout of `main` (the workspace's
   `repos/gdstudio`) or `git checkout <rev> -- <file>`, and play both sets in two games made from the two checkouts with
@@ -407,12 +421,36 @@ generated low thumps).
   voice each shot cuts the tail of the one before, which clicks when the cut is not at silence; a longer tail or a
   faster rate needs more voices, and voices are a cost on the web. Dynamic balancing that lowers a sustained burst is
   used in some games ([a mod's description][dab]); a template needs only the variation. **Seen:** gdstudio #857
-  (`ShotSound`: `max_polyphony = 3`).
+  (`ShotSound`: `max_polyphony = 3`); #1414 (three voices kept, each shot inside its voice's time: the pistol 0.47
+  of 0.75 s, the rifle 0.22 of 0.3).
 - **Approach:** Level the shot against the other effects by measurement in the game: a few LU over the loudest
   ordinary effect and not 15. The shot is the loudest effect, at -31 LUFS-M against a coin and a landing at -37 and a
   step at -40. **Watch out for:** the sources give no number for the tail length or for how much a pleasant shot may
   overlap, and none measured ear fatigue; the lengths and levels here are measured on the files and are the
   maintainer's to hear. **Seen:** gdstudio #857.
+- **Approach:** Generate a shot on the newest model with a prompt that names one shot's layers (an instant crack, the
+  body, a short open-air tail; for a rifle a deep, heavy boom), eight takes of 0.8 s, and keep the takes whose envelope
+  is one transient that peaks within about 30 ms with nothing after it. **Watch out for:** a mechanical layer in the
+  prompt ("a quick metallic bolt clack") came back as a second hit 70 to 90 ms after the first in three of eight rifle
+  takes, a double report that doubles the fire rate at 10 a second, and three more were near silent (peaks of -15 to
+  -24 dBFS); a second prompt without the clack ("exactly one shot and nothing after it") gave four usable takes of
+  eight. **Seen:** gdstudio #1414, 2026-11-13 (16 rifle and 8 pistol takes, 192 credits billed).
+- **Approach:** Shape a generated shot in the recipe before levelling it: `decay_ms` (25 ms held, then an exponential
+  fall: rifle 45 ms, pistol 110), `presence_db` (a bell at 3.2 kHz: 4 and 8 dB), `crest_db` (the peak held 12 dB over
+  the loudest 400 ms, the smooth limiter of
+  [Headroom](../../engines/godot/audio-mixing/mixing-levels.md#headroom-without-a-limiter)); then measure held fire in
+  the game. **Watch out for:** the takes keep a loud body for 100 ms or more: at 10 a second a shot's rise over the
+  floor fell from 26.5 dB (the synthesised M4A1) to 11; a shorter cut won under 1 dB, the decay brought it to 20. The
+  distance filter took the 2 to 5 kHz share from 10 to 14% to 3% until the lift. A limited file decoded 1.3 dB over its
+  -1.5 dBFS encode. **Seen:** gdstudio #1414, 2026-11-13 (`tools/capture/fire_sounds_tour.tscn`).
+- **Approach:** Check a 3D player's distance filter before shaping its files: when the game sounds darker than the
+  file, look at `attenuation_filter_db` first. The filter is a high shelf at `attenuation_filter_cutoff_hz`, as deep as
+  `(1 - gain) * attenuation_filter_db`, the gain being the whole heard level with `volume_db` in it ([source][p3dsrc]):
+  a player trimmed to -22 dB sits near the full depth at any distance, and the web build ignores it
+  ([samples](../../engines/godot/audio.md#web-samples-or-streams)). The template's weapon and impact players have it
+  at 0 (`sound_filter_db` on an `EffectDef`): distance is volume alone. **Watch out for:** Godot's default (5 kHz,
+  -24 dB) muffled the new shots in the game (2 to 5 kHz from 28 to 31% to 13 to 17%), and a presence boost in the
+  files only hid it. **Seen:** gdstudio #1447, 2026-11-13.
 
 Sources: [Splice, how to design a weapon sound][splice]; [Krotos, Weaponiser and Gun Sound Design][krotos]; [Lior
 Ortega, FPS gun sound design][ortega]; [sfxengine, common game audio mistakes][sfx]; [equal-loudness
@@ -426,6 +464,7 @@ contour][eq]; Godot docs: [AudioStreamRandomizer][rand], [AudioStreamPlayer3D][p
 [eq]: https://en.wikipedia.org/wiki/Equal-loudness_contour
 [rand]: https://docs.godotengine.org/en/stable/classes/class_audiostreamrandomizer.html
 [p3d]: https://docs.godotengine.org/en/stable/classes/class_audiostreamplayer3d.html
+[p3dsrc]: https://github.com/godotengine/godot/blob/master/scene/3d/audio_stream_player_3d.cpp
 [dab]: https://thunderstore.io/c/h3vr/p/Sirdoggy/Dynamic_Audio_Balancing/
 
 [api]: https://elevenlabs.io/docs/api-reference/text-to-sound-effects/convert

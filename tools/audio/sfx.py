@@ -6,13 +6,14 @@
 Commands (`docs/gamedev/audio/sound-effects.md` explains each):
 
 - `credits`: read the plan and the balance (`GET /v1/user/subscription`).
-- `plan`: list every request with its cost and send nothing; refuses over the budget.
+- `plan`: list every request with its cost and the total and send nothing; with a key, read the credits left and
+  refuse a plan that passes them. There is no fixed budget: quality first, the account's credits are the only limit.
 - `generate`: `plan`, then request each take not yet in the cache (once; the raw mp3 stays in `--cache`).
 - `encode`: cut, level and encode the cached takes to Ogg Vorbis in each sound's folder, and write its `LICENSE.md`.
 - `check`: measure every committed file (length, lead-in, peak, loudness, loop seam); exit 1 on a failure.
 
 Everything about the sounds (prompt, length, folder, targets) is in `template_sounds.json`. The key is read from the
-environment only and is never printed or written. The pure parts (cost, budget, names) need no packages; numpy is
+environment only and is never printed or written. The pure parts (cost, credits check, names) need no packages; numpy is
 imported by `encode` and `check` only.
 """
 
@@ -43,7 +44,7 @@ LEAD_MAX = 0.012  # a file's first rise is within this many seconds of its start
 FADE_OUT = 0.04
 
 
-# ---------------------------------------------------------------- the pure parts: names, cost, budget
+# ---------------------------------------------------------------- the pure parts: names, cost, credits
 
 
 def load(path: Path = DATA) -> dict:
@@ -142,14 +143,13 @@ def plan_rows(data: dict, cache: Path, only: str | None = None) -> list[dict]:
     return rows
 
 
-def check_budget(data: dict, cache: Path, rows: list[dict]) -> tuple[int, int]:
-    """(already spent, to spend now); raises SystemExit when the total would pass the budget."""
-    spent, new = spent_in_cache(data, cache), sum(r["credits"] for r in rows)
-    if spent + new > data["budget"]:
-        raise SystemExit(
-            f"over budget: {spent} spent + {new} planned = {spent + new} > {data['budget']}"
-        )
-    return spent, new
+def check_credits(rows: list[dict], left: int | None) -> int:
+    """The credits the plan asks for; raises SystemExit when they pass the account's credits left (None: not read,
+    no key). There is no fixed budget: the only limit is what the account has left."""
+    new = sum(r["credits"] for r in rows)
+    if left is not None and new > left:
+        raise SystemExit(f"over the credits left: {new} planned > {left} left on the account")
+    return new
 
 
 # ---------------------------------------------------------------- the API
@@ -472,6 +472,35 @@ def highpass(x, hz: float):
     return np.fft.irfft(spectrum, len(x))
 
 
+def limit(ffmpeg: str, x, crest_db: float, window: float = 0.002):
+    """Hold the highest sample `crest_db` over the loudest momentary loudness, so a sharp shot gets a fuller body at
+    the same peak (`mixing-levels.md#headroom-without-a-limiter`): a smooth gain curve, the minimum of the gain each
+    sample needs over a `window`, then its average over the same window, so it never steps and never rises into a
+    peak. Run twice, since taking the peaks off moves the loudness a little."""
+    import numpy as np
+
+    n = max(int(window * RATE) | 1, 3)
+    for _ in range(2):
+        ceiling = 10 ** ((loudness(ffmpeg, x)["m_max"] + crest_db) / 20)
+        need = np.minimum(1.0, ceiling / np.maximum(np.abs(x), 1e-12))
+        padded = np.pad(need, n // 2, constant_values=1.0)
+        lowest = np.lib.stride_tricks.sliding_window_view(padded, n).min(axis=1)
+        gain = np.convolve(np.pad(lowest, n // 2, mode="edge"), np.ones(n) / n, "valid")
+        x = x * gain
+    return x
+
+
+def presence(x, db: float, hz: float = 3200.0, octaves: float = 0.8):
+    """A broad bell of `db` round `hz` (a Gaussian `octaves` wide on a log axis): a shot's crack lives at 2 to 5 kHz,
+    which a 3D player's distance filter takes the most off, so a shot keeps its edge in the game."""
+    import numpy as np
+
+    spectrum = np.fft.rfft(x)
+    freqs = np.maximum(np.fft.rfftfreq(len(x), 1 / RATE), 1.0)
+    spectrum *= 10 ** (db * np.exp(-0.5 * (np.log2(freqs / hz) / octaves) ** 2) / 20)
+    return np.fft.irfft(spectrum, len(x))
+
+
 def level(ffmpeg: str, x, sound: dict):
     """Gain to the sound's target loudness, held under the peak ceiling; returns (samples, gain dB, peak limited)."""
     now = loudness(ffmpeg, x)[
@@ -546,8 +575,11 @@ def cmd_plan(args) -> None:
     for r in rows:
         mark = "cached" if r["cached"] else f"{r['credits']:>4} credits"
         print(f"{r['take']:<20} {r['seconds']:>5} s  {mark:<12} {r['prompt'][:70]}")
-    spent, new = check_budget(data, cache, rows)
-    print(f"spent {spent} + planned {new} = {spent + new} of {data['budget']} credits")
+    left = balance()["left"] if os.environ.get("ELEVENLABS_API_KEY") else None
+    new = check_credits(rows, left)
+    spent = spent_in_cache(data, cache)
+    where = "no key, nothing read or sent" if left is None else f"{left} credits left on the account"
+    print(f"planned {new} credits (already spent in the cache: {spent}); {where}")
 
 
 def cmd_generate(args) -> None:
@@ -556,15 +588,16 @@ def cmd_generate(args) -> None:
     cmd_plan(args)
     before = balance()
     print(f"balance before: plan {before['tier']}, {before['left']} credits left")
+    left = before["left"]
     for sound in chosen(data, args.only):
         for take in take_names(sound):
             mp3 = cache / f"{take}.mp3"
             if mp3.exists():
                 continue
             cost = request_cost(data, sound["seconds"])
-            if spent_in_cache(data, cache) + cost > data["budget"]:
+            if cost > left:
                 raise SystemExit(
-                    f"stopped before {take}: the next request would pass the budget"
+                    f"stopped before {take}: its {cost} credits would pass the {left} left on the account"
                 )
             print(f"requesting {take} ({sound['seconds']} s, {cost} credits)")
             try:
@@ -577,6 +610,7 @@ def cmd_generate(args) -> None:
             billed = info["headers"].get("character-cost")
             if billed is not None:
                 info["billed"] = int(billed)
+            left -= int(info.get("billed", cost))
             info.update(
                 credits=cost,
                 tier=before["tier"],
@@ -672,6 +706,8 @@ def cmd_encode(args) -> None:
             if sound["kind"] == "hit":
                 if sound.get("highpass_hz"):
                     x = highpass(x, sound["highpass_hz"])
+                if sound.get("presence_db"):
+                    x = presence(x, sound["presence_db"])
                 pieces.append(hit(x, sound))
             elif sound["kind"] == "steps":
                 pieces.extend(steps_of(x, sound))
@@ -690,6 +726,8 @@ def cmd_encode(args) -> None:
                 else spread(pieces, sound)
             )
         for name, x in zip(file_names(sound, len(pieces)), pieces, strict=True):
+            if sound.get("crest_db"):  # a shot: its peaks held a fixed height over its body
+                x = limit(ffmpeg, x, sound["crest_db"])
             x, gain, limited = level(ffmpeg, x, sound)
             write_ogg(ffmpeg, x, root / sound["folder"] / name)
             print(
@@ -712,7 +750,19 @@ def hit(x, sound: dict):
         int((sound["min_seconds"] + 0.01) * RATE),
     )
     x = whole[: min(max(len(short), least), most)]
+    if sound.get("decay_ms"):  # a shot: tightened after its transient, so a run of them stays a run of shots
+        x = decay(x, sound["decay_ms"] / 1000.0)
     return fade_out(fade_in(x), 0.06)
+
+
+def decay(x, seconds: float, hold: float = 0.025):
+    """Hold the first `hold` seconds (the transient), then let the sound fall away exponentially with a time constant
+    of `seconds`: a generated shot keeps its loud body for 100 ms or more, and at ten a second each shot ran into the
+    next (#1414)."""
+    import numpy as np
+
+    t = np.arange(len(x)) / RATE
+    return x * np.exp(-np.maximum(t - hold, 0.0) / seconds)
 
 
 def spread(pieces: list, sound: dict) -> list:

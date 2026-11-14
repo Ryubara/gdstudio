@@ -70,6 +70,7 @@ prone_reload_clip = &"prone_reload/Prone_Reload_Pistol"
 rack_clip = &"pistol/Pistol_Rack"
 rack_sound_at = 0.482
 shot_sound = SubResource("AudioStreamRandomizer_shot")
+shot_volume_db = -22.5
 empty_sound = SubResource("AudioStreamRandomizer_empty")
 reload_sounds = Array[AudioStream]([ExtResource("r1"), ExtResource("r2"), ExtResource("r3")])
 reload_sound_at = PackedFloat32Array(0.2, 0.6, 0.85)

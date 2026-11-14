@@ -343,6 +343,11 @@ repos/<owner>/<repo>/pulls/<N> -H 'Accept: application/vnd.github.html+json' --j
   loop point the player applies, so the clip compares files, not what the player hears; a run shorter than the loop
   never reaches its seam. **Seen:** gdstudio #1101, 2026-11-11 (the wind beds: a probe swapped the stream on the Wind
   player, Ambient bus, -20 dB, and the old bed and three candidates were cut from one Movie Maker track).
+- **Approach:** For a sound that replaces another, attach a Before clip and an After clip, each referenced on its own
+  line right under the `Before:` and `After:` lines of `## Screenshots`; a clip that alternates both can follow them.
+  **Watch out for:** the PR-create hook refuses a body whose only clip is a combined before-and-after one: it needs a
+  capture between `Before:` and `After:`. Cut both from the same tour in two games (old and new) so each event lands at
+  the same second. **Seen:** gdstudio #1414, 2026-11-13 (single shots, a burst and held fire of the pistol and rifle).
 
 ## What proves a feature {#feature-proof}
 
