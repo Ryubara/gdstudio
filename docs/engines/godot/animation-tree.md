@@ -374,6 +374,10 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   while an action plays, which covers the jump's changes too: rerun every planted-hand test after a blend change.
   **Seen:** gdstudio #1369, 2026-11-12 to 14 (`test_net_puppet_vault.gd` in CI; the jump's own `AIRBORNE` restart
   dropped for #1427's at the merge).
+- **Approach:** When a bound is read off other moves (a jump's weapon turn held to the ground's fastest times 1.25),
+  print where its figure comes from and look at that move's frames first. **Watch out for:** a snap among those moves
+  makes the bound loose: the ground's 3712 degrees a second was one, and once #1427 smoothed it to 635 the running
+  take-off's smooth 898 failed. **Seen:** gdstudio #1369, 2026-11-14 (`test_jump_weapon_hold.gd`).
 - **Approach:** Set every `AnimationNodeSub2`'s `sub_amount` (and every `Add2`'s `add_amount`) on the tree after
   building it, and test an additive layer with the real poses at full weight on the real tree: the head goes the
   pose's way, the feet and the `ik_` targets stay on their limbs. **Watch out for:** both amounts are tree parameters

@@ -42,6 +42,13 @@ const PAD_TO_SKIN := 0.02
 ## 1.5 and 0.9 m/s at the most on the two bodies, 1.5 and 0.6 on the ground).
 const OVER_GROUND := 1.25
 const TURN_FLOOR := 5.0
+## How much faster than the ground's moves the lowered weapon may turn as a running jump leaves
+## the jog: the standing take-off (`Jump_Start`) is played from the jog until the tree plays the
+## run take-offs (gdstudio #1371), and the momentum blend (`MomentumBlend.SETTLE_FRAMES`, kit
+## #1427) eases the jog's swing into its arms in a tenth of a second: 898 degrees a second at the
+## most on both bodies against the ground's 635 (a crouch), one smooth rise and fall over six
+## updates, never a step. The rest of the jump is held to `OVER_GROUND`.
+const OVER_GROUND_RUN_TAKEOFF := 1.5
 ## The updates from the leaving of the floor that are the takeoff (gdstudio #1462).
 const TAKEOFF_UPDATES := 3
 ## The skin is measured on every this many updates of the live player (the hands on all).
@@ -412,7 +419,14 @@ func _marker(hold: TwoHandHold, marker: String) -> Vector3:
 # the weapon goes with it) between updates a tick apart, apart for the weapon down (`low`) and all
 # the way up (`up`), and the fastest it turns against the chest, which turns under it.
 func _speeds(updates: Array[Dictionary]) -> Dictionary:
-	var most := {"low": _none(), "up": _none(), "chest": 0.0, "kick": 0.0, "takeoff": 0.0}
+	var most := {
+		"low": _none(),
+		"up": _none(),
+		"run_takeoff": _none(),
+		"chest": 0.0,
+		"kick": 0.0,
+		"takeoff": 0.0
+	}
 	for index in range(1, updates.size()):
 		var now := updates[index]
 		var last := updates[index - 1]
@@ -444,6 +458,8 @@ func _speeds(updates: Array[Dictionary]) -> Dictionary:
 			most.takeoff = maxf(most.takeoff, turn)
 			continue
 		var into: Dictionary = most[kind]
+		if kind == "low" and now.way == "running" and now.state == "JUMP":
+			into = most.run_takeoff
 		if turn > into.turn:
 			into.turn = turn
 			into.where = "%s %s update %d" % [now.way, now.state, index]
@@ -559,6 +575,16 @@ func _assert_not_faster(updates: Array[Dictionary], ground: Dictionary) -> void:
 		assert_float(now.turn).override_failure_message(message).is_less_equal(
 			maxf(bound.turn, TURN_FLOOR) * OVER_GROUND
 		)
+	var run: Dictionary = jump.run_takeoff
+	var low: Dictionary = ground.low
+	var run_message := (
+		"low, leaving the jog the weapon turns %.0f degrees a second at %s; on the ground %.0f"
+		% [run.turn, run.where, low.turn]
+	)
+	prints("JUMP_CARRY " + run_message)
+	assert_float(run.turn).override_failure_message(run_message).is_less_equal(
+		maxf(low.turn, TURN_FLOOR) * OVER_GROUND_RUN_TAKEOFF
+	)
 	prints(
 		(
 			(
