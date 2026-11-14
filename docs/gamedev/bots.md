@@ -270,6 +270,13 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   for:** the soak diverges by platform, so the same seed on Windows took another course: seed 21 never showed the
   director's fault there and broke on another error instead. **Seen:** gdstudio #1419, 2026-11-13 (the dispatch ran 50
   seeds green, seed 21 included).
+- **Approach:** When the soak's pull-request case starts failing after a change, sweep seeds standalone on main, on main
+  without the change and on the commit before it, and read each run's per-character stuck seconds before calling it a
+  flake: that case runs seed 1 inside its shard's GdUnit process, so the suites before it (the navigators' static
+  counters) pick its course, and a share that rose near the gate fails a shard every run. **Watch out for:** a teeth
+  case's sample (`stuck_episode`, the held body) read as the green case's failure. **Seen:** gdstudio #1529, 2026-11-14
+  (24 seeds: main 0.31 % mean, 1 broke; without #1422's brake 0.14 %; before it 0.15 %; fixed 0.13 %:
+  [the follow's brake](../engines/godot/third-person/ai-navigator.md#navigator)).
 - **Approach:** When `think_p99` (or any time gate) fails in a full local run on the shared machine, run that suite
   again alone before treating it as a failure, and put both readings in the pull request's body; CI on the branch is
   the judge. **Watch out for:** the full run beside other agents' Godot processes read think p99 just over its gate
