@@ -19,6 +19,12 @@ clip_export/libraries={
 }
 clip_export/catalogue="res://gameplay/character/character_clips.gd"
 
+[gdunit4]
+
+hooks/session_hooks=Dictionary[String, bool]({
+"res://tests/fixtures/audio_drain_session_hook.gd": true
+})
+
 [input]
 
 move_left={
