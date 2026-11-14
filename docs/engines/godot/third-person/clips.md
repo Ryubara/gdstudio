@@ -111,6 +111,11 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   named only in a comment (`SWORD_ATTACK`, `DANCE`), in `ALL` or in `STAND_INS` plays in the editor and in every
   suite and is missing from the web build; `test_export_clips.gd` catches one in the tree, the clip settings or a
   definition, and CI's pack check one the game names and the pack lacks. **Seen:** kit #1366, 2026-11-13.
+- **Approach:** When a clip of our own replaces a library clip, run `test_export_clips.gd` and point any case that
+  names the old constant's stand-in at one still in `ual1` or `ual2`. **Watch out for:** the stand-in case read
+  `CharacterClips.stand_in(LAND)`, and once our landing replaced the fixed one its stand-in was `fixed/Jump_Land`,
+  in no pruned library, so the scene that set it kept nothing and the case failed. **Seen:** gdstudio #1369,
+  2026-11-14 (the merge with #1428, in the full suite).
 - **Approach:** When a new library joins the character's `AnimationPlayer` (`prone`, `melee`, `gds`), add a
   `LIBRARY_*` constant, a constant per clip and every clip name to `CharacterClips.ALL` in the same commit, and raise
   the count in `test_character_clips.gd`. **Watch out for:** `test_every_listed_clip_exists_and_every_clip_is_listed`
@@ -124,6 +129,31 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   every player in the process, tests included: a suite that reads the switched-off bones switches them on for itself.
   **Seen:** gdstudio #1438, 2026-11-13 (the `ik_` targets, 286 tracks; `test_own_directions.gd` reads them).
 
+## The jump's clips {#jump-clips}
+
+<!-- new section: the jump plays GDStudio's own clips since kit #1161, and the page had no place that says
+which state plays which and what the tree does not use yet -->
+
+The jump's clips are GDStudio's own, in the library `gds` (`assets/animation/own/locomotion.glb`; how they are
+made: [the jump clips](../../../tools/blender/clip-toolkit.md#jump-rows)). The capsule leaves the floor on the
+tick of the press, so no clip has a frame on the floor before the take-off, and in the air the body's centre of
+mass keeps its place against the capsule: it flies the arc the controller flies.
+
+| State | Export of `CharacterAnimation` | Clip | Stand-in (`CharacterClips.STAND_INS`) |
+| --- | --- | --- | --- |
+| `JUMP` (rising) | `jump_clip` | `gds/Jump_Start`: the whole 0.4 s rise from the idle's first pose to the rise's, the arms floating up over all of it | `ual1/Jump_Start` |
+| `FALL` | `air_clip` | `gds/Jump_Fall`: a 1.2 s loop, the soles at the capsule's bottom | `ual1/Jump` |
+| `LAND` (a fall of `land_clip_speed` or more, for `land_time`) | `land_clip` | `gds/Land_Soft`: control back at frame 9 (0.3 s), the settle after | `fixed/Jump_Land` |
+
+Six more are in the library and in `CharacterClips` for the tree that picks them (kit #1371), and no state
+plays them yet: `Jump_Start_Run_L` and `_R` (from the jog's left and right foot strikes, at its speed),
+`Jump_Rise` and `Jump_Apex` (with `Jump_Fall`, three poses to blend by vertical speed), `Land_Hard` (falls
+from 9 m/s) and `Land_To_Jog` (0.27 s, ends on the jog's right foot strike). `locomotion.json` says of each
+what the tree needs: `carried` (the capsule carries it), `made_for` (the tuning numbers it was built to,
+which `tests/gameplay/test_own_jump_clips.gd` holds to `CharacterTuning`'s defaults), `fall_speed` (`from`,
+`to`), `control` (the frame control is back at), `joins` (the clip each end is, and `first_frame` or
+`last_frame`, the frame of it).
+
 ## The fixed clips {#fixed-clips}
 
 <!-- new section: since kit #1187 the template wears the prototype bodies, and three library clips cross a forearm
@@ -132,8 +162,9 @@ and a shin on them (kit #1295); the corrected copies are a library of their own 
 `assets/animation/fixed/fixed.glb` is the `AnimationLibrary` `fixed`: `Jump_Land` (from `ual1`), `Slide_Exit` and
 `NinjaJump_Land` (from `ual2`) with one upper arm swung 4 to 11 degrees outward on the frames where its forearm was
 6.6 to 12.2 mm inside the shin on `form_female`, eased in and out; every other key is the library's
-([how it is built](../../../tools/blender/animation.md#corrected-clips)). `CharacterClips.LAND` and `SLIDE_EXIT` name
-the fixed clips, `CharacterClips.STAND_INS` maps each to the library clip it came from, and
+([how it is built](../../../tools/blender/animation.md#corrected-clips)). `CharacterClips.SLIDE_EXIT` names the
+fixed slide exit; the fixed landing is the stand-in of our own since kit #1161 ([the jump](#jump-clips)).
+`CharacterClips.STAND_INS` maps each fixed clip to the library clip it came from, and
 `tests/assets/test_fixed_clips.gd` holds the file to what the build measured and to the library's keys. The file
 also holds, since kit #1320, `Sword_Dash` and `Sword_Heavy_Combo` (from `ual2`, played by nothing in the template), whose
 thighs passed through each other by 17 to 26 mm on both bodies: one leg is swivelled about the line from its hip to
