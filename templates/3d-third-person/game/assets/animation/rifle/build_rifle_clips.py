@@ -1557,7 +1557,15 @@ def main():
     parser.add_argument("--preview")
     parser.add_argument("--only", nargs="*", default=[])
     parser.add_argument("--no-checks", action="store_true")
+    parser.add_argument("--check", action="store_true", help="compare with the files on disk, write nothing")
     args = parser.parse_args(argv)
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # clip_check.py
+    sys.dont_write_bytecode = True  # Blender ignores PYTHONDONTWRITEBYTECODE
+    import clip_check
+
+    checking = clip_check.Check(args.check)
+    args.out = checking.file(args.out)
+    args.data = checking.file(args.data)
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
@@ -1673,6 +1681,7 @@ def main():
             key_clip(female.arm, rig, name + ("_Loop" if clip["loop"] else ""), clip["frames"])
         export(female.arm, args.out)
         print("exported", args.out, [f"{n} {len(c['frames']) - 1}" for n, c in clips.items()])
+    checking.finish()
 
 
 if __name__ == "__main__":
