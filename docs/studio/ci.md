@@ -153,9 +153,9 @@ open branch was at 993 to 1000, and `tools/blender/animation.md` went over 50 KB
   (the runner, a malformed list) marks every pull request failed with "rerun it".
 - **Held and conflicting ones too:** pull requests with `S-hold`, and those GitHub calls `DIRTY`, are swept like the
   rest. A conflict costs one `git merge-tree` (no checks run on it) and names the files, which `DIRTY` does not, and
-  GitHub's state can lag or differ: on 2026-11-14 #1456 was `DIRTY` there while its merge with the same `main` was
-  clean. A held pull request is refreshed and landed once the hold comes off, and a current answer says whether it
-  needs `gds merge-main` first; skipping either would leave the in-progress mark `pending` set, or an old answer.
+  GitHub works its state out lazily (`UNKNOWN` until asked, and from whichever `main` it last looked at). A held pull
+  request is refreshed and landed once the hold comes off, and a current answer says whether it needs `gds
+  merge-main` first; skipping either would leave the in-progress mark `pending` set, or an old answer.
 - **Locally:** the same command is the dry run before a merge call:
   `git fetch origin main && python .github/scripts/merge_result.py --head origin/<branch>` (exit 1 names the limit and
   the file; `--no-pre-commit` runs `mistakes.py check` alone). `test_merge_result.py` shows two branches under the page
