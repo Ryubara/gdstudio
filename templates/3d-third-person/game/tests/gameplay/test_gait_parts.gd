@@ -145,10 +145,12 @@ func test_the_momentum_blend_replaces_the_cross_fade_and_dies_away() -> void:
 	crouch.crouch = true
 	var offsets: Array[float] = []
 	await _steps(crouch, 30, func(_tick: int) -> void: offsets.append(momentum.largest_offset()))
-	# The crouch walk's pose differs from the walk's: the blend starts from the drawn walk and
-	# the difference is all but gone in a quarter of a second.
+	# The crouch walk's pose differs from the walk's: the blend starts from the drawn walk once the
+	# crouch's pose is drawn (a frame or two after the key changes) and the difference is all but
+	# gone a quarter of a second after that.
 	assert_float(offsets.max()).is_greater(0.05)
-	assert_float(offsets[15]).is_less(0.01)
+	var peak := offsets.find(offsets.max())
+	assert_float(offsets[peak + 15]).is_less(0.01)
 	# Off, the node leaves the skeleton and the states cross-fade again.
 	_settings.momentum_blend = false
 	_animation.gait_settings = _settings
@@ -187,6 +189,43 @@ func test_a_stop_is_chosen_by_the_controller_and_played_along_its_travel() -> vo
 	assert_float(first.y).is_equal_approx(GaitClips.time_at_travel(STOP, first.x), 0.02)
 	assert_bool(transitions.is_playing()).is_false()
 	assert_str(String(_animation.body_state())).is_equal("ground")
+
+
+# gdstudio #1412: a crouch asked while a stop plays ended the stop and asked the machine for the
+# crouch, and on the same frame the transitions, finding the machine still in their own state,
+# sent it back to the ground: the body stood drawn upright over its crouched capsule until its
+# state changed again (an AI in cover stood in the open, and shots at its head and chest flew over
+# the capsule).
+func test_a_crouch_asked_during_a_stop_takes_the_body_to_the_crouch() -> void:
+	var record := {
+		"kind": "transition",
+		"frames": 18,
+		"seconds": 0.6,
+		"travel": [[0, 0.0, 0.0], [18, 0.6, 0.0]],
+		"turn": [[0, 0.0], [18, 0.0]],
+		"end_foot": "both",
+	}
+	_give_clip(STOP, 0.6, record)
+	_settings.transition_clips.stops = {&"walk": STOP, &"run": STOP, &"sprint": STOP}
+	_animation.gait_settings = _settings
+	_animation.set_throttled(true)
+	await _steps(_walk(1.0), 60)
+	var transitions := _animation.gait.transitions
+	for tick in 10:
+		if transitions.is_playing() and String(_animation.body_state()) == "gait_transition":
+			break
+		await _steps(PlayerCommand.new(), 1)
+	assert_str(String(_animation.body_state())).is_equal("gait_transition")
+	var crouch := PlayerCommand.new()
+	crouch.crouch = true
+	await _steps(crouch, 30)
+	assert_int(_player.state).is_equal(Character.State.CROUCH)
+	assert_str(String(_animation.body_state())).is_equal("crouch")
+	# What a shot meets: the drawn head is inside the crouched capsule, not above it.
+	var skeleton := _player.model.skeleton()
+	var head := skeleton.get_bone_global_pose(skeleton.find_bone(&"Head")).origin
+	var head_height := (skeleton.global_transform * head).y - _player.global_position.y
+	assert_float(head_height).is_less(CharacterCapsule.height(_player))
 
 
 func test_a_start_hands_over_to_the_walk_and_a_push_back_leaves_a_stop() -> void:

@@ -371,6 +371,20 @@ itself, and the sampler adds 3 to 9 µs a tick for each human.
 The desktop rows are the mean of two or three headless runs, the browser rows one run each of the web export in
 headless Chrome (`tools/bench/player_step_bench.py`, under `gds quiet`), on a machine other agents were using.
 
+## What the map and the character cost to draw {#draw-cost}
+
+<!-- new section: moved from the template page's "What is in it" when that page reached its size limit (gdstudio
+     #1400); it measures the map and this character -->
+
+Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview
+camera 0.34 ms CPU, 0.19 ms GPU, 145 draw calls, 84.4 MB of texture memory; with the character 0.38 / 0.21 ms, 149
+draw calls, the same texture memory (the mannequin has two flat materials and no texture) and 1.9 MB more video memory.
+The whole game from the third-person camera draws 64 calls. The trimmed 3D Blank (floor and walls) is 0.17 / 0.16 ms,
+10 draw calls and 64.2 MB. Forward+ is 0.21 / 0.68 ms and 348 MB for the character in the map. The web export is a
+0.92 MB `index.pck` for 3D Blank and 3.26 MB for 3D Third Person (the character and the two libraries are most of the
+difference), and both load in headless Chromium with no console error, page error or failed request (a SwiftShader
+frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says it runs with no GPU).
+
 ## What the parts cost {#parts-cost}
 
 <!-- new section: the step bench timed the body alone; nothing said what a dressed character's other parts or the world
@@ -473,6 +487,27 @@ One window of the 450 read 2.24 (four over 1.9): a single window would still fai
 did not fail once. The twice-as-slow case (the frame spun on the clock as long again) runs in the suite and failed
 the budget in all 150 runs.
 
+**The aim layer and the hold at rest** (gdstudio #1478). A walking character that never aims ran the whole
+`AimLayer.refresh()` and `WeaponHold.refresh()` every frame with every modifier of theirs off. Now the layer writes
+nothing while the weapon is not aimed, the aim amount is 0 and its three modifiers are off (`is_at_rest()`), and the
+hold, once a second frame has no aim, no reload or rack and no hand let go (`HoldRest`), places only the grip and the
+slide: its left arm, fingers, stance, floor keeper and rack are off whatever else the frame holds. Nothing is culled:
+`test_aim_hold_rest.gd` steps two players through a walk, an aim in and out with a shot, an empty reload and its rack,
+a hand let go and the fists aimed crouched, one with both shortcuts off (`AimLayer.full_refresh`, `HoldRest.off`), and
+every bone is the same in all 444 drawn frames (0.0005 mm, single precision). 25 walking, µs a character a frame
+(three interleaved desktop runs, two in Chrome, games made at 021427f7 and with the change):
+
+| | AimLayer | WeaponHold | AimLayer, share of the step | WeaponHold, share |
+| --- | ---: | ---: | ---: | ---: |
+| Desktop, before | 11.6 to 13.9 | 13.0 to 15.5 | 0.30 to 0.31 | 0.33 to 0.35 |
+| Desktop, after | 4.9 to 6.3 | 7.1 to 9.5 | 0.13 to 0.15 | 0.20 to 0.22 |
+| Chrome, before | 12.6 to 14.4 | 15.3 to 18.3 | 0.28 to 0.30 | 0.35 to 0.38 |
+| Chrome, after | 6.3 to 6.6 | 11.3 to 11.4 | 0.13 to 0.14 | 0.24 |
+
+What is left at rest: the layer's aim ray each tick (kept, so the first aimed frame is placed from the last two
+steps as before) and one look at the aim; the hold's read of the weapon layer, the reload and the rack, the grip's
+weights and the slide.
+
 - **Approach:** Empty the `RagdollPool` (`clear()`) before counting a living character's nodes, so it makes the pool's
   sets whatever ran first; leave out the controller the test added and hold the count equal. The count includes the
   empty `PhysicalBoneSimulator3D` every `Skeleton3D` adds as an internal child on entering the tree (4.7.2's
@@ -484,6 +519,13 @@ the budget in all 150 runs.
   commit; grep the suites for `NODES_ALIVE` before the full run. **Watch out for:** the aim suites pass and only the
   full run counts the body, so the extra node shows up as an off-by-one in a suite that looks unrelated. **Seen:**
   gdstudio #1351, 2026-11-12 (`AimUprightModifier`, 65 to 66).
+- **Approach:** Save a part's cost by skipping work whose result is not drawn (a modifier that stays off), never by
+  distance or visibility, and prove it with a switch that turns the shortcut off: two bodies side by side through the
+  same commands, one with it off, every bone read inside `skeleton_updated`, through every state that turns the
+  modifiers on and off. Break the shortcut once (let it rest while busy) to see the test fail. **Watch out for:** a
+  call skipped at rest may have a side effect another part relies on (`MeleeLayer.aim_of` keeps a flag); ask such a
+  call once instead of dropping it, and keep what the first frame out of rest reads (the aim ray of the last two
+  ticks). **Seen:** gdstudio #1478, 2026-11-13.
 
 ## Prone and the crawl {#prone}
 
