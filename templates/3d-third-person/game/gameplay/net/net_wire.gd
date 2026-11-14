@@ -56,11 +56,12 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## (bit 7, gdstudio #1420); 16: a server's left-leaning body starts a muzzleless shot on the left
 ## (gdstudio #1435; 12, 14 and 15 are named by open pull requests beside it), so a client
 ## predicts its shots as the server steps them; 17: a player entry's state byte carries the goal
-## speed in its top four bits (gdstudio #1453).
-const VERSION := 17
+## speed in its top four bits (gdstudio #1453); 18: an AI row's speed is the speed the body is
+## asked for, not the one it has (gdstudio #1452).
+const VERSION := 18
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 17
+const MIN_VERSION := 18
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1
