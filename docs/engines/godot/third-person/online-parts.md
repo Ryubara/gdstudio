@@ -62,10 +62,11 @@ cooldowns, `authority_only`; the profile's play-state lines; each `AiReactionRow
 `puppets_shown_per_frame`, `viewer`) draws the server's characters as puppets from the TICK's AI block, made and shown a
 few a frame, nearest first ([the AI online](ai-online.md#replication)). The proof: `tools/soak/ai_soak.tscn` (inspector:
 `AiSoak` `seconds`, `random_seed`, `population_scale`, `pathing_kinds`, `pathing_count_each`, `round_seconds`,
-`rescue_seconds`, `quit_at_end`, `character_lines`, `warm_seconds`; `AiSoakWatch` every gate's threshold; `AiSoakFaults`
-`faults`, `slow_think_usec`, `overdue_timeout`) and the cost gate `tests/gameplay/test_ai_cost_gate.gd` ([the AI
-soak](../../../gamedev/bots.md#ai-soak)). [AI senses](ai-senses.md), [AI characters](ai.md), [Factions and
-relationships](ai-relations.md#relations), [Tasks](ai.md#tasks), [AI behaviour](ai-behaviour.md).
+`rescue_seconds`, `quit_at_end`, `character_lines`, `warm_seconds`; `AiSoakWatch` every gate's threshold and the episode
+probe's `probe_episodes`, `probe_kinds`, `probe_ticks`; `AiSoakFaults` `faults`, `slow_think_usec`, `overdue_timeout`)
+and the cost gate `tests/gameplay/test_ai_cost_gate.gd` ([the AI soak](../../../gamedev/bots.md#ai-soak)).
+[AI senses](ai-senses.md), [AI characters](ai.md), [Factions and relationships](ai-relations.md#relations),
+[Tasks](ai.md#tasks), [AI behaviour](ai-behaviour.md).
 
 ## Net packets and link {#net-packets-and-link-part}
 

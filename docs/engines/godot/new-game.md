@@ -154,6 +154,10 @@ every exit, kept with `--keep`, two calls at once).
   template's with the autoloads and addon settings `gds template game` adds; copying the template's over it dropped
   `UIRouter` and the other autoloads, and every suite that loads `main.tscn` failed on parse errors with nothing of
   the change in them. **Seen:** gdstudio #1400, 2026-11-13.
+- **Approach:** Run a scene of a kept game headless with `--path <the printed path>/game` and a `timeout`, and read
+  the first lines before waiting. **Watch out for:** `--path` at the printed folder itself (it has no `project.godot`)
+  printed only Godot's banner and never returned; three such runs sat for ten minutes until stopped by their PIDs.
+  **Seen:** gdstudio #1543, 2026-11-14 (the AI soak's sample runs).
 - **Approach:** Prove a new game or template change with a parse of every script (`gds check scripts`) and an editor
   open, and when a script fails, find the registration or file it needs, never an export exclusion. **Watch out
   for:** a new 3D Blank game opened with five parse errors from the `gds_ui` demo (`Identifier "UIRouter" not
