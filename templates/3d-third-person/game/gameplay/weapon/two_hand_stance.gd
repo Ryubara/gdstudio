@@ -1,8 +1,8 @@
 extends SkeletonModifier3D
 ## The first of a `TwoHandHold`'s modifiers, made by it at run time. It turns the chest about the
-## model's up axis, split evenly over the hold's spine bones, until the chest stands at the
-## hold's `chest_turn` from the model's front (by `chest_weight()`: not while the left hand is
-## away for an action): the turn the clip of this frame already has is
+## model's up axis (in a slide, its own: `_chest_up`), split evenly over the hold's spine bones,
+## until the chest stands at the hold's `chest_turn` from the model's front (by `chest_weight()`:
+## not while the left hand is away for an action): the turn the clip of this frame already has is
 ## taken off, so a walk or a run that swings the shoulders leaves the left shoulder forward and
 ## the left hand in reach of the hand guard. The turn goes by the hold's weight (a switch eases it
 ## in and out), and the head is turned back by as much, so it keeps the facing the clip gives it:
@@ -53,9 +53,8 @@ func _process_modification_with_delta(_delta: float) -> void:
 		hold.place(skeleton)
 		return
 	var top := _bones[-1]
-	# The clip's spine, and how far it has the chest turned from the model's front now, in
-	# degrees about the up axis (the way `chest_turn` counts): where the turn from the bone's rest
-	# sends the model's front.
+	# The clip's spine, and how far it has the chest turned from the model's front now
+	# (`_chest_yaw`).
 	var chest := Transform3D.IDENTITY
 	if _chain:
 		var above := _parents[_bones[0]]
@@ -67,15 +66,20 @@ func _process_modification_with_delta(_delta: float) -> void:
 			_posed[index] = chest
 	elif top >= 0:
 		chest = HandPoseModifier.global_pose(skeleton, top)
+	# About the chest's own up axis in a slide, not the model's: a slide lays the chest back, and
+	# a turn about the model's up axis rolled it onto its side instead (kit #1413).
 	var yaw := 0.0
+	var axis := Vector3.UP
 	if top >= 0:
-		var ahead := (chest.basis.orthonormalized() * _rest_inverse) * Vector3.BACK
-		yaw = rad_to_deg(atan2(ahead.x, ahead.z))
+		var turned := chest.basis.orthonormalized() * _rest_inverse
+		var lying := CharacterSlide.lying(hold.character)
+		yaw = _chest_yaw(turned, lying)
+		axis = _chest_up(turned, lying)
 	# `left_chest_turn` on the left shoulder (a left peek lean, gdstudio #1435).
 	var turn_now := lerpf(hold.chest_turn, hold.left_chest_turn, hold.side)
 	var degrees := (turn_now - yaw) * hold.chest_weight()
-	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
-	_turn_head(skeleton, top, degrees)
+	_turn_spine(skeleton, Basis(axis, deg_to_rad(degrees / _bones.size())))
+	_turn_head(skeleton, top, degrees, axis)
 	_straighten_chest(skeleton, top)
 	hold.place(skeleton, _posed[-1] if _chain else Transform3D(), _chain)
 
@@ -127,9 +131,9 @@ func _turn_spine(skeleton: Skeleton3D, turn: Basis) -> void:
 		parent = turned
 
 
-# Turns the head back by the chest's turn of `degrees`, so it keeps the clip's facing; its
-# parent's pose comes from the chest's (`top`) when it is under it.
-func _turn_head(skeleton: Skeleton3D, top: int, degrees: float) -> void:
+# Turns the head back by the chest's turn of `degrees` about `axis`, so it keeps the clip's
+# facing; its parent's pose comes from the chest's (`top`) when it is under it.
+func _turn_head(skeleton: Skeleton3D, top: int, degrees: float, axis: Vector3) -> void:
 	if _head == -2:
 		_head = skeleton.find_bone(HEAD)
 	if _head < 0:
@@ -146,7 +150,7 @@ func _turn_head(skeleton: Skeleton3D, top: int, degrees: float) -> void:
 	else:
 		neck = HandPoseModifier.global_pose(skeleton, bone)
 	var head := neck * skeleton.get_bone_pose(_head)
-	var back := Basis(Vector3.UP, -deg_to_rad(degrees))
+	var back := Basis(axis, -deg_to_rad(degrees))
 	skeleton.set_bone_pose(
 		_head, neck.affine_inverse() * Transform3D(back * head.basis, head.origin)
 	)
@@ -176,3 +180,30 @@ func _straighten_chest(skeleton: Skeleton3D, top: int) -> void:
 ## to the skin reads them and does not work them out again.
 func spine_poses() -> Array[Transform3D]:
 	return _posed
+
+
+# How far the clip has the chest turned from the model's front now, in degrees (the way
+# `chest_turn` counts), from `turned`, the chest's turn from its rest in the model's space: where
+# it sends the model's front, about the model's up axis, and by `lying` (a slide's share,
+# `CharacterSlide.lying`) about the chest's own up axis. Laid back by a slide, the front points
+# up, its turn about the model's up axis came from the slightest roll, a different one every
+# slide, and a turn about that axis rolled the trunk onto its side (kit #1413). Not by the chest's
+# lean: the reload and the clips lean it as far as a slide does.
+static func _chest_yaw(turned: Basis, lying: float) -> float:
+	var ahead := turned * Vector3.BACK
+	var upright := rad_to_deg(atan2(ahead.x, ahead.z))
+	var up := (turned * Vector3.UP).normalized()
+	if lying <= 0.0 or up.dot(Vector3.UP) < -0.99:
+		return upright
+	var leaned := Basis(Quaternion(Vector3.UP, up)) * Vector3.BACK
+	return lerpf(upright, rad_to_deg(leaned.signed_angle_to(ahead, up)), lying)
+
+
+# The axis the chest turns about now, in the model's space (`_chest_yaw`).
+static func _chest_up(turned: Basis, lying: float) -> Vector3:
+	if lying <= 0.0:
+		return Vector3.UP
+	var up := (turned * Vector3.UP).normalized()
+	if up.dot(Vector3.UP) < -0.99:
+		return Vector3.UP
+	return Vector3.UP.slerp(up, lying).normalized()
