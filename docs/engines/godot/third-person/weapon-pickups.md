@@ -160,9 +160,10 @@ are named as such.
   the female's into `rifle_trigger_way.tres` and the male's into his fit (`HoldFit.trigger_way`), nothing when a
   step is deeper than 2 mm; run it after `write_hold.gd`, which keeps a fit's way. Measured at every hundredth of
   the raise (`test_rifle_fingers.gd`): at most 1.59 mm in (female) and 1.60 mm (male), against 3.7 and 4.6 mm for
-  the way of two poses before (a roll of 90 and 105 degrees). The ends hold as before. The planner's `FingerChain`
-  and `plan_way` know nothing of the rifle, so another finger (the pistol's trigger finger) can be planned the same
-  way from its own dump.
+  the way of two poses before (a roll of 90 and 105 degrees). The ends hold as before. The planner knows nothing of the
+  rifle: the pistol's trigger finger is planned by it too, its dump adding the grid, the limit, the left hand's skin
+  and depth read through thin parts ([between the poses](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses));
+  what both solvers share is `tools/hold/finger_way_files.gd`.
 - **A switch** is one sequence on the loadout's own times. Going away, the gun goes down to its stow place
   (`stow_pocket`, `stow_pitch`, `stow_yaw`) with both hands on it through the `holster_time`, is hidden in the tick
   the next weapon appears in the right hand, and the arms go from the gun's places to that weapon's pose while it
