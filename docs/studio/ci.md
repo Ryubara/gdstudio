@@ -147,16 +147,34 @@ open branch was at 993 to 1000, and `tools/blender/animation.md` went over 50 KB
   repository. It checks each one with a read-only token and writes the results through the Checks API, titled
   `merged with main at <sha>`, without a push or an event. A newer landing cancels the sweep before it, and drafts
   and forks wait for their own events.
+- **Each pull request its own answer:** the sweep's loop is the script's (`merge_result.py --sweep`), so a conflict
+  (the files named), a failed check or a head that cannot be fetched is that pull request's failure and the rest are
+  still checked; a head pushed since the list was read is left to its own run. Only a sweep that fails as a whole
+  (the runner, a malformed list) marks every pull request failed with "rerun it".
+- **Held and conflicting ones too:** pull requests with `S-hold`, and those GitHub calls `DIRTY`, are swept like the
+  rest. A conflict costs one `git merge-tree` (no checks run on it) and names the files, which `DIRTY` does not, and
+  GitHub's state can lag or differ: on 2026-11-14 #1456 was `DIRTY` there while its merge with the same `main` was
+  clean. A held pull request is refreshed and landed once the hold comes off, and a current answer says whether it
+  needs `gds merge-main` first; skipping either would leave the in-progress mark `pending` set, or an old answer.
 - **Locally:** the same command is the dry run before a merge call:
   `git fetch origin main && python .github/scripts/merge_result.py --head origin/<branch>` (exit 1 names the limit and
   the file; `--no-pre-commit` runs `mistakes.py check` alone). `test_merge_result.py` shows two branches under the page
-  limit refused together. The dry run in kit #1468 shows the same for gdlint (999 lines each, 1001 merged).
+  limit refused together, and a sweep of six pull requests where one conflicts and one goes over the limit while the
+  clean ones still pass. The dry run in kit #1468 shows the same for gdlint (999 lines each, 1001 merged).
 - **Not required yet:** the ruleset does not require `merge-result`, and `pr-status` does not count it, because
   changing the required checks is the maintainer's decision. Until it is required, the landing queue reads it
   ([Landing](landing.md#landing)).
 
 GitHub's merge queue, which runs the checks on the queued merge itself, is not offered for a repository owned by a
 personal account, and it would rerun every required check, the full `ci` run included, for each entry.
+
+- **Approach:** Keep a loop over many pull requests in a script that gives each item its own answer and is tested with
+  one item failing among passing ones; in a `run:` step, take an exit code with `cmd || code=$?`. **Watch out for:**
+  GitHub runs `run:` steps as `bash -e`, and `set -uo pipefail` does not switch `-e` off, so the bash loop of the
+  first sweep ended at #1447's conflict (exit 1), wrote no results, and the report marked every swept pull request
+  failed, #1460 among them though its merge printed `success`. **Seen:** gdstudio #1512, 2026-11-14 (runs 43562835962
+  and 43563259746; fix: `merge_result.py --sweep`,
+  `test_the_sweep_answers_each_pull_request_and_one_conflict_stops_none`).
 
 ## Reruns {#reruns}
 
