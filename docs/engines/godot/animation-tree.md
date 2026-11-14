@@ -433,6 +433,12 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   `gait_transition` and sent the machine to `ground`, the last request won, and the body stood drawn over its
   crouched capsule for as long as it crouched (an AI in cover looked stuck, shots at its chest flew over the capsule).
   **Seen:** gdstudio #1412, 2026-11-13 (`test_a_crouch_asked_during_a_stop_takes_the_body_to_the_crouch`).
+- **Approach:** Prove a takeoff begun in a transition clip by the machine's state on each drawn update of the jump,
+  and by the weapon's turn there against the stop it leaves and the rest of its jump. **Watch out for:** a jump pressed
+  in a stop clip flew on the ground's pose, its gun 244 degrees a second at the takeoff; once the momentum blend
+  carried the stop's pose, that turn read 41 with the bug and without it, so only the state shows the fault. Read the
+  muzzle node's -Z, as the pistol node's own -Z points to the side. **Seen:** gdstudio #1462, 2026-11-14
+  (`test_aimed_takeoff.gd`).
 - **Approach:** A transition played by the ground the body covers needs a body that covers the clip's ground: give the
   controller a deceleration (or an acceleration) per gait that covers the clip's `travel`, follow the clip until the
   body is at rest, count from the tick the input changed (its velocity times a tick), and test the distance and a
