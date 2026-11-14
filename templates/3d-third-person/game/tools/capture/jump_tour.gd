@@ -59,7 +59,7 @@ func _ready() -> void:
 	_bo = await _rig.join("Bo")
 	_put(_ada, Vector3(EAST_END, 0.0, LANE_Z), -PI / 2.0)
 	_put(_bo, BO_AT, 0.0)
-	_turn_camera(_ada, 180.0, 8.0)
+	_turn_camera(_ada, 180.0, 22.0)
 	_turn_camera(_bo, 180.0, 8.0)
 	_show(_rig.views[0], 0, "Ada's screen (her own body)")
 	_show(_rig.views[1], 1, "Bo's screen (Ada drawn from the server)")
