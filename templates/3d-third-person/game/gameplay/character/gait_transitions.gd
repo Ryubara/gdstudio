@@ -33,6 +33,10 @@ const _P_SEEK := &"parameters/Locomotion/gait_transition/Seek/seek_request"
 const _P_HOLD := &"parameters/Locomotion/gait_transition/Hold/scale"
 ## Degrees of turn left before a turning body counts as done with its part.
 const TURN_DONE := 5.0
+## Frames after the body last stood in which a start is still picked: the controller's
+## acceleration carries the body past `standing_speed` on the tick it is asked to move, so a start
+## read only from the speed now never played (gdstudio #1416).
+const START_GRACE := 4
 
 var settings: GaitSettings
 ## What plays now, and its clip.
@@ -50,6 +54,7 @@ var _along := Vector3.FORWARD
 var _facing := 0.0
 var _turn_to := 0.0
 var _pending := false
+var _since_standing := 0
 # The state the body machine was last asked for (`route()`): where it goes from this state when
 # it finds itself left there.
 var _asked: StringName = CharacterAnimation.GROUND
@@ -112,6 +117,7 @@ func step(
 	playback: AnimationNodeStateMachinePlayback,
 	delta: float
 ) -> void:
+	_count_standing(animation.character)
 	if is_playing():
 		_go_on(animation, blend, playback, delta)
 		return
@@ -153,9 +159,21 @@ static func on_foot(body: Character) -> bool:
 ## The transition the body calls for now, as `{kind, clip}`, or empty: what `step()` would start.
 func pick(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary:
 	var body := animation.character
-	if body.ground_speed() < settings.standing_speed:
+	var standing := settings.standing_speed
+	if (
+		body.ground_speed() < standing
+		or (_since_standing <= START_GRACE and body.goal_speed > standing)
+	):
 		return _pick_standing(animation, blend)
 	return _pick_moving(animation, blend)
+
+
+# Frames since the body's ground speed was last under `standing_speed` (0 while it stands).
+func _count_standing(body: Character) -> void:
+	if settings != null and body.ground_speed() < settings.standing_speed:
+		_since_standing = 0
+	else:
+		_since_standing += 1
 
 
 # A start, or aiming away while standing, a turn on the spot.
@@ -165,7 +183,8 @@ func _pick_standing(animation: CharacterAnimation, blend: GaitBlend) -> Dictiona
 	var player := animation.animation_player
 	var goal := body.goal_speed
 	var picked := {}
-	if goal > settings.standing_speed:
+	# An aimed walk faces the view and strafes; a start faces the way it moves, so none plays.
+	if goal > settings.standing_speed and not body.aiming:
 		var wish := body.last_command.world_move()
 		var forward := Vector3.BACK.rotated(Vector3.UP, body.facing)
 		var gait := blend.main_point(CharacterAnimation.GROUND, goal)
@@ -345,6 +364,7 @@ func _hand_over(
 				"r":
 					phase = 0.5
 	_end()
+	_asked = CharacterAnimation.GROUND
 	playback.travel(CharacterAnimation.GROUND)
 	if phase >= 0.0:
 		blend.seek_phase(animation.tree, CharacterAnimation.GROUND, phase)
