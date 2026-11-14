@@ -6,7 +6,11 @@
   "measured": {
     "file": "vault_male.glb",
     "sha256": "66eb9b9f0e8fbb34c4d7481615a36640c21d3e50152dc69492829c14eb8e5d77",
-    "overlap_limit_mm": 5.0
+    "overlap_limit_mm": 5.0,
+    "measure_sha256": "1797ff617610ae39f922b2c3d2f5d8f0c7c6869b9cbb69bba30d60fd7c1fc4f4",
+    "bodies_sha256": {
+      "form_male": "849173d1d1bf583ff7135713da7ddfdebcabc7b709c93476fd4c67d0790cbe3d"
+    }
   },
   "clips": {
     "Vault_Low": {

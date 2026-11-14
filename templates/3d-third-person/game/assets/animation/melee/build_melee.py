@@ -1827,6 +1827,7 @@ def sidecar(clips, path):
             "join_limit_mm": JOIN_LIMIT,
             "snap_limit_m_s": SNAP_LIMIT,
             "hit_window_m": WINDOW,
+            **__import__("measure_hash").made_by([MANNEQUIN, MANNEQUIN_MALE]),
         },
         "gun_points": {name: [round(x, 4) for x in point] for name, point in GUN_POINTS.items()},
         "rifle_points": {name: [round(x, 4) for x in point] for name, point in RIFLE_POINTS.items()},

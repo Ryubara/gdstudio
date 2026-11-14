@@ -48,6 +48,7 @@ from mathutils import Matrix, Vector
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 import limb_overlap
+import measure_hash
 
 ASSETS = HERE.parent.parent
 LIBRARIES = HERE.parent / "universal"
@@ -437,6 +438,7 @@ def main():
             "foot_drift_limit_mm": DRIFT_MM,
             "clear_on": sorted(CLEAR),
             "not_worse_on": sorted(KEEP),
+            **measure_hash.made_by([*CLEAR.values(), *KEEP.values()]),
         },
         "clips": report,
     }
