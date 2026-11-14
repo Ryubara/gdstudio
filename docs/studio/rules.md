@@ -157,7 +157,10 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
 A page holds at most 50 KB. When one nears it, the simplest move is one subject to a sibling page (as `landing.md`
 left `starting-work.md` and `ai-online.md` left `third-person/ai.md`), with a short section left behind for each moved
 `{#anchor}`; a topic that has outgrown its page altogether becomes a folder of subpages (as `gamedev/audio/` did).
-Those are the times a learning makes a new page. The check names the page and its size.
+Those are the times a learning makes a new page. The check names the page and its size. The section left behind is a
+short note, `Moved to [Title](new-page.md#anchor).`, linking to the same anchor on its new page (or a `<!-- moved: -->`
+note and one link): `gds brief` and `gds learn` follow it and name the new page, and an issue naming an anchor whose
+pointer was removed later still finds the one section that holds it (`lessons.moved_to`, gdstudio #1471).
 
 - **Approach:** Split a page that is filling up at about 40 KB, not at the limit: make a folder of subpages by subject,
   named apart from the page (`third-person/` beside `third-person-template.md`), with its own `index.md`; keep the old
