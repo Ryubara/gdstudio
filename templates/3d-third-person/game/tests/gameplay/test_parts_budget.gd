@@ -33,10 +33,11 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## inactive but through the rack after an empty reload. The hold's `HandFloor` (#1356) adds 1, a
 ## modifier inactive unless the body lies and aims. The aim layer's `AimUprightModifier` (kit #1351)
 ## adds 1, inactive until the fists aim. The peek lean (#1400) adds 3: the body's `PeekShape`,
-## disabled unless it leans, the `PeekLayer` and its `PeekModifier`, idle while upright. The shot
-## hull (kit #1431) adds 2, `ShotHull` and its `Shape`, and 1 body: a static capsule a ray meets
-## before it asks the parts.
-const NODES_ALIVE := 74
+## disabled unless it leans, the `PeekLayer` and its `PeekModifier`, idle while upright. The left
+## shoulder (#1435) adds 3: `LeftShoulder` and its `LeftShoulderCross` and `LeftShoulderArm`,
+## inactive unless the pistol aims on a left lean. The shot hull (kit #1431) adds 2, `ShotHull`
+## and its `Shape`, and 1 body: a static capsule a ray meets before it asks the parts.
+const NODES_ALIVE := 77
 const BODIES_ALIVE := 3
 const CROWD := 10
 ## Frames a window times, and windows a measure takes the best of.
@@ -53,7 +54,7 @@ const WINDOWS := 3
 ## differently on each of GitHub's processor models (one model's runs agree within a few
 ## percent, the models 1.5 times apart), and Linux and Windows build it to different speeds.
 ## Rulers of animation, physics and spread-out memory work were timed beside the loop over 100 CI
-## runs and none followed the frame better (third-person/character.md#parts-cost). Linux: 150
+## runs and none followed the frame better (third-person/parts-cost.md#parts-cost). Linux: 150
 ## soak runs on five processor models read 1.26 to 1.78 (one window of 450 read 2.24), twice as
 ## slow 2.54 at the least; Windows: 10 desktop runs beside 9 to 11 other Godot processes, 1.54 to
 ## 1.83, twice as slow 3.07 at the least.

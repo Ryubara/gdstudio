@@ -8,9 +8,9 @@ toolkit of [Animation](animation.md#toolkit). The clips, their variants and thei
 
 **The bodies.** Clips are solved on `form_female`, the body the template's player wears (`REFERENCE` in
 `build_own.py`), and checked on `form_male` and the Quaternius pair as well (`BODIES`). A shipped file's deepest
-limb crossing per clip and body is written beside it as `bodies_overlap.json` with the file's SHA-256, which
-`tests/gameplay/test_own_clips.gd` reads. What one file cannot do for two bodies is under
-[Clips on other proportions](mannequin-rig.md#proportions).
+limb crossing per clip and body is written beside it as `bodies_overlap.json` with the file's SHA-256 (and the
+measure script's and each body's, kit #1479), which `tests/gameplay/test_own_clips.gd` reads. What one file
+cannot do for two bodies is under [Clips on other proportions](mannequin-rig.md#proportions).
 
 ## What the toolkit gained for them {#toolkit-rows}
 
