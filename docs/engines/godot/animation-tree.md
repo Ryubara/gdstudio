@@ -439,6 +439,12 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   carried the stop's pose, that turn read 41 with the bug and without it, so only the state shows the fault. Read the
   muzzle node's -Z, as the pistol node's own -Z points to the side. **Seen:** gdstudio #1462, 2026-11-14
   (`test_aimed_takeoff.gd`).
+- **Approach:** Carry no pose speed into the standing take-off and start the momentum blend on one frame more for it
+  (`JumpAnimation.carries_speed()`, `extra_settle()`): after a stop clip its pose is drawn a tick later than a gait's.
+  Test a move begun in a stop clip from a stop on each foot. **Watch out for:** one run holds one gait phase; a shift
+  earlier (a longer landing) moved it to the right foot, where the gun turned 43 degrees a second, on main too. With
+  #1536's three settle frames the last start fell on the frame the pose arrived (36); a longer half life only moved
+  that turn into the air. **Seen:** PR #1530, 2026-11-14 (`test_aimed_takeoff.gd`: 27 to 29 after, both feet).
 - **Approach:** A transition played by the ground the body covers needs a body that covers the clip's ground: give the
   controller a deceleration (or an acceleration) per gait that covers the clip's `travel`, follow the clip until the
   body is at rest, count from the tick the input changed (its velocity times a tick), and test the distance and a

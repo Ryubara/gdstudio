@@ -83,9 +83,17 @@ the third needs nothing. Each sets `S-blocked` and writes `Blocked (coordinator,
 issue body (with `(conflict in: <files>)` after the reason for the second). `gds issue list` prints the reason class
 beside each block: `[dependency]`, `[conflict]`, `[maintainer]`, or `[none named]` for a block written by hand that
 its issue body does not back, so a chain of blocks on one running issue shows at a glance. A blocked issue leaves
-the line, so it stops holding a slot of the window; when what it waits on closes, `gds issue list` shows it under
-"Unblocked: label to remove" and `gds issue unblock <ref>` puts it back. The coordinator's `Stop` is refused while an
-issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.md#idle)).
+the line, so it stops holding a slot of the window; when everything it waits on has closed (an issue closed, or a pull
+request merged or closed), the next `gds issue list` lifts the block itself, as `gds issue unblock <ref>` does (label
+and line gone, `S-ready-to-start` back), lists it under "Blocks lifted by this run" and counts it in "May start now" on
+that run. Only a lift `gh` refuses stays under "Unblocked: label to remove", with the error, for `gds issue unblock`. A
+block on the maintainer or on another repository's issue is never lifted this way. The coordinator's `Stop` is refused
+while an issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.md#idle)).
+
+- **Approach:** Let the tool that sees a block has outlived its cause lift it on the same run. **Watch out for:**
+  `gds issue list` once only listed such blocks under "Unblocked: label to remove", so blocks on a merged pull request
+  and on the issue it closed kept both issues out of the window until someone ran `gds issue unblock`. **Seen:**
+  gdstudio #1490 and #1379 on PR #1486 and #1347, 2026-11-14 (fix: #1541).
 
 - **Approach:** Start every issue in each window that nothing blocks, check each running agent's newest file time on
   every monitor expiry (an hour unchanged is a stall), and report what each agent is on; a rule that says always gets a
@@ -309,6 +317,11 @@ they exist.
   coordinator had assigned collided (14 twice). **Seen:** gdstudio PR #1503, 2026-11-14 (coordinator's mistake; #1503
   took 17).
 
+- **Approach:** After an edit that adds words or links to a doc line, run `pytest python/tests/test_moved_sections.py`
+  before the push: it pins the sections `gds brief` proposes for sample issues. **Watch out for:** a link added to a
+  row of `own-animation.md#waves` lifted that section into issue #1435's six and pushed `parts-cost.md#parts-cost`
+  out, red on every `test` job. **Seen:** gdstudio #1371, 2026-11-14.
+
 ## The report {#the-report}
 
 <!-- new section: the agent definitions held the report's parts; nothing for the coordinator said what comes back -->
@@ -346,13 +359,13 @@ closes an issue names the same sections on its `Read first:` line.
 gds issue list [owner/repo]
 ```
 
-prints the window (what may start now, and how many issues wait behind it), the issues in progress with their owner
-(the agent from the ledger, else the assignee) and the pull request that carries each, the blocked issues with the
-reason each gives (one blocked with no `Blocked (...)` line says so), the **unblocked** ones (blocked, but every issue
-they waited on has closed: lift them with `gds issue unblock`), and the issues waiting for information. An issue in
+prints the window (what may start now, and how many issues wait behind it), the issues in progress with their owner (the
+agent from the ledger, else the assignee) and the pull request that carries each, the blocked issues with the reason
+each gives (one blocked with no `Blocked (...)` line says so), the blocks it **lifted** on this run (every issue or pull
+request they waited on has closed: see [parallel work](#parallel)), and the issues waiting for information. An issue in
 progress with **no owner** (no ledger entry, no assignee, no pull request) is called out: someone set the label by hand
-or the agent was moved off it; give it an owner or release it. Any open
-pull request carrying `S-in-progress` is listed too, so the label can be taken off.
+or the agent was moved off it; give it an owner or release it. Any open pull request carrying `S-in-progress` is listed
+too, so the label can be taken off.
 
 ## Stopping and finishing {#stopping-and-finishing}
 
@@ -377,6 +390,10 @@ pull request carrying `S-in-progress` is listed too, so the label can be taken o
   stopgap sent Quick join to the Play together screen until the rooms flow replaced it; that issue closed and the route
   stayed, so Quick join was a second Play together. **Seen:** Deadnight #526, 2026-11-02 (fix: quick join joins the
   first game found).
+- **Approach:** When a check fails in CI but passed on your branch, merge main first (`gds merge-main`) and run the
+  failing suite on the merge: CI tests the merge with main, not your head. **Watch out for:** a suite run in the
+  shard's own order on the branch alone read 28 where CI read 36, because a clip change on main moved the blend's
+  restarts. **Seen:** gdstudio #1530, 2026-11-14 (after #1536 landed).
 - **Approach:** Before opening a pull request, run the whole suite folder of every file it changes, not only the test it
   aims at. **Watch out for:** a balance fix ran only the gate test; four simulator tests around the code it changed
   failed in CI, and `main` stayed red past the deadline. **Seen:** Deadnight, 2026-11-01 (fix: CI on the fix caught it).
