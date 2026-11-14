@@ -82,12 +82,13 @@ func sample(at: float, into: PlayerEntry) -> Vector3:
 	into.yaw = lerp_angle(a.yaw, b.yaw, share)
 	into.pitch = lerpf(a.pitch, b.pitch, share)
 	into.aim_yaw = lerp_angle(a.aim_yaw, b.aim_yaw, share)
+	into.peek = lerpf(a.peek, b.peek, share)
 	return _velocity(index)
 
 
 ## The velocity (m/s) the snapshots head for: the one between the two newest, ahead of the moment
 ## a puppet is drawn at. A puppet's animation reads it as the goal a stepped body's command gives
-## (`Character.motion_goal`, with the entry's `halt` for a stop), so a start begins as the body
+## (`CharacterGoal.motion`, with the entry's `halt` for a stop), so a start begins as the body
 ## sets off (gdstudio #1420).
 func heading() -> Vector3:
 	return _velocity(_times.size() - 2)
@@ -122,3 +123,4 @@ static func _copy(from: PlayerEntry, into: PlayerEntry) -> void:
 	into.halt = from.halt
 	into.pitch = from.pitch
 	into.aim_yaw = from.aim_yaw
+	into.peek = from.peek

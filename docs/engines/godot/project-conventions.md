@@ -53,7 +53,8 @@ game/
   script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
   Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
   own); gdstudio #1041, 2026-11-10 (3D Third Person's `character.gd` at 1000 lines failed three pull requests that each
-  passed alone; four parts moved into modules: [the body's modules](third-person/character.md#controller)).
+  passed alone; four parts moved into modules: [the body's modules](third-person/character.md#controller)); #1420,
+  2026-11-13 (16 lines on a 994-line `character.gd`: moved into `CharacterGoal`).
 - **Approach:** After writing a new script or shader in a template, run `gds template uids <template>` and commit
   the `.uid` files it writes (Godot's form; a valid file is never changed, an invalid one exits 1 until
   `--replace-invalid`). Never write a uid by hand. **Watch out for:** uids copied from a kept game were left behind

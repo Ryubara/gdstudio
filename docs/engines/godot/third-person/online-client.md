@@ -112,10 +112,10 @@ for each aiming player at 30 TICKs a second, nothing for one who does not aim. T
 `tools/capture/puppet_aim_tour.tscn` (Ada's screen beside Bo's).
 
 **Its starts and stops** (gdstudio #1420). `GaitTransitions` picks a start, a stop or a reversal from the body's goal
-(`Character.goal_speed` and `goal_direction`), which a stepped body reads from its last command. A puppet has none:
-`PlayerPuppet.make` sets `goal_from_motion`, and `RemotePlayers` sets `motion_goal` each step with
+(`Character.goal_speed` and `goal.direction(body)`), which a stepped body reads from its last command. A puppet has
+none: `PlayerPuppet.make` sets the body's `CharacterGoal.from_motion`, and `RemotePlayers` sets its `motion` each step with
 `PlayerPuppet.goal_of`: nothing once the entry's `halt` flag says the player asked for no move (bit 7 of the flags
-byte, set by the server from the body's goal, protocol 10, no byte more), else the velocity between the two newest
+byte, set by the server from the body's goal, protocol 13, no byte more), else the velocity between the two newest
 snapshots (`InterpolationTrack.heading`, 0.1 s ahead of the moment drawn), and the goal it had while that heading is
 under 0.5 m/s (a reversal passes through 0; a stepped body's goal never does). The track takes `halt` from the snapshot
 the drawn move heads to, so a stop begins with the move toward the halted snapshot. On the gait tour (Ada's screen beside
@@ -151,7 +151,8 @@ vault it never stepped: [a puppet's vault](traversal.md#online).
   body looked the same (the before and after captures could not be told apart while the suite measured 49.8 against
   0.5 degrees); routes picked blind started inside the ragdoll ledge and ran into crates and the steps, and the
   slide's 8 m/s carried the body 10 m past a watcher in a second. **Seen:** gdstudio #1277, 2026-11-11
-  (`puppet_aim_tour.tscn`, five captures before the front view).
+  (`puppet_aim_tour.tscn`, five captures before the front view); #1367, 2026-11-13 (`puppet_gait_tour.tscn`: a
+  column beside the watcher filled his camera's view).
 
 ## What it measured {#client-costs}
 

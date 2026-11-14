@@ -79,6 +79,7 @@ func test_the_server_exports_are_pinned() -> void:
 		&"print_log": true,
 		&"world_root": null,
 		&"body_scene": load("res://gameplay/character/character.tscn"),
+		&"body_items": load("res://gameplay/net/body_items.tscn"),
 		&"players_root": null,
 		&"spawn_group": &"player",
 		&"spawn_seed": 1,

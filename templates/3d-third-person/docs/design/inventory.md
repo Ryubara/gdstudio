@@ -18,7 +18,9 @@ work and every value in the inspector is in the kit's `docs/engines/godot/invent
 | Put an item on the hotbar | Drag a bag slot onto a hotbar place, press a hotbar key (3 to 6) on a bag slot, or pick a stack up and press a place | The place names that kind of item and shows how many the bag holds; press a filled place on the screen to take it off |
 | Use an item | Its hotbar key (3 to 6; a finger on the place on a phone) | The bandage takes 1.6 s: the character lowers its aim and wraps it on (its clip and sound, a sign above the hotbar), then gets 25 health back as one leaves the bag. Sprinting, firing, aiming again, jumping, a melee blow, a reload, a switch, lying down or a hit stops it and nothing is used; a second press during it does nothing; at full health it is refused and kept |
 
-The bag starts with three bandages (on hotbar place 3) and fills with the coins the player picks up.
+The bag starts with three bandages (on hotbar place 3) and fills with the coins the player picks up. Online the
+server owns the bag and the health: the use starts on your screen at the press, the heal and the count come from the
+server, and the other players see your character wrap the bandage on.
 
 ## Things you will do
 

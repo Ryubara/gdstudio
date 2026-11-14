@@ -202,6 +202,12 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   1.12); a day of character work then moved the paired ratio from 1.01-1.08 to 1.16-1.33 and 1.3 failed 5 of 10
   healthy runs. **Seen:** gdstudio #1324, 2026-11-12 (3D Third Person `test_parts_budget.gd`'s
   `test_ten_walking_characters_stay_under_the_frame_budget`; limit 1.7, doubled frame 2.21 to 2.60).
+- **Approach:** Hold a frame ratio as the lowest of three windows' ratios (each a median frame over a median loop of
+  the same frames), with the empty scene's frame taken off first; noise only adds time, and a frame twice as slow is
+  twice in every window. **Watch out for:** a runner slows game work for a while with every ruler holding still (the
+  AI step and the walkers' frame 1.2 to 1.7 times slower in one run, the physics ruler within 3 %): one window of 450
+  read 2.24 where the best of three read at most 1.78. **Seen:** gdstudio #1451, 2026-11-13 (3D Third Person
+  `test_parts_budget.gd`; [the numbers](third-person/character.md#parts-cost)).
 
 ## In the editor {#in-the-editor}
 

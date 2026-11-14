@@ -73,9 +73,9 @@ func test_the_interact_key_opens_the_door_in_front_and_it_stands_to_use_it() -> 
 	await InputSim.ticks(get_tree(), 4)
 	var used := []
 	_player.interacted.connect(func(target: Node3D) -> void: used.append(target))
-	InputSim.key(KEY_E, true)
+	InputSim.key(KEY_F, true)
 	await InputSim.ticks(get_tree(), 2)
-	InputSim.key(KEY_E, false)
+	InputSim.key(KEY_F, false)
 	await InputSim.ticks(get_tree(), 4)
 	assert_array(used).has_size(1)
 	assert_object(used[0]).is_same(door)
@@ -89,7 +89,7 @@ func test_the_interact_key_opens_the_door_in_front_and_it_stands_to_use_it() -> 
 func test_interact_does_nothing_when_nothing_is_in_reach() -> void:
 	var used := []
 	_player.interacted.connect(func(target: Node3D) -> void: used.append(target))
-	InputSim.key(KEY_E, true)
+	InputSim.key(KEY_F, true)
 	await InputSim.ticks(get_tree(), 3)
 	assert_array(used).is_empty()
 	assert_int(_player.state).is_not_equal(Player.State.INTERACT)
