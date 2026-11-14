@@ -214,6 +214,13 @@ pointer was removed later still finds the one section that holds it (`lessons.mo
   (`own-animation.md`), 2026-11-11; #1254 (PR #1315), 11-12 (`shooting.md`, melee moved to `third-person/melee.md`);
   #1490 (PR #1516), 11-14 (main grew `weapon-pickups.md` to 51,094 bytes after the branch's base; the paragraph was
   dropped); PR #1474, 11-14 (its split clashed with #1488's move of the same section and was thrown away).
+- **Approach:** When a split turns one long section into many (a table's rows into sections), give each new section an
+  anchor no other page has (`-part`) and run the full pytest: `test_moved_sections.py` pins real `gds brief` results.
+  A pinned section that drops gets a real cross-link that names its subject, never a reworded test. **Watch out for:**
+  the ranking weighs a word by how few sections hold it, so 42 new sections full of "peek", "hold" and "node" pushed
+  `parts-cost.md#parts-cost` out of the brief for #1435 (it was sixth, 0.5 points clear of the seventh); a reused
+  anchor such as `#ragdoll` would make the moved-section lookup ambiguous. **Seen:** gdstudio #1457, 2026-11-14
+  (the template's table of parts moved to `third-person/*-parts.md`; fix: `parts-cost.md` links the parts pages).
 
 ## Where the entry is named {#named}
 
