@@ -247,6 +247,13 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   seeds; a change anywhere moved the failing seed (5 and 27, then 26 on a later main), so judge a fix by the probe's
   counts over several seeds, not by one seed turning green. **Seen:** gdstudio #1326, 2026-11-12 (the cause was the
   flinch's partial ragdoll: [A partial ragdoll](../engines/godot/ragdoll.md#partial)).
+- **Approach:** When a playtest reports AI standing stuck and the soak's stuck gates pass, log what each still
+  character holds (its active task, its navigator's mode, its controller's channels) beside how it is drawn (the
+  state machine's node, the drawn head's height against the capsule's): a body doing its task as asked can still
+  look wrong. **Watch out for:** the "stuck" enemies were in their cover task, still as designed, crouched in the
+  body and drawn standing (a crouch asked during a stop clip was sent back to `ground`,
+  [the cause](../engines/godot/animation-tree.md#gait-fitting)); no gate reads the drawn pose. **Seen:** gdstudio
+  #1412, 2026-11-13.
 - **Approach:** Reproduce a soak failure on the commit it was seen on (keep that game, with its probe, until the fix is
   proved), track the failing body every tick in a ring of full snapshots (transforms, velocities, contacts, seconds
   since the death) and dump it with the static shapes around at the first wild value; prove the fix there, and judge

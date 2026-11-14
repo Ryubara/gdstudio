@@ -97,7 +97,7 @@ func refresh() -> void:
 	left = left * cos(roll) + Vector3.UP * sin(roll)
 	cross.shift = to_skeleton.basis * (left * pistol_shift * share)
 	cross.target = to_skeleton * aim.aim_point(Engine.get_physics_interpolation_fraction())
-	cross.muzzle_in_hand = _between(muzzle, hold.seat)
+	cross.muzzle_in_hand = HoldBones.between(muzzle, hold.seat)
 
 
 ## The rifle's turn mirrored to the left side of the body (about the model's side axis, X).
@@ -135,14 +135,3 @@ func _build() -> void:
 		skeleton.move_child(_cross, support.get_index())
 		skeleton.move_child(_arm, support.get_index())
 	refresh()
-
-
-# A node's transform in the space of `top`, one of its parents, from the transforms between (no
-# global transform is asked for: the pistol's attachment follows the skeleton a frame late).
-static func _between(node: Node3D, top: Node) -> Transform3D:
-	var xf := node.transform
-	var above := node.get_parent() as Node3D
-	while above != null and above != top:
-		xf = above.transform * xf
-		above = above.get_parent() as Node3D
-	return xf
