@@ -40,6 +40,9 @@ const MOUSE_SENSITIVITY := &"controls/mouse_sensitivity"
 const INVERT_Y := &"controls/invert_y"
 ## Whether the game stops while the inventory is open (read by the inventory screen).
 const PAUSE_IN_INVENTORY := &"controls/pause_in_inventory"
+## Whether a press of a lean button leans until the next press (on) or the lean lasts while the
+## button is held (off; read by the player's `PeekInput`, gdstudio #1400).
+const LEAN_TOGGLE := &"controls/lean_toggle"
 ## How much camera shake the player wants, 0 to 100 %: the global `CameraShake.strength`, which
 ## scales every shake in the game (sprint, shot kick, hits, blasts); 0 turns them all off.
 const CAMERA_SHAKE := &"controls/camera_shake"
@@ -130,6 +133,7 @@ func _init() -> void:
 		MOUSE_SENSITIVITY: 1.0,
 		INVERT_Y: false,
 		PAUSE_IN_INVENTORY: true,
+		LEAN_TOGGLE: false,
 		CAMERA_SHAKE: 100,
 	}
 	_values = _defaults.duplicate()

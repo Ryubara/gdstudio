@@ -42,8 +42,11 @@ const F_UNUSED := 0xFFFF & ~((F_UNARMED_PRESSED << 1) - 1) & ~F_PRONE
 # the 15-byte layout always carried as zero; byte 14 is the hotbar place (`USE_AT`).
 ## The melee button.
 const G_MELEE_PRESSED := 1 << 0
+## The peek lean, held (gdstudio #1400).
+const G_LEAN_LEFT := 1 << 1
+const G_LEAN_RIGHT := 1 << 2
 ## Bits of the second byte no build of this version sets: a command with one is refused.
-const G_UNUSED := 0xFF & ~((G_MELEE_PRESSED << 1) - 1)
+const G_UNUSED := 0xFF & ~((G_LEAN_RIGHT << 1) - 1)
 ## Where the second flag byte and the shot block start.
 const MORE_FLAGS_AT := 13
 ## Byte 14 (gdstudio #1386): the hotbar place pressed + 1, 0 for none (`PlayerCommand.use_place`).
@@ -131,6 +134,8 @@ static func decode(data: PackedByteArray, drops: NetDrops = null) -> PlayerComma
 	result.previous_weapon_pressed = flags & F_PREVIOUS_WEAPON_PRESSED != 0
 	result.unarmed_pressed = flags & F_UNARMED_PRESSED != 0
 	result.melee_pressed = more & G_MELEE_PRESSED != 0
+	result.lean_left = more & G_LEAN_LEFT != 0
+	result.lean_right = more & G_LEAN_RIGHT != 0
 	result.use_place = data[USE_AT] - 1
 	result.has_shot = shot
 	if shot:
@@ -173,7 +178,10 @@ static func _flags(command: PlayerCommand) -> int:
 
 
 static func _more_flags(command: PlayerCommand) -> int:
-	return G_MELEE_PRESSED if command.melee_pressed else 0
+	var more := G_MELEE_PRESSED if command.melee_pressed else 0
+	more |= G_LEAN_LEFT if command.lean_left else 0
+	more |= G_LEAN_RIGHT if command.lean_right else 0
+	return more
 
 
 # --- Move ---

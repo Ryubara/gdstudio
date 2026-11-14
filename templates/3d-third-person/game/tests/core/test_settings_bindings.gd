@@ -125,7 +125,7 @@ func test_a_damaged_binding_in_the_file_is_skipped_and_the_good_ones_apply() -> 
 	assert_int(_first_key(&"jump")).is_equal(KEY_SPACE)
 	assert_int(_first_key(&"sprint")).is_equal(KEY_SHIFT)
 	assert_int(_first_key(&"fire")).is_equal(KEY_H)
-	assert_int(_first_key(&"interact")).is_equal(KEY_E)
+	assert_int(_first_key(&"interact")).is_equal(KEY_F)
 	assert_bool(InputMap.has_action(&"no_such_action")).is_false()
 
 
