@@ -7,7 +7,9 @@
 ## the rack's reach and fingers on the left hand and the slide moved every frame); or with
 ## `rifle_held.tscn` in the model's space: `rifle` (aimed:
 ## the stance, both arms' reach and both hands' fingers), `rifle_low` (the same at the low ready)
-## or `rifle_reload` (aimed, 0.3 of a reload: the left hand taking the magazine out). A camera
+## or `rifle_reload` (aimed, 0.3 of a reload: the left hand taking the magazine out), or
+## `rifle_carry` (the low ready with the trunk carried upright all the way, kit #1348, its
+## `carry_lean_limit` 0 so the spine is turned every frame: the carry's most). A camera
 ## looks on from `NEAR_CAMERA` (every figure inside the rifle hold's `fingers_far_distance`, as the
 ## player's own character and those near it); `no_hold_far` and `rifle_far` from `FAR_CAMERA` (past
 ## it, the holds told so as the animation throttle tells them in a game); `no_hold_walk`,
@@ -59,6 +61,7 @@ const RUNS: Dictionary[String, Dictionary] = {
 	"racked": {"hold": true, "aim": 0.0, "rack": 0.42, "camera": NEAR_CAMERA},
 	"rifle": {"rifle": true, "aim": 1.0, "camera": NEAR_CAMERA},
 	"rifle_low": {"rifle": true, "aim": 0.0, "camera": NEAR_CAMERA},
+	"rifle_carry": {"rifle": true, "aim": 0.0, "carry": 1.0, "camera": NEAR_CAMERA},
 	"rifle_reload": {"rifle": true, "aim": 1.0, "reload": 0.3, "camera": NEAR_CAMERA},
 	"no_hold_far": {"hold": false, "aim": 0.0, "camera": FAR_CAMERA},
 	"rifle_far": {"rifle": true, "aim": 1.0, "camera": FAR_CAMERA},
@@ -182,6 +185,9 @@ func _figure(run: Dictionary) -> Node3D:
 		var held := (load(RIFLE_HELD) as PackedScene).instantiate() as TwoHandHold
 		held.posed_aim = run.aim
 		held.posed_reload = run.get("reload", -1.0)
+		if run.has("carry"):
+			held.set(&"posed_carry", run.carry)
+			held.set(&"carry_lean_limit", 0.0)
 		# What the animation throttle tells a hold past `fingers_far_distance` in a game.
 		# (`set` and `get`: a hold from before #1178 has neither, so the bench measures it too.)
 		var far_from: Variant = held.get(&"fingers_far_distance")

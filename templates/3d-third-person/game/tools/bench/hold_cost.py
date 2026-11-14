@@ -35,6 +35,7 @@ RUNS = [
     "racked",
     "rifle",
     "rifle_low",
+    "rifle_carry",
     "rifle_reload",
     "no_hold_far",
     "rifle_far",
