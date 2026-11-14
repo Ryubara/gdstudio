@@ -402,7 +402,7 @@ def _prepare_worktree(
     root: Path, repo: str, branch: str, *, fresh: bool = False, ledger: Path | None = None
 ) -> Callable[[issues.Issue], issues.Prepared]:
     """What `issues.start` runs once the window allows the start: the branch and worktree of the issue, with the git
-    hooks of the repository verified (docs/studio/starting-work.md#worktree). A worktree the issue already has (a
+    hooks of the repository verified (docs/studio/worktrees.md#worktree). A worktree the issue already has (a
     takeover) is
     reused with its hooks checked, unless `fresh`; two candidates are refused."""
     name = repo.split("/")[-1]

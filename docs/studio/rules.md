@@ -203,10 +203,10 @@ anchor whose pointer was removed later still finds the one section that holds it
   subject to a sibling page first, in the same pull request, rather than a whole folder split; say in its reason line
   which page it left. **Watch out for:** nothing on a page says it is near the limit, so entries kept landing on
   `online-client.md`, `third-person/ai.md` and `hooks.md` until each sat within a few hundred bytes of 50 KB and the
-  next entry, or a merge of two that each fitted, failed the check; a hand-kept list of full pages went stale
-  (#1542). **Seen:** gdstudio #1193 (PR #1199), #1198 (PR #1223), #1208
-  (PR #1219) and #1222 (PR #1227), 2026-11-11; #1267 and #1191, 11-12 (each split `tools/blender/animation.md` its own
-  way: before a split, look for an open pull request splitting the same page).
+  next entry, or a merge of two that each fitted, failed the check. **Seen:** gdstudio #1193 (PR #1199), #1198 (PR
+  #1223), #1208 (PR #1219) and #1222 (PR #1227), 2026-11-11; #1267 and #1191, 11-12 (each split
+  `tools/blender/animation.md` its own way: before a split, look for an open pull request splitting the same page);
+  PR #1440, 11-14 (a brief's hand-kept list of full pages was stale; `mistakes.py near` replaced it, #1542).
 - **Approach:** After merging main into a branch that adds to a page, run `python .github/scripts/mistakes.py check`
   on the merge result; when the page is over 50 KB, look for an open pull request splitting it (`gh pr list --search
   <page>`), then move the branch's own section to a subpage of its subject and leave a pointer under the old

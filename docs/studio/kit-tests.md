@@ -45,7 +45,7 @@ folder: `uv run --project <another checkout>/python pytest` tests the other chec
 - **A small kit, not the real templates.** The new-game tests build a kit with `templates/repo/` and a few-file stand-in
   for 3D Blank (`python/tests/new_game_kit.py`, `python/tests/fixtures/new_game_templates/`); only a test about what a
   real template holds reads a game made once from it (`real_game`, `real_third_person_game`), and never writes to it
-  ([Adding a template](../engines/godot/new-game.md#adding-a-template) has the measured cost).
+  ([Adding a template](../engines/godot/template-checklist.md#adding-a-template) has the measured cost).
 - **No real services.** The `no_real_services` fixture makes any `gh`, PowerShell or process listing that reaches
   `subprocess.run` fail the test; the suites that delete or post use it, so a forgotten fake fails instead of acting.
 - **Recorded answers.** `gh` answers live as JSON under `python/tests/fixtures/` (issues, pull requests, briefs).
@@ -79,7 +79,7 @@ installed on the runner instead. A local run without `--allowed-skips` reports s
 
 - **Approach:** Count the processes a test starts, not only its seconds: make a repository once a session and copy it,
   share one run of a command between the tests that only read it, and leave out the step a test is not about (the full
-  entry is under [Adding a template](../engines/godot/new-game.md#adding-a-template)). **Watch out for:** on Windows a
-  git process costs 30 to 110 ms and a copied file 1 ms, and a loaded machine moves wall time by 2x, so a timing taken
-  once says little. **Seen:** gdstudio #918 and #945, 2026-11-10 (`pytest python/tests` 266 s to 157 s serial, 57 s on
-  four workers; the Windows job had been the longest in CI at 13 min 35 s).
+  entry is under [Adding a template](../engines/godot/template-checklist.md#adding-a-template)). **Watch out for:** on
+  Windows a git process costs 30 to 110 ms and a copied file 1 ms, and a loaded machine moves wall time by 2x, so a
+  timing taken once says little. **Seen:** gdstudio #918 and #945, 2026-11-10 (`pytest python/tests` 266 s to 157 s
+  serial, 57 s on four workers; the Windows job had been the longest in CI at 13 min 35 s).
