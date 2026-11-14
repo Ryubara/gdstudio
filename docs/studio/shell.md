@@ -48,7 +48,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds
   nothing. A bare `write_text` used cp1252, so one `m²` broke the docs. **Seen:** Deadnight #415, #429,
   #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
-  #1127 (`write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154, #1260, #1270, 11-11, #1356;
+  #1127 (`write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154, #1260, #1270, 11-11, #1356, #1266;
   #1360, 11-13.
 
 ## Scripted edits {#scripted-edits}
@@ -150,7 +150,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
   lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went); gdstudio #963,
   2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red); #1154;
-  #1403, 2026-11-13; #1411 (a test's).
+  #1403, 2026-11-13; #1411 (a test's); #1400 (four).
 
 ## Reverting and checking out {#checkout}
 

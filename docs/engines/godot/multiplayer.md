@@ -216,10 +216,13 @@ ready), so fire held for three seconds measured 1302 B/s up for the pistol and 1
 shots a second (a command a tick and two pings, each with a 6-byte frame; 1286 with no block, 2006 if the block rode on
 every held tick, against a budget of 2000). Flag bits 11 to 14 are the weapon presses (reload, next, previous,
 the empty hands; gdstudio #887) and bit 15 is prone (#1012); no bit of the u16 is free, so byte 13 (always zero
-before) is a second flag byte: bit 0 is the melee press (#1254), its other bits are refused; byte 14 is the hotbar
-place used + 1 (#1386). `NetWire.VERSION` 8 (#1254; 7 is #1277's): that byte, a `MELEE` event (slot, seq) and the AI
-event's `MELEE` code ([melee](third-person/melee.md#melee)). `NetWire.VERSION` 9 (#1386): byte 14 and an 8-byte `USE`
-event ([item uses online](third-person/online-items.md#item-uses)). `NetWire.VERSION` 4 (#906): a shot
+before) is a second flag byte: bit 0 is the melee press (#1254), bits 1 and 2 the peek lean left and right (#1400),
+its other bits are refused; byte 14 is the hotbar place used + 1 (#1386). `NetWire.VERSION` 8 (#1254; 7 is #1277's):
+that byte, a `MELEE` event (slot, seq) and the AI event's `MELEE` code ([melee](third-person/melee.md#melee)).
+`NetWire.VERSION` 9 (#1386): byte 14 and an 8-byte `USE` event
+([item uses online](third-person/online-items.md#item-uses)). `NetWire.VERSION` 11 (#1400; 10 is named by open pull
+requests): the lean bits and a leaning player's entry byte ([the peek lean](third-person/peek.md#peek)).
+`NetWire.VERSION` 4 (#906): a shot
 carries the weapon and the low 16 bits of its `seq`, a hit the health it left
 ([shots online](third-person/online-shots.md#template-shots)). `NetWire.VERSION` 5 (#1073): a TICK ends with a count
 and the rows of the moving props, and a world part's state may be 12 bytes
@@ -284,7 +287,7 @@ WebSocket framing): a server walks N players and sends their state at 20 Hz to o
 | `send_bytes`, only the players that changed | 0.66 (33) | 2.10 (105) | 4.06 (203) | **1.14 (57)** | 0.18 (9) |
 
 - A player's state is 12 bytes as one entry (slot, position in centimetres `s16` x3, yaw `u16`, state, flags, pitch;
-  13 while aiming since #1277),
+  13 while aiming since #1277, one more while leaning since #1400),
   43 with five synchronized properties (Variant headers) and 23 packed in one property. A packet adds 6 bytes of
   header and 2 of WebSocket frame. `send_bytes` costs 3 bytes a packet over the payload: the peer layer is as cheap as a
   raw `WebSocketPeer`; the cost of the high-level API is the synchronizers.

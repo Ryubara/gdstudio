@@ -21,30 +21,43 @@ static func height(body: Character) -> float:
 
 
 ## Sizes `body`'s capsule, its camera's target and its shot hull (`ShotHull`) for the crouch, the
-## slide and the prone stance: the capsule keeps its feet on the ground and loses height from the
-## top.
+## slide, the prone stance and the peek lean: the capsule keeps its feet on the ground and loses
+## height from the top.
 static func fit(body: Character) -> void:
 	var tuning := body.tuning
 	var capsule := body._body.shape as CapsuleShape3D
 	var tall := height(body)
 	var lying := body._prone.share() if body.prone_tuning != null else 0.0
-	capsule.radius = (
-		lerpf(tuning.radius, prone_radius(body), lying) if lying > 0.0 else tuning.radius
-	)
-	capsule.height = tall
-	body._body.position.y = tall / 2.0
+	var radius := lerpf(tuning.radius, prone_radius(body), lying) if lying > 0.0 else tuning.radius
+	# A shape's setter rebuilds it in the physics server even for the same value, and a shape
+	# node's place moves it there: written only when they change (a leaning body fits every tick).
+	if capsule.radius != radius:
+		capsule.radius = radius
+	if capsule.height != tall:
+		capsule.height = tall
+	if body._body.position.y != tall / 2.0:
+		body._body.position.y = tall / 2.0
+	# The eye goes with a peek lean (`CharacterPeek`), and the lean's shape with it.
+	body.peek_motion.place(body, body._camera_target, eye_height(body))
+	# The shot-only hull around it, with room for the pose (gdstudio #1431).
+	var hull := ShotHull.of(body)
+	if hull != null:
+		hull.fit(body)
+
+
+## The eye point's height above the feet now (the camera's target), upright: lower crouched,
+## sliding and lying down.
+static func eye_height(body: Character) -> float:
+	var tuning := body.tuning
 	var shrink := smoothstep(0.0, 1.0, body._crouch_amount)
 	var eye := minf(
 		lerpf(tuning.camera_height, tuning.crouch_camera_height, shrink),
 		body._slide.camera_height(body)
 	)
+	var lying := body._prone.share() if body.prone_tuning != null else 0.0
 	if lying > 0.0:
 		eye = lerpf(eye, body.prone_tuning.camera_height, lying)
-	body._camera_target.position.y = eye
-	# The shot-only hull around it, with room for the pose (gdstudio #1431).
-	var hull := ShotHull.of(body)
-	if hull != null:
-		hull.fit(body)
+	return eye
 
 
 ## The shortest the crouched capsule can be: a capsule is at least two radii tall.

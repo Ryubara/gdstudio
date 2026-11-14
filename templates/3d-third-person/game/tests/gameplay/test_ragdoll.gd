@@ -43,6 +43,7 @@ func test_the_character_the_player_and_the_ragdoll_pin_their_exports() -> void:
 		&"tuning": null,
 		&"prone_tuning": null,
 		&"slide_tuning": null,
+		&"peek_tuning": null,
 		&"model": null,
 		&"controller": null,
 		&"weapon": null,
@@ -160,7 +161,7 @@ func test_a_dead_body_ignores_every_gameplay_input() -> void:
 	assert_bool(_ragdoll.is_settled()).is_true()
 	var spot := _player.global_position
 	var hips := _ragdoll.hips()
-	for key in [KEY_W, KEY_SPACE, KEY_SHIFT, KEY_C, KEY_E]:
+	for key in [KEY_W, KEY_SPACE, KEY_SHIFT, KEY_C, KEY_F]:
 		InputSim.key(key, true)
 	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
 	InputSim.mouse_button(MOUSE_BUTTON_LEFT, true)
