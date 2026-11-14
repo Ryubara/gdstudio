@@ -103,6 +103,12 @@ again ([checked in CI](#ci)).
   the dash's leg swivel at 34 degrees for 41. **Seen:** gdstudio #1325 after #1323, 2026-11-12 (fix: rebuilt after
   merging `main`); #1479, 2026-11-14 (the limb overlap reports carry the hash of the measure's code and of each
   body, and `BodiesOverlap.problems` fails on another; `fixed_clips.json` and `vault_clips.json` do not yet).
+- **Approach:** After any edit to `limb_overlap.py`, measure every `*_overlap.json` report again with the pinned
+  Blender (the commands in `check_clip_builds.py`'s `overlap_*` entries, and `own/build_own.py ship locomotion
+  --blender` for `own/bodies_overlap.json`) and commit them in the same pull request. **Watch out for:** an edit
+  that only adds arguments or plumbing still changes the code's normal form, so every report's `measure_sha256` goes
+  stale and `test_measure_hash.py` fails, though no number moves. **Seen:** gdstudio #1494 after #1489, 2026-11-14
+  (the `--check` argument; fix: the six reports measured again, only the hash changed).
 
 ## Checks in the build {#checks}
 
