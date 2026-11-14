@@ -106,13 +106,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   trusting a result); gdstudio #879, #903, #966, #970, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
   branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
 - **Approach:** From a session that sits in the kit's main checkout, commit and push in a worktree with `git -C
-  <worktree> commit|push ...`, not `cd <worktree> && git commit|push`. **Watch out for:** the Git guard judges the
-  command from the session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would
-  have run in the worktree. **Seen:** gdstudio #1221 (PR #1225) and #1178, 2026-11-11 (a line that set a variable
-  before its `cd <worktree> &&` was refused; with the `cd` first it passed, and `git -C` always passes); #1293,
-  2026-11-11 (a worktree's own agent: a command that sourced a helper file and changed folder after it was refused as a
-  commit on `main`); PR #1424, 2026-11-13 (a push after `cd <worktree> &&` was refused as one to `main`); fix: #1472
-  follows `cd "$WT"` when the line set `WT`, not a variable from a sourced file.
+  <worktree> commit|push ...` (it always passes), or after a `cd` to a literal path or to a `$WT` the same Bash line
+  set. **Watch out for:** the Git guard follows only a `cd` it can read; after any other (a PowerShell `$wt = ...`, a
+  `$(...)`, a sourced file's variable) it judges from the session's folder and refuses a worktree commit or push as one
+  on `main` (bug #1520). **Seen:** gdstudio #1221 (PR #1225), #1178 (a variable set before `cd <worktree> &&`), #1293 (a
+  worktree's own agent: a sourced helper), 2026-11-11; PR #1424, 11-13 (a push after `cd <worktree> &&`); #1474, 11-14
+  (`cd <worktree>; ...; git push`); fix: #1472 follows `cd "$WT"` when the line set `WT`.
 
 ## Background commands and processes {#background}
 
