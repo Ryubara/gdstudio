@@ -65,7 +65,7 @@ rewrites, and the read-back after the command.
 ## Commit messages before they leave the machine {#pre-push}
 
 The `pre-commit` framework installs three git hooks (`default_install_hook_types` in `.pre-commit-config.yaml`), and
-`gds issue start` checks them ([Starting work](starting-work.md#worktree)):
+`gds issue start` checks them ([Starting work](worktrees.md#worktree)):
 
 | Git hook | Runs | Judges |
 | --- | --- | --- |

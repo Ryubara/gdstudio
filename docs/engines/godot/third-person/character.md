@@ -15,7 +15,7 @@ Moved to [The character's clips](clips.md#animation-libraries).
 
 <!-- new section: a pointer left when the section moved to its own page at the size limit (#1016) -->
 
-Moved to [The character's clips](clips.md#vault-clips).
+Moved to [Vaulting's clips](vault-clips.md#vault-clips).
 
 ## The bodies {#mannequins}
 
@@ -400,13 +400,14 @@ headless Chrome (`tools/bench/player_step_bench.py`, under `gds quiet`), on a ma
      #1400); it measures the map and this character -->
 
 Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview
-camera 0.34 ms CPU, 0.19 ms GPU, 145 draw calls, 84.4 MB of texture memory; with the character 0.38 / 0.21 ms, 149
-draw calls, the same texture memory (the mannequin has two flat materials and no texture) and 1.9 MB more video memory.
-The whole game from the third-person camera draws 64 calls. The trimmed 3D Blank (floor and walls) is 0.17 / 0.16 ms,
-10 draw calls and 64.2 MB. Forward+ is 0.21 / 0.68 ms and 348 MB for the character in the map. The web export is a
-0.92 MB `index.pck` for 3D Blank and 3.26 MB for 3D Third Person (the character and the two libraries are most of the
-difference), and both load in headless Chromium with no console error, page error or failed request (a SwiftShader
-frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says it runs with no GPU).
+camera 0.34 ms CPU, 0.19 ms GPU, 145 draw calls, 84.4 MB of texture memory; with the character 0.38 / 0.21 ms, 149 draw
+calls, the same texture memory (the mannequin has two flat materials and no texture) and 1.9 MB more video memory. The
+whole game from the third-person camera draws 64 calls. The trimmed 3D Blank (floor and walls) is 0.17 / 0.16 ms, 10
+draw calls and 64.2 MB. Forward+ is 0.21 / 0.68 ms and 348 MB for the character in the map. The web export is a 0.92 MB
+`index.pck` for 3D Blank and 8,024,856 bytes for 3D Third Person since the export keeps only the library clips the game
+names ([replacing](../../../tools/blender/own-animation.md#replacing); 3.26 MB when this was first measured), and both
+load in headless Chromium with no console error, page error or failed request (a SwiftShader frame is about 39 ms for 3D
+Blank and 67 ms for 3D Third Person, which only says it runs with no GPU).
 
 ## What the parts cost {#parts-cost}
 
