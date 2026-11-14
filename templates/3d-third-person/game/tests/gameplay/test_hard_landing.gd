@@ -98,10 +98,11 @@ func _land_seconds(command: PlayerCommand) -> float:
 	return (ticks - 1) * CommandDriver.tick_seconds()
 
 
-func _drop(height: float) -> void:
+# Puts the body `height` up and steps it until it lands, the stick pushed by `push` in the air.
+func _drop(height: float, push := 0.0) -> void:
 	await _ticks(_command(0.0), 20)
 	_player.global_position = Vector3(0.0, height, 0.0)
-	await _until_landed(_command(0.0))
+	await _until_landed(_command(push))
 
 
 func test_the_hold_is_the_hard_landing_clip_s_numbers() -> void:
@@ -150,29 +151,34 @@ func test_a_hard_landing_holds_the_pushed_body_to_the_clip_s_control_frame() -> 
 
 
 func test_a_hard_landing_s_planted_feet_hold_the_floor_to_its_control_frame() -> void:
-	# Standing, the clip's feet are what the clip makes them; pushed from the touch-down, the held
-	# body leaves them as still.
-	var standing := await _feet_after_drop(0.0)
-	var pushed := await _feet_after_drop(1.0)
-	for window: String in pushed:
+	# Standing, the clip's feet are what the clip makes them; pushed from the touch-down, or all
+	# through the fall (landing with the air's ground speed), the held body leaves them as still.
+	var standing := await _feet_after_drop(0.0, 0.0)
+	var pushed := await _feet_after_drop(1.0, 0.0)
+	var through := await _feet_after_drop(1.0, 1.0)
+	for window: String in standing:
 		prints(
 			(
-				"HARD_LANDING %s: slid %.2f mm pushed, %.2f mm standing"
-				% [window, pushed[window] * 1e3, standing[window] * 1e3]
+				"HARD_LANDING %s: slid %.2f mm pushed, %.2f through the fall, %.2f standing"
+				% [window, pushed[window] * 1e3, through[window] * 1e3, standing[window] * 1e3]
 			)
 		)
 		assert_float(pushed[window]).is_less(PLANTED_SLIDE)
+		assert_float(through[window]).is_less(PLANTED_SLIDE)
+		# Pushed from the touch-down, the landing is the standing one; through the fall it lands
+		# in another air pose (turned and leaning with the push), so only the limit holds there.
 		assert_float(absf(pushed[window] - standing[window])).is_less(0.0002)
-	assert_int(pushed.size()).is_equal(2)
+	assert_int(standing.size()).is_equal(2)
 
 
-# Drops the body 3 m, pushes the stick by `push` from the touch-down until past the hold, and
+# Drops the body 3 m (the stick pushed by `fall_push` in the air), pushes it by `push` from the
+# touch-down until past the hold, and
 # measures how far each planted foot of `Land_Hard` slid over the floor up to its control frame:
 # by window (`<foot> <first>-<last>`), each from a quarter into its flat frames (the roll onto the
-# floor left out, as `test_gait_stops.gd` does).
-func _feet_after_drop(push: float) -> Dictionary:
+# floor left out, as `test_gait_stops.gd` does); INF for a window no drawn frame reached.
+func _feet_after_drop(push: float, fall_push: float) -> Dictionary:
 	_frames.clear()
-	await _drop(3.0)
+	await _drop(3.0, fall_push)
 	await _ticks(_command(push), int(_player.tuning.hard_land_time * 60.0) + 6)
 	await _ticks(_command(0.0), 60)
 	var record := GaitClips.record(CharacterClips.LAND_HARD)
@@ -186,6 +192,7 @@ func _feet_after_drop(push: float) -> Dictionary:
 				continue
 			var start := Vector3.INF
 			var slide := 0.0
+			var seen := 0
 			for frame: Array in _frames:
 				var at := float(frame[0]) * GaitClips.FPS
 				if at < first or at > last:
@@ -194,7 +201,9 @@ func _feet_after_drop(push: float) -> Dictionary:
 				if start == Vector3.INF:
 					start = place
 				slide = maxf(slide, Vector2(place.x - start.x, place.z - start.z).length())
-			out["%s %.0f-%.0f" % [foot, first, last]] = slide
+				seen += 1
+			# A window the clip never reached (cut before it) counts as failed.
+			out["%s %.0f-%.0f" % [foot, first, last]] = slide if seen > 1 else INF
 	return out
 
 
@@ -266,3 +275,19 @@ func test_hard_land_time_and_speed_are_live() -> void:
 	assert_float(_player.ground_speed()).is_less(0.01)
 	await _ticks(_command(1.0), 14)
 	assert_float(_player.ground_speed()).is_greater(0.5)
+
+
+func test_hard_land_keep_is_live() -> void:
+	_player.tuning = _player.tuning.duplicate()
+	await _drop(3.0, 1.0)
+	assert_float(_player.ground_speed()).is_equal(0.0)
+	_player.tuning.hard_land_keep = 1.0
+	await _ticks(_command(0.0), 30)
+	await _drop(3.0, 1.0)
+	var kept := _player.ground_speed()
+	assert_float(kept).is_greater(1.0)
+	await _tick(_command(1.0))
+	# Held, it slows by `deceleration` with the stick still pushed.
+	assert_float(_player.ground_speed()).is_equal_approx(
+		kept - _player.tuning.deceleration * CommandDriver.tick_seconds(), 0.01
+	)

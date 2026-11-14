@@ -864,8 +864,7 @@ func _after_move(wish: Vector3, _delta: float) -> void:
 	_slide.after_move(self, grounded and _was_airborne)
 	if grounded and _was_airborne:
 		landed.emit(_fall_speed)
-		_land_timer = tuning.land_time_after(_fall_speed, _land_timer)
-		_action_lock = maxf(_action_lock, tuning.land_hold_after(_fall_speed))  # gdstudio #1535
+		CharacterLanding.touch_down(self)
 		_fall_speed = 0.0
 	_was_airborne = not grounded
 	_sprinting = (

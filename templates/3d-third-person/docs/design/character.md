@@ -337,7 +337,8 @@ which runs into the `slide` loop, and `slide_exit`, played when a slide ends sta
 The jump's three states pick their clips by the body's numbers (`JumpAnimation`, kit #1371): `jump` the standing
 take-off, or from 2.5 m/s the run's take-off off the foot that is down (`Jump_Start_Run_L` or `_R`); `fall` the rise,
 the top and the fall blended by vertical speed; `land` the soft landing, the hard one from 9 m/s of fall
-(`Land_Hard`, played through its settle while the body stands) or, landing asked to run, `Land_To_Jog`, which hands
+(`Land_Hard`, played through its settle while the body stands; the controller holds the body until its control
+frame, `CharacterTuning.hard_land_time`, kit #1535) or, landing asked to run, `Land_To_Jog`, which hands
 over to the jog on its right foot. Every choice is in the Animation's `gait_settings` (`GaitSettings` > Jump; off,
 the three clips of `jump_clip`, `air_clip` and `land_clip` alone).
 Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up

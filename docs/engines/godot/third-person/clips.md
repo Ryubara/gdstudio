@@ -150,7 +150,7 @@ mass keeps its place against the capsule: it flies the arc the controller flies.
 | `JUMP` from a run | `GaitSettings.run_takeoff_left`, `_right` | `gds/Jump_Start_Run_L` and `_R`: from the jog's left and right foot strikes (its frames 0 and 10), at its speed | the standing take-off |
 | `FALL` | `air_clip` (with `rise_clip`, `apex_clip`) | `gds/Jump_Fall`, `Jump_Rise`, `Jump_Apex`: 1.2 s loops in a blend space on the vertical speed, the soles at the capsule's bottom | `ual1/Jump` |
 | `LAND` (a fall of `land_clip_speed` or more) | `land_clip` | `gds/Land_Soft`: control back at frame 9 (0.3 s), the settle after | `fixed/Jump_Land` |
-| `LAND` from 9 m/s | `GaitSettings.hard_land_clip` | `gds/Land_Hard`: control back at frame 20 (0.67 s), 1.27 s with its settle | `land_clip` |
+| `LAND` from 9 m/s | `GaitSettings.hard_land_clip` | `gds/Land_Hard`: control back at frame 20 (0.67 s), 1.27 s with its settle; the controller holds the body to that frame | `land_clip` |
 | `LAND` asked to run | `GaitSettings.run_land_clip` | `gds/Land_To_Jog`: 0.27 s, ends on the jog's right foot strike (frame 10) | `land_clip` |
 
 **How the tree picks them** (`JumpAnimation`, kit #1371). A jump from the ground state at `run_takeoff_speed` (2.5 m/s)
@@ -167,6 +167,22 @@ library's play as stand-ins. Cosmetic, never sent: a puppet picks from the state
 `tests/gameplay/test_jump_tree.gd` holds each case; `tools/capture/jump_tour.tscn` films them on a player's own screen
 beside the puppet of it on another's.
 
+**How the controller holds a hard landing** (kit #1535). A fall of `CharacterTuning.hard_land_speed` (9 m/s, the hard
+landing's `fall_speed.from`) or more, and at least `land_clip_speed`, puts the body in `LAND` for `hard_land_time`
+(0.67 s, its `control` frame over 30) and holds it all that time as an action does (`CharacterLanding`,
+`_action_lock`): the push is ignored, the body keeps `hard_land_keep` (0) of its ground speed and loses the rest by
+`deceleration`, and it does not turn, jump or aim (an aim held lowers and comes back up when it is given back), and
+the lean tick is not taken. With the stick pushed from the touch-down `Land_Hard` plays to frame 20 and the body goes
+on at once (`test_jump_tree.gd` leaves it at 0.67 s; 0.32 s before); its planted feet slide 0.31 mm pushed, the same
+as standing, and 0.88 mm with the stick held all through the fall (`test_hard_landing.gd`; 252 mm before). A softer
+landing holds nothing: `land_time` (0.3 s) in `LAND`, steered at full rate, as before. The hold is step state that was
+already there, so the server and a predicting client hold a body the same and nothing new is sent; a puppet's `LAND`
+lasts as long as the server's (its state is in the TICK). `CharacterTuning.land_time_after()` and `land_hold_after()`
+give both times from a fall speed. A game whose hard landing clip changes sets the two numbers to its record
+(`test_hard_landing.gd` holds the defaults to `locomotion.json`); `hard_land_time` 0 holds nothing. `hard_land_keep`
+above 0 lets a body that lands with the air's ground speed slide on through the landing, under the in-place clip's
+planted feet.
+
 `locomotion.json` says of each clip what the tree reads: `carried` (the capsule carries it), `made_for` (the
 tuning numbers it was built to, which `tests/gameplay/test_own_jump_clips.gd` holds to `CharacterTuning`'s
 defaults), `fall_speed` (`from`, `to`), `control` (the frame control is back at), `joins` (the clip each end is,
@@ -178,6 +194,12 @@ and `first_frame` or `last_frame`, the frame of it).
   the jog the drawn pose was 593 mm (a hand) from the left strike's frame and 401 mm from the right's, so neither
   nearness by phase nor by pose says which foot pushes; on a strike the joined take-off is 46 to 51 mm from the jog.
   **Seen:** gdstudio #1371, 2026-11-14 (`test_jump_tree.gd`).
+- **Approach:** Prove a hold on the body by the feet against the same landing standing still (pushed and
+  standing slide alike), measured from a quarter into each flat window as `test_gait_stops.gd` does, and the
+  body's own ground under 0.5 mm. **Watch out for:** measured from the first flat frame, `Land_Hard`'s left
+  ball moved 3.29 mm with the body perfectly still (1.9 mm of it in the first half frame, as the foot settles
+  and the momentum blend dies away): the clip's own settle, not a slide the controller made, read as a failure.
+  **Seen:** gdstudio #1535, 2026-11-14 (`test_hard_landing.gd`).
 - **Approach:** Read what a seek on the ground state set (`GaitBlend.seek_phase`, a hand-over) one update after the
   `travel()` that goes there. **Watch out for:** in the update of the travel the walk point's `current_position`
   still read the phase the ground state was left at (0.22 before a jump; 0.50 the update after), the same frame of

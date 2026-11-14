@@ -172,12 +172,16 @@ extends Resource
 ## How long the landing holds the body in its landing state.
 @export_range(0.0, 2.0, 0.05, "suffix:s") var land_time := 0.3
 ## A landing from this fall speed or faster is a hard one (gdstudio #1535): the body is held for
-## `hard_land_time`, as an action holds it (it neither moves, turns, jumps nor aims, and slows by
-## `deceleration`), in its landing state all that time. The hard landing clip's `fall_speed.from`.
+## `hard_land_time`, as an action holds it (it neither moves, turns, jumps nor aims), in its landing
+## state all that time (`CharacterLanding`). The hard landing clip's `fall_speed.from`.
 @export_range(0.0, 30.0, 0.1, "suffix:m/s") var hard_land_speed := 9.0
 ## How long a hard landing holds the body: the hard landing clip's `control` frame (`gds/Land_Hard`
 ## gives control back at its frame 20 of 30 a second). 0: a hard landing holds nothing.
 @export_range(0.0, 2.0, 0.01, "suffix:s") var hard_land_time := 20.0 / 30.0
+## The share of its ground speed a body keeps on a hard landing, which it then loses by
+## `deceleration`: 0 stops it where it lands, as the hard landing clip stands in place (its feet
+## would slide under a body still moving).
+@export_range(0.0, 1.0, 0.01) var hard_land_keep := 0.0
 ## A body slower than this on the ground counts as standing still.
 @export_range(0.0, 1.0, 0.01, "suffix:m/s") var stand_speed := 0.15
 
