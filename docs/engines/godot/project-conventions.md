@@ -60,11 +60,9 @@ game/
   the `.uid` files it writes (Godot's form; a valid file is never changed, an invalid one exits 1 until
   `--replace-invalid`). Never write a uid by hand. **Watch out for:** uids copied from a kept game were left behind
   and failed the `uid` rule in CI, and hand-made ones held a `z`, a `9`, a word or over 63 bits, which Godot imports
-  silently. **Seen:** gdstudio #845, #868, #872, #925 (11-08 to 11-10); #910, #1074, #1091, #968 (36 at
-  once; 2026-11-11); #1186 (a
-  bench built with `bench-web`, which never checks layout); seven hand-made uids replaced, kit #1129, 2026-11-11; a
-  suite added after the first `gds template uids` run failed the full run's layout step, gdstudio #1187, #1052, 11-11
-  (run it again after the last new script); PR #1171, 11-12 (two `-s` tool scripts); #1438, 11-13.
+  silently. **Seen:** gdstudio #845, #868, #872, #925, #910, #1074, #1091, #968, #1186 (2026-11-08 to 11-11); kit
+  #1129 (seven hand-made uids); #1187, #1052 (a suite added after the run); PR #1171 (`-s` tools); #1438, 11-13;
+  #1506, 11-14 (tried in a kept game, where Godot writes its own uids; the full run stopped at layout).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
   a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and

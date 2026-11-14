@@ -28,10 +28,10 @@ extends RefCounted
 ##                before the first). 7 bytes
 ## PONG     S->C  u8 type=7, the same u32 and u16, u32 server tick. 11 bytes
 ##
-## A player entry: u8 slot, s16 x/y/z (cm), u16 yaw, u8 state, u8 flags (crouch, aim, sprint,
-## air, rising, dead, peek, halt), s8 pitch, with the aim flag s8 the aim's heading off the
-## body, and with the peek flag s8 the lean (`SnapshotCodec`). 12 bytes, 13 while aiming or
-## leaning, 14 while both.
+## A player entry: u8 slot, s16 x/y/z (cm), u16 yaw, u8 state (the goal speed in the top four
+## bits), u8 flags (crouch, aim, sprint, air, rising, dead, peek, halt), s8 pitch, with the aim
+## flag s8 the aim's heading off the body, and with the peek flag s8 the lean (`SnapshotCodec`).
+## 12 bytes, 13 while aiming or leaning, 14 while both.
 ##
 ## Every decoder checks each length before it reads, answers null (or -1) for a packet that is
 ## not exactly one message, and counts why in a `NetDrops` (never silent). The version is read
@@ -54,9 +54,10 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## 13 carries the peek lean and a leaning player's entry ends with it (gdstudio #1400; 10 is named
 ## by open pull requests beside it); 13: a player entry's flags carry `halt`, asked for no move
 ## (bit 7, gdstudio #1420); 16: a server's left-leaning body starts a muzzleless shot on the left
-## (gdstudio #1435), so a client predicts its shots as the server steps them; 18: an AI row's speed
-## is the speed the body is asked for, not the one it has (gdstudio #1452; 12, 14, 15 and 17 are
-## named by open pull requests beside it).
+## (gdstudio #1435; 12, 14 and 15 are named by open pull requests beside it), so a client
+## predicts its shots as the server steps them; 17: a player entry's state byte carries the goal
+## speed in its top four bits (gdstudio #1453); 18: an AI row's speed is the speed the body is
+## asked for, not the one it has (gdstudio #1452).
 const VERSION := 18
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
