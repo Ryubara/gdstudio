@@ -101,8 +101,8 @@ again ([checked in CI](#ci)).
   rebuilds before it lands. **Watch out for:** a file held only to the hash its own build wrote (`fixed.glb`) stays
   green while the measure under it changes: once the measure turned the `form` bodies' twist bones, a rebuild keyed
   the dash's leg swivel at 34 degrees for 41. **Seen:** gdstudio #1325 after #1323, 2026-11-12 (fix: rebuilt after
-  merging `main`); #1479, 2026-11-14 (the limb overlap reports carry the hash of the measure's code and of each
-  body, and `BodiesOverlap.problems` fails on another; `fixed_clips.json` and `vault_clips.json` do not yet).
+  merging `main`); #1479 and #1491, 2026-11-14 (the limb reports and the fixed, vault and melee numbers carry the
+  hash of the measure's code and of each body, `measure_hash.made_by`; `BodiesOverlap.stale` fails on another).
 - **Approach:** After any edit to `limb_overlap.py`, measure every `*_overlap.json` report again with the pinned
   Blender (the commands in `check_clip_builds.py`'s `overlap_*` entries, and `own/build_own.py ship locomotion
   --blender` for `own/bodies_overlap.json`) and commit them in the same pull request. **Watch out for:** an edit
