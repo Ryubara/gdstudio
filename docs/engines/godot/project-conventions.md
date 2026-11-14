@@ -57,6 +57,12 @@ game/
   [the body's modules](third-person/character.md#controller)); #1187, 11-11 (`main` over it: pre-push refused every
   push); #1393, 11-13 (`two_hand_hold.gd` at 1042: `HoldCarry`); #1420, 11-13 (994-line `character.gd`:
   `CharacterGoal`).
+- **Approach:** When code leaves a script near the 1000-line limit, give whatever it adds to the old script or its base
+  class (a member holding the new class) a name no local or parameter in the scripts that see it uses: grep them for the
+  name before the first run ([names](gdscript.md#names-and-types)). **Watch out for:** a member is in scope in every
+  method of its class and the classes that extend it, and the templates make a shadowed name a parse error, so the
+  member that held `CharacterGoal`, first named `goal`, met `goal` locals in `ai_animation_throttle.gd` and broke
+  loading. **Seen:** gdstudio PR #1454, 2026-11-14 (renamed `move_goal`).
 - **Approach:** After writing a new script or shader in a template, run `gds template uids <template>` and commit
   the `.uid` files it writes (Godot's form; a valid file is never changed, an invalid one exits 1 until
   `--replace-invalid`). Never write a uid by hand. **Watch out for:** uids copied from a kept game were left behind

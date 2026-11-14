@@ -259,6 +259,18 @@ lands (a squash merge makes a new commit on `main`), so the line keeps naming th
   and folded its page into another section while the stacked branch was resolving `main` alone, so the fold made
   there (a section of its own) was redone into the base's section, and the clip that joins the base's would have
   been solved on the base's old files. **Seen:** gdstudio #1265 on #1191, 2026-11-12.
+- **Approach:** Before reading the CI of a pull request stacked on a parked branch, merge `main` into it (`gds
+  merge-main`, and retarget it to `main` if it targets the base's branch); read a red check first as a fix `main` has
+  and the base was cut before. **Watch out for:** a stacked branch carries `main` only as of its base, so the fixes
+  `main` took after the base was cut are missing: #1455's fix of the parts budget flake was not in #1482, and
+  `test_parts_budget` failed there as if the branch had broken it. **Seen:** gdstudio PR #1482, 2026-11-14.
+- **Approach:** Another way to refresh a stacked branch after its base landed as a squash: rebuild the tree the base had
+  on the `main` it last merged (`git merge-tree --write-tree <base head> <that main>`), diff that tree against the
+  branch head (`git diff <tree> HEAD > own.patch`, the branch's own change alone), and apply it on a branch from
+  `origin/main` with `git apply -3 own.patch`; resolve only what conflicts there. **Watch out for:** a plain merge of
+  `main` meets every file the base touched, and a patch taken from the base's tip alone carries the `main` the base
+  merged, so either way the base's old side can come back. **Seen:** gdstudio PR #1456, 2026-11-14 (on #1437; `main`'s
+  side of each of #1437's files kept, only the branch's change on top).
 
 ### The worktree is removed when the work is finished {#sweep}
 
@@ -309,6 +321,12 @@ one, whose folder is the pull request's branch.
   that task woke the old agent, which read the queued message and began writing the same files as the new one
   (`mannequin_parade.gd`) until the new agent noticed and stood down. **Seen:** gdstudio #1149 (PR #1172),
   2026-11-11 (a coordinator mistake).
+- **Approach:** To restart an issue already started whose old branch `main` has overtaken (its work landed another way,
+  or merging `main` would cost more than starting again), run `gds issue start <ref> --agent <name> --fresh`: a new
+  `<slug>-<N>` branch and worktree from `origin/main`, recorded in the ledger; never call the start's worktree code or
+  `git worktree add` yourself. **Watch out for:** nothing said when to use `--fresh`, so the agent on #1473 made its new
+  worktree by calling the worktree code directly, around the start's checks and its ledger. **Seen:** gdstudio #1473
+  (found on #1511), 2026-11-14.
 
 ## Starting an agent {#starting-an-agent}
 
@@ -399,6 +417,12 @@ they exist.
   exists from `gds issue start`, unless `gh pr list --search <N>` shows a pull request. **Watch out for:** a prompt
   said to find #1037's branch with `gh pr list`, but #1037 had no pull request yet, so the agent searched for one that
   did not exist. **Seen:** gdstudio #1221, 2026-11-11 (coordinator's mistake).
+- **Approach:** Name in a brief every open pull request the work builds on as its base (`builds on #N: stack on its
+  branch`, [stacked](#stacked)), with the classes or fields it takes from it, never as work going on nearby; check the
+  issue's words against `gh pr list` before writing the brief, and hand out no protocol number without the rule
+  ([netcode](../gamedev/netcode.md#parallel-branches)). **Watch out for:** #1453's brief named #1454 (the puppet's goal,
+  `CharacterGoal`) as parallel work, so its agent found the dependency alone, and the protocol numbers the coordinator
+  had assigned collided (14 twice). **Seen:** gdstudio PR #1503, 2026-11-14 (coordinator's mistake; #1503 took 17).
 
 ## The report {#the-report}
 

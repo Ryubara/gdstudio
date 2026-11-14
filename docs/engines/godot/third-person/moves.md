@@ -68,7 +68,11 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   on `form_male`, swapped in by `CharacterAnimation.prone_reload_libraries` as the aim's are) on the same reload
   layer as the standing clip, from `spine_01` up and
   stretched to `reload_time`: `ProneAnimation.reload_clip()` picks the clip when the reload starts, so the standing
-  clip never plays on a lying body, and a weapon with none shows no clip lying down. The clip starts and ends on the
+  clip never plays on a lying body, and a weapon with none shows no clip lying down. A weapon whose clips stand the
+  trunk up (`WeaponDef.clips_upright`, the rifle's) plays no reload clip at all on a body lying past its clips
+  (`ProneAnimation.lies_past_clips`), so nothing lifts its stow share and the rifle stays put away for the whole
+  reload, its rounds going in at the end of `reload_time` (no charging handle pull lying down, gdstudio #1509).
+  The clip starts and ends on the
   prone aim's first pose and keeps the standing reload's shares for the left hand (off the pistol by 0.10, at the
   belt at 0.22, under the magazine from 0.40, pushing it in to 0.54, back on from 0.88), so `WeaponHold` and
   `SupportHandPlan` follow it unchanged, with the clip's own elbow (`support_keep_elbow`). The reload brings a

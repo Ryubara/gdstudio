@@ -144,3 +144,8 @@ says where it was learned (Deadnight, the first game).
   number in open pull requests cannot see a branch not pushed yet, so #1300 and #1254's branch both raised
   `NetWire.VERSION` from 6 to 7 without either seeing the other. **Seen:** gdstudio #1277 (PR #1300) and #1254,
   2026-11-11 (#1254, landing second, took 8).
+- **Approach:** Take the protocol version by the rule, past the highest any open pull request names (and any a running
+  branch holds), even when a brief names a number, and say in the pull request which numbers you saw. **Watch out for:**
+  a brief's number is the coordinator's reading of `main`, and open pull requests may already hold it: #1437's brief
+  named one above `main`'s 9 while open #1454 and #1460 named 10, so it took 11 by the rule; #1453's brief named 14,
+  which #1460 held. **Seen:** gdstudio PR #1437 and PR #1503, 2026-11-14 (coordinator's briefs; #1503 took 17).
