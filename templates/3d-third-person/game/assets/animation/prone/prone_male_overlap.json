@@ -1,6 +1,10 @@
 {
  "clips_file": "prone_male.glb",
  "sha256": "e7a8d788ca642ffff5004c2718383a9df094521d0f2ddf5d60ae082676c83a12",
+ "measure_sha256": "fb342c8ac8b3f7e566dfec22c792caf3abe94c3493d9177faab3bfc4f8be606a",
+ "bodies_sha256": {
+  "mannequin_male": "0a67bc1965336dff6d6e61c997719dcae2824b00b97c130d18acbbca31e7dcc6"
+ },
  "fps": 30,
  "limit_mm": 5.0,
  "clips": {

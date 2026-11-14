@@ -108,38 +108,20 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: pre-commit-
-      # The script is main's copy, run on each merged tree; what it runs inside a tree is that tree's own.
+      # The script is main's copy, run on each merged tree; what it runs inside a tree is that tree's own. The loop is
+      # the script's (`--sweep`), so one pull request's conflict or failed check is that pull request's answer and the
+      # rest are still checked: a `run:` step is `bash -e`, and the loop in bash stopped at the first exit 1 (#1512).
       - id: check
         name: Merge each head into main and run the limit checks
         env:
           PRS: ${{ needs.pending.outputs.prs }}
         run: |
-          set -uo pipefail
+          set -euo pipefail
           script="$RUNNER_TEMP/merge_result.py"
           cp .github/scripts/merge_result.py "$script"
-          results='[]'
-          while IFS=$'\t' read -r number sha; do
-            [[ "$number" =~ ^[0-9]+$ && "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "unexpected row" >&2; exit 1; }
-            echo "::group::#$number ($sha)"
-            summary="$RUNNER_TEMP/$number.md"
-            if git fetch --no-tags origin "+refs/pull/$number/head:refs/remotes/pr/$number" &&
-              [ "$(git rev-parse "refs/remotes/pr/$number")" = "$sha" ]; then
-              python3 "$script" --base "$GITHUB_SHA" --head "$sha" --summary "$summary"
-              code=$?
-              [ "$code" -eq 0 ] && conclusion=success || conclusion=failure
-              # 2: the merge could not be built (a git error); the summary says so instead of the checks.
-              [ "$code" -le 1 ] || echo "The sweep could not build the merge of $sha with main (see the run)." > "$summary"
-            else
-              # Pushed since the list was read: its own pull request run checks the new head.
-              conclusion=skip
-            fi
-            echo "::endgroup::"
-            echo "#$number: $conclusion"
-            text=$(tail -c 4000 "$summary" 2>/dev/null || true)
-            results=$(jq -c --arg n "$number" --arg s "$sha" --arg c "$conclusion" --arg t "$text" \
-              '. + [{number: ($n | tonumber), sha: $s, conclusion: $c, summary: $t}]' <<< "$results")
-          done < <(jq -r '.[] | "\(.number)\t\(.sha)"' <<< "$PRS")
-          echo "results=$results" >> "$GITHUB_OUTPUT"
+          printf '%s' "$PRS" > "$RUNNER_TEMP/prs.json"
+          python3 "$script" --base "$GITHUB_SHA" --sweep "$RUNNER_TEMP/prs.json" --results "$RUNNER_TEMP/results.json"
+          echo "results=$(jq -c . "$RUNNER_TEMP/results.json")" >> "$GITHUB_OUTPUT"
 
   report:
     needs: [pending, sweep]
@@ -160,7 +142,8 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          # A sweep that failed itself (not a check) answers every pull request with a failure that says so.
+          # A sweep that failed itself (not a check, not a conflict: those are each pull request's own answer)
+          # answers every pull request with a failure that says so.
           if [ "$SWEEP" != success ] || [ -z "$RESULTS" ]; then
             RESULTS=$(jq -c --arg u "$RUN_URL" '[.[] | . + {conclusion: "failure",
               summary: "The merge-result sweep itself failed (\($u)); rerun it: `gh workflow run merge-result.yml`."}]' \

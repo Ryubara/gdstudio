@@ -41,11 +41,12 @@ shape, its `interacted` signal connected in the scene to whatever it moves.
   (the reach measured from the closed gate).
 - **Approach:** When one part must drive another it does not know the class of (a world of networked map parts), have
   the driven part hand its functions over as `Callable`s in its `_ready` (`NetEntity.serve`), never look them up by
-  name. **Watch out for:** `NetWorld` first called `has_method(&"net_place")` and `call(&"net_write", ...)` on each
-  part; every suite of the change passed and only the full run's
-  `test_no_part_in_gameplay_finds_another_by_a_method_name` named the nine lines. **Seen:** gdstudio #907, 2026-11-11;
-  gdstudio #1409, 2026-11-13 (the vault reached the rifle's hold by `has_method(&"free_hand")`; CI's run of that test
-  refused it, and the view is now typed as `TwoHandHold`).
+  name; a script made from a preloaded constant is typed as it (`var stance: STANCE_SCRIPT = STANCE_SCRIPT.new()`).
+  **Watch out for:** `NetWorld` first called `has_method(&"net_place")` and `call(&"net_write", ...)` on each part;
+  every suite of the change passed and only the full run's
+  `test_no_part_in_gameplay_finds_another_by_a_method_name` named the nine lines. **Seen:** gdstudio #907,
+  2026-11-11; gdstudio #1409, 2026-11-13 (the vault asked the hold `has_method(&"free_hand")`; now typed
+  `TwoHandHold`); gdstudio #1347, 2026-11-13 (the rifle hold called the stance's `spine_poses` by name).
 
 ## Using something with a weapon in the hands {#interact-held}
 

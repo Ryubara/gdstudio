@@ -4,7 +4,7 @@
 # which must fail the budget. Each run's rows (`PARTS_BUDGET`, `PARTS_BUDGET_SLOW`: the frame beside every candidate
 # ruler) and the runner's processor go to one JSON line a row in the artifact. The template job of ci.yml runs the suite
 # once on every pull request; this counts how often a budget on time reads the runner instead of the code. Kit docs:
-# docs/engines/godot/third-person/character.md#parts-cost. It runs by hand and on a pull request that changes the
+# docs/engines/godot/third-person/parts-cost.md#parts-cost. It runs by hand and on a pull request that changes the
 # budget, its rulers or this file. Not a required check.
 name: parts-budget
 
