@@ -147,7 +147,7 @@ still reads the branch (kit #1131). The `commits` job reads the pull request's c
 guard run the same `groundwork.py check-commits --body` on `git log origin/main..HEAD` of the checkout (the commits
 GitHub lists for a pull request against `main`; those a merge of `main` brings are not among them), so a commit's bad
 trailer, or a co-author model the `Model:` line does not name, is refused before the push. A stacked branch carries its
-base's commits, so its `Model:` line names their models too ([stacked](starting-work.md#stacked)). With no branch to
+base's commits, so its `Model:` line names their models too ([stacked](worktrees.md#stacked)). With no branch to
 read it prints `commits: cannot tell`, as the docs rule does (kit #1303). The guard is a hand-merge path
 (`.claude/hooks/`): a maintainer merges changes to it.
 
