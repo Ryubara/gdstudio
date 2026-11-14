@@ -179,15 +179,15 @@ var died_by_clip := false
 
 ## The ground speed the last command steers the body toward, in m/s (0 when it asks for no move):
 ## the speed the body is heading for, which the animation's transitions read (`GaitTransitions`).
-## A body that never steps reads it from `goal` instead (`CharacterGoal`).
+## A body that never steps reads it from `move_goal` instead (`CharacterGoal`).
 var goal_speed: float:
 	get:
-		if goal.from_motion:
-			return goal.speed()
+		if move_goal.from_motion:
+			return move_goal.speed()
 		var push := _wish_direction().length() if _action_lock <= 0.0 else 0.0
 		return _target_speed(push) if push > 0.0 else 0.0
 ## A puppet's goal, and the way any body is asked to go (`CharacterGoal`, gdstudio #1420).
-var goal := CharacterGoal.new()
+var move_goal := CharacterGoal.new()
 ## What the body is doing; `CharacterAnimation` plays the clip for it.
 var state := State.IDLE:
 	set(value):

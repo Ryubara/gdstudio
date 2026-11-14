@@ -112,7 +112,7 @@ for each aiming player at 30 TICKs a second, nothing for one who does not aim. T
 `tools/capture/puppet_aim_tour.tscn` (Ada's screen beside Bo's).
 
 **Its starts and stops** (gdstudio #1420). `GaitTransitions` picks a start, a stop or a reversal from the body's goal
-(`Character.goal_speed` and `goal.direction(body)`), which a stepped body reads from its last command. A puppet has
+(`Character.goal_speed` and `move_goal.direction(body)`), which a stepped body reads from its last command. A puppet has
 none: `PlayerPuppet.make` sets the body's `CharacterGoal.from_motion`, and `RemotePlayers` sets its `motion` each step with
 `PlayerPuppet.goal_of`: nothing once the entry's `halt` flag says the player asked for no move (bit 7 of the flags
 byte, set by the server from the body's goal, protocol 13, no byte more), else the velocity between the two newest
