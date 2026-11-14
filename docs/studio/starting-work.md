@@ -255,7 +255,8 @@ lands (a squash merge makes a new commit on `main`), so the line keeps naming th
 - **Approach:** Commit the merge of an open base branch with a message file that ends in the trailer (`git commit
   --cleanup=strip -F <file>`); `gds merge-main` covers only `main`. **Watch out for:** after resolving conflicts,
   `git commit --no-edit` leaves git's `# Conflicts:` list as the last paragraph, so the commit-trailers hook refused the
-  merge. **Seen:** gdstudio #1436 on #1456, 2026-11-13.
+  merge. **Seen:** gdstudio #1436 on #1456, 2026-11-13 (twice: the second agent on the task did it again on its
+  first merge of the base).
 
 ### The worktree is removed when the work is finished {#sweep}
 
