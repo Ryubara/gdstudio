@@ -185,7 +185,9 @@ func test_a_standing_jump_takes_off_standing_and_lands_softly() -> void:
 
 
 func test_the_air_plays_the_rise_the_top_and_the_fall_by_vertical_speed() -> void:
-	var space := _animation._machine.get_node(CharacterAnimation.FALL) as AnimationNodeBlendSpace1D
+	var space := (
+		_animation._body.machine.get_node(CharacterAnimation.FALL) as AnimationNodeBlendSpace1D
+	)
 	assert_object(space).is_not_null()
 	var clips := {}
 	for index in space.get_blend_point_count():
@@ -328,13 +330,15 @@ func test_with_the_choices_off_the_three_clips_play_as_before() -> void:
 	settings.transition_clips = GaitTransitionSet.new()
 	settings.jump_choices = false
 	_animation.gait_settings = settings
-	var space := _animation._machine.get_node(CharacterAnimation.FALL)
+	var space := _animation._body.machine.get_node(CharacterAnimation.FALL)
 	assert_object(space).is_instanceof(AnimationNodeAnimation)
 	await _largest(_command(0.0), 10)
 	await _largest(_command(1.0), RUN_UP)
 	await _tick(_command(1.0, true))
 	await _largest(_command(1.0), 3)
-	var jump_node := _animation._machine.get_node(CharacterAnimation.JUMP) as AnimationNodeAnimation
+	var jump_node := (
+		_animation._body.machine.get_node(CharacterAnimation.JUMP) as AnimationNodeAnimation
+	)
 	assert_str(String(jump_node.animation)).is_equal(String(_animation.jump_clip))
 	assert_str(String(_jump().takeoff)).is_equal("")
 
