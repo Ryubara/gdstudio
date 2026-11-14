@@ -131,7 +131,8 @@ vault it never stepped: [a puppet's vault](traversal.md#online).
   body looked the same (the before and after captures could not be told apart while the suite measured 49.8 against
   0.5 degrees); routes picked blind started inside the ragdoll ledge and ran into crates and the steps, and the
   slide's 8 m/s carried the body 10 m past a watcher in a second. **Seen:** gdstudio #1277, 2026-11-11
-  (`puppet_aim_tour.tscn`, five captures before the front view).
+  (`puppet_aim_tour.tscn`, five captures before the front view); #1367, 2026-11-13 (`puppet_gait_tour.tscn`: a
+  column beside the watcher filled his camera's view).
 
 ## What it measured {#client-costs}
 
