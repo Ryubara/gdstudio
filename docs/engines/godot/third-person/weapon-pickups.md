@@ -35,7 +35,8 @@ pickup is a scene that inherits it and puts the model under `Visual`: the templa
   is not in the character's scene: the loadout makes the definition's `view_scene` under the `Model` slot the first time
   the character carries the weapon, so a character without a rifle carries none of its nodes. Its parts are below:
   [the rifle in both hands](#rifle-hands).
-- **The rifle**: hitscan, automatic, 10 shots a second, spread 1.2 degrees, recoil 0.6, damage 22, a magazine of 30,
+- **The rifle**: hitscan, automatic, 10 shots a second, no spread on a first shot growing to 1.2 degrees over 5
+  shots in a row and back in 0.35 s ([spread](fire-modes.md#spread)), recoil 0.6, damage 22, a magazine of 30,
   60 to 180 in reserve (`rifle_ammo`), reload 2.2 s, holster 0.3 s, draw 0.4 s; Deadnight's synthesised M4A1 sounds
   (`assets/audio/rifle/`, MIT), the shot at -27 dB.
 
@@ -45,7 +46,7 @@ no loadout leaves it, both hands reach their places and let go when it is put aw
 weapon back), `test_rifle_hold.gd` ([the rifle in both hands](#rifle-hands)) and `test_rifle_run_state.gd` (the run,
 the sprint and the slide with the rifle are the same fresh, after a switch, after a burst, after a reload and after
 going unarmed, and the pistol's run the same after the rifle, on both bodies; the rifle's run and sprint lean
-`carry_lean_limit` on average, [the carry](#rifle-hands); `tools/capture/rifle_run_tour.tscn`
+`carry_lean_limit` on average, [the carry](rifle-carry.md#rifle-carry); `tools/capture/rifle_run_tour.tscn`
 films it from the game camera with a side view, and with `RUN_STAGES=directions` the sprint in every direction and a
 reload on it), `test_rifle_sprint_carry.gd` ([the sprint](#rifle-hands)) and `test_rifle_draw_trunk.gd` (no spine bone
 past `chest_turn` and the head within 15 degrees of the front through a pickup and a switch to the rifle, standing, out
@@ -119,22 +120,8 @@ are named as such.
   the gun where the last frame's push had it; the butt is brought to the skin after it, since the turn brings the
   chest's left side forward under the stock, and both again in the same frame only when the push moved more than 3 mm.
   What is still short then brings the gun back along its barrel (`pull_limit`, 0 now: nothing is short).
-- **The carry** (kit #1348). Running at the low ready (`TwoHandHold.CARRY_STATES`: on its feet or in the air, not
-  crouched, sliding, vaulting, lying down or with the left hand away; by the ground speed, from none at `walk_speed`
-  to all at `run_speed`), the trunk is carried upright: the stance averages the trunk's forward lean (the line from
-  the pelvis to `neck_01`, in the model's space) over half a second (`LEAN_SMOOTHING`) and takes what that average has
-  over `carry_lean_limit` (9 degrees) off, as a turn about the model's side axis spread evenly over the spine bones,
-  so the stride's own rise and fall of the trunk stays and no twist is added. The head keeps the facing the clip gave
-  it. It comes in and goes over `carry_time` (0.25 s) and fades out as the gun comes up
-  (`carry_amount()`); the butt then stays `carry_butt_margin` (2 cm) off the skin. The run's
-  own trunk under the rifle's idle leaned 13.2 degrees (female) and 13.0 (male) on average and the sprint's 14.2 and
-  14.0 (the unarmed run 7.8 and 7.5); with the carry both read 8.9 to 9.3, the stride's rise and fall 0.4 to 1.0
-  degrees (0.5 to 0.7 before; holding each frame's lean at the limit left it at 0). Standing, the rifle's idle leans
-  10 degrees by itself and keeps it: the carry is for running. Its poses come from the spine's of the update (the
-  stance's chain, kit #1347): in the web bench (`hold_cost.gd`'s `rifle_carry`, the low ready with the carry all the
-  way and `carry_lean_limit` 0) it costs about 6 to 7 microseconds a running character a frame over the low ready
-  (median of three paired rounds, both bodies); off, it is three calls (about 0.2 microseconds). A single turn at the
-  last frame's rate in place of the second pass read the same within the busy machine's noise, so the second pass stays.
+- **The carry** (kit #1348): running at the low ready the stance carries the trunk upright, to `carry_lean_limit`
+  on average; how, what it measured and what it costs are on [the upright carry](rifle-carry.md#rifle-carry).
 - **The arms** are a `HoldArm` each (the pistol's own reach, given the hand's place in the skeleton's space by the
   stance in the same update), toward `RightHandTarget` and `LeftHandTarget` on the rifle, the elbows toward
   `RightPole` and `LeftPole`. Both are on their places in every update of every state (0.0 mm in 110 poses of both
@@ -186,7 +173,8 @@ are named as such.
   thumb's side off the hand guard (`reload_clearance`), across to beside the magazine and onto `MagazineHand`
   (`reload_leave`), closes on the magazine, takes it straight down out of the well (`magazine_well`) and to the belt
   at the left hip (`reload_belt`, a place on the body; `reload_out`), where the magazine is out of sight and changed,
-  comes back up and straight in (`reload_in`), and goes back under the hand guard the way it came (`reload_return`).
+  comes back up and straight in (`reload_in`), pulls the charging handle (below), and goes back under the hand
+  guard the way it came (`reload_return`).
   The `magazine` node rides the hand. The thumb goes from the hand guard's side to its place behind the magazine
   while the hand comes down off the hand guard (`_WAY_THUMB`), and on the magazine the four fingers close as one
   (`HandPoseModifier.open_together`; off the hand guard they open knuckles first).
@@ -207,7 +195,11 @@ the clips were built round it on both bodies, each under its own fit
 numbers, a fit or the solved hands change, their build is run again
 (`assets/animation/rifle/build_rifle_clips.py`, 90 s; a new step of the hold is ported to the build's `Hold`
 first). The
-left hand does not go to the charging handle yet (kit #1266).
+left arm's way to the charging handle and its pull are the hold's `ChargePull`, ported to the build's `Hold`
+(kit #1266).
+
+- **The charging handle**: after the new magazine the left hand pulls it (kit #1266, `ChargePull`), on
+  [its own page](rifle-charge.md#rifle-charge).
 
 Measured on the skinned mesh against the rifle (`HandContact`, the same in every clip, since the fingers are absolute
 and the arms reach their places), on the prototype bodies:
@@ -360,12 +352,6 @@ stock test's 10 mm.
   direction on both bodies, and in the arena even the recording's commit measured clear on the female, so there was
   nothing left for a carry pose to fix; the existing stock test could not have said so, since it leaves the legs out.
   **Seen:** gdstudio #1340, 2026-11-12 (kept: `test_rifle_sprint_carry.gd` over the whole body).
-- **Approach:** To bring a measured line (the trunk from the pelvis to the neck) to a limit by turning bones above its
-  base, turn once, measure what the line moved and take the rest at that rate; and limit the line's average over a
-  stride, not each frame's. **Watch out for:** the spine's turn moved the trunk's line by about half of it, so the
-  first carry left the run at 9.9 degrees against 9; holding each frame's lean at the limit then stood the trunk still
-  through the stride (its rise and fall 0.0 degrees, 0.5 before). **Seen:** gdstudio #1348, 2026-11-12 (fix: the
-  stance's second pass and `LEAN_SMOOTHING`; `test_rifle_run_state.gd` reads the mean and the rise and fall).
 - **Approach:** In a suite, call `BodyClearance.deepest()` without `with_gap` and on a sample of updates whose step
   shares no factor with the stride; keep the gap for probes. **Watch out for:** with the gap on every update the
   sprint suite took 592 s in the full template run (a nearest-triangle search for every point of the rifle), against

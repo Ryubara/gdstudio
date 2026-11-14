@@ -8,12 +8,13 @@ extends Node3D
 ## arm reaches its hand's place on the gun, and the fingers close on it: the right hand on the
 ## pistol grip with the index finger along the receiver (on the trigger while the gun is up), the
 ## left hand cupped under the hand guard. Both hands stay on the gun in every state; only a reload
-## takes the left hand away, to the magazine and the belt and back, and an action that reaches
-## with it (using a door: `FreeHand`, kit #1336), for which the gun goes down in the right hand
-## alone. A melee blow's clip carries the rifle in both hands while it plays (`HoldBlow`). The
-## legs and the head stay on the locomotion clips. `two_hand_hold.tscn` is the part with no gun;
-## the rifle's `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and the hands'
-## places under `Pivot`.
+## takes the left hand away, to the magazine and the belt and back by the charging handle
+## (`ChargePull`, kit #1266), and an action that reaches with it (using a door: `FreeHand`, kit
+## #1336), for which the gun goes down in the right hand alone. A melee blow's clip carries the
+## rifle in both hands while it plays (`HoldBlow`). The legs and the head stay on the locomotion
+## clips. `two_hand_hold.tscn` is the part with no gun; the rifle's
+## `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and the hands' places under
+## `Pivot`.
 ##
 ## The parts a person tunes are scene nodes: `Pivot` (the shoulder's pocket, which this node moves
 ## and turns), the gun under it, the hands' places on the gun (`RightHandTarget`,
@@ -64,15 +65,6 @@ const _PASSES := 3
 ## How far the push to the skin may move in a frame before the shoulder's reach is worked out
 ## again for it, in metres.
 const _PUSH_STEP := 0.003
-## The states the trunk is carried upright in at the low ready (`carry_lean_limit`).
-const CARRY_STATES: Array[Character.State] = [
-	Character.State.IDLE,
-	Character.State.WALK,
-	Character.State.RUN,
-	Character.State.JUMP,
-	Character.State.FALL,
-	Character.State.LAND,
-]
 
 @export_group("Nodes")
 ## The character holding it. Empty: the `Model` slot's parent.
@@ -100,10 +92,10 @@ const CARRY_STATES: Array[Character.State] = [
 ## that leans more (a crouch's hunch) is raised toward this as the gun comes to the shoulder.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var aim_lean_limit := 25.0
 ## The most the trunk leans forward on average (the line from the pelvis to the neck, in the
-## model's space) at the low ready while the character runs on its feet (`CARRY_STATES`, from the
-## walk's speed to the run's): a run or a sprint that leans more is raised toward this, so the
-## rifle is carried upright (kit #1348; the run leaned 13 degrees and the sprint 14). Not standing
-## or walking, in a crouch, a slide, a vault or lying down.
+## model's space) at the low ready while the character runs on its feet (`HoldCarry.STATES`,
+## from the walk's speed to the run's): a run or a sprint that leans more is raised toward this,
+## so the rifle is carried upright (kit #1348; the run leaned 13 degrees and the sprint 14). Not
+## standing or walking, in a crouch, a slide, a vault or lying down.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var carry_lean_limit := 9.0
 ## How long the upright carry takes to come in or go (a crouch, a slide), in seconds.
 @export_range(0.0, 2.0, 0.01, "suffix:s") var carry_time := 0.25
@@ -185,6 +177,8 @@ const CARRY_STATES: Array[Character.State] = [
 @export var open_pose: HandPose
 ## The left hand's fingers round the magazine.
 @export var magazine_pose: HandPose
+## The left hand's fingers hooked on the charging handle (`charge`). None: no pull.
+@export var charge_pose: HandPose
 
 ## Past this distance from the camera the fingers keep the clip's fist (the hands are a few
 ## pixels there; the rifle's far level shows from 10 m). 0: always posed. The hold reads no
@@ -218,6 +212,13 @@ const CARRY_STATES: Array[Character.State] = [
 @export var magazine: NodePath
 ## The far level's magazine, moved and hidden with it. Empty: none.
 @export var magazine_far: NodePath
+## The charging handle's pull after the magazine is seated (kit #1266): the left hand goes from
+## the magazine to the `ChargeHand` marker, pulls the `bolt` node back and lets it go, then comes
+## back under the hand guard by `reload_return`. None (or no `ChargeHand`): straight back.
+@export var charge: ChargePull
+## The bolt node under the gun the pull moves, and the far level's. Empty: none moves.
+@export var bolt: NodePath
+@export var bolt_far: NodePath
 
 @export_group("Bodies")
 ## Holds solved on other bodies than the one the scene's own hands' places and poses were solved
@@ -268,7 +269,6 @@ var _stance: SkeletonModifier3D
 var _arms: Array[HoldArm] = []
 var _fingers: Array[HandPoseModifier] = []
 var _raised := 0.0
-var _carry := 0.0
 var _shot_left := 0.0
 var _kick := 0.0
 var _reach := 1.0
@@ -277,6 +277,8 @@ var _leaving := false
 # The left hand let go for an action that reaches with it, and how far it is gone this frame.
 var _free := FreeHand.new()
 var _blow := HoldBlow.new()
+# How far the trunk is carried upright, before the hold's own shares (`carry_amount()`).
+var _carry := HoldCarry.new()
 var _hand_index := -1
 var _freed := 0.0
 var _chest := Vector3.ZERO
@@ -295,6 +297,8 @@ var _gun: Node3D
 var _targets: Array[Node3D] = [null, null]
 var _poles: Array[Node3D] = [null, null]
 var _on_magazine: Node3D
+var _on_handle: Node3D
+var _bolt := ChargeBolt.new()
 var _mag: Node3D
 var _mag_far: Node3D
 var _chest_index := -1
@@ -371,7 +375,7 @@ func raised_amount() -> float:
 ## standing, aimed, crouched, sliding, vaulting or lying down, eased over `carry_time`, by the
 ## hold's weight; none while a melee blow's clip has the upper body (`HoldBlow`).
 func carry_amount() -> float:
-	return _carry * (1.0 - _raised) * weight() * (1.0 - _blow.amount)
+	return _carry.amount * (1.0 - _raised) * weight() * (1.0 - _blow.amount)
 
 
 ## How much of the upper body a melee blow's clip holds now: by as much the rifle rides the clip's
@@ -387,9 +391,10 @@ func free_amount() -> float:
 
 ## Lets the left hand go for an action of `seconds` that reaches with it (the gun goes down in
 ## the right hand); a reload keeps the hand. The character's `interacted` does it by itself.
-func free_hand(seconds: float) -> void:
+## With `by` above 0 the hand is off within that many seconds (a vault's hand plant).
+func free_hand(seconds: float, by := -1.0) -> void:
 	if visible and _reload_progress() < 0.0:
-		_free.release_time = free_release_time
+		_free.release_time = minf(free_release_time, by) if by > 0.0 else free_release_time
 		_free.return_time = free_return_time
 		_free.start(seconds)
 
@@ -437,7 +442,9 @@ func refresh() -> void:
 		_pivot_shown = int(alive)
 	var far := fingers_far and fingers_far_distance > 0.0
 	var fingers := 1.0 if shown and not far else 0.0
-	_weights.weigh(_modifiers, alive, _reach, fingers, _freed, _blow.amount)
+	# Both arms go to the clip while the gun is put away for an action (a high vault: gdstudio
+	# #1409), the left one alone while an action reaches with it.
+	_weights.weigh(_modifiers, alive, _reach, fingers, _freed, _blow.amount, not shown)
 	if _fingers.size() < 2:
 		return
 	# The finger is on the trigger while the gun is up, and off it through a reload.
@@ -456,7 +463,10 @@ func refresh() -> void:
 	var opened := (
 		smoothstep(0.0, _WAY_OPEN, to_magazine) * (1.0 - smoothstep(_WAY_ON, 1.0, to_magazine))
 	)
-	_weights.hands(_fingers[0], _fingers[1], trigger, thumb, opened, together)
+	var left := Vector4(thumb, opened, float(together), 0.0)
+	if _charging():
+		left = charge.finger_weights(reload, left)
+	_weights.hands(_fingers[0], _fingers[1], trigger, left.x, left.y, left.z > 0.5, left.w)
 
 
 ## Puts the pocket and the gun where they are this frame, and gives each arm its hand's place.
@@ -710,7 +720,8 @@ func _on_switch_finished() -> void:
 func _step(delta: float) -> void:
 	if character != null:
 		_free.step(delta)
-		if _reload_progress() >= 0.0 or not visible:
+		# Put away by a switch, not for the action (a high vault hides the gun it frees).
+		if _reload_progress() >= 0.0 or not visible and _reach <= 0.0:
 			_free.stop()
 		_freed = _free.amount()
 		_blow.step(character)
@@ -721,24 +732,13 @@ func _step(delta: float) -> void:
 		if _freed > 0.0:
 			wants = 0.0
 		_raised = move_toward(_raised, wants, delta / maxf(raise_time, 0.001))
-		_carry = move_toward(_carry, _carry_wanted(), delta / maxf(carry_time, 0.001))
+		_carry.step(character, _freed, carry_time, delta)
 	else:
 		_raised = posed_aim
 		_freed = posed_free
-		_carry = posed_carry
+		_carry.amount = posed_carry
 		_blow.amount = posed_blow
 	_kick = move_toward(_kick, 0.0, delta / maxf(kick_recover_time, 0.001))
-
-
-# How far the trunk is to be carried upright: in the states of `CARRY_STATES`, from none at the
-# walk's speed to all of it at the run's (standing, the rifle's idle leans 10 degrees by itself,
-# and that stays), never with the left hand away.
-func _carry_wanted() -> float:
-	var tuning := character.tuning
-	if tuning == null or _freed > 0.0 or not character.state in CARRY_STATES:
-		return 0.0
-	var walk := tuning.walk_speed
-	return clampf((character.ground_speed() - walk) / maxf(tuning.run_speed - walk, 0.01), 0.0, 1.0)
 
 
 # A turn of the gun from straight ahead: the muzzle `pitch` degrees down and `yaw` across.
@@ -776,6 +776,8 @@ func _reload_progress() -> float:
 func _to_magazine(progress: float) -> float:
 	if progress < 0.0:
 		return 0.0
+	if _charging() and progress >= charge.leave.x:
+		return charge.to_magazine(progress, Vector3(_WAY_ON, _WAY_BESIDE, _WAY_DOWN), reload_return)
 	var there := smoothstep(reload_leave.x, reload_leave.y, progress)
 	return there * (1.0 - smoothstep(reload_return.x, reload_return.y, progress))
 
@@ -798,6 +800,7 @@ func _place_reload(gun_here: Transform3D) -> void:
 		if not _hand_at_rest:
 			left.transform = _left_rest
 			_set_magazine(mag, mag_far, _magazine_rest, true)
+			_bolt.put(charge, 0.0)
 			_hand_at_rest = true
 		return
 	_hand_at_rest = false
@@ -820,6 +823,12 @@ func _place_reload(gun_here: Transform3D) -> void:
 	if progress < 0.0:
 		var aside := smoothstep(_FREE_DOWN, 1.0, FreeHand.off(_freed))
 		hand = hand.interpolate_with(_left_rest.translated(free_clearance), aside)
+	elif _charging():
+		if charge.holds_way(progress, reload_return.x):
+			hand = charge.hand_place(
+				progress, on_magazine, beside, _on_handle.transform, below, reload_return.x
+			)
+		_bolt.put(charge, charge.bolt_pull(progress))
 	# Out of the well along the gun's own up axis, then to the belt, which is a place on the
 	# body (the hand's place is on the gun).
 	var out := Vector3.DOWN * magazine_well * minf(away / _WELL_SHARE, 1.0)
@@ -837,6 +846,11 @@ func _place_reload(gun_here: Transform3D) -> void:
 # How far down the reload's way off the hand guard a freed hand is (`_WAY_DOWN` at most).
 func _let_go() -> float:
 	return minf(FreeHand.off(_freed) / _FREE_DOWN, 1.0) * _WAY_DOWN
+
+
+# Whether the reload pulls the charging handle: a `charge`, its marker and its finger pose.
+func _charging() -> bool:
+	return charge != null and _on_handle != null and charge_pose != null
 
 
 func _set_magazine(near: Node3D, far: Node3D, xf: Transform3D, shown: bool) -> void:
@@ -872,6 +886,7 @@ func _on_rig_changed() -> void:
 	if trigger_way != null:
 		_fingers[-1].second_way = trigger_way.poses
 	_add_fingers(support_pose, magazine_pose, open_pose, "LeftFingers")
+	_fingers[-1].third = charge_pose
 	refresh()
 
 
@@ -884,37 +899,14 @@ func fit() -> HoldFit:
 # Puts the fit of the model's body on the hands' places and on the poses, keeping the scene's own
 # first.
 func _fit_body(slot: CharacterModel) -> void:
-	var right := _targets[0]
-	var left := _targets[1]
-	var on_magazine := _on_magazine
 	if _own == null:
-		_own = HoldFit.new()
-		_own.seat = right.transform.affine_inverse() if right != null else Transform3D.IDENTITY
-		_own.support_hand = _left_rest
-		_own.magazine_hand = on_magazine.transform if on_magazine != null else Transform3D.IDENTITY
-		_own.grip_pose = grip_pose
-		_own.trigger_pose = trigger_pose
-		_own.support_pose = support_pose
-		_own.magazine_pose = magazine_pose
-		_own.open_pose = open_pose
-		_own.trigger_way = trigger_way
+		_own = HoldFit.of_two_hand(self, _targets[0], _left_rest, _on_magazine, _on_handle)
 	var chosen := HoldFit.chosen(fits, slot)
 	if chosen == null:
 		chosen = _own
-	if right != null:
-		right.transform = chosen.seat.affine_inverse()
+	chosen.put_on_two_hand(self, _targets[0], _targets[1], _on_magazine, _on_handle)
 	_left_rest = chosen.support_hand
-	if left != null:
-		left.transform = _left_rest
-	if on_magazine != null:
-		on_magazine.transform = chosen.magazine_hand
 	_hand_at_rest = false
-	grip_pose = chosen.grip_pose
-	trigger_pose = chosen.trigger_pose
-	support_pose = chosen.support_pose
-	magazine_pose = chosen.magazine_pose
-	open_pose = chosen.open_pose
-	trigger_way = chosen.trigger_way
 
 
 func _add_arm(bones: Array[StringName], tag: String) -> void:
@@ -971,6 +963,8 @@ func _find_parts() -> void:
 	_poles[0] = get_node_or_null(^"RightPole") as Node3D
 	_poles[1] = get_node_or_null(^"LeftPole") as Node3D
 	_on_magazine = find_child("MagazineHand", true, false) as Node3D
+	_on_handle = find_child("ChargeHand", true, false) as Node3D
+	_bolt.find(self, [bolt, bolt_far])
 	_gun = _targets[1].get_parent() as Node3D if _targets[1] != null else null
 	_mag = get_node_or_null(magazine) as Node3D
 	_mag_far = get_node_or_null(magazine_far) as Node3D

@@ -42,6 +42,7 @@ const HOLD_PINS := {
 	&"support_pose": null,
 	&"open_pose": null,
 	&"magazine_pose": null,
+	&"charge_pose": null,
 	&"fingers_far_distance": 10.0,
 	&"reload_belt": Vector3(0.17, -0.3, 0.1),
 	&"magazine_well": 0.1,
@@ -53,6 +54,9 @@ const HOLD_PINS := {
 	&"reload_return": Vector2(0.66, 0.86),
 	&"magazine": NodePath(),
 	&"magazine_far": NodePath(),
+	&"charge": null,
+	&"bolt": NodePath(),
+	&"bolt_far": NodePath(),
 	&"fits": [] as Array[HoldFit],
 	&"chest_bone": &"spine_03",
 	&"pocket_lean": 0.5,
@@ -62,6 +66,19 @@ const HOLD_PINS := {
 	&"spine_bones": [&"spine_01", &"spine_02", &"spine_03"] as Array[StringName],
 	&"right_arm": [&"upperarm_r", &"lowerarm_r", &"hand_r"] as Array[StringName],
 	&"left_arm": [&"upperarm_l", &"lowerarm_l", &"hand_l"] as Array[StringName],
+}
+## The charging handle's pull (kit #1266).
+const CHARGE_PINS := {
+	&"travel": Vector3(0.06, 0.0, 0.0),
+	&"approach": Vector3(0.0, 0.0, 0.08),
+	&"let_go": Vector3(0.0, -0.01, 0.06),
+	&"home_beside": 0.6,
+	&"leave": Vector2(0.63, 0.69),
+	&"reach": Vector2(0.69, 0.77),
+	&"grip": Vector2(0.77, 0.8),
+	&"pull": Vector2(0.8, 0.86),
+	&"release": Vector2(0.86, 0.88),
+	&"slam": 0.015,
 }
 const MODIFIER_PINS := {
 	&"pose": null,
@@ -87,6 +104,12 @@ func test_every_export_of_the_two_hand_hold_has_its_pinned_default() -> void:
 	var hold: TwoHandHold = auto_free(TwoHandHold.new())
 	assert_array(ExportPins.differences(hold, HOLD_PINS)).is_empty()
 	assert_array(ExportPins.wrong_values(hold, HOLD_PINS)).is_empty()
+
+
+func test_every_export_of_the_charge_pull_has_its_pinned_default() -> void:
+	var charge := ChargePull.new()
+	assert_array(ExportPins.differences(charge, CHARGE_PINS)).is_empty()
+	assert_array(ExportPins.wrong_values(charge, CHARGE_PINS)).is_empty()
 
 
 func test_every_export_of_the_hand_pose_modifier_has_its_pinned_default() -> void:

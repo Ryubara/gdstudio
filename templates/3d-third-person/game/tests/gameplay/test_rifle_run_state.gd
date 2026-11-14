@@ -16,6 +16,8 @@ const RIFLE := "res://gameplay/weapon/rifle.tres"
 ## strides, so two means of the same gait do not differ by where in the stride they started.
 const STRIDES := 3
 const SETTLE := 40
+## Ticks a start from standing may still play after `SETTLE` (two seconds at most).
+const START_TICKS := 120
 ## How far two means of the same gait may differ: degrees for a lean or a turn, metres for the
 ## hand. They are the same to a tenth of a degree and a millimetre; after a shot the trunk was 13
 ## degrees more upright and the hand 30 mm off.
@@ -232,6 +234,11 @@ func _gait(tag: String) -> Dictionary:
 	_player.position.x = 0.0
 	_player.position.z = 0.0
 	await InputSim.ticks(get_tree(), SETTLE)
+	# A start from standing (the first run) plays before the gait: read the gait alone.
+	for _tick in START_TICKS:
+		if _animation.body_state() == CharacterAnimation.GROUND:
+			break
+		await InputSim.ticks(get_tree(), 1)
 	var sprinting := Input.is_action_pressed(&"sprint")
 	var clip := _animation.sprint_clip if sprinting else _animation.run_clip
 	var stride := _animation.animation_player.get_animation(clip).length
