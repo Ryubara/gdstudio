@@ -458,6 +458,10 @@ of the old build (`test_gait_lean.gd`). Nothing depends on distance or sight. In
 | Before | 32 to 37 µs (frame 1.82 to 1.92 ms) | 35 to 51 µs (7.9 to 8.9 ms) |
 | After | 14 to 26 µs (1.74 ms) | 12 to 15 µs (6.2 to 6.7 ms) |
 
+- **Approach:** Add every new `GaitSettings` export to `test_gait_parts.gd`'s pinned defaults in the same commit.
+  **Watch out for:** `ExportPins.differences` fails on an export the table lacks; the jump's twelve passed their own
+  suite and failed only here. **Seen:** gdstudio #1371, 2026-11-14.
+
 ### Filmed online and on the local body {#gait-online}
 
 <!-- new section: the gait settings said a puppet plays the same tree; nothing filmed or measured it, and the faults
