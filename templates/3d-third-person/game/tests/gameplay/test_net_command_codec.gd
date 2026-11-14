@@ -132,7 +132,7 @@ func test_the_melee_press_takes_bit_0_of_byte_13_and_the_size_stays() -> void:
 	assert_vector(aimed.origin).is_equal_approx(command.origin, Vector3.ONE * 0.01)
 	# A bit of byte 13 this version does not know is refused, as an unknown flag is.
 	var drops := NetDrops.new()
-	packet[CommandCodec.MORE_FLAGS_AT] = 0x02
+	packet[CommandCodec.MORE_FLAGS_AT] = 0x08
 	assert_object(CommandCodec.decode(packet, drops)).is_null()
 	assert_int(drops.total()).is_equal(1)
 	# Two commands in one tick keep the press; a repeat drops it.

@@ -35,7 +35,8 @@ pickup is a scene that inherits it and puts the model under `Visual`: the templa
   is not in the character's scene: the loadout makes the definition's `view_scene` under the `Model` slot the first time
   the character carries the weapon, so a character without a rifle carries none of its nodes. Its parts are below:
   [the rifle in both hands](#rifle-hands).
-- **The rifle**: hitscan, automatic, 10 shots a second, spread 1.2 degrees, recoil 0.6, damage 22, a magazine of 30,
+- **The rifle**: hitscan, automatic, 10 shots a second, no spread on a first shot growing to 1.2 degrees over 5
+  shots in a row and back in 0.35 s ([spread](fire-modes.md#spread)), recoil 0.6, damage 22, a magazine of 30,
   60 to 180 in reserve (`rifle_ammo`), reload 2.2 s, holster 0.3 s, draw 0.4 s; Deadnight's synthesised M4A1 sounds
   (`assets/audio/rifle/`, MIT), the shot at -27 dB.
 
@@ -169,7 +170,8 @@ are named as such.
   thumb's side off the hand guard (`reload_clearance`), across to beside the magazine and onto `MagazineHand`
   (`reload_leave`), closes on the magazine, takes it straight down out of the well (`magazine_well`) and to the belt
   at the left hip (`reload_belt`, a place on the body; `reload_out`), where the magazine is out of sight and changed,
-  comes back up and straight in (`reload_in`), and goes back under the hand guard the way it came (`reload_return`).
+  comes back up and straight in (`reload_in`), pulls the charging handle (below), and goes back under the hand
+  guard the way it came (`reload_return`).
   The `magazine` node rides the hand. The thumb goes from the hand guard's side to its place behind the magazine
   while the hand comes down off the hand guard (`_WAY_THUMB`), and on the magazine the four fingers close as one
   (`HandPoseModifier.open_together`; off the hand guard they open knuckles first).
@@ -190,7 +192,11 @@ the clips were built round it on both bodies, each under its own fit
 numbers, a fit or the solved hands change, their build is run again
 (`assets/animation/rifle/build_rifle_clips.py`, 90 s; a new step of the hold is ported to the build's `Hold`
 first). The
-left hand does not go to the charging handle yet (kit #1266).
+left arm's way to the charging handle and its pull are the hold's `ChargePull`, ported to the build's `Hold`
+(kit #1266).
+
+- **The charging handle**: after the new magazine the left hand pulls it (kit #1266, `ChargePull`), on
+  [its own page](rifle-charge.md#rifle-charge).
 
 Measured on the skinned mesh against the rifle (`HandContact`, the same in every clip, since the fingers are absolute
 and the arms reach their places), on the prototype bodies:
@@ -483,3 +489,10 @@ stock test's 10 mm.
 - **Approach:** Make a stage that a suite will `settle()` with `RifleStage.make_rifle(holder, model)`, the measured
   default. **Watch out for:** `measured = false` connects nothing to `skeleton_updated`, so `settle()` waits forever
   and GdUnit stops the suite at 5 minutes. **Seen:** gdstudio #1433, 2026-11-13 (`test_torso_skin_push.gd`).
+- **Approach:** Keep `Pivot` (and so the rifle and its hand places) out of physics interpolation
+  (`physics_interpolation_mode` OFF in `two_hand_hold.tscn`), and prove the hands on the rifle where the engine draws
+  them (`test_rifle_drawn_hands.gd`), not only in `skeleton_updated`. **Watch out for:** the hold places the pivot in
+  the skeleton's update, every frame; interpolated, the rifle was drawn where the last ticks had it while the skin
+  had this frame's bones, 145 mm off both hands at each landing (the land clip drops the chest fast), and every pose
+  test passed ([physics interpolation](../physics-interpolation.md#using-it)). **Seen:** gdstudio #1464, 2026-11-13
+  (found by the jump captures of #1369).

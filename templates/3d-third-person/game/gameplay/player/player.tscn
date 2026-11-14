@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://gameplay/player/player_input.gd" id="4_input"]
 [ext_resource type="Resource" path="res://gameplay/player/prone_tuning.tres" id="5_prone"]
 [ext_resource type="Resource" path="res://gameplay/player/slide_tuning.tres" id="6_slide"]
+[ext_resource type="Resource" path="res://gameplay/player/peek_tuning.tres" id="6_peek"]
 [ext_resource type="Script" path="res://addons/gds_game/inventory/inventory.gd" id="7_inventory"]
 [ext_resource type="Script" path="res://addons/gds_game/inventory/item_stack.gd" id="8_stack"]
 [ext_resource type="Resource" path="res://gameplay/inventory/coin.tres" id="9_coin"]
@@ -27,6 +28,7 @@ script = ExtResource("2_player")
 tuning = ExtResource("3_tuning")
 prone_tuning = ExtResource("5_prone")
 slide_tuning = ExtResource("6_slide")
+peek_tuning = ExtResource("6_peek")
 controller = NodePath("PlayerInput")
 inventory = NodePath("Inventory")
 
