@@ -21,7 +21,6 @@ on:
       - templates/3d-third-person/game/tests/fixtures/physics_ruler.gd
       - templates/3d-third-person/game/tests/fixtures/slow_ai_director.gd
       - templates/3d-third-person/game/tests/fixtures/ai_cost_bench.gd
-      - templates/3d-third-person/game/tests/fixtures/ruler_candidates.gd
       - .github/workflows/ai-cost-gate.yml
 
 permissions:
