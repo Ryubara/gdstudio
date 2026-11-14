@@ -41,12 +41,12 @@ shape, its `interacted` signal connected in the scene to whatever it moves.
   (the reach measured from the closed gate).
 - **Approach:** When one part must drive another it does not know the class of (a world of networked map parts), have
   the driven part hand its functions over as `Callable`s in its `_ready` (`NetEntity.serve`), never look them up by
-  name. **Watch out for:** `NetWorld` first called `has_method(&"net_place")` and `call(&"net_write", ...)` on each
-  part; every suite of the change passed and only the full run's
-  `test_no_part_in_gameplay_finds_another_by_a_method_name` named the nine lines. A script made from a preloaded
-  script constant is typed as that constant (`var stance: STANCE_SCRIPT = STANCE_SCRIPT.new()`) so its functions are
-  called directly, not through `call(&"name")`. **Seen:** gdstudio #907, 2026-11-11; gdstudio #1347, 2026-11-13 (the
-  rifle hold called the stance's `spine_poses` by name; the suites it ran passed, the full template run named it).
+  name; a script made from a preloaded constant is typed as it (`var stance: STANCE_SCRIPT = STANCE_SCRIPT.new()`).
+  **Watch out for:** `NetWorld` first called `has_method(&"net_place")` and `call(&"net_write", ...)` on each part;
+  every suite of the change passed and only the full run's
+  `test_no_part_in_gameplay_finds_another_by_a_method_name` named the nine lines. **Seen:** gdstudio #907,
+  2026-11-11; gdstudio #1409, 2026-11-13 (the vault asked the hold `has_method(&"free_hand")`; now typed
+  `TwoHandHold`); gdstudio #1347, 2026-11-13 (the rifle hold called the stance's `spine_poses` by name).
 
 ## Using something with a weapon in the hands {#interact-held}
 
@@ -108,6 +108,14 @@ reaches with it (a use animation, a pickup) by calling the hold's `free_hand(sec
   from the hand guard took the fingers 32 mm through the rifle, and so did the hold's chest turn, which swings the
   clip's reaching arm across the gun (ease it off with the hand). **Seen:** gdstudio #1336, 2026-11-12
   (`test_interact_held.gd`).
+- **Approach:** Free a held weapon's hand for every action whose clip uses that hand, not only for the one it was built
+  for: a vault calls the view's `free_hand(seconds)` as it starts (`VaultAnimation._free_hands()`, the view typed as its
+  hold, never found by a method name), and a weapon hidden for the action (a high vault's `puts_weapon_away`) lets both
+  arms go by the same amount and keeps its free running while hidden (only a switch, with the arms' reach down to 0,
+  stops it). **Watch out for:** the vault turned off only the pistol's layer (`VaultAnimation.hands`), so with the rifle
+  the low vault's left wrist stayed 0.3 m over the top on the hand guard and, with the rifle hidden for the high vault,
+  both arms still went to where it would be (the left 0.3 m off); the hold also stopped any free once hidden. **Seen:**
+  gdstudio #1409, 2026-11-13 (`test_vault_rifle.gd`).
 - **Approach:** A hold weighs its modifiers by a shared layer's weights only while its own weapon is in the hands,
   and a test lists every skeleton modifier with its `active` and `influence` on the update that looks wrong.
   **Watch out for:** once the rifle had grip and aim clips, the pistol's hold ran its grip and its left arm with the
