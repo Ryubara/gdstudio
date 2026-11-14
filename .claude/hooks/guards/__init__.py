@@ -84,26 +84,29 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
     from .comments import check_comments
     from .launches import check_browser_probe, check_godot_audio, check_godot_window, check_kill, check_tools
     from .protected import check_secrets, check_transcript_shell, check_transcript_text
-    from .shell import change_dir, program, segments
+    from .shell import absolute, cd_target, change_dir, program, segments
 
     command = (payload.get("tool_input") or {}).get("command", "")
     cwd = Path(payload.get("cwd") or ".")
     reasons = check_comments(command) + check_transcript_text(command)
     lost = False  # a `cd` this cannot follow came before: a relative path no longer has a known folder
+    unknown = False  # the same, until a `cd` to an absolute folder puts the shell somewhere known again (#1520)
     assigned: dict[str, str] = {}  # the line's shell variables, so `cd "$WT"` is followed
     for words in segments(command, assigned):
         moved, folder = change_dir(words, cwd, assigned)
         if moved:
             if folder is None:
-                lost = True  # and it stays so for the rest of the line, whatever a later `cd` says
+                lost = unknown = True  # `lost` stays so for the rest of the line, whatever a later `cd` says
             else:
                 cwd = folder
+                target = cd_target(words, assigned)[1]
+                unknown = unknown and not (target and absolute(target))
             continue
         name = program(words)
         if name == "git":
             from .commits import check_git
 
-            reasons += check_git(words, cwd, config)
+            reasons += check_git(words, cwd, config, unknown)
         elif name == "gh":
             from .behind_base import check_behind
             from .bodies import check_pr_body
