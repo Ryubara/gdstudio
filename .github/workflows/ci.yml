@@ -120,8 +120,7 @@ jobs:
     # run, its tests, the web export and a boot of that export in a headless browser. It also checks that none of that
     # left a file behind that git does not ignore: the committed uids and imports are complete. About 1 GB of export templates come with the pinned Godot (cached).
     runs-on: ubuntu-24.04
-    # 3D Third Person's tests take 30 to 33 minutes of it; 50 until the suite is split by seconds (gdstudio #1492).
-    timeout-minutes: 50
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
