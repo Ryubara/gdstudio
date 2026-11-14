@@ -823,6 +823,7 @@ func _on_rig_changed() -> void:
 	_stance = STANCE_SCRIPT.new() as SkeletonModifier3D
 	_stance.set(&"hold", self)
 	_add_modifier(_stance, "Stance")
+	_skin.use_spine(_bones, _spine_indices, _stance.call(&"spine_poses"))
 	_add_arm(right_arm, "RightArm")
 	_add_arm(left_arm, "LeftArm")
 	_add_fingers(grip_pose, trigger_pose, null, "RightFingers")
