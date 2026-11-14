@@ -13,6 +13,11 @@ extends Node3D
 ## Frames before the aim is pressed, until the lean, and until the first view.
 const AIM_AT := 70
 const LEAN_AT := 90
+const VIEWS_AT := 140
+## Frames each view is held.
+const VIEW_FRAMES := 6
+## Where the camera is from the left shoulder, in the character's space (+Z its front, +X its
+## left), and its field of view.
 const VIEWS: Array[Dictionary] = [
 	{"name": "body", "at": Vector3(-0.2, -0.25, 2.2), "fov": 40.0},
 	{"name": "front", "at": Vector3(0.15, 0.0, 1.0), "fov": 30.0},
