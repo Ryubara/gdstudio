@@ -59,6 +59,13 @@ sharpen that one. Only when nothing fits do you make a new section, and only whe
   cause's section out: `third-person/ai.md#proof`, naming `test_ai_section.gd`, took the place of
   `ui-input-tests.md#leaks` in #1357's brief, and the issue's words alone ranked leaks ninth. **Seen:** gdstudio PR
   #1474, 2026-11-14 (fix in PR #1517: two mentioning sections per path, `lessons.MENTIONS_PER_PATH`).
+- **Approach:** Link to another section by a short name (its title, or the page and anchor) rather than a phrase
+  that retells its subject, and run `gds brief` for the issues the touched sections came from after the edit.
+  **Watch out for:** link text counts as the section's own words, so a pointer line can lift a long section past one
+  a brief needs: `rifle-hands.md#rifle-hands` gained "the arms out of the chest on either lean", passed
+  `parts-cost.md#parts-cost` at the sixth line of #1435's brief, and the kit's pytest failed on the merged head.
+  **Seen:** gdstudio PR #1505, 2026-11-14 (fix: the pointer was dropped, as `peek.md#left-shoulder` already links
+  there).
 
 ## An entry {#rule}
 

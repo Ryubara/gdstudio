@@ -62,8 +62,7 @@ are named as such.
   on average; how, what it measured and what it costs are on [the upright carry](rifle-carry.md#rifle-carry).
 - **The left shoulder.** On a left peek lean the stance mirrors the pocket and the gun's turn across the body and
   turns the chest nearly square on (`side`, `left_chest_turn`); the hands keep their places on the rifle
-  ([the weapon on the left side](peek.md#left-shoulder), gdstudio #1435;
-  [the arms out of the chest on either lean](peek.md#rifle-lean-arms), #1436).
+  ([the weapon on the left side](peek.md#left-shoulder), gdstudio #1435).
 - **The arms** are a `HoldArm` each (the pistol's own reach, given the hand's place in the skeleton's space by the
   stance in the same update), toward `RightHandTarget` and `LeftHandTarget` on the rifle, the elbows toward
   `RightPole` and `LeftPole`. Both are on their places in every update of every state (0.0 mm in 110 poses of both
