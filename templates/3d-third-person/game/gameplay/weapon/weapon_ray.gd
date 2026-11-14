@@ -8,7 +8,8 @@ extends RefCounted
 
 
 ## The first thing on `mask` between `start` and `end`, past `weapon`'s shooter and its shot hull
-## and the bodies in `skip`: the physics server's hit as it is (a shot hull included).
+## and the bodies in `skip`: the physics server's hit as it is (a shot hull included: a mask with
+## the hulls' layer arms the hulls on the line first, `ShotHull.arm()`).
 static func cast(
 	weapon: Weapon, start: Vector3, end: Vector3, skip: Array[RID], mask: int
 ) -> Dictionary:
@@ -17,7 +18,10 @@ static func cast(
 	if weapon.shooter != null:
 		excluded.append_array(ShotHull.rids_of(weapon.shooter))
 	query.exclude = excluded
-	return weapon.get_world_3d().direct_space_state.intersect_ray(query)
+	var space := weapon.get_world_3d().direct_space_state
+	if mask & PhysicsLayers.SHOT_HULLS:
+		ShotHull.arm(space, start, end)
+	return space.intersect_ray(query)
 
 
 ## The point the aim ray from `start` to `end` (along `along`) aims at: the first thing it meets,

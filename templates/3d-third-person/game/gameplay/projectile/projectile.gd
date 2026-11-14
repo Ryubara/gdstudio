@@ -128,6 +128,10 @@ func _physics_process(delta: float) -> void:
 	if _stop_point.is_finite() and _reaches_stop(delta):
 		return
 	var motion := velocity * delta
+	if collision_mask & PhysicsLayers.SHOT_HULLS:
+		# The shot hulls near this tick's flight, put in place for it (they follow no body).
+		var space := get_world_3d().direct_space_state
+		ShotHull.arm(space, global_position, global_position + motion, size * 0.5)
 	if rewind != null:
 		motion = _rewound_move(motion)
 		if not _flying or motion == Vector3.ZERO:

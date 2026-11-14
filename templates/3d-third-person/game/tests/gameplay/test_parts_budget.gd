@@ -36,7 +36,8 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## disabled unless it leans, the `PeekLayer` and its `PeekModifier`, idle while upright. The left
 ## shoulder (#1435) adds 3: `LeftShoulder` and its `LeftShoulderCross` and `LeftShoulderArm`,
 ## inactive unless the pistol aims on a left lean. The shot hull (kit #1431) adds 2, `ShotHull`
-## and its `Shape`, and 1 body: a static capsule a ray meets before it asks the parts.
+## and its `Shape`, and 1 body: a static capsule a ray meets before it asks the parts, which
+## follows nothing and is on no layer until a shot near it arms it (#1459).
 const NODES_ALIVE := 77
 const BODIES_ALIVE := 3
 const CROWD := 10

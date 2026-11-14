@@ -73,11 +73,18 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
      capsule (a crouch's hips, the head while standing up) and on a pose frozen off screen (gdstudio #1431) -->
 
 The first test is a capsule that only shots and aim rays meet: `ShotHull` (`gameplay/hit_zones/shot_hull.gd`, a
-`StaticBody3D` child of the character in `character_dressed.tscn`, layer 8 Shot Hulls, mask none, `HitZones.hull`).
+`StaticBody3D` child of the character in `character_dressed.tscn`, layer 8 Shot Hulls while armed, mask none,
+`HitZones.hull`).
 It is `margin` (0.12 m) wider than the moving capsule and `head_room` (0.25 m) taller than the taller of the capsule
 now and the stance the body goes to: standing up, the pose is upright at once while the capsule grows over
-`crouch_time`, so the hull is standing height from the first tick. `CharacterCapsule.fit` sizes it with the capsule;
-it is off (layer 0) while the body is dead or on no layer (a networked puppet). Movement, the camera, props, sensors
+`crouch_time`, so the hull is standing height from the first tick. `CharacterCapsule.fit` sizes it with the capsule.
+It costs a character nothing while nobody shoots, as the zones do: it is `top_level` (it does not follow the body, so
+the physics server never hears of it moving) and on no layer. Every shot, aim ray and projectile tick on the shot mask
+first calls `ShotHull.arm(space, from, to)`: one shape query (a box along the line, the widest `margin` across and
+`ARM_HEIGHT` up and down its vertical plane) against the characters' moving capsules, and only their hulls are put on
+their bodies and on layer 8, until the next `arm()` or the end of the frame (`WeaponRay.cast`, `ShotHull.ray_as_shot`,
+`Projectile._physics_process`; a test that casts a raw ray at a hull arms first). A hull is never armed while its body
+is dead, its capsule disabled or the body on no layer (a networked puppet). Movement, the camera, props, sensors
 and the ragdoll never meet it ([layers](physics-layers.md#template-layers)). A shot that meets it is a shot on the
 character: `HitZones.body_met` gives the character for marks and effects, and the hit's point is the part's
 (`HitRecord.point`), not the hull's surface; a shot that passes between the parts leaves out both
@@ -132,7 +139,8 @@ The price is in [What it costs](#cost).
   whose skeleton the zones follow), `ragdoll`, `hull` (the `ShotHull`; empty: shots meet the capsule alone), `enabled`
   (off: a shot on the capsule hits the whole body, no zone and no multiplier), `ray_length` and `look_back` (how far
   before the capsule's surface the second test starts, 0.5 m).
-- **On `ShotHull`** (layer 8, Shot Hulls, mask none): `margin` (0.12 m wider than the moving capsule) and
+- **On `ShotHull`** (layer 8, Shot Hulls, only while armed; mask none): `margin` (0.12 m wider than the moving
+  capsule) and
   `head_room` (0.25 m over it, or over the stance it goes to).
 - **On each `HitZone`** (a `CollisionShape3D` under it; size its shape in the inspector): `zone` (its name), `bone`,
   `offset` (in the bone's frame, Y along the bone; the node's own transform is overwritten), `damage_multiplier` and
@@ -170,7 +178,12 @@ world, and a throttled tree's catch-up before a shot (`catch_up_us`, one `advanc
 
 On the desktop and in Chrome the hulls cost nothing measurable; at the 4x throttle ten walking characters paid 0.5 to
 1.1 ms more in two runs on a machine other agents were using (their standing and flinching frames moved as much from
-run to run), so up to 0.1 ms a walking character there. A shot on a hull costs one second test as one on a capsule
+run to run), so up to 0.1 ms a walking character there. That hull followed its body; since gdstudio #1459 it follows
+nothing and is armed for a shot near it (above). On the desktop, interleaved with main: the parts bench's step 36.9 to
+38.9 µs a character (main 36.8 to 42.5, the hull that followed 40.4 to 43.1) and the physics tick after the scripts
+14.4 to 14.9 µs (main 14.2 to 15.8, followed 16.3 to 17.7); `ShotHull.arm` costs 1 µs on a line near nobody and
+about 4 µs a hull it arms (41 µs on a line down a row of ten characters). A shot on a hull costs one second test as
+one on a capsule
 did (shots that pass within `margin` of a capsule now pay one too, and fly on); a shot at a held pose pays the
 catch-up once (a second shot in the same frame finds nothing left to catch up).
 
@@ -189,7 +202,8 @@ pins), `test_hit_reaction.gd` (the headshot and body-shot pushes, the flinch and
 a flinch, a shot on a lying body pushing its bone and leaving a mark that rides it and goes on getting up),
 `test_physics_layers_meet.gd` (a living body has no bone in the world), `test_shot_hull.gd` (a crouched body's hips
 hit from the side, the head hit while standing up, a shot beside the parts flying on, the hull's stance, death and
-the shooter's own hull), `test_ai_animation_throttle.gd` (a shot at an unseen body catches its pose up). The fixture
+the shooter's own hull, and the hull following nothing and on no layer until a shot near it arms it),
+`test_ai_animation_throttle.gd` (a shot at an unseen body catches its pose up). The fixture
 is `tests/fixtures/hit_range.gd`.
 The zones' shapes are sized on the template's two prototype bodies (kit #1187, `tools/mannequin/measure_segments.gd`;
 [the bodies](third-person/character.md#mannequins)). `tools/capture/hit_tour.tscn` films it from the player's camera

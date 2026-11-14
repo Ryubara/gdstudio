@@ -1,7 +1,9 @@
 # The shot hull (gdstudio #1431): a shot meets a character first at a capsule a little wider and
 # taller than the one it moves with, so a part the pose holds outside the moving capsule is hit: a
 # crouched body's hips seen from the side, the head and chest while the body stands up. Movement
-# never meets it, a dead body's hull is off, and a shot that passes between the parts flies on.
+# never meets it, a dead body's hull is off, and a shot that passes between the parts flies on. It
+# costs nothing while nobody shoots: it follows no body and is on no layer until a shot near it
+# arms it (gdstudio #1459).
 extends GdUnitTestSuite
 
 ## The thinnest round a weapon can fire (`WeaponDef.projectile_size`), metres.
@@ -103,9 +105,11 @@ func test_a_puppets_tracer_ends_on_the_drawn_part_not_the_hull() -> void:
 		return
 	var from: Vector3 = line[0]
 	var along: Vector3 = line[1]
-	# The raw ray meets the hull first, out from the part.
+	# The raw ray, the hulls on its line armed, meets the hull first, out from the part.
 	var query := PhysicsRayQueryParameters3D.create(from, hips + along, PhysicsLayers.SHOT_MASK)
-	var raw := _arena.get_world_3d().direct_space_state.intersect_ray(query)
+	var space := _arena.get_world_3d().direct_space_state
+	ShotHull.arm(space, from, hips + along)
+	var raw := space.intersect_ray(query)
 	assert_object(raw.get("collider")).is_instanceof(ShotHull)
 	var weapon: Weapon = auto_free(Weapon.new())
 	_arena.add_child(weapon)
@@ -171,6 +175,7 @@ func test_the_hull_follows_the_stance_and_movement_never_meets_it() -> void:
 	assert_object(hull).is_not_null()
 	assert_object(_zones.hull).is_same(hull)
 	assert_object(HitZones.of(hull)).is_same(_zones)
+	_arm_at(_player)
 	assert_int(hull.collision_layer).is_equal(PhysicsLayers.SHOT_HULLS)
 	assert_int(hull.collision_mask).is_equal(0)
 	var masks := {
@@ -200,10 +205,50 @@ func test_the_hull_follows_the_stance_and_movement_never_meets_it() -> void:
 
 func test_a_dead_body_has_its_hull_off_and_getting_up_puts_it_back() -> void:
 	var hull := ShotHull.of(_player)
+	_arm_at(_player)
 	_player.die()
 	assert_int(hull.collision_layer).is_equal(0)
+	_arm_at(_player)
+	assert_int(hull.collision_layer).override_failure_message("a dead body's hull armed").is_equal(
+		0
+	)
 	_player.revive()
+	_arm_at(_player)
 	assert_int(hull.collision_layer).is_equal(PhysicsLayers.SHOT_HULLS)
+
+
+# Arms the hulls on a level line through `body`'s chest, as a shot across it does.
+func _arm_at(body: Character) -> void:
+	var chest := body.global_position + Vector3(0.0, 1.2, 0.0)
+	var space := _arena.get_world_3d().direct_space_state
+	ShotHull.arm(space, chest + Vector3(3.0, 0.0, 0.0), chest - Vector3(3.0, 0.0, 0.0))
+
+
+func test_the_hull_costs_nothing_while_nobody_shoots() -> void:
+	var hull := ShotHull.of(_player)
+	ShotHull.disarm()
+	var parked := hull.global_position
+	var walk := PlayerCommand.new()
+	walk.move = Vector2(0.0, 1.0)
+	await _steps(walk, 30)
+	assert_float(_player.global_position.distance_to(parked)).is_greater(0.5)
+	# It follows no body (the physics server never hears of it) and is on no layer.
+	assert_bool(hull.top_level).is_true()
+	assert_vector(hull.global_position).is_equal(parked)
+	assert_int(hull.collision_layer).is_equal(0)
+	# A shot 3 m to the side arms no hull; one across the body puts it on the body, on its layer.
+	var space := _arena.get_world_3d().direct_space_state
+	var aside := _player.global_position + Vector3(0.0, 1.2, 0.0) + _player.basis.x * 3.0
+	ShotHull.arm(space, aside + Vector3.BACK * 3.0, aside + Vector3.FORWARD * 3.0)
+	assert_bool(hull.is_armed()).is_false()
+	_arm_at(_player)
+	assert_bool(hull.is_armed()).is_true()
+	assert_vector(hull.global_position).is_equal_approx(
+		_player.global_position, Vector3.ONE * 0.001
+	)
+	# The frame's end takes it off again.
+	await get_tree().process_frame
+	assert_bool(hull.is_armed()).is_false()
 
 
 func test_the_shooter_never_meets_its_own_hull() -> void:

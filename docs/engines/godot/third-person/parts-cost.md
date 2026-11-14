@@ -196,3 +196,10 @@ weights and the slide.
   call skipped at rest may have a side effect another part relies on (`MeleeLayer.aim_of` keeps a flag); ask such a
   call once instead of dropping it, and keep what the first frame out of rest reads (the aim ray of the last two
   ticks). **Seen:** gdstudio #1478, 2026-11-13.
+- **Approach:** Give every character an extra collider only if it follows nothing: `top_level`, on no layer, put in
+  place for the query that needs it (`ShotHull.arm`, as `HitZones` moves its zones only for a shot). Run the AI cost
+  gate and the parts bench, interleaved with main, before pushing a body added to every character. **Watch out for:**
+  a body under a moving character is moved in the physics server every tick, so one static capsule each cost the step
+  about 3 µs and the physics tick 2 µs on the desktop, and CI's AI gate failed on a slow runner (11.69 over 11.0 at 50
+  characters); armed on demand it costs nothing a tick (the
+  [hull's numbers](../third-person-hits.md#cost)). **Seen:** gdstudio #1459, 2026-11-14.

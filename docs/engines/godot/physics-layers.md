@@ -25,7 +25,7 @@ so code and the inspector say the same thing. The constants script moves to the 
 | 5 | Ragdoll | `RAGDOLL` | the bones of a limp body (`CharacterRagdoll`) | World, Props, Ragdoll (`RAGDOLL_MASK`) |
 | 6 | Hit Zones | `HIT_ZONES` | the `HitZones` body of a character (its parts, [Hit zones](third-person-hits.md)) | none (scanned only by a shot's second test) |
 | 7 | Sensors | `SENSORS` | `Pickup`, `TriggerZone`, a door's `Sensor`, an `Interactable` | Characters (`CHARACTER_SENSOR_MASK`); a trigger zone Characters and Props (`TRIGGER_MASK`); an `Interactable` none (an `Interactor`'s query on `SENSORS` finds it) |
-| 8 | Shot Hulls | `SHOT_HULLS` | a living character's `ShotHull`, a capsule a little wider and taller than its own that only shots meet ([the hull](third-person-hits.md#shot-hull)) | none (only `SHOT_MASK` lists it; a shot's mark and the network's hit probe use `SURFACE_MASK`, without it) |
+| 8 | Shot Hulls | `SHOT_HULLS` | a living character's `ShotHull`, a capsule a little wider and taller than its own that only shots meet, on this layer only while a shot near it has armed it ([the hull](third-person-hits.md#shot-hull)) | none (only `SHOT_MASK` lists it; a shot's mark and the network's hit probe use `SURFACE_MASK`, without it) |
 
 Rays and other masks: the camera's spring arm (`PlayerCamera.wall_mask`) is World and Props (`CAMERA_MASK`); the
 weapon's aim ray (`Weapon.aim_mask`) is `SHOT_MASK`, so the crosshair's point is on what the shot will hit; the

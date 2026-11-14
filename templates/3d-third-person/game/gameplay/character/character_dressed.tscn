@@ -247,7 +247,8 @@ offset = Vector3(0, 0.23, 0)
 damage_multiplier = 0.7
 
 [node name="ShotHull" type="StaticBody3D" parent="."]
-collision_layer = 128
+top_level = true
+collision_layer = 0
 collision_mask = 0
 script = ExtResource("17_shot_hull")
 
