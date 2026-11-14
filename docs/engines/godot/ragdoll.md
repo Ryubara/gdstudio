@@ -270,7 +270,7 @@ desktop and in a single-threaded web export (Chromium, SwiftShader; the browser 
   walking: 1.94 ms with them, 1.55 ms without), and the sample (16 `find_bone` calls and a new dictionary a tick) 11 to
   14 µs more: a third of a walking character's frame. Made on the first death they cost it about 1 ms on the desktop
   and 4.5 ms in the web export, once a character. **Seen:** gdstudio #926, 2026-11-10
-  ([What the parts cost](third-person/character.md#parts-cost)).
+  ([What the parts cost](third-person/parts-cost.md#parts-cost)).
 - **Approach:** Hand a dying character a set of bones made earlier (`RagdollPool`: `max_active` sets made one a frame
   after the first character arrives, parked under a disabled node, given back when a character is freed). For the
   same rig and settings keep the bodies' offsets, materials and joint poses, and make the joint copies again from a

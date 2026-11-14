@@ -216,13 +216,13 @@ def test_the_kit_briefs_leaks_for_gdstudio_1357():
 )
 def test_the_kit_learns_parts_cost_for_a_part_that_moves_the_node_count(words):
     refs = [m.section.ref for m in lessons.learn(KIT, words)]  # the five `gds learn` prints
-    assert "engines/godot/third-person/character.md#parts-cost" in refs
+    assert "engines/godot/third-person/parts-cost.md#parts-cost" in refs
 
 
 def test_the_kit_briefs_parts_cost_for_a_hold_or_peek_task():
     data = json.loads((Path(__file__).parent / "fixtures" / "issue_bodies" / "gdstudio-1435.json").read_text("utf-8"))
     subject = brief.Subject("Ryubara/gdstudio", 1435, data["title"], data["body"], data["labels"])
-    assert "engines/godot/third-person/character.md#parts-cost" in refs_of(brief.propose(KIT, subject))
+    assert "engines/godot/third-person/parts-cost.md#parts-cost" in refs_of(brief.propose(KIT, subject))
 
 
 #: What gdstudio #1449 (PR open on 2026-11-13) adds to the reflection-probes section, as its pull request writes it;
