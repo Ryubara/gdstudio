@@ -126,6 +126,10 @@ state, locomotion node and layers (`POSE` lines) through a seeded soak, to trace
   for:** at a capture's 10 frames a second each frame runs six physics ticks while the camera moves once, so an aim
   loop in `_physics_process` turned six times too far and swung about the target for the whole clip, firing nothing,
   while the same loop converged headless at 60. **Seen:** gdstudio #876, 2026-11-10 (`hit_tour.gd`).
+- **Approach:** Give a capture target made from `character_dressed.tscn` the player's prone tuning
+  (`gameplay/player/prone_tuning.tres`) when it has to lie down. **Watch out for:** the dressed character holds no
+  `ProneTuning`, so a target told to go prone stayed standing in the capture. **Seen:** gdstudio #1292 (PR #1309),
+  2026-11-11.
 - **Approach:** When shots pass through bodies in play, run the seeded AI soak with a probe that casts rays of
   `SHOT_MASK` at each living character's drawn head, chest and pelvis and sorts what they met (nothing, the wall
   behind, the capsule with no zone on the line) by the body's state, crouch, tree state and throttle period.

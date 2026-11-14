@@ -154,6 +154,10 @@ credits ──> plan ──> generate ──> encode ──> check
   when it passes, the `budget`, in the same commit. **Watch out for:** a new cache holds only the new takes, so `plan`
   and `generate` passed while the whole set's plan went from 3900 to 4608 credits, over the 4000 budget, and the
   recipe's test failed after the commit. **Seen:** gdstudio #1100, 2026-11-11 (the budget is 5000 now).
+- **Approach:** After `encode`, import the new files once in a game (`gds template test <template> --keep`), copy each
+  new `.ogg`'s `.import` back beside it, and commit them together. **Watch out for:** `encode` writes the `.ogg` files
+  only, never their `.import`, so a pull request without them leaves the game to import on its next open and
+  `git status` dirty in every game made from it. **Seen:** gdstudio #1342 (PR #1389), 2026-11-12.
 
 **Where it lives.** It is a script in the kit's `tools/audio/`, laid out as Deadnight's voice recipe is (a script and
 a data file that holds every prompt, length and target), not a `gds` subcommand: it needs numpy for the cutting and

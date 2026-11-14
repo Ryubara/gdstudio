@@ -53,9 +53,10 @@ game/
   the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
   script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
   Deadnight #687, 11-03; Deadnight #1359, 11-06 (perk and route rules moved into classes); gdstudio #1041, 11-10
-  (`character.gd` at 1000 failed three pull requests that each passed alone; four parts moved to
-  [the body's modules](third-person/character.md#controller)); #1393, 11-13 (merged `two_hand_hold.gd` at 1042:
-  `HoldCarry` split out); #1420, 11-13 (16 lines on a 994-line `character.gd`: `CharacterGoal`).
+  (`character.gd` at 1000 failed three pull requests that passed alone; four parts moved to
+  [the body's modules](third-person/character.md#controller)); #1187, 11-11 (`main` over it: pre-push refused every
+  push); #1393, 11-13 (`two_hand_hold.gd` at 1042: `HoldCarry`); #1420, 11-13 (994-line `character.gd`:
+  `CharacterGoal`).
 - **Approach:** After writing a new script or shader in a template, run `gds template uids <template>` and commit
   the `.uid` files it writes (Godot's form; a valid file is never changed, an invalid one exits 1 until
   `--replace-invalid`). Never write a uid by hand. **Watch out for:** uids copied from a kept game were left behind
@@ -70,9 +71,8 @@ game/
   `__pycache__/` failed the layout check (`snake-case`) and `test_new_game.py`, like a fault of the change.
   From the kit's root ruff reads no config and wraps a template's Python at 88: pass `--line-length 120` (to undo an
   88 run, first `--config "format.skip-magic-trailing-comma=true"`). **Seen:**
-  gdstudio #884, 2026-11-10; gdstudio #908, 2026-11-11 (`tools/net/__pycache__`); gdstudio #1110, 2026-11-11 (a kit
-  test loading `bad_network.py` failed CI's `test_layout.py`); gdstudio #1106, #1105, 2026-11-11 (gate files rewrapped);
-  gdstudio #1040 (a sweep).
+  gdstudio #884, 11-10; #908 (`tools/net/__pycache__`), #1110 (a kit test loading `bad_network.py` failed CI's
+  `test_layout.py`), #1106, #1105 (gate files rewrapped), 11-11; #1040 (a sweep); #1293, 11-12 (Blender's).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or

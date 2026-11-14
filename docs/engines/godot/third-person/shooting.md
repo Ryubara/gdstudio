@@ -128,9 +128,9 @@ the spread's place for `restore()`.
   read of the camera on every frame); the blended pose is one tick behind the view, as the body's picture is.
   **Seen:** gdstudio #901, 2026-11-10 (`test_aim_pose_view.gd`).
 - **Approach:** In a test that makes the player shoot through its input, hold `aim` until the arm is up (about 20
-  ticks) and then press `fire`. **Watch out for:** a shot needs `aim_amount` to reach `shot_aim_amount` within
-  `fire_buffer_time` of the press, so a tap of fire from a standing player fired nothing and the section's "one shot
-  is heard" test saw no noise. **Seen:** kit #969, 2026-11-11 (`test_ai_section.gd`).
+  ticks) before `fire` when the shot must leave aimed. **Watch out for:** a tap from the hip fires too, since
+  gdstudio #1352, once the buffered arm is half up ([a tap](fire-modes.md#tap)); before it a tap fired nothing and
+  the "one shot is heard" test saw no noise. **Seen:** kit #969, 2026-11-11 (`test_ai_section.gd`).
 - **Approach:** In a test that steps commands by hand, clear a press (`fire_pressed = false`) before the same command
   is run again, assert that the body still stands on the floor before the part that matters, and compare a shot's
   direction with a tolerance. **Watch out for:** `CommandDriver.run` clears the presses of its own copy, so the next
@@ -288,8 +288,9 @@ by the overshoot; a refusing weapon keeps the body and fires nothing until the a
 limits are the move's; a zero limit holds the aim along the body). The capture is `tools/capture/slide_aim_tour.tscn`
 (`AIM_LAYER_OFF=1` shows the clips alone, `CLOSE=1` and `CLOSE_SIDE=left` film the hands).
 
-**The head** (gdstudio #1334): an `AimHeadModifier` after the spine's turn holds the head level and looking along the
-aim on a straight neck while any weapon aims, whatever head the clips carry ([the aiming head](aim-head.md#head-on-aim)).
+**The head** (gdstudio #1334, #1267): an `AimHeadModifier` after the spine's turn holds the head on the aim while any
+weapon aims, whatever head the clips carry: level for the pistol and the fists, the eye behind the sights for the
+rifle (`WeaponDef.aim_head`; [the aiming head](aim-head.md#head-on-aim)).
 
 - **Approach:** Solve an aim offset as a pitch about the body's side axis first, then a yaw about up, and hold the
   *aimed direction* within the limits, not the turn. **Watch out for:** a yaw about up first, then a pitch, with the

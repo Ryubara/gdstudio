@@ -36,7 +36,7 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   script's line ends as CRLF. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1150, 2026-11-11 (a page section
   written through a heredoc); gdstudio #1149, 2026-11-11 (a heredoc that wrote `styles.py` held "an artist's"; and a
   patch that matched whole lines stopped matching once `gdformat` had rewritten the file with CRLF: read the file
-  with its line ends folded to LF before matching); gdstudio #1151, #1154 and #1155, 2026-11-11 (the same).
+  with its line ends folded to LF before matching); #1151, #1154, #1155 (11-11), #1289, #1291 (11-12), the same.
 - **Approach:** Run every build stage with `--python-exit-code 1` and stop on a non-zero exit. **Watch out for:**
   without it Blender exits 0 when the script raises, so a runner that reads the exit code printed `exit 0` above a
   traceback and the next stage opened the last good file. **Seen:** gdstudio #1151, 2026-11-11 (fix: the flag in

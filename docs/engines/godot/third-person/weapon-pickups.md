@@ -52,7 +52,8 @@ reload on it), `test_rifle_sprint_carry.gd` ([the sprint](#rifle-hands)) and `te
 past `chest_turn` and the head within 15 degrees of the front through a pickup and a switch to the rifle, standing, out
 of a run and a sprint, on both bodies, kit #1327). Captures:
 `tools/capture/rifle_tour.tscn` from the game camera (the floating rifle, taking it, the low ready, a walk, the aim, a
-burst, the aim up and down, the reload, hip fire, a crouch, a switch to the pistol and back) and
+burst, the aim up and down, the reload, hip fire, a crouch, a switch to the pistol and back; its pitch takes the
+camera rig's sign, positive looking down, gdstudio #1399) and
 `tools/capture/rifle_hands.tscn` (six close-ups at once in every state).
 
 Cost, measured on the desktop: a pickup's spin and bob 0.8 to 0.9 microseconds a frame; ten rifle pickups drew 35 draw
