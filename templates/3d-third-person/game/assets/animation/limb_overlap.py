@@ -475,7 +475,14 @@ def main():
     parser.add_argument("--json", default="")
     parser.add_argument("--brief", action="store_true")
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--check", action="store_true", help="compare the --json file with the one on disk")
     args = parser.parse_args(argv)
+    sys.path.insert(0, str(Path(__file__).resolve().parent))  # clip_check.py (kit #1481)
+    sys.dont_write_bytecode = True  # Blender ignores PYTHONDONTWRITEBYTECODE
+    import clip_check
+
+    checking = clip_check.Check(args.check)
+    args.json = checking.file(args.json)
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     # Blender puts a key at its seconds times the scene's rate: the scene takes the file's rate before any import.
@@ -526,6 +533,7 @@ def main():
         }
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8", newline="\n")
+    checking.finish()
     if failed:
         sys.exit(f"limbs pass through each other by more than {args.limit} mm")
 
