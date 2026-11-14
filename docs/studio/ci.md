@@ -28,6 +28,9 @@ on earlier. Two workflows give it:
   put the old answer back. Run it by hand (`gh workflow run main-green-sweep.yml`) after the ruleset first requires the
   check, so open pull requests do not wait on a check that never ran, or after an outage that dropped events.
 
+The issue closes by the fix's `Fixes #N`, by hand, or by itself: `ci-failure.yml`'s `clear` job closes a workflow's
+red issue when a push run of that workflow is green on the commit that is still the default branch's head, and
+dispatches the sweep (gdstudio #1472); a green run of an older commit closes nothing, since a newer one may be red.
 A pull request therefore merges once the issue closes, with no push: its auto-merge stays on and lands when the sweep turns
 `main-green` green. `main-green` stays out of `merge.required_checks`, so `pr-status` does not call a red main the pull
 request's failure. Tests: `python/tests/test_main_green.py` (the steps run under bash against a fake `gh`).
