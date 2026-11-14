@@ -66,6 +66,9 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
 - **Find it by running the suite alone** (`-a <one suite>`, `--verbose`), not by reading the shard's log: a suite that
   leaks alone is the cause, and it reproduced on Windows with the shard's own list. A single test case of it leaks the
   same count (the suite's script), so do not read its tests.
+- **A list of only GdUnit4's and the autoloads' scripts is not yet a cause.** Cut the suite until two names remain:
+  a fixture that extends a game class and keeps a static variable gives the same list
+  ([A subclass that keeps a static variable](#a-subclass-with-statics)).
 - **Probe scripts:** `extends SceneTree`, `load(OS.get_environment("PROBE_PATH"))` in `_init`, `quit()`: a second a
   script; a sweep of every game script lists the ones that leak alone.
 - **Load every game script first, in name order.** A command line tool that does so before GdUnit's own
@@ -268,3 +271,38 @@ only *named* `WeaponDef` (the call compiled, never run) was clean. So read every
   `held_definition()`) were both `WeaponLoadout.slots`, which has no self-cast. **Seen:** gdstudio #1236, 2026-11-11
   (four other suites of #1138 already clean alone at 9ebaa690); gdstudio #1249, 2026-11-11 (fix: `slots` as
   `Array[Resource]`: prone 188 objects and 117 resources to none, player step 191 and 120 to none).
+
+## A subclass that keeps a static variable {#a-subclass-with-statics}
+
+<!-- new section: the sections above name a suite that only names a class and an exported typed array; neither
+     covers a test fixture whose own static variable leaves GdUnit4's scripts in use when its base is named first -->
+
+Under Godot 4.7.2 a script that **extends a game class and reads a static variable of its own in a function** leaves
+GdUnit4's scripts and the autoloads' (`gds_ui`, Phantom Camera, the audio settings, the camera shake, decoded sounds)
+in use at exit when a suite names the base class before the subclass: 213 objects and 118 resources for a suite of
+one assert, and, in 3D Third Person's `test_net_ai_online.gd`, 779 objects, 553 resources and RID lines (JoltShape3D,
+DummyMesh) from everything those statics reach. The suite's own script and the two classes are not in the list.
+
+What the probes showed (a one-assert suite whose unused helper only names the classes, each run alone):
+
+| Suite names | Subclass body | At exit |
+| --- | --- | --- |
+| `Character`, then `CountingAi` | `static var` read in a function | 213 objects, 118 resources |
+| `CountingAi` only, or `CountingAi` first | the same | clean |
+| `Character`, then `CountingAi` | `static var` never read, or a plain `var` | clean |
+| `Character`, then `CountingAi` | counts in a `RefCounted` class of their own | clean |
+| `CharacterController`, then `PlayerInput` | `static var _key_holders` | 213 objects, 118 resources |
+| a ten-line base in `tests/`, then its subclass | `static var` read in a static function | 213 objects, 118 resources |
+
+Loading the base script first through a wrapper of `GdUnitCmdTool.gd` leaked the same; loading the subclass first
+cured it. Some bases did not show it (`Health`, `Hotbar`, `AiDirector`), so a clean probe of one base proves nothing
+about another. A `-s` script that loads the two scripts and quits, without GdUnit4, was clean.
+
+- **Approach:** Keep the shared counters of a test fixture that extends a game class in a `RefCounted` class of their
+  own (`AiCallCounts`) and have the fixture add to it; the fixture keeps no `static var`. Find such a leak by running
+  one case alone (`-i <suite>:<case>` for each other case), then copies of the suite with one case's body, then with
+  its lines cut, until two names remain. **Watch out for:** the lead was the class-loading family of the sections
+  above, since the list held only GdUnit4's and the autoloads' scripts, and even the suite's one-assert case leaked
+  683 objects; the cause was `CountingAi`'s three static counters, read by `new_counts()`, once the suite had named
+  `AiCharacter`. **Seen:** gdstudio #1499, 2026-11-14 (`test_net_ai_online.gd` alone: 779 objects and 553 resources
+  to none, the same 7 cases).
