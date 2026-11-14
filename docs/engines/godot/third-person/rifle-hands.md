@@ -356,6 +356,11 @@ stock test's 10 mm.
   lean read as `atan2(x, y)` gave 80 degrees from nothing: read `asin(x)`. Switching the axis by the chest's lean broke
   the reload and an interaction (their clips lean it 55 to 103 degrees too); the full suite found it. **Seen:** gdstudio
   #1413, 2026-11-13.
+- **Approach:** When one weapon's move is compared tick by tick with another's, take off what a designed difference
+  still carries in: `test_rifle_slide.gd` takes off each tick's `carry_amount()` share of the trunk's lean gap on the
+  sprint's last tick. **Watch out for:** the upright carry (`HoldCarry`) eases out over `carry_time` as a slide starts,
+  so the rifle enters the slide 13 degrees more upright than the pistol and the slide test failed on the carry's own
+  design, not on the slide. **Seen:** gdstudio #1413 after #1393 landed, 2026-11-14.
 - **Approach:** Seat a palm by the skin the hand bone carries at least half of and the forearm less than 3 % of, and
   solve on both mannequins at once. **Watch out for:** the game's IK bends the wrist 40 to 50 degrees on the rifle's
   grip and the skin at the heel of the palm follows the forearm, so a palm seated by all of its skin stood 5 to 7 mm

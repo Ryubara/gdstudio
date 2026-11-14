@@ -4,7 +4,10 @@
 # place in the stride the slide starts from and wherever the stick steers it. Before the fix the
 # rifle's standing idle held the trunk over the slide's laid-back hips and the chest's turn rolled
 # it onto its side: 83 degrees back against the pistol's 64, 24 to the side, the left hand 59 mm
-# off. The player is driven with simulated keys and read on every update of its skeleton.
+# off. The rifle's run carries the trunk upright (kit #1348), and the carry eases out over the
+# hold's `carry_time` as the slide starts, so while it is on the lean back may differ from the
+# pistol's by as much more as the carry's share of the gap the sprints ended with. The player is
+# driven with simulated keys and read on every update of its skeleton.
 extends GdUnitTestSuite
 
 const RIFLE := "res://gameplay/weapon/rifle.tres"
@@ -33,6 +36,7 @@ var _reading := false
 var _side := 0.0
 var _lean := 0.0
 var _gap := 0.0
+var _carry := 0.0
 
 
 func before_test() -> void:
@@ -85,13 +89,26 @@ func _slide(sprint: int, steer: Key) -> Dictionary:
 	await InputSim.ticks(get_tree(), 40)
 	InputSim.key(KEY_W, true)
 	InputSim.key(KEY_SHIFT, true)
-	await InputSim.ticks(get_tree(), sprint)
+	var found := {
+		"start": -1,
+		"ticks": 0,
+		"distance": 0.0,
+		"leans": [],
+		"sides": [],
+		"gaps": [],
+		"carries": [],
+		"sprint_lean": 0.0,
+	}
+	# The sprint's last tick, read for the trunk's lean before the slide.
+	await InputSim.ticks(get_tree(), sprint - 1)
+	_reading = true
+	await InputSim.ticks(get_tree(), 1)
+	await get_tree().process_frame
+	found.sprint_lean = _lean
 	InputSim.key(KEY_C, true)
+	var from := _player.global_position
 	if steer != KEY_NONE:
 		InputSim.key(steer, true)
-	var found := {"start": -1, "ticks": 0, "distance": 0.0, "leans": [], "sides": [], "gaps": []}
-	var from := _player.global_position
-	_reading = true
 	for tick in READ_TICKS:
 		await InputSim.ticks(get_tree(), 1)
 		await get_tree().process_frame
@@ -106,6 +123,7 @@ func _slide(sprint: int, steer: Key) -> Dictionary:
 		found.leans.append(_lean)
 		found.sides.append(_side)
 		found.gaps.append(_gap)
+		found.carries.append(_carry)
 	_reading = false
 	InputSim.release_all()
 	await InputSim.ticks(get_tree(), 40)
@@ -136,11 +154,12 @@ func _compare(tag: String, pistol: Dictionary, rifle: Dictionary) -> Array[Strin
 				% [tag, rifle.distance, pistol.distance]
 			)
 		)
-	var lean := _most_apart(pistol.leans, rifle.leans)
+	var sprint_gap := absf(float(rifle.sprint_lean) - float(pistol.sprint_lean))
+	var lean := _most_apart(pistol.leans, rifle.leans, rifle.carries, sprint_gap)
 	if lean.x > LEAN:
 		problems.append(
 			(
-				"%s: the trunk leans back %.1f degrees from the pistol's at tick %d"
+				"%s: the trunk leans back %.1f degrees past the carry from the pistol's at tick %d"
 				% [tag, lean.x, lean.y]
 			)
 		)
@@ -175,11 +194,14 @@ func _compare(tag: String, pistol: Dictionary, rifle: Dictionary) -> Array[Strin
 	return problems
 
 
-# The most two readings of the same ticks differ, and on which tick.
-func _most_apart(first: Array, second: Array) -> Vector2:
+# The most two readings of the same ticks differ, and on which tick; with `carries`, less each
+# tick's carry share of `carried` (the gap the upright carry made before the slide).
+func _most_apart(first: Array, second: Array, carries: Array = [], carried := 0.0) -> Vector2:
 	var most := Vector2.ZERO
 	for index in mini(first.size(), second.size()):
 		var apart := absf(float(first[index]) - float(second[index]))
+		if index < carries.size():
+			apart = maxf(apart - float(carries[index]) * carried, 0.0)
 		if apart > most.x:
 			most = Vector2(apart, index)
 	return most
@@ -196,6 +218,7 @@ func _read() -> void:
 	_lean = rad_to_deg(atan2(-trunk.z, trunk.y))
 	_side = rad_to_deg(asin(clampf(trunk.x, -1.0, 1.0)))
 	var hold := _player.model.get_node_or_null("RifleHeld") as TwoHandHold
+	_carry = hold.carry_amount() if hold != null and hold.visible else 0.0
 	if hold == null or not hold.visible:
 		_gap = 0.0
 		return
