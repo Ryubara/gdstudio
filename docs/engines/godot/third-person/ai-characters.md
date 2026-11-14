@@ -171,10 +171,21 @@ Intel Xeon 8573C), 2026-11-13; Windows: 4 desktop runs with 25 Godot processes b
   ratios are the medians of the first soak: 8.7, 7.65 and 6.2 a ruler ms. Per-size limits of a ratio (11.0, 9.5 and
   7.5) had failed twice that day on unchanged code (11.27 at 50 on main, 9.97 at 100) inside the template job, whose
   153 runs read the step 1.6 to 1.8 times apart; replayed, those rows score 0.80 to 1.30 and their slow rows 1.61 up.
-- What is left is the runner's neighbours, not its speed: one runner read every process at 0.88 for half an hour while
-  another of the same model drifted from 1.0 to 1.2 and back within minutes, and the physics ruler held on both. A ruler
-  that follows that drift has to feel what the step feels there (most likely the memory the neighbours share); a ruler
-  moved inside the tick, 60 moves of the same physics, followed it no better (1.38 against 1.40 over 50 runs).
+- What is left is not the runner's speed: one runner read every process at 0.88 for half an hour while another of the
+  same model drifted from 1.0 to 1.2 and back within minutes, and the physics ruler held on both. A ruler moved inside
+  the tick, 60 moves of the same physics, followed it no better (1.38 against 1.40 over 50 runs).
+- Rulers for the memory the neighbours share (#1534) did not follow it either. 100 suite runs (two soaks, 2026-11-14;
+  AMD EPYC 7763, 9V45, Intel Xeon 6975P-C, 8573C) printed three candidates beside the physics ruler, timed at the
+  same moments: a pointer chase through a random cycle of 2 MB and of 16 MB, and 64 capsules moved round a ring with
+  rays. The score's spread from the fastest suite run to the slowest (one process's in brackets): physics 1.19
+  (1.28), the capsule crowd 1.18 (1.29), the 2 MB chase 1.39 (1.87), the 16 MB chase 1.72 (2.11), the physics and the
+  16 MB chase mixed (a geometric mean) 1.33 (1.53). The chases set the processor models apart (the 7763 read 1.24 to
+  1.62 over the 16 MB chase, the 9V45 0.77 to 0.91) and moved on their own from process to process (2 MB: 3.8 to
+  6.0 ms on one 9V45, 1.33 to 1.40 times on each 7763, where the step held within 1.05 of the physics ruler). On the
+  9V45 that drifted, the step went from 49.6 to 63.5 us a character at 100 while the physics ruler read 6.75 to
+  7.11 ms, the crowd 7.8 to 8.3 and the chases jittered with no tie to the step: what moves is the step's own process,
+  so the physics ruler and its limits stay. The candidates' code is the first commit of PR #1538; the bench's rows
+  keep a `pid`, to group them by process.
 - The ruler before this one (#1405) was a GDScript loop of vector, array and dictionary work, chosen on the desktop:
   on the runners it followed the step at a slope of 0.6, so the step read 3.9 to 8.1 loops on unchanged code and
   failed main at 8.06 against a limit of 8.0. Over the same 150 runs the step spread 1.73 times over that loop, 1.86
