@@ -39,7 +39,7 @@ lean (`CharacterPeek.roll`).
 (`CommandCodec.G_LEAN_LEFT`, `G_LEAN_RIGHT`), `amount` in `CharacterState.peek` (a predicting client puts it back and
 steps it again as it does the slide), and while not 0 one signed byte at the end of the player entry (`F_PEEK`,
 `PlayerEntry.peek`; 12 bytes, 13 aiming or leaning, 14 both), so a puppet shows the lean, its eye and its shape
-(`CharacterPeek.show`). `NetWire.VERSION` 9. No part of it is culled by distance or by sight: a far player leaning out
+(`CharacterPeek.show`). `NetWire.VERSION` 11. No part of it is culled by distance or by sight: a far player leaning out
 reads through a scope as a near one does.
 
 **The bend.** `PeekLayer` (a node of `character_dressed.tscn`) makes a `PeekModifier` as the skeleton's first own

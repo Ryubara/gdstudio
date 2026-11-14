@@ -353,7 +353,7 @@ its capsule while alive, a full ragdoll while dead, and a blend back to the anim
   to get up, then run off the ledge; read the frames before the report. **Watch out for:** a stress test that passes
   says no bone flew, not that the body lies on the floor in a believable pose, which only the clip shows (the
   frames are from `tools/capture/ragdoll_tour.tscn`, run through `gds capture` as in
-  [A route for a clip](third-person-template.md#walkthrough)). **Seen:** gdstudio #846, 2026-11-09.
+  [A route for a clip](third-person/camera-and-ui.md#walkthrough)). **Seen:** gdstudio #846, 2026-11-09.
 
 ### The dead underfoot {#underfoot}
 

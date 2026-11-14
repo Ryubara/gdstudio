@@ -298,10 +298,11 @@ finds them first -->
   folders nobody ran. **Seen:** Deadnight (outline), 2026-11-02; Deadnight #641, #682, #688, #719, #938, 2026-11-03
   (fix: those folders run before the push; cover read from the lot); gdstudio #890, #1058, 2026-11-10 (a new export
   failed other suites' pins: grep `ExportPins`); gdstudio #1294, 2026-11-11 (again).
-- **Approach:** After every merge of main, grep the merged tree (tests and captures included) for each field, action,
-  key or default the branch removes or changes, run the suites of what landed meanwhile, and diff each file the branch
-  shares with a merged pull request. **Watch out for:** clean merges left a duplicate dictionary key, another pull
-  request's test assuming the old default order or pressing a rebound key, readers of a removed field, and suites that
-  bought perks in a row against a purchase that now takes 2.5 s. **Seen:** Deadnight #676, #814, #959, #1233,
-  2026-11-03 to 05; gdstudio #1029, 2026-11-10 (the removed `take_shot`; #1031); gdstudio #1456, 2026-11-13 (a merged
-  test pressed `KEY_Q`, which #1437 had moved off the shoulder swap).
+- **Approach:** After every merge of main, grep the merged tree (tests and captures included) for each field, action
+  or default the branch removes or changes, run the suites of what landed meanwhile, and diff each file the branch
+  shares with a merged pull request; grep again right before auto-merge. **Watch out for:** clean merges left a
+  duplicate dictionary key, another pull request's test assuming the old default order, readers of a removed field,
+  suites that bought perks in a row against a purchase that now takes 2.5 s, and a new suite pressing a key the branch
+  rebound (grep `KEY_Q` too). **Seen:** Deadnight #676, #814, #959, #1233, 2026-11-03 to 05; gdstudio #1029,
+  2026-11-10 (a merged budget test called the removed `take_shot`; #1031); #1400, #1456, 2026-11-13 (a merged suite
+  pressed Q, now the lean).

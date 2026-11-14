@@ -98,13 +98,14 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   gdstudio, 2026-11-02; Deadnight, 2026-11-01 and 2026-11-05 (fix: read the line that names the scanned folder before
   trusting a result); gdstudio #879, #903, #966, #970, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
   branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
-- **Approach:** From a session that sits in the kit's main checkout, commit in a worktree with `git -C <worktree>
-  commit ...`, not `cd <worktree> && git commit`. **Watch out for:** the Git guard judges the command from the
-  session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would have run in the
-  worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11; gdstudio #1178, 2026-11-11 (a line that set a variable
-  before its `cd <worktree> &&` was refused; the same commit with the `cd` first passed, and `git -C` passes always);
-  #1293, 2026-11-11 (the same from a worktree's own agent: a command that sourced a helper file first and changed
-  folder after it was refused as a commit on `main`).
+- **Approach:** From a session that sits in the kit's main checkout, commit and push in a worktree with `git -C
+  <worktree> commit|push ...`, not `cd <worktree> && git commit|push`. **Watch out for:** the Git guard judges the
+  command from the session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would
+  have run in the worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11; gdstudio #1178, 2026-11-11 (a line that set
+  a variable before its `cd <worktree> &&` was refused; the same commit with the `cd` first passed, and `git -C` passes
+  always); #1293, 2026-11-11 (the same from a worktree's own agent: a command that sourced a helper file first and
+  changed folder after it was refused as a commit on `main`); gdstudio PR #1424, 2026-11-13 (a push after `cd <worktree>
+  &&` was refused as one to `main`).
 
 ## Background commands and processes {#background}
 
@@ -149,7 +150,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
   lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went); gdstudio #963,
   2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red); #1154;
-  #1400, 2026-11-13 (four); #1403, 2026-11-13.
+  #1403, 2026-11-13; #1411 (a test's); #1400 (four).
 
 ## Reverting and checking out {#checkout}
 

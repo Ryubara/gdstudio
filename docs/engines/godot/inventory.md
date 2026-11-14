@@ -136,16 +136,15 @@ its 0, until it is assigned again or cleared. An item sits in one place: assigni
   the holds found by type), once a press; the chest's `UseTurn` returns at once between actions; the sound is decoded
   to PCM once when the player is made. An ordinary action clip (a hit) stays at under 1 us: only an upper-body action,
   or the first clip after one, touches the filter, which cost 76 us on every hit before it was skipped.
-- **Online:** the bag is not on the wire yet, so neither is the hotbar. `NetClient` turns `authoritative` off on its
-  player's hotbar, and a use is refused there: the health it would change is the server's. The weapon places switch by
-  ordinary weapon presses (`request_weapon`), so a server sees nothing new and the lit slot follows the predicted
-  loadout the server's word keeps. A timed use is refused on a client the same way; `ItemUse` counts its time in the
-  body's ticks and reads only the command, so on the wire it is one small event (the place and the tick it began,
-  then the server's heal), and each screen plays the clip, the sound and the sign itself.
+- **Online** (gdstudio #1386): the server owns the bag and the health. A press is the command's `use_place`, which
+  `ItemUse.step` reads after the body's step on every peer; the server's body starts the use, heals on its own tick
+  and says so in 8-byte USE events, the user's screen starts it at the press and waits for the server's heal and count,
+  and a puppet plays it from the event ([Item uses online](third-person/online-items.md#item-uses)). The weapon places
+  switch by ordinary weapon presses (`request_weapon`).
 
 In the inspector: `Hotbar` Places (`place_count` 4, `start_items`), Nodes (`inventory`, empty: the first `Inventory`
-beside it; `user`, empty: the parent), Network (`authoritative` on); `ItemDef` Use (`use_effect`, `consumed_on_use` on,
-`use_time` 0, `use_apply_share` 0.75, `use_clip`, `use_sound`; the bandage 1.6 s, `ual2/Consume`,
+beside it; `user`, empty: the parent), Network (`authoritative` on, off on an online client); `ItemDef` Use
+(`use_effect`, `consumed_on_use` on, `use_time` 0, `use_apply_share` 0.75, `use_clip`, `use_sound`; the bandage 1.6 s, `ual2/Consume`,
 `gameplay/inventory/bandage_use.tres`); `ItemUse` Nodes (`character`, `hotbar`, `sound`: its `Sound` child at -14 dB
 on `SFX`) and Cut short by (`cancel_on_sprint`, `cancel_on_fire`, `cancel_on_aim`, `cancel_on_jump`,
 `cancel_on_weapon_press`, `cancel_on_prone`, `cancel_on_hit`, all on); `HudUse` Look (`applied_color`,

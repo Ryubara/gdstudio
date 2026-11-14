@@ -178,6 +178,10 @@ limp body; `ShoulderSwapAim.keeps()`). At a wall, the floor, a prop or the empty
 other shoulder without turning it: the point there is scenery, and turning toward it only throws the player off.
 Adding World to `keep_aim_layers` keeps the point on walls again.
 
+**Defaults.** `aim_shoulder_time` 0.15 s, `shoulder_time` 0.3 s (0 is instant), `keep_aim_on_swap` on,
+`keep_aim_when_not_aiming` off, `swap_anchor_strength` 1, `swap_look` `ADD`, `swap_release_angle` 4 degrees,
+`aim_point_range` 100 m, `aim_point_min_distance` 2 m.
+
 - **Approach:** Decide what the aimed point is worth keeping from what the ray hit, not only from what the player is
   doing: keep it on a target (an exported layer mask), slide past scenery. Test both through the real input (aim
   trigger held, the swap button pressed), reading the view's yaw and pitch for the wall, floor and sky and the point at

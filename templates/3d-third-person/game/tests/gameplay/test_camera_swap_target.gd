@@ -2,8 +2,7 @@
 # (`PlayerCamera.keep_aim_layers`: Characters and Ragdoll): aimed at a wall, the floor or the sky,
 # the view moves to the other shoulder without turning; aimed at a character, the view turns so
 # the point stays under the crosshair. Every test is driven as a player drives it: the aim
-# trigger held on the pad and the swap button (the middle mouse button) pressed, the rig running
-# its own frames.
+# trigger held on the pad and the swap key (Q) pressed, the rig running its own frames.
 extends GdUnitTestSuite
 
 ## Built high above the sample map, so nothing else is in the way.
@@ -67,8 +66,9 @@ func _aim() -> void:
 	assert_bool(_player.aiming).is_true()
 
 
-# Presses and lets go of the swap button, then runs `frames` frames; the largest turn of the view
-# (degrees, yaw or pitch) and the largest angle `point` sat off the crosshair at any physics tick.
+# Presses and lets go of the swap button (the middle mouse button since Q leans, #1400), then
+# runs `frames` frames; the largest turn of the view (degrees, yaw or pitch) and the largest angle
+# `point` sat off the crosshair at any physics tick.
 func _press_swap(point: Vector3, frames := 30) -> Dictionary:
 	var yaw := _rig.yaw
 	var pitch := _rig.pitch
@@ -76,7 +76,6 @@ func _press_swap(point: Vector3, frames := 30) -> Dictionary:
 	# The crosshair is read at each physics tick, where the player's input reads it for a shot.
 	var at_tick := func() -> void: worst["off"] = maxf(worst["off"], _off_crosshair(point))
 	get_tree().physics_frame.connect(at_tick)
-	# The middle mouse button swaps since Q leans (gdstudio #1400).
 	InputSim.mouse_button(MOUSE_BUTTON_MIDDLE, true)
 	InputSim.mouse_button(MOUSE_BUTTON_MIDDLE, false)
 	for _i in frames:
