@@ -61,5 +61,7 @@ hides this; compare the raw floats. See also [navigation in tests](navigation-in
 - **Approach:** Run each replay or repeat of a seed in a process of its own, and keep counters that span instances
   (`AiNavigator._spawned`) out of what a run's outcome depends on. **Watch out for:** a static keeps its value for the
   whole process, so a second run of the same seed in one process started from another count and its hash differed, while
-  a fresh process matched. **Seen:** gdstudio #971 (PR #1248), 2026-11-11 (the soak's replay case compares two
-  processes).
+  a fresh process matched. An instance id is such a counter too: any object made before a part that takes its phase
+  from `get_instance_id()` changes the run. **Seen:** gdstudio #971 (PR #1248), 2026-11-11 (the soak's replay case
+  compares two processes); gdstudio #1543, 2026-11-14 (one more `RefCounted` changed the AI soak's seed 11 through
+  `AiNoiseMaker`'s check phase).

@@ -207,7 +207,21 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   fully aware belief in a wall. `test_ai_soak.gd` runs them in one 60 s run at scale 2 and checks each gate names its
   target.
 - **Replay:** the same seed in a fresh process gives the same `command_hash`; another seed does not. In one process the
-  second run differs: the navigators take their phase and seed from a static counter of navigators made.
+  second run differs: the navigators take their phase and seed from a static counter of navigators made. A run also
+  depends on every object made before the AI: a noise maker takes its check phase from its instance id, so one more
+  `RefCounted.new()` in the soak changed seed 11's commands at 120 s (not at 60 s), and so does any edit of a script the
+  soak loads (the watch's new exports and lines moved seed 40 off main's hash, the same once the phase was fixed), so a
+  soak-script change can make a nightly seed meet a fault main has on other seeds (#1547).
+- **Probe:** `--probe` (every kind), `--probe Civilian,Grunt` (those kinds, by profile name) or the environment variable
+  `SOAK_PROBE` (same values; the watch's `probe_episodes` in the inspector) keeps a row a tick of each probed character
+  and prints an `AI_SOAK_EPISODE {json}` block when a stuck episode that counts toward `stuck_share` ends: the
+  character, `from`, `seconds`, `walking`, `alive` and `until` (a body shot dead in an episode keeps it open until the
+  run's end, as the share counts it), the columns and up to `--probe-ticks` (600) rows from a second before the
+  episode: time, x, z, speed, the watch's "going", the navigator's mode, arrived, path left, refusal, stuck rung and
+  goal, the controller's push and sprint, the situation and the active task. The result gains `probe_episodes`. Off,
+  nothing is recorded; on, it makes no object (`AiSoakProbe` is static functions), so the run is the run without it
+  (`test_ai_soak_probe.gd` compares the hashes of seed 11 for 120 s and reads the held body's block in the stuck
+  fault's run).
 - **Where it runs:** the pull-request suite runs seed 1 for 120 s (about 10 s); `.github/workflows/ai-soak.yml` runs 50
   seeds of 120 s nightly in five shards, with the teeth run, and opens an issue when one breaks.
 - **What it found on its first sweeps** (24 runs of 180 s at scale 1, seeds 1 to 16, Windows, 2026-11-11): 19 green; 5
@@ -291,3 +305,10 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   (2764 against 2678 us) on a change to the first shot; run again alone it passed. **Seen:** gdstudio #1411 (PR #1424)
   and #1412 (PR #1432), 2026-11-13 (with `test_parts_budget.gd`: [Reading a timing on a shared
   machine](../engines/godot/performance-budgets.md#reading-a-timing-on-a-shared-machine)).
+- **Approach:** Make a soak probe that records without making an object (static functions, rows in plain arrays on
+  the watch), and prove it by comparing the run's `command_hash` with and without it in fresh processes. **Watch out
+  for:** the probe's first version was one `RefCounted`, and seed 11 for 120 s took another course with it (its hash
+  and its episodes changed): a probe that changes the run cannot explain it. Off, the soak's lines are as before but
+  its hash is not main's (the scripts changed), and the pull request's soak broke seed 40 on Linux at `stuck_share`
+  1.69 %, Civilian1 6.1 s: main's refused flee points (#1532), met on a course the id shift opened. **Seen:**
+  gdstudio #1543, 2026-11-14 (`AiSoakProbe`, `test_the_probe_leaves_the_run_as_it_was`).
