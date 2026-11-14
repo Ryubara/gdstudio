@@ -383,3 +383,10 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   that frame and held the body in it, so the push clip never played and the vault's hands left the top by 0.3 m;
   the transition tests passed, since their clips existed only in their own suite. **Seen:** gdstudio #1156,
   2026-11-12 (`GaitTransitions.on_foot`; `test_player_actions.gd`, `test_push_cubes.gd`, `test_vault_contacts.gd`).
+- **Approach:** When a transition clip ends because the body leaves its states (`route()` hands it to the jump),
+  leave the machine's travel alone until it has left the transition's state (`GaitTransitions._left_for`). Measure a
+  takeoff on every drawn update as the weapon's turn along its `muzzle` node's -Z and whole, from a stop clip and from
+  a still stand. **Watch out for:** the machine names the transition's state until its next update, so the frame's
+  own step, meant for a rebuild, travelled to the ground over the jump: a jump begun in a stop clip flew on the
+  ground's pose and the gun stepped 4 degrees in a tick; the pistol node's -Z points to the side. **Seen:** gdstudio
+  #1462, 2026-11-13 (`test_aimed_takeoff.gd`: 244 degrees a second before, 38 after).

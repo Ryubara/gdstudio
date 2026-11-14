@@ -81,6 +81,15 @@ a check that warns past 60 % and fails past 80 % of the job's time limit, so dri
 job with no failing test (Deadnight #1015, `tools/ci_test_shards.py` and `tools/ci_shard_time.py`;
 [CI and deploys](../../studio/ci.md#shards)).
 
+- **Approach:** Before adding a suite to a template's CI job, read that job's last green run on the base: the minutes it
+  took against its `timeout-minutes`, and its slowest suites by the gaps between `Run Test Suite:` lines. **Watch out
+  for:** a job past 80 % of its limit is cancelled with no failing test whenever a slow runner draws it; that is the
+  limit, not your change. Leave the limit alone in your pull request (raising it there collides with the sharding work
+  and hides the cost): open or name the issue that shards the job and report the cancel, so the coordinator reruns it.
+  **Seen:** gdstudio #1482, the 3d-third-person template job cancelled at its 40 minutes twice (264 suites in 2229 s,
+  then all 312 in 1913 s, against 1783 s on the base's green run; `test_jump_weapon_hold.gd` 877 and 646 s against
+  526 s), the base itself at 38; the sharding is #1492.
+
 ## Night suites: where the seconds go, and what may be cut {#night-suites-where-the-seconds-go-and-what-may-be-cut}
 
 From Deadnight's ten slowest suites (#1017). All are hand-ticked already, so the time is compute; the numbers are from

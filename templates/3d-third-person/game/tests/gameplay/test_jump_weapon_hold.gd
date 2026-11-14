@@ -438,11 +438,10 @@ func _speeds(updates: Array[Dictionary]) -> Dictionary:
 			/ seconds
 		)
 		var move := (last.in_chest as Transform3D).origin.distance_to(now.in_chest.origin) / seconds
-		# The aimed takeoff's first updates: a 3 degree step there predates the jump clips
-		# (gdstudio #1462), printed apart until it is fixed.
+		# The aimed takeoff's first updates, printed apart too: a jump begun in a stop clip went on
+		# the ground's pose and the gun stepped 3 degrees in a tick there (gdstudio #1462).
 		if kind == "up" and now.get("takeoff", false):
 			most.takeoff = maxf(most.takeoff, turn)
-			continue
 		var into: Dictionary = most[kind]
 		if turn > into.turn:
 			into.turn = turn
