@@ -319,3 +319,9 @@ headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdst
   take minutes, a desktop run 15 seconds; the desktop's spans read the rifle hold's parts within 10 to 25 % of the web
   build's (the stance 26 against 28 microseconds, the push 8.9 against 8.9), but single runs on a busy machine still
   moved 15 %. **Seen:** gdstudio #1347, 2026-11-13 (eleven variants of the push in an hour).
+- **Approach:** Before you trust a bench row for a skip or a cache, count how often the part's inputs change from one
+  frame to the next in that bench, and measure on a run whose clip moves them (the hold bench's `rifle_walk` and
+  `rifle_low_walk` against `no_hold_walk`). **Watch out for:** the hold bench's aim clip held the torso still against
+  the gun, bit for bit, in 99 to 100 % of frames, so a push that gave back the last one for the same inputs saved 5
+  and 12 microseconds a character at the ready and the low ready on the desktop, while every idle and walk clip worked
+  it out every frame. **Seen:** gdstudio #1490, 2026-11-14 (the skip was dropped).

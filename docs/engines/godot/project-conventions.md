@@ -48,14 +48,15 @@ game/
   2026-11-10 (`MenuScene.server_scene` added without its pin; `grep -rl <Class> tests` finds the pin suite);
   gdstudio #1255, 2026-11-11 (new `WeaponDef` fields unpinned: grep the tests for `pistol.tres` too); #1438, 11-13
   (`GaitSettings`, `test_gait_parts.gd`).
-- **Approach:** Before adding more than a few lines to a script within about 100 lines of gdlint's 1000-line limit (`wc
-  -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so the
-  count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a script
-  18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:** Deadnight
-  #687, 2026-11-03; #1359, 11-06 (fix: the perk and route rules moved into classes of their own); gdstudio #1041,
-  2026-11-10 (`character.gd` at 1000 lines failed three pull requests that each passed alone; four parts moved out: [the
-  body's modules](third-person/character.md#controller)); #1187, 11-11 (`main` over it: the pre-push hook refused every
-  push); #1420, 11-13 (16 lines on a 994-line `character.gd`: into `CharacterGoal`).
+- **Approach:** Before adding more than a few lines to a script within about 100 lines of gdlint's 1000-line limit
+  (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
+  the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
+  script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
+  Deadnight #687, 11-03; Deadnight #1359, 11-06 (perk and route rules moved into classes); gdstudio #1041, 11-10
+  (`character.gd` at 1000 failed three pull requests that passed alone; four parts moved to
+  [the body's modules](third-person/character.md#controller)); #1187, 11-11 (`main` over it: pre-push refused every
+  push); #1393, 11-13 (`two_hand_hold.gd` at 1042: `HoldCarry`); #1420, 11-13 (994-line `character.gd`:
+  `CharacterGoal`).
 - **Approach:** After writing a new script or shader in a template, run `gds template uids <template>` and commit
   the `.uid` files it writes (Godot's form; a valid file is never changed, an invalid one exits 1 until
   `--replace-invalid`). Never write a uid by hand. **Watch out for:** uids copied from a kept game were left behind
