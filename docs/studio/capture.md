@@ -391,6 +391,11 @@ take it with `git checkout <rev> -- <file>` into a scratch checkout, never `git 
   started during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: a detached baseline worktree under scratch,
   the same capture scripts with `--label=before`); gdstudio #1346, 2026-11-12 (main's hold files swapped into a kept
   game for the `Before:` tour, which broke its clips' import twice before it filmed).
+- **Approach:** When a `Before:` is made by swapping old files into a kept game, take them from the branch's base commit
+  (`git merge-base HEAD origin/main`), not from `origin/main`, so the pair differs only by the change; `gds capture
+  frames` names frames `<name>00000000.png` after `--name` ([frames](#frames)), so give each side its own name. **Watch
+  out for:** `origin/main` moves after a branch is cut, so its files carry other pull requests' changes that the branch
+  does not have yet, and the pair shows them as part of the change. **Seen:** gdstudio PR #1509, 2026-11-14.
 
 ## Tests {#tests}
 
