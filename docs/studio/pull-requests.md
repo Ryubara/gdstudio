@@ -12,12 +12,12 @@ a branch fresh are in [Landing a pull request](landing.md#landing).
 
 - **Approach:** Write the title into a file at the start, count it (`wc -c`, at most 72), check it against the verb list
   with `gds pr check-body <body> --title <title file>` before the commit, and make a merge commit only with `gds
-  merge-main`. **Watch out for:** an issue's title is not checked, so `art: Keep the hand IK...` was refused by the
-  commit hook twice for a verb off the list; a 74-character title was refused and the push that followed carried the
-  older commit; `ui: Merge main into x` is not a title the convention knows (only git's own `Merge remote-tracking
-  branch ...` is exempt), so the merge stayed uncommitted. **Seen:** Deadnight #987, 2026-11-04; Deadnight #1280,
-  2026-11-05; Deadnight, 2026-11-02 (fix: the title checked as a file before the commit).
-  gdstudio #1323, #1480 (titles written inline at 74 and 73 characters, refused by the hook).
+  merge-main`. **Watch out for:** an issue's title is not checked (nor its length), so `art: Keep the hand IK...` was
+  refused by the commit hook twice for a verb off the list; a 74-character title was refused and the push that followed
+  carried the older commit; `ui: Merge main into x` is not a title the convention knows (only git's own `Merge
+  remote-tracking branch ...` is exempt), so the merge stayed uncommitted. **Seen:** Deadnight #987, 2026-11-04;
+  Deadnight #1280, 2026-11-05; Deadnight, 2026-11-02 (fix: the title checked as a file before the commit). gdstudio
+  #1323, #1480, #1371 (inline titles of 74 and 73; #1371's was the issue's own title).
 
 ## The description {#body}
 

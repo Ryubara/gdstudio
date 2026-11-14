@@ -167,6 +167,17 @@ tuning numbers it was built to, which `tests/gameplay/test_own_jump_clips.gd` ho
 defaults), `fall_speed` (`from`, `to`), `control` (the frame control is back at), `joins` (the clip each end is,
 and `first_frame` or `last_frame`, the frame of it).
 
+- **Approach:** Pick a take-off (or any clip that starts from a gait) by the foot that is on the floor at the gait's
+  phase, from the record's contacts, and test the pick at phases between the strikes too, against the gait's pose
+  bone by bone. **Watch out for:** the first pick took the take-off whose join frame was nearest the phase; at 0.2 of
+  the jog the drawn pose was 593 mm (a hand) from the left strike's frame and 401 mm from the right's, so neither
+  nearness by phase nor by pose says which foot pushes; on a strike the joined take-off is 46 to 51 mm from the jog.
+  **Seen:** gdstudio #1371, 2026-11-14 (`test_jump_tree.gd`).
+- **Approach:** Read what a seek on the ground state set (`GaitBlend.seek_phase`, a hand-over) one update after the
+  `travel()` that goes there. **Watch out for:** in the update of the travel the walk point's `current_position`
+  still read the phase the ground state was left at (0.22 before a jump; 0.50 the update after), the same frame of
+  lag as the drawn pose ([gait fitting](../animation-tree.md#gait-fitting)). **Seen:** gdstudio #1371, 2026-11-14.
+
 ## The fixed clips {#fixed-clips}
 
 <!-- new section: since kit #1187 the template wears the prototype bodies, and three library clips cross a forearm
