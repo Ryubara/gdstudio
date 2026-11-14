@@ -50,7 +50,7 @@ func test_each_client_draws_the_other_and_keeps_its_own_camera() -> void:
 
 func test_the_puppet_stands_as_tall_and_faces_as_the_body_does() -> void:
 	await _act(_walking(Vector3.LEFT), 30)
-	await _act(_standing(), 60)
+	await _act(_standing(), 100)  # A jog's stop takes 1.13 s (gdstudio #1415).
 	var body := _ada.player
 	var puppet := _puppet()
 	assert_float(puppet.global_position.distance_to(body.global_position)).is_less(0.006)
@@ -84,7 +84,7 @@ func test_walk_sprint_and_stop_show_on_the_other_screen() -> void:
 	_assert_same_motion("sprint")
 	assert_int(_puppet().state).is_equal(Character.State.RUN)
 	assert_bool(_puppet().is_sprinting()).is_true()
-	await _act(_standing(), 40)
+	await _act(_standing(), 120)  # A sprint's stop takes 1.67 s (gdstudio #1415).
 	_assert_same_motion("stop")
 	assert_int(_puppet().state).is_equal(Character.State.IDLE)
 	assert_float(_puppet().ground_speed()).is_less(0.05)
@@ -159,7 +159,7 @@ func test_turning_shows_on_the_other_screen() -> void:
 
 func test_a_late_joiner_sees_everyone_already_there() -> void:
 	await _act(_walking(Vector3.RIGHT), 30)
-	await _act(_standing(), 20)
+	await _act(_standing(), 90)  # At rest after a jog's stop (gdstudio #1415).
 	var cy := await _rig.join("Cy")
 	assert_object(cy).is_not_null()
 	await _rig.wait(20)

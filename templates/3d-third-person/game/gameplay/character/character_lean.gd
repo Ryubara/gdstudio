@@ -160,7 +160,7 @@ static func _steer(body: Character, wish: Vector3, delta: float) -> void:
 	var flat := Vector3(body.velocity.x, 0.0, body.velocity.z)
 	var strength := wish.length()
 	var goal := Vector3.ZERO
-	var rate := tuning.deceleration
+	var rate := tuning.stop_deceleration(flat.length())
 	if strength > 0.0:
 		var command := body.last_command
 		var speed := tuning.run_speed * strength

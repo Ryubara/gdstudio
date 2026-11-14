@@ -213,7 +213,7 @@ game](new-game.md#proof), gdstudio #830 and #917).
   1710 cases passed and the exit was 101 from the spawner's parked pools in the net suites, which load the map ([the
   spawner](third-person/ai-characters.md#spawner): it now makes its pool on the approach). **Seen:** kit #969,
   2026-11-11; PR #1233, 11-11 (`after_test` too late); PR #1248, 11-11 (a member `Late.new()` added in `_ready`:
-  freed at `NOTIFICATION_PREDELETE`).
+  freed at `NOTIFICATION_PREDELETE`); PR #1422, 11-14 (rig in `before_test`, join in the case: 1548).
 - **Approach:** Judge a `leaked at exit` line against `main` only from a full run of both; a run of a few `--suite`s
   that ends with one is run on `main` with the same suites before it counts against the change. **Watch out for:** a
   subset run can end with "leaked at exit" on `main` too (which scripts load, and in what order, depends on what ran:

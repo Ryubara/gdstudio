@@ -29,7 +29,7 @@ const SKIPPED: Array[String] = [
 ]
 
 ## Frames after a change of key on which the blend starts again from the pose last shown.
-const SETTLE_FRAMES := 3
+const SETTLE_FRAMES := 4
 
 ## The node whose body state it follows (`CharacterGait.pose_key()`).
 var animation: CharacterAnimation

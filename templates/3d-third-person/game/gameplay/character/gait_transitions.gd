@@ -37,6 +37,8 @@ const TURN_DONE := 5.0
 ## acceleration carries the body past `standing_speed` on the tick it is asked to move, so a start
 ## read only from the speed now never played (gdstudio #1416).
 const START_GRACE := 4
+## Below this ground speed a stopping body is at rest and its clip plays on at its own pace (m/s).
+const STOP_DONE := 0.02
 
 var settings: GaitSettings
 ## What plays now, and its clip.
@@ -268,6 +270,12 @@ func _begin(
 	_length = animation.animation_player.get_animation(clip).length
 	_time = 0.0
 	_from = body.global_position
+	if kind == Kind.STOP:
+		# The stick was let go a tick before the tree saw it: the stop's ground counts from there.
+		# From the velocity, not `get_position_delta()`: a puppet is placed, never stepped, and
+		# its delta is from wherever it was last stepped, so its stop seeked to the end at once.
+		var tick := 1.0 / Engine.physics_ticks_per_second
+		_from -= Vector3(body.velocity.x, 0.0, body.velocity.z) * tick
 	_facing = body.facing
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z)
 	var wish := body.move_goal.direction(body)
@@ -327,7 +335,10 @@ func _progress(body: Character, leg: float) -> float:
 func _body_done(body: Character) -> bool:
 	match kind:
 		Kind.STOP:
-			return body.ground_speed() < settings.standing_speed
+			# At rest: the clip is played by the ground the body covers until the body stands
+			# (the stop decelerations of `CharacterTuning` cover the clip's travel), never on by
+			# itself under a body that still slides.
+			return body.ground_speed() < STOP_DONE
 		Kind.START:
 			return body.ground_speed() >= body.goal_speed * 0.95
 		_:

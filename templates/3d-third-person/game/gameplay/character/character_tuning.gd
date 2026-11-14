@@ -40,6 +40,17 @@ extends Resource
 @export_range(0.0, 1.0, 0.01) var least_walk_share := 0.5
 ## Ground speed above `walk_speed` by more than this counts as a run (the run clip plays).
 @export_range(0.0, 3.0, 0.01, "suffix:m/s") var run_above_walk := 0.35
+@export_subgroup("Stops")
+## How fast a body on its feet slows, the stick let go, while it moves no faster than
+## `walk_speed`: the walk's stop. Each gait's stop slows the body over the ground its stop clip's
+## feet cover (`gds/Walk_Stop`, `gds/Jog_Stop`, `gds/Sprint_Stop` in `locomotion.json`), so the
+## clip plays to its end as the body comes to rest; a faster stop leaves the clip's feet sliding.
+## The defaults cover 0.48 m from the walk, 1.96 m from the jog and 4.82 m from the sprint.
+@export_range(0.5, 80.0, 0.01, "suffix:m/s²") var walk_stop_deceleration := 2.84
+## The same between `walk_speed` and `run_speed`: the jog's stop, after which the walk's slows it.
+@export_range(0.5, 80.0, 0.01, "suffix:m/s²") var run_stop_deceleration := 4.38
+## The same above `run_speed`: the sprint's stop, after which the jog's and the walk's slow it.
+@export_range(0.5, 80.0, 0.01, "suffix:m/s²") var sprint_stop_deceleration := 4.57
 
 @export_group("Jump")
 ## How high a standing jump rises when the button is held.
@@ -189,3 +200,41 @@ func gravity() -> float:
 ## Speed at the moment of take-off for the jump above.
 func jump_speed() -> float:
 	return 2.0 * jump_height / jump_rise_time
+
+
+## How fast a body's ground speed `speed` moves toward its goal, the stick pushed by `strength`
+## (0 when let go): `acceleration` while pushed, the stop deceleration of `speed`'s gait when let
+## go `on_feet` (grounded, standing, no action holding it; over the stop clip, gdstudio #1415),
+## and `deceleration` otherwise.
+func steer_rate(strength: float, speed: float, on_feet: bool) -> float:
+	if strength > 0.0:
+		return acceleration
+	return stop_deceleration(speed) if on_feet else deceleration
+
+
+## How fast a body on its feet with the stick let go slows at ground speed `speed`: the stop
+## deceleration of the gait whose speed band it is in. A function of the speed alone, so a
+## predicting client and the server stop a body at the same place.
+func stop_deceleration(speed: float) -> float:
+	if speed > run_speed:
+		return sprint_stop_deceleration
+	if speed > walk_speed:
+		return run_stop_deceleration
+	return walk_stop_deceleration
+
+
+## The ground a body on its feet covers from ground speed `speed` to rest with the stick let go,
+## by the stop decelerations (m): what an AI's navigator leaves itself to stop on its point.
+func stop_distance(speed: float) -> float:
+	var bands: Array[Array] = [
+		[run_speed, sprint_stop_deceleration],
+		[walk_speed, run_stop_deceleration],
+		[0.0, walk_stop_deceleration],
+	]
+	var distance := 0.0
+	var top := maxf(speed, 0.0)
+	for band in bands:
+		var bottom: float = minf(band[0], top)
+		distance += (top * top - bottom * bottom) / (2.0 * maxf(band[1], 0.01))
+		top = bottom
+	return distance
