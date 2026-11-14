@@ -32,27 +32,38 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## The slide's rack (#1337) adds 2: the hold's `HoldRackArm` and `HoldRackFingers` modifiers,
 ## inactive but through the rack after an empty reload. The hold's `HandFloor` (#1356) adds 1, a
 ## modifier inactive unless the body lies and aims. The aim layer's `AimUprightModifier` (kit #1351)
-## adds 1, inactive until the fists aim.
-const NODES_ALIVE := 69
+## adds 1, inactive until the fists aim. The peek lean (#1400) adds 3: the body's `PeekShape`,
+## disabled unless it leans, the `PeekLayer` and its `PeekModifier`, idle while upright.
+const NODES_ALIVE := 72
 const BODIES_ALIVE := 2
 const CROWD := 10
-const FRAMES := 120
-## Ten walking characters' median frame (their scripts, the animation and the physics step), as a
-## multiple of the median calibration loop below, the loop run once at the end of every measured
-## frame. Both sides are timed in the same frames, so a moment the machine takes the processor
-## away moves both (#1324: the loop timed once after the frames, as the fastest of nine, read 1.41
-## against the old limit of 1.3 while other suites ran). Measured 2026-11-12 on the desktop,
-## headless at CI's step: 0.90 to 1.12 in 28 runs with two more suites running, where the old
-## measure read 0.83 to 1.45 in the same rounds. After main's character and animation work of
-## 2026-11-11 and 12 (not traced to one change) it read 1.16 to 1.33 (16 runs, 8 to 93 %
-## of the processor, the build before them 1.01 to 1.08 in turns with it), and a frame made twice
-## as slow 2.21 to 2.60. The limit sits between the two; the counts above hold the ragdoll tight.
-const FRAME_RATIO_LIMIT := 1.7
+## Frames a window times, and windows a measure takes the best of.
+const FRAMES := 90
+const WINDOWS := 3
+## Ten walking characters' frame (their scripts, the animation and the physics step, less the same
+## arena's frame before they came), as a multiple of the calibration loop below, run once at the
+## end of every measured frame: medians of each window's frames and loops, the lowest of the
+## windows' ratios. Both sides are timed in the same frames, so a moment the machine takes the
+## processor away moves both (#1324), and a window the runner slowed for its own reasons is
+## outvoted by the other two; a frame twice as slow is twice in every window.
+## The limits sit between the highest ratio seen and twice the lowest, by system, as the AI cost
+## gate's (kit docs/engines/godot/running-gdunit.md#timing-gates; #1451): the same code reads
+## differently on each of GitHub's processor models (one model's runs agree within a few
+## percent, the models 1.5 times apart), and Linux and Windows build it to different speeds.
+## Rulers of animation, physics and spread-out memory work were timed beside the loop over 100 CI
+## runs and none followed the frame better (third-person/character.md#parts-cost). Linux: 150
+## soak runs on five processor models read 1.26 to 1.78 (one window of 450 read 2.24), twice as
+## slow 2.54 at the least; Windows: 10 desktop runs beside 9 to 11 other Godot processes, 1.54 to
+## 1.83, twice as slow 3.07 at the least.
+const FRAME_RATIO_LIMITS := {"Linux": 2.2, "Windows": 2.4}
+## How many times its work the teeth case's frame costs.
+const SLOW_FACTOR := 2.0
 
 var _arena: Node3D
 var _work: Array[float] = []
 var _loop: Array[float] = []
 var _tick_start := -1
+var _factor := 1.0
 
 
 func before_test() -> void:
@@ -124,26 +135,73 @@ func test_a_standing_target_is_not_processed_until_it_is_hit() -> void:
 
 
 func test_ten_walking_characters_stay_under_the_frame_budget() -> void:
+	var row := await _measure_crowd(1.0)
+	print("PARTS_BUDGET\n" + JSON.stringify(row))
+	var limit := _frame_limit()
+	(
+		assert_float(row.ratio)
+		. override_failure_message(
+			(
+				"10 walking characters took %.3f ms a frame, %.2f times the ruler (limit %.2f): %s"
+				% [row.frame_ms, row.ratio, limit, JSON.stringify(row)]
+			)
+		)
+		. is_less(limit)
+	)
+
+
+func test_ten_characters_twice_as_slow_fail_the_frame_budget() -> void:
+	var row := await _measure_crowd(SLOW_FACTOR)
+	print("PARTS_BUDGET_SLOW\n" + JSON.stringify(row))
+	(
+		assert_float(row.ratio)
+		. override_failure_message(
+			(
+				"10 characters twice as slow passed the frame budget at %.2f (limit %.2f): %s"
+				% [row.ratio, _frame_limit(), JSON.stringify(row)]
+			)
+		)
+		. is_greater_equal(_frame_limit())
+	)
+
+
+## This system's frame limit (Linux's on a system with none of its own).
+static func _frame_limit() -> float:
+	return FRAME_RATIO_LIMITS.get(OS.get_name(), FRAME_RATIO_LIMITS["Linux"])
+
+
+## The empty arena's frame, then ten walkers' in `WINDOWS` windows, each beside the loop; `factor`
+## makes each of the walkers' frames cost that many times itself (the teeth case).
+func _measure_crowd(factor: float) -> Dictionary:
+	await InputSim.ticks(get_tree(), 10)
+	_factor = 1.0
+	await _measure_frames()
+	var base := _median(_work)
 	for index in CROWD:
 		_spawn(index)
 	await InputSim.ticks(get_tree(), 60)
-	await _measure_frames()
-	var frame := _median(_work)
-	var calibration := _median(_loop)
-	var ratio := frame / calibration
-	prints(
-		"PARTS_BUDGET frame %.3f ms, calibration %.3f ms, ratio %.3f" % [frame, calibration, ratio]
-	)
-	(
-		assert_float(ratio)
-		. override_failure_message(
-			(
-				"10 walking characters took %.3f ms a frame, %.2f times the calibration (limit %.2f)"
-				% [frame, ratio, FRAME_RATIO_LIMIT]
-			)
-		)
-		. is_less(FRAME_RATIO_LIMIT)
-	)
+	_factor = factor
+	var ratios: Array[float] = []
+	var frames: Array[float] = []
+	var loops: Array[float] = []
+	for _window in WINDOWS:
+		await _measure_frames()
+		var frame := maxf(_median(_work) - base, 0.0)
+		var loop := maxf(_median(_loop), 0.001)
+		frames.append(snappedf(frame, 0.001))
+		loops.append(snappedf(loop, 0.001))
+		ratios.append(snappedf(frame / loop, 0.001))
+	var best := ratios.find(ratios.min())
+	return {
+		"system": OS.get_name(),
+		"ratio": ratios[best],
+		"frame_ms": frames[best],
+		"loop_ms": loops[best],
+		"base_ms": snappedf(base, 0.001),
+		"ratios": ratios,
+		"frames_ms": frames,
+		"loops_ms": loops,
+	}
 
 
 # Times each frame's work, from its first physics tick to the last node processed, then runs the
@@ -159,6 +217,7 @@ func _measure_frames() -> void:
 	for _i in FRAMES:
 		await get_tree().process_frame
 	get_tree().physics_frame.disconnect(_on_physics_frame)
+	end.done.disconnect(_on_frame_end)
 	end.queue_free()
 
 
@@ -176,7 +235,13 @@ func _on_physics_frame() -> void:
 func _on_frame_end() -> void:
 	if _tick_start < 0:
 		return
-	_work.append((Time.get_ticks_usec() - _tick_start) / 1000.0)
+	var spent := Time.get_ticks_usec() - _tick_start
+	if _factor > 1.0:
+		var until := _tick_start + int(spent * _factor)
+		while Time.get_ticks_usec() < until:
+			pass
+		spent = Time.get_ticks_usec() - _tick_start
+	_work.append(spent / 1000.0)
 	_tick_start = -1
 	_loop.append(_calibration_ms())
 

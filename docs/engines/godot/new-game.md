@@ -148,6 +148,11 @@ every exit, kept with `--keep`, two calls at once).
   its captures are made. **Watch out for:** every agent's kept games and logs sit side by side in the user's temp
   folder as `gds-tt-*`; a cleanup by that glob deleted other agents' kept games, some mid-run, before it was
   stopped. **Seen:** gdstudio #1156, 2026-11-12.
+- **Approach:** To try a change in a kept game, copy the template's changed scripts and scenes over and make the game
+  again (`gds template game`) when `project.godot` changed. **Watch out for:** the made game's `project.godot` is the
+  template's with the autoloads and addon settings `gds template game` adds; copying the template's over it dropped
+  `UIRouter` and the other autoloads, and every suite that loads `main.tscn` failed on parse errors with nothing of
+  the change in them. **Seen:** gdstudio #1400, 2026-11-13.
 - **Approach:** Prove a new game or template change with a parse of every script (`gds check scripts`) and an editor
   open, and when a script fails, find the registration or file it needs, never an export exclusion. **Watch out
   for:** a new 3D Blank game opened with five parse errors from the `gds_ui` demo (`Identifier "UIRouter" not
@@ -163,15 +168,21 @@ every exit, kept with `--keep`, two calls at once).
   checkout whose `python` folder `--project` names, not the folder you stand in, so `--project` names the worktree's
   (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
   **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
-  gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template); #1274.
+  gdstudio #940, 2026-11-10 (the main checkout's `python` tested its own template); #1274; PR #1427.
+- **Approach:** Run a desktop probe or a bench of a template in a kept game (`gds template game`, or the game
+  `bench-web` keeps without `--run`), never with `--path templates/<t>/game`. **Watch out for:** an import there
+  failed to parse the menus and settings (37 errors: their classes come with the game) and rewrote three levels'
+  lightmap `.import` files in the worktree (the ASTC copy dropped); committed, they fail CI's step that the build left
+  nothing for git, so read `git diff --stat origin/main -- '*.import'` before a push. **Seen:** gdstudio #1433,
+  2026-11-13 (put back with `git checkout`); #1400 (PR #1437), 2026-11-13 (two lightmaps' `.exr.import` committed).
 - **Approach:** Give a new script or shader its `.uid` before `gds template test` with `gds template uids
   <template>` (the template's name, or a folder holding `project.godot`): it writes each missing file in Godot's form
   and leaves every valid one alone. A new asset's `.import` still comes from the kept game (`gds template game
   <template>`, import, copy it back). **Watch out for:** the layout check refuses a script without its `.uid` and the
   template's own folder cannot be opened to make one, so agents copied uids back from a kept game or wrote them by
   hand, and hand-made ones held text Godot never writes. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR
-  #1092), 2026-11-11; gdstudio #1148, 2026-11-11 (a suite written after the scripts); kit #1129, 2026-11-11 (the
-  command).
+  #1092), 2026-11-11; gdstudio #1148, 2026-11-11; kit #1129, 2026-11-11 (the command); gdstudio #1359 and #1405,
+  2026-11-13 (a suite and fixtures run in a kept game, whose uids the worktree lacked).
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game` (the
   `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree (the kit is the
   `--project` checkout, not your folder). Send a run's log to a new name in your own scratch folder or from `mktemp`,

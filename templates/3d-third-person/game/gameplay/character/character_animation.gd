@@ -451,9 +451,10 @@ func body_state() -> StringName:
 	return _playback.get_current_node() if _playback != null else &""
 
 
-## True while an action clip plays over the body.
-func is_acting() -> bool:
-	return tree != null and tree.get(_P_ACTION_ACTIVE)
+## True while an action clip plays over the body; with `whole_body`, over all of it (a vault, a
+## push), not over the upper body alone.
+func is_acting(whole_body := false) -> bool:
+	return tree != null and tree.get(_P_ACTION_ACTIVE) and not (whole_body and _upper_only)
 
 
 ## The action clip that played last.
