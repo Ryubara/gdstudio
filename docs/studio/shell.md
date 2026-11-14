@@ -25,7 +25,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   push` run after a refused title and push only the older commit; in the Bash tool a `set -e` at the top of a command
   stops nothing (`bash <file>` honours it), so a refused description was published and the pull request marked ready; a
   fixer's exit 1 made `&&` skip the edit that followed it. **Seen:** Deadnight #1280, 2026-11-05; gdstudio #621,
-  2026-11-05; Deadnight, 2026-11-03 (fix: `;` only for steps that may fail, every gate read before the next step).
+  2026-11-05; Deadnight, 2026-11-03 (fix: `;` only for steps that may fail, every gate read before the next step); PR
+  #1530, 11-14 (coordinator: `gdformat` refused the commit and `;` pushed the merge without the fix).
 - **Approach:** Filter `gh` output with `--json` and `--jq` (or a few lines of Python), never `grep -P`. **Watch
   out for:** this machine's Git Bash runs under a locale `grep -P` refuses (`-P supports only unibyte and UTF-8
   locales`, exit 2), so a filter in a pipe printed nothing and read as no match. **Seen:** gdstudio #1153 (PR #1167),
@@ -66,7 +67,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   vanished from a regex, and a `sed` replacement split a line over three; a parser that accepts the wrong text says
   nothing. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-03; Deadnight, 2026-11-04 (fix: the tests and `ruff` run
   straight after the edit, not at the end); gdstudio #770, 2026-11-07 (two heredoc scripts never ran: Write tool);
-  gdstudio #889, #1005, #1120, #1183, #1188, #1465, 11-10 to 11-13.
+  gdstudio #889, #1005, #1120, #1183, #1188, #1465, 11-10 to 11-13; #1539, 11-14.
 - **Approach:** A script that changes several places of one file works from the end upward, or finds its place again
   after each edit, and cuts "to the next top-level `func` or `class`", never to the end of the file; then it imports the
   project and runs `godot --headless --check-only -s <script>` on every edited script that no suite loads. **Watch out
@@ -87,6 +88,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   2026-11-08 (fix: a Python file with the backslash built from a variable); gdstudio #1472, 2026-11-13 (a `"\n"` in
   a test and in `newline=`, and the backslash line ends of a workflow, came out as real line breaks; fix: the Edit tool);
   PR #1422, 2026-11-14 (a quoted `<<'EOF'` heredoc did it too, to a docs entry's `\r` and `\n`).
+- **Approach:** When a script finds a docs section by its heading, skip fenced code blocks (`lessons.py` reads only the
+  lines outside them) and end the section at the next heading of its level or above; read the diff of every page it
+  touched before the commit. **Watch out for:** a bash comment in a code block (`# conflicts: ...`) matched a heading's
+  pattern (`^#+` and a space), so three entries meant for the end of `landing.md#merging-main-into-a-pull-request`
+  landed inside its code block, and markdownlint passed. **Seen:** gdstudio #1539, 2026-11-14 (caught in the diff; the
+  entries moved).
 
 ## Folders and paths {#paths}
 
