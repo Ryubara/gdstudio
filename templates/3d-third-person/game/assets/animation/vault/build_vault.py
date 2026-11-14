@@ -1975,6 +1975,7 @@ def sidecar(rig, clips, path):
             "file": path.name,
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             "overlap_limit_mm": OVERLAP_LIMIT,
+            **__import__("measure_hash").made_by([rig.body["file"]]),
         },
         "clips": {},
     }

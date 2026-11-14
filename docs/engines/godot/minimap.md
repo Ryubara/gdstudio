@@ -201,4 +201,5 @@ In 3D Third Person: the `test_minimap_*.gd` suites of `tests/core/` and `tests/u
   for the same private helper names across suites (`_carry`, `_section`) so a split moves cleanly. **Watch out for:**
   the minimap's view suite had 21 and gdlint failed the pre-commit hook after the tests had passed. **Seen:** gdstudio
   #884, 2026-11-10; #1100, 2026-11-11 (a menu sound suite of 21, split into wiring and rules; the same hook refuses a
-  function with more than six `return`s: fold the conditions into one `silent :=` expression).
+  function with more than six `return`s: fold the conditions into one `silent :=` expression); #1161, 2026-11-12
+  (the own clips' suite at its limit: the jump's tests went into `test_own_jump_clips.gd`).
