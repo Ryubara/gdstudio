@@ -84,9 +84,11 @@ job with no failing test (Deadnight #1015, `tools/ci_test_shards.py` and `tools/
 - **Approach:** Before adding a suite to a template's CI job, read that job's last green run on the base: the minutes it
   took against its `timeout-minutes`, and its slowest suites by the gaps between `Run Test Suite:` lines. **Watch out
   for:** a job past 80 % of its limit is cancelled with no failing test whenever a slow runner draws it; that is the
-  limit, not your change, so rerun the job once and open an issue to shard it. **Seen:** gdstudio #1482, the
-  3d-third-person template job cancelled at its 40 minutes during GdUnit4 (264 suites in 2229 s against 1648 s on the
-  base's run over the same suites; `test_jump_weapon_hold.gd` 877 s against 526 s), the base itself at 38 minutes.
+  limit, not your change: a rerun draws another runner of the same speed and is cancelled again, so raise the
+  job's `timeout-minutes` with the issue that shards it named beside it. **Seen:** gdstudio #1482, the 3d-third-person
+  template job cancelled at its 40 minutes twice (264 suites in 2229 s, then all 312 in 1913 s, against 1783 s on the
+  base's green run; `test_jump_weapon_hold.gd` 877 and 646 s against 526 s), the base itself at 38; raised to 50 with
+  #1492.
 
 ## Night suites: where the seconds go, and what may be cut {#night-suites-where-the-seconds-go-and-what-may-be-cut}
 
