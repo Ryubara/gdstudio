@@ -274,7 +274,10 @@ its data files, and its cooldown and stop speeds come from a decompile, not from
 
 The tests are `tests/gameplay/test_slide.gd` (keys, commands, snapshots, a ramp, a low gap; 17 cases) and
 `test_slide_live.gd` (the pad, the touch layer, the clips and the camera in the game scene). The capture is
-`tools/capture/slide_tour.tscn` (`SLIDE_OFF=1` shows crouch at a sprint without the slide).
+`tools/capture/slide_tour.tscn` (`SLIDE_OFF=1` shows crouch at a sprint without the slide; `SLIDE_WEAPON=rifle` or
+`unarmed` and `SLIDE_BODY=male` change what slides). `test_slide_end_blend.gd` reads every drawn update of a slide
+into the crouch with each weapon on both bodies and fails on a joint that jumps (the slide's end into the crouch
+popped in one frame until kit #1439: [the momentum blend's late start](../animation-tree.md#gait-fitting)).
 
 What it costs (`tools/bench/player_step_bench.tscn`, which presses crouch at a sprint for 40 of every 240 ticks, so its
 bodies slide): 40 bodies stepped by commands took 30.2 and 32.3 µs a body a tick with the slide on and 32.7 and 30.1

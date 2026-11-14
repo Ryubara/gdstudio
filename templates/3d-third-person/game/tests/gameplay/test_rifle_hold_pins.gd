@@ -10,6 +10,7 @@ const HOLD_PINS := {
 	&"low_pitch": 35.0,
 	&"low_yaw": 10.0,
 	&"chest_turn": -30.0,
+	&"left_chest_turn": 0.0,
 	&"aim_lean_limit": 25.0,
 	&"arm_stretch": 0.97,
 	&"pull_limit": 0.0,
@@ -76,6 +77,7 @@ const CHARGE_PINS := {
 	&"pull": Vector2(0.8, 0.86),
 	&"release": Vector2(0.86, 0.88),
 	&"slam": 0.015,
+	&"straight_return": Vector2(0.66, 0.86),
 }
 const MODIFIER_PINS := {
 	&"pose": null,
