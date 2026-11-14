@@ -494,6 +494,31 @@ def test_propose_skips_a_path_mention_in_a_section_far_from_the_issues_words(bri
     assert [p.why for p in close if p.section.ref == "studio/voices.md#voice-lines"] == ["mentions game/core/"]
 
 
+def test_propose_names_the_two_closest_sections_that_mention_a_named_path(brief_kit):
+    """A file's lesson often sits beside its code and on the page of its cause; a brief carries both, so a new entry
+    beside the code does not push the cause's section out (gdstudio #1474: `ai.md#proof` and
+    `ui-input-tests.md#leaks` both name `test_ai_section.gd`)."""
+    pages = {
+        "guards.md": "# Guards\n\n## Guard proof {#proof}\n\nWhen `tests/test_guard.gd` fails in a full run with a "
+        "guard noticing a player behind it, a guard turned to a held button, not a sense: guard, player, behind.\n",
+        "leaks.md": "# Leaks\n\n## What a suite leaves {#leaks}\n\nA test that fails in a full run and passes alone: "
+        "a suite before it left a button held, and the guard of `tests/test_guard.gd` turned to a player behind it.\n",
+        "senses.md": "# Senses\n\n## Guard senses {#senses}\n\nWhat a guard notices: a player in front, never "
+        "behind; a guard turns to a player it notices.\n",
+        "patrols.md": "# Patrols\n\n## Guard patrols {#patrols}\n\nA guard walks its route and turns to a player it "
+        "notices behind a door.\n",
+    }
+    for name, text in pages.items():
+        (brief_kit / "docs" / "studio" / name).write_text(text, encoding="utf-8")
+    title = "tests: Fix a guard noticing a player behind it"
+    body = "`tests/test_guard.gd` fails in a full run: a guard noticed the player behind it. It passes alone."
+    found = lessons.propose(brief_kit, title, body, limit=2)
+    assert refs_of(found) == ["studio/guards.md#proof", "studio/leaks.md#leaks"]
+    assert [p.why for p in found] == ["mentions tests/test_guard.gd"] * 2
+    words_only = lessons.propose(brief_kit, title, body.split("`")[2], limit=2)  # by words alone, senses is second
+    assert refs_of(words_only) == ["studio/guards.md#proof", "studio/senses.md#senses"]
+
+
 ROBOTS_PAGE = """# Robot characters in the template
 
 The base every robot character is made from, the profile that says what kind of robot it is, and the director that

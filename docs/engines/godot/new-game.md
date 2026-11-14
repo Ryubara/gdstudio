@@ -262,6 +262,13 @@ create the repository and push `main`; Pages' source to GitHub Actions and the t
 check this way (`gds new game template-check --template 3d-blank --local`), then exports the web build and boots it in
 headless Chromium ([the boot check](web-probes.md#boot-check)).
 
+- **Approach:** Make a throwaway game for a probe with `gds template test`, or give its folder its own
+  `.gdstudio-workspace` marker before `gds new game --local --workspace <folder>`, and check the `made` line's path.
+  **Watch out for:** `--workspace` finds the nearest workspace at or above the folder it names, so a folder inside the
+  workspace (its `scratch/`) resolves to the workspace itself and the game is made in its `repos/`. **Seen:** gdstudio
+  #1481, 2026-11-13 (a game for dumping the pistol's hold landed in `repos/` and was removed at once; the probe then
+  used a marked scratch folder).
+
 ## A double-click for people {#double-click}
 
 <!-- new section: the page held the command for agents; nothing gave a person a way without typing it -->

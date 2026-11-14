@@ -50,11 +50,13 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   moved to the scratch folder; the cache folder was deleted before the push); gdstudio #1151, 2026-11-11 (the same
   numpy failure from a script in the shared temp folder).
 - **Approach:** Keep a Python package inside a game free of `__init__.py` (a folder of modules imports as a
-  namespace package) and start Blender with `PYTHONDONTWRITEBYTECODE=1` in its environment when its script imports
-  a module of the game. **Watch out for:** the template's layout check refuses a file named `__init__.py` (not
-  snake case), and `-B` covers only the Python you start: Blender importing `limb_overlap.py` left a `__pycache__`
-  folder in the game, which the commit would have taken. **Seen:** gdstudio #1154, 2026-11-11 (fix: the toolkit's
-  rate moved from `gdsanim/__init__.py` into `maths.py`; `build_own.py` passes the variable).
+  namespace package), and set `sys.dont_write_bytecode = True` in a Blender script before it imports a module of
+  the game (or start Blender with `--python-expr "import sys; sys.dont_write_bytecode = True"` before `-P`).
+  **Watch out for:** the layout check refuses `__init__.py` and `__pycache__`, `-B` covers only the Python you
+  start, and Blender ignores the environment's Python
+  variables, so `PYTHONDONTWRITEBYTECODE=1` did not stop its imports writing `__pycache__` beside the builds.
+  **Seen:** gdstudio #1154, 2026-11-11 (fix: the toolkit's rate moved from `gdsanim/__init__.py` into `maths.py`);
+  gdstudio #1481, 2026-11-13 (caches after builds run with the variable; fix: the flag before `import clip_check`).
 - **Approach:** Take a build's output only after reading its exit code or its last line (`EXPORTED`), or delete the
   old output before the build. **Watch out for:** a build that fails its checks exits before it exports and leaves the
   last good file in place, so the next step copied and rendered the old clips as if they were the new ones.
@@ -76,6 +78,8 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
 A rebuild changes only what the task changes. Blender's glTF export does not keep the triangle order from run to run,
 so compare a rebuilt model by its nodes, vertex buffers and triangle set ([Weapons](weapons.md#building-by-script)) and
 its clips by their animation accessors, read in Python, never by bytes; commit only the files the change is for.
+3D Third Person's clip builds are the exception on the platform that made their files: they write the same bytes
+again ([checked in CI](#ci)).
 
 - **Approach:** Give every build that exports clips a frozen list of the clips its file carries and assert it; before
   rebuilding a file a clip module feeds, compare its clip list with the committed one, and before tuning a clip, find
@@ -99,6 +103,12 @@ its clips by their animation accessors, read in Python, never by bytes; commit o
   the dash's leg swivel at 34 degrees for 41. **Seen:** gdstudio #1325 after #1323, 2026-11-12 (fix: rebuilt after
   merging `main`); #1479, 2026-11-14 (the limb overlap reports carry the hash of the measure's code and of each
   body, and `BodiesOverlap.problems` fails on another; `fixed_clips.json` and `vault_clips.json` do not yet).
+- **Approach:** After any edit to `limb_overlap.py`, measure every `*_overlap.json` report again with the pinned
+  Blender (the commands in `check_clip_builds.py`'s `overlap_*` entries, and `own/build_own.py ship locomotion
+  --blender` for `own/bodies_overlap.json`) and commit them in the same pull request. **Watch out for:** an edit
+  that only adds arguments or plumbing still changes the code's normal form, so every report's `measure_sha256` goes
+  stale and `test_measure_hash.py` fails, though no number moves. **Seen:** gdstudio #1494 after #1489, 2026-11-14
+  (the `--check` argument; fix: the six reports measured again, only the hash changed).
 
 ## Checks in the build {#checks}
 
@@ -143,3 +153,50 @@ A clip that passes an obstacle is also read between its keys, as a game draws it
   or of their axes) with a limit in millimetres, not by the angle from `acos` of a dot product. **Watch out for:**
   `mathutils` is single precision, so an arc cosine of a dot product near 1 reads 0.04 to 0.09 degrees between two
   poses that are the same, and a pose-gap check failed on noise. **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.
+
+## Checked in CI {#ci}
+
+<!-- new section: running and rebuilding cover one build by hand; none held every committed clip to its build -->
+
+Every Blender clip build of 3D Third Person takes `--check`: it builds into a temporary folder, compares each file it
+would write with the committed one, prints `SAME`, `CLOSE` or `DIFFERENT` for each and a last line
+`CHECKED <n> same` or `CHECKED <n> different`, and exits 1 on a difference (`clip_check.py` beside the builds,
+kit #1481). `limb_overlap.py --check` does the same for its `--json` report. `check_clip_builds.py` runs all of them in
+parallel with the arguments the committed files were made with, plus the limb reports no build writes (one a prone
+file and the vault's Quaternius pair), and passes a build only on its `CHECKED ... same` line:
+
+```sh
+python templates/3d-third-person/game/assets/animation/check_clip_builds.py --blender "$(gds tool path blender)" \
+    --hold <aim_seat.json> --logs <folder>
+```
+
+The prone aim and reload builds read the pistol's hold as the game has it: write `aim_seat.json` with
+`tools/hold/dump_aim_seat.gd` in an imported game made from the template. The kit's CI job `blender-clips` does all of
+it on Linux with the pinned Blender and Godot (fetched by `gds workspace init --fetch godot,blender`, cached by
+`tools.toml`'s hash), and builds the own clips again with their limb report (`build_own.py ship locomotion --check
+--blender`); the numpy-only `clips` job checks the own clips without Blender on every pull request. A pull request
+runs `blender-clips` only when it changes the template's `assets/animation`, `assets/characters`, `assets/weapons`,
+`gameplay/weapon`, `gameplay/character` or `tools/hold`, `tools.toml` or `ci.yml`; every push to `main` runs it, so
+an input the list misses is still caught there. It takes about 7 minutes on a runner: the fetch 47 s, the game
+and the dump 23 s, the builds 130 s on 4 workers and the own clips' limb report 205 s; the template job takes
+longer, so it adds nothing to the time to green.
+
+Windows makes every committed clip again byte for byte. Linux does not: Blender there rounds the last bit of a float
+differently, so every glb comes out a few bytes apart (at most 7e-7 in any value, one float32 step, and a node scale
+of 0.99999994 against an exact 1 left out). CI sets `CLIP_CHECK_TOLERANCE=1e-5`: a file that is not the same bytes
+passes as `CLOSE` when its glTF JSON and every accessor hold the same values within it; a json report may differ by
+one step of a number's last printed digit (a measure rounded to 0.1 mm lands on the other side of a half) and in its
+SHA-256 strings. `KNOWN` in the runner names a build that cannot make its files today, with the issue that fixes it;
+`WINDOWS_ONLY` names one whose files only Windows makes again.
+
+- **Approach:** Rebuild a committed clip with `--check` after any change to what its build reads, not only to its
+  script: the rifle clips, the torso skin, the hold files and the limb measure all feed other builds. **Watch out
+  for:** a build whose input moved under it keeps its old files in the repository and no test notices: the melee
+  build failed 21 of its own checks once #1399 changed the rifle clips and the torso skin it reads, and
+  `vault_male_clips.json` kept a limb depth of 4.6 mm after #1323 changed the measure to 4.5. **Seen:** gdstudio
+  #1481, 2026-11-13 (the melee build is kit #1493; the vault report was rebuilt).
+- **Approach:** Hold a build that searches for a pose to Windows, where its files were made, and to the
+  numbers its checks print elsewhere. **Watch out for:** last-bit float differences between platforms send a search
+  to another answer: the rifle build on Linux keyed its aim and shot clips up to 0.007 apart in a bone's rotation
+  (about 0.8 degrees at the forearm), the same on every Linux run, while every other build stayed within 7e-7.
+  **Seen:** gdstudio #1481, 2026-11-13 (`WINDOWS_ONLY` in `check_clip_builds.py`).

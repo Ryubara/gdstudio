@@ -335,9 +335,11 @@ It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), a
 1. every section the issue names as `page.md#anchor`; a section a split left as a pointer gives the section it moved
    to, here and in the steps below ([page size](rules.md#size), gdstudio #1471);
 2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
-   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards/` finds the hooks
-   pages), when that section's words score at least a third of the best section's (a pull request's changed files
-   need no such closeness);
+   issue's words, any other path the two closest sections that mention it (`.claude/hooks/guards/` finds the hooks
+   pages), when their words score at least a third of the best section's (a pull request's changed files need no
+   such closeness). Two, because a file's lesson often sits beside its code and on the page of its cause: with one,
+   a new entry on `third-person/ai.md#proof` naming `test_ai_section.gd` took the place of
+   `ui-input-tests.md#leaks` (gdstudio #1474);
 3. the rest by the issue's words: its title, its area labels with their descriptions (`A-agents`, "Agents and their
    instructions"), then its body, which counts least.
 
