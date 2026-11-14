@@ -35,7 +35,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** Filter JSON in a loop with `gh ... --json <fields> -q '<expression>'`, which carries its own jq;
   the standalone `jq` program is not installed here. **Watch out for:** a CI watch loop that piped `gh pr checks
   --json` into `jq -e` never met its end condition (`jq: command not found` went to the error stream of a background
-  command), so it ran past the checks for half an hour. **Seen:** gdstudio #1318 (PR #1364), 2026-11-12.
+  command), so it ran past the checks for half an hour. **Seen:** gdstudio #1318 (PR #1364), 2026-11-12;
+  #1530, 2026-11-14 (a wait for a fixed head; stopped and rewritten with `-q`).
 - **Approach:** Test a label in a `-q` expression with one that prints a word either way:
   `gh pr view <n> --json labels -q '[.labels[].name] | any(. == "S-hold")'` prints `true` or `false`. **Watch out
   for:** `[.labels[].name] | index("S-hold")` prints an empty line, not `null`, when the label is absent, so a landing

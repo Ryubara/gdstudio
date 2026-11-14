@@ -16,7 +16,7 @@ player. The base, the profile and the director are on [AI characters](ai.md).
 | `AiBeliefs`, `AiBelief` | `ai_beliefs.gd`, `ai_belief.gd` (`RefCounted`) | One belief per entity: last position, velocity, time, confidence, source (seen, heard, told, touched), awareness, noticed, believed. `fire_target(from)` gives only what is believed and seen now; `search_target()` the freshest memory; `believes(node)`, `knows(node)`, `most_aware()`, `describe()`. |
 | `AiSensePool` | `ai_sense_pool.gd` | A group's members split by faction, shared by every senses node and built again when the group's count changes (or every 30 ticks, or when the table is rebuilt): a grunt among 200 grunts walks the 4 players, not 199 friends. |
 | `AiNoise`, `AiNoiseRecord` | `ai_noise.gd`, a node of `world/world.tscn` (group `ai_noise`); `ai_noise_record.gd` | The level's noise board: `AiNoise.emit(node, kind, position, loudness, source)`; keeps the last `capacity` noises for `keep_seconds`, each with its kind's radius in `radii` times its loudness. Draws each noise's ring with `show_noises`. |
-| `AiNoiseMaker` | `ai_noise_maker.gd`, the `NoiseMaker` child of `gameplay/character/character.tscn` | The noises a body makes: a footstep every `stride` metres on the ground (by ground speed, quieter crouched or prone), a landing, a shot when its weapon fires, an impact where the shot lands (with no source: "something"). It reads the body's movement, never the animation, so a server's body makes the same steps. |
+| `AiNoiseMaker` | `ai_noise_maker.gd`, the `NoiseMaker` child of `gameplay/character/character.tscn` | The noises a body makes: a footstep every `stride` metres on the ground (by ground speed, quieter crouched or prone), a landing, a shot when its weapon fires, an impact where the shot lands (with no source: "something"). It reads the body's movement, never the animation, so a server's body makes the same steps. It looks every `check_ticks` ticks at a phase from a hash of its character's node path (`check_phase`), never its instance id. |
 | `AiSensesView` | `ai_senses_view.gd`, the `SensesView` child of `Senses` | The debug view, off by default: the cone on the ground, the near and hearing rings, a line from the eyes to each belief (green seen, amber a memory, blue heard or told) and an awareness bar per belief above the head with the `suspicious_at` mark (red once believed). |
 
 ## How a character knows {#model}
@@ -174,3 +174,10 @@ reach) and behind (heard, then noticed at arm's reach), with the footstep rings 
   tick; `is_instance_valid` alone passed it. **Seen:** gdstudio #1328, 2026-11-12 (the soak's faulted run;
   `AiNoiseRecord.maker_gone()` and `AiSenses.Share.entity()`, `test_a_noise_whose_maker_left_the_tree_is_skipped`,
   `test_a_telling_about_a_body_out_of_the_tree_is_dropped`).
+- **Approach:** Take a part's phase, seed or order from something the scene fixes (a hash of the node path, the
+  spawn order, the run's seed), never from `get_instance_id()`, and prove it with a run of a seed in a fresh process
+  plain and after one more object made first (`tests/fixtures/soak_after_objects.gd`). **Watch out for:** the noise
+  maker took its check phase from its character's instance id, so any object made earlier moved every footstep check:
+  the soak's seed 11 for 120 s gave hash 2810472258 plain and 35031318 after the extra object (equal at 60 s). Dictionary
+  keys and equality by instance id are fine; only a value derived from the number is not. **Seen:** gdstudio #1547,
+  2026-11-14 (`AiNoiseMaker.check_phase`, `test_ai_soak_objects.gd`).

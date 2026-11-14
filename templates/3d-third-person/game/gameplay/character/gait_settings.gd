@@ -1,9 +1,10 @@
 class_name GaitSettings
 extends Resource
 ## How `CharacterAnimation` fits the gaits to the body's real motion (gdstudio #1158): the speed
-## matching, the transitions, the momentum blend and the lean, each its own choice here with its
-## numbers. The template's characters share `gait_settings.tres`. All of it is cosmetic: it is
-## worked out on each machine from the body's own motion and never sent.
+## matching, the transitions, the momentum blend, the lean and the jump's clips (gdstudio #1371),
+## each its own choice here with its numbers. The template's characters share
+## `gait_settings.tres`. All of it is cosmetic: it is worked out on each machine from the body's
+## own motion and never sent.
 
 @export_group("Speed matching")
 ## Plays each gait at the ground speed over the speed its clip covers (`GaitClips`, scaled by the
@@ -73,6 +74,33 @@ extends Resource
 @export_range(1.0, 80.0, 0.5, "suffix:m/s²") var lean_full_at := 20.0
 ## Seconds the lean takes to follow the body (a lag that keeps a jolt of the controller off it).
 @export_range(0.0, 1.0, 0.01, "suffix:s") var lean_time := 0.12
+
+@export_group("Jump")
+## Picks the jump's clips by the body's own numbers (`JumpAnimation`, gdstudio #1371): the
+## take-off by speed and the run's foot, the air by vertical speed, the landing by fall speed and
+## the run asked for. Off: `CharacterAnimation`'s `jump_clip`, `air_clip` and `land_clip` alone.
+@export var jump_choices := true
+## The take-offs from a run, from its left and its right foot strike: the one whose first frame
+## is nearest the gait's phase plays. Empty or missing: the standing take-off.
+@export var run_takeoff_left: StringName = CharacterClips.JUMP_START_RUN_L
+@export var run_takeoff_right: StringName = CharacterClips.JUMP_START_RUN_R
+## The ground speed from which a jump takes off running (between the walk and the jog).
+@export_range(0.0, 12.0, 0.05, "suffix:m/s") var run_takeoff_speed := 2.5
+## The rise and the top of the jump, blended with the fall (`CharacterAnimation.air_clip`) by the
+## body's vertical speed. Either missing: the fall alone.
+@export var rise_clip: StringName = CharacterClips.JUMP_RISE
+@export var apex_clip: StringName = CharacterClips.JUMP_APEX
+## The vertical speeds at which the rise plays alone (up) and the fall (down); the top is at 0.
+@export_range(0.5, 20.0, 0.1, "suffix:m/s") var air_rise_speed := 3.0
+@export_range(0.5, 20.0, 0.1, "suffix:m/s") var air_fall_speed := 4.0
+## The landing from a long fall, from its record's `fall_speed.from` (`hard_land_speed` for a clip
+## with no record). Missing: `CharacterAnimation.land_clip`.
+@export var hard_land_clip: StringName = CharacterClips.LAND_HARD
+@export_range(0.0, 40.0, 0.1, "suffix:m/s") var hard_land_speed := 9.0
+## The landing into a run, played when the body lands asked to go at `run_land_speed` or more,
+## inside its record's fall speeds; it hands over to the gait at the phase it ends on.
+@export var run_land_clip: StringName = CharacterClips.LAND_TO_JOG
+@export_range(0.0, 12.0, 0.05, "suffix:m/s") var run_land_speed := 2.5
 
 @export_group("Helper bones")
 ## Blends the clips' tracks of the rig's helper bones (the `ik_` foot and hand targets), which

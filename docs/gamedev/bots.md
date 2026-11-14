@@ -209,7 +209,9 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
 - **Replay:** the same seed in a fresh process gives the same `command_hash`; another seed does not. In one process the
   second run differs: the navigators take their phase and seed from a static counter of navigators made. A run also
   depends on every object made before the AI: a noise maker takes its check phase from its instance id, so one more
-  `RefCounted.new()` in the soak changed seed 11's commands at 120 s (not at 60 s).
+  `RefCounted.new()` in the soak changed seed 11's commands at 120 s (not at 60 s), and so does any edit of a script the
+  soak loads (the watch's new exports and lines moved seed 40 off main's hash, the same once the phase was fixed), so a
+  soak-script change can make a nightly seed meet a fault main has on other seeds (#1547).
 - **Probe:** `--probe` (every kind), `--probe Civilian,Grunt` (those kinds, by profile name) or the environment variable
   `SOAK_PROBE` (same values; the watch's `probe_episodes` in the inspector) keeps a row a tick of each probed character
   and prints an `AI_SOAK_EPISODE {json}` block when a stuck episode that counts toward `stuck_share` ends: the
@@ -294,6 +296,14 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   case's sample (`stuck_episode`, the held body) read as the green case's failure. **Seen:** gdstudio #1529, 2026-11-14
   (24 seeds: main 0.31 % mean, 1 broke; without #1422's brake 0.14 %; before it 0.15 %; fixed 0.13 %:
   [the follow's brake](../engines/godot/third-person/ai-navigator.md#navigator)).
+- **Approach:** Before naming the change a soak's stuck seconds rose with, probe each counted episode: a ring of every
+  tick of the kind that rose (position, speed, the watch's "going", the navigator's mode, path left and refusal, the
+  active task) printed when an episode past the grace ends, and class the going ticks by what the navigator said.
+  **Watch out for:** the civilians' rise came with #1422's slower stops, with or without the brake, so the stops were
+  blamed; the probe showed all 11 episodes of 24 seeds were flee points the navigator refused as off open ground,
+  with the body still, a cause older than the stops that their changed courses only met more often. **Seen:**
+  gdstudio #1532, 2026-11-14 (civilian stuck seconds over seeds 1 to 24: 8.8 on main, 0.1 fixed, 4.8 before #1422:
+  [the flee's points](../engines/godot/third-person/ai-behaviour.md#stock-tasks)).
 - **Approach:** When `think_p99` (or any time gate) fails in a full local run on the shared machine, run that suite
   again alone before treating it as a failure, and put both readings in the pull request's body; CI on the branch is
   the judge. **Watch out for:** the full run beside other agents' Godot processes read think p99 just over its gate
@@ -303,5 +313,7 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
 - **Approach:** Make a soak probe that records without making an object (static functions, rows in plain arrays on
   the watch), and prove it by comparing the run's `command_hash` with and without it in fresh processes. **Watch out
   for:** the probe's first version was one `RefCounted`, and seed 11 for 120 s took another course with it (its hash
-  and its episodes changed): a probe that changes the run cannot explain it. **Seen:** gdstudio #1543, 2026-11-14
-  (`AiSoakProbe`, `test_the_probe_leaves_the_run_as_it_was`).
+  and its episodes changed): a probe that changes the run cannot explain it. Off, the soak's lines are as before but
+  its hash is not main's (the scripts changed), and the pull request's soak broke seed 40 on Linux at `stuck_share`
+  1.69 %, Civilian1 6.1 s: main's refused flee points (#1532), met on a course the id shift opened. **Seen:**
+  gdstudio #1543, 2026-11-14 (`AiSoakProbe`, `test_the_probe_leaves_the_run_as_it_was`).

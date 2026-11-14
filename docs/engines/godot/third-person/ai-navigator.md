@@ -17,7 +17,7 @@ far character stepped every 4th tick walks the same path.
 
 | Part | File (`gameplay/ai/navigation/`) | What it does |
 | --- | --- | --- |
-| `AiNavigator` | `ai_navigator.gd` | `go_to(point, speed)`, `follow(node, band, speed)`, `stop()`, `is_arrived()`, `path`; signals `arrived`, `failed(reason)` (`NO_PATH`, `UNREACHABLE`, `STUCK`, `BLOCKED`), `link_reached(link, from, to)`, `stranded(gap)`, `path_changed`. Idle, it leaves the controller alone. |
+| `AiNavigator` | `ai_navigator.gd` | `go_to(point, speed)`, `follow(node, band, speed)`, `stop()`, `is_arrived()`, `refuses(point)` (a goal `go_to` would refuse at once), `path`; signals `arrived`, `failed(reason)` (`NO_PATH`, `UNREACHABLE`, `STUCK`, `BLOCKED`), `link_reached(link, from, to)`, `stranded(gap)`, `path_changed`. Idle, it leaves the controller alone. |
 | `AiNavQuery`, `AiNavAgentQuery` | `ai_nav_query.gd`, `ai_nav_agent_query.gd` | The SERVER backend (`NavigationServer3D.query_path`, no node, the default) and the AGENT backend (a `NavigationAgent3D` child of the character, its target set on the same timer). |
 | `AiNavPath` | `ai_nav_path.gd` | The points, the link starts, passing a corner run wide of, what is left (cached lengths), the point to steer to. |
 | `AiRouteRules` | `ai_route_rules.gd` | Goals snapped to open ground of the layers (a goal in a wall: the first open point back toward the walker), the kept route, remembered goals. |
