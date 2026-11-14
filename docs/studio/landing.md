@@ -31,6 +31,8 @@ Open pull requests come before new work: each one left open goes stale against `
 - **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
   rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
   ([Pausing a game](starting-work.md#paused)). Landing what you would recommend does not reach past the pause.
+- **Task agents never merge.** The coordinator lands from its queue; a task agent reports its green head SHA and
+  stops. The hook refuses a subagent's merge call, `gh pr merge --disable-auto` aside ([Hooks](hooks.md#what-it-refuses)).
 - **Hand-merge paths** (`AGENTS.md`: conventions, `AGENTS.md`, settings, hooks, `tools.toml`) are merged by hand, never
   by auto-merge, by the maintainer or by an agent the maintainer has authorized for it.
 
