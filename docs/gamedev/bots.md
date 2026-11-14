@@ -277,6 +277,14 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   case's sample (`stuck_episode`, the held body) read as the green case's failure. **Seen:** gdstudio #1529, 2026-11-14
   (24 seeds: main 0.31 % mean, 1 broke; without #1422's brake 0.14 %; before it 0.15 %; fixed 0.13 %:
   [the follow's brake](../engines/godot/third-person/ai-navigator.md#navigator)).
+- **Approach:** Before naming the change a soak's stuck seconds rose with, probe each counted episode: a ring of every
+  tick of the kind that rose (position, speed, the watch's "going", the navigator's mode, path left and refusal, the
+  active task) printed when an episode past the grace ends, and class the going ticks by what the navigator said.
+  **Watch out for:** the civilians' rise came with #1422's slower stops, with or without the brake, so the stops were
+  blamed; the probe showed all 11 episodes of 24 seeds were flee points the navigator refused as off open ground,
+  with the body still, a cause older than the stops that their changed courses only met more often. **Seen:**
+  gdstudio #1532, 2026-11-14 (civilian stuck seconds over seeds 1 to 24: 8.8 on main, 0.1 fixed, 4.8 before #1422:
+  [the flee's points](../engines/godot/third-person/ai-behaviour.md#stock-tasks)).
 - **Approach:** When `think_p99` (or any time gate) fails in a full local run on the shared machine, run that suite
   again alone before treating it as a failure, and put both readings in the pull request's body; CI on the branch is
   the judge. **Watch out for:** the full run beside other agents' Godot processes read think p99 just over its gate
