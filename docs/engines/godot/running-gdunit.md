@@ -66,7 +66,7 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   name them at parse. **Seen:** gdstudio #881 (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965
   (`next_up`), #1047, 2026-11-10; #906, #907, #909, #1127, #970 (`before`), #1337 (`after`), 2026-11-11; a game
   script too: #1336, 2026-11-12 (a parameter `amount` beside an `amount()`, a local `free`); #1400, 2026-11-13 (a
-  test's local `snapped`).
+  test's local `snapped`); #1435, 2026-11-13 (`side`, `roll`; a helper moved into a class with a `top` field).
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
   `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
@@ -96,13 +96,15 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   the two; converted to LF); gdstudio #1203, 2026-11-11 (gdformat on Windows rewrote a new suite it reformatted with
   CRLF ends; git's warning at commit named it; converted to LF before the full run); #1037, 11-11 (five files).
 
-- **Approach:** Measure a drawn pose on `Skeleton3D.skeleton_updated` (after the tree and the modifiers), and read the
-  clip's time there from the tree (`parameters/<node>/current_position`), not from the body or a clock. **Watch out
-  for:** bones read before that signal, or set from a node that runs after the tree, show the frame before: a planted
-  wrist read 67 mm off for each frame of lag at 4 m/s. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11
-  (`test_vault_contacts.gd`); gdstudio #1347, 2026-11-13 (a pose dump for a before and after read
-  `get_bone_global_pose` after awaiting the update and found every bone 0.00 micrometres from `main` while the rifle's
-  pivot moved 0.53: those were the bones before the modifiers; the hold stage's `skeleton_updated` snapshot read 0.84).
+- **Approach:** Measure a frame's pose on `Skeleton3D.skeleton_updated` (after the tree and the modifiers), and read
+  the clip's time there from the tree (`parameters/<node>/current_position`), not from the body or a clock; measure
+  where a node is drawn against that pose after the frame
+  ([Measuring it](physics-interpolation.md#measuring-it)). **Watch out for:** bones read before that signal, or set
+  from a node that runs after the tree, show the frame before: a planted wrist read 67 mm off for each frame of lag at
+  4 m/s; and a physics-interpolated node placed in that update reads in step there while it is drawn a frame behind
+  the skin (the rifle at 0 mm in the signal, 0.7 m apart drawn). **Seen:** gdstudio #1037 (PR #1239), 2026-11-11
+  (`test_vault_contacts.gd`); #1347, 2026-11-13 (bones read after awaiting the update predated the modifiers);
+  #1473, 2026-11-13 (`test_held_weapon_drawn.gd`).
 
 - **Approach:** To iterate on one suite, keep a game (`gds template test <t> --keep`), copy the files you change into
   its `game/` and rerun that suite there with the command line above; make a fresh game for the full run before the

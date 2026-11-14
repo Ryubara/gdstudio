@@ -151,7 +151,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
   lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went); gdstudio #963,
   2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red); #1154;
-  #1403, 2026-11-13; #1411 (a test's); #1400 (four).
+  #1403, 2026-11-13; #1411, #1402 (a test's); #1400 (four).
 
 ## Reverting and checking out {#checkout}
 

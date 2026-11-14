@@ -8,11 +8,11 @@ extends Node3D
 ## arm reaches its hand's place on the gun, and the fingers close on it: the right hand on the
 ## pistol grip with the index finger along the receiver (on the trigger while the gun is up), the
 ## left hand cupped under the hand guard. Both hands stay on the gun in every state; only a reload
-## takes the left hand away, to the magazine and the belt and back by the charging handle
-## (`ChargePull`, kit #1266), and an action that reaches with it (using a door: `FreeHand`, kit
-## #1336), for which the gun goes down in the right hand alone. A melee blow's clip carries the
-## rifle in both hands while it plays (`HoldBlow`). The legs and the head stay on the locomotion
-## clips. `two_hand_hold.tscn` is the part with no gun; the rifle's
+## takes the left hand away, to the magazine and the belt and back, by the charging handle after an
+## empty one (`ChargePull`, kit #1266), and an action that reaches with it (using a door:
+## `FreeHand`, kit #1336), for which the gun goes down in the right hand alone. A melee blow's clip
+## carries the rifle in both hands while it plays (`HoldBlow`). The legs and the head stay on the
+## locomotion clips. `two_hand_hold.tscn` is the part with no gun; the rifle's
 ## `gameplay/weapon/rifle_held.tscn` inherits it and puts the rifle and the hands' places under
 ## `Pivot`.
 ##
@@ -88,6 +88,9 @@ const _PUSH_STEP := 0.003
 ## spine bones; negative brings the left shoulder forward so the left hand reaches the fore-end.
 ## The clip's own turn of the chest is taken off, so the shoulders keep this in a walk or a run.
 @export_range(-60.0, 60.0, 0.5, "suffix:deg") var chest_turn := -30.0
+## `chest_turn` with the gun on the left shoulder (a left peek lean, #1435): square on, the right
+## hand across to the grip (turned the mirrored 30 degrees, the left hand was 15 mm short).
+@export_range(-60.0, 60.0, 0.5, "suffix:deg") var left_chest_turn := 0.0
 ## The most the chest leans (from its rest, the way the clip has it) while the gun is up: a chest
 ## that leans more (a crouch's hunch) is raised toward this as the gun comes to the shoulder.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var aim_lean_limit := 25.0
@@ -247,6 +250,11 @@ var posed_lowered := 0.0
 var posed_free := 0.0
 ## How much of the upper body a melee blow's clip holds, for a figure posed by hand (`HoldBlow`).
 var posed_blow := 0.0
+## How far the gun is on the left shoulder now, 0 to 1 (`CharacterPeek.shoulder_share()`): the
+## pockets, the gun's turn across and the chest's turn are mirrored by it (set it to pose by hand).
+var side := 0.0
+## The pull's bolt, and whether this reload pulls it (`posed_pulls`: a figure posed by hand).
+var charge_bolt := ChargeBolt.new()
 ## True while the camera is past `fingers_far_distance` (set by `CharacterAnimationThrottle`).
 var fingers_far := false
 
@@ -283,7 +291,6 @@ var _targets: Array[Node3D] = [null, null]
 var _poles: Array[Node3D] = [null, null]
 var _on_magazine: Node3D
 var _on_handle: Node3D
-var _bolt := ChargeBolt.new()
 var _mag: Node3D
 var _mag_far: Node3D
 var _chest_index := -1
@@ -504,6 +511,9 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		var eased := smoothstep(0.0, 1.0, _down)
 		turn = turn.slerp(_turned(stow_pitch, stow_yaw), eased)
 		pocket = pocket.lerp(stow_pocket, eased)
+	if side > 0.0:
+		pocket.x = lerpf(pocket.x, -pocket.x, side)
+		turn = turn.slerp(LeftShoulder.mirrored(turn), side)
 	var basis_now := Basis(turn)
 	# The frame the pockets are given in: the chest's turn about the up axis, and `pocket_lean` of
 	# the rest of its turn from its rest (a lean forward, back or aside).
@@ -516,7 +526,8 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 	pocket = chest + Basis(Quaternion.IDENTITY.slerp(lean, pocket_lean) * twist) * pocket
 	var gun_in_pivot := Transform3D.IDENTITY
 	if _gun != null:
-		gun_in_pivot = _gun.transform if _gun.get_parent() == _pivot else _between(_gun, _pivot)
+		var direct := _gun.get_parent() == _pivot
+		gun_in_pivot = _gun.transform if direct else HoldBones.between(_gun, _pivot)
 	var pivot_xf := Transform3D(basis_now, pocket)
 	# The left shoulder comes toward the hand guard with the gun where the last frame's push has
 	# it, then the butt comes to the skin as the shoulder left it (the turn brings the chest's left
@@ -703,6 +714,7 @@ func _step(delta: float) -> void:
 			_free.stop()
 		_freed = _free.amount()
 		_blow.step(character)
+		side = character.peek_motion.shoulder_share(character)
 		var wants := _blow.aim(character)
 		_shot_left = maxf(_shot_left - delta, 0.0)
 		if _shot_left > 0.0:
@@ -726,17 +738,7 @@ func _turned(pitch: float, yaw: float) -> Quaternion:
 # A node's transform in this node's space, from the transforms up its parents (no global
 # transform is asked for while the skeleton updates).
 func _in_here(node: Node3D) -> Transform3D:
-	return _between(node, self)
-
-
-# A node's transform in the space of `top`, one of its parents, from the transforms between.
-func _between(node: Node3D, top: Node) -> Transform3D:
-	var xf := node.transform
-	var above := node.get_parent() as Node3D
-	while above != null and above != top:
-		xf = above.transform * xf
-		above = above.get_parent() as Node3D
-	return xf
+	return HoldBones.between(node, self)
 
 
 # How far the reload is (0 to 1), or below 0 with none.
@@ -752,10 +754,12 @@ func _reload_progress() -> float:
 func _to_magazine(progress: float) -> float:
 	if progress < 0.0:
 		return 0.0
-	if _charging() and progress >= charge.leave.x:
+	var pulls := _charging()
+	if pulls and progress >= charge.leave.x:
 		return charge.to_magazine(progress, Vector3(_WAY_ON, _WAY_BESIDE, _WAY_DOWN), reload_return)
+	var back := charge.straight_return if charge != null and not pulls else reload_return
 	var there := smoothstep(reload_leave.x, reload_leave.y, progress)
-	return there * (1.0 - smoothstep(reload_return.x, reload_return.y, progress))
+	return there * (1.0 - smoothstep(back.x, back.y, progress))
 
 
 # The left hand leaves the gun for the magazine and comes back with a full one, by the weapon's
@@ -767,16 +771,14 @@ func _place_reload(gun_here: Transform3D) -> void:
 	if left == null:
 		return
 	var progress := _reload_progress() if _on_magazine != null else -1.0
-	var mag := _mag
-	var mag_far := _mag_far
 	# A hand let go for an action comes off the hand guard the way a reload's does, and no further.
 	var let_go := _let_go() if _freed > 0.0 else 0.0
 	if progress < 0.0 and let_go <= 0.0:
 		# At rest nothing but this moves the hand's place and the magazine: put them back once.
 		if not _hand_at_rest:
 			left.transform = _left_rest
-			_set_magazine(mag, mag_far, _magazine_rest, true)
-			_bolt.put(charge, 0.0)
+			_set_magazine(_mag, _mag_far, _magazine_rest, true)
+			charge_bolt.put(charge, 0.0)
 			_hand_at_rest = true
 		return
 	_hand_at_rest = false
@@ -799,14 +801,11 @@ func _place_reload(gun_here: Transform3D) -> void:
 	if progress < 0.0:
 		var aside := smoothstep(_FREE_DOWN, 1.0, FreeHand.off(_freed))
 		hand = hand.interpolate_with(_left_rest.translated(free_clearance), aside)
-	elif _charging():
-		if charge.holds_way(progress, reload_return.x):
-			hand = charge.hand_place(
-				progress, on_magazine, beside, _on_handle.transform, below, reload_return.x
-			)
-		_bolt.put(charge, charge.bolt_pull(progress))
-	# Out of the well along the gun's own up axis, then to the belt, which is a place on the
-	# body (the hand's place is on the gun).
+	elif _charging() and charge.holds_way(progress, reload_return.x):
+		var handle := _on_handle.transform
+		hand = charge.hand_place(progress, on_magazine, beside, handle, below, reload_return.x)
+		charge_bolt.put(charge, charge.bolt_pull(progress))
+	# Out of the well along the gun's up axis, then to the belt (a place on the body, not the gun).
 	var out := Vector3.DOWN * magazine_well * minf(away / _WELL_SHARE, 1.0)
 	var to_belt := smoothstep(0.0, 1.0, (away - _WELL_SHARE) / (1.0 - _WELL_SHARE))
 	var belt := gun_here.affine_inverse() * (_chest + reload_belt)
@@ -814,9 +813,9 @@ func _place_reload(gun_here: Transform3D) -> void:
 	hand.origin += out
 	left.transform = hand
 	var mag_xf := _magazine_rest
-	if mag != null:
-		mag_xf.origin += (mag.get_parent() as Node3D).transform.basis.inverse() * out
-	_set_magazine(mag, mag_far, mag_xf, away < 0.9)
+	if _mag != null:
+		mag_xf.origin += (_mag.get_parent() as Node3D).transform.basis.inverse() * out
+	_set_magazine(_mag, _mag_far, mag_xf, away < 0.9)
 
 
 # How far down the reload's way off the hand guard a freed hand is (`_WAY_DOWN` at most).
@@ -824,9 +823,10 @@ func _let_go() -> float:
 	return minf(FreeHand.off(_freed) / _FREE_DOWN, 1.0) * _WAY_DOWN
 
 
-# Whether the reload pulls the charging handle: a `charge`, its marker and its finger pose.
+# Whether this reload pulls the charging handle (`ChargeBolt.pulls()`: an empty magazine).
 func _charging() -> bool:
-	return charge != null and _on_handle != null and charge_pose != null
+	var pulls := charge_bolt.pulls(character, _reload_progress(), charge)
+	return pulls and _on_handle != null and charge_pose != null
 
 
 func _set_magazine(near: Node3D, far: Node3D, xf: Transform3D, shown: bool) -> void:
@@ -970,7 +970,7 @@ func _find_parts() -> void:
 	_poles[1] = get_node_or_null(^"LeftPole") as Node3D
 	_on_magazine = find_child("MagazineHand", true, false) as Node3D
 	_on_handle = find_child("ChargeHand", true, false) as Node3D
-	_bolt.find(self, [bolt, bolt_far])
+	charge_bolt.find(self, [bolt, bolt_far])
 	_gun = _targets[1].get_parent() as Node3D if _targets[1] != null else null
 	_mag = get_node_or_null(magazine) as Node3D
 	_mag_far = get_node_or_null(magazine_far) as Node3D

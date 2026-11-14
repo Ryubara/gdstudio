@@ -33,8 +33,10 @@ const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 ## inactive but through the rack after an empty reload. The hold's `HandFloor` (#1356) adds 1, a
 ## modifier inactive unless the body lies and aims. The aim layer's `AimUprightModifier` (kit #1351)
 ## adds 1, inactive until the fists aim. The peek lean (#1400) adds 3: the body's `PeekShape`,
-## disabled unless it leans, the `PeekLayer` and its `PeekModifier`, idle while upright.
-const NODES_ALIVE := 72
+## disabled unless it leans, the `PeekLayer` and its `PeekModifier`, idle while upright. The left
+## shoulder (#1435) adds 3: `LeftShoulder` and its `LeftShoulderCross` and `LeftShoulderArm`,
+## inactive unless the pistol aims on a left lean.
+const NODES_ALIVE := 75
 const BODIES_ALIVE := 2
 const CROWD := 10
 ## Frames a window times, and windows a measure takes the best of.
