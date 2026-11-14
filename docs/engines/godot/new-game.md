@@ -247,18 +247,28 @@ another game with no `.import`: the full local run was green and CI's step faile
   its cost suites, or run those suites again alone on a quiet machine before believing a failure. **Watch out for:**
   the cost tests time real work against budgets, so a capture or an export running beside them made a fast step read
   slow and failed a suite the change never touched. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11.
-- **Approach:** To read a number a suite prints (a measured cost, a count, a `print` line), run `gds template test`
-  with `--keep` and read the kept folder's `gdunit.log`, then remove it with `gds template clean <path>`; after a
-  failing run, read the log named on the run's line starting `log` (a `gds-tt-*.log` in the temporary folder).
-  **Watch out for:** the run shows each suite's counts and failure lines, never a test's `print` output, and a
-  passing run removes its folder, log included, so the newest `gds-tt-*.log` belongs to an earlier failing run.
-  **Seen:** gdstudio #1198 (PR #1223), 2026-11-11; #1273, #1356, #1362 and #1344, 11-12; #1410 (PR #1425), 11-13.
+- **Approach:** To read a number a suite prints (a measured cost, a count, a `print` line), run `gds template test` with
+  `--keep` and read the kept folder's `gdunit.log`, then remove it with `gds template clean <path>`, or have a probe
+  write its own file; after a failing run, read the log named on the run's line starting `log` (a `gds-tt-*.log` in the
+  temporary folder). **Watch out for:** the run shows each suite's counts and failure lines, never a test's `print`
+  output, and a passing run removes its folder, log included, so the newest `gds-tt-*.log` belongs to an earlier failing
+  run. **Seen:** gdstudio #1198 (PR #1223), 2026-11-11; #1273, #1356, #1362 and #1344, 11-12; #1410 (PR #1425), 11-13;
+  PR #1422, 11-14 (a probe's lines, from a passing run).
 - **Approach:** Give a new script of a synced addon (`godot/addons/<name>/` in the kit) its `.uid` in the addon's
   source, then sync: `uv run --project python python -c "from pathlib import Path; from gds_tools import uids;
   print(uids.write(uids.uid_file(Path('<script>.gd'))))"`. **Watch out for:** `gds template uids` skips every
   `addons/` folder on purpose (an addon's files are its own), so it wrote nothing for a new `gds_game` script, still
   reported every script as having its uid, and nothing on the page said how to make one. **Seen:** gdstudio #1183
   (PR #1214), 2026-11-11; #1037 (PR #1239), 11-11 (the report).
+- **Approach:** To run one case through `gds template test`, give its suite with `--suite tests/x.gd` and skip each
+  other case in one `--gdunit-args='-i res://tests/x.gd:test_other -i ...'` (split like a shell line), then read that
+  one case ran. **Watch out for:** `--suite tests/x.gd:test_name` names no file, so no test runs; `-i` skips the case it
+  names and never selects it ([the command line](running-gdunit.md#command-line)). **Seen:** gdstudio PR #1369 refresh,
+  2026-11-14.
+- **Approach:** Point `gds capture frames --project` and Godot's `--path` at the kept game's `game/` folder (`<printed
+  path>/game`), not at the folder `--keep` or `gds template game` prints. **Watch out for:** the printed path is the
+  game's repository and its Godot project is the `game/` inside, so a capture given the repository found no project.
+  **Seen:** gdstudio PR #1530, 2026-11-14.
 
 ## With `--local` {#with-local}
 
@@ -373,90 +383,4 @@ The checklist every template is built and reviewed against (inspector-tunable pa
 
 ## Adding a template {#adding-a-template}
 
-A template is a folder `templates/<name>/` with:
-
-- `template.toml`: `title`, `description`, `default_description` (the README line when `--description` is not given)
-  and, for a template built on another, `extends = "<base>"`.
-- `game/`: files for the game's `game/` folder.
-- `docs/`: pages for the game's `docs/` folder (`design/index.md` is the template's own page).
-
-`extends` makes the base's files go in first and the template's on top, so `3d-third-person` holds a controller and
-what changes in `main.tscn`, not a copy of the level. The folders `game` and `repo` of `templates/` are not templates:
-`templates/game/` is what `gds sync` writes into every game, `templates/repo/` the repository files of a new one.
-Something every existing game must receive belongs in `templates/game/` (synced), something only a new game needs in
-`templates/repo/` or a template (copied once).
-
-An extending template replaces a file of the base whole, with one exception: `game/project.godot` is merged. The
-template's file holds only what it adds (3D Third Person: the menu scene as the main scene, the `Settings` autoload,
-the landscape setting, the input map, the navigation cell height and Jolt), and `gds new game` reads the chain base
-first and merges by section and key (`python/src/gds_tools/project_file.py`): a later key wins, the enabled plugins are
-joined, and the file is written with the sections by name, as Godot does. A setting added to the base therefore reaches
-every extending template without a copy to edit. Values are kept as the text they have, so the input map is never
-re-written. Every other file, `main.tscn`, `assets/README.md` and `tests/test_main_scene.gd` among them, is still
-replaced whole.
-
-- **Approach:** A setting every game needs goes in 3D Blank's `project.godot` only; an extending template's file holds
-  just its additions and is merged by `gds new game`. **Watch out for:** a hand-kept full copy drifted whenever the base
-  gained a line (kit #846 failed CI that way), and a key an extending template sets must be one the base does not need to
-  change (the later one wins). A key added to an extending template's file is also added to the list
-  `python/tests/test_new_game.py` pins for it (`test_the_third_person_project_file_holds_only_what_it_adds`); run
-  `uv run --project python pytest python/tests/test_new_game.py` before the push. **Seen:** gdstudio #928,
-  2026-11-10; #1075, 2026-11-11 (two navigation keys; the template suites passed, the kit's `test` jobs failed);
-  #1100, 2026-11-11 (the `MenuSounds` autoload, the same way).
-- **Approach:** When a script copies the branch's template files into a game made by `gds template game` (to test
-  without making a new game), leave `project.godot` out and make the game again when the template's `project.godot`
-  changes. **Watch out for:** the made game's `project.godot` is the merge of 3D Blank's and the template's (with the
-  addons' autoloads); copying the template's file over it dropped `UIRouter` and `PhantomCameraManager`, and the next
-  run printed dozens of parse errors that looked like the change's. **Seen:** gdstudio #890, 2026-11-10; gdstudio #966,
-  2026-11-10 (a `cp -r` of the whole template folder: `UIRouter` not declared in 25 scripts, the game made again).
-- **Approach:** When a script copies the branch's changes into a kept game, list them against the branch's base
-  (`git diff --name-only <base>` plus untracked files), never only what is uncommitted, and prefer `gds template test`,
-  which builds from the working tree each run. **Watch out for:** a sync of uncommitted files only left a mutated file
-  in the game after the mutation was undone and committed, so the next run looked restored when it was not. **Seen:**
-  gdstudio #968, 2026-11-11.
-- **Approach:** A base template's test that reads the game scene finds its node with `find_child` (or by a group), never
-  by a path from `main.tscn`, because an extending template replaces `main.tscn` and moves the node. **Watch out for:**
-  3D Blank's `test_audio_settings.gd` asked the game scene for `AudioSettings` by name and failed in 3D Third Person once
-  that node moved into `world/world.tscn`; only the full `gds template test` run found it, a run of the suites that
-  name `main.tscn` did not; the same happened to 3D Blank's `test_web_probe.gd`, which asked `main.tscn` for its
-  `WebProbe` while 3D Third Person made its probe at run time (a base test that names a node a template removes is
-  replaced by a test of the same name in that template). **Seen:** gdstudio #927, 2026-11-10; gdstudio #921, 2026-11-10.
-
-A template folder does not open clean on its own: its `project.godot` registers the `gds_ui` plugin and the `UIRouter`
-autoload, but `addons/gds_ui/` is written into a game by `gds sync`, so a bare copy of `templates/<t>/game` fails to
-load `res://addons/gds_ui/router/ui_router.gd` and drops the plugin. To run one outside a made game, copy it to a
-probe folder in scratch (for an extending template, the base's `game/` first and the template's on top), then copy the
-kit's `godot/addons/gds_ui/` and `gds_game/` to the probe's `addons/`; the import and a run are then clean (checked on
-3D Blank with the pinned Godot, gdstudio #849; the probes of #838 and #847 were built this way). GdUnit4 is still missing
-there, so tests run in a made game: `gds template test <name>` ([Proof](#proof)).
-
-- **Approach:** After copying a template over a probe folder again, add the probe's editor plugin back to
-  `editor_plugins/enabled` in its `project.godot` and look for the plugin's own line in the log before reading any
-  result. **Watch out for:** the copy brings the template's `project.godot`, whose plugin list does not name the probe,
-  so the editor opened, ran nothing and quit on its timeout with no error. **Seen:** the coordinator's handoff notes,
-  2026-11-10 (an unlisted plugin never ran on the pinned 4.7.2, checked again for gdstudio #1003).
-
-CI makes a game from every template on each kit change (a matrix over the templates), with the real Godot: it checks
-the sync, the conventions, the layout, imports the project, parses every script, runs its tests and exports it for the
-web (the `template` job of the kit's `ci.yml`). `python/tests/test_new_game.py` checks the local steps without Godot,
-and `python/tests/test_new_game_github.py` each GitHub step with a fake `gh` and local bare repositories.
-
-Those two files do not copy the real `templates/` (21 MB) for each test: a test about names, flags, licences, git and
-GitHub steps gets a kit built once a session with `templates/repo/` and a few-file stand-in for 3D Blank
-(`python/tests/fixtures/new_game_templates/`; `small_kit` and `small_git_kit` in `python/tests/conftest.py`, helpers in
-`python/tests/new_game_kit.py`), and the tests about what the real templates hold read a game made once from the real
-folder (`real_game`, `real_third_person_game`).
-
-- **Approach:** A new-game test that needs a template to exist, not the real one, uses `small_kit` or `small_git_kit`;
-  only a test that reads the real template's files uses `real_game` or `real_third_person_game`, which are made once
-  for the module and only read. **Watch out for:** the old `kit` fixture copied all of `templates/` for each of 63
-  tests (and committed and pushed it in the GitHub ones): 381 s of the 470 s of the suite, and Windows pytest was the
-  longest CI job at 13 min 35 s; a test that writes into a shared game (a `title.txt` in the repository) breaks the
-  tests after it, so write beside the game. **Seen:** gdstudio #918, 2026-11-10 (the review of #896 measured it).
-- **Approach:** Make a repository once a session in a `scope="session"` fixture and copy it into each test with
-  `python/tests/git_seed.py` (`relocate` rewrites the paths git wrote into `config`); share one run of a command
-  between the tests that only read it (`default_flow`); leave out the step a test is not about (`kit_pr=False`); keep
-  the seed small; pass `--fixed-fps 60` to an eval test's Godot. CI runs four workers, a file to each (`-n auto
-  --maxprocesses=4 --dist loadfile`). **Watch out for:** a loaded machine moves wall time by 2x, so count processes
-  per file too; a copied file costs 1 ms, a git process 30 to 110 ms; `copytree` of a git seed keeps its old origin
-  path. **Seen:** gdstudio #945, 2026-11-10 (`pytest python/tests` 266 s to 157 s serial, 57 s on four workers).
+Moved to [Building and reviewing a template](template-checklist.md#adding-a-template).
