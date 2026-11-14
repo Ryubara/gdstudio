@@ -356,6 +356,11 @@ repos/<owner>/<repo>/pulls/<N> -H 'Accept: application/vnd.github.html+json' --j
   loop point the player applies, so the clip compares files, not what the player hears; a run shorter than the loop
   never reaches its seam. **Seen:** gdstudio #1101, 2026-11-11 (the wind beds: a probe swapped the stream on the Wind
   player, Ambient bus, -20 dB, and the old bed and three candidates were cut from one Movie Maker track).
+- **Approach:** For a sound that replaces another, attach a Before clip and an After clip, each referenced on its own
+  line right under the `Before:` and `After:` lines of `## Screenshots`; a clip that alternates both can follow them.
+  **Watch out for:** the PR-create hook refuses a body whose only clip is a combined before-and-after one: it needs a
+  capture between `Before:` and `After:`. Cut both from the same tour in two games (old and new) so each event lands at
+  the same second. **Seen:** gdstudio #1414, 2026-11-13 (single shots, a burst and held fire of the pistol and rifle).
 
 ## What proves a feature {#feature-proof}
 
@@ -391,6 +396,11 @@ take it with `git checkout <rev> -- <file>` into a scratch checkout, never `git 
   started during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: a detached baseline worktree under scratch,
   the same capture scripts with `--label=before`); gdstudio #1346, 2026-11-12 (main's hold files swapped into a kept
   game for the `Before:` tour, which broke its clips' import twice before it filmed).
+- **Approach:** When a `Before:` is made by swapping old files into a kept game, take them from the branch's base commit
+  (`git merge-base HEAD origin/main`), not from `origin/main`, so the pair differs only by the change; `gds capture
+  frames` names frames `<name>00000000.png` after `--name` ([frames](#frames)), so give each side its own name. **Watch
+  out for:** `origin/main` moves after a branch is cut, so its files carry other pull requests' changes that the branch
+  does not have yet, and the pair shows them as part of the change. **Seen:** gdstudio PR #1509, 2026-11-14.
 
 ## Tests {#tests}
 

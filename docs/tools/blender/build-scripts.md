@@ -101,8 +101,8 @@ again ([checked in CI](#ci)).
   rebuilds before it lands. **Watch out for:** a file held only to the hash its own build wrote (`fixed.glb`) stays
   green while the measure under it changes: once the measure turned the `form` bodies' twist bones, a rebuild keyed
   the dash's leg swivel at 34 degrees for 41. **Seen:** gdstudio #1325 after #1323, 2026-11-12 (fix: rebuilt after
-  merging `main`); #1479, 2026-11-14 (the limb overlap reports carry the hash of the measure's code and of each
-  body, and `BodiesOverlap.problems` fails on another; `fixed_clips.json` and `vault_clips.json` do not yet).
+  merging `main`); #1479 and #1491, 2026-11-14 (the limb reports and the fixed, vault and melee numbers carry the
+  hash of the measure's code and of each body, `measure_hash.made_by`; `BodiesOverlap.stale` fails on another).
 - **Approach:** After any edit to `limb_overlap.py`, measure every `*_overlap.json` report again with the pinned
   Blender (the commands in `check_clip_builds.py`'s `overlap_*` entries, and `own/build_own.py ship locomotion
   --blender` for `own/bodies_overlap.json`) and commit them in the same pull request. **Watch out for:** an edit
@@ -153,6 +153,12 @@ A clip that passes an obstacle is also read between its keys, as a game draws it
   or of their axes) with a limit in millimetres, not by the angle from `acos` of a dot product. **Watch out for:**
   `mathutils` is single precision, so an arc cosine of a dot product near 1 reads 0.04 to 0.09 degrees between two
   poses that are the same, and a pose-gap check failed on noise. **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.
+- **Approach:** Lint a template's Python (a build script, a measure, a capture tool) yourself before the commit, with
+  the kit's settings: `uv run --project python ruff check --no-cache --config python/pyproject.toml <files>` and the
+  same `ruff format --check`. **Watch out for:** the pre-commit ruff hooks run only on `python/` and `.claude/hooks/`,
+  so nothing lints a template's Python at commit; a bare `uvx ruff` from the kit's root reads no config and judges it at
+  88 columns, not the kit's 120 ([Rules](../../engines/godot/project-conventions.md#rules) has the cache and rewrap
+  side). **Seen:** gdstudio PR #1489, 2026-11-14.
 
 ## Checked in CI {#ci}
 

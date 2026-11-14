@@ -11,7 +11,7 @@ and labels the inspector's layer grid.
 
 ## The template layers {#template-layers}
 
-3D Blank's `project.godot` names the seven layers (3D Third Person's adds only its own keys and gets them from it), and
+3D Blank's `project.godot` names the eight layers (3D Third Person's adds only its own keys and gets them from it), and
 `core/physics_layers/physics_layers.gd` (`PhysicsLayers`, in 3D Blank, so every template has it) holds them as bits,
 so code and the inspector say the same thing. The constants script moves to the synced gameplay addon
 (`addons/gds_game/physics/physics_layers.gd`) with kit #923's second step; the names stay in each game's `project.godot`.
@@ -20,11 +20,12 @@ so code and the inspector say the same thing. The constants script moves to the 
 | --- | --- | --- | --- | --- |
 | 1 | World | `WORLD` | floors, walls, `ProtoBlock`s, doors, moving platforms, targets | none needed (static) |
 | 2 | Characters | `CHARACTERS` | the player's capsule (later AI and networked bodies) | World, Props (`CHARACTER_MASK`) |
-| 3 | Projectiles | `PROJECTILES` | shots in flight (`projectile.tscn`) | World, Characters, Props, Ragdoll (`SHOT_MASK`); then Hit Zones inside a capsule it met (`HIT_ZONE_MASK`) |
+| 3 | Projectiles | `PROJECTILES` | shots in flight (`projectile.tscn`) | World, Characters, Props, Ragdoll, Shot Hulls (`SHOT_MASK`); then Hit Zones inside a capsule it met (`HIT_ZONE_MASK`) |
 | 4 | Props | `PROPS` | `PhysicsProp` (pushed crates, balls) | World, Characters, Props (`PROP_MASK`) |
 | 5 | Ragdoll | `RAGDOLL` | the bones of a limp body (`CharacterRagdoll`) | World, Props, Ragdoll (`RAGDOLL_MASK`) |
 | 6 | Hit Zones | `HIT_ZONES` | the `HitZones` body of a character (its parts, [Hit zones](third-person-hits.md)) | none (scanned only by a shot's second test) |
 | 7 | Sensors | `SENSORS` | `Pickup`, `TriggerZone`, a door's `Sensor`, an `Interactable` | Characters (`CHARACTER_SENSOR_MASK`); a trigger zone Characters and Props (`TRIGGER_MASK`); an `Interactable` none (an `Interactor`'s query on `SENSORS` finds it) |
+| 8 | Shot Hulls | `SHOT_HULLS` | a living character's `ShotHull`, a capsule a little wider and taller than its own that only shots meet, on this layer only while a shot near it has armed it ([the hull](third-person-hits.md#shot-hull)) | none (only `SHOT_MASK` lists it; a shot's mark and the network's hit probe use `SURFACE_MASK`, without it) |
 
 Rays and other masks: the camera's spring arm (`PlayerCamera.wall_mask`) is World and Props (`CAMERA_MASK`); the
 weapon's aim ray (`Weapon.aim_mask`) is `SHOT_MASK`, so the crosshair's point is on what the shot will hit; the
@@ -46,6 +47,14 @@ Projectiles (3) and ragdoll bones (5) kept the numbers they had before the layer
   (`tests/core/test_physics_layers.gd`). **Watch out for:** `CharacterBody3D.platform_floor_layers` defaults to every
   layer (`4294967295`), so the first run named 25 unnamed layers on the player and the projectile; set it in the
   scene to the layers a body may ride. **Seen:** gdstudio #924, 2026-11-10.
+- **Approach:** When a layer joins `SHOT_MASK`, or a new body takes a layer it holds, list the code that reads what a
+  shot-mask ray met (`grep -rn "SHOT_MASK\|aim_mask\|hitscan_mask\|keep_aim_layers" gameplay`: the weapon's aim ray,
+  `WeaponDef.hitscan_mask`, the camera's `aim_point_mask` and its aimed-point keep list `keep_aim_layers`, the network's
+  hit probe in `net_hits.gd`) and give each a case for the new layer. **Watch out for:** nothing lists those readers, so
+  a ray meets the new layer while a reader does not know it: the camera's ray met a character's Shot Hull, which
+  `keep_aim_layers` did not count, and an aimed shoulder swap at a character stopped keeping its point (fixed with
+  `ShotHull.ray_as_shot`, [the shot hull](third-person-hits.md#shot-hull)). **Seen:** gdstudio PR #1459, 2026-11-14
+  (`test_camera_swap_target.gd`).
 
 ## Characters do not block each other {#characters-do-not-block}
 

@@ -31,14 +31,21 @@ const HIT_ZONES := 1 << 5
 ## Areas that sense something (a pickup, a trigger zone, a door's sensor), so an area or a query
 ## that looks for them can; no body lists them.
 const SENSORS := 1 << 6
+## A shot-only capsule around a living character, wider and taller than its moving capsule, so a
+## part the pose holds outside that capsule (a crouch's hips, the head while it stands up) is still
+## reached (`ShotHull`, gdstudio #1431). Only shots and aim rays list it.
+const SHOT_HULLS := 1 << 7
 
 ## What a character's capsule (and its ground and ceiling probes) stands on and is stopped by.
 const CHARACTER_MASK := WORLD | PROPS
 ## What a prop collides with: the level, the characters that push it, other props.
 const PROP_MASK := WORLD | CHARACTERS | PROPS
-## What a shot (and the aim ray that picks its point) meets. A living character is met at its
-## capsule; the shot then looks for the body part inside it with `HIT_ZONE_MASK`.
-const SHOT_MASK := WORLD | CHARACTERS | PROPS | RAGDOLL
+## What a shot (and the aim ray that picks its point) meets. A living character is met at its shot
+## hull (or its capsule, with none); the shot then looks for the body part inside it with
+## `HIT_ZONE_MASK`.
+const SHOT_MASK := WORLD | CHARACTERS | PROPS | RAGDOLL | SHOT_HULLS
+## What a shot's mark is put on: what it meets, less the shot hulls (nothing is drawn there).
+const SURFACE_MASK := WORLD | CHARACTERS | PROPS | RAGDOLL
 ## What a shot's second test looks for inside a character's capsule: its hit zones, and only them.
 const HIT_ZONE_MASK := HIT_ZONES
 ## What a limp bone falls onto: the level, props, and the other bones of the body.
@@ -59,6 +66,7 @@ const NAMES: Dictionary[int, String] = {
 	5: "Ragdoll",
 	6: "Hit Zones",
 	7: "Sensors",
+	8: "Shot Hulls",
 }
 
 

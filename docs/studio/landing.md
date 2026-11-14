@@ -49,6 +49,11 @@ Open pull requests come before new work: each one left open goes stale against `
   defaults to the CI clock, a test pins it against `ci.yml`, kit #976); gdstudio #1191, 2026-11-12: CLEAN and green
   after #1353 landed, the merge failed `test_aim_head.gd` lying with the prone aim (head 8.9 degrees on the neck,
   limit 8), which neither branch had alone (fix: `head_prone_neck_share`).
+- **Approach:** Push a refreshed branch in a command of its own: the landing hook reads the pull request's head
+  before the command runs, so a push and a merge call in one command are refused as behind `main` even though the
+  push would fix it. **Watch out for:** a task agent in a coordinator's queue makes no merge call at all; it reports
+  its green head and stops ([the queue entry](#landing), "When a coordinator lands from a queue").
+  **Seen:** gdstudio #1431 (PR #1459), 2026-11-13.
 
 - **Approach:** Look up the owner of any pull request red for over 30 minutes and assign one at once if none is live;
   when an agent is moved to other work, hand each pull request it leaves to someone. **Watch out for:** every open pull
@@ -170,6 +175,12 @@ Open pull requests come before new work: each one left open goes stale against `
   approved. After each landing, count the running agents against the open pull requests. **Watch out for:** with 18
   kit pull requests open two agents were working, and held DIRTY ones sat with no owner because held was read as
   waiting. **Seen:** gdstudio coordinator, 2026-11-12 (a maintainer correction).
+- **Approach:** When `merge-result` fails with "The merge-result sweep itself failed; rerun it", open the sweep's run
+  and find the pull request that failed it before touching your branch: your own line there (`#N: success`) means your
+  merge is fine. **Watch out for:** before #1513 one open pull request's conflict stopped the whole sweep, and its
+  report then failed every pull request it had swept, clean ones included, and a rerun gave the same while that one
+  stayed DIRTY ([CI: the merge result](ci.md#merge-result)). **Seen:** gdstudio #1512 (on #1460), and #1511, 2026-11-14
+  (fix: PR #1513, each pull request its own answer).
 
 **Landing a green head behind `main` (the coordinator's practice since 2026-11-11, a maintainer question).** A hand
 merge on a busy day can starve: `main` takes a new commit before each full CI run ends, so the refresh above never
@@ -237,6 +248,11 @@ force push, which is the maintainer's decision: open the same change from a new 
   lines, two `Seen:` lists joined in a conflict passed 900. A fix after a refusal counts once staged.
   **Seen:** Deadnight #539, #656, #410, 11-02; kit #1023, #1256, #1323, 11-10 to 12 (`--no-edit`: no trailer);
   #1397 (`gdlint` refused it, a local-vs-remote head check read "pushed"), PR #1488 (a split unstaged), 11-13.
+- **Approach:** When two `Seen:` lists meet in a conflict, keep every case and source of both sides: fold the dates and
+  tighten the wording, and when the joined entry is still over 900 characters, split it by subject ([An
+  entry](rules.md#rule)) before `--continue`. **Watch out for:** the joined lists went over 900 characters, and dropping
+  one side's case to fit would lose a lesson that side's pull request had landed. **Seen:** gdstudio PR #1474 and PR
+  #1502, 2026-11-14.
 - **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
   after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
   HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply

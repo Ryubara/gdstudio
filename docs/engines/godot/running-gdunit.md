@@ -83,8 +83,9 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form
   of a filter here, nor is `x.gd:test_y`: nothing ran and the exit code was 0 in 2 s, and no failure reads as a
-  pass; `-i` (ignore) ran the whole suite. To run one case of a long suite, copy the suite in the game under a new
-  name with every other `func test_` renamed to a plain function, and run that file. **Seen:** Deadnight, 2026-11-04
+  pass; `-i <suite>:<case>` skips that case (`GdUnitTestCIRunner.is_skipped`), so it ran the rest. To run one case,
+  give `-a res://tests/x.gd` and an `-i res://tests/x.gd:test_other` for each other case. **Seen:** Deadnight,
+  2026-11-04
   (fix: run the suite and read the count); gdstudio #1252, 2026-11-11 (`:` and `-i`); gdstudio #1213, 2026-11-11 (one
   case of the 9-minute pistol hold suite).
 
@@ -180,6 +181,13 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   for:** `gds template test` says only that leak lines exist; a list of scripts alone (GdUnit4's, the autoloads') with
   a few bare `RefCounted` and `RegEx` is that engine pattern, not a node a test forgot. **Seen:** gdstudio #1236,
   2026-11-11.
+- **Approach:** To read what a suite prints (measured numbers) or leaves at exit (`Leaked instance:`, `Resource still in
+  use:`), keep the game (`gds template test <t> --keep --suite <s>`) and run GdUnit's command line on its `game/`
+  directly, with `--verbose` for the leak lines; for one case alone, add an `-i <suite>:<case>` for each other case
+  ([the command line](#command-line)). **Watch out for:** `gds template test` prints one line a suite that passes and
+  the last 30 lines of GdUnit's output for one that fails, `--godot-args=--verbose` included, so a suite's `print` lines
+  and the leak list never reach you. **Seen:** gdstudio PR #1470 (the numbers) and PR #1501 (the leak lines),
+  2026-11-14.
 
 ## Before the push {#before-the-push}
 
