@@ -334,6 +334,12 @@ saved into a scene file. The body is a state machine: `ground` (a blend space on
 as soon as the body moves and plays at `ground speed / crawl_clip_speed` (0.618 m/s, its stride), backwards when the
 body moves away from the way it faces), `jump`, `fall`, `land`, `push` and the slide's three clips (`slide_start`,
 which runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs into `ground`).
+The jump's three states pick their clips by the body's numbers (`JumpAnimation`, kit #1371): `jump` the standing
+take-off, or from 2.5 m/s the run's take-off off the foot that is down (`Jump_Start_Run_L` or `_R`); `fall` the rise,
+the top and the fall blended by vertical speed; `land` the soft landing, the hard one from 9 m/s of fall
+(`Land_Hard`, played through its settle while the body stands) or, landing asked to run, `Land_To_Jog`, which hands
+over to the jog on its right foot. Every choice is in the Animation's `gait_settings` (`GaitSettings` > Jump; off,
+the three clips of `jump_clip`, `air_clip` and `land_clip` alone).
 Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up
 `prone/Prone_To_Crouch` for its `exit_time`. Lying, the weapon is put away (its model hidden, the grip off) because the
 fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male mannequin's,

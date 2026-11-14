@@ -12,6 +12,7 @@ const DEFAULTS := preload("res://gameplay/character/gait_settings.tres")
 
 var blend := GaitBlend.new()
 var transitions := GaitTransitions.new()
+var jump := JumpAnimation.new()  # the take-off, the air and the landing (gdstudio #1371)
 var lean := GaitLean.new()
 var momentum: MomentumBlend
 
@@ -71,7 +72,7 @@ func after_build(animation: CharacterAnimation) -> void:
 		HelperTracks.mute(animation.animation_player)
 
 
-## One frame: the spaces' speed and paces, the transitions and the lean.
+## One frame: the spaces' speed and paces, the transitions, the jump and the lean.
 func drive(
 	animation: CharacterAnimation,
 	playback: AnimationNodeStateMachinePlayback,
@@ -81,12 +82,19 @@ func drive(
 	blend.drive(animation, speed, delta)
 	if playback != null:
 		transitions.step(animation, blend, playback, delta)
+		jump.step(animation, blend, playback)
 	lean.drive(animation.tree, animation.character, delta)
 
 
 ## The state `CharacterAnimation` should travel to when it asks for `state`.
 func route(state: StringName) -> StringName:
-	return transitions.route(state)
+	return jump.route(transitions.route(state), blend)
+
+
+## Adds the jump's states (`JumpAnimation`: the take-off, the air, the landing) to `machine`.
+func add_jump(animation: CharacterAnimation, machine: AnimationNodeStateMachine) -> void:
+	_take(animation)
+	jump.add_states(animation, machine)
 
 
 ## What the momentum blend watches: it starts from the drawn pose each time this changes.
@@ -99,6 +107,7 @@ func _take(animation: CharacterAnimation) -> void:
 	var settings := settings_of(animation)
 	blend.settings = settings
 	transitions.settings = settings
+	jump.settings = settings
 	lean.settings = settings
 
 

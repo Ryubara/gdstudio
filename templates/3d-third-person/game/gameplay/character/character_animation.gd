@@ -122,17 +122,17 @@ const _RELOAD_FADE_OUT := 0.2
 	set(value):
 		sprint_clip = value
 		_rebuild()
-## The push off the ground.
+## The push off the ground standing (from a run: `GaitSettings.run_takeoff_left`, `_right`).
 @export var jump_clip: StringName = CharacterClips.JUMP_START:
 	set(value):
 		jump_clip = value
 		_rebuild()
-## In the air, rising or falling.
+## In the air, falling (with the rise and the top on the vertical speed: `GaitSettings`).
 @export var air_clip: StringName = CharacterClips.AIR:
 	set(value):
 		air_clip = value
 		_rebuild()
-## Touching down.
+## Touching down (a hard landing and one into a run: `GaitSettings`, `JumpAnimation`).
 @export var land_clip: StringName = CharacterClips.LAND:
 	set(value):
 		land_clip = value
@@ -941,9 +941,7 @@ func _bone_paths(roots: Array) -> Array[NodePath]:
 func _build_machine() -> AnimationNodeStateMachine:
 	_machine = AnimationNodeStateMachine.new()
 	_machine.add_node(GROUND, _build_ground(), Vector2(200, 0))
-	_machine.add_node(JUMP, _clip(jump_clip), Vector2(400, -100))
-	_machine.add_node(FALL, _clip(air_clip), Vector2(600, 0))
-	_machine.add_node(LAND, _clip(land_clip), Vector2(400, 100))
+	gait.add_jump(self, _machine)  # the jump's states and their choices (`JumpAnimation`)
 	_machine.add_node(PUSH, _clip(push_clip), Vector2(200, 160))
 	_machine.add_node(CROUCH, _build_crouch(), Vector2(0, 160))
 	var upper := _bone_paths([upper_body_bone])
