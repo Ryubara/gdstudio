@@ -148,20 +148,19 @@ mass keeps its place against the capsule: it flies the arc the controller flies.
 | `LAND` from 9 m/s | `GaitSettings.hard_land_clip` | `gds/Land_Hard`: control back at frame 20 (0.67 s), 1.27 s with its settle | `land_clip` |
 | `LAND` asked to run | `GaitSettings.run_land_clip` | `gds/Land_To_Jog`: 0.27 s, ends on the jog's right foot strike (frame 10) | `land_clip` |
 
-**How the tree picks them** (`JumpAnimation`, kit #1371). A jump from the ground state at
-`run_takeoff_speed` (2.5 m/s) or more takes off from the foot that pushes: the one down at the gait's phase
-(`clips.json` contacts: the jog's left from 0 to 0.3 of its cycle, its right from 0.5 to 0.8), else the one that
-lands next; a gait with no record picks the take-off whose `joins.first_frame` is nearest the phase. The momentum
-blend carries no pose speed into the standing take-off (`carries_speed()`; PR #1530). The take-off plays to its end
-while the body is in the air, then the air plays at the body's vertical speed. A landing is picked by the fall speed
-(`Character.landed`'s on a stepped body, the fastest fall it was drawn with on a puppet)
-against each clip's `fall_speed` range. While the body stands it plays through its settle (the tree stays in
-`land` after the body's `LAND` state ends); asked to move it gives the body back at its `control` frame, or at once
-when the body already moves; `Land_To_Jog` hands over to the jog at the phase of its `joins.last_frame` (0.5). A
-clip missing from the libraries leaves its choice to `CharacterAnimation`'s clip, so the library's play as
-stand-ins. Cosmetic, never sent: a puppet picks from the state, velocity and goal it is drawn with.
-`tests/gameplay/test_jump_tree.gd` holds each case; `tools/capture/jump_tour.tscn` films them on a player's own
-screen beside the puppet of it on another's.
+**How the tree picks them** (`JumpAnimation`, kit #1371). A jump from the ground state at `run_takeoff_speed` (2.5 m/s)
+or more takes off from the foot that pushes: the one down at the gait's phase (`clips.json` contacts: the jog's left
+from 0 to 0.3 of its cycle, its right from 0.5 to 0.8), else the one that lands next; a gait with no record picks the
+take-off whose `joins.first_frame` is nearest the phase. The momentum blend carries no pose speed into the standing
+take-off and starts again on one frame more (PR #1530). The take-off plays to its end while the body is in the air, then
+the air plays at the body's vertical speed. A landing is picked by the fall speed (`Character.landed`'s on a stepped
+body, the fastest fall it was drawn with on a puppet) against each clip's `fall_speed` range. While the body stands it
+plays through its settle (the tree stays in `land` after the body's `LAND` state ends); asked to move it gives the body
+back at its `control` frame, or at once when the body already moves; `Land_To_Jog` hands over to the jog at the phase of
+its `joins.last_frame` (0.5). A clip missing from the libraries leaves its choice to `CharacterAnimation`'s clip, so the
+library's play as stand-ins. Cosmetic, never sent: a puppet picks from the state, velocity and goal it is drawn with.
+`tests/gameplay/test_jump_tree.gd` holds each case; `tools/capture/jump_tour.tscn` films them on a player's own screen
+beside the puppet of it on another's.
 
 `locomotion.json` says of each clip what the tree reads: `carried` (the capsule carries it), `made_for` (the
 tuning numbers it was built to, which `tests/gameplay/test_own_jump_clips.gd` holds to `CharacterTuning`'s

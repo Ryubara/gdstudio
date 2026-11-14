@@ -109,6 +109,12 @@ func carries_speed(animation: CharacterAnimation) -> bool:
 	return jump.carries_speed(animation.body_state())
 
 
+## Frames more than `MomentumBlend.SETTLE_FRAMES` the momentum blend starts again after a change
+## (`JumpAnimation.extra_settle()`).
+func extra_settle(animation: CharacterAnimation) -> int:
+	return jump.extra_settle(animation.body_state())
+
+
 func _take(animation: CharacterAnimation) -> void:
 	var settings := settings_of(animation)
 	blend.settings = settings

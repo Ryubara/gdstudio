@@ -8,7 +8,8 @@ extends RefCounted
 ##   one that lands next (`Jump_Start_Run_L` begins on the jog's left foot strike, `_R` on its
 ##   right one: `joins.first_frame` in `clips.json`); else `CharacterAnimation.jump_clip`. It
 ##   plays to its end while the body is in the air, then the air follows. The momentum blend
-##   carries no speed of the pose before into the standing one (`carries_speed()`).
+##   carries no speed of the pose before into the standing one (`carries_speed()`) and starts
+##   again on one frame more (`extra_settle()`).
 ## - **The air** (`fall`): `GaitSettings.rise_clip`, `apex_clip` and `CharacterAnimation.air_clip`
 ##   (the fall) in a blend space on the body's vertical speed: the rise alone from `air_rise_speed`
 ##   up, the top at 0, the fall alone from `air_fall_speed` down.
@@ -139,6 +140,16 @@ func carries_speed(state: StringName) -> bool:
 	if not _choosing() or phase != Phase.TAKEOFF or state != CharacterAnimation.JUMP:
 		return true
 	return takeoff != _animation.jump_clip
+
+
+## Frames more than `MomentumBlend.SETTLE_FRAMES` the momentum blend starts again after a change
+## into `state`: one for the standing take-off, whose pose is drawn a tick later than a gait's
+## after a transition clip. With the three of gdstudio #1536 its last start came on the update the
+## take-off's pose arrived, and the 26 to 33 degree difference from the stop died away on top of
+## the clip's own first move: the raised pistol 36 degrees a second on the fourth update, 27 to 29
+## with one more start (gdstudio #1530).
+func extra_settle(state: StringName) -> int:
+	return 0 if carries_speed(state) else 1
 
 
 ## The clip a jump of `body` would take off with now: `gait` is the ground gait that weighs most,

@@ -20,9 +20,10 @@ extends SkeletonModifier3D
 ## The new state's pose reaches the skeleton a frame or two after the key changes (the state
 ## machine reports its new node in the frame it travels, and the tree draws it on a later update),
 ## so the blend starts again from the pose last shown on each of `SETTLE_FRAMES` frames after a
-## change: each start keeps the drawn pose and its speed, and the one on the frame the new pose
-## arrives takes the whole jump (gdstudio #1416). Nothing while an action clip covers the whole
-## body (`CharacterAnimation.is_acting(true)`): the action cross-fades in the tree.
+## change (more for a state that asks, `CharacterGait.extra_settle()`): each start keeps the
+## drawn pose and its speed, and the one on the frame the new pose arrives takes the whole jump
+## (gdstudio #1416). Nothing while an action clip covers the whole body
+## (`CharacterAnimation.is_acting(true)`): the action cross-fades in the tree.
 
 ## Parts of the bone names it leaves to the clip alone.
 const SKIPPED: Array[String] = [
@@ -90,7 +91,7 @@ func _process_modification_with_delta(delta: float) -> void:
 		_follow(skeleton)
 	var key: Variant = animation.gait.pose_key(animation)
 	if key != _key and _seen >= 2:
-		_settle = SETTLE_FRAMES
+		_settle = SETTLE_FRAMES + animation.gait.extra_settle(animation)
 	_key = key
 	if animation.is_acting(true):
 		# The action's own cross-fade covers the body, and the clip moves fast (a vault's hands):
