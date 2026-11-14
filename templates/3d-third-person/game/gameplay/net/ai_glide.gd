@@ -85,7 +85,7 @@ func heading() -> Vector3:
 	return (newest.position - row.position) * (float(NetLimits.TICK_RATE) / (_ticks[-1] - row_tick))
 
 
-## The goal a puppet's starts and stops read (`Character.motion_goal`, gdstudio #1452): none when
+## The goal a puppet's starts and stops read (`CharacterGoal.motion`, gdstudio #1452): none when
 ## the row says the body is asked for no speed (`AiRow.speed`, the server body's goal speed), else
 ## that speed along where the rows head (`heading`), or along `kept`, the goal it had, while they
 ## head too slowly to tell a way, or along the way it faces from standing.

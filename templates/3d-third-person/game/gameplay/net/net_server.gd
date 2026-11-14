@@ -73,6 +73,9 @@ const HOLD_TICKS := 4
 @export_group("Players")
 ## The body each player gets: the body alone, with no model, animation or camera.
 @export var body_scene: PackedScene = preload("res://gameplay/character/character.tscn")
+## The bag, the hotbar and the `ItemUse` each body gets (the children of this scene's root), the
+## same as the player's (gdstudio #1386): the server alone applies an item. Empty: none.
+@export var body_items: PackedScene = preload("res://gameplay/net/body_items.tscn")
 ## Where the bodies go; empty makes a `Players` node under the server.
 @export var players_root: Node3D
 ## The `SpawnPoint` group the bodies start at: slot n takes the n-th point by node path, wrapping
@@ -157,6 +160,8 @@ var keep_history := false
 var kicked := 0
 ## Shots, hits and deaths: the server's judge and their events (gdstudio #906).
 var combat := ServerCombat.new()
+## The bags and item uses: the server's heal and count, and their USE events (gdstudio #1386).
+var items := ServerItems.new()
 ## The AI characters on the wire (gdstudio #970).
 var ai := AiBroadcast.new()
 ## The volume of each AI character over the last `ai_rewind_seconds`, recorded with each TICK's
@@ -181,6 +186,7 @@ func _ready() -> void:
 	world_hash = world_hash_of(_map_root())
 	_take_world(_map_root())
 	_wire_combat()
+	_wire_items()
 	_wire_ai()
 	listener.clock = _now
 	listener.peer_connected.connect(_on_connected)
@@ -324,6 +330,8 @@ static func entry_of(slot: int, body: Character) -> PlayerEntry:
 	entry.pitch = body.view_pitch
 	# The aim layer's turn off the body, which another screen poses its puppet by (kit #1277).
 	entry.aim_yaw = body.aim_yaw if body.aiming else 0.0
+	# The peek lean moves the eye, the shape a shot meets and the bend (gdstudio #1400).
+	entry.peek = body.peek_motion.amount
 	return entry
 
 
@@ -430,6 +438,7 @@ func _make_body(slot: int) -> Character:
 	var body := body_scene.instantiate() as Character
 	body.name = "Player%d" % slot
 	body.ragdoll_by_command = false
+	ServerItems.equip(body, body_items)
 	if ai_sees_players:
 		# The AI sees, fights and measures its tiers from the players' bodies.
 		body.add_to_group(Player.GROUP)
@@ -443,6 +452,7 @@ func _make_body(slot: int) -> Character:
 	_put_at_spawn(body, slot)
 	body.fell.connect(_put_at_spawn.bind(body, slot))
 	combat.watch(slot, body)
+	items.watch(slot, body)
 	return body
 
 
@@ -496,6 +506,7 @@ func _unseat(peer: PeerSlot, reason: String) -> void:
 	var slot := peer.slot
 	_by_slot.erase(slot)
 	combat.forget(slot)
+	items.forget(slot)
 	if is_instance_valid(peer.body):
 		peer.body.queue_free()
 	peer.body = null
@@ -532,6 +543,7 @@ func _step_bodies(delta: float) -> void:
 			if weapon != null:
 				weapon.rewind = null
 			combat.stepped(slot, peer.body)
+			items.stepped(slot, delta)
 	map_parts.place(map_parts.tick)
 	combat.step(delta)
 
@@ -610,6 +622,13 @@ func _wire_combat() -> void:
 		var peer: PeerSlot = _by_slot.get(to_slot)
 		if peer != null:
 			peer.add_event(event)
+
+
+# The item uses' events go to the players as the combat's do.
+func _wire_items() -> void:
+	items.tell_all = combat.tell_all
+	items.tell_others = combat.tell_others
+	items.tell = combat.tell
 
 
 # The AI's wire: its weapons' hits are HITs, its events go to the clients that hold it.

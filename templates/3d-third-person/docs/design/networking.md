@@ -52,6 +52,11 @@ player's screen drew the character, a few tenths of a second ago (the server kee
 guard you see. Only the body a shot meets is wound back, never what the AI thinks or where it goes; another player is
 met where the server has them.
 
+Each body also gets the bag, the hotbar and the item use of `game/gameplay/net/body_items.tscn` (the inspector's
+`body_items`: three bandages on the first place, as the player's own), so the server alone heals and counts. A
+player's hotbar press rides in the command; the server's body starts the use, heals at 75% of its time and tells
+the players in small USE events, and every screen plays the clip and the sound itself.
+
 ## The client
 
 A `NetClient` node (`game/gameplay/net/net_client.gd`) joins a server and plays the local `Player` at once: each

@@ -505,9 +505,10 @@ func test_the_player_s_tree_leans_with_these_poses_and_its_targets_follow_its_li
 		)
 	_skeleton = body.find_children("*", "Skeleton3D", true, false)[0]
 	var tree := animation.tree
-	var upright := _leaned(tree, names, &"")
+	var lean := animation.gait.lean
+	var upright := _leaned(tree, lean, &"")
 	for way: StringName in names:
-		var leaned := _leaned(tree, names, way)
+		var leaned := _leaned(tree, lean, way)
 		var head: Vector3 = (
 			(leaned["Head"] as Transform3D).origin - (upright["Head"] as Transform3D).origin
 		)
@@ -535,14 +536,14 @@ func test_the_player_s_tree_leans_with_these_poses_and_its_targets_follow_its_li
 		assert_float(toward).override_failure_message(message).is_greater(0.05)
 		assert_float(feet).override_failure_message(message).is_less(0.005)
 		assert_float(targets).override_failure_message(message).is_less(0.01)
-	_leaned(tree, names, &"")
+	_leaned(tree, lean, &"")
 
 
-# The player's pose with the lean of one way at full weight and the others at none.
-func _leaned(tree: AnimationTree, names: Dictionary, lean: StringName) -> Dictionary:
-	for way: StringName in names:
-		var node := "parameters/Lean%s/add_amount" % String(way).capitalize()
-		tree.set(node, 1.0 if way == lean else 0.0)
+# The player's pose with the lean of one way (`GaitLean.WAYS`) at full weight and the others at
+# none (`&""`: upright).
+func _leaned(tree: AnimationTree, lean: GaitLean, way: StringName) -> Dictionary:
+	var axis: Vector3 = GaitLean.WAYS.get(way, Vector3.ZERO)
+	lean.apply(tree, Vector2(axis.x, axis.y))
 	tree.advance(0.0)
 	return _read()
 

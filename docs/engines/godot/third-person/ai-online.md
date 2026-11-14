@@ -31,13 +31,14 @@ plays everything cosmetic itself; nothing cosmetic is sent.
 **Its starts and stops** (gdstudio #1452). An AI's puppet never steps, so, like a player's puppet before
 [#1420](online-client.md#puppets), `GaitTransitions` read its goal from an empty command and took every moving AI
 puppet for a body asked to stop: on a client it glided along in `Walk_Stop`'s last frame at 4 and 6.3 m/s and played
-no stop when the AI stopped. `AiReplica` now makes each puppet with `goal_from_motion` on and sets `motion_goal` each
-step from `AiGlide.goal`: none when the row's speed is 0, else that speed along where the rows head
+no stop when the AI stopped. `AiReplica` now makes each puppet with `CharacterGoal.from_motion` on and sets its `motion`
+each step from `AiGlide.goal`: none when the row's speed is 0, else that speed along where the rows head
 (`AiGlide.heading`, from the row drawn to the newest one waiting in the playout buffer, 0.1 s ahead), the way it had
 while they head under 0.5 m/s, or the way it faces from standing. The row's speed byte is the body's goal speed
 (`Character.goal_speed`), not its measured one: the stop needs a signal the drawn motion cannot give in the first
-0.1 s of a brake, and the byte already travels, so it costs no byte, no bit and no protocol version (the layout is
-the same; the client's drawn speed is the glide's own, and a guess ahead now stops at once when the walk is let go).
+0.1 s of a brake, and the byte already travels, so it costs no byte and no bit (the layout is the same; the client's
+drawn speed is the glide's own, and a guess ahead now stops at once when the walk is let go). The protocol version
+still goes up (14), since an older client would read the byte as the measured speed.
 On a loopback walk, run, sprint and stop (`test_net_ai_puppet_gait.gd`) the puppet begins what the server's body
 begins (`Sprint_Stop` at the stop), plays no stop on any steady frame and its largest bone turns more than 3 degrees a
 frame while it moves; on the base code 8 checks fail (`Walk_Stop` while it walked, no stop when it stopped, 40 of 40

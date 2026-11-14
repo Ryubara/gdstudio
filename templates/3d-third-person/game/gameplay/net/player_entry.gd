@@ -1,8 +1,9 @@
 class_name PlayerEntry
 extends RefCounted
-## One player as a TICK carries it (12 bytes, 13 while aiming, `SnapshotCodec`): what another
-## screen needs to draw the body (where, facing, the animation state, the locomotion flags, the aim
-## pitch, and while aiming the aim's heading off the body). Velocity, the aim and crouch amounts
+## One player as a TICK carries it (12 bytes, one more while aiming and one more while leaning,
+## `SnapshotCodec`): what another screen needs to draw the body (where, facing, the animation
+## state, the locomotion flags, the aim pitch, while aiming the aim's heading off the body, and
+## while leaning the peek lean). Velocity, the aim and crouch amounts
 ## and the timers are not sent: a client derives them.
 
 ## The player's place in the game, 0 to `NetLimits.MAX_PLAYERS` - 1.
@@ -31,9 +32,19 @@ var pitch := 0.0
 ## (`Character.aim_yaw`): what the aim layer turns the upper body by. Sent only while `aim` (a
 ## signed byte over a half turn either way, about 1.4 degrees a step); 0 otherwise.
 var aim_yaw := 0.0
+## The peek lean, -1 (all the way left) to 1 (right), `CharacterPeek.amount` (gdstudio #1400): it
+## moves the eye, the shape a shot meets and the bend on every screen. Sent only while not 0 (a
+## signed byte, 1/127 a step).
+var peek := 0.0
 ## The player's name; only a WELCOME carries it (a TICK does not).
 var player_name := ""
 
 
 func all_finite() -> bool:
-	return position.is_finite() and is_finite(yaw) and is_finite(pitch) and is_finite(aim_yaw)
+	return (
+		position.is_finite()
+		and is_finite(yaw)
+		and is_finite(pitch)
+		and is_finite(aim_yaw)
+		and is_finite(peek)
+	)

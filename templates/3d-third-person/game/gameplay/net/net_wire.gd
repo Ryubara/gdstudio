@@ -1,6 +1,6 @@
 class_name NetWire
 extends RefCounted
-## The bytes of an online game of this template (protocol version 8): one message to a WebSocket
+## The bytes of an online game of this template (protocol version 11): one message to a WebSocket
 ## frame, a type byte first, then fixed fields, little-endian. Plain code with no node, socket or
 ## clock, so a server, a client, a test and a tool share one definition. The transport (a
 ## `WebSocketPeer`, a loopback) carries the arrays as they are.
@@ -9,13 +9,14 @@ extends RefCounted
 ##                length (<= NAME_BYTES), the name in UTF-8. 8 bytes + the name
 ## WELCOME  S->C  u8 type=2, u8 version, u8 slot, u8 tick rate, u32 server tick, u32 world hash,
 ##                u16 entity count, then per world part: u16 id, u8 kind, u8 state length, the
-##                state; u8 player count, then per player: its entry (12 or 13 bytes), u8 name
+##                state; u8 player count, then per player: its entry (12 to 14 bytes), u8 name
 ##                length, the name (`SnapshotCodec.welcome`)
 ## REFUSED  S->C  u8 type=3, u8 reason (`Refusal`), u8 the server's version; the server closes
 ##                the connection after it. 3 bytes
 ## COMMAND  C->S  u8 type=4, u32 seq, s8 move x, s8 move y, u16 yaw, s16 pitch, u16 flags, u8
-##                more flags (bit 0 the melee press), u8 spare (15 bytes); with the `F_SHOT`
-##                flag a shot block follows: s16 origin x/y/z (cm),
+##                more flags (bit 0 the melee press, bits 1 and 2 the lean left and right), u8
+##                the hotbar place used + 1 (0 none) (15 bytes); with the `F_SHOT` flag a shot
+##                block follows: s16 origin x/y/z (cm),
 ##                u16 shot yaw, s16 shot pitch, u16 view tick (27 bytes in all; `CommandCodec`)
 ## TICK     S->C  u8 type=5, u32 server tick, u32 ack (the last command seq applied for this
 ##                client), u8 event count, the events, u8 player count, the player
@@ -28,8 +29,9 @@ extends RefCounted
 ## PONG     S->C  u8 type=7, the same u32 and u16, u32 server tick. 11 bytes
 ##
 ## A player entry: u8 slot, s16 x/y/z (cm), u16 yaw, u8 state, u8 flags (crouch, aim, sprint,
-## air, rising, dead, halt in bit 7), s8 pitch, and with the aim flag s8 the aim's heading off the
-## body (`SnapshotCodec`). 12 bytes, 13 while aiming.
+## air, rising, dead, peek, halt), s8 pitch, with the aim flag s8 the aim's heading off the
+## body, and with the peek flag s8 the lean (`SnapshotCodec`). 12 bytes, 13 while aiming or
+## leaning, 14 while both.
 ##
 ## Every decoder checks each length before it reads, answers null (or -1) for a packet that is
 ## not exactly one message, and counts why in a `NetDrops` (never silent). The version is read
@@ -47,13 +49,16 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## state may be 12 bytes (gdstudio #1073); 6: a TICK ends with the AI block, a HELLO carries the
 ## client's flags, an AI event and a HIT on an AI (gdstudio #970); 7: an aiming player's entry
 ## ends with the aim's heading off the body (gdstudio #1277); 8: a COMMAND's byte 13 carries
-## the melee press, a MELEE event and an AI event's `MELEE` code (gdstudio #1254); 10: a player
-## entry's flags carry `halt`, asked for no move (bit 7, gdstudio #1420; 9 is the peek lean's and
-## the bandage's, open beside it).
-const VERSION := 10
+## the melee press, a MELEE event and an AI event's `MELEE` code (gdstudio #1254); 9: a COMMAND's
+## byte 14 carries the hotbar place used, and a USE event (gdstudio #1386); 11: a COMMAND's byte
+## 13 carries the peek lean and a leaning player's entry ends with it (gdstudio #1400); 13: a
+## player entry's flags carry `halt`, asked for no move (bit 7, gdstudio #1420); 14: an AI row's
+## speed is the speed the body is asked for, not the one it has (gdstudio #1452; 10 and 12 are
+## named by open pull requests beside it).
+const VERSION := 14
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 10
+const MIN_VERSION := 14
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1

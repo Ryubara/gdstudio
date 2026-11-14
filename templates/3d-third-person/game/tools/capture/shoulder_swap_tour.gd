@@ -101,6 +101,9 @@ func _next_part() -> void:
 
 func _build_board() -> void:
 	var body := StaticBody3D.new()
+	# On the Characters layer: a swap keeps the point only on a character (`keep_aim_layers`), and
+	# this board stands in for one (swap_target_tour shows a wall and a real character).
+	body.collision_layer = PhysicsLayers.CHARACTERS
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = Vector3(6.0, 4.0, 0.2)
