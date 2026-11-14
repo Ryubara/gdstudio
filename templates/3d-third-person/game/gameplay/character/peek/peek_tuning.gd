@@ -76,6 +76,13 @@ enum InputMode {
 ## The room kept between the leaning shape and a wall, in metres: the lean stops this short.
 @export_range(0.0, 0.2, 0.005, "suffix:m") var wall_margin := 0.03
 
+@export_group("Weapon")
+## On: a left lean brings the right-handed weapon to the left side as it leans (gdstudio #1435),
+## the rifle to the left shoulder and the pistol across the face to the left eye, so its muzzle
+## clears a wall's edge as soon as the head does, as a right lean's does. Off: the weapon stays
+## right of the head, and a left peek needs the edge about 0.2 m closer.
+@export var left_shoulder := true
+
 @export_group("Input")
 ## Hold or toggle, when the player's settings say nothing (`PlayerInput`).
 @export var input_mode := InputMode.HOLD
