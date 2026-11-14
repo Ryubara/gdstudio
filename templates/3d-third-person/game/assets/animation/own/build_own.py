@@ -34,6 +34,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ## Blender's Python must not leave `__pycache__` folders in the game (the layout test refuses them).
 QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+sys.dont_write_bytecode = True  # also when run without -B: no `__pycache__` beside `../measure_hash.py`
 sys.path.insert(0, str(HERE))
 sys.path.insert(1, str(HERE.parent))
 
