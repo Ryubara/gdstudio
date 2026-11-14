@@ -487,6 +487,8 @@ every bone is the same in all 444 drawn frames (0.0005 mm, single precision). 25
 | --- | ---: | ---: | ---: | ---: |
 | Desktop, before | 11.6 to 13.9 | 13.0 to 15.5 | 0.30 to 0.31 | 0.33 to 0.35 |
 | Desktop, after | 4.9 to 6.3 | 7.1 to 9.5 | 0.13 to 0.15 | 0.20 to 0.22 |
+| Chrome, before | 12.6 to 14.4 | 15.3 to 18.3 | 0.28 to 0.30 | 0.35 to 0.38 |
+| Chrome, after | 6.3 to 6.6 | 11.3 to 11.4 | 0.13 to 0.14 | 0.24 |
 
 What is left at rest: the layer's aim ray each tick (kept, so the first aimed frame is placed from the last two
 steps as before) and one look at the aim; the hold's read of the weapon layer, the reload and the rack, the grip's
