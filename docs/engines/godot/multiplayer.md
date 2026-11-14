@@ -216,9 +216,10 @@ ready), so fire held for three seconds measured 1302 B/s up for the pistol and 1
 shots a second (a command a tick and two pings, each with a 6-byte frame; 1286 with no block, 2006 if the block rode on
 every held tick, against a budget of 2000). Flag bits 11 to 14 are the weapon presses (reload, next, previous,
 the empty hands; gdstudio #887) and bit 15 is prone (#1012); no bit of the u16 is free, so byte 13 (always zero
-before) is a second flag byte: bit 0 is the melee press (#1254), its other bits are refused, byte 14 is still spare.
-`NetWire.VERSION` 8 (#1254; 7 is #1277's): that byte, a `MELEE` event (slot, seq) and the AI event's `MELEE` code
-([melee](third-person/melee.md#melee)). `NetWire.VERSION` 4 (#906): a shot
+before) is a second flag byte: bit 0 is the melee press (#1254), its other bits are refused; byte 14 is the hotbar
+place used + 1 (#1386). `NetWire.VERSION` 8 (#1254; 7 is #1277's): that byte, a `MELEE` event (slot, seq) and the AI
+event's `MELEE` code ([melee](third-person/melee.md#melee)). `NetWire.VERSION` 9 (#1386): byte 14 and an 8-byte `USE`
+event ([item uses online](third-person/online-items.md#item-uses)). `NetWire.VERSION` 4 (#906): a shot
 carries the weapon and the low 16 bits of its `seq`, a hit the health it left
 ([shots online](third-person/online-shots.md#template-shots)). `NetWire.VERSION` 5 (#1073): a TICK ends with a count
 and the rows of the moving props, and a world part's state may be 12 bytes

@@ -172,6 +172,22 @@ pitch stay as they are, and so does the way the character runs, because the run 
 `keep_aim_when_not_aiming` (off) keeps the point on every swap; `keep_aim_on_swap` off keeps it on none. A swap begun
 while aiming keeps its point to the end even if the aim is let go mid-swap.
 
+**Only on a character.** Aimed, the point is kept only when the crosshair's ray stops on a character: a body on one of
+`keep_aim_layers` (by default Characters, the capsule of the player, a friend or an enemy, and Ragdoll, the bones of a
+limp body; `ShoulderSwapAim.keeps()`). At a wall, the floor, a prop or the empty sky the swap moves the view to the
+other shoulder without turning it: the point there is scenery, and turning toward it only throws the player off.
+Adding World to `keep_aim_layers` keeps the point on walls again.
+
+- **Approach:** Decide what the aimed point is worth keeping from what the ray hit, not only from what the player is
+  doing: keep it on a target (an exported layer mask), slide past scenery. Test both through the real input (aim
+  trigger held, Q pressed), reading the view's yaw and pitch for the wall, floor and sky and the point at each physics
+  tick for a dressed character (`test_camera_swap_target.gd`); the geometry suite's boards stand on the Characters layer.
+  **Watch out for:** a swap aimed at a wall 4 m out turned the view about 15 degrees, though nothing there was worth
+  holding (`swap_target_tour` capture); and reading the crosshair right after `process_frame`, before the rig's
+  `_process`, shows about 1.4 degrees off on a kept point that is within 0.25 at each physics tick, where a shot reads
+  it.
+  **Seen:** gdstudio #1410, 2026-11-13 (the maintainer's playtest of main).
+
 - **Approach:** Tie the aimed-point keeping to aiming: decide when the swap starts (`PlayerCamera._keeps_aim_now()`),
   and offer keeping on every swap as an inspector option that is off by default. Test it with simulated input: a
   sprint (W and Shift held) plus a swap keeps the view's yaw and the run's heading within 0.05 degrees, an aimed swap
@@ -382,7 +398,8 @@ From Deadnight #702 (a bot's body had the view):
   **Watch out for:** the 3D Third Person player aims along the main viewport's camera, so a close-up camera made
   current turned the character to face it: the rifle tour's front and side views showed her back as soon as she aimed,
   and a walk steered by that camera missed the pickup. **Seen:** gdstudio #889, 2026-11-10 (fix: `rifle_tour.gd`'s
-  viewport).
+  viewport); gdstudio #1403, 2026-11-13 (the lean tour moved the rig's own camera to the side and the pressed sprint
+  ran away from it; fix: the tour steps the body by commands, `lean_tour.gd`).
 
 - **Approach:** Fix a fault found twice where the thing is made, not in each caller, and have camera tests read
   `get_viewport().get_camera_3d()` in the real Solo-with-bots flow. **Watch out for:** every body is `player.tscn` with
