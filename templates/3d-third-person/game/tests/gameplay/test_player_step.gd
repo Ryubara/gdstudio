@@ -135,7 +135,7 @@ func test_a_copy_has_every_field_and_clear_keeps_only_the_view() -> void:
 				. override_failure_message(property["name"])
 				. is_equal(command.get(property["name"]))
 			)
-	assert_int(fields).is_equal(25)
+	assert_int(fields).is_equal(26)
 	copy.clear()
 	assert_float(copy.yaw).is_equal(command.yaw)
 	assert_float(copy.pitch).is_equal(command.pitch)
@@ -143,6 +143,7 @@ func test_a_copy_has_every_field_and_clear_keeps_only_the_view() -> void:
 	assert_bool(copy.sprint or copy.aim or copy.fire or copy.jump or copy.crouch).is_false()
 	assert_bool(copy.prone).is_false()
 	assert_bool(copy.walk or copy.has_shot or copy.jump_pressed).is_false()
+	assert_int(copy.use_place).is_equal(-1)
 
 
 func test_a_world_direction_and_a_look_make_the_view_and_the_push() -> void:

@@ -1,13 +1,15 @@
 ## Measures what the gait fitting costs (gdstudio #1158): dressed players walk, blend into a jog,
 ## sprint and stop over and over (each a little out of step with the next, so the body states
-## change on different frames), stepped by commands, with the tree's `GaitSettings` in one of two
+## change on different frames), stepped by commands, with the tree's `GaitSettings` in one of the
 ## runs named by the first user argument (or `?run=` in the web build's address): `off` (no speed
-## matching, no momentum blend, no transitions: the tree as it was before) or `on` (the template's
-## settings). The second (or `?players=`) is how many: 1 or 40. A frame's work is the span from
-## the first node's `_process` to the end of the deferred calls after the last one (the skeletons
-## run their modifiers there, the momentum blend among them). It prints the mean and the median on
-## a line starting `BENCH` and, in a browser, puts them in `window.__gait_cost`; the fitting's cost
-## for one character is `on`'s mean less `off`'s, over the players.
+## matching, no momentum blend, no transitions: the tree as it was before), `on` (the template's
+## settings) or `lean_off` (the template's settings with only the lean off, gdstudio #1403: the
+## lean's cost is `on` less `lean_off`). The second (or `?players=`) is how many (1, 10, 40). A
+## frame's work is the span from the first node's `_process` to the end of the deferred calls
+## after the last one (the skeletons run their modifiers there, the momentum blend among them). It
+## prints the mean and the median on a line starting `BENCH` and, in a browser, puts them in
+## `window.__gait_cost`; the fitting's cost for one character is `on`'s mean less `off`'s, over
+## the players.
 ##
 ## `<godot> --headless --path game res://tools/bench/gait_cost.tscn -- on 40`; in Chrome,
 ## `gds template bench-web 3d-third-person gait_cost --run` (`gait_cost.py` reads every run). One
@@ -83,6 +85,8 @@ func _bench() -> void:
 		settings.speed_match = false
 		settings.momentum_blend = false
 		settings.transitions = false
+	elif run_name == "lean_off":
+		settings.lean = false
 	var scene := load("res://gameplay/player/player.tscn") as PackedScene
 	for index in count:
 		var player := scene.instantiate() as Player

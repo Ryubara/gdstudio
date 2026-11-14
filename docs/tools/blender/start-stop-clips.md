@@ -106,6 +106,7 @@ that follow -->
   **Watch out for:** with 8 KiB pages the import held `Idle_To_Walk_L`'s pelvis place still from frame 13 to 26
   while the file's keys were right, and the planted-foot tests read 46 mm and 31 mm for that one clip, which looks
   like a fault of the clip. The import bakes a key a frame, so only fewer tracks make it smaller: 289,356 bytes
-  for 43.7 s at 32 KiB (6.6 KB a second; 286,880 at 64), 275,564 without the hands' `ik_` targets, still over 6.
+  for 43.7 s at 32 KiB (6.6 KB a second; 286,880 at 64), 275,564 without the hands'
+  `ik_` targets, over 6 (the plan's 7 now).
   **Seen:** gdstudio #1156, 2026-11-12 (`tests/gameplay/test_own_moves.gd`'s
   `test_the_import_keeps_every_start_and_stop_s_motion`).

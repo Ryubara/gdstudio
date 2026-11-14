@@ -260,6 +260,32 @@ the shoulder reaches for the gun where the last frame's push had it and the push
 only when it moved more than 3 mm (a new pose); the reach's angle is worked out in closed form; every pose comes
 from the local ones; past `fingers_far_distance` the last near push is kept.
 
+Cut again (kit #1347), the same bench, the branch and `main` in turns, two rounds a body (microseconds a character a
+frame, female / male): the rifle at the ready 39 / 36 against 54 / 54, low 39 / 36 against 51 / 55, reloading 46 / 42
+against 62 / 57, past `fingers_far_distance` 25 / 22 against 33 / 33; the pistol carried and aimed as they were (10 /
+10 and 19 / 16 against 9 / 9 and 19 / 18). A build from before the stock fix (after kit #1289), in the same session,
+read 31 / 32, 29 / 27 and 38 / 36, so the push and the shoulder's reach still cost 6 to 9 more than the hold did
+before them. Every bone came out within 2.3 micrometres of `main` in 36 poses (both bodies, six clips, up and down,
+four shares of a reload). What cut it, in order of what it saved: the small helpers written out at their callers
+(the web build pays more for a GDScript call than for a line, [what a line costs](../gdscript.md#web-cost)), the push
+turning each group's points by one engine call (`Transform3D * PackedVector3Array`, `AABB.has_point`) and meeting the
+groups' boxes in the bone's space, the stance handing `place()` the spine's top pose (`HoldBones`), what is written to
+the modifiers kept and written only when it changes (`HoldWeights`), the trigger finger set straight to its pose when
+it is all the way on, and no pull worked out while `pull_limit` is 0. With the butt's push along `push_level`'s way
+(kit #1346) merged in, the push along it (`TorsoSkin._push_along()`) takes the same three speedups; the low ready aims
+the barrel down and takes that way, so most of its cost is the new push: on a busy machine 72 / 119 against 79 / 119,
+where the ready went 50 / 74 against 70 / 93 and the reload 54 / 82 against 75 / 103.
+
+Cut again (kit #1433), the same bench, the branch and `main` in turns, three rounds a body: the low ready 60 / 60
+against 68 / 84, the ready 49 / 47 against 48 / 48; every bone the same as `main` in 100 poses. The low ready went
+through 143 / 170 skin points a frame against 37 / 54 at the ready: the groups' boxes were met against the stock's
+sweep turned into each bone's space, and that long, thin box turned there covered most of the torso. Now each point
+is turned into the frame of its own run (the move that brings the stock's back edge to it, and the one that brings
+its edge across), where the sweep is a box and the run two sums; and the sweep is first looked at only as far as the
+last push and 2 cm, exact for any push under that (a point the stock does not pass over forbids no shorter move), the
+whole reach again only when the push reaches it. It goes through 34 / 61 points; the low ready is still 11 / 13 over
+the ready, the 23 / 32 points that do forbid a move.
+
 The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
 body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
 out), the deepest in the six locomotion clips at the low ready and aimed and aimed 30 degrees up and down, on the
@@ -454,3 +480,6 @@ stock test's 10 mm.
   and many poses inside it), clipped to the weapon's own bounds. **Watch out for:** a grid round the straight way
   alone read a point beyond it as the edge's distance plus the way there, so a way through the receiver above it
   read 1.6 mm on the grid and 6 mm in the game. **Seen:** gdstudio #1283, 2026-11-12.
+- **Approach:** Make a stage that a suite will `settle()` with `RifleStage.make_rifle(holder, model)`, the measured
+  default. **Watch out for:** `measured = false` connects nothing to `skeleton_updated`, so `settle()` waits forever
+  and GdUnit stops the suite at 5 minutes. **Seen:** gdstudio #1433, 2026-11-13 (`test_torso_skin_push.gd`).
