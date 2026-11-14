@@ -1,9 +1,17 @@
-"""Plans the rifle's trigger finger's way from along the receiver to the trigger (kit #1283), on the dump
-`solve_trigger_way.gd --dump=` writes, and writes the poses between the two ends for `solve_trigger_way.gd --way=`
-to check with the game's own measure and write.
+"""Plans a held weapon's trigger finger's way to the trigger, on the dump a solver writes, and writes the poses
+between the two ends for that solver to check with the game's own measure and write: the rifle's from along the
+receiver (kit #1283, `solve_trigger_way.gd --dump=` and `--way=`) and the pistol's from along the frame with both
+hands on the gun (kit #1480, `solve_pistol_trigger_way.gd --dump=` and `--way=`).
 
     uv run --no-project --with numpy --with scipy python tools/hold/plan_trigger_way.py <abs>/way_female.json \
         <abs>/way_female_out.json [--limit=<mm>]
+
+What a dump may add to the finger, the weapon and the two ends (the pistol's has all four; the rifle's none):
+`axes` (the grid of poses searched, each angle's from, to and by, in place of `AXES`), `plan_limit` (the default
+`--limit`, metres), `other` (the other hand's skin as it holds, closed pieces in the weapon's space, measured as
+`HandContact` measures a hand: inside where two of three rays along the axes say so) and `through` (depth into the
+weapon read against the part's thickness, as `HandContact.measure_through` reads it: a point more than `crossing`
+of the way to its part's middle reads the part's whole thickness).
 
 The game blends each of the finger's three bones from one pose of the way to the next (a slerp, the legs spread
 evenly over the raise, `HandPoseModifier.second_way`), so a way is a list of poses and each leg between two of them
@@ -18,14 +26,16 @@ the game's own skinning leave room) as a path search over many poses:
 - a pose is measured as the game measures it: every vertex of the finger's skin that `HandContact` counts, skinned
   from the bone poses of the hold at the low ready, against the rifle's signed distance on a grid (the rifle's
   closed pieces, inside by a ray along Z, as `HandContact` and `hold_field.PiecesField` count it);
-- `plan_way` grows a tree of poses from each end (RRT-connect: Kuffner and LaValle 2000) until they meet, every leg
-  measured at steps that move the fingertip at most `STEP_MM`, then shortens the path: from each pose it goes
-  straight to the farthest later pose it can reach.
+- `plan_way` measures every pose of a grid of the five angles, leaves each end by a finer grid of its own (an end
+  sits wedged on the surface), walks the shortest way from node to neighbouring node through the poses off the
+  surface, then shortens the walk: from each pose straight to the farthest later pose it reaches, every leg measured
+  at steps that move the fingertip at most `STEP_MM`.
 
-`FingerChain` and `plan_way` know nothing of the rifle: a finger of any held weapon (the pistol's trigger finger,
-kit #1272) plans the same way from its own dump and depth function.
+`FingerChain` and `plan_way` know nothing of the weapon: a finger of any held weapon plans the same way from its own
+dump and depth function.
 """
 
+import copy
 import json
 import sys
 
@@ -63,6 +73,8 @@ LEVERS = (0.09, 0.05, 0.025)
 GRID_STEP = 0.0005
 GRID_MARGIN = 0.015
 GRID_BAND = 0.006
+# How far a ray inside a part is followed to find where it leaves (the part's thickness), in metres.
+THROUGH_REACH = 0.03
 
 
 def option(name, default):
@@ -298,6 +310,37 @@ def shorten(way, depth, sample, limit):
     return out
 
 
+def through_field(field, crossing, least):
+    """`field` with depth inside read against the part's thickness, as `HandContact._gun_through` reads it: at a
+    grid point deeper than `least`, the thickness is the depth plus the way on from the point, away from the
+    nearest face (down the distance's slope), to where the ray leaves; a point deeper than `crossing` of half that
+    reads the whole thickness. On a part's middle, where the slope is flat, the way on is the depth again."""
+    grid = field.grid.astype(np.float64)
+    step = field.step
+    inside = np.flatnonzero(grid < -least)
+    depth = -grid.ravel()[inside]
+    slope = np.stack([g.ravel()[inside] for g in np.gradient(grid, step)], axis=-1)
+    norm = np.linalg.norm(slope, axis=1)
+    flat = norm < 0.1
+    away = -slope / np.maximum(norm, 1e-9)[:, None]
+    at = field.low + step * np.stack(np.unravel_index(inside, grid.shape), axis=-1)
+    onward = np.where(flat, depth, np.inf)
+    for t in np.arange(0.5 * step, THROUGH_REACH, 0.5 * step):
+        live = np.flatnonzero(np.isinf(onward))
+        if len(live) == 0:
+            break
+        left = field(at[live] + away[live] * t) >= 0.0
+        onward[live[left]] = t
+    thickness = depth + onward
+    crossed = np.isfinite(onward) & (depth > crossing * 0.5 * thickness)
+    out = copy.copy(field)
+    values = grid.ravel().copy()
+    values[inside[crossed]] = -thickness[crossed]
+    out.grid = values.reshape(grid.shape).astype(np.float32)
+    print(f"read through: {crossed.sum()} of {len(inside)} points inside have crossed their part")
+    return out
+
+
 def main():
     with open(sys.argv[1], "rb") as file:
         dump = json.load(file)
@@ -310,12 +353,19 @@ def main():
     # and many poses inside it), `GRID_MARGIN` round, as far as the rifle goes: a point outside it reads the
     # distance at its edge plus the way there, which is never less than the truth by more. A grid round the
     # straight way alone let a way through the receiver above it read 1.6 mm that the game measured at 6 mm.
+    axes = AXES
+    if "axes" in dump:
+        axes = tuple(np.arange(first, last + 0.01, by) for first, last, by in dump["axes"])
+    for key, angles in (("grip", start), ("trigger", goal)):
+        outside = [k for k in range(len(axes)) if not axes[k][0] <= angles[k] <= axes[k][-1]]
+        print(f"{key}: {np.round(angles, 1).tolist()}" + (f", outside the grid on {outside}" if outside else ""))
     rng = np.random.default_rng(1)
-    corners = np.array(np.meshgrid(*[(a[0], a[-1]) for a in AXES], indexing="ij")).reshape(len(AXES), -1).T
-    inside = rng.uniform([a[0] for a in AXES], [a[-1] for a in AXES], size=(4000, len(AXES)))
+    corners = np.array(np.meshgrid(*[(a[0], a[-1]) for a in axes], indexing="ij")).reshape(len(axes), -1).T
+    inside = rng.uniform([a[0] for a in axes], [a[-1] for a in axes], size=(4000, len(axes)))
     reach = chain.points(chain.quaternions(np.concatenate([corners, inside, [start, goal]]))).reshape(-1, 3)
     triangles = np.array(dump["triangles"]).reshape(-1, 3, 3)
-    flat = triangles.reshape(-1, 3)
+    other = np.array(dump.get("other", [])).reshape(-1, 3, 3)
+    flat = np.concatenate([triangles, other]).reshape(-1, 3)
     low = np.maximum(reach.min(axis=0), flat.min(axis=0)) - GRID_MARGIN
     high = np.minimum(reach.max(axis=0), flat.max(axis=0)) + GRID_MARGIN
     print("distance grid from", np.round(low, 3).tolist(), "to", np.round(high, 3).tolist())
@@ -325,17 +375,26 @@ def main():
     hold_field.WORKERS = 4
     field = solve_rifle_hold.BandField(triangles[near], low, high, GRID_STEP, sys.argv[1] + ".grid.npz")
     print("grid", field.grid.shape)
+    if "through" in dump:
+        field = through_field(field, dump["through"]["crossing"], dump["through"]["least"])
+    fields = [field]
+    if len(other):
+        # The other hand as `HandContact._skin_distance` counts it: three rays vote.
+        fields.append(
+            solve_rifle_hold.BandField(other, low, high, GRID_STEP, sys.argv[1] + ".other.npz", rays=(0, 1, 2))
+        )
 
     def depth(poses, every=False):
-        inside = -field(chain.points(poses))
+        points = chain.points(poses)
+        inside = np.max([-f(points) for f in fields], axis=0)
         return inside if every else inside.max(axis=1)
 
     for key in ("grip", "trigger"):
         print(f"{key}: {depth(ends[key][None])[0] * 1e3:.2f} mm in")
     straight = depth(leg_poses(ends["grip"], ends["trigger"])).max()
     print(f"straight way: {straight * 1e3:.2f} mm")
-    limit = option("limit", 1.5) / 1000.0
-    way = plan_way(start, goal, depth, AXES, chain.quaternions, limit)
+    limit = option("limit", dump.get("plan_limit", 0.0015) * 1000.0) / 1000.0
+    way = plan_way(start, goal, depth, axes, chain.quaternions, limit)
     if way is None:
         print("no way found")
         sys.exit(1)
