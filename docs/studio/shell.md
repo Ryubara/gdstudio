@@ -29,11 +29,17 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** Filter `gh` output with `--json` and `--jq` (or a few lines of Python), never `grep -P`. **Watch
   out for:** this machine's Git Bash runs under a locale `grep -P` refuses (`-P supports only unibyte and UTF-8
   locales`, exit 2), so a filter in a pipe printed nothing and read as no match. **Seen:** gdstudio #1153 (PR #1167),
-  2026-11-11; #1203 (PR #1215), 2026-11-11 (a CI watch loop; `gh pr checks --json` or awk instead).
+  2026-11-11; #1203 (PR #1215), 2026-11-11 (a CI watch loop; `gh pr checks --json` or awk instead); #1191, #1349,
+  2026-11-12 (three wait loops that ended at once; `\t` does nothing under `-E` either; `gh pr checks --watch`).
 - **Approach:** Filter JSON in a loop with `gh ... --json <fields> -q '<expression>'`, which carries its own jq;
   the standalone `jq` program is not installed here. **Watch out for:** a CI watch loop that piped `gh pr checks
   --json` into `jq -e` never met its end condition (`jq: command not found` went to the error stream of a background
   command), so it ran past the checks for half an hour. **Seen:** gdstudio #1318 (PR #1364), 2026-11-12.
+- **Approach:** Test a label in a `-q` expression with one that prints a word either way:
+  `gh pr view <n> --json labels -q '[.labels[].name] | any(. == "S-hold")'` prints `true` or `false`. **Watch out
+  for:** `[.labels[].name] | index("S-hold")` prints an empty line, not `null`, when the label is absent, so a landing
+  queue that tested for `null` read every pull request as held and skipped the whole queue. **Seen:** gdstudio
+  coordinator, 2026-11-12 (only #1364 landed, by its own agent).
 - **Approach:** Before handing a computed file list to `grep` (or any tool that falls back to standard input), check
   that the list is not empty, or use `xargs -r grep ...`. **Watch out for:** `grep pattern $(git diff --name-only ...)`
   with no files reads standard input, which the Bash tool never closes, so a commit command waited minutes on nothing.
@@ -59,7 +65,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   vanished from a regex, and a `sed` replacement split a line over three; a parser that accepts the wrong text says
   nothing. **Seen:** gdstudio, 2026-11-02; Deadnight, 2026-11-03; Deadnight, 2026-11-04 (fix: the tests and `ruff` run
   straight after the edit, not at the end); gdstudio #770, 2026-11-07 (two heredoc scripts never ran: Write tool);
-  gdstudio #889, #1005, #1120, #1183, #1188, 2026-11-10 and 11.
+  gdstudio #889, #1005, #1120, #1183, #1188, #1465, 11-10 to 11-13.
 - **Approach:** A script that changes several places of one file works from the end upward, or finds its place again
   after each edit, and cuts "to the next top-level `func` or `class`", never to the end of the file; then it imports the
   project and runs `godot --headless --check-only -s <script>` on every edited script that no suite loads. **Watch out
@@ -88,9 +94,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   **Watch out for:** `git -C repos/x worktree add worktrees/x/y` resolves the path against the repository and made the
   worktree inside it; `cd <worktree>; ... git commit` ran in the shell's start folder after the `cd` failed, which is
   the kit's main checkout, and committed there. **Seen:** Deadnight, 2026-11-01 (a worktree inside the repository);
-  gdstudio, 2026-11-03 (a commit on the kit's `main`, moved to a branch before any push); gdstudio #1073, 2026-11-11
+  gdstudio, 11-03 (a commit on the kit's `main`, moved to a branch before any push); #1073, 11-11
   (`cp ... && cd <worktree> && check; git add -A; git commit`: the `cp` failed, the `cd` was skipped and `git commit`
-  ran on the main checkout, which was clean); #1154 (refused).
+  ran on the main checkout, which was clean); #1154 (refused); #1191, 11-12 (an edit ran after a failed check).
 - **Approach:** Give a Windows program (Python, a hook, `gh --body-file`) a path with its drive letter,
   `C:/Repositories/...`, never Git Bash's `/c/...`; keep helper scripts and PR text in `scratch/<repo>/<branch>/`
   (the session scratchpad and the temp folder are shared), and pass the worktree as an argument. **Watch out for:**
@@ -116,7 +122,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   a; b ) &` was reported complete at once and the second part never started; `until [ -f summary ]` fired when `>
   summary` created the file at the start; a bare `cat > file` waited on the terminal for two minutes, and a leftover
   `python -` spun on a broken REPL until the timeout. **Seen:** Deadnight, 2026-11-01 to 2026-11-04 (fix: the checks
-  above; a monitor script also ends on its own, [Agents](agents.md#the-loop)).
+  above; a monitor script also ends on its own, [Agents](agents.md#the-loop)); gdstudio #1355, 2026-11-12 (a
+  background Python heredoc hung on stdin).
 - **Approach:** Stop only a process you started: keep its PID (`echo $! > pid`) or find it by your worktree's path in
   its command line, print the candidates before the first `Stop-Process`, end it by tree (`taskkill /PID <pid> /T /F`),
   give each run its own log, and list what is left after the stop before a rerun. **Watch out for:** every agent shares
@@ -124,7 +131,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   background task ends the shell, not the script, `timeout` or Godot under it. **Seen:** Deadnight #1086, 2026-11-04;
   gdstudio, 2026-11-06 (the hooks refuse a kill by name ([Hooks](hooks.md))); #1149, 2026-11-11 (`record.sh` started
   its next capture); #1324, 2026-11-12 (load loops outlived the run); #1391, 2026-11-13 (a stopped bench's `ab.sh` ran
-  on beside the rerun).
+  on beside the rerun); #1306, 11-11 (a stale PID).
 - **Approach:** Leave a shell script alone while a background run executes it: edit the source, and copy it over the
   running copy only after the run ends (or run a copy made for that run). **Watch out for:** bash reads a script as
   it goes, by byte offset, so a `cp` over `check.sh` during a 10 minute bot run made bash resume inside the new text:
@@ -161,7 +168,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   reverted the whole uncommitted rewrite; old weapon files put back for a capture were read by a suite that started
   during the swap. **Seen:** Deadnight, 2026-11-03 (two cases; fix: the rewrite written again, the run repeated);
   gdstudio #1177, 2026-11-11 (the old hold swapped into a kept game for the failing-first run and the "before"
-  captures, with the glb's LFS pointer written by `git show`: the import broke and the first run measured nothing).
+  captures, with the glb's LFS pointer written by `git show`: the import broke and the first run measured nothing);
+  #1354, 11-12 (main's files swapped in after a refused commit; the fix came back from git's objects).
 - **Approach:** To run another commit in a scratch checkout, give the commit's hash (`git rev-parse HEAD` taken in the
   branch's worktree), print `git -C <checkout> log --oneline -1` before the run, give each run a new output folder and
   stop the old run by its PID first. **Watch out for:** `git checkout --detach HEAD` in the other checkout stays on that

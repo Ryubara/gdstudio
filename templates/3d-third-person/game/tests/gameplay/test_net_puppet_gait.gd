@@ -132,12 +132,14 @@ func test_the_entry_says_when_the_player_asked_for_no_move() -> void:
 	# goal it had while they head too slowly to tell a way (a reversal's speed passes through 0).
 	var asked := PlayerEntry.new()
 	var kept := Vector3.LEFT * 6.0
-	assert_vector(PlayerPuppet.goal_of(asked, Vector3.RIGHT * 3.0, kept)).is_equal(
+	assert_vector(PlayerPuppet.goal_of(asked, Vector3.RIGHT * 3.0, kept, 6.5)).is_equal(
 		Vector3.RIGHT * 3.0
 	)
-	assert_vector(PlayerPuppet.goal_of(asked, Vector3.RIGHT * 0.2, kept)).is_equal(kept)
+	assert_vector(PlayerPuppet.goal_of(asked, Vector3.RIGHT * 0.2, kept, 6.5)).is_equal(kept)
 	asked.halt = true
-	assert_vector(PlayerPuppet.goal_of(asked, Vector3.RIGHT * 3.0, kept)).is_equal(Vector3.ZERO)
+	assert_vector(PlayerPuppet.goal_of(asked, Vector3.RIGHT * 3.0, kept, 6.5)).is_equal(
+		Vector3.ZERO
+	)
 
 
 # The goal of a puppet `PlayerPuppet.place` puts where an entry (halted or not) says, moving at

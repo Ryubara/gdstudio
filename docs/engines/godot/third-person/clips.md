@@ -419,7 +419,9 @@ What it found on main at dc9dc2fb:
   puppet above `standing_speed` starts `Walk_Stop`, finishes it within a few frames and starts it again: it glides
   frozen in the stop's last frame at every speed (gdstudio #1420).
 - **The starts never play from standing.** The tree first sees the body at 0.47 m/s (one tick at 28 m/s²), past
-  `standing_speed` (gdstudio #1421).
+  `standing_speed` (gdstudio #1421). Fixed by `START_GRACE` (gdstudio #1427), on her own predicted body online too
+  (`test_net_starts.gd`, gdstudio #1453); a puppet's jog and sprint starts then showed the walk's, until the entry
+  carried the goal speed ([puppets](online-client.md#puppets)).
 - **The stops play in place.** The body halts at `deceleration` (36 m/s²: 0.53 m from a sprint, against the clip's
   4.82 m) and the clip runs on in place (gdstudio #1415).
 - **The cuts land a frame after the momentum blend starts.** Into or out of a stop, the drawn pose jumps 25 to 77
