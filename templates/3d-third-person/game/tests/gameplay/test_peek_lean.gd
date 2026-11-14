@@ -161,7 +161,8 @@ func test_a_wall_beside_the_body_stops_the_lean_short() -> void:
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = shape.shape
 	query.transform = shape.global_transform
-	query.exclude = [body.get_rid()]
+	# The body and its own shot hull (kit #1431), around it on every layer.
+	query.exclude = ShotHull.rids_of(body)
 	var met := _arena.get_world_3d().direct_space_state.intersect_shape(query, 4)
 	assert_array(met).is_empty()
 	assert_vector(body.global_position).is_equal_approx(feet, Vector3.ONE * 0.001)

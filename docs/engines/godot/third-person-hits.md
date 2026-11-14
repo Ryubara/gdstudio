@@ -82,7 +82,9 @@ and the ragdoll never meet it ([layers](physics-layers.md#template-layers)). A s
 character: `HitZones.body_met` gives the character for marks and effects, and the hit's point is the part's
 (`HitRecord.point`), not the hull's surface; a shot that passes between the parts leaves out both
 (`HitZones.shot_bodies`). The shooter leaves out its own (`ShotHull.with_hull`, `rids_of`): the weapon's ray, a
-projectile's exceptions, the crosshair's ray. The crosshair's ray reads a hull as a shot does
+projectile's exceptions, the crosshair's ray. The weapon's rays live in `WeaponRay` (`gameplay/weapon/weapon_ray.gd`):
+the raw ray past the shooter, the aim ray that takes the part, and a puppet's cosmetic tracer, which ends on the drawn
+part, not the hull. The crosshair's ray and the tracer read a hull as a shot does
 (`ShotHull.ray_as_shot`): the part on its line, with the character as what it met, so the camera's shoulder swap still
 keeps a point on a character (`keep_aim_layers` counts Characters, not Shot Hulls). Online, `AiHitHistory` records
 the hull's size for the rewind
@@ -113,11 +115,16 @@ The price is in [What it costs](#cost).
   weapon at every pose (28 failures in `test_weapon_ray.gd`), and the muzzle light tour, which casts on every layer,
   measured the light against the player's own hull. **Seen:** gdstudio #1431, 2026-11-13 (the full suite on PR #1459).
 - **Approach:** When a new collider joins `SHOT_MASK`, find every raw ray on that mask that reads what it met
-  (`grep -rn "aim_point_mask\|SHOT_MASK" gameplay tools`) and route it through the shot's own resolution
+  (`grep -rn "aim_point_mask\|SHOT_MASK\|aim_mask" gameplay tools`) and route it through the shot's own resolution
   (`ShotHull.ray_as_shot`, `HitZones.body_met`). **Watch out for:** the camera's crosshair ray met the target's hull
   first; its layer (Shot Hulls) is not in `PlayerCamera.keep_aim_layers`, so an aimed shoulder swap at a character
   stopped keeping its point (8.7 degrees off, no turn) in `test_camera_swap_target.gd`, a suite main added after the
   branch's full run. **Seen:** gdstudio #1431, 2026-11-14 (PR #1459 after merging main).
+- **Approach:** After each merge of main, grep for `intersect_ray` in `gameplay tools tests` too: a query made with
+  no mask looks on every layer, Shot Hulls among them, and reads a hull as the body. **Watch out for:** the peek
+  lean's suites (#1437) cast on the default mask, so a ray beside the upright player met its hull and a shot at the
+  leaning head read the hull, not the head; a puppet's hitscan tracer (`Weapon._ray_end`, now `WeaponRay.end_of`)
+  ended on the hull's surface. **Seen:** gdstudio #1431, 2026-11-14 (PR #1459, its second merge of main).
 
 ### The inspector {#inspector}
 
