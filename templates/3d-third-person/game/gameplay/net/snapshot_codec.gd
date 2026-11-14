@@ -498,6 +498,15 @@ static func write_event(out: StreamPeerBuffer, event: NetEvent) -> StringName:
 		NetEvent.Kind.MELEE:
 			out.put_u8(event.slot)
 			out.put_u16(event.seq & 0xFFFF)
+		NetEvent.Kind.USE:
+			if event.id > 0xFF or event.detail < 0 or event.detail > 0xFF:
+				return NetDrops.BAD_VALUE
+			out.put_u8(event.slot)
+			out.put_u8(event.code)
+			out.put_u8(event.id)
+			out.put_u16(event.seq & 0xFFFF)
+			out.put_u8(event.detail)
+			out.put_u8(event.amount)
 		_:
 			return NetDrops.BAD_VALUE
 	return &""
@@ -562,6 +571,16 @@ static func read_event(reader: WireReader, drops: NetDrops = null) -> NetEvent:
 		NetEvent.Kind.MELEE:
 			event.slot = reader.u8()
 			event.seq = reader.u16()
+		NetEvent.Kind.USE:
+			event.slot = reader.u8()
+			event.code = reader.u8()
+			event.id = reader.u8()
+			event.seq = reader.u16()
+			event.detail = reader.u8()
+			event.amount = reader.u8()
+			var known := event.code >= NetEvent.UseCode.STARTED
+			if reader.ok and not (known and event.code <= NetEvent.UseCode.REFUSED):
+				return _drop(drops, NetDrops.BAD_VALUE)
 		_:
 			return _drop(drops, NetDrops.BAD_VALUE)
 	if not reader.ok:
