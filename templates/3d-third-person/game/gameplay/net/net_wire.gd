@@ -53,12 +53,13 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## byte 14 carries the hotbar place used, and a USE event (gdstudio #1386); 11: a COMMAND's byte
 ## 13 carries the peek lean and a leaning player's entry ends with it (gdstudio #1400; 10 is named
 ## by open pull requests beside it); 13: a player entry's flags carry `halt`, asked for no move
-## (bit 7, gdstudio #1420; 12 is named by an open pull request beside it); 14: a player
-## entry's state byte carries the goal speed in its top four bits (gdstudio #1453).
-const VERSION := 14
+## (bit 7, gdstudio #1420; 12 is named by an open pull request beside it); 17: a player
+## entry's state byte carries the goal speed in its top four bits (gdstudio #1453; 15 is named
+## by an open pull request beside it, 16 is #1456's).
+const VERSION := 17
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 14
+const MIN_VERSION := 17
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1

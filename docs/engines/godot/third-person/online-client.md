@@ -123,7 +123,7 @@ Bo's) the puppet now plays `Walk_Stop`, `Jog_Stop` and `Sprint_Stop` where her o
 (the draw delay), and its largest bone turns 10 to 20 degrees a frame while it moves, against 0.1 to 0.2 before; tested
 by `test_net_puppet_gait.gd`. The goal's speed comes from the entry (gdstudio #1453): the server puts the command's
 goal speed in the state byte's top four bits, in fifteenths of the body's sprint speed (`PlayerEntry.goal_step`,
-`SnapshotCodec.goal_step`; the 15 states fit the low four; protocol 14, no byte more), and `goal_of` scales the heading's
+`SnapshotCodec.goal_step`; the 15 states fit the low four; protocol 17, no byte more), and `goal_of` scales the heading's
 way to it (along the goal it had, or the facing, while the heading is too slow to tell a way). On the gait tour the
 puppet now plays `Idle_To_Jog` and `Idle_To_Sprint` where her own body does, 6 frames after it; tested by
 `test_net_starts.gd`, which also proves her own predicted body plays all three starts from standing (it did once
