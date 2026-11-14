@@ -75,7 +75,9 @@ func _process_modification_with_delta(_delta: float) -> void:
 		var lying := CharacterSlide.lying(hold.character)
 		yaw = _chest_yaw(turned, lying)
 		axis = _chest_up(turned, lying)
-	var degrees := (hold.chest_turn - yaw) * hold.chest_weight()
+	# `left_chest_turn` on the left shoulder (a left peek lean, gdstudio #1435).
+	var turn_now := lerpf(hold.chest_turn, hold.left_chest_turn, hold.side)
+	var degrees := (turn_now - yaw) * hold.chest_weight()
 	_turn_spine(skeleton, Basis(axis, deg_to_rad(degrees / _bones.size())))
 	_turn_head(skeleton, top, degrees, axis)
 	_straighten_chest(skeleton, top)
@@ -171,6 +173,13 @@ func _straighten_chest(skeleton: Skeleton3D, top: int) -> void:
 	if axis.length_squared() < 1e-10:
 		return
 	_turn_spine(skeleton, Basis(axis.normalized(), (lean - limit) * share / _bones.size()))
+
+
+## The spine's poses in the skeleton's space, in the order of the hold's `spine_bones`: this array,
+## filled in every update the stance hands the hold the spine's top (kit #1347), so the hold's push
+## to the skin reads them and does not work them out again.
+func spine_poses() -> Array[Transform3D]:
+	return _posed
 
 
 # How far the clip has the chest turned from the model's front now, in degrees (the way

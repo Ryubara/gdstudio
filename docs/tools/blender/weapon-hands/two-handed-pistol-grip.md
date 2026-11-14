@@ -129,23 +129,27 @@ on the hold were all solved or built again, in that order. The rifle's hold has 
 
 A solved pose is clear where it holds; the blend the game plays between two of them is not, unless it is solved too.
 
-- **The trigger finger goes by a way** (kit #1079, kit #1272; `pistol_trigger_way.tres` and the male fit's
-  `trigger_way`, `WeaponHold.trigger_way`, `HandPoseModifier.second_way`). The straight blend from along the frame
-  to the trigger left the guard on the gun's far side: 7.3 mm through the left thumb's tip and 7.0 mm through the
-  gun. One pose between (kit #1079, `pistol_trigger_way_pose.tres`: the finger lowered and drawn out to its own
-  side, nearly straight) kept it out of the left hand, but swinging in from there the male finger's tip rubbed the
-  guard's front strut (above). The way now has two poses between, as a trigger finger is taught to come in: lifted
-  off the frame and spread out to its own side, straight (the male's knuckle 17 degrees past flat, the female's
-  hardly moves), then its last two bones bent to the trigger's bend there, outside the guard, and only then the
-  knuckle turned so the bent finger drops into the guard's open side onto the trigger. `tools/hold/solve_pistol_trigger_way.gd
-  -- <body>` searches it in the solver's angles from a few such first guesses and the old pose between, each leg
-  blended as the game blends it and measured with the tests' `HandContact` on the tests' stage, the depth into the
-  gun read against the part's thickness (`HandContact.measure_through`: a point more than three quarters of the way
-  to a part's middle reads the part's whole thickness, so a crossing reads as a crossing). It writes nothing when
-  any hundredth is deeper than 1.5 mm. Run it after `write_hold.gd`, for each body, then the hold suite. The female's
-  trigger pose is nearly straight (bends of 13 and 9 degrees), so her way is near the old one; the male's is bent
-  (37 and 24 degrees), which is why his tip met the strut. `test_the_trigger_finger_has_room_on_its_way_to_the_trigger`
-  holds it to 1 mm at every hundredth; one-handed the finger keeps its one pose between.
+- **The trigger finger goes by a way** (kit #1079, kit #1272, kit #1480; `pistol_trigger_way.tres` and the male
+  fit's `trigger_way`, `WeaponHold.trigger_way`, `HandPoseModifier.second_way`). The straight blend from along the
+  frame to the trigger left the guard on the gun's far side: 7.3 mm through the left thumb's tip and 7.0 mm through
+  the gun. One pose between (kit #1079: the finger lowered and drawn out to its own side, nearly straight) kept it
+  out of the left hand, but swinging in from there the male finger's tip rubbed the guard's front strut (above).
+  The way is planned by the rifle's planner, `tools/hold/plan_trigger_way.py`
+  ([rifle hands](../../../engines/godot/third-person/weapon-pickups.md#rifle-hands)), in three steps for each body:
+  `tools/hold/solve_pistol_trigger_way.gd -- <body> --dump=<file>` writes the finger as the tests' `HandContact`
+  counts it on the tests' stage (the aimed pistol, both hands on it), the gun's triangles, the left hand's skin as it
+  holds, the measure's rule for thin parts (`through`: a point more than three quarters of the way to a part's
+  middle reads the part's whole thickness, as `HandContact.measure_through` reads it), the grid of poses to search
+  and the limit; the planner walks a grid of the knuckle's spread, bend and roll and the two joints' bends; then
+  `--way=<file>` checks the whole way at every hundredth and writes it, nothing when a hundredth is deeper than
+  1 mm into the gun or the left hand. Each leg is kept within 0.8 mm and no more than 0.05 mm past the deeper end
+  (`PLAN_OVER_ENDS`, the dump's `plan_over_ends`), so the finger touches nothing on the way harder than it touches
+  the gun where it holds. Planned so, the female's way has one pose between (at most 0.75 mm in the gun, on the
+  trigger, and 1.1 mm clear of the left hand) and the male's two (0.63 mm at the frame, where his finger lies, and
+  0.46 mm in the left hand there). Run it after `write_hold.gd`, for each body, then the hold suite;
+  `tools/capture/pistol_trigger_way.tscn` films the finger going on and off the trigger close up on both bodies,
+  with the depths. `test_the_trigger_finger_has_room_on_its_way_to_the_trigger` holds it to 1 mm at every
+  hundredth; one-handed the finger keeps its one pose between.
 - **The right thumb makes room while the left hand waits** (kit #1084, `SupportHandPlan.room`). The left thumb's
   root takes the right thumb's place on the frame, so the right thumb is lifted onto it; blended while the left hand
   came in, it was 16 mm inside that hand. The plan now has a step for it: the hold's arm takes the left hand to the
@@ -465,6 +469,11 @@ player's camera (`*_carry_*.png`).
   male's right little knuckle lay 4.8 mm inside the left middle fingertip under the magazine (5.0 in the game),
   0.6 mm in its capsule on all the points and outside it on every other one. **Seen:** gdstudio #1213, 2026-11-12
   (fix: `Hand.finger_depth` reads the skin; the male magazine hand is the solver's again).
+- **Approach:** Bound a planned finger's way by its ends as well as by a fixed limit: no leg deeper than the deeper
+  end plus a little (`plan_trigger_way.py`, a dump's `plan_over_ends`). **Watch out for:** planned within a fixed
+  0.8 mm, the male pistol finger leant 0.8 mm on the guard's front strut half way, harder than it lies on the frame
+  at the start (0.6 mm); the check passed it, the close-up showed the press. **Seen:** gdstudio #1480, 2026-11-13
+  (fix: the limit the ends' depth plus 0.05 mm, 0.68 mm for the male).
 - **Approach:** Write a long solve's output after every stage. **Watch out for:** the file was written once at the
   end, and a run stopped by its time limit in the last stage lost forty minutes of solved stages; the writer then
   wrote the old file into the project. **Seen:** gdstudio #1084, 2026-11-11 (fix: `save` after each stage).

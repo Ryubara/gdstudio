@@ -368,6 +368,10 @@ const FREE_ARM_BONE := &"clavicle_l"
 @export var reload_sounds: Array[AudioStream] = []
 ## When each reload sound plays, as shares of `reload_time` (0 at the start, 1 at the end).
 @export var reload_sound_at: PackedFloat32Array = PackedFloat32Array()
+## On: the reload's last sound (the rifle's bolt) plays only in a reload of an empty magazine,
+## which ends with the charging handle's pull (`ChargePull`, kit #1402); with rounds left the bolt
+## stays home and makes none. Cosmetic.
+@export var last_reload_sound_when_empty := false
 ## The weapon coming out.
 @export var draw_sound: AudioStream
 

@@ -4,6 +4,8 @@
 ## only puts the body back at the start of a stage), for the pull request's captures.
 ## `SLIDE_OFF=1` turns the slide off, which is how crouch at a sprint behaved before it.
 ## `SLIDE_WEAPON=rifle` gives the player the rifle and slides with it in the hands (kit #1413).
+## `SLIDE_WEAPON=unarmed` slides with the hands empty, `SLIDE_BODY=male` in the male body
+## (kit #1439, the slide's end into the crouch).
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
 ## `gds capture frames --project game --scene res://tools/capture/slide_tour.tscn --seconds 17
@@ -100,6 +102,10 @@ func _ready() -> void:
 	_player.teleport(START, PI / 2.0)
 	if OS.get_environment("SLIDE_WEAPON") == "rifle":
 		_player.loadout.give(load("res://gameplay/weapon/rifle.tres") as WeaponDef, 60)
+	if OS.get_environment("SLIDE_WEAPON") == "unarmed":
+		_player.loadout.equip_now(WeaponLoadout.UNARMED)
+	if OS.get_environment("SLIDE_BODY") == "male":
+		_player.model.variant = load(CharacterBodies.MALE) as PackedScene
 
 
 func _physics_process(delta: float) -> void:

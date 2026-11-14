@@ -153,6 +153,14 @@ Even the heaviest is 0.33 ms at 1080p on the RTX 5080: roughly 7 times the base 
   with an unowned sun wrote atlases with 0 and 4% of their texels lit, and their shaded faces read black. A map's bake
   goes stale as quietly: 13 blocks added after it (the crouch course, the ragdoll ledge) were in no lightmap.
   **Seen:** gdstudio #885, 2026-11-10 (`tools/map_bake/`; `test_map_lighting.gd` fails on each).
+- **Approach:** Commit a lightmap atlas's `.exr.import` only with the bake that changed it, and check
+  `git diff --stat` for `.import` files before every commit that did not touch a lightmap; restore a stray rewrite
+  with `git checkout origin/main -- <file>`.
+  **Watch out for:** a local import can rewrite the atlas's `.exr.import` without the `etc2_astc` format (only
+  `s3tc_bptc` left), while CI imports it with both; the template job then runs every suite green and fails at the end on
+  "git status --porcelain" not empty, with no failed test to point at.
+  **Seen:** gdstudio #1400 / PR #1437 and its stacked PR #1456, 2026-11-13 (the prototype map's and the pathing
+  section's atlases).
 
 ## Night mood: honest judgement {#night-mood-honest-judgement}
 
