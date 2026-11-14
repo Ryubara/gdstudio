@@ -88,6 +88,9 @@ const _PUSH_STEP := 0.003
 ## spine bones; negative brings the left shoulder forward so the left hand reaches the fore-end.
 ## The clip's own turn of the chest is taken off, so the shoulders keep this in a walk or a run.
 @export_range(-60.0, 60.0, 0.5, "suffix:deg") var chest_turn := -30.0
+## `chest_turn` with the gun on the left shoulder (a left peek lean, #1435): square on, the right
+## hand across to the grip (turned the mirrored 30 degrees, the left hand was 15 mm short).
+@export_range(-60.0, 60.0, 0.5, "suffix:deg") var left_chest_turn := 0.0
 ## The most the chest leans (from its rest, the way the clip has it) while the gun is up: a chest
 ## that leans more (a crouch's hunch) is raised toward this as the gun comes to the shoulder.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var aim_lean_limit := 25.0
@@ -247,6 +250,9 @@ var posed_lowered := 0.0
 var posed_free := 0.0
 ## How much of the upper body a melee blow's clip holds, for a figure posed by hand (`HoldBlow`).
 var posed_blow := 0.0
+## How far the gun is on the left shoulder now, 0 to 1 (`CharacterPeek.shoulder_share()`): the
+## pockets, the gun's turn across and the chest's turn are mirrored by it (set it to pose by hand).
+var side := 0.0
 ## The pull's bolt, and whether this reload pulls it (`posed_pulls`: a figure posed by hand).
 var charge_bolt := ChargeBolt.new()
 ## True while the camera is past `fingers_far_distance` (set by `CharacterAnimationThrottle`).
@@ -505,6 +511,9 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		var eased := smoothstep(0.0, 1.0, _down)
 		turn = turn.slerp(_turned(stow_pitch, stow_yaw), eased)
 		pocket = pocket.lerp(stow_pocket, eased)
+	if side > 0.0:
+		pocket.x = lerpf(pocket.x, -pocket.x, side)
+		turn = turn.slerp(LeftShoulder.mirrored(turn), side)
 	var basis_now := Basis(turn)
 	# The frame the pockets are given in: the chest's turn about the up axis, and `pocket_lean` of
 	# the rest of its turn from its rest (a lean forward, back or aside).
@@ -517,7 +526,8 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 	pocket = chest + Basis(Quaternion.IDENTITY.slerp(lean, pocket_lean) * twist) * pocket
 	var gun_in_pivot := Transform3D.IDENTITY
 	if _gun != null:
-		gun_in_pivot = _gun.transform if _gun.get_parent() == _pivot else _between(_gun, _pivot)
+		var direct := _gun.get_parent() == _pivot
+		gun_in_pivot = _gun.transform if direct else HoldBones.between(_gun, _pivot)
 	var pivot_xf := Transform3D(basis_now, pocket)
 	# The left shoulder comes toward the hand guard with the gun where the last frame's push has
 	# it, then the butt comes to the skin as the shoulder left it (the turn brings the chest's left
@@ -704,6 +714,7 @@ func _step(delta: float) -> void:
 			_free.stop()
 		_freed = _free.amount()
 		_blow.step(character)
+		side = character.peek_motion.shoulder_share(character)
 		var wants := _blow.aim(character)
 		_shot_left = maxf(_shot_left - delta, 0.0)
 		if _shot_left > 0.0:
@@ -727,17 +738,7 @@ func _turned(pitch: float, yaw: float) -> Quaternion:
 # A node's transform in this node's space, from the transforms up its parents (no global
 # transform is asked for while the skeleton updates).
 func _in_here(node: Node3D) -> Transform3D:
-	return _between(node, self)
-
-
-# A node's transform in the space of `top`, one of its parents, from the transforms between.
-func _between(node: Node3D, top: Node) -> Transform3D:
-	var xf := node.transform
-	var above := node.get_parent() as Node3D
-	while above != null and above != top:
-		xf = above.transform * xf
-		above = above.get_parent() as Node3D
-	return xf
+	return HoldBones.between(node, self)
 
 
 # How far the reload is (0 to 1), or below 0 with none.

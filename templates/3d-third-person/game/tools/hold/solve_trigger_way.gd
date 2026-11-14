@@ -29,12 +29,12 @@
 ## out.
 extends SceneTree
 
+const Files := preload("res://tools/hold/finger_way_files.gd")
 const OUT := "res://gameplay/weapon/hold/rifle_trigger_way.tres"
 const FIT := "res://gameplay/weapon/hold/rifle_fit_%s.tres"
-## The body whose way is the scene's own; every other body's is in its `HoldFit` file.
-const DEFAULT_BODY := "female"
-const BONES: Array[StringName] = [&"index_01_r", &"index_02_r", &"index_03_r"]
-const PARTS: Array[String] = ["index_base", "index_mid", "index_tip"]
+const DEFAULT_BODY := Files.DEFAULT_BODY
+const BONES := Files.BONES
+const PARTS := Files.PARTS
 ## The deepest any step of the way may go into the rifle, in metres: a finger on its way between
 ## two places of a holding hand is held to the hold's own 2 mm (kit #1283).
 const LIMIT := HandContact.MAX_DEPTH
@@ -102,169 +102,47 @@ func _say(line: String) -> void:
 	_lines.append(line)
 
 
-# Checks the way in `path` (the planner's output: {"poses": [{bone: [x, y, z, w]}, ...]}, the
-# poses between the two ends) and writes it when no step of it goes deeper than `LIMIT`.
+# Checks the way in `path` (the planner's output, the poses between the two ends) and writes it
+# when no step of it goes deeper than `LIMIT`.
 func _write(body: String, path: String, grip: Dictionary, trigger: Dictionary) -> int:
-	var text := FileAccess.get_file_as_string(path)
-	var parsed: Variant = JSON.parse_string(text)
-	if not parsed is Dictionary:
-		printerr("solve_trigger_way: no way in ", path)
+	var between := Files.read_way(path)
+	if between.is_empty():
 		return ERR_PARSE_ERROR
 	var keys: Array[Dictionary] = [grip]
-	for entry: Dictionary in (parsed as Dictionary)["poses"]:
-		var pose := {}
-		for bone in BONES:
-			var q: Array = entry[String(bone)]
-			pose[bone] = Quaternion(q[0], q[1], q[2], q[3]).normalized()
-		keys.append(pose)
+	keys.append_array(between)
 	keys.append(trigger)
 	var deepest := _way_depth(keys)
-	_say("%d poses between; the deepest %.2f mm" % [keys.size() - 2, deepest * 1e3])
+	_say("%d poses between; the deepest %.2f mm" % [between.size(), deepest * 1e3])
 	if deepest > LIMIT:
 		printerr("no way within %.1f mm; nothing written" % (LIMIT * 1e3))
 		return FAILED
-	var way := HandPoseWay.new()
-	for index in range(1, keys.size() - 1):
-		var pose := HandPose.new()
-		var rotations: Dictionary[StringName, Quaternion] = {}
-		for bone in BONES:
-			rotations[bone] = keys[index][bone]
-		pose.rotations = rotations
-		way.poses.append(pose)
-	var out := OUT
-	var error := OK
-	if body == DEFAULT_BODY:
-		error = ResourceSaver.save(way, OUT)
-	else:
-		out = FIT % body
-		var fit := load(out) as HoldFit
-		fit.trigger_way = way
-		error = ResourceSaver.save(fit, out)
-	_say("wrote %s: %d poses (error %d)" % [out, way.poses.size(), error])
-	return error
+	var written := Files.save_way(between, body, OUT, FIT)
+	_say("wrote %s: %d poses (error %d)" % [written[0], between.size(), written[1]])
+	return written[1]
 
 
-# What the planner needs, as JSON: the index finger's skin as `HandContact` measures it (each
-# vertex as its bones and its place in each bone's space), every bone pose it hangs from, the chain
-# from the hand out, the rifle's triangles and the two ends.
+# What the planner needs, as JSON (`finger_way_files.gd`), with the rifle's triangles.
 func _dump(path: String, grip: Dictionary, trigger: Dictionary, held: TwoHandHold) -> int:
 	var contact := _stage.contact
-	var skeleton := _stage.skeleton
-	var used := {}
-	var parts := {}
-	for part in PARTS:
-		var list: Array = contact._parts["r"][part]
-		var vertices := []
-		for index in list.size() / 2:
-			var entry: Dictionary = contact._surfaces[list[index * 2]]
-			var vertex: int = list[index * 2 + 1]
-			var per: int = entry.per
-			var rest: Vector3 = (entry.vertices as PackedVector3Array)[vertex]
-			var slots := []
-			for slot in per:
-				var weight: float = (entry.weights as PackedFloat32Array)[vertex * per + slot]
-				if weight <= 0.0:
-					continue
-				var bind: int = (entry.bones as PackedInt32Array)[vertex * per + slot]
-				var bone: int = (entry.bind_bones as PackedInt32Array)[bind]
-				var local: Vector3 = (entry.bind_poses as Array)[bind] * rest
-				used[bone] = true
-				slots.append([bone, weight, local.x, local.y, local.z])
-			vertices.append(slots)
-		parts[part] = vertices
-	var chain := []
-	for bone_name in BONES:
-		var bone := skeleton.find_bone(bone_name)
-		var children := []
-		for child in skeleton.get_bone_children(bone):
-			if not BONES.has(skeleton.get_bone_name(child)):
-				children.append([child, _numbers(skeleton.get_bone_pose(child))])
-				used[child] = true
-		(
-			chain
-			. append(
-				{
-					"bone": bone,
-					"parent": skeleton.get_bone_parent(bone),
-					"position": _vector(skeleton.get_bone_pose_position(bone)),
-					"rest":
-					_quaternion(skeleton.get_bone_rest(bone).basis.get_rotation_quaternion()),
-					"children": children,
-				}
-			)
-		)
-		used[skeleton.get_bone_parent(bone)] = true
-	var poses := {}
-	for bone: int in used:
-		poses[str(bone)] = _numbers(contact._poses[bone])
 	var to_weapon := (
 		(_stage.rifle.get_node(^"Near") as Node3D).global_transform.affine_inverse()
-		* skeleton.global_transform
+		* _stage.skeleton.global_transform
 	)
-	var triangles := []
-	for point in contact._gun.points:
-		triangles.append_array([point.x, point.y, point.z])
-	var way := []
+	var way: Array[Dictionary] = []
 	if held.trigger_way != null:
 		for pose in held.trigger_way.poses:
-			way.append(_quaternions(_pose_of(pose)))
-	var out := {
-		"parts": parts,
-		"chain": chain,
-		"poses": poses,
-		"to_weapon": _numbers(to_weapon),
-		"triangles": triangles,
-		"grip": _quaternions(grip),
-		"trigger": _quaternions(trigger),
-		"way": way,
-		"limit": LIMIT,
-	}
-	var file := FileAccess.open(path, FileAccess.WRITE)
-	file.store_string(JSON.stringify(out))
-	file.close()
-	_say("wrote %s" % path)
-	return OK
-
-
-# A transform as the planner reads it: the basis's columns, then the origin.
-static func _numbers(t: Transform3D) -> Array:
-	return [
-		t.basis.x.x,
-		t.basis.x.y,
-		t.basis.x.z,
-		t.basis.y.x,
-		t.basis.y.y,
-		t.basis.y.z,
-		t.basis.z.x,
-		t.basis.z.y,
-		t.basis.z.z,
-		t.origin.x,
-		t.origin.y,
-		t.origin.z,
-	]
-
-
-static func _vector(v: Vector3) -> Array:
-	return [v.x, v.y, v.z]
-
-
-static func _quaternion(q: Quaternion) -> Array:
-	return [q.x, q.y, q.z, q.w]
-
-
-static func _quaternions(pose: Dictionary) -> Dictionary:
-	var out := {}
-	for bone: StringName in pose:
-		out[String(bone)] = _quaternion(pose[bone])
-	return out
+			way.append(_pose_of(pose))
+	var out := Files.finger(contact, _stage.skeleton, to_weapon, grip, trigger, way)
+	out["triangles"] = Files.flat(contact._gun.points)
+	out["limit"] = LIMIT
+	var error := Files.save_dump(out, path)
+	_say("wrote %s (error %d)" % [path, error])
+	return error
 
 
 # The index finger's rotations of a pose.
 func _pose_of(pose: HandPose) -> Dictionary:
-	var found := {}
-	for bone in BONES:
-		found[bone] = pose.rotations[bone]
-	return found
+	return Files.pose_of(pose)
 
 
 func _way_depth(keys: Array[Dictionary]) -> float:
