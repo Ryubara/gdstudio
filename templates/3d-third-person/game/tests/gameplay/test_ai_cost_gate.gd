@@ -58,6 +58,8 @@ const SLOW_FACTOR := 2.0
 
 var _arena: BehaviourArena
 var _ruler: PhysicsRuler
+var _pre: TickRulerProbe
+var _post: TickRulerProbe
 
 
 func before_test() -> void:
@@ -65,6 +67,13 @@ func before_test() -> void:
 	add_child(_arena)
 	_ruler = PhysicsRuler.new()
 	_arena.add_child(_ruler)
+	_pre = TickRulerProbe.new()
+	_pre.process_physics_priority = -100
+	_arena.add_child(_pre)
+	_post = TickRulerProbe.new()
+	_post.process_physics_priority = 100
+	_post.position = Vector3(0.0, 0.0, -800.0)
+	_arena.add_child(_post)
 	_arena.build()
 	await _arena.settle()
 
@@ -189,6 +198,12 @@ func _measure(count: int) -> Dictionary:
 	var rays_over := 0
 	var budget_over := 0
 	var last_counts := thinks.duplicate()
+	for probe in [_pre, _post]:
+		probe.physics_ms.clear()
+		probe.script_ms.clear()
+		probe.steps.clear()
+		probe.recording = true
+	_post.director = director
 	for tick in TICKS:
 		await get_tree().physics_frame
 		steps.append(float(director.last_step_usec) / count)
@@ -211,6 +226,8 @@ func _measure(count: int) -> Dictionary:
 					rays_over += 1
 		if (tick + 1) % CALIBRATE_TICKS == 0:
 			calibrations.append(_ruler.measure_ms())
+	_pre.recording = false
+	_post.recording = false
 	var seconds := float(TICKS) / Engine.physics_ticks_per_second
 	var storms := 0
 	var fast_thinkers := 0
@@ -233,7 +250,8 @@ func _measure(count: int) -> Dictionary:
 	var step_each := _median(steps)
 	var think_each := _median(think_times)
 	var history_each := _median(histories)
-	return {
+	var probe := _probe_columns(count)
+	var row := {
 		"count": count,
 		"ruler_ms": snappedf(calibration, 0.01),
 		"system": OS.get_name(),
@@ -251,6 +269,47 @@ func _measure(count: int) -> Dictionary:
 		"fast_thinkers": fast_thinkers,
 		"rays_over": rays_over,
 		"budget_over": budget_over,
+	}
+	row.merge(probe)
+	row["think_post_ratio"] = snappedf(think_each / maxf(probe.post_phys_ms, 0.001), 0.001)
+	row["think_pre_ratio"] = snappedf(think_each / maxf(probe.pre_phys_ms, 0.001), 0.001)
+	row["think_postgd_ratio"] = snappedf(think_each / maxf(probe.post_gd_ms, 0.001), 0.001)
+	return row
+
+
+## The in-tick probes' columns (experiment, kit #1526).
+func _probe_columns(count: int) -> Dictionary:
+	var steps := _post.steps
+	var n := mini(steps.size(), mini(_pre.physics_ms.size(), _post.physics_ms.size()))
+	var by_pre := PackedFloat64Array()
+	var by_post := PackedFloat64Array()
+	var by_both := PackedFloat64Array()
+	var by_gd := PackedFloat64Array()
+	var each := PackedFloat64Array()
+	for index in n:
+		var step := steps[index] / count
+		each.append(step)
+		by_pre.append(step / maxf(_pre.physics_ms[index], 0.001))
+		by_post.append(step / maxf(_post.physics_ms[index], 0.001))
+		by_both.append(step / maxf(_pre.physics_ms[index] + _post.physics_ms[index], 0.001) * 2.0)
+		by_gd.append(step / maxf(_post.script_ms[index], 0.001))
+	var pre_med := _median(_pre.physics_ms)
+	var post_med := _median(_post.physics_ms)
+	var gd_med := _median(_post.script_ms)
+	var step_med := _median(each)
+	return {
+		"probe_ticks": n,
+		"pre_phys_ms": snappedf(pre_med, 0.001),
+		"post_phys_ms": snappedf(post_med, 0.001),
+		"post_gd_ms": snappedf(gd_med, 0.001),
+		"probe_step_us_each": snappedf(step_med, 0.01),
+		"step_pre_tick": snappedf(_median(by_pre), 0.001),
+		"step_post_tick": snappedf(_median(by_post), 0.001),
+		"step_both_tick": snappedf(_median(by_both), 0.001),
+		"step_gd_tick": snappedf(_median(by_gd), 0.001),
+		"step_pre_med": snappedf(step_med / maxf(pre_med, 0.001), 0.001),
+		"step_post_med": snappedf(step_med / maxf(post_med, 0.001), 0.001),
+		"step_gd_med": snappedf(step_med / maxf(gd_med, 0.001), 0.001),
 	}
 
 
