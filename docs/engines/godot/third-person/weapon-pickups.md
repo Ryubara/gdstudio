@@ -170,8 +170,8 @@ are named as such.
   thumb's side off the hand guard (`reload_clearance`), across to beside the magazine and onto `MagazineHand`
   (`reload_leave`), closes on the magazine, takes it straight down out of the well (`magazine_well`) and to the belt
   at the left hip (`reload_belt`, a place on the body; `reload_out`), where the magazine is out of sight and changed,
-  comes back up and straight in (`reload_in`), pulls the charging handle (below), and goes back under the hand
-  guard the way it came (`reload_return`).
+  comes back up and straight in (`reload_in`), pulls the charging handle after an empty magazine (below), and goes
+  back under the hand guard the way it came (`reload_return`).
   The `magazine` node rides the hand. The thumb goes from the hand guard's side to its place behind the magazine
   while the hand comes down off the hand guard (`_WAY_THUMB`), and on the magazine the four fingers close as one
   (`HandPoseModifier.open_together`; off the hand guard they open knuckles first).
@@ -195,7 +195,8 @@ first). The
 left arm's way to the charging handle and its pull are the hold's `ChargePull`, ported to the build's `Hold`
 (kit #1266).
 
-- **The charging handle**: after the new magazine the left hand pulls it (kit #1266, `ChargePull`), on
+- **The charging handle**: after the new magazine of an empty reload the left hand pulls it (kit #1266, kit
+  #1402, `ChargePull`), on
   [its own page](rifle-charge.md#rifle-charge).
 
 Measured on the skinned mesh against the rifle (`HandContact`, the same in every clip, since the fingers are absolute

@@ -3,8 +3,9 @@
 ## default: an empty reload, which ends with the charging handle's pull; 3: a tactical reload,
 ## which has none and leaves the bolt home). Recorded by Movie Maker frame by frame from the game's
 ## own camera (`RELOAD_VIEW=game`, the default) or from a close-up camera where the aim camera is,
-## behind the right shoulder, zoomed on the rifle (`RELOAD_VIEW=close`); `RELOAD_MODEL=male` puts
-## the male body on the player. It prints a `RELOAD` line a frame (the reload's share, the bolt's
+## behind the right shoulder, zoomed on the rifle (`RELOAD_VIEW=close`), or from the character's
+## left front, where the body hides neither hand (`RELOAD_VIEW=left`); `RELOAD_MODEL=male` puts the
+## male body on the player. It prints a `RELOAD` line a frame (the reload's share, the bolt's
 ## travel back in millimetres, the rounds).
 ##
 ## `gds capture frames --project game --scene res://tools/capture/rifle_reload_live.tscn
@@ -18,6 +19,10 @@ const START := 1.0
 ## of the rifle as the aim camera is, a little higher; its field of view.
 const CLOSE := Vector3(-0.45, 1.75, -0.95)
 const CLOSE_FOV := 24.0
+## Where the left camera is from the rifle, in the character's space (+X its left), and its field
+## of view.
+const LEFT := Vector3(0.75, 0.2, 0.7)
+const LEFT_FOV := 30.0
 
 var _player: Player
 var _camera: Camera3D
@@ -36,9 +41,9 @@ func _ready() -> void:
 		old.free()
 		slot.add_child((load(CharacterBodies.MALE) as PackedScene).instantiate())
 	_player.loadout.give.call_deferred(load(RIFLE) as WeaponDef, 60)
-	if OS.get_environment("RELOAD_VIEW") == "close":
+	if OS.get_environment("RELOAD_VIEW") in ["close", "left"]:
 		_camera = Camera3D.new()
-		_camera.fov = CLOSE_FOV
+		_camera.fov = CLOSE_FOV if OS.get_environment("RELOAD_VIEW") == "close" else LEFT_FOV
 		_camera.near = 0.02
 		add_child(_camera)
 		_camera.make_current()
@@ -57,8 +62,11 @@ func _process(delta: float) -> void:
 	if hold == null:
 		return
 	var rifle := hold.get_node(^"Pivot/Rifle") as Node3D
-	if _camera != null:
+	if _camera != null and OS.get_environment("RELOAD_VIEW") == "close":
 		_camera.global_position = _player.model.global_transform * CLOSE
+		_camera.look_at(rifle.global_position, Vector3.UP)
+	elif _camera != null:
+		_camera.global_position = rifle.global_position + _player.model.global_basis * LEFT
 		_camera.look_at(rifle.global_position, Vector3.UP)
 	var bolt := hold.get_node_or_null(hold.bolt) as Node3D
 	var reload := _player.weapon.reload_progress() if _player.weapon.is_reloading() else -1.0
