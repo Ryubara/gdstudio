@@ -62,10 +62,21 @@ func _threat_at() -> Vector3:
 	return belief.last_position if belief != null else goal
 
 
-# The next leg: the reachable point farthest from the threat.
+# The next leg: the reachable point farthest from the threat. Each point is judged as the navigator
+# will walk it: snapped to open ground as `AiRouteRules.snap_goal` does (a point off the mesh past
+# its reach is no leg), not one it refuses at once, and with a path that ends within its
+# `END_SLACK` of it. A path to the mesh's edge once made a point far off the mesh look near
+# enough, and a cornered civilian asked for it again and again while the navigator refused it as
+# off open ground (gdstudio #1532).
 func _leg() -> bool:
 	var at := (character as Node3D).global_position
+	var walker := nav()
 	var map := (character as Node3D).get_world_3d().navigation_map
+	var layers := 1
+	if walker != null:
+		map = walker.navigation_map()
+		layers = walker.navigation_layers
+	var ready := map.is_valid() and NavigationServer3D.map_get_iteration_id(map) != 0
 	var away := at - last_known
 	away.y = 0.0
 	var base := atan2(away.x, away.z) if away.length_squared() > 0.01 else 0.0
@@ -74,7 +85,13 @@ func _leg() -> bool:
 	for index in directions:
 		var angle := base + TAU * float(index) / float(directions)
 		var point := at + Vector3(sin(angle), 0.0, cos(angle)) * step_distance
-		var cost := AiChoice.walk_cost(map, at, point, body().budget if body() else null)
+		if ready:
+			point = AiRouteRules.snap_goal(map, point, at, layers)
+			if not point.is_finite() or (walker != null and walker.refuses(point)):
+				continue
+		var cost := AiChoice.walk_cost(
+			map, at, point, body().budget if body() else null, AiNavigator.END_SLACK
+		)
 		if cost == INF or cost > step_distance * 2.5:
 			continue
 		var score := point.distance_to(last_known) - cost * 0.3

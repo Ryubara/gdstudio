@@ -98,3 +98,35 @@ func test_a_penned_civilian_with_a_hostile_in_view_cowers_and_stays_cowering() -
 		. is_less(SECOND / 2)
 	)
 	assert_float(civilian.global_position.distance_to(SPOT)).is_less(3.0)
+
+
+# A civilian near a corner of the mesh with a hostile on the inner side (gdstudio #1532, the AI
+# soak's cornered civilians): every point straight away from the hostile lies off the mesh, more
+# than the navigator's snap reaches. The flee must pick a point the navigator takes (open ground
+# along the edge) and run; on main it picked the farthest point, which the path to the mesh's edge
+# called near enough, and the navigator refused it as off open ground, again and again.
+func test_a_civilian_in_a_corner_of_the_mesh_runs_along_open_ground() -> void:
+	_arena.build()
+	var corner := Vector3(11.5, 0.0, 11.5)
+	var answered := await _arena.settle(corner)
+	assert_bool(answered).override_failure_message("the map never answered").is_true()
+	var civilian := _arena.add_kind(BehaviourArena.CIVILIAN, corner, PI * 1.25, {"courage": 0.5})
+	var navigator := civilian.navigator as AiNavigator
+	var runner := BehaviourArena.runner_of(civilian)
+	await _ticks(SECOND / 2)
+	var hostile := _arena.add_target("Grunt", corner - Vector3(3.0, 0.0, 3.0), &"enemy")
+	var refusals: Array[String] = []
+	navigator.failed.connect(func(_why: int) -> void: refusals.append(navigator.refusal))
+	var farthest := 0.0
+	for tick in 4 * SECOND:
+		if tick % SECOND == 0:
+			AiNoise.emit(_arena, &"shot", hostile.global_position, 1.0, hostile)
+		await get_tree().physics_frame
+		farthest = maxf(farthest, civilian.global_position.distance_to(corner))
+	var story := "refusals %s\n%s" % [refusals, runner.decisions.dump()]
+	(
+		assert_float(farthest)
+		. override_failure_message("ran %.2f m:\n%s" % [farthest, story])
+		. is_greater(4.0)
+	)
+	assert_array(refusals).override_failure_message(story).is_empty()
