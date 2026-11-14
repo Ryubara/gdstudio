@@ -342,7 +342,7 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
 - **Momentum.** A state machine transition with `xfade_time` 0 reports its new node from
   `get_current_node()` in the update it travels, but the skeleton shows the new pose a frame later (measured at
   `skeleton_updated`, stepped by hand and in the running game alike), so the modifier starts the decaying difference
-  from the last drawn pose again on each of the four frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
+  from the last drawn pose again on each of the three frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
   start on the frame the new pose arrives takes the whole jump. A `SkeletonModifier3D` added as an internal child at
   the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
 
@@ -413,7 +413,8 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   one frame at a walk's stop, 70 cm into the crouch, for our clips and the library's alike; the blend's own test
   checked only that it was blending. **Seen:** gdstudio #1416, 2026-11-13 (the maintainer's playtest;
   `test_own_clip_blends.gd`); PR #1422, 11-14 (slower stops: a 1.3 rad gap at a sprint stop's start moved 23 cm in
-  the frame after the last restart; `SETTLE_FRAMES` 4).
+  the frame after the last restart; its cause:
+  [stop entries](../../tools/blender/start-stop-clips.md#taught)).
 - **Approach:** Keep a state-change blend out while an action clip covers the whole body
   (`CharacterAnimation.is_acting(true)`); the action cross-fades in the tree. **Watch out for:** the body state
   under a vault still changes, and a restart then took the clip's own fast motion for a jump and held it back: a
@@ -432,6 +433,12 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   `gait_transition` and sent the machine to `ground`, the last request won, and the body stood drawn over its
   crouched capsule for as long as it crouched (an AI in cover looked stuck, shots at its chest flew over the capsule).
   **Seen:** gdstudio #1412, 2026-11-13 (`test_a_crouch_asked_during_a_stop_takes_the_body_to_the_crouch`).
+- **Approach:** Prove a takeoff begun in a transition clip by the machine's state on each drawn update of the jump,
+  and by the weapon's turn there against the stop it leaves and the rest of its jump. **Watch out for:** a jump pressed
+  in a stop clip flew on the ground's pose, its gun 244 degrees a second at the takeoff; once the momentum blend
+  carried the stop's pose, that turn read 41 with the bug and without it, so only the state shows the fault. Read the
+  muzzle node's -Z, as the pistol node's own -Z points to the side. **Seen:** gdstudio #1462, 2026-11-14
+  (`test_aimed_takeoff.gd`).
 - **Approach:** A transition played by the ground the body covers needs a body that covers the clip's ground: give the
   controller a deceleration (or an acceleration) per gait that covers the clip's `travel`, follow the clip until the
   body is at rest, count from the tick the input changed (its velocity times a tick), and test the distance and a
@@ -440,3 +447,11 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   feet sliding 106 mm; the tests checked only that a stop clip played. `get_position_delta()` is no tick's ground on a
   puppet (placed, never stepped): an AI puppet's stop seeked to its end at once. **Seen:** gdstudio #1415, 2026-11-13
   (0.19 m of the jog stop's 1.96 before, 1.965 after); PR #1422, 11-14 (an AI puppet).
+- **Approach:** Play a clip by the ground only while its travel curve still moves: from the frame its curve is within
+  its rounding of the end (`GaitClips.travel_end`) let it play on at its own pace, and hold its pace to a share of
+  its own once the body is slower than `standing_speed` (`GaitTransitions.STOP_PACE_MOST`, 2, never more than 0.1 s
+  behind its ground), since the body's last braking need not be the clip's ease to rest.
+  **Watch out for:** a stop's curve creeps its last 0.1 mm over its settle (frames 30 to 48 of the jog's), so the
+  body crossing it seeked 18 frames in a tick, a hand 31 cm; and the controller's harder end of braking played a
+  jog stop's last step at four times its pace, 16 cm. Both waited for a stop whose last steps fell in those frames
+  (the entries between the strikes). **Seen:** gdstudio #1525, 2026-11-14 (the let-go probe over 40 phases).

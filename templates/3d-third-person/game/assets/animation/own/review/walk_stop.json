@@ -13,10 +13,6 @@
     "foot_r",
     "hand_l",
     "hand_r",
-    "ik_foot_l",
-    "ik_foot_r",
-    "ik_hand_l",
-    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -62,7 +58,7 @@
    "contacts": {
     "l": [
      [
-      0.0,
+      -0.0,
       15.0
      ],
      [
@@ -314,10 +310,6 @@
     "foot_r",
     "hand_l",
     "hand_r",
-    "ik_foot_l",
-    "ik_foot_r",
-    "ik_hand_l",
-    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -363,7 +355,7 @@
    "contacts": {
     "l": [
      [
-      0.0,
+      -0.0,
       15.0
      ],
      [
@@ -624,10 +616,6 @@
     "foot_r",
     "hand_l",
     "hand_r",
-    "ik_foot_l",
-    "ik_foot_r",
-    "ik_hand_l",
-    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -673,7 +661,7 @@
    "contacts": {
     "l": [
      [
-      0.0,
+      -0.0,
       14.0
      ],
      [
@@ -898,10 +886,6 @@
     "foot_r",
     "hand_l",
     "hand_r",
-    "ik_foot_l",
-    "ik_foot_r",
-    "ik_hand_l",
-    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -957,7 +941,7 @@
     ],
     "r": [
      [
-      0.0,
+      -0.0,
       15.0
      ],
      [
@@ -1199,10 +1183,6 @@
     "foot_r",
     "hand_l",
     "hand_r",
-    "ik_foot_l",
-    "ik_foot_r",
-    "ik_hand_l",
-    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -1258,7 +1238,7 @@
     ],
     "r": [
      [
-      0.0,
+      -0.0,
       15.0
      ],
      [
@@ -1509,10 +1489,6 @@
     "foot_r",
     "hand_l",
     "hand_r",
-    "ik_foot_l",
-    "ik_foot_r",
-    "ik_hand_l",
-    "ik_hand_r",
     "index_01_l",
     "index_01_r",
     "index_02_l",
@@ -1568,7 +1544,7 @@
     ],
     "r": [
      [
-      0.0,
+      -0.0,
       14.0
      ],
      [

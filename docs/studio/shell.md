@@ -54,7 +54,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing. A bare `open()`
   or `write_text` uses cp1252: one `m²` broke the docs, another a GDScript file. **Seen:** Deadnight #415, #429, #442,
   11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; #1130, #1123, #1127 (16 pages),
-  #1138, #1190, #1218, #1154, #1260, #1270, 11-11; #1356, #1266, #1360, #1415, 11-13.
+  #1138, #1190, #1218, #1154, #1260, #1270, 11-11; #1356, #1266, #1360, #1415, 11-13; #1287, 11-14.
 
 ## Scripted edits {#scripted-edits}
 
@@ -102,9 +102,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   (the session scratchpad and the temp folder are shared), and pass the worktree as an argument. **Watch out for:**
   `/c/Repositories` is read as a folder named `c` on the current drive ("the body file does not exist yet"); a
   `gdt.sh` under a shared name changed into another agent's worktree and reported its pass for my branch. **Seen:**
-  gdstudio, 2026-11-02; Deadnight, 2026-11-01 and 2026-11-05 (fix: read the line that names the scanned folder before
-  trusting a result); gdstudio #879, #903, #966, #970, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
-  branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
+  gdstudio, 2026-11-02; Deadnight, 11-01 and 11-05 (fix: read the line that names the scanned folder before trusting
+  a result); gdstudio #879, #903, #966, #970, 11-10 (another agent's `sync.sh` synced its branch); #968, 11-11 (a PR
+  body swapped for another's); #1287, 11-14 (script pieces in `/tmp`, beside another agent's).
 - **Approach:** Commit and push in a worktree with `git -C <absolute worktree path> ...`, or after a plain absolute
   `cd <worktree> &&` (or a variable the line set: `WT=...; cd "$WT"`, `$wt = '...'; Set-Location $wt`). **Watch out
   for:** after a `cd` the Git guard cannot follow (`cd "$(...)"`, a sourced variable, `cd -`, `popd`) it refuses a

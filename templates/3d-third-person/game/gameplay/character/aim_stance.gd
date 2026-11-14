@@ -12,7 +12,7 @@ extends RefCounted
 ## The blend inside the idle point, 0 the idle playing, 1 the held pose.
 const BLEND := &"Steady"
 ## Its amount in the tree: the idle point (`idle`) of the ground state, in the `Locomotion` machine
-## at the tree's root (`CharacterAnimation._build_ground()`).
+## at the tree's root (`BodyMachine.build()`).
 const AMOUNT := "parameters/Locomotion/%s/idle/%s/blend_amount" % [CharacterAnimation.GROUND, BLEND]
 ## How often the idle's pelvis is read to find the held pose, per second.
 const SAMPLES_PER_SECOND := 30.0

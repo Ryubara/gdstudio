@@ -39,6 +39,10 @@ const TURN_DONE := 5.0
 const START_GRACE := 4
 ## Below this ground speed a stopping body is at rest and its clip plays on at its own pace (m/s).
 const STOP_DONE := 0.02
+## The fastest a stop clip is played once its body is slower than `standing_speed`, as a share of
+## its own pace, and the furthest behind its ground it may fall for it, in seconds (gdstudio #1525).
+const STOP_PACE_MOST := 2.0
+const STOP_LAG_MOST := 0.1
 
 var settings: GaitSettings
 ## What plays now, and its clip.
@@ -211,9 +215,17 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	var speed := body.ground_speed()
 	if body.goal_speed <= settings.standing_speed:
 		var stop_point := blend.main_point(CharacterAnimation.GROUND, speed)
-		var stop_foot := _foot(animation, blend, speed)
+		var stop_gait := blend.main_gait(CharacterAnimation.GROUND, speed)
+		var stop_phase := blend.phase(animation.tree, CharacterAnimation.GROUND)
 		return _found(
-			Kind.STOP, GaitTransitionSet.pick_in(player, clips.stops, stop_point, stop_foot)
+			Kind.STOP,
+			GaitTransitionSet.pick_entry(
+				player,
+				clips.stops.get(stop_point, &""),
+				next_foot(stop_gait, stop_phase),
+				stop_gait,
+				stop_phase
+			)
 		)
 	var wish := body.move_goal.direction(body)
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z).normalized()
@@ -230,7 +242,8 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	return _found(Kind.PIVOT, GaitTransitionSet.pick_in(player, clips.pivots, point, side))
 
 
-# The foot that lands next in the ground gait that weighs most at `speed`.
+# The foot that lands next in the ground gait that weighs most at `speed` (a reversal's side; a
+# stop picks the entry nearest the phase, `GaitTransitionSet.pick_entry`).
 func _foot(animation: CharacterAnimation, blend: GaitBlend, speed: float) -> String:
 	var gait_clip := blend.main_gait(CharacterAnimation.GROUND, speed)
 	return next_foot(gait_clip, blend.phase(animation.tree, CharacterAnimation.GROUND))
@@ -313,8 +326,15 @@ func _go_on(
 		or ((kind == Kind.REVERSAL or kind == Kind.PIVOT) and goal <= standing)
 	)
 	var progress := _progress(body, blend.leg)
-	var done := _body_done(body)
-	_time = minf(maxf(progress, _time + (delta if done or progress < 0.0 else 0.0)), _length)
+	# A clip at the end of its travel plays on at its own pace: held there until the body's last
+	# millimetres were covered, it stood still for a few ticks and went on with a jump.
+	var done := _body_done(body) or (kind == Kind.STOP and progress >= GaitClips.travel_end(clip))
+	var next := maxf(progress, _time + (delta if done or progress < 0.0 else 0.0))
+	if kind == Kind.STOP and body.ground_speed() < standing:
+		# The body's last braking is harder than the clip's ease to rest: read by the ground alone,
+		# a jog stop's last step played at four times its pace, a hand 16 cm in a tick.
+		next = minf(next, maxf(_time + delta * STOP_PACE_MOST, progress - STOP_LAG_MOST))
+	_time = minf(next, _length)
 	animation.tree.set(_P_SEEK, _time)
 	if cancelled or _time >= _length:
 		_hand_over(animation, blend, playback, cancelled)
