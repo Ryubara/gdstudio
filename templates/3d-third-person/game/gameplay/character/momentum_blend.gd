@@ -16,16 +16,20 @@ extends SkeletonModifier3D
 ## every bone that differed, and the same to the pelvis's place. Nothing while the tree is off (a
 ## ragdoll holds the skeleton). Cosmetic, never sent.
 ##
-## It begins again on the update after a change: on the update the state machine changes state
-## (a travel with no cross-fade), `get_current_node()` already names the new state while the pose
-## the tree mixed is still the old state's; the new state's pose shows one update later. Begun
-## only at the change, the blend measured no difference and the new pose jumped in whole on the
-## next update: a slide's end into the crouch moved the chest 0.6 m in one frame (kit #1439).
+## The new state's pose reaches the skeleton a frame or two after the key changes (the state
+## machine reports its new node in the frame it travels, and the tree draws it on a later update),
+## so the blend starts again from the pose last shown on each of `SETTLE_FRAMES` frames after a
+## change: each start keeps the drawn pose and its speed, and the one on the frame the new pose
+## arrives takes the whole jump (gdstudio #1416). Nothing while an action clip covers the whole
+## body (`CharacterAnimation.is_acting(true)`): the action cross-fades in the tree.
 
 ## Parts of the bone names it leaves to the clip alone.
 const SKIPPED: Array[String] = [
 	"thumb", "index", "middle", "ring", "pinky", "twist", "socket", "ik_", "root"
 ]
+
+## Frames after a change of key on which the blend starts again from the pose last shown.
+const SETTLE_FRAMES := 3
 
 ## The node whose body state it follows (`CharacterGait.pose_key()`).
 var animation: CharacterAnimation
@@ -35,7 +39,6 @@ var half_life := 0.05
 var speed_limit := deg_to_rad(720.0)
 
 var _key: Variant = null
-var _again := false
 var _count := -1
 var _followed := PackedInt32Array()
 var _last: Array[Quaternion] = []
@@ -51,6 +54,7 @@ var _pelvis_x0 := Vector3.ZERO
 var _pelvis_j0 := Vector3.ZERO
 var _t := 0.0
 var _blending := false
+var _settle := 0
 
 
 ## True while a difference is dying away.
@@ -84,11 +88,17 @@ func _process_modification_with_delta(delta: float) -> void:
 		_forget()
 		_follow(skeleton)
 	var key: Variant = animation.gait.pose_key(animation)
-	var changed: bool = key != _key and _seen >= 2 and delta > 0.0
-	if changed or (_again and delta > 0.0):
-		_begin(skeleton, delta)
-		_again = changed
+	if key != _key and _seen >= 2:
+		_settle = SETTLE_FRAMES
 	_key = key
+	if animation.is_acting(true):
+		# The action's own cross-fade covers the body, and the clip moves fast (a vault's hands):
+		# a start then would hold its motion back and lift a planted hand off its place.
+		_settle = 0
+		_blending = false
+	if _settle > 0 and delta > 0.0:
+		_settle -= 1
+		_begin(skeleton, delta)
 	if _blending:
 		_apply(skeleton, delta)
 	_remember(skeleton)
@@ -165,7 +175,7 @@ func _follow(skeleton: Skeleton3D) -> void:
 
 func _forget() -> void:
 	_seen = 0
-	_again = false
+	_settle = 0
 	_blending = false
 	_key = null
 

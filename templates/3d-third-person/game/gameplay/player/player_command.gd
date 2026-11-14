@@ -28,6 +28,10 @@ var prone := false
 var aim := false
 var fire := false
 var jump := false
+## Held while the player peeks around cover to the left or the right (the input turns a lean
+## toggle into a held bit; both at once lean neither way: `CharacterPeek`, gdstudio #1400).
+var lean_left := false
+var lean_right := false
 
 # Pressed since the last command (a press survives two commands arriving together).
 var jump_pressed := false
@@ -43,6 +47,9 @@ var unarmed_pressed := false
 ## The melee button, pressed since the last command (gdstudio #1254): the weapon in the hands
 ## throws its category's blow (`Weapon.melee`).
 var melee_pressed := false
+## The hotbar place pressed since the last command, or -1 (gdstudio #1386): the body's `ItemUse`
+## uses it after the step, offline, on a predicting client and on the server alike.
+var use_place := -1
 
 # The shot block.
 ## A shot may leave the muzzle this tick (the fire button was pressed or is buffered and the weapon
@@ -92,6 +99,8 @@ func copy_from(other: PlayerCommand) -> PlayerCommand:
 	aim = other.aim
 	fire = other.fire
 	jump = other.jump
+	lean_left = other.lean_left
+	lean_right = other.lean_right
 	jump_pressed = other.jump_pressed
 	fire_pressed = other.fire_pressed
 	interact_pressed = other.interact_pressed
@@ -101,6 +110,7 @@ func copy_from(other: PlayerCommand) -> PlayerCommand:
 	previous_weapon_pressed = other.previous_weapon_pressed
 	unarmed_pressed = other.unarmed_pressed
 	melee_pressed = other.melee_pressed
+	use_place = other.use_place
 	has_shot = other.has_shot
 	origin = other.origin
 	shot_yaw = other.shot_yaw
@@ -125,6 +135,8 @@ func clear() -> void:
 	aim = false
 	fire = false
 	jump = false
+	lean_left = false
+	lean_right = false
 	clear_edges()
 
 
@@ -142,6 +154,7 @@ func clear_edges() -> void:
 	previous_weapon_pressed = false
 	unarmed_pressed = false
 	melee_pressed = false
+	use_place = -1
 	has_shot = false
 	origin = Vector3.ZERO
 	shot_yaw = 0.0
@@ -162,6 +175,8 @@ func merge_edges_from(earlier: PlayerCommand) -> void:
 	previous_weapon_pressed = previous_weapon_pressed or earlier.previous_weapon_pressed
 	unarmed_pressed = unarmed_pressed or earlier.unarmed_pressed
 	melee_pressed = melee_pressed or earlier.melee_pressed
+	if use_place < 0:
+		use_place = earlier.use_place
 	if earlier.has_shot and not has_shot:
 		has_shot = true
 		origin = earlier.origin
