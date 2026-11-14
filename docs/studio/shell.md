@@ -78,7 +78,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   Python file written with the Write tool and run it, or use the Edit tool, then `cat -A` the lines it changed.
   **Watch out for:** a Python heredoc and a `sed -i` inside the Bash tool both turned `\r` into a real carriage return,
   twice over, so `tr -d '\r'` became `tr -d '<CR>'` and the script still passed `bash -n`. **Seen:** gdstudio #839,
-  2026-11-08 (fix: a Python file with the backslash built from a variable).
+  2026-11-08 (fix: a Python file with the backslash built from a variable); gdstudio #1472, 2026-11-13 (a `"\n"` in
+  a test and in `newline=`, and the backslash line ends of a workflow, came out as real line breaks; fix: the Edit tool).
 
 ## Folders and paths {#paths}
 
