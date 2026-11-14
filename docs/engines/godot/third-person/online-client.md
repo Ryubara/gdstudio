@@ -112,10 +112,10 @@ for each aiming player at 30 TICKs a second, nothing for one who does not aim. T
 `tools/capture/puppet_aim_tour.tscn` (Ada's screen beside Bo's).
 
 **Its starts and stops** (gdstudio #1420). `GaitTransitions` picks a start, a stop or a reversal from the body's goal
-(`Character.goal_speed` and `goal_direction`), which a stepped body reads from its last command. A puppet has none:
-`PlayerPuppet.make` sets `goal_from_motion`, and `RemotePlayers` sets `motion_goal` each step with
+(`Character.goal_speed` and `move_goal.direction(body)`), which a stepped body reads from its last command. A puppet has
+none: `PlayerPuppet.make` sets the body's `CharacterGoal.from_motion`, and `RemotePlayers` sets its `motion` each step with
 `PlayerPuppet.goal_of`: nothing once the entry's `halt` flag says the player asked for no move (bit 7 of the flags
-byte, set by the server from the body's goal, protocol 10, no byte more), else the velocity between the two newest
+byte, set by the server from the body's goal, protocol 13, no byte more), else the velocity between the two newest
 snapshots (`InterpolationTrack.heading`, 0.1 s ahead of the moment drawn), and the goal it had while that heading is
 under 0.5 m/s (a reversal passes through 0; a stepped body's goal never does). The track takes `halt` from the snapshot
 the drawn move heads to, so a stop begins with the move toward the halted snapshot. On the gait tour (Ada's screen beside
@@ -123,7 +123,7 @@ Bo's) the puppet now plays `Walk_Stop`, `Jog_Stop` and `Sprint_Stop` where her o
 (the draw delay), and its largest bone turns 10 to 20 degrees a frame while it moves, against 0.1 to 0.2 before; tested
 by `test_net_puppet_gait.gd`. The goal's speed comes from the entry (gdstudio #1453): the server puts the command's
 goal speed in the state byte's top four bits, in fifteenths of the body's sprint speed (`PlayerEntry.goal_step`,
-`SnapshotCodec.goal_step`; the 15 states fit the low four; protocol 13, no byte more), and `goal_of` scales the heading's
+`SnapshotCodec.goal_step`; the 15 states fit the low four; protocol 14, no byte more), and `goal_of` scales the heading's
 way to it (along the goal it had, or the facing, while the heading is too slow to tell a way). On the gait tour the
 puppet now plays `Idle_To_Jog` and `Idle_To_Sprint` where her own body does, 6 frames after it; tested by
 `test_net_starts.gd`, which also proves her own predicted body plays all three starts from standing (it did once

@@ -150,7 +150,7 @@ func _drawn_goal(halt: bool) -> Vector3:
 	entry.position = Vector3(0.0, 0.0, 30.0)
 	entry.halt = halt
 	PlayerPuppet.place(puppet, entry, Vector3.LEFT * 6.0, 1.0 / 60.0)
-	var goal := puppet.motion_goal
+	var goal := puppet.move_goal.motion
 	puppet.free()
 	return goal
 

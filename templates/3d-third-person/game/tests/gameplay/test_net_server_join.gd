@@ -96,10 +96,10 @@ func test_another_version_or_another_map_is_refused() -> void:
 	elsewhere.say_hello("Away", _rig.server.world_hash ^ 0x5A5A)
 	var all_closed := func() -> bool: return old.closed and newer.closed and elsewhere.closed
 	assert_bool(await _rig.until(all_closed)).is_true()
-	# Version 13 (a player entry's goal speed in its state byte, #1453) is the oldest this server
-	# takes: an older client is refused.
-	assert_int(NetWire.VERSION).is_equal(13)
-	assert_int(NetWire.MIN_VERSION).is_equal(13)
+	# Version 14 (a player entry's goal speed in its state byte, #1453; 13 is #1420's halt flag) is
+	# the oldest this server takes: an older client is refused.
+	assert_int(NetWire.VERSION).is_equal(14)
+	assert_int(NetWire.MIN_VERSION).is_equal(14)
 	assert_int(old.refusal).is_equal(NetWire.Refusal.VERSION)
 	assert_int(newer.refusal).is_equal(NetWire.Refusal.VERSION)
 	assert_int(elsewhere.refusal).is_equal(NetWire.Refusal.WORLD)

@@ -32,7 +32,7 @@ static func make(player: Player) -> void:
 	player.start_at_spawn = false
 	player.input_enabled = false
 	player.ragdoll_by_command = false
-	player.goal_from_motion = true
+	player.move_goal.from_motion = true
 	player.collision_layer = 0
 	player.collision_mask = PhysicsLayers.WORLD
 	# Its item uses are the server's USE events (gdstudio #1386).
@@ -64,7 +64,7 @@ static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: fl
 	puppet.velocity = moving
 	# The goal the animation's starts and stops read: none once the player asked for no move, else
 	# the drawn motion (`RemotePlayers` sets where the snapshots head after this).
-	puppet.motion_goal = Vector3.ZERO if entry.halt else moving
+	puppet.move_goal.motion = Vector3.ZERO if entry.halt else moving
 	puppet.facing = entry.yaw
 	# The view along the body, turned by the aim's heading off it while aiming (0 otherwise), so
 	# the aim layer turns the puppet's upper body as it turns the stepped one.
@@ -98,11 +98,13 @@ static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: fl
 	if Vector2(puppet._crouch_amount, puppet._prone.amount) != shape_before:
 		puppet._fit_body()
 	puppet.state = entry.state as Character.State
+	# The peek lean: the eye, the shape and the bend, as the server's body leans (gdstudio #1400).
+	puppet.peek_motion.show(puppet, entry.peek)
 	# A vault or a mantle: its plan and clip are worked out here (nothing about it is sent).
 	PuppetVault.follow(puppet, delta, PhysicsLayers.WORLD)
 
 
-## The goal (`Character.motion_goal`) of a puppet drawn from `entry` whose snapshots head for
+## The goal (`CharacterGoal.motion`) of a puppet drawn from `entry` whose snapshots head for
 ## `heading` (`InterpolationTrack.heading`), `kept` the goal it had, `full_speed` its sprint speed:
 ## none once the player asked for no move (`PlayerEntry.halt`); else along the heading, or along
 ## `kept` while the heading is too slow to tell a way (`GOAL_HOLD_BELOW`), or along the facing with

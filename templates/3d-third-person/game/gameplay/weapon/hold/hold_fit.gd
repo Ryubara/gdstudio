@@ -17,6 +17,9 @@ extends Resource
 @export var support_hand := Transform3D.IDENTITY
 ## The `MagazineHand` marker's place in the weapon: where the left hand's bone pushes the magazine.
 @export var magazine_hand := Transform3D.IDENTITY
+## The `ChargeHand` marker's place on the rifle: where the left hand's bone sits on the charging
+## handle (kit #1266). Identity: the weapon has none.
+@export var charge_hand := Transform3D.IDENTITY
 ## `WeaponHold.support_way` for this body.
 @export var support_way := Vector3(0.0, 0.0, 0.06)
 @export var grip_pose: HandPose
@@ -27,6 +30,8 @@ extends Resource
 @export var support_pose: HandPose
 @export var magazine_pose: HandPose
 @export var open_pose: HandPose
+## The left hand's fingers hooked on the charging handle (`TwoHandHold.charge_pose`, kit #1266).
+@export var charge_pose: HandPose
 ## `WeaponHold.one_hand_pose` and `one_hand_way_pose` for this body, or none (the pistol's: kit
 ## #1085, fitted to the default body's placement: kit #1274).
 @export var one_hand_pose: HandPose
