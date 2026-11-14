@@ -293,6 +293,17 @@ last push and 2 cm, exact for any push under that (a point the stock does not pa
 whole reach again only when the push reaches it. It goes through 34 / 61 points; the low ready is still 11 / 13 over
 the ready, the 23 / 32 points that do forbid a move.
 
+Cut again (kit #1347, second round), the same bench, `main` and the branch in turns with a build from before the stock
+fix, three rounds a body (female / male): the ready 40 / 45 against 48 / 47, the low ready 50 / 56 against 54 / 61,
+reloading 53 / 49 against 51 / 56 (the female reload within the noise); before the stock fix 35 / 36, 34 / 33 and 48 /
+47. The push takes the spine's poses from the stance (`TorsoSkin.use_spine()`: the stance's own array, read once, so a
+push no longer works five bones out from the root; 1.3 microseconds a push), meets the groups' boxes in the gun's space
+(18 / 27 points gone through at the ready, against 37 / 54), and gives each point's run in one line (an empty run and
+one that ends at or before 0 change nothing). Every bone within 0.84 micrometres of `main` in 124 poses. What is left
+over the hold before the stock fix is the push and the reach themselves (about 5 microseconds at the ready on the
+desktop, 9 to 13 for the push along a way at the low ready, which kit #1346 added): the bone and group boxes, the
+points the stock passes over and the runs' sort are each 1 to 2.5.
+
 The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
 body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
 out), the deepest in the six locomotion clips at the low ready and aimed and aimed 30 degrees up and down, on the
@@ -490,3 +501,10 @@ stock test's 10 mm.
 - **Approach:** Make a stage that a suite will `settle()` with `RifleStage.make_rifle(holder, model)`, the measured
   default. **Watch out for:** `measured = false` connects nothing to `skeleton_updated`, so `settle()` waits forever
   and GdUnit stops the suite at 5 minutes. **Seen:** gdstudio #1433, 2026-11-13 (`test_torso_skin_push.gd`).
+- **Approach:** Keep `Pivot` (and so the rifle and its hand places) out of physics interpolation
+  (`physics_interpolation_mode` OFF in `two_hand_hold.tscn`), and prove the hands on the rifle where the engine draws
+  them (`test_rifle_drawn_hands.gd`), not only in `skeleton_updated`. **Watch out for:** the hold places the pivot in
+  the skeleton's update, every frame; interpolated, the rifle was drawn where the last ticks had it while the skin
+  had this frame's bones, 145 mm off both hands at each landing (the land clip drops the chest fast), and every pose
+  test passed ([physics interpolation](../physics-interpolation.md#using-it)). **Seen:** gdstudio #1464, 2026-11-13
+  (found by the jump captures of #1369).

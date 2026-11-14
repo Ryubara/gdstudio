@@ -305,3 +305,41 @@ def hold(
     if pull.get("autoMergeRequest"):
         lines.append("Auto-merge is on: it stays on, and the pull request merges the moment the label comes off.")
     return lines
+
+
+#: A closing keyword and the issue it names (issues.py has the same pattern; this module uses the standard library
+#: only, so it keeps its own copy).
+_CLOSES = re.compile(
+    r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+(?:https://github\.com/)?((?:[\w.-]+/[\w.-]+)?)(?:#|/issues/)(\d+)",
+    re.IGNORECASE,
+)
+
+
+def current_branch(repo: Path) -> str:
+    """The branch checked out in `repo`; "" when detached or unknown."""
+    code, out = _git(repo, "symbolic-ref", "--quiet", "--short", "HEAD")
+    return out.strip() if code == 0 else ""
+
+
+def branch_issue_warning(body: str, repo: str, branch: str, started: dict[str, dict]) -> str:
+    """A warning when the issue `gds issue start` made `branch` for (the ledger, `started`) is not among the issues the
+    body closes, so a `Fixes #N` with the wrong number is seen before the push. "" when they agree, or when the ledger
+    has no entry for the branch."""
+    if not branch or not repo:
+        return ""
+    mine = sorted(
+        int(entry["number"])
+        for entry in started.values()
+        if entry.get("branch") == branch and str(entry.get("repo", "")).lower() == repo.lower() and "number" in entry
+    )
+    if not mine:
+        return ""
+    closes = {int(n) for other, n in _CLOSES.findall(body) if not other or other.lower() == repo.lower()}
+    if closes & set(mine):
+        return ""
+    named = ", ".join(f"#{n}" for n in sorted(closes)) or "no issue"
+    wanted = " or ".join(f"{repo}#{n}" for n in mine)
+    return (
+        f"the branch {branch} was started for {wanted}, but the body closes {named}: "
+        f"check the `Fixes` line (or say in the body why it closes another issue)"
+    )

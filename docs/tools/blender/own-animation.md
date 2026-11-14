@@ -222,6 +222,10 @@ In Godot (`tests/gameplay/test_own_clips.gd`, on every body): every track finds 
 bone by bone, a planted foot stays put while the model moves along the clip's travel curve, and the tree plays the
 clip where the library's played. Then the capture from the game's camera.
 
+In the kit's CI the `clips` job builds `locomotion.glb` again with `--check --no-overlap` (numpy pinned to the
+version it was built with) and fails on any byte that differs, so a script change that moves a committed clip is
+caught before it lands (gdstudio #1472); the limb measure needs Blender and is checked by the report's SHA-256.
+
 Passing every check is where review starts, not where it ends: the crawl passed every check with its forearms
 wrong ([solved clips](animation.md#solved-clips)). Before keying a move, its motion is researched and written down
 with sources (how real limbs do it), and each fault a capture shows becomes a check when a number can say it.
