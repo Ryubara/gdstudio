@@ -179,15 +179,15 @@ var died_by_clip := false
 
 ## The ground speed the last command steers the body toward, in m/s (0 when it asks for no move):
 ## the speed the body is heading for, which the animation's transitions read (`GaitTransitions`).
-## A body that never steps reads it from `goal` instead (`CharacterGoal`).
+## A body that never steps reads it from `move_goal` instead (`CharacterGoal`).
 var goal_speed: float:
 	get:
-		if goal.from_motion:
-			return goal.speed()
+		if move_goal.from_motion:
+			return move_goal.speed()
 		var push := _wish_direction().length() if _action_lock <= 0.0 else 0.0
 		return _target_speed(push) if push > 0.0 else 0.0
 ## A puppet's goal, and the way any body is asked to go (`CharacterGoal`, gdstudio #1420).
-var goal := CharacterGoal.new()
+var move_goal := CharacterGoal.new()
 ## What the body is doing; `CharacterAnimation` plays the clip for it.
 var state := State.IDLE:
 	set(value):
@@ -795,16 +795,16 @@ func _target_speed(strength: float) -> float:
 func _steer(wish: Vector3, delta: float) -> void:
 	var flat := Vector3(velocity.x, 0.0, velocity.z)
 	var strength := wish.length()
-	var steer_to := wish.normalized() * _target_speed(strength) if strength > 0.0 else Vector3.ZERO
+	var goal := wish.normalized() * _target_speed(strength) if strength > 0.0 else Vector3.ZERO
 	var rate := tuning.acceleration if strength > 0.0 else tuning.deceleration
 	if _prone.is_prone():
 		rate = prone_tuning.acceleration if strength > 0.0 else prone_tuning.deceleration
 	if not _grounded:
 		rate *= tuning.air_control
-		steer_to = _slide.air_goal(self, wish, steer_to, delta)
+		goal = _slide.air_goal(self, wish, goal, delta)
 	if _action_lock > 0.0 and state == State.HIT:
 		rate = 0.0
-	flat = flat.move_toward(steer_to, rate * delta)
+	flat = flat.move_toward(goal, rate * delta)
 	velocity.x = flat.x
 	velocity.z = flat.z
 	if (aiming or peek_motion.leaning()) and _action_lock <= 0.0:

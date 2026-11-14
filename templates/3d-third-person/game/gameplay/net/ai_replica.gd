@@ -271,7 +271,7 @@ func _make(id: int, look: int) -> void:
 	puppet.set_meta(NetHits.AI_META, id)
 	puppet.ragdoll_by_command = false
 	# It never steps, so it has no command: its starts and stops read the goal `_place` sets.
-	puppet.goal.from_motion = true
+	puppet.move_goal.from_motion = true
 	puppet.collision_layer = 0
 	puppet.collision_mask = 0
 	puppet.visible = false
@@ -323,7 +323,7 @@ func _place(puppet: Character, glide: AiGlide, delta: float) -> void:
 		puppet.revive_at(glide.position)
 	puppet.global_position = glide.position
 	puppet.velocity = glide.velocity
-	puppet.goal.motion = glide.goal(puppet.goal.motion)
+	puppet.move_goal.motion = glide.goal(puppet.move_goal.motion)
 	puppet.facing = glide.yaw
 	puppet.view_yaw = glide.yaw - PI
 	puppet.view_pitch = _pitch_to(puppet, row.target)

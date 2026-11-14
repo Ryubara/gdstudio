@@ -72,7 +72,8 @@ installed on the runner instead. A local run without `--allowed-skips` reports s
   the push. **Watch out for:** macOS's `/bin/bash` is 3.2, so bash 4 syntax such as `${var,,}` fails there with `bad
   substitution`; a skip copied from a win32-only test let the macOS job run the step and failed it, and the Windows job
   failed on the skips the allowlist did not name. **Seen:** gdstudio #1302, 2026-11-11 (fix: `test_main_green.py`
-  runs its bash cases on Linux only, three allowlist entries).
+  runs its bash cases on Linux only, three allowlist entries); gdstudio #1483, 2026-11-13 (a new bash case added
+  beside those three had no entry of its own, and a run under Git Bash passed it locally; fix: a fourth entry).
 
 ## Speed {#speed}
 

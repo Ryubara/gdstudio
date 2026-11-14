@@ -32,7 +32,7 @@ static func make(player: Player) -> void:
 	player.start_at_spawn = false
 	player.input_enabled = false
 	player.ragdoll_by_command = false
-	player.goal.from_motion = true
+	player.move_goal.from_motion = true
 	player.collision_layer = 0
 	player.collision_mask = PhysicsLayers.WORLD
 	# Its item uses are the server's USE events (gdstudio #1386).
@@ -64,7 +64,7 @@ static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: fl
 	puppet.velocity = moving
 	# The goal the animation's starts and stops read: none once the player asked for no move, else
 	# the drawn motion (`RemotePlayers` sets where the snapshots head after this).
-	puppet.goal.motion = Vector3.ZERO if entry.halt else moving
+	puppet.move_goal.motion = Vector3.ZERO if entry.halt else moving
 	puppet.facing = entry.yaw
 	# The view along the body, turned by the aim's heading off it while aiming (0 otherwise), so
 	# the aim layer turns the puppet's upper body as it turns the stepped one.

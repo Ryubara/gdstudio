@@ -21,13 +21,13 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
 
 - **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not
   `scale`; `earlier`, not `before`, in a GdUnit suite), no global function (`hash`, `snapped`) and no function of its
-  own class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
-  `[debug]` of `project.godot`, as the templates do. **Watch out for:** the editor warned on
+  class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
+  `[debug]` of `project.godot`, as templates do. **Watch out for:** the editor warned on
   opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
   `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857, #877
   (`name`); #902 (`hash`, `snapped`, `world_hash` beside such a function); #903 (`url` and `url()`); #901 (`before`);
   #966 (`mesh`); #970 (`rows`); #1186 (`show`: a bench's web export failed); #1386 (`left` beside
-  `NetEvent.left()`); #1420 (`newest`).
+  `NetEvent.left()`); #1420 (`newest`, `goal`).
 
 - **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
   `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an
@@ -108,7 +108,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   freed) is not a subclass of the expected argument class`), before the function's own `is_instance_valid()` check
   runs, and only one test of the whole run met it. A deferred call (`Class.f.call_deferred(node)`) meets it on the
   idle frame as `Cannot convert argument 1 from Object to Object`. **Seen:** gdstudio #1126, 2026-11-11
-  (`RagdollDrawing.place`); PR #1397's merge, 2026-11-13 (`keep_last`, 174 errors a run; coordinator's mistake).
+  (`RagdollDrawing.place`); PR #1397's merge, 2026-11-13 (`keep_last`, 174 errors a run; coordinator's mistake);
+  gdstudio #1478, 2026-11-13 (`AimLayer`'s rest check: 122 errors, in the full run only).
 
 ## Lambdas {#lambdas}
 
