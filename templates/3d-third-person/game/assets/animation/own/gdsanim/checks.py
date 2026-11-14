@@ -74,6 +74,10 @@ SPEED_CHANGE = 30.0
 ## second of clip (the budget's imported size is measured in Godot; this stops a clip that could never meet it).
 KEYS_KEPT = 0.40
 KB_A_SECOND = 16.0
+## Arms: the joints of an arm read by `check_arms`, each with its other side's; a clip that declares `arm_bounds`
+## (the jump's, read off the shipped gait) holds each one's fastest turn and its sharpest change of acceleration
+## under that bound (degrees a second, degrees a second cubed).
+ARM_PARTS = ("clavicle", "upperarm", "lowerarm", "hand")
 MAIN = audit_clips.MAIN
 
 
@@ -142,6 +146,17 @@ def _travel(built, count: int) -> tuple:
     return places, yaws
 
 
+def _carried(built) -> np.ndarray | None:
+    """The root's height over the floor on every frame of a clip the controller carries through the air
+    (`declared["carried"]`, a jump on the game's own arc), or None for a clip whose root stays on the floor."""
+    heights = built.clip.declared.get("carried")
+    if heights is None:
+        return None
+    heights = np.asarray(heights, dtype=float)
+    assert len(heights) == built.rotation.shape[0], f"{built.clip.name}: `carried` needs a height for every frame"
+    return heights
+
+
 def _in_world(points: np.ndarray, places: np.ndarray, yaws: np.ndarray) -> np.ndarray:
     """Points [frame, n, 3] of a clip in place, put back on the floor the root travels over."""
     out = np.empty_like(points)
@@ -195,13 +210,17 @@ def check_seam(built, played: dict) -> tuple:
 def check_floor(built, played: dict) -> tuple:
     """A planted sole's lowest vertex is within `SOLE_BAND` of the floor, and no vertex goes more than `UNDER`
     under it on any frame, on every body; with `declared["ceiling"]` (m; a crouched capsule's height) no vertex
-    is above that either."""
+    is above that either. A clip the controller carries through the air (`declared["carried"]`) is measured from
+    the floor the root has left: toes that point down under the root as a jump begins are over it."""
     numbers, failures = {}, []
+    carried = _carried(built)
     for name, body in played.items():
         rig = body.rig
         lowest, highest, off = math.inf, -math.inf, 0.0
         for start in range(0, body.world.shape[0], 16):
             heights = rig.skin(body.world[start : start + 16])[:, :, 1]
+            if carried is not None:
+                heights = heights + carried[start : start + 16, None]
             lowest, highest = min(lowest, float(heights.min())), max(highest, float(heights.max()))
         for s, _ in SIDES:
             floor = rig.sole[s]["floor"]
@@ -438,9 +457,10 @@ def _kick(body: Played, bone: str, f: int) -> float:
 
 
 def check_weight(built, played: dict) -> tuple:
-    """Standing, the centre of mass is over the feet; in the air it is on a free fall's arc; where the root
-    changes speed the body leans by the acceleration; a body that goes down with a foot on the floor drops no
-    faster than gravity."""
+    """Standing, the centre of mass is over the feet; in the air it is on a free fall's arc (in the clip's own
+    space, or, for a clip the controller carries, `declared["carried"]`, on the arc the controller flies: it keeps
+    one speed against the root); where the root changes speed the body leans by the acceleration; a body that
+    goes down with a foot on the floor drops no faster than gravity."""
     body = next(iter(played.values()))
     rig, world = body.rig, body.world
     count = world.shape[0]
@@ -461,6 +481,7 @@ def check_weight(built, played: dict) -> tuple:
             if margin < SUPPORT:
                 failures.append(f"weight: the centre of mass is {-margin * 1000:.1f} mm outside the feet")
     air = [f for f in range(count) if not down[f]]
+    carried = _carried(built) is not None
     runs, start = [], None
     for f in range(count + 1):
         flying = f < count and not down[f]
@@ -474,7 +495,9 @@ def check_weight(built, played: dict) -> tuple:
         if last - first < 3:
             continue
         t = np.arange(first, last + 1) / FPS
-        height = com[first : last + 1, 1] + 0.5 * weight.G * t * t
+        # A clip the controller carries is played on the game's own arc, which is a free fall's: the centre of
+        # mass is on one too when it moves at one speed in the clip's own space, the root's.
+        height = com[first : last + 1, 1] + (0.0 if carried else 0.5 * weight.G * t * t)
         line = np.polyfit(t, height, 1)
         off = max(off, float(np.abs(height - np.polyval(line, t)).max()))
     if air:
@@ -668,6 +691,53 @@ def check_limits(built, played: dict) -> tuple:
     return {"limits": numbers}, failures
 
 
+def arm_numbers(rotation: np.ndarray, rig: Rig, loop: bool) -> dict:
+    """Each arm joint's fastest turn (degrees a second) and sharpest change of acceleration (degrees a second
+    cubed) over a clip's local rotations, `[frame, bone, 4]`, the two sides' larger: `{part: [speed, jerk]}`. A
+    loop is read round its seam; a clip that plays once from its first frame to its last."""
+    out = {}
+    for part in ARM_PARTS:
+        worst = [0.0, 0.0]
+        for s, _ in SIDES:
+            q = rotation[:, rig.index[f"{part}_{s}"]]
+            m = maths.matrix_of(q[:-1] if loop else q)
+            ahead = np.roll(m, -1, axis=0) if loop else m[1:]
+            here = m if loop else m[:-1]
+            speed = np.array([maths.rotation_vector(b @ a.T) for a, b in zip(here, ahead, strict=True)])
+            speed = np.degrees(speed) * FPS
+            if loop:
+                accel = (np.roll(speed, -1, axis=0) - speed) * FPS
+                jerk = (np.roll(accel, -1, axis=0) - accel) * FPS
+            else:
+                jerk = np.diff(speed, n=2, axis=0) * FPS * FPS
+            worst[0] = max(worst[0], float(np.linalg.norm(speed, axis=1).max()))
+            if len(jerk):
+                worst[1] = max(worst[1], float(np.linalg.norm(jerk, axis=1).max()))
+        out[part] = [round(worst[0], 1), round(worst[1], 0)]
+    return out
+
+
+def check_arms(built, played: dict) -> tuple:
+    """An arm that floats: no arm joint of a clip that declares `arm_bounds` turns faster, or changes its
+    acceleration more sharply, than the bound (`{part: [speed, jerk]}`), on the curve the file plays."""
+    bounds = built.clip.declared.get("arm_bounds")
+    if not bounds:
+        return {}, []
+    body = next(iter(played.values()))
+    numbers = arm_numbers(body.rotation, body.rig, built.clip.loop)
+    failures = []
+    for part, (speed, jerk) in numbers.items():
+        most_speed, most_jerk = bounds[part]
+        if speed > most_speed:
+            failures.append(f"arms: {part} turns {speed:.0f} degrees a second, over the {most_speed:.0f} of the bound")
+        if jerk > most_jerk:
+            failures.append(
+                f"arms: {part}'s acceleration changes {jerk:.0f} degrees a second cubed, over the {most_jerk:.0f} "
+                "of the bound"
+            )
+    return {"arms": numbers}, failures
+
+
 def cost_numbers(built) -> dict:
     """Bones moved, the share of their keys a half-degree reducer keeps, and the clip's key bytes a second."""
     reference = built.record["_rig"]
@@ -745,6 +815,7 @@ CHECKS = [
     check_travel,
     check_targets,
     check_limits,
+    check_arms,
     check_cost,
     check_reduction,
 ]

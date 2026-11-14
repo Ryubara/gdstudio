@@ -366,6 +366,18 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
   **Seen:** gdstudio #1158, 2026-11-12 (the lean's base pose, three errors for four poses).
+- **Approach:** Test a blend between states on the pose as drawn, every frame, as joint speed through the change
+  (after the modifiers, `modification_processed`), not by the blend's own offset. **Watch out for:** the momentum
+  blend began as the state's name changed and the new pose came a frame later unblended (arms 20 degrees in a tick)
+  while `largest_offset()` stayed small; starting it again on every change slid a vault's planted hand 21 to 29 mm
+  (10 with one start). Main's `SETTLE_FRAMES` (kit #1427) starts it again on the frames after any change and stops it
+  while an action plays, which covers the jump's changes too: rerun every planted-hand test after a blend change.
+  **Seen:** gdstudio #1369, 2026-11-12 to 14 (`test_net_puppet_vault.gd` in CI; the jump's own `AIRBORNE` restart
+  dropped for #1427's at the merge).
+- **Approach:** When a bound is read off other moves (a jump's weapon turn held to the ground's fastest times 1.25),
+  print where its figure comes from and look at that move's frames first. **Watch out for:** a snap among those moves
+  makes the bound loose: the ground's 3712 degrees a second was one, and once #1427 smoothed it to 635 the running
+  take-off's smooth 898 failed. **Seen:** gdstudio #1369, 2026-11-14 (`test_jump_weapon_hold.gd`).
 - **Approach:** Set every `AnimationNodeSub2`'s `sub_amount` (and every `Add2`'s `add_amount`) on the tree after
   building it, and test an additive layer with the real poses at full weight on the real tree: the head goes the
   pose's way, the feet and the `ik_` targets stay on their limbs. **Watch out for:** both amounts are tree parameters

@@ -116,6 +116,14 @@ one clip symmetric about its own middle. The build measures it (`mirror_numbers`
   of the table above; with the right side 0.015 to 0.03 of a cycle late they differ by 1.0 to 2.5. **Seen:**
   gdstudio #1155 (PR #1275), 2026-11-11.
 
+- **Approach:** Float a jump's arms: the take-off's over the whole rise, each part of the arm a frame behind its
+  parent, the air's poses within about 10 degrees of each other, a landing's arms following the weight down late;
+  hold every arm joint under the gaits' bound (`checks.check_arms`). **Watch out for:** in a short one-shot clip
+  the overlap springs' lags add up the arm past its end, and joining the next clip crushed the rest of the swing
+  into three frames; air poses 84 degrees apart, swept by the game's 0.15 s blend; quadratic eases; an idle arm's
+  thigh search (`clear`) jolting as the thigh moves. The take-off's upper arm ran 1177 degrees a second, the jog's
+  382. **Seen:** gdstudio #1369, 2026-11-12, the maintainer's review (`clips/jump.py`).
+
 ## The set we will own {#set}
 
 <!-- new section: the issue asks for the grouped list, replacements told from new clips, and what depends on the body -->
@@ -216,6 +224,7 @@ In the build, on every frame and on every shipped body's skinned mesh, before th
 | Joins | a transition's first and last pose are the poses it joins within 1 mm and half a degree, at the phase `clips.json` names, and its speed there is the joined clip's |
 | Travel | a transition's root travel is the distance and the turn `clips.json` declares; a planted foot stays within 5 mm in the world while the root travels |
 | Limits | no joint past a person's range ([the ragdoll's limits](../../engines/godot/ragdoll.md#limits)); no elbow or knee bending backward; no change of a joint's speed over a per-joint limit in one frame |
+| Arms | in a clip that declares `arm_bounds` (the jump's), each arm joint no faster than the same joint of the shipped jog at its fastest, and none changing its acceleration more sharply than the sharpest arm joint of the walk, the jog and the sprint (`check_arms`) |
 | Cost | [the budget](#budget): bones moved, keys kept, imported bytes |
 | The frozen list | the build exports exactly the clips its issue names; a rebuild writes the same bytes |
 
@@ -364,7 +373,7 @@ What carries a clip over to a body with other proportions, and what one clip fil
 | --- | --- | --- |
 | Tracks a gait clip keys | 22 body bones and the pelvis's position; fingers only where they move | fingers at rest come from one hand-pose clip under the gait; a clip names its bones and the export strips the rest |
 | Keys | under 40 % of the frames on a moving bone at half a degree | curves solved at 30 a second, reduced by the build, checked against the full curve on the skinned mesh (1 mm at the hands and feet) |
-| Imported size | 7 KB a second of clip (the maintainer's figure of 2026-11-13; it was 6), compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second; 6.6 with the starts and stops of kit #1156, inside the 7 the test holds) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
+| Imported size | 7 KB a second of clip (the maintainer's figure of 2026-11-13; it was 6), compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second; 6.6 with the starts and stops of kit #1156, 7.0 (7,126 bytes) with the jump of kit #1161 and the strafes and lean of kit #1159, inside the 7 (7,168 bytes) the test holds) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
 | Clips blended at once | four on a character near the camera (two gaits, a transition or an action, one additive); one on a far one | the tree's layers are counted in the Godot issue's bench, in the browser |
 | Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)): 1.16 MB off 3D Third Person's pack (9.18 to 8.02 MB, kit #1366) |
 
@@ -384,7 +393,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | #1158 the tree (Godot) (done) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost ([gaits fitted to the body](../../engines/godot/animation-tree.md#gait-fitting)) |
 | #1159 directions and lean (done; the strafes and backpedals B, the leans A) | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`, in step with `Walk` and `Jog` at their own speeds (1.3, 1.2 and 3.0 m/s); `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` as poses with their reference `Lean_Ref`; one description each, `clips/directed.py` and `clips/lean.py` ([the toolkit's rows](clip-toolkit.md#toolkit)) |
 | #1160 crouch (done) | `Crouch_Idle`, `Crouch_Walk`, `Stand_To_Crouch` (B, chosen), `Crouch_To_Stand` (A, chosen), solved on `form_female`; the prone transitions rebuilt on the new crouch |
-| #1161 jumps | `Jump_Start` (standing, running), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog` |
+| #1161 jumps (built, A shipped for review) | `Jump_Start`, `Jump_Start_Run_L` and `_R` (the jog's two foot strikes), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog`, three variants each; `clips/jump.py` ([the jump clips](clip-toolkit.md#jump-rows)); the tree that picks the six no state plays is #1371 |
 
 Later waves, filed when the first has landed and its toolkit has settled: the slide and the curved runs; combat
 and weapons (per weapon class, with the hold solver); traversal (the second mantle, the push, the crawl's other
@@ -396,3 +405,9 @@ heights); idles and emotes.
   template's gaits looked acceptable in every capture since it shipped, while the walk's feet covered 56 % of the
   ground and the jog's swept 48 % faster than it; nobody had divided a clip's planted speed by the speed its blend
   point sits at. **Seen:** gdstudio #1150, 2026-11-11 (`audit_clips.py`; the fix is #1158).
+- **Approach:** When a planned issue names a game word with more than one meaning (a lean: the body tilting into its
+  acceleration, or the upper body leaning out past cover to see and shoot), write which one it is in the issue and
+  plan the other one too if the template has neither. **Watch out for:** the locomotion research made #1159's
+  `Lean_*` poses momentum leans for #1158's tree; the lean the maintainer meant was the player's peek around a wall
+  edge (a tactical shooter's lean keys), which no issue planned. **Seen:** gdstudio #1159 / #1374, 2026-11-12, from
+  the maintainer's review (the peek lean filed as its own issue, #1400).

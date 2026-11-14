@@ -271,6 +271,42 @@
    "Sharp: the centre of mass 8 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 7.2 degrees, the chest 8.0, the head 0.0, the ankles take what is left; the knees bend 6.9 and 17.1 degrees.",
    "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 2, 0, 0 mm."
   ],
+  "jump_start": [
+   "Sharp: a push of 5 frames, the legs straight by frame 1.8 with the toes at 53 and 48 degrees.",
+   "The game gives a take-off no frame on the floor (the capsule leaves on the tick of the press at 6.25 m/s), so no variant crouches first: at 0.2 m a frame the feet would be 0.2 to 0.4 m under the capsule."
+  ],
+  "jump_start_run_l": [
+   "Sharp: a push of 5 frames, 4 cm of drive and trail, the arm pumped 3 degrees.",
+   "The shortest way from the stride to the rise: a joint's speed changes up to 26 degrees in a frame."
+  ],
+  "jump_start_run_r": [
+   "Sharp: a push of 5 frames, 2 cm of drive and trail.",
+   "A joint's speed changes up to 48 degrees in a frame; the limit it declares is 85."
+  ],
+  "jump_rise": [
+   "Sharp: one strong line, the left arm 56 degrees forward, the right fist at the hip, the left leg straight and pointed, the right knee high (thigh 44, knee 82).",
+   "Before kit #1369 the left arm was 124 degrees up; an arm that high cannot float there and back inside the rise."
+  ],
+  "jump_apex": [
+   "Sharp: a tight tuck, the thighs 40 and 72 degrees forward and the knees at 88 and 112.",
+   "The feet come 6 cm higher under the body than the grounded one's."
+  ],
+  "jump_fall": [
+   "Sharp: the feet closer (0.11 m apart fore and aft), the elbows bent 46 and 58.",
+   "Its heels are up 18 and 22 degrees: nearly level with each other, the least staggered of the three."
+  ],
+  "land_soft": [
+   "Sharp: down 0.16 m in 2 frames, up in 10, 19 frames; the right foot lands a frame after the left, 0.11 m ahead, and is back by frame 14.",
+   "A joint's speed changes 29 degrees in a frame, the hardest of the three soft landings."
+  ],
+  "land_hard": [
+   "Sharp: down in 4 frames, held 2, up in 13, 33 frames; control at frame 17.",
+   "Tried: the trunk reaching its fold a frame after the weight: the spine turned 0.6 degrees by itself as the right foot landed; it reaches it 3 frames after."
+  ],
+  "land_to_jog": [
+   "Sharp: no sink beyond the curve between the fall and the jog's take-off, the chest folds 3 degrees.",
+   "It keeps 2.4 m/s of the fall on its first frame, the least of the three."
+  ],
   "idle_to_walk": [
    "Quick off the mark: 30 and 27 frames (left, right) over 1.03 m, 4 to 7 frames of gathering, a 10 frame first step, the lean barely late.",
    "It pushes harder than a body can: lean 10.7 degrees off (declared 12)."
@@ -886,6 +922,203 @@
    1.0,
    0.2
   ]
+ },
+ "jump_start": {
+  "frames": 5,
+  "push": {
+   "knee": [
+    3.0,
+    8.0
+   ],
+   "point": [
+    53.0,
+    48.0
+   ]
+  },
+  "legs_out": [
+   0.0,
+   0.36
+  ],
+  "speed_limit": 75.0,
+  "arms": [
+   0.5,
+   10.5
+  ],
+  "arms_lag": 0.75
+ },
+ "jump_start_run": {
+  "frames": 5,
+  "drive": [
+   0.04,
+   0.02
+  ],
+  "trail": [
+   0.04,
+   0.02
+  ],
+  "pump": [
+   3.0,
+   2.0
+  ],
+  "speed_limit": 85.0,
+  "arms": [
+   0.0,
+   10.5
+  ],
+  "arms_lag": 0.75
+ },
+ "jump_rise": {
+  "live": 0.6,
+  "pelvis": [
+   -2.0,
+   6.0,
+   -2.0
+  ],
+  "chest": [
+   -5.0,
+   -7.0,
+   2.0
+  ],
+  "thigh": [
+   -12.0,
+   44.0
+  ],
+  "knee": [
+   6.0,
+   82.0
+  ],
+  "point": [
+   46.0,
+   22.0
+  ],
+  "arm_swing": [
+   56.0,
+   22.0
+  ],
+  "arm_out": [
+   20.0,
+   32.0
+  ],
+  "elbow": [
+   40.0,
+   52.0
+  ],
+  "shrug": [
+   12.0,
+   3.0
+  ]
+ },
+ "jump_apex": {
+  "live": 0.6,
+  "thigh": [
+   40.0,
+   72.0
+  ],
+  "knee": [
+   88.0,
+   112.0
+  ],
+  "chest": [
+   14.0,
+   -7.0,
+   3.0
+  ],
+  "arm_swing": [
+   58.0,
+   18.0
+  ],
+  "arm_out": [
+   26.0,
+   42.0
+  ],
+  "elbow": [
+   44.0,
+   56.0
+  ]
+ },
+ "jump_fall": {
+  "live": 0.6,
+  "ahead": [
+   0.0,
+   0.11
+  ],
+  "heel": [
+   18.0,
+   22.0
+  ],
+  "lift": [
+   0.0,
+   0.045
+  ],
+  "arm_swing": [
+   52.0,
+   14.0
+  ],
+  "arm_out": [
+   32.0,
+   48.0
+  ],
+  "elbow": [
+   46.0,
+   58.0
+  ]
+ },
+ "land_soft": {
+  "frames": 19,
+  "keep": 4.8,
+  "dip": 0.16,
+  "bottom": 2,
+  "up": 10,
+  "stagger": 0.11,
+  "step": [
+   9,
+   14
+  ],
+  "right_lands": 1,
+  "heel_down": [
+   2,
+   2
+  ],
+  "chest": [
+   24.0,
+   -4.0,
+   2.0
+  ],
+  "arm_swing": [
+   24.0,
+   14.0
+  ],
+  "trunk_late": 1.0,
+  "arms_late": 7.0,
+  "speed_limit": 75.0,
+  "arms_lag": 0.75
+ },
+ "land_hard": {
+  "frames": 33,
+  "control": 17,
+  "keep": 6.0,
+  "bottom": 4,
+  "hold": 2,
+  "up": 13,
+  "stagger": 0.18,
+  "step": [
+   11,
+   17
+  ],
+  "trunk_up": [
+   0.05,
+   0.62
+  ],
+  "trunk_late": 3.0,
+  "arms_late": 7.0,
+  "speed_limit": 85.0,
+  "arms_lag": 0.75
+ },
+ "land_to_jog": {
+  "keep": 2.4,
+  "sink": 0.0,
+  "fold": 3.0,
+  "speed_limit": 85.0
  },
  "idle_to_walk": {
   "prep": [

@@ -165,6 +165,9 @@ Keep it current: each new row on [What the maintainer caught](maintainer-correct
   ([One action state for every body](../engines/godot/animation-tree.md#one-action-state-for-every-body)).
 - Plan: an animation for every interaction, and clip speeds measured before blend points
   ([Gait follows speed](../engines/godot/crowds.md#gait-follows-speed)).
+- Plan: every meaning of a game word a feature names, written in its issue: a third-person shooter's lean is the
+  peek around cover as well as the gait's momentum lean, and the peek was planned with neither the shooting features
+  nor the locomotion clips ([row](corrections-log/corrections.md), gdstudio #1400).
 - Plan: kit props and materials on the map as soon as the layout holds
   ([row](corrections-log/corrections.md)).
 - Plan: a map design review before a map ships and after its layout changes, run as a level designer from the
