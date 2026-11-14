@@ -796,7 +796,8 @@ func _steer(wish: Vector3, delta: float) -> void:
 	var flat := Vector3(velocity.x, 0.0, velocity.z)
 	var strength := wish.length()
 	var goal := wish.normalized() * _target_speed(strength) if strength > 0.0 else Vector3.ZERO
-	var rate := tuning.acceleration if strength > 0.0 else tuning.deceleration
+	var on_feet := _grounded and not crouching and _action_lock <= 0.0  # Stops: gdstudio #1415.
+	var rate := tuning.steer_rate(strength, flat.length(), on_feet)
 	if _prone.is_prone():
 		rate = prone_tuning.acceleration if strength > 0.0 else prone_tuning.deceleration
 	if not _grounded:

@@ -209,6 +209,8 @@ var _draw: AiNavDebug
 var _map_ready := false
 var _unsteered := 0.0
 var _hold := 0.0
+# Where the body is let go so that its own stop ends on the goal (gdstudio #1415).
+var _brake := AiNavBrake.new()
 # Seconds after the last query (or look) the next is due, and whether a path check is running.
 var _query_after := 0.0
 var _checking := false
@@ -424,6 +426,7 @@ func _begin(new_mode: Mode, point: Vector3, speed: float) -> void:
 	target = point
 	goal = Vector3.INF
 	speed_scale = speed
+	_brake.latched = false
 	refusal = ""
 	_arrived = false
 	_want_query = true
@@ -627,6 +630,9 @@ func _walk(seconds: float) -> void:
 	if mode == Mode.GO_TO and (path.is_finished() or near_end) and _on_link < 0:
 		_arrive()
 		return
+	if _brake.wants(self, at):
+		_release()  # It comes to rest on the goal by its own stop (gdstudio #1415).
+		return
 	var steer := path.points[_on_link + 1] if _on_link >= 0 else path.steer_point(at, look_ahead)
 	_steer_at = steer
 	var wish := AiNavPath.flat(steer - at).normalized()
@@ -668,7 +674,7 @@ func _steer_hold(at: Vector3, speed: float, left: float) -> float:
 		or ladder.is_climbing()
 		or _jump_for > 0.0
 		or path.is_finished()
-		or left <= STEER_EVERY_STEP_WITHIN
+		or _brake.room_before(self, at, left, speed, STEER_EVERY_STEP_WITHIN) <= 0.0
 	):
 		return 0.0
 	if avoidance != AiNavAvoidance.Mode.OFF:
@@ -676,7 +682,7 @@ func _steer_hold(at: Vector3, speed: float, left: float) -> float:
 	var next := path.points[path.index]
 	var room := minf(
 		Vector2(next.x - at.x, next.z - at.z).length() - path_desired_distance,
-		left - STEER_EVERY_STEP_WITHIN
+		_brake.room_before(self, at, left, speed, STEER_EVERY_STEP_WITHIN)
 	)
 	if _check.vault_at.is_finite() and _check.vault_at != _vaulted_at:
 		room = minf(room, AiNavPath.flat(_check.vault_at - at).length() - VAULT_REACH)

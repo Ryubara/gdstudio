@@ -16,6 +16,10 @@ const JUMP_TICKS: Array[int] = [0, 6, 12]
 ## The thorough sweep (`thorough`) also jumps later in the run-up and runs on the diagonals.
 const THOROUGH_JUMP_TICKS: Array[int] = [0, 6, 12, 20, 28]
 const RUN_TICKS := 75
+## How far past each floor's shrunk area a spot counts as in the seam between two floors (m).
+const SEAM := 0.65
+## The most frames a run is given after the stick is let go to come to rest.
+const REST_FRAMES := 120
 ## Starts are this far inside a top's edge.
 const INSET := 0.4
 ## A place a run rests at is a start for the next round when it is this high.
@@ -107,8 +111,14 @@ func _round(starts: Array[Vector3]) -> Array[Vector3]:
 				&"move_left", &"move_right", &"move_forward", &"move_back", &"sprint", &"jump"
 			]:
 				Input.action_release(action)
-			for _frame in 20:
+			# Until every body is at rest: a sprint's stop takes 1.7 s since gdstudio #1415.
+			for _frame in REST_FRAMES:
 				await get_tree().physics_frame
+				if (
+					_frame >= 20
+					and _players.all(func(body: Player) -> bool: return body.ground_speed() < 0.05)
+				):
+					break
 			for index in starts.size():
 				var spot := _players[index].global_position
 				runs += 1
@@ -205,10 +215,16 @@ func _clear(spot: Vector3) -> bool:
 
 
 func _in_areas(spot: Vector3) -> bool:
+	var flat := Vector2(spot.x, spot.z)
+	var near := 0
 	for area in _areas:
-		if area.has_point(Vector2(spot.x, spot.z)):
+		if area.has_point(flat):
 			return true
-	return false
+		# The seam where two floors meet is a doorway between them, not outside: a body at rest
+		# in it is within the margin of both (a sprint's stop ends in one, gdstudio #1415).
+		if area.grow(SEAM).has_point(flat):
+			near += 1
+	return near >= 2
 
 
 # Why a resting place is a fault, or "" when it is not.

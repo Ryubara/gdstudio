@@ -47,6 +47,14 @@ Projectiles (3) and ragdoll bones (5) kept the numbers they had before the layer
   (`tests/core/test_physics_layers.gd`). **Watch out for:** `CharacterBody3D.platform_floor_layers` defaults to every
   layer (`4294967295`), so the first run named 25 unnamed layers on the player and the projectile; set it in the
   scene to the layers a body may ride. **Seen:** gdstudio #924, 2026-11-10.
+- **Approach:** When a layer joins `SHOT_MASK`, or a new body takes a layer it holds, list the code that reads what a
+  shot-mask ray met (`grep -rn "SHOT_MASK\|aim_mask\|hitscan_mask\|keep_aim_layers" gameplay`: the weapon's aim ray,
+  `WeaponDef.hitscan_mask`, the camera's `aim_point_mask` and its aimed-point keep list `keep_aim_layers`, the network's
+  hit probe in `net_hits.gd`) and give each a case for the new layer. **Watch out for:** nothing lists those readers, so
+  a ray meets the new layer while a reader does not know it: the camera's ray met a character's Shot Hull, which
+  `keep_aim_layers` did not count, and an aimed shoulder swap at a character stopped keeping its point (fixed with
+  `ShotHull.ray_as_shot`, [the shot hull](third-person-hits.md#shot-hull)). **Seen:** gdstudio PR #1459, 2026-11-14
+  (`test_camera_swap_target.gd`).
 
 ## Characters do not block each other {#characters-do-not-block}
 
