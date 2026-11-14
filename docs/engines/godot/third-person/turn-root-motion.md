@@ -50,6 +50,12 @@ drawn are the ones the body moves by: on open floor the body is on the travel cu
   own spot, so two bodies at x -3 and 3 end 1e-6 m apart after a sprint reversal, and the stop that follows turns
   their spines 0.001 degrees apart, over a 1e-5 radian limit. **Seen:** gdstudio #1442, 2026-11-14
   (`test_helper_tracks.gd` from #1488, red only after main was merged in).
+- **Approach:** After merging a change to how a body stops or steers, run the full suite: a suite that walks a body
+  forward and back by fixed times (a pickup, a route) gets a reversal moved by its clip whenever the body still moves
+  when it turns, and one not about turns sets `controller.turn_clips = false`. **Watch out for:** since the stops
+  carry the body on (#1422), a walk back 0.3 s after letting go is a jog reversal that goes 3.7 m on before turning;
+  the pickup was never walked over again, and a stalled client with the walk taken out was lost once. **Seen:**
+  gdstudio #1442 merging #1422, 2026-11-14 (`test_weapon_pickup.gd`, `test_net_client_prediction.gd`).
 
 **How a stop moves the body** (gdstudio #1415). A body on its feet with the stick let go slows by the stop deceleration
 of the gait whose speed band it is in (`CharacterTuning` > Ground > Stops): `walk_stop_deceleration` 2.84 m/s² up to
