@@ -172,7 +172,9 @@ every exit, kept with `--keep`, two calls at once).
 - **Approach:** Run a desktop probe or a bench of a template in a kept game (`gds template game`, or the game
   `bench-web` keeps without `--run`), never with `--path templates/<t>/game`. **Watch out for:** an import there
   failed to parse the menus and settings (37 errors: their classes come with the game) and rewrote three levels'
-  lightmap `.import` files in the worktree. **Seen:** gdstudio #1433, 2026-11-13 (put back with `git checkout`).
+  lightmap `.import` files in the worktree (the ASTC copy dropped); committed, they fail CI's step that the build left
+  nothing for git, so read `git diff --stat origin/main -- '*.import'` before a push. **Seen:** gdstudio #1433,
+  2026-11-13 (put back with `git checkout`); #1400 (PR #1437), 2026-11-13 (two lightmaps' `.exr.import` committed).
 - **Approach:** Give a new script or shader its `.uid` before `gds template test` with `gds template uids
   <template>` (the template's name, or a folder holding `project.godot`): it writes each missing file in Godot's form
   and leaves every valid one alone. A new asset's `.import` still comes from the kept game (`gds template game
