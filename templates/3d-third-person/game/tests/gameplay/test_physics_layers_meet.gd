@@ -112,7 +112,7 @@ func test_a_living_body_that_never_died_has_no_bone_in_the_world() -> void:
 	for bone_name: StringName in [&"Head", &"spine_03", &"hand_r", &"calf_l"]:
 		var at := player.ragdoll_body.body(bone_name).global_position
 		var query := PhysicsRayQueryParameters3D.create(
-			at + Vector3(0.0, 0.0, 2.0), at, PhysicsLayers.SHOT_MASK, [player.get_rid()]
+			at + Vector3(0.0, 0.0, 2.0), at, PhysicsLayers.SHOT_MASK, ShotHull.rids_of(player)
 		)
 		var found := space.intersect_ray(query)
 		(

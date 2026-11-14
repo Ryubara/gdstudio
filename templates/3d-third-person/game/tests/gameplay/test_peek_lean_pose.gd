@@ -170,7 +170,9 @@ func test_a_shot_at_the_leaning_head_meets_the_head_zone() -> void:
 # The zone a shot along `from`-`to` meets on the player, `&"-"` when it meets no part of it.
 func _zone_on(from: Vector3, to: Vector3) -> StringName:
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	var hit := _arena.get_world_3d().direct_space_state.intersect_ray(query)
+	# As a shot sees it: the player's shot hull gives the part on the line (kit #1431).
+	var space := _arena.get_world_3d().direct_space_state
+	var hit := ShotHull.ray_as_shot(space, query, (to - from).normalized())
 	if hit.is_empty() or hit.collider != _player:
 		return &"-"
 	var zones := HitZones.of(hit.collider)

@@ -16,6 +16,10 @@ extends SkeletonModifier3D
 ## clip. The head and not the neck under it: the neck carries skin at the collar, and turning it
 ## put that skin 12 to 24 mm into the stock in the crouch (`test_rifle_hold.gd`).
 const HEAD := &"Head"
+## Over how long the trunk's lean is averaged before the upright carry takes off what it has over
+## the hold's `carry_lean_limit`, in seconds: about a stride, so the run's own rise and fall of the
+## trunk through a stride stays and only its standing lean is taken off.
+const LEAN_SMOOTHING := 0.5
 
 ## The hold that made it.
 var hold: TwoHandHold
@@ -36,6 +40,9 @@ var _locals: Array[Transform3D] = []
 var _posed: Array[Transform3D] = []
 # The rest turn of the chest (the last spine bone) inverted, read once.
 var _rest_inverse := Basis.IDENTITY
+# The trunk's lean averaged over `LEAN_SMOOTHING`, in radians, and whether it has a value yet.
+var _lean := 0.0
+var _leaning := false
 
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
@@ -43,7 +50,7 @@ func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
 	_laid_out = false
 
 
-func _process_modification_with_delta(_delta: float) -> void:
+func _process_modification_with_delta(delta: float) -> void:
 	var skeleton := get_skeleton()
 	if skeleton == null or hold == null:
 		return
@@ -77,6 +84,7 @@ func _process_modification_with_delta(_delta: float) -> void:
 	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
 	_turn_head(skeleton, top, degrees)
 	_straighten_chest(skeleton, top)
+	_carry_upright(skeleton, top, delta)
 	hold.place(skeleton, _posed[-1] if _chain else Transform3D(), _chain)
 
 
@@ -134,17 +142,7 @@ func _turn_head(skeleton: Skeleton3D, top: int, degrees: float) -> void:
 		_head = skeleton.find_bone(HEAD)
 	if _head < 0:
 		return
-	var bone := _parents[_head] if _head < _parents.size() else skeleton.get_bone_parent(_head)
-	var neck := Transform3D.IDENTITY
-	var cursor := bone
-	if _chain:
-		while cursor >= 0 and cursor != top:
-			neck = skeleton.get_bone_pose(cursor) * neck
-			cursor = _parents[cursor]
-	if _chain and cursor == top:
-		neck = _posed[-1] * neck
-	else:
-		neck = HandPoseModifier.global_pose(skeleton, bone)
+	var neck := _neck_pose(skeleton, top)
 	var head := neck * skeleton.get_bone_pose(_head)
 	var back := Basis(Vector3.UP, -deg_to_rad(degrees))
 	skeleton.set_bone_pose(
@@ -169,6 +167,65 @@ func _straighten_chest(skeleton: Skeleton3D, top: int) -> void:
 	if axis.length_squared() < 1e-10:
 		return
 	_turn_spine(skeleton, Basis(axis.normalized(), (lean - limit) * share / _bones.size()))
+
+
+# The pose of the head's parent (the neck) in the skeleton's space, from the chest's (`top`) when
+# it is under it.
+func _neck_pose(skeleton: Skeleton3D, top: int) -> Transform3D:
+	var bone := _parents[_head] if _head < _parents.size() else skeleton.get_bone_parent(_head)
+	var neck := Transform3D.IDENTITY
+	var cursor := bone
+	if _chain:
+		while cursor >= 0 and cursor != top:
+			neck = skeleton.get_bone_pose(cursor) * neck
+			cursor = _parents[cursor]
+	if _chain and cursor == top:
+		return _posed[-1] * neck
+	return HandPoseModifier.global_pose(skeleton, bone) if bone >= 0 else Transform3D()
+
+
+# Raises a trunk that leans forward more than the hold's `carry_lean_limit` at the low ready
+# (`TwoHandHold.carry_amount()`; kit #1348) by what its lean, averaged over `LEAN_SMOOTHING`, has
+# over it: the run's own trunk under the rifle's idle leaned 13 degrees and the sprint's 14. The
+# lean is the line from the spine's parent (the pelvis) to the head's parent (the neck), forward
+# in the model's space, the way the run test reads it. It is a turn about the model's side axis
+# spread evenly over the spine bones, so it adds no twist (kit #1379); the head keeps the facing
+# the clip gave it, as for the chest's turn. It runs only while the carry is on, and its poses
+# come from the spine's of this update (kit #1347).
+func _carry_upright(skeleton: Skeleton3D, top: int, delta: float) -> void:
+	var share := hold.carry_amount()
+	if share <= 0.0 or _head < 0 or _bones[0] < 0:
+		_leaning = false
+		return
+	var root := _parents[_bones[0]]
+	if root < 0:
+		return
+	var pelvis := _base.origin if _chain else HandPoseModifier.global_pose(skeleton, root).origin
+	var neck := _neck_pose(skeleton, top)
+	var trunk := neck.origin - pelvis
+	var lean := atan2(trunk.z, trunk.y)
+	if not _leaning:
+		_lean = lean
+		_leaning = true
+	_lean = lerpf(_lean, lean, 1.0 - exp(-delta / LEAN_SMOOTHING))
+	var wanted := (_lean - deg_to_rad(hold.carry_lean_limit)) * share
+	if wanted <= 0.0:
+		return
+	var head_local := skeleton.get_bone_pose(_head)
+	var head_before := (neck * head_local).basis
+	# The spine turns about its own bones, above the pelvis, so the trunk's line turns by less
+	# than the spine (about half); the first pass measures by how much and the second takes the
+	# rest at that rate.
+	_turn_spine(skeleton, Basis(Vector3.RIGHT, -wanted / _bones.size()))
+	neck = _neck_pose(skeleton, top)
+	trunk = neck.origin - pelvis
+	var moved := lean - atan2(trunk.z, trunk.y)
+	if moved > wanted * 0.1:
+		var spine := (wanted - moved) * wanted / moved
+		_turn_spine(skeleton, Basis(Vector3.RIGHT, -spine / _bones.size()))
+		neck = _neck_pose(skeleton, top)
+	var head := neck * head_local
+	skeleton.set_bone_pose(_head, neck.affine_inverse() * Transform3D(head_before, head.origin))
 
 
 ## The spine's poses in the skeleton's space, in the order of the hold's `spine_bones`: this array,

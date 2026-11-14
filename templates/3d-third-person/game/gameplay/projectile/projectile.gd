@@ -128,6 +128,10 @@ func _physics_process(delta: float) -> void:
 	if _stop_point.is_finite() and _reaches_stop(delta):
 		return
 	var motion := velocity * delta
+	if collision_mask & PhysicsLayers.SHOT_HULLS:
+		# The shot hulls near this tick's flight, put in place for it (they follow no body).
+		var space := get_world_3d().direct_space_state
+		ShotHull.arm(space, global_position, global_position + motion, size * 0.5)
 	if rewind != null:
 		motion = _rewound_move(motion)
 		if not _flying or motion == Vector3.ZERO:
@@ -176,7 +180,8 @@ func _rewound_move(motion: Vector3) -> Vector3:
 func _end_rewind() -> void:
 	for body in rewind.bodies():
 		if is_instance_valid(body):
-			remove_collision_exception_with(body)
+			for each in ShotHull.with_hull(body):
+				remove_collision_exception_with(each)
 	rewind = null
 
 
@@ -195,13 +200,14 @@ func launch(
 	# A pooled projectile flew through other characters' capsules before: it meets them again.
 	for skipped in get_collision_exceptions():
 		remove_collision_exception_with(skipped)
-	if shooter != null:
-		add_collision_exception_with(shooter)
+	for own in ShotHull.with_hull(shooter):
+		add_collision_exception_with(own)
 	_rewind_ticks = 0
 	if rewind != null:
 		for body in rewind.bodies():
 			if is_instance_valid(body) and body != shooter:
-				add_collision_exception_with(body)
+				for each in ShotHull.with_hull(body):
+					add_collision_exception_with(each)
 	global_position = origin
 	velocity = direction.normalized() * speed
 	reset_physics_interpolation()
@@ -270,20 +276,27 @@ func _touch(collision: KinematicCollision3D) -> bool:
 func _hit(
 	collider: Node, point: Vector3, normal: Vector3, direction: Vector3, centre: Vector3
 ) -> bool:
+	var zones := HitZones.of(collider)
 	if not authoritative:
-		impacted.emit(collider, point, normal)
+		impacted.emit(zones.body_met(collider) if zones != null else collider, point, normal)
 		_end()
 		return false
 	var movable := false
-	var zones := HitZones.of(collider)
 	if zones != null:
 		var record := zones.shot(
 			collider, point, direction, damage, impulse, _shooter as Node3D, centre
 		)
 		if record == null:
+			# Past the hull and the capsule both: they are one body to a shot.
 			add_collision_exception_with(collider)
+			for body in zones.shot_bodies():
+				add_collision_exception_with(body)
 			return true
 		zones.deliver(record)
+		if collider != zones.body_met(collider):
+			# Met on the shot hull, which is nowhere drawn: the hit is on the part.
+			collider = zones.body_met(collider)
+			point = record.point
 		movable = true
 	if collider is RigidBody3D:
 		var body := collider as RigidBody3D

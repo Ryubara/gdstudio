@@ -1,12 +1,12 @@
 class_name AiHitHistory
 extends RefCounted
 ## The volume a shot meets of each AI character, for the last `ticks` server ticks (gdstudio
-## #1198): where its feet were and how wide and tall its capsule was, recorded with the TICK's rows
-## (every `every` ticks, from the same positions), so the place of tick T here is the place a
-## client was sent for T; a tick between two records is the straight line between them, as a
-## client's glide walks it. `ShotRewind` reads it to meet a player's shot with the AI where the
-## shooter's screen drew it. Only the volume is kept: the AI's brain, senses and navigation are
-## never rewound. `NetServer` owns one (`ai_history`) and records it at each TICK.
+## #1198): where its feet were and how wide and tall its shot hull (or its capsule) was, recorded
+## with the TICK's rows (every `every` ticks, from the same positions), so the place of tick T
+## here is the place a client was sent for T; a tick between two records is the straight line
+## between them, as a client's glide walks it. `ShotRewind` reads it to meet a player's shot with
+## the AI where the shooter's screen drew it. Only the volume is kept: the AI's brain, senses and
+## navigation are never rewound. `NetServer` owns one (`ai_history`) and records it at each TICK.
 
 ## Ticks kept (36: 0.6 s at 60 a second, a client 200 ms away each way and its playout buffer).
 var ticks := 36
@@ -132,8 +132,13 @@ func _start(id: int, body: AiCharacter, tick: int) -> Track:
 	track.since = tick
 	track.places.resize(_slots())
 	track.sizes.resize(_slots())
-	# The body's own capsule, which it sizes for the crouch, the slide and the prone stance.
+	# The capsule a shot meets: the body's shot hull (gdstudio #1431), else its own capsule; the
+	# body sizes both for the crouch, the slide and the prone stance.
+	var hull := ShotHull.of(body)
 	var shape := body.get_node_or_null(^"%Body") as CollisionShape3D
-	track.capsule = shape.shape as CapsuleShape3D if shape != null else null
+	if hull != null and hull.capsule() != null:
+		track.capsule = hull.capsule()
+	else:
+		track.capsule = shape.shape as CapsuleShape3D if shape != null else null
 	_tracks[id] = track
 	return track
