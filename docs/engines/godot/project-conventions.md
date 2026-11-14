@@ -52,11 +52,10 @@ game/
   (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
   the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
   script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
-  Deadnight #687, 11-03; Deadnight #1359, 11-06 (perk and route rules moved into classes); gdstudio #1041, 11-10
-  (`character.gd` at 1000 failed three pull requests that passed alone; four parts moved to
-  [the body's modules](third-person/character.md#controller)); #1187, 11-11 (`main` over it: pre-push refused every
-  push); #1393, 11-13 (`two_hand_hold.gd` at 1042: `HoldCarry`); #1420, 11-13 (994-line `character.gd`:
-  `CharacterGoal`).
+  Deadnight #687, #1359, 11-03 to 11-06; gdstudio #1041, 11-10 (`character.gd` at 1000 failed three pull requests
+  that passed alone: [its modules](third-person/character.md#controller)); #1187, 11-11 (pre-push refused every
+  push); #1393 (`HoldCarry`), #1420 (`CharacterGoal`), 11-13; #1287, 11-14 (`character_animation.gd` at 999: five
+  parts, proved by both bodies' bones dumped every 3 ticks, byte-equal before and after).
 - **Approach:** After writing a new script or shader in a template, run `gds template uids <template>` and commit
   the `.uid` files it writes (Godot's form; a valid file is never changed, an invalid one exits 1 until
   `--replace-invalid`). Never write a uid by hand. **Watch out for:** uids copied from a kept game were left behind

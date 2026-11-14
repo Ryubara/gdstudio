@@ -53,9 +53,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   CRLF line terminators`). **Watch out for:** text mode turns every `\n` into `\r\n` and reading
   in text mode hides it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds
   nothing. A bare `write_text` used cp1252, so one `m²` broke the docs. **Seen:** Deadnight #415, #429,
-  #442, 2026-11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
-  #1127 (`write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154, #1260, #1270, 11-11, #1356, #1266;
-  #1360, 11-13.
+  #442, 11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; gdstudio #1130, #1123,
+  #1127 (`write_text`, 16 pages), #1138, #1190 (CRLF in `git diff`), #1218, #1154, #1260, #1270, #1356, #1266,
+  #1360, #1287, 11-11 to 11-14.
 
 ## Scripted edits {#scripted-edits}
 
@@ -102,9 +102,9 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   (the session scratchpad and the temp folder are shared), and pass the worktree as an argument. **Watch out for:**
   `/c/Repositories` is read as a folder named `c` on the current drive ("the body file does not exist yet"); a
   `gdt.sh` under a shared name changed into another agent's worktree and reported its pass for my branch. **Seen:**
-  gdstudio, 2026-11-02; Deadnight, 2026-11-01 and 2026-11-05 (fix: read the line that names the scanned folder before
-  trusting a result); gdstudio #879, #903, #966, #970, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
-  branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
+  gdstudio, 2026-11-02; Deadnight, 11-01 and 11-05 (fix: read the line that names the scanned folder before
+  trusting a result); gdstudio #879, #903, #966, #970, 11-10 (another agent's `sync.sh` synced its branch); #968,
+  11-11 (a PR body swapped for another's); #1287, 11-14 (script pieces cut into `/tmp`, beside another agent's).
 - **Approach:** From a session that sits in the kit's main checkout, commit and push in a worktree with `git -C
   <worktree> commit|push ...`, not `cd <worktree> && git commit|push`. **Watch out for:** the Git guard judges the
   command from the session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would
