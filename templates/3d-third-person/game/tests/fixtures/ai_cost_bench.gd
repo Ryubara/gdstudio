@@ -147,6 +147,7 @@ func _measure(count: int) -> Dictionary:
 	var history_each := median(histories)
 	return {
 		"count": count,
+		"pid": OS.get_process_id(),
 		"ruler_ms": snappedf(calibration, 0.01),
 		"system": OS.get_name(),
 		"step_us_each": snappedf(step_each, 0.01),

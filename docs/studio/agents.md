@@ -128,4 +128,5 @@ reviewer, and nothing from it is copied into a repository beyond a short quote w
   for:** an agent can end with no task notification (its last message trusted a monitor to wake it) or hang on a
   tool call that never returns, and Tether's lost-agent notice did not fire either time. **Seen:** gdstudio #904 (PR
   #1017), 2026-11-10: three hours silent, DIRTY for two of them; #1047, 2026-11-11: 1 h 39 min after a short
-  heredoc edit with no result.
+  heredoc edit with no result; #1534 (PR #1538), 2026-11-14: the agent ended its turn on a background `gh run watch`
+  of a 40-minute soak and the coordinator had to restart it.
