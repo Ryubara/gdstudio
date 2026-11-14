@@ -124,3 +124,73 @@ def test_the_command_exits_one_on_failure_writes_the_summary_and_leaves_no_workt
     assert git(repo, "status", "--porcelain") == ""
     assert len(git(repo, "worktree", "list").splitlines()) == 1
     assert merge_result.main(["--repo", str(repo), "--base", "main", "--head", "nowhere"]) == 2
+
+
+def pull_request(repo: Path, number: int, name: str) -> dict:
+    """Publish branch `name` as pull request `number` (`refs/pull/<n>/head`, as GitHub keeps it) and list it."""
+    sha = git(repo, "rev-parse", name)
+    git(repo, "update-ref", f"refs/pull/{number}/head", sha)
+    return {"number": number, "sha": sha}
+
+
+def test_the_sweep_answers_each_pull_request_and_one_conflict_stops_none(repo: Path, tmp_path: Path):
+    # The fault of gdstudio #1512: the sweep was a bash loop under `bash -e`, so #1447's conflict ended the job and
+    # every pull request, those whose merge printed success included, was marked failed.
+    git(repo, "remote", "add", "origin", str(repo))  # GitHub's refs/pull/<n>/head, fetched as the sweep does
+    branch(repo, "landed", "The end.", "The ending that landed.\n")
+    branch(repo, "clean-one", "The start.", "A clean change.\n")
+    branch(repo, "conflict", "The end.", "Another ending.\n")
+    branch(repo, "over", "The start.", filler("over", 23))
+    branch(repo, "clean-two", "The start.", "Another clean change.\n")
+    branch(repo, "pushed", "The start.", "A change pushed again after the list was read.\n")
+    git(repo, "merge", "-q", "--ff-only", "landed")
+    prs = [
+        pull_request(repo, 1, "clean-one"),
+        pull_request(repo, 2, "conflict"),
+        pull_request(repo, 3, "over"),
+        pull_request(repo, 4, "clean-two"),
+        {**pull_request(repo, 5, "pushed"), "sha": git(repo, "rev-parse", "clean-one")},
+        {"number": 6, "sha": "0" * 40},  # no refs/pull/6/head: closed, or the fetch failed
+    ]
+    listed = tmp_path / "prs.json"
+    listed.write_text(merge_result.json.dumps(prs), encoding="utf-8")
+    out = tmp_path / "results.json"
+
+    code = merge_result.main(
+        ["--repo", str(repo), "--base", "main", "--sweep", str(listed), "--results", str(out), "--no-pre-commit"]
+    )
+
+    assert code == 0
+    results = {row["number"]: row for row in merge_result.json.loads(out.read_text(encoding="utf-8"))}
+    assert [results[n]["conclusion"] for n in range(1, 7)] == [
+        "success",
+        "failure",
+        "failure",
+        "success",
+        "skip",
+        "failure",
+    ]
+    assert all(results[n]["sha"] == prs[n - 1]["sha"] for n in results)
+    assert "pass: page sizes" in results[1]["summary"] and "pass: page sizes" in results[4]["summary"]
+    assert "The merge conflicts" in results[2]["summary"] and f"`{PAGE.as_posix()}`" in results[2]["summary"]
+    assert "FAIL: page sizes" in results[3]["summary"] and "over the 50 KB limit" in results[3]["summary"]
+    assert "could not fetch #6" in results[6]["summary"]
+    assert git(repo, "status", "--porcelain") == ""
+    assert len(git(repo, "worktree", "list").splitlines()) == 1
+
+
+@pytest.mark.parametrize(
+    "rows",
+    [
+        {"number": 1},
+        [{"number": "1", "sha": "a" * 40}],
+        [{"number": 1, "sha": "main"}],
+        [{"number": True, "sha": "a" * 40}],
+    ],
+)
+def test_the_sweep_refuses_a_malformed_list(repo: Path, tmp_path: Path, rows):
+    listed = tmp_path / "prs.json"
+    listed.write_text(merge_result.json.dumps(rows), encoding="utf-8")
+    out = tmp_path / "results.json"
+    assert merge_result.main(["--repo", str(repo), "--sweep", str(listed), "--results", str(out)]) == 2
+    assert not out.exists()

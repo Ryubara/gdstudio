@@ -97,6 +97,7 @@ func test_the_gait_settings_defaults_are_pinned() -> void:
 		&"lean_clips": fresh.lean_clips,
 		&"lean_full_at": 20.0,
 		&"lean_time": 0.12,
+		&"helper_tracks": false,
 	}
 	assert_array(ExportPins.differences(fresh, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(fresh, pins)).is_empty()

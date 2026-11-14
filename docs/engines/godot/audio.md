@@ -347,6 +347,14 @@ A bed is judged by what the player hears of it in its own place, not by a loudne
   child Godot that starts sounds and quits is a deterministic test for it. `--verbose` makes the engine list every
   leaked instance and resource, and CI keeps those lines as an artifact. One Ogg voice is exactly 4 instances and 2
   resources, which is how the CI counts read.
+- **When a freed voice is let go of (Godot 4.7.2, headless, measured in gdstudio #1495).** A 3D player hands its voice
+  to the audio server on its next physics frame; freed before the first mix, the playback goes at once. Once mixed, it
+  stays until the audio thread mixes again (every 70 to 90 ms headless, whatever `--fixed-fps` does to the frames)
+  and the main thread's next frame deletes it, so a suite that frees a sounding scene a few ticks before the run ends
+  leaks it. `AudioSettings.drain_mixer()` after `stop_players()` waits three mixes (about a quarter of a second);
+  the playback goes one or two frames later. A child leaves the tree (and its player stops) before its parent's
+  `_exit_tree`, so a parent that wants to know whether something was still playing asks in `NOTIFICATION_PREDELETE`.
+  Test it with a `weakref()` of `get_stream_playback()` and a bool assert: `assert_object(x)` keeps `x`.
 
 - **Approach:** Stop every voice, loops included, when the scene that owns it ends, and make the audio autoload wait on
   the mixer in `_exit_tree`; keep CI's grep for `leaked at exit|still in use` as it is. **Watch out for:** a looping bed

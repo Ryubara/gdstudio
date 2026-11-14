@@ -872,7 +872,10 @@ func _play_reload_steps() -> void:
 		return
 	var steps := definition.reload_sounds
 	var progress := reload_progress()
-	while _reload_sounds_played < steps.size() - reload_steps_held:
+	var held := maxi(
+		reload_steps_held, int(definition.last_reload_sound_when_empty and _magazine > 0)
+	)
+	while _reload_sounds_played < steps.size() - held:
 		var at := (
 			definition.reload_sound_at[_reload_sounds_played]
 			if _reload_sounds_played < definition.reload_sound_at.size()
@@ -929,12 +932,9 @@ func _bare_start(origin: Vector3, along: Vector3) -> Vector3:
 		side = Vector3.RIGHT
 	side = side.normalized()
 	var up := side.cross(along).normalized()
-	# A peek lean rolls the arms and the weapon with the upper body (gdstudio #1400).
-	var roll := (shooter as Character).peek_motion.roll(shooter) if shooter is Character else 0.0
-	if roll != 0.0:
-		side = Basis(along, roll) * side
-		up = Basis(along, roll) * up
-	return _at_shooter_depth(origin, along) + Basis(side, up, -along) * no_muzzle_offset
+	# A peek lean rolls the weapon with the upper body and mirrors it on a left lean (#1400, #1435).
+	var lean := CharacterPeek.lean_offset(shooter, side, up, along, no_muzzle_offset)
+	return _at_shooter_depth(origin, along) + lean
 
 
 func _muzzle_point() -> Vector3:

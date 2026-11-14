@@ -28,6 +28,9 @@ on earlier. Two workflows give it:
   put the old answer back. Run it by hand (`gh workflow run main-green-sweep.yml`) after the ruleset first requires the
   check, so open pull requests do not wait on a check that never ran, or after an outage that dropped events.
 
+The issue closes by the fix's `Fixes #N`, by hand, or by itself: `ci-failure.yml`'s `clear` job closes a workflow's
+red issue when a push run of that workflow is green on the commit that is still the default branch's head, and
+dispatches the sweep (gdstudio #1472); a green run of an older commit closes nothing, since a newer one may be red.
 A pull request therefore merges once the issue closes, with no push: its auto-merge stays on and lands when the sweep turns
 `main-green` green. `main-green` stays out of `merge.required_checks`, so `pr-status` does not call a red main the pull
 request's failure. Tests: `python/tests/test_main_green.py` (the steps run under bash against a fake `gh`).
@@ -147,16 +150,34 @@ open branch was at 993 to 1000, and `tools/blender/animation.md` went over 50 KB
   repository. It checks each one with a read-only token and writes the results through the Checks API, titled
   `merged with main at <sha>`, without a push or an event. A newer landing cancels the sweep before it, and drafts
   and forks wait for their own events.
+- **Each pull request its own answer:** the sweep's loop is the script's (`merge_result.py --sweep`), so a conflict
+  (the files named), a failed check or a head that cannot be fetched is that pull request's failure and the rest are
+  still checked; a head pushed since the list was read is left to its own run. Only a sweep that fails as a whole
+  (the runner, a malformed list) marks every pull request failed with "rerun it".
+- **Held and conflicting ones too:** pull requests with `S-hold`, and those GitHub calls `DIRTY`, are swept like the
+  rest. A conflict costs one `git merge-tree` (no checks run on it) and names the files, which `DIRTY` does not, and
+  GitHub works its state out lazily (`UNKNOWN` until asked, and from whichever `main` it last looked at). A held pull
+  request is refreshed and landed once the hold comes off, and a current answer says whether it needs `gds
+  merge-main` first; skipping either would leave the in-progress mark `pending` set, or an old answer.
 - **Locally:** the same command is the dry run before a merge call:
   `git fetch origin main && python .github/scripts/merge_result.py --head origin/<branch>` (exit 1 names the limit and
   the file; `--no-pre-commit` runs `mistakes.py check` alone). `test_merge_result.py` shows two branches under the page
-  limit refused together. The dry run in kit #1468 shows the same for gdlint (999 lines each, 1001 merged).
+  limit refused together, and a sweep of six pull requests where one conflicts and one goes over the limit while the
+  clean ones still pass. The dry run in kit #1468 shows the same for gdlint (999 lines each, 1001 merged).
 - **Not required yet:** the ruleset does not require `merge-result`, and `pr-status` does not count it, because
   changing the required checks is the maintainer's decision. Until it is required, the landing queue reads it
   ([Landing](landing.md#landing)).
 
 GitHub's merge queue, which runs the checks on the queued merge itself, is not offered for a repository owned by a
 personal account, and it would rerun every required check, the full `ci` run included, for each entry.
+
+- **Approach:** Keep a loop over many pull requests in a script that gives each item its own answer and is tested with
+  one item failing among passing ones; in a `run:` step, take an exit code with `cmd || code=$?`. **Watch out for:**
+  GitHub runs `run:` steps as `bash -e`, and `set -uo pipefail` does not switch `-e` off, so the bash loop of the
+  first sweep ended at #1447's conflict (exit 1), wrote no results, and the report marked every swept pull request
+  failed, #1460 among them though its merge printed `success`. **Seen:** gdstudio #1512, 2026-11-14 (runs 43562835962
+  and 43563259746; fix: `merge_result.py --sweep`,
+  `test_the_sweep_answers_each_pull_request_and_one_conflict_stops_none`).
 
 ## Reruns {#reruns}
 
@@ -236,7 +257,8 @@ personal account, and it would rerun every required check, the full `ci` run inc
   alone but not after a merge of `main`; `gdlint` ran only in local hooks, so two merges put `lobby_screen.gd` over
   1,000 with `main` green and blocked three pushes of branches that never touched it. When a push is refused for a file
   the branch never touched, read `main` first; never push past the hook. **Seen:** Deadnight #1128 and #1129,
-  2026-11-04; Deadnight #1225, 2026-11-05 (fix: a piece moved out, `gdlint` added to CI).
+  2026-11-04; Deadnight #1225, 2026-11-05 (a piece moved out, `gdlint` in CI); gdstudio PR #1456, 2026-11-13
+  (`two_hand_hold.gd`, 1,020 after the merge); #1473, 2026-11-13 (1,001 on a newer `main`).
 - **Approach:** Fetch a CI tool as its release binary, check it against a sha256 written in the workflow (from the
   release's checksums file) and retry the download (`curl -fsSL --retry 6 --retry-all-errors --retry-delay 10`); never
   `go install` a tool in CI. For `not in gzip format`, ask the URL for its status (`curl -sSIL`) first. **Watch out

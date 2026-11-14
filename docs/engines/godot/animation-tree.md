@@ -353,6 +353,15 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   idle and the walk slid 13.6 mm across; the test at the three points alone passed. **Seen:** gdstudio #1158,
   2026-11-12 (`test_gait_speed_match.gd`: every speed under 7 mm after the stretch and the trim; 167 mm between the
   jog and the sprint before).
+- **Approach:** Start a blend that reads the pose a state change hands over from on the update the new state's pose
+  is drawn, not the update the playback names it, and test it on every drawn update (`skeleton_updated`) for a
+  joint moving further in one update than the blend lets it. **Watch out for:** `MomentumBlend` began on the update
+  `get_current_node()` changed, saw the old state's pose there, measured no difference, and the new pose came in
+  whole on the next update: the head moved 0.75 to 0.95 m in one frame as a slide ended in the crouch, the slide's
+  start 0.48 to 0.68 m, with every weapon and on both bodies; `test_gait_parts.gd` read only the blend's largest
+  offset, which a blend begun a frame early still showed.
+  **Seen:** gdstudio #1439, 2026-11-13 (fixed by kit #1427's `SETTLE_FRAMES`; `test_slide_end_blend.gd`, 0.16 to
+  0.18 m after).
 - **Approach:** Feed each `AnimationNodeBlendTree` node's output to one input only; a pose used twice (the base of
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
@@ -379,6 +388,12 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   that frame and held the body in it, so the push clip never played and the vault's hands left the top by 0.3 m;
   the transition tests passed, since their clips existed only in their own suite. **Seen:** gdstudio #1156,
   2026-11-12 (`GaitTransitions.on_foot`; `test_player_actions.gd`, `test_push_cubes.gd`, `test_vault_contacts.gd`).
+- **Approach:** Prove a cost change keeps the pose with two bodies side by side, stepped by the same commands in the
+  same frames, each skeleton's update called by hand and every bone read inside its `skeleton_updated` (what the skin
+  gets, before the engine puts the unmodified poses back); give the body under test its own copies of the clips when
+  the change is to shared ones. **Watch out for:** two players made one after the other and walked through the same
+  commands were drawn up to 1 radian apart at their first frame (the upper arm), with the change on in both.
+  **Seen:** gdstudio #1438, 2026-11-13 (`test_helper_tracks.gd`: side by side, 0 apart in place and turn).
 - **Approach:** Prove an inertialization (or any blend started on a change of state) by the drawn pose: record each
   body bone's place in the model's frame at `skeleton_updated` every frame through the change, and fail on a move far
   above the clip's own largest. **Watch out for:** the momentum blend began on the frame the state machine reported

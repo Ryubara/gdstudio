@@ -42,6 +42,21 @@ def test_cd_and_git_dash_c_follow_the_folder(repo, tmp_path):
     assert "takes no commits" in denied(shell(f"git -C {repo} commit -m x", tmp_path))
 
 
+def test_a_cd_to_a_variable_the_line_assigned_is_followed(repo, tmp_path):
+    """kit #1472: `WT=<worktree>; cd "$WT" && git commit` from a session on main was judged from the session's folder
+    and refused as a commit on main."""
+    tree = tmp_path / "tree"
+    subprocess.run(["git", "-C", str(repo), "worktree", "add", "-q", "-b", "feature", str(tree)], check=True)
+    for line in (
+        f'WT={tree.as_posix()}; cd "$WT" && git commit -m x',
+        f"export WT={tree.as_posix()} && cd ${{WT}} && git commit -m x",
+        f'ROOT={tmp_path.as_posix()}; WT="$ROOT/tree"; cd "$WT" && git commit -m x',
+    ):
+        assert denied(shell(line, repo)) == "", line
+    assert "takes no commits" in denied(shell(f'WT={repo.as_posix()}; cd "$WT" && git commit -m x', tree))
+    assert "takes no commits" in denied(shell('cd "$UNSET" && git commit -m x', repo))  # not followed: as before
+
+
 def test_pinned_tools_only(tmp_path):
     assert "pinned" in denied(shell("godot --headless --path game", tmp_path))
     assert "Steam" in denied(shell('"F:/SteamLibrary/steamapps/common/Godot Engine/godot.exe" -e', tmp_path))

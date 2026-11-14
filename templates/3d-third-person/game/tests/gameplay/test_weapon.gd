@@ -140,6 +140,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"empty_sound": pistol.empty_sound,
 		&"reload_sounds": pistol.reload_sounds,
 		&"reload_sound_at": PackedFloat32Array([0.2, 0.6, 0.85]),
+		&"last_reload_sound_when_empty": false,
 		&"draw_sound": pistol.draw_sound,
 		&"muzzle_flash": pistol.muzzle_flash,
 		&"muzzle_flash_size": 1.0,
