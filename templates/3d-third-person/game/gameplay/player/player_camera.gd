@@ -139,11 +139,11 @@ const _FORWARDED: Array[StringName] = [
 ## is still kept: the view turns by the whole correction in one frame).
 @export_range(0.0, 3.0, 0.01, "suffix:s") var aim_shoulder_time := 0.15
 ## A swap (`swap_shoulder()`, the `shoulder_swap` action) keeps the point under the crosshair
-## where it is: the point is found when the swap starts and the view turns inward as it slides,
-## so the point stays under the crosshair and a shot fired mid-swap goes there. Off slides the
-## view sideways and the point under the crosshair drifts (the old behaviour). The point is kept
-## on a swap made while aiming (the aim or fire button held); `keep_aim_when_not_aiming` keeps it
-## on every swap.
+## on a character (`keep_aim_layers`): the point is found when the swap starts and the view
+## turns inward as it slides, so the point stays under the crosshair and a shot fired mid-swap
+## goes there. Off slides the view sideways and the point under the crosshair drifts (the old
+## behaviour). The point is kept on a swap made while aiming (the aim or fire button held);
+## `keep_aim_when_not_aiming` keeps it on every swap.
 @export var keep_aim_on_swap := true
 ## Keeps the point on a swap made while not aiming too. Off (the default), a swap while walking or
 ## sprinting only slides the view: the view's turn, and so the way the character runs, stays as
@@ -166,6 +166,10 @@ const _FORWARDED: Array[StringName] = [
 @export_range(0.5, 20.0, 0.1, "suffix:m") var aim_point_min_distance := 2.0
 ## The physics layers the crosshair's ray stops at when it finds the point (the shots' layers).
 @export_flags_3d_physics var aim_point_mask := PhysicsLayers.SHOT_MASK
+## The point is kept only when the crosshair's ray stops on a body on these layers: a character
+## (Characters: the player, friends, enemies) or a limp one (Ragdoll). On a wall, the floor or the
+## sky the swap slides the view to the other shoulder without turning it.
+@export_flags_3d_physics var keep_aim_layers := PhysicsLayers.CHARACTERS | PhysicsLayers.RAGDOLL
 
 @export_group("Sprint")
 ## How much wider the field of view gets at a full sprint.
@@ -567,13 +571,16 @@ func advance(delta: float) -> void:
 ## Turns the view to the other shoulder (the left one from the right, and the right from the left
 ## or the center). The `shoulder_swap` action calls it. With `keep_aim_on_swap` the point under
 ## the crosshair now stays under it through a swap made while aiming (any swap with
-## `keep_aim_when_not_aiming`); a swap pressed again before the last one ended keeps the same
-## point.
+## `keep_aim_when_not_aiming`) at a character (`keep_aim_layers`); anywhere else the view only
+## slides. A swap pressed again before the last one ended keeps the same point.
 func swap_shoulder() -> void:
 	var from := _shoulder_view().x
 	shoulder = Shoulder.LEFT if shoulder == Shoulder.RIGHT else Shoulder.RIGHT
 	if _keeps_aim_now() and not _anchored and is_instance_valid(camera) and camera.is_inside_tree():
-		_anchor_point = crosshair_point()
+		var aim := _crosshair_aim()
+		if not ShoulderSwapAim.keeps(aim["collider"], keep_aim_layers):
+			return
+		_anchor_point = aim["point"]
 		_anchor_from = from
 		_anchor_turn = Vector2.ZERO
 		_swap_look = 0.0
@@ -585,6 +592,11 @@ func swap_shoulder() -> void:
 ## weapon does), the ray's end at `aim_point_range` when it hits nothing, and never nearer than
 ## `aim_point_min_distance` past the arm's start.
 func crosshair_point() -> Vector3:
+	return _crosshair_aim()["point"]
+
+
+# The crosshair's point (`point`, as `crosshair_point()`) and what its ray stopped at (`collider`).
+func _crosshair_aim() -> Dictionary:
 	var centre := camera.get_viewport().get_visible_rect().size / 2.0
 	var origin := camera.project_ray_origin(centre)
 	var along := camera.project_ray_normal(centre)
@@ -600,7 +612,7 @@ func crosshair_point() -> Vector3:
 	var nearest := (_pivot() - origin).dot(along) + aim_point_min_distance
 	if (point - origin).dot(along) < nearest:
 		point = origin + along * nearest
-	return point
+	return {"point": point, "collider": hit.get("collider")}
 
 
 ## A swap is keeping its aim point under the crosshair now.
@@ -909,8 +921,8 @@ func _keep_aim() -> void:
 		return
 	var pivot := _pivot()
 	var view := _shoulder_view()
-	var now := _view_through(_anchor_point, pivot, view.x, view.y)
-	var start := _view_through(_anchor_point, pivot, _anchor_from, view.y)
+	var now := ShoulderSwapAim.view_through(_anchor_point, pivot, view.x, view.y)
+	var start := ShoulderSwapAim.view_through(_anchor_point, pivot, _anchor_from, view.y)
 	var turn := (
 		Vector2(rad_to_deg(angle_difference(start.x, now.x)), rad_to_deg(now.y - start.y))
 		* swap_anchor_strength
@@ -920,20 +932,6 @@ func _keep_aim() -> void:
 	_anchor_turn = turn
 	if is_equal_approx(_shoulder_pos, _shoulder_side()):
 		_anchored = false
-
-
-# The yaw and pitch (radians, the rig's senses: pitch positive looks down) that put `point` on the
-# crosshair of a camera turning about `pivot` with the view shifted `side` to the right and
-# `height` up (the Camera node's H and V Offset): the crosshair's ray is the view's axis moved by
-# the offsets, so `point` must sit `side` to the right of the axis and `height` above it.
-static func _view_through(point: Vector3, pivot: Vector3, side: float, height: float) -> Vector2:
-	var to := point - pivot
-	var flat := Vector2(to.x, to.z).length()
-	var across := asin(clampf(side / maxf(flat, 0.001), -0.95, 0.95))
-	var ahead := flat * cos(across)
-	var reach := Vector2(ahead, to.y).length()
-	var lift := asin(clampf(height / maxf(reach, 0.001), -0.95, 0.95))
-	return Vector2(atan2(-to.x, -to.z) + across, lift - atan2(to.y, ahead))
 
 
 # The Phantom Camera host moves the Camera node in its physics step (it does when the camera

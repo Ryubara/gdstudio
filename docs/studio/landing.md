@@ -31,6 +31,8 @@ Open pull requests come before new work: each one left open goes stale against `
 - **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
   rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
   ([Pausing a game](starting-work.md#paused)). Landing what you would recommend does not reach past the pause.
+- **Task agents never merge.** The coordinator lands from its queue; a task agent reports its green head SHA and
+  stops. The hook refuses a subagent's merge call, `gh pr merge --disable-auto` aside ([Hooks](hooks.md#what-it-refuses)).
 - **Hand-merge paths** (`AGENTS.md`: conventions, `AGENTS.md`, settings, hooks, `tools.toml`) are merged by hand, never
   by auto-merge, by the maintainer or by an agent the maintainer has authorized for it.
 
@@ -142,7 +144,8 @@ Open pull requests come before new work: each one left open goes stale against `
   summarised, and check `gh pr list --json number,autoMergeRequest` after each report. **Watch out for:** a resumed
   agent can lose its starting prompt and fall back to the auto-merge entry above; three did, pushing refreshes that
   restarted CI and turning auto-merge on against the queue. **Seen:** gdstudio PR #1424, #1426 and #1434, 2026-11-13
-  (fix: auto-merge turned off, the rule resent; coordinator's mistake).
+  (fix: auto-merge off, rule resent); PR #1448 and #1459, 2026-11-13: the agent pages and the batch brief still said
+  to merge, so #1448 merged past the queue (fix: both now stop under a queue or a lost prompt).
 
 **Landing a green head behind `main` (the coordinator's practice since 2026-11-11, a maintainer question).** A hand
 merge on a busy day can starve: `main` takes a new commit before each full CI run ends, so the refresh above never
