@@ -303,6 +303,10 @@ over the hold before the stock fix is the push and the reach themselves (about 5
 desktop, 9 to 13 for the push along a way at the low ready, which kit #1346 added): the bone and group boxes, the
 points the stock passes over and the runs' sort are each 1 to 2.5.
 
+Kit #1490, with the bench's walking runs: on the walk `main` costs 42 / 38 at the ready and 49 / 51 low. A push that
+skipped an unchanged pose read 36 / 35 at both on the aim clip, which holds the torso still, and nothing on the walk,
+so it was dropped; no exact cut measured a gain ([the floor](../gdscript.md#web-cost)).
+
 The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
 body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
 out), the deepest in the six locomotion clips at the low ready and aimed and aimed 30 degrees up and down, on the
