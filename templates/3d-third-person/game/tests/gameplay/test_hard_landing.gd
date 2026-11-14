@@ -291,3 +291,26 @@ func test_hard_land_keep_is_live() -> void:
 	assert_float(_player.ground_speed()).is_equal_approx(
 		kept - _player.tuning.deceleration * CommandDriver.tick_seconds(), 0.01
 	)
+
+
+func test_a_teleport_ends_the_hold() -> void:
+	# A body put somewhere (a respawn, a bench's next run) stands there free, not held by the
+	# landing it left (`test_jump_reach.gd` runs again from its start after a fall into the gap).
+	await _drop(3.0)
+	_player.teleport(Vector3(2.0, 0.0, 0.0))
+	assert_int(_player.state).is_equal(Character.State.IDLE)
+	await _tick(_command(1.0))
+	await _tick(_command(1.0))
+	assert_float(_player.ground_speed()).is_greater(0.5)
+
+
+func test_a_body_put_down_mid_fall_does_not_land_hard() -> void:
+	# A teleport keeps no fall speed: the body falling 11 m/s and put on the floor lands softly
+	# (`test_jump_reach.gd` starts each run where the last one fell into the gap).
+	_player.global_position = Vector3(0.0, 6.0, 0.0)
+	await _ticks(_command(0.0), 40)
+	assert_float(_player._fall_speed).is_greater(9.0)
+	_player.teleport(Vector3(0.0, 0.05, 0.0))
+	await _ticks(_command(1.0), 4)
+	assert_float(_player._action_lock).is_equal(0.0)
+	assert_float(_player.ground_speed()).is_greater(0.5)

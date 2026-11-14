@@ -481,6 +481,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	_rider.platform = null
 	_fallen = false
 	_slide.reset()
+	CharacterLanding.forget(self)
 	peek_motion.reset()
 	_fit_body()
 	if not is_nan(heading):

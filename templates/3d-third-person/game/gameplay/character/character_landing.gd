@@ -21,3 +21,15 @@ static func touch_down(body: Character) -> void:
 	body._action_lock = maxf(body._action_lock, hold)
 	body.velocity.x *= tuning.hard_land_keep
 	body.velocity.z *= tuning.hard_land_keep
+
+
+## Forgets the fall and the landing of `body` (`Character.teleport()`: a body put somewhere stands
+## there, free): the fall speed it had (put down mid-fall, it would land hard on the spot), its
+## landing state and the hold of a hard one. A hit's or a use's hold is left as it is.
+static func forget(body: Character) -> void:
+	body._fall_speed = 0.0
+	if body.state != Character.State.LAND:
+		return
+	body._land_timer = 0.0
+	body._action_lock = 0.0
+	body.state = Character.State.IDLE

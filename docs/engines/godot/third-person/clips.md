@@ -181,7 +181,7 @@ lasts as long as the server's (its state is in the TICK). `CharacterTuning.land_
 give both times from a fall speed. A game whose hard landing clip changes sets the two numbers to its record
 (`test_hard_landing.gd` holds the defaults to `locomotion.json`); `hard_land_time` 0 holds nothing. `hard_land_keep`
 above 0 lets a body that lands with the air's ground speed slide on through the landing, under the in-place clip's
-planted feet.
+planted feet. A teleport ends the hold and forgets the fall speed (`CharacterLanding.forget`).
 
 `locomotion.json` says of each clip what the tree reads: `carried` (the capsule carries it), `made_for` (the
 tuning numbers it was built to, which `tests/gameplay/test_own_jump_clips.gd` holds to `CharacterTuning`'s
@@ -200,6 +200,12 @@ and `first_frame` or `last_frame`, the frame of it).
   ball moved 3.29 mm with the body perfectly still (1.9 mm of it in the first half frame, as the foot settles
   and the momentum blend dies away): the clip's own settle, not a slide the controller made, read as a failure.
   **Seen:** gdstudio #1535, 2026-11-14 (`test_hard_landing.gd`).
+- **Approach:** When a landing starts to cost something (a hold, a stun), clear what a teleport leaves of the fall
+  (`_fall_speed`, the landing state) in the teleport, and run the reach benches, which teleport bodies back to their
+  start after a fall. **Watch out for:** `teleport()` kept `_fall_speed`, harmless while a landing only set a 0.3 s
+  timer; with the hold, a body put back on the runway while falling 11 m/s into a gap landed hard on the spot and
+  stood 0.67 s, so `test_jump_reach.gd`'s carry measured 3.75 m where it pins 5.75. **Seen:** gdstudio #1535,
+  2026-11-14 (the full template suite).
 - **Approach:** Read what a seek on the ground state set (`GaitBlend.seek_phase`, a hand-over) one update after the
   `travel()` that goes there. **Watch out for:** in the update of the travel the walk point's `current_position`
   still read the phase the ground state was left at (0.22 before a jump; 0.50 the update after), the same frame of
