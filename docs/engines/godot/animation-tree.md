@@ -360,8 +360,8 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   whole on the next update: the head moved 0.75 to 0.95 m in one frame as a slide ended in the crouch, the slide's
   start 0.48 to 0.68 m, with every weapon and on both bodies; `test_gait_parts.gd` read only the blend's largest
   offset, which a blend begun a frame early still showed.
-  **Seen:** gdstudio #1439, 2026-11-13 (fix: it begins again on the next update; `test_slide_end_blend.gd`, 0.17 to
-  0.19 m after).
+  **Seen:** gdstudio #1439, 2026-11-13 (fixed by kit #1427's `SETTLE_FRAMES`; `test_slide_end_blend.gd`, 0.16 to
+  0.18 m after).
 - **Approach:** Feed each `AnimationNodeBlendTree` node's output to one input only; a pose used twice (the base of
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
