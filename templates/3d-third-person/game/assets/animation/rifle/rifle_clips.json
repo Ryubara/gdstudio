@@ -34,6 +34,11 @@
    "frames": 66,
    "seconds": 2.2,
    "loop": false
+  },
+  "Rifle_Reload_Empty": {
+   "frames": 66,
+   "seconds": 2.2,
+   "loop": false
   }
  }
 }

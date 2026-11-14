@@ -132,6 +132,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"shoot_clips": [CharacterClips.PISTOL_SHOOT] as Array[StringName],
 		&"shoot_additive": true,
 		&"reload_clip": CharacterClips.PISTOL_RELOAD,
+		&"empty_reload_clip": &"",
 		&"prone_reload_clip": CharacterClips.PRONE_RELOAD,
 		&"rack_clip": CharacterClips.PISTOL_RACK,
 		&"rack_sound_at": 0.482,
