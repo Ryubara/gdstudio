@@ -174,8 +174,8 @@ every exit, kept with `--keep`, two calls at once).
   <template>`, import, copy it back). **Watch out for:** the layout check refuses a script without its `.uid` and the
   template's own folder cannot be opened to make one, so agents copied uids back from a kept game or wrote them by
   hand, and hand-made ones held text Godot never writes. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR
-  #1092), 2026-11-11; gdstudio #1148, 2026-11-11 (a suite written after the scripts); kit #1129, 2026-11-11 (the
-  command); gdstudio #1405, 2026-11-13 (fixtures tried in a kept game).
+  #1092), 2026-11-11; gdstudio #1148, 2026-11-11; kit #1129, 2026-11-11 (the command); gdstudio #1359 and #1405,
+  2026-11-13 (a suite and fixtures run in a kept game, whose uids the worktree lacked).
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game` (the
   `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree (the kit is the
   `--project` checkout, not your folder). Send a run's log to a new name in your own scratch folder or from `mktemp`,
