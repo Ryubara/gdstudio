@@ -305,4 +305,4 @@ about another. A `-s` script that loads the two scripts and quits, without GdUni
   above, since the list held only GdUnit4's and the autoloads' scripts, and even the suite's one-assert case leaked
   683 objects; the cause was `CountingAi`'s three static counters, read by `new_counts()`, once the suite had named
   `AiCharacter`. **Seen:** gdstudio #1499, 2026-11-14 (`test_net_ai_online.gd` alone: 779 objects and 553 resources
-  to none, the same 7 cases).
+  to none, the same 7 cases); #1502, 2026-11-14 (`PlayerInput`, now `RagdollKeyHolders`).
