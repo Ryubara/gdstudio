@@ -123,11 +123,14 @@ func test_the_pruned_libraries_hold_the_kept_clips_and_nothing_else() -> void:
 
 
 func test_a_stand_in_is_left_out_until_a_scene_sets_it() -> void:
-	var stand_in := CharacterClips.stand_in(CharacterClips.LAND)
+	# The take-off's: the library's `ual1/Jump_Start` since our own replaced it (gdstudio #1161).
+	# The landing's stand-in is `fixed/Jump_Land` now, in no pruned library.
+	var stand_in := CharacterClips.stand_in(CharacterClips.JUMP_START)
+	assert_bool(_is_pruned(stand_in)).is_true()
 	assert_bool(_kept.has(stand_in)).is_false()
 	var scene := FileAccess.open(STAND_IN_SCENE, FileAccess.WRITE)
 	scene.store_string(
-		'[gd_scene format=3]\n\n[node name="Animation" type="Node"]\nland_clip = &"%s"\n' % stand_in
+		'[gd_scene format=3]\n\n[node name="Animation" type="Node"]\njump_clip = &"%s"\n' % stand_in
 	)
 	scene.close()
 	assert_bool(played([STAND_IN_SCENE]).has(stand_in)).is_true()

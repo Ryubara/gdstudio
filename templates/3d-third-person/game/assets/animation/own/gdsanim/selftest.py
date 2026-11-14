@@ -295,6 +295,19 @@ def run(rig, solver, bodies) -> int:
     # weight: a body that runs round a bend standing upright (kit #1157). Its feet do not travel with it, so only
     # the weight check is read (`alone`): the same body running straight on passes it.
     alone.append(("a body does not lean into a bend", checks.check_weight, bend(stand, False), bend(stand, True)))
+    # weight and floor: a clip the controller carries through the air (a jump on the game's arc).
+    case(
+        "a carried body rises by itself in the air",
+        "weight",
+        carried_built(rig, solver, True, 0.2),
+        carried_built(rig, solver, False, 0.4),
+    )
+    case(
+        "a carried body's feet are under the floor it has not left",
+        "floor",
+        carried_built(rig, solver, True, 0.2),
+        carried_built(rig, solver, True, 0.0),
+    )
     # weight: a body that drops faster than gravity with its feet on the floor.
     case("a drop is faster than a fall", "weight", drop_built(rig, solver, 12), drop_built(rig, solver, 7))
     # floor: a head above the declared ceiling.
@@ -321,6 +334,16 @@ def run(rig, solver, bodies) -> int:
     # limits: a knee bent backward; a jump in a joint's speed.
     case("a knee bends backward", "limits", walk, turned(walk, rig, "calf_l", range(8, 12), 35.0))
     case("a joint jumps", "limits", stand, turned(stand, rig, "upperarm_l", [15], 40.0))
+    # arms: an arm that swings up in three frames, over a bound read off the clip itself; the same bound with the
+    # speed left free and a short jolt that changes the acceleration sharply (the jump's arms, kit #1369).
+    own = checks.arm_numbers(walk.rotation, rig, True)
+    floating = dense(walk)
+    floating.clip.declared["arm_bounds"] = {part: [1.01 * v, 1.01 * j] for part, (v, j) in own.items()}
+    snapped = turned(floating, rig, "upperarm_l", range(10, 14), 40.0)
+    case("an arm snaps up faster than the bound", "arms", floating, snapped)
+    eased = dense(walk)
+    eased.clip.declared["arm_bounds"] = {part: [1e9, 1.01 * j] for part, (_, j) in own.items()}
+    case("an arm jolts more sharply than the bound", "arms", eased, turned(eased, rig, "lowerarm_r", [12], 6.0))
     # cost: noise on every key.
     noisy = dense(stand)
     rng = np.random.default_rng(7)
