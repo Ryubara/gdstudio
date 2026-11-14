@@ -315,6 +315,42 @@
    "Loose: the centre of mass 8 degrees off the upright over the reference's feet, both soles flat; the pelvis leans 2.4 degrees, the chest 13.6, the head 6.4, the ankles take what is left; the knees bend 6.9 and 17.1 degrees.",
    "Not done here: the lean over a gait's moving feet. The difference is made on the standing reference; over a gait the legs' share moves the feet, which the tree's foot placement holds (kit #1158). Limbs inside limbs on the four bodies: 0, 1.7, 0, 0 mm."
   ],
+  "jump_start": [
+   "Loose: a push of 7 frames, the arms wider, the chest arches 10 degrees back; the trunk and head trail by 2.5 to 3.5 frames.",
+   "The game gives a take-off no frame on the floor (the capsule leaves on the tick of the press at 6.25 m/s), so no variant crouches first: at 0.2 m a frame the feet would be 0.2 to 0.4 m under the capsule."
+  ],
+  "jump_start_run_l": [
+   "Loose: a push of 7 frames, the knee driven 7 cm and the arm pumped 4 degrees.",
+   "The style's own overlap (4 to 6 frames) is longer than the clip; the trunk's in the take-offs and landings is 2.5 to 3.5, and the arms trail in the description."
+  ],
+  "jump_start_run_r": [
+   "Loose: a push of 7 frames, 4 cm of drive and trail, the arm pumped 4 degrees.",
+   "As the left-strike one: the trunk trails 2.5 to 3.5 frames, not the style's 4 to 6."
+  ],
+  "jump_rise": [
+   "Loose: the arms 56 and 34 degrees forward and out at 34 and 48, the knees at 20 and 58, the thighs 7 and 10 degrees apart, the limbs drifting 1.6 times as far over 1.33 s.",
+   "Its hips and shoulders are turned 6 and 8 degrees against each other, half as much again as the grounded one's."
+  ],
+  "jump_apex": [
+   "Loose: a wider gather, the thighs 11 and 14 degrees out, the arms out at 42 and 56.",
+   "The drift is 1.6 times the grounded one's, and the centre of mass stays within 1.2 mm of its place."
+  ],
+  "jump_fall": [
+   "Loose: the right foot 0.18 m ahead and 7 cm up, turned out 20 degrees, the arms out at 46 and 60.",
+   "The feet are wider (1 and 4 cm), so its landings would start wider; the review's landings all start on the shipped fall."
+  ],
+  "land_soft": [
+   "Loose: down 0.24 m, 25 frames, the right foot 0.18 m ahead and drawn back over frames 12 to 19, the chest folds 38 degrees and the arms reach their low pose 7 frames after the weight.",
+   "The elbows are 32 and 38, near the idle's: the game takes control back at frame 9 and blends to the idle in 0.15 s from there (kit #1369)."
+  ],
+  "land_hard": [
+   "Loose: 42 frames, held 4 at the bottom, the right foot 0.26 m ahead, the chest folds 58 degrees; control at frame 22.",
+   "Could not be done: the same depth as the grounded one. At 0.34 m the left ankle was at its 55 degrees; it goes down 0.32."
+  ],
+  "land_to_jog": [
+   "Loose: the weight sinks 7 cm more and the chest folds 14 degrees as the leg takes it.",
+   "It keeps 3.8 m/s of the fall on its first frame, the most of the three."
+  ],
   "idle_to_walk": [
    "Gathers longer and leans more: 38 and 35 frames (left, right) over 1.23 m, the chest taking 90 % of the acceleration's lean three frames late and swinging 20 % past, the hips sinking 25 mm first.",
    "Its lean is the closest to the acceleration's (5.9 degrees over a step, declared 9): three more frames of gathering are three more frames of falling."
@@ -969,6 +1005,305 @@
   ],
   "hand": [
    1.5,
+   0.15
+  ]
+ },
+ "jump_start": {
+  "frames": 7,
+  "push": {
+   "chest": [
+    -10.0,
+    -4.0,
+    2.0
+   ]
+  },
+  "arms": [
+   0.25,
+   10.5
+  ],
+  "arms_lag": 0.75
+ },
+ "jump_start_run": {
+  "frames": 7,
+  "drive": [
+   0.07,
+   0.04
+  ],
+  "trail": [
+   0.06,
+   0.04
+  ],
+  "pump": [
+   4.0,
+   3.0
+  ],
+  "arms": [
+   0.0,
+   10.0
+  ],
+  "arms_lag": 1.0
+ },
+ "jump_rise": {
+  "live": 1.6,
+  "frames": 40,
+  "from": 23.0,
+  "pelvis": [
+   -4.0,
+   6.0,
+   -3.0
+  ],
+  "chest": [
+   -7.0,
+   -8.0,
+   3.0
+  ],
+  "thigh": [
+   -10.0,
+   30.0
+  ],
+  "spread": [
+   7.0,
+   10.0
+  ],
+  "knee": [
+   20.0,
+   58.0
+  ],
+  "arm_swing": [
+   56.0,
+   34.0
+  ],
+  "arm_out": [
+   34.0,
+   48.0
+  ],
+  "elbow": [
+   42.0,
+   48.0
+  ],
+  "shrug": [
+   11.0,
+   6.0
+  ]
+ },
+ "jump_apex": {
+  "live": 1.6,
+  "frames": 40,
+  "from": 23.0,
+  "pelvis": [
+   8.0,
+   7.0,
+   -4.0
+  ],
+  "chest": [
+   12.0,
+   -9.0,
+   4.0
+  ],
+  "thigh": [
+   26.0,
+   62.0
+  ],
+  "spread": [
+   11.0,
+   14.0
+  ],
+  "knee": [
+   78.0,
+   104.0
+  ],
+  "arm_swing": [
+   58.0,
+   30.0
+  ],
+  "arm_out": [
+   42.0,
+   56.0
+  ],
+  "elbow": [
+   44.0,
+   52.0
+  ]
+ },
+ "jump_fall": {
+  "live": 1.6,
+  "frames": 40,
+  "from": 23.0,
+  "ahead": [
+   0.0,
+   0.18
+  ],
+  "wide": [
+   0.01,
+   0.04
+  ],
+  "lift": [
+   0.0,
+   0.07
+  ],
+  "heel": [
+   16.0,
+   28.0
+  ],
+  "toe_out": [
+   9.0,
+   20.0
+  ],
+  "chest": [
+   16.0,
+   -6.0,
+   3.0
+  ],
+  "arm_swing": [
+   52.0,
+   24.0
+  ],
+  "arm_out": [
+   46.0,
+   60.0
+  ],
+  "elbow": [
+   46.0,
+   54.0
+  ]
+ },
+ "land_soft": {
+  "frames": 25,
+  "keep": 4.8,
+  "dip": 0.24,
+  "bottom": 3,
+  "up": 13,
+  "stagger": 0.18,
+  "wide": 0.04,
+  "toe_out": 20.0,
+  "step": [
+   12,
+   19
+  ],
+  "pelvis": [
+   18.0,
+   6.0,
+   -4.0
+  ],
+  "chest": [
+   38.0,
+   -8.0,
+   4.0
+  ],
+  "arm_swing": [
+   26.0,
+   12.0
+  ],
+  "arm_out": [
+   32.0,
+   44.0
+  ],
+  "elbow": [
+   32.0,
+   38.0
+  ],
+  "trunk_late": 2.0,
+  "arms_late": 7.0,
+  "arms_lag": 1.5
+ },
+ "land_hard": {
+  "frames": 42,
+  "control": 22,
+  "hold": 4,
+  "up": 16,
+  "dip": 0.32,
+  "trunk_up": [
+   0.05,
+   0.62
+  ],
+  "stagger": 0.26,
+  "wide": 0.07,
+  "toe_out": 24.0,
+  "step": [
+   15,
+   23
+  ],
+  "chest": [
+   58.0,
+   -9.0,
+   5.0
+  ],
+  "arm_swing": [
+   16.0,
+   26.0
+  ],
+  "arm_out": [
+   38.0,
+   56.0
+  ],
+  "trunk_late": 3.0,
+  "arms_late": 9.0,
+  "arms_lag": 1.5
+ },
+ "land_to_jog": {
+  "keep": 3.8,
+  "sink": 0.07,
+  "fold": 14.0
+ },
+ "overlap_jump_start": {
+  "chest": [
+   2.5,
+   0.1
+  ],
+  "head": [
+   3.5,
+   0.15
+  ]
+ },
+ "overlap_jump_start_run": {
+  "chest": [
+   2.5,
+   0.1
+  ],
+  "head": [
+   3.5,
+   0.15
+  ]
+ },
+ "overlap_land_soft": {
+  "chest": [
+   2.5,
+   0.1
+  ],
+  "head": [
+   3.5,
+   0.15
+  ]
+ },
+ "overlap_land_hard": {
+  "chest": [
+   2.5,
+   0.1
+  ],
+  "head": [
+   3.5,
+   0.15
+  ]
+ },
+ "overlap_land_to_jog": {
+  "chest": [
+   2.5,
+   0.1
+  ],
+  "head": [
+   3.5,
+   0.15
+  ],
+  "upperarm": [
+   2.5,
+   0.1
+  ],
+  "forearm": [
+   2.5,
+   0.1
+  ],
+  "hand": [
+   2.5,
    0.15
   ]
  },

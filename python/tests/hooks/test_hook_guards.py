@@ -54,7 +54,65 @@ def test_a_cd_to_a_variable_the_line_assigned_is_followed(repo, tmp_path):
     ):
         assert denied(shell(line, repo)) == "", line
     assert "takes no commits" in denied(shell(f'WT={repo.as_posix()}; cd "$WT" && git commit -m x', tree))
-    assert "takes no commits" in denied(shell('cd "$UNSET" && git commit -m x', repo))  # not followed: as before
+    assert "cannot follow" in denied(shell('cd "$UNSET" && git commit -m x', repo))  # not followed (#1520)
+
+
+def _main_and_tree(repo, tmp_path):
+    tree = tmp_path / "tree"
+    subprocess.run(["git", "-C", str(repo), "worktree", "add", "-q", "-b", "feature", str(tree)], check=True)
+    return tree
+
+
+def test_a_powershell_assignment_is_followed_like_a_bash_one(repo, tmp_path):
+    """gdstudio #1520: `$wt = '<worktree>'; Set-Location $wt; git push` from a session on main was refused as a push
+    to main, and from a session in a worktree a commit on main after it was judged by the worktree's branch."""
+    tree = _main_and_tree(repo, tmp_path)
+    for start, target, ok in ((repo, tree, True), (tree, repo, False)):
+        for line in (
+            f"$wt = '{target}'; Set-Location $wt; git push",
+            f'$wt="{target}"; cd $wt; git commit -m x',
+            f"$env:WT = '{target}'; Set-Location -Path $env:WT; git push",
+        ):
+            reason = denied(shell(line, start))
+            assert (reason == "") if ok else ("takes no" in reason), (line, reason)
+    # a value that runs a command is not a path: the `cd` is not followed
+    assert "cannot follow" in denied(shell(f"$wt = '{tree}'; $wt = (Get-Location); cd $wt; git push", repo))
+
+
+def test_git_after_a_cd_it_cannot_follow_asks_for_a_known_folder(repo, tmp_path):
+    """gdstudio #1520: after a `cd` the hook cannot follow, a commit or a push to the current branch is judged neither
+    by the session's folder (main refused a worktree push) nor let through (a worktree session's push on main): it is
+    refused with the way to name the folder, from either start."""
+    tree = _main_and_tree(repo, tmp_path)
+    unfollowed = (
+        f'cd "$(dirname {tree.as_posix()}/x)"; git push',
+        "cd $(git rev-parse --show-toplevel); git commit -m x",
+        f"pushd {tree.as_posix()} && popd && git push origin",
+        "cd -; git push origin HEAD",
+    )
+    for start in (repo, tree):
+        for line in unfollowed:
+            reason = denied(shell(line, start))
+            assert "cannot follow" in reason and "git -C" in reason, (start, line, reason)
+            assert "takes no" not in reason, (start, line, reason)
+        unknown = f'cd "$(dirname {tree.as_posix()}/x)"; '
+        # an absolute `git -C` or a later plain absolute `cd` names the folder again; a relative one does not
+        assert denied(shell(unknown + f"git -C {tree.as_posix()} push", start)) == ""
+        assert "takes no pushes" in denied(shell(unknown + f"git -C {repo.as_posix()} push", start))
+        assert denied(shell(unknown + f"cd {tree.as_posix()} && git commit -m x", start)) == ""
+        assert "takes no commits" in denied(shell(unknown + f"cd {repo.as_posix()} && git commit -m x", start))
+        assert "cannot follow" in denied(shell(unknown + "cd sub && git commit -m x", start))
+        # a push that names its branch does not depend on the folder; other git commands are not judged
+        assert denied(shell(unknown + "git push -u origin feature", start)) == ""
+        assert "takes no pushes" in denied(shell(unknown + "git push origin HEAD:main", start))
+        assert denied(shell(unknown + "git status", start)) == ""
+
+
+def test_a_push_of_head_is_a_push_of_the_current_branch(repo, tmp_path):
+    """`git push origin HEAD` pushes the checked-out branch: on main it is a push to main (gdstudio #1520)."""
+    tree = _main_and_tree(repo, tmp_path)
+    assert "takes no pushes" in denied(shell("git push -u origin HEAD", repo))
+    assert denied(shell("git push -u origin HEAD", tree)) == ""
 
 
 def test_pinned_tools_only(tmp_path):
