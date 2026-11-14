@@ -820,10 +820,11 @@ func _on_rig_changed() -> void:
 	_find_bones()
 	_skin.measure(_skeleton, _chest_index, torso_bones, skin_spacing)
 	_push = 0.0
-	_stance = STANCE_SCRIPT.new() as SkeletonModifier3D
+	var stance: STANCE_SCRIPT = STANCE_SCRIPT.new()
+	_stance = stance
 	_stance.set(&"hold", self)
 	_add_modifier(_stance, "Stance")
-	_skin.use_spine(_bones, _spine_indices, _stance.call(&"spine_poses"))
+	_skin.use_spine(_bones, _spine_indices, stance.spine_poses())
 	_add_arm(right_arm, "RightArm")
 	_add_arm(left_arm, "LeftArm")
 	_add_fingers(grip_pose, trigger_pose, null, "RightFingers")

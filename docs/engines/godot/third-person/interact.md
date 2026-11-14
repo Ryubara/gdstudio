@@ -43,7 +43,10 @@ shape, its `interacted` signal connected in the scene to whatever it moves.
   the driven part hand its functions over as `Callable`s in its `_ready` (`NetEntity.serve`), never look them up by
   name. **Watch out for:** `NetWorld` first called `has_method(&"net_place")` and `call(&"net_write", ...)` on each
   part; every suite of the change passed and only the full run's
-  `test_no_part_in_gameplay_finds_another_by_a_method_name` named the nine lines. **Seen:** gdstudio #907, 2026-11-11.
+  `test_no_part_in_gameplay_finds_another_by_a_method_name` named the nine lines. A script made from a preloaded
+  script constant is typed as that constant (`var stance: STANCE_SCRIPT = STANCE_SCRIPT.new()`) so its functions are
+  called directly, not through `call(&"name")`. **Seen:** gdstudio #907, 2026-11-11; gdstudio #1347, 2026-11-13 (the
+  rifle hold called the stance's `spine_poses` by name; the suites it ran passed, the full template run named it).
 
 ## Using something with a weapon in the hands {#interact-held}
 
