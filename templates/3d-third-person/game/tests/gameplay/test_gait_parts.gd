@@ -1,10 +1,10 @@
 # The parts of the gait fitting (gdstudio #1158), each an inspector choice of `GaitSettings`: the
 # ground blend space's points at the clips' speeds (a stand-in clip at the tuning's), the momentum
 # blend in place of the cross-fade, the transitions chosen from the controller's numbers and
-# played along their travel, and the lean, built only when its poses exist. The transition and
-# lean clips do not all exist yet (gdstudio #1157, #1159; the starts and stops of #1156 do): the
-# tests give the player clips of their own in a library `test`, with records registered in
-# `GaitClips`.
+# played along their travel, and the lean, built only when its poses exist. The transition clips
+# do not all exist yet (gdstudio #1157; the starts and stops of #1156 do): the tests give the
+# player clips of their own in a library `test`, with records registered in `GaitClips`. The
+# lean poses are GDStudio's own (`gds/Lean_Left` and the rest, gdstudio #1159).
 extends GdUnitTestSuite
 
 const SETTINGS := "res://gameplay/character/gait_settings.tres"
@@ -97,6 +97,7 @@ func test_the_gait_settings_defaults_are_pinned() -> void:
 		&"lean_clips": fresh.lean_clips,
 		&"lean_full_at": 20.0,
 		&"lean_time": 0.12,
+		&"helper_tracks": false,
 	}
 	assert_array(ExportPins.differences(fresh, pins)).is_empty()
 	assert_array(ExportPins.wrong_values(fresh, pins)).is_empty()
@@ -145,10 +146,12 @@ func test_the_momentum_blend_replaces_the_cross_fade_and_dies_away() -> void:
 	crouch.crouch = true
 	var offsets: Array[float] = []
 	await _steps(crouch, 30, func(_tick: int) -> void: offsets.append(momentum.largest_offset()))
-	# The crouch walk's pose differs from the walk's: the blend starts from the drawn walk and
-	# the difference is all but gone in a quarter of a second.
+	# The crouch walk's pose differs from the walk's: the blend starts from the drawn walk once the
+	# crouch's pose is drawn (a frame or two after the key changes) and the difference is all but
+	# gone a quarter of a second after that.
 	assert_float(offsets.max()).is_greater(0.05)
-	assert_float(offsets[15]).is_less(0.01)
+	var peak := offsets.find(offsets.max())
+	assert_float(offsets[peak + 15]).is_less(0.01)
 	# Off, the node leaves the skeleton and the states cross-fade again.
 	_settings.momentum_blend = false
 	_animation.gait_settings = _settings
@@ -187,6 +190,43 @@ func test_a_stop_is_chosen_by_the_controller_and_played_along_its_travel() -> vo
 	assert_float(first.y).is_equal_approx(GaitClips.time_at_travel(STOP, first.x), 0.02)
 	assert_bool(transitions.is_playing()).is_false()
 	assert_str(String(_animation.body_state())).is_equal("ground")
+
+
+# gdstudio #1412: a crouch asked while a stop plays ended the stop and asked the machine for the
+# crouch, and on the same frame the transitions, finding the machine still in their own state,
+# sent it back to the ground: the body stood drawn upright over its crouched capsule until its
+# state changed again (an AI in cover stood in the open, and shots at its head and chest flew over
+# the capsule).
+func test_a_crouch_asked_during_a_stop_takes_the_body_to_the_crouch() -> void:
+	var record := {
+		"kind": "transition",
+		"frames": 18,
+		"seconds": 0.6,
+		"travel": [[0, 0.0, 0.0], [18, 0.6, 0.0]],
+		"turn": [[0, 0.0], [18, 0.0]],
+		"end_foot": "both",
+	}
+	_give_clip(STOP, 0.6, record)
+	_settings.transition_clips.stops = {&"walk": STOP, &"run": STOP, &"sprint": STOP}
+	_animation.gait_settings = _settings
+	_animation.set_throttled(true)
+	await _steps(_walk(1.0), 60)
+	var transitions := _animation.gait.transitions
+	for tick in 10:
+		if transitions.is_playing() and String(_animation.body_state()) == "gait_transition":
+			break
+		await _steps(PlayerCommand.new(), 1)
+	assert_str(String(_animation.body_state())).is_equal("gait_transition")
+	var crouch := PlayerCommand.new()
+	crouch.crouch = true
+	await _steps(crouch, 30)
+	assert_int(_player.state).is_equal(Character.State.CROUCH)
+	assert_str(String(_animation.body_state())).is_equal("crouch")
+	# What a shot meets: the drawn head is inside the crouched capsule, not above it.
+	var skeleton := _player.model.skeleton()
+	var head := skeleton.get_bone_global_pose(skeleton.find_bone(&"Head")).origin
+	var head_height := (skeleton.global_transform * head).y - _player.global_position.y
+	assert_float(head_height).is_less(CharacterCapsule.height(_player))
 
 
 func test_a_start_hands_over_to_the_walk_and_a_push_back_leaves_a_stop() -> void:
@@ -230,12 +270,28 @@ func test_the_stop_s_foot_is_the_one_that_lands_next() -> void:
 	assert_str(GaitTransitions.next_foot(CharacterClips.WALK, 0.7)).is_equal("l")
 
 
+func test_a_clip_s_contacts_are_worked_out_once_and_follow_a_new_record() -> void:
+	# Asked every frame by the blend and the transitions (gdstudio #1360): one shared, read-only
+	# list until the clip's record changes.
+	GaitClips.register(STOP, {"frames": 20.0, "contacts": {"l": [[0.0, 10.0]]}})
+	var first := GaitClips.contacts(STOP, "l")
+	assert_array(first).is_equal([[0.0, 0.5]])
+	assert_bool(is_same(GaitClips.contacts(STOP, "l"), first)).is_true()
+	assert_bool(first.is_read_only()).is_true()
+	GaitClips.register(STOP, {"frames": 20.0, "contacts": {"l": [[5.0, 15.0]]}})
+	assert_array(GaitClips.contacts(STOP, "l")).is_equal([[0.25, 0.75]])
+	GaitClips.forget(STOP)
+	assert_array(GaitClips.contacts(STOP, "l")).is_empty()
+
+
 func test_the_lean_is_built_only_with_its_poses_and_follows_the_acceleration() -> void:
+	# The template's own lean poses are in the libraries, so the player has the lean.
+	assert_bool(_animation.gait.lean.is_built()).is_true()
+	# A lean clip missing from the libraries leaves the tree without one.
+	var missing := _settings.duplicate(true) as GaitSettings
+	missing.lean_clips[&"back"] = &"test/Lean_None"
+	_animation.gait_settings = missing
 	assert_bool(_animation.gait.lean.is_built()).is_false()
-	for way: StringName in _settings.lean_clips:
-		var clip := StringName("test/Lean_" + String(way))
-		_give_clip(clip, 0.1, {})
-		_settings.lean_clips[way] = clip
 	_animation.gait_settings = _settings
 	assert_bool(_animation.gait.lean.is_built()).is_true()
 	_animation.set_throttled(true)
@@ -247,5 +303,3 @@ func test_the_lean_is_built_only_with_its_poses_and_follows_the_acceleration() -
 	assert_float(leans.max()).is_greater(0.3)
 	var forward: float = _animation.tree.get(&"parameters/LeanForward/add_amount")
 	assert_float(forward).is_greater(0.0)
-	for way: StringName in _settings.lean_clips:
-		GaitClips.forget(_settings.lean_clips[way])

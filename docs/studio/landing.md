@@ -24,6 +24,11 @@ Open pull requests come before new work: each one left open goes stale against `
   passed, and new commits that look unrelated are no exception. Several land one at a time. On 2026-11-06 three parked
   pull requests landed unrefreshed and `main` went red: a shorter reload met a test added after its last run; on
   2026-11-10 #972 and #977 landed past unrelated-looking commits, and #954 nearly did the same with #986 and #989.
+- **On a green merge result.** A pull request lands only when its newest `merge-result` check passed against the
+  current tip of `main` (the sweep's title names that commit), or the local dry run passed just before the merge call
+  (`python .github/scripts/merge_result.py --head origin/<branch>`). It runs the limit checks on the head merged into
+  the newest `main`, so two pull requests that each pass gdlint's 1000 lines or the 50 KB page limit and break them
+  together are refused before the second one lands ([CI: the merge result](ci.md#merge-result)).
 - **Not on a red main.** While a `CI failing on the default branch` issue is open, only its fix forward (a body
   saying `Fixes #<that issue>`) lands; the merge guard refuses the rest ([Red main](hooks-red-main.md#red-main)), and
   the required `main-green` check stops auto-merge too, then turns green when the issue closes ([CI](ci.md#main-runs)).
@@ -31,6 +36,8 @@ Open pull requests come before new work: each one left open goes stale against `
 - **Not in a paused repository.** A paused repository's pull requests are out of the queue: none is refreshed,
   rerun or landed, open ones stay as drafts, and `gds merge-main` and `gds pr` refuse them
   ([Pausing a game](starting-work.md#paused)). Landing what you would recommend does not reach past the pause.
+- **Task agents never merge.** The coordinator lands from its queue; a task agent reports its green head SHA and
+  stops. The hook refuses a subagent's merge call, `gh pr merge --disable-auto` aside ([Hooks](hooks.md#what-it-refuses)).
 - **Hand-merge paths** (`AGENTS.md`: conventions, `AGENTS.md`, settings, hooks, `tools.toml`) are merged by hand, never
   by auto-merge, by the maintainer or by an agent the maintainer has authorized for it.
 
@@ -132,15 +139,24 @@ Open pull requests come before new work: each one left open goes stale against `
   into a held pull request four times while waiting on CI, each push restarting a full run that `main` outran again,
   and the briefs had not said that a held pull request need not chase `main`. **Seen:** gdstudio #1154 (PR #1195) and
   #1084 (PR #1171), 2026-11-11 (fix: the batch brief says it; coordinator's mistake).
+- **Approach:** When a coordinator lands from a queue, a task agent reports its green head and stops: no auto-merge,
+  no merge call, no refresh unless DIRTY. Repeat that line to an agent each time it is resumed after its context was
+  summarised, and check `gh pr list --json number,autoMergeRequest` after each report. **Watch out for:** a resumed
+  agent can lose its starting prompt and fall back to the auto-merge entry above; three did, pushing refreshes that
+  restarted CI and turning auto-merge on against the queue. **Seen:** gdstudio PR #1424, #1426 and #1434, 2026-11-13
+  (fix: auto-merge off, rule resent); PR #1448 and #1459, 2026-11-13: the agent pages and the batch brief still said
+  to merge, so #1448 merged past the queue (fix: both now stop under a queue or a lost prompt).
 
 **Landing a green head behind `main` (the coordinator's practice since 2026-11-11, a maintainer question).** A hand
 merge on a busy day can starve: `main` takes a new commit before each full CI run ends, so the refresh above never
 catches up (#1202 went through three refreshes). The coordinator's landing script now lands a green head that is
 behind when every commit `main` gained since the head's base touches no file the pull request changes and `git
-merge-tree` merges the two cleanly; otherwise it refreshes. Branch protection does not require an up-to-date head, so
-GitHub takes the merge; the [merge guard](hooks.md#what-it-refuses) refuses a behind head from a shell command, so
-this is the script's route only. It relaxes "Refresh a parked pull request" above, which exists because unrelated
-commits broke `main` before; whether it stays is for the maintainer to decide, and agents keep refreshing as above.
+merge-tree` merges the two cleanly; otherwise it refreshes. A clean text merge proves no limit, so such a head also
+needs a green `merge-result` against the current `main`, or the local dry run ([above](#landing)). Branch protection
+does not require an up-to-date head, so GitHub takes the merge; the [merge guard](hooks.md#what-it-refuses) refuses a
+behind head from a shell command, so this is the script's route only. It relaxes "Refresh a parked pull request"
+above, which exists because unrelated commits broke `main` before; whether it stays is for the maintainer to decide,
+and agents keep refreshing as above.
 
 ## Merging main into a pull request {#merging-main-into-a-pull-request}
 
@@ -194,9 +210,9 @@ force push, which is the maintainer's decision: open the same change from a new 
   unpiped, and check that `git log -1` shows the merge before rebuilding or pushing. **Watch out for:** a hand-written
   title (`ui: Merge main into x`) is refused (`Merge` is not a verb on the list); `--continue` commits through
   pre-commit, where a 155-character licence line met the 120 limit, a merge staged for hours met `gdlint` at 1,016
-  lines, and two `Seen:` lists joined in a conflict passed the 900-character rule limit. **Seen:** Deadnight #539,
-  #656 and #410, 2026-11-02; gdstudio #1023, 2026-11-10 (merged with `--no-edit`); gdstudio #1256, 2026-11-11;
-  gdstudio #1323, 2026-11-12 (plain `git merge --no-edit`: no trailer).
+  lines, two `Seen:` lists joined in a conflict passed the 900-character rule limit; a fix made after a refusal
+  counts once staged. **Seen:** Deadnight #539, #656, #410, 2026-11-02; gdstudio #1023 (`--no-edit`), #1256, #1323
+  (`git merge --no-edit`: no trailer), 2026-11-10 to 12; PR #1488, 2026-11-13 (a page split unstaged).
 - **Approach:** Never push a merge of another open pull request's branch: build the parts that do not need it and merge
   after it lands. If you must build on it, keep your own work as a patch of your commits (`git diff <that branch's tip>
   HEAD > mine.patch`, saved outside the worktree), `git reset --hard origin/main` on the unpushed branch and `git apply

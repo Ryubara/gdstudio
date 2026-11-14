@@ -9,10 +9,11 @@ Run it with the pinned Blender, headless (`gds tool path blender`), every path a
         [--clip <name> ...] [--limit <mm>] [--fps <rate>] [--json <file>] [--brief] [--self-test]
 
 It exits 1 when a clip goes deeper than `--limit` (default `LIMIT_MM`). With `--brief` the `--json` file holds only
-each clip's deepest crossing a body and the clip file's SHA-256, so a Godot test can read it and tell when the file
-it was measured on has changed (`prone/<clip file>_overlap.json`, one a body's file, and `vault/bodies_overlap.json`,
-kit #1286). A build that keys clips imports this file and calls `measure()` on its baked actions before it exports
-(`vault/build_vault.py`).
+each clip's deepest crossing a body, the clip file's SHA-256, each body file's and the hash of this script's code
+(`measure_hash.py` beside it, kit #1479), so a Godot test can read it and tell when the clip file, a body or the
+measure is no longer the one that made the numbers (`prone/<clip file>_overlap.json`, one a body's file, and
+`vault/bodies_overlap.json`, kit #1286). A build that keys clips imports this file and calls `measure()` on its
+baked actions before it exports (`vault/build_vault.py`).
 
 Which frames it measures: every key, at the clips' own frame rate. A glb stores key times in seconds and no frame
 rate, and Blender puts a key at its seconds times the scene's rate. So the command line reads the rate from the
@@ -514,9 +515,14 @@ def main():
                 f"({entry['pair']}) {verdict} {json.dumps(entry['by_class'])}"
             )
     if args.json and args.brief:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import measure_hash
+
         report = {
             "clips_file": Path(args.clips).name,
             "sha256": hashlib.sha256(Path(args.clips).read_bytes()).hexdigest(),
+            "measure_sha256": measure_hash.script_sha256(__file__),
+            "bodies_sha256": measure_hash.bodies_sha256(args.model),
             "fps": rate,
             "limit_mm": args.limit,
             "clips": {

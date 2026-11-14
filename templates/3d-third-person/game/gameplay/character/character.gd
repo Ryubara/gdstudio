@@ -128,6 +128,10 @@ const CHEST_SHARE := 0.72
 			slide_tuning.changed.connect(_apply_tuning)
 			_apply_tuning()
 
+@export_group("Peek")
+## The peek lean around cover (`CharacterPeek`): how far, how fast, the shape. Empty: the defaults.
+@export var peek_tuning: PeekTuning
+
 @export_group("Weapon")
 ## What the character shoots with. Empty: it cannot aim or shoot. The character steps it: the
 ## weapon's own `self_ticking` is turned off and `step` counts its cooldown.
@@ -175,10 +179,15 @@ var died_by_clip := false
 
 ## The ground speed the last command steers the body toward, in m/s (0 when it asks for no move):
 ## the speed the body is heading for, which the animation's transitions read (`GaitTransitions`).
+## A body that never steps reads it from `move_goal` instead (`CharacterGoal`).
 var goal_speed: float:
 	get:
+		if move_goal.from_motion:
+			return move_goal.speed()
 		var push := _wish_direction().length() if _action_lock <= 0.0 else 0.0
 		return _target_speed(push) if push > 0.0 else 0.0
+## A puppet's goal, and the way any body is asked to go (`CharacterGoal`, gdstudio #1420).
+var move_goal := CharacterGoal.new()
 ## What the body is doing; `CharacterAnimation` plays the clip for it.
 var state := State.IDLE:
 	set(value):
@@ -241,6 +250,8 @@ var aim_yaw: float:
 		return wrapf(view_yaw + PI - facing, -PI, PI)
 ## The vault and the mantle (`CharacterVault`): the running plan; its step state is `vault`.
 var vault_motion := CharacterVault.new()
+## The peek lean (`CharacterPeek`): `amount` -1 (left) to 1 (right); its step state is `peek`.
+var peek_motion := CharacterPeek.new()
 ## On while the hands are busy with something else (an `ItemUse` using a bandage): the character
 ## neither aims nor shoots, and an aim held lowers until it is off again.
 var hands_busy := false
@@ -287,6 +298,8 @@ func _ready() -> void:
 		prone_tuning = ProneTuning.new()
 	if slide_tuning == null:
 		slide_tuning = SlideTuning.new()
+	if peek_tuning == null:
+		peek_tuning = PeekTuning.new()
 	_apply_tuning()
 	if Engine.is_editor_hint():
 		return
@@ -345,6 +358,7 @@ func step(command: PlayerCommand, delta: float) -> void:
 		_fall_out()
 	else:
 		_move(delta)
+	peek_motion.step(self, delta)
 	# Last, as the weapon's own tick came after the body's; the switch before the weapon.
 	if loadout != null:
 		loadout.tick(delta)
@@ -467,6 +481,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	_rider.platform = null
 	_fallen = false
 	_slide.reset()
+	peek_motion.reset()
 	_fit_body()
 	if not is_nan(heading):
 		facing = heading
@@ -770,6 +785,8 @@ func _target_speed(strength: float) -> float:
 		speed = tuning.walk_speed * maxf(strength, tuning.least_walk_share)
 	if aiming:
 		speed = minf(speed, tuning.walk_speed * tuning.aim_walk_cap) * tuning.aim_move_scale
+	if peek_motion.leaning():
+		speed = minf(speed, peek_tuning.move_speed)
 	if _push_cap > 0.0:
 		speed = minf(speed, _push_cap)
 	return speed
@@ -779,9 +796,8 @@ func _steer(wish: Vector3, delta: float) -> void:
 	var flat := Vector3(velocity.x, 0.0, velocity.z)
 	var strength := wish.length()
 	var goal := wish.normalized() * _target_speed(strength) if strength > 0.0 else Vector3.ZERO
-	var rate := tuning.acceleration if strength > 0.0 else tuning.deceleration
-	if strength <= 0.0 and _grounded and not crouching and _action_lock <= 0.0:
-		rate = tuning.stop_deceleration(flat.length())  # Over the stop clip (gdstudio #1415).
+	var on_feet := _grounded and not crouching and _action_lock <= 0.0  # Stops: gdstudio #1415.
+	var rate := tuning.steer_rate(strength, flat.length(), on_feet)
 	if _prone.is_prone():
 		rate = prone_tuning.acceleration if strength > 0.0 else prone_tuning.deceleration
 	if not _grounded:
@@ -792,8 +808,8 @@ func _steer(wish: Vector3, delta: float) -> void:
 	flat = flat.move_toward(goal, rate * delta)
 	velocity.x = flat.x
 	velocity.z = flat.z
-	if aiming and _action_lock <= 0.0:
-		# Aiming turns the body to the view's heading, however it walks.
+	if (aiming or peek_motion.leaning()) and _action_lock <= 0.0:
+		# Aiming (or a peek lean) turns the body to the view's heading, however it walks.
 		var aim_turn := prone_tuning.aim_turn_speed if _prone.is_prone() else tuning.aim_turn_speed
 		facing = lerp_angle(facing, view_yaw + PI, clampf(aim_turn * delta, 0.0, 1.0))
 		_present_facing()
@@ -927,6 +943,7 @@ func _use_weapon(delta: float) -> void:
 	# longer, or a click held past its shot leaves a second one buffered (gdstudio #1335).
 	if pressed:
 		_fire_buffer = tuning.fire_buffer_time
+	_release_burst(last_command)
 	var burst := weapon.bursting
 	var wanted := _fire_buffer > 0.0 or held or burst
 	if wanted and aiming and aim_amount >= tuning.shot_aim_amount and _within_reach():
@@ -934,6 +951,15 @@ func _use_weapon(delta: float) -> void:
 		if weapon.pull(_aim_origin(), _aim_direction()) != Weapon.Pull.BUSY and not burst:
 			_fire_buffer = 0.0
 	elif burst:
+		weapon.bursting = false
+
+
+# Ends a burst under way on a tick the fire button is up, for a weapon whose burst lasts only while
+# it is held (`WeaponDef.full_burst_per_press` off): the shot already gone stays. The client and the
+# server step the same commands, so both end it on the same tick.
+func _release_burst(command: PlayerCommand) -> void:
+	var held := weapon.definition
+	if held != null and not held.full_burst_per_press and not command.fire:
 		weapon.bursting = false
 
 

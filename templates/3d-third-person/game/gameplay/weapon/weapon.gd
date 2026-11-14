@@ -60,7 +60,8 @@ const AIM_PASSES := 4
 ## (0.1 s at 60 ticks) counts down to a rounding error just above zero, which would hold each shot
 ## one tick late (9 shots a second for 10).
 const COOLDOWN_SLACK := 1e-6
-## Where the burst's shots left sit in the step state (after the five numbers and the blow's eight).
+## Where the burst's shots left sit in the step state (after the five numbers and the blow's eight),
+## and the spread's heat after it.
 const BURST_AT := 13
 
 @export_group("Weapon")
@@ -151,6 +152,12 @@ var bursting: bool:
 ## The share of `spread` a shot gets now: the character that holds the weapon sets it each
 ## step (lying down is steadier, `ProneTuning.spread_share`); 1 alone.
 var spread_share := 1.0
+## The cone of the next shot now, in degrees (the share included): grows over shots fired in a
+## row and falls back once firing stops (`ShotSpread`). A first shot from rest has the definition's
+## `first_shot_spread`.
+var spread_now: float:
+	get:
+		return _spread.degrees(definition) * spread_share if definition != null else 0.0
 
 # Online play (gdstudio #906): the server's weapon is the one whose shots count; a client's are
 # cosmetic, and a server's make no sound, flash or mark.
@@ -188,6 +195,7 @@ var _live: Array[Projectile] = []
 var _spare: Array[Projectile] = []
 var _last_projectile: Projectile
 var _blow := MeleeBlow.new()
+var _spread := ShotSpread.new()
 var _scan_met := false  # Whether the last `_scan` met something (a blow ends on it).
 
 
@@ -224,6 +232,9 @@ func tick(delta: float) -> void:
 	# A cooldown that ends inside this tick keeps the part of the tick past its end (below zero),
 	# and the next shot's interval starts that much early, so a held trigger fires the rate however
 	# the interval falls between ticks; a tick that fires nothing forgets it.
+	# The spread falls on a tick the weapon was ready through, never between a held trigger's shots.
+	if definition != null and not is_cooling_down():
+		_spread.recover(definition, delta)
 	_cooldown = _cooldown - delta if _cooldown > COOLDOWN_SLACK else 0.0
 	if _reload_left > 0.0:
 		_reload_left = maxf(_reload_left - delta, 0.0)
@@ -287,12 +298,13 @@ func fire(origin := Vector3.INF, direction := Vector3.ZERO) -> Projectile:
 	return _last_projectile
 
 
-## Makes the weapon ready to fire at once: no cooldown, no reload, a full magazine (a test, a
-## game's cheat, a respawn).
+## Makes the weapon ready to fire at once: no cooldown, no reload, the spread at rest, a full
+## magazine (a test, a game's cheat, a respawn).
 func make_ready() -> void:
 	_cooldown = 0.0
 	_reload_left = 0.0
 	_burst_left = 0
+	_spread.heat = 0.0
 	_blow.cooldown = 0.0
 	if _uses_ammo() and _magazine < definition.magazine_size:
 		_magazine = definition.magazine_size
@@ -500,7 +512,7 @@ func save_step_state(kept: Array) -> void:
 	kept[4] = _reload_left
 	# The melee blow (gdstudio #1254): its time, cooldown, landing, count, way and start.
 	_blow.save(kept)
-	kept.append(_burst_left)
+	kept.append_array([_burst_left, _spread.heat])
 
 
 ## Puts back what `save_step_state()` wrote: the next shot leaves on the same tick and, with a
@@ -518,6 +530,7 @@ func load_step_state(kept: Array) -> void:
 	_reload_left = kept[4]
 	_blow.load(kept, 5)
 	_burst_left = kept[BURST_AT] if kept.size() > BURST_AT else 0
+	_spread.heat = kept[BURST_AT + 1] if kept.size() > BURST_AT + 1 else 0.0
 	if changed:
 		ammo_changed.emit(_magazine)
 
@@ -535,7 +548,9 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 	# shoot along the aim instead.
 	if toward.dot(along) <= 0.0 or toward.length() < 0.2:
 		toward = along
-	var heading := _spread(toward.normalized())
+	if seed_base >= 0:
+		_rng.seed = hash([seed_base, shot_seq])
+	var heading := _spread.draw(toward.normalized(), definition, spread_share, _rng)
 	last_origin = start
 	last_heading = heading
 	if _uses_ammo():
@@ -550,21 +565,6 @@ func _shoot(origin: Vector3, direction: Vector3) -> void:
 	if _uses_ammo():
 		ammo_changed.emit(_magazine)
 	fired.emit(_last_projectile)
-
-
-func _spread(heading: Vector3) -> Vector3:
-	if definition.spread <= 0.0:
-		return heading
-	if seed_base >= 0:
-		_rng.seed = hash([seed_base, shot_seq])
-	var angle := deg_to_rad(definition.spread * spread_share) * sqrt(_rng.randf())
-	var around := _rng.randf() * TAU
-	var side := heading.cross(Vector3.UP)
-	if side.length_squared() < 0.0001:
-		side = Vector3.RIGHT
-	side = side.normalized()
-	var up := side.cross(heading).normalized()
-	return heading.rotated(side, sin(around) * angle).rotated(up, cos(around) * angle)
 
 
 # The rewind of a projectile leaving now: the drawn AI along its first `flight_seconds`.
@@ -835,6 +835,7 @@ func _apply_definition(refill: bool) -> void:
 			swing.volume_db = category.melee_volume_db
 	_blow.reset()
 	_burst_left = 0
+	_spread.heat = 0.0
 	# Decoded now, while the weapon is set up, not at the reload's first step.
 	DecodedSounds.decoded_all(definition.reload_sounds)
 	if definition.muzzle_flash != null:
@@ -871,7 +872,10 @@ func _play_reload_steps() -> void:
 		return
 	var steps := definition.reload_sounds
 	var progress := reload_progress()
-	while _reload_sounds_played < steps.size() - reload_steps_held:
+	var held := maxi(
+		reload_steps_held, int(definition.last_reload_sound_when_empty and _magazine > 0)
+	)
+	while _reload_sounds_played < steps.size() - held:
 		var at := (
 			definition.reload_sound_at[_reload_sounds_played]
 			if _reload_sounds_played < definition.reload_sound_at.size()
@@ -928,7 +932,9 @@ func _bare_start(origin: Vector3, along: Vector3) -> Vector3:
 		side = Vector3.RIGHT
 	side = side.normalized()
 	var up := side.cross(along).normalized()
-	return _at_shooter_depth(origin, along) + Basis(side, up, -along) * no_muzzle_offset
+	# A peek lean rolls the weapon with the upper body and mirrors it on a left lean (#1400, #1435).
+	var lean := CharacterPeek.lean_offset(shooter, side, up, along, no_muzzle_offset)
+	return _at_shooter_depth(origin, along) + lean
 
 
 func _muzzle_point() -> Vector3:

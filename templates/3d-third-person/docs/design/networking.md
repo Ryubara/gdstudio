@@ -52,6 +52,11 @@ player's screen drew the character, a few tenths of a second ago (the server kee
 guard you see. Only the body a shot meets is wound back, never what the AI thinks or where it goes; another player is
 met where the server has them.
 
+Each body also gets the bag, the hotbar and the item use of `game/gameplay/net/body_items.tscn` (the inspector's
+`body_items`: three bandages on the first place, as the player's own), so the server alone heals and counts. A
+player's hotbar press rides in the command; the server's body starts the use, heals at 75% of its time and tells
+the players in small USE events, and every screen plays the clip and the sound itself.
+
 ## The client
 
 A `NetClient` node (`game/gameplay/net/net_client.gd`) joins a server and plays the local `Player` at once: each
@@ -66,7 +71,9 @@ The other players are drawn by `RemotePlayers` (`remote_players.gd`): one puppet
 the two TICKs around that moment, so they walk, run, crouch, aim, jump and land with the same clips as the local body.
 A vault or a mantle is planned again on this screen when a puppet's state turns to one (`PuppetVault`, also used by
 the AI's puppets), so its clip plays as on the body that steps it with nothing more sent, and its planted hand rests
-on the obstacle's top on every screen (`tests/gameplay/test_net_puppet_vault.gd`). Nothing that only looks
+on the obstacle's top on every screen (`tests/gameplay/test_net_puppet_vault.gd`). A puppet's starts and stops are
+picked from where its TICKs head and the entry's `halt` flag (the player asked for no move), so it plays the stop the
+stepping body plays instead of sliding in one (`tests/gameplay/test_net_puppet_gait.gd`). Nothing that only looks
 (a footstep, a hand pose, a muzzle flash) crosses the network.
 
 The AI characters run on the server only. When the client joins, its own map's AI (the director and every AI

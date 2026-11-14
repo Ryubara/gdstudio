@@ -302,7 +302,7 @@ finds them first -->
   or default the branch removes or changes, run the suites of what landed meanwhile, and diff each file the branch
   shares with a merged pull request; grep again right before auto-merge. **Watch out for:** clean merges left a
   duplicate dictionary key, another pull request's test assuming the old default order, readers of a removed field,
-  and suites that bought perks in a row against a purchase that now takes 2.5 s. **Seen:** Deadnight #676, #814,
-  2026-11-03; Deadnight #959, 2026-11-04; Deadnight #1233, 2026-11-05 (fix: a shared fixture step that finishes an
-  action; the grep named in the pull request is the one after the merge); gdstudio #1029, 2026-11-10 (a merged
-  budget test called the removed `take_shot` and counted 42 nodes before `Health`; #1031).
+  suites that bought perks in a row against a purchase that now takes 2.5 s, and a new suite pressing a key the branch
+  rebound (grep `KEY_Q` too). **Seen:** Deadnight #676, #814, #959, #1233, 2026-11-03 to 05; gdstudio #1029,
+  2026-11-10 (a merged budget test called the removed `take_shot`; #1031); #1400, #1456, 2026-11-13 (a merged suite
+  pressed Q, now the lean).

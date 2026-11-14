@@ -202,6 +202,16 @@ func jump_speed() -> float:
 	return 2.0 * jump_height / jump_rise_time
 
 
+## How fast a body's ground speed `speed` moves toward its goal, the stick pushed by `strength`
+## (0 when let go): `acceleration` while pushed, the stop deceleration of `speed`'s gait when let
+## go `on_feet` (grounded, standing, no action holding it; over the stop clip, gdstudio #1415),
+## and `deceleration` otherwise.
+func steer_rate(strength: float, speed: float, on_feet: bool) -> float:
+	if strength > 0.0:
+		return acceleration
+	return stop_deceleration(speed) if on_feet else deceleration
+
+
 ## How fast a body on its feet with the stick let go slows at ground speed `speed`: the stop
 ## deceleration of the gait whose speed band it is in. A function of the speed alone, so a
 ## predicting client and the server stop a body at the same place.

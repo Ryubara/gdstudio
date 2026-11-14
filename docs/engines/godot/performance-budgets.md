@@ -109,6 +109,13 @@ arm differed 14 times (8 ms and 115 ms a frame at 45 dead). What helped:
   some pages and not others ([the buffer hint](web-export.md#skin-buffer-hint)). **Seen:** gdstudio #1260,
   2026-11-11; gdstudio #1323, 2026-11-12 (three template time budgets red locally with about nine Godot runs up;
   `origin/main` in a detached worktree failed the same ones in the same hour, so the branch went to CI).
+- **Approach:** Trace a frame rise across commits by the parts, not the frame: a game at each commit (`git restore
+  --source=<sha> --staged --worktree -- templates/`, `gds template game <t>`), the parts bench in each, interleaved,
+  each part read as a share of one no commit touched (the body's step); split the part that rose with a probe of
+  `Time.get_ticks_usec()` spans. Godot's `--path` is the printed path plus `/game`. **Watch out for:** the budget
+  case's ratio spread 1.47 to 1.86 on one build, too wide for a 0.3 ms change, where the step share split the rise
+  into three commits; at the printed path itself Godot finds no project and waits silent until the timeout.
+  **Seen:** gdstudio #1360, 2026-11-13 (10 minutes lost to the path).
 
 ## A leak is read as a count at the same crowd, round after round {#leak-count}
 
@@ -174,6 +181,13 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   load at all; a `sin` loop ran 1.65 times faster on the Linux runner while the AI cost the same, and CI failed.
   **Seen:** gdstudio #1248 (`test_ai_cost_gate.gd`), 2026-11-11 (fix: medians, a ruler of vector, array and
   dictionary work, a 2x wait failing every row).
+- **Approach:** Choose a gate's ruler from 50 or more CI runs (every candidate printed beside the timing, the runner's
+  processor too), keep the one whose ratio spreads least, give each system its own limits and keep the 2x case in the
+  suite. **Watch out for:** a GDScript ruler chosen on the desktop followed the AI step on the runners at a slope of
+  0.6 and failed main three times in a day; over 150 runs the step spread 1.73 times over it and 1.55 over a physics
+  ruler, and on one runner the step moved 1.38 times between processes while every ruler held within 2 %. **Seen:**
+  gdstudio #1405, 2026-11-13 (fix: `PhysicsRuler`, limits for Linux and Windows, `SlowAiDirector`; [the gate on a
+  shared runner](running-gdunit.md#timing-gates)).
 
 - **Approach:** Make a part that only some characters use (a weapon's model in the hand) when it is first needed (a
   `WeaponDef.view_scene` the loadout instances on `give()`), not as a node of the shared character scene. **Watch out
@@ -188,6 +202,12 @@ passed). Hold such a section as a *share of the frame* the same rows took.
   1.12); a day of character work then moved the paired ratio from 1.01-1.08 to 1.16-1.33 and 1.3 failed 5 of 10
   healthy runs. **Seen:** gdstudio #1324, 2026-11-12 (3D Third Person `test_parts_budget.gd`'s
   `test_ten_walking_characters_stay_under_the_frame_budget`; limit 1.7, doubled frame 2.21 to 2.60).
+- **Approach:** Hold a frame ratio as the lowest of three windows' ratios (each a median frame over a median loop of
+  the same frames), with the empty scene's frame taken off first; noise only adds time, and a frame twice as slow is
+  twice in every window. **Watch out for:** a runner slows game work for a while with every ruler holding still (the
+  AI step and the walkers' frame 1.2 to 1.7 times slower in one run, the physics ruler within 3 %): one window of 450
+  read 2.24 where the best of three read at most 1.78. **Seen:** gdstudio #1451, 2026-11-13 (3D Third Person
+  `test_parts_budget.gd`; [the numbers](third-person/parts-cost.md#parts-cost)).
 
 ## In the editor {#in-the-editor}
 
