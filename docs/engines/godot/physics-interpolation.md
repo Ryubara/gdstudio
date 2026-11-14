@@ -31,6 +31,13 @@ draw the blend of the last two ticks.
   was smooth in our measure. A ragdoll's bones are written once a tick by its `PhysicalBoneSimulator3D`, so its skin
   steps while its `PhysicalBone3D` nodes glide: draw the bones from the bodies' interpolated transforms
   ([Drawing between ticks](ragdoll.md#drawing)).
+- A node a skeleton modifier or `skeleton_updated` places every frame (a two-hand weapon placed from the chest, a hand
+  target on it) is OFF, as the engine makes every `BoneAttachment3D` (its constructor sets the mode, and the editor
+  warns on one turned back on). Left on, the engine draws it between where it was at the last two ticks
+  (`SceneTreeFTI`: the local transform at the tick, against the one set since), while the skin it rides is drawn
+  with this frame's bones: the 3D Third Person rifle was drawn 145 mm from both hands at each landing, though the pose
+  read in `skeleton_updated` had them 0.0 mm apart (gdstudio #1464). OFF, it is drawn at its parent's blended place
+  times its own transform of this frame, which is how the skin is drawn too.
 
 - The mode is inherited down the tree, and a `Control` is not physics-interpolated: a 3D world under a UI screen is
   drawn at the last tick whatever the project setting says. Set the world's root to `PHYSICS_INTERPOLATION_MODE_ON`
@@ -79,3 +86,11 @@ draw the blend of the last two ticks.
   `get_global_transform_interpolated()` did not show the per-frame placement, and the fraction is 0 through a short
   `--fixed-fps` run and near 1 after minutes of suites, so a result that depends on it differs between a suite run alone
   and the full run. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11 (the vault's held model).
+- **Approach:** To test what the engine draws for a node placed in the drawn frame against a skin, read
+  `get_global_transform_interpolated()` of the node and of the skeleton on `SceneTree.process_frame` of the frame
+  after the skeleton's update, only when `Engine.get_physics_frames()` has not moved since that update, with the
+  bones the skin got in it (read in `skeleton_updated`) and the physics ticking slower than the frames (20 ticks at 60
+  frames: two frames in three qualify). **Watch out for:** a tick in between makes the node's last and
+  current transforms one and hides the lag. Read inside `skeleton_updated`, the node's place and the
+  bone agreed to 0.0 mm on the frames that drew them 145 mm apart. **Seen:** gdstudio #1464, 2026-11-13
+  (`test_rifle_drawn_hands.gd`: 145 mm before, 0.2 mm after).
