@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/capture/own_jump_review.gd" id="1_review"]
+[ext_resource type="PackedScene" path="res://main.tscn" id="2_main"]
+
+[node name="OwnJumpReview" type="Node"]
+script = ExtResource("1_review")
+
+[node name="Main" parent="." instance=ExtResource("2_main")]

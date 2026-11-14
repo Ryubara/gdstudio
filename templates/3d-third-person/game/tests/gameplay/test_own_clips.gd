@@ -1,4 +1,4 @@
-# GDStudio's own clips (`assets/animation/own/`, kit #1154, #1155 and #1160) import as the library
+# GDStudio's own clips (`assets/animation/own/`, kit #1154 to #1161) import as the library
 # `gds` beside the Universal Animation Library and play on the template's bodies (the prototype
 # `form` pair, `CharacterBodies`, which the clips are solved on) and on the Quaternius pair: the
 # file holds exactly the clips its `clips.json` freezes, every track finds its bone, a clip keys
@@ -6,7 +6,8 @@
 # stays on its place on the floor with its skin on it while the model travels along the clip's
 # travel curve, the gaits (kit #1155) hold the floor at the game's own speeds and share a phase,
 # no limb passes through another, the player plays our clip where the library's played, the
-# library clip still plays as a stand-in, and the imported library stays inside the budget.
+# library clip still plays as a stand-in, and the imported library stays inside the budget. What
+# is the jump's own (kit #1161) is in `test_own_jump_clips.gd`.
 extends GdUnitTestSuite
 
 const OWN := "res://assets/animation/own/locomotion.glb"
@@ -53,7 +54,9 @@ const GAITS := {
 }
 ## The imported library's bytes for a second of clip: the plan's budget, 7 KB a second since the
 ## maintainer's decision of 2026-11-13 (it was 6; the starts and stops of kit #1156 brought the
-## file to 6.6, 289,356 bytes for 43.7 s at 32 KiB pages) (kit docs,
+## file to 6.6, 289,356 bytes for 43.7 s at 32 KiB pages; the jump's nine of kit #1161 to 6.8,
+## 351,746 bytes for 50.8 s; with the strafes and lean poses of kit #1159 7,126 bytes a second,
+## 396,903 bytes for 55.7 s) (kit docs,
 ## tools/blender/own-animation.md#budget).
 const BYTES_A_SECOND := 7168.0
 
@@ -353,8 +356,9 @@ func test_a_stance_change_begins_and_ends_on_the_poses_it_joins() -> void:
 						two.basis.get_rotation_quaternion()
 					)
 					assert_float(rad_to_deg(turn)).override_failure_message(where).is_less(0.5)
-	# The two stance changes, and a start and a stop on each foot for each of three gaits.
-	assert_int(joined).is_equal((4 + 24) * MODELS.size())
+	# The two stance changes, a start and a stop on each foot for each of three gaits, and the
+	# three take-offs and the three landings, both ends of each.
+	assert_int(joined).is_equal((4 + 24 + 12) * MODELS.size())
 
 
 func test_the_crouch_clips_fit_the_game() -> void:
@@ -580,8 +584,8 @@ func test_every_stand_in_is_a_library_clip_that_still_plays() -> void:
 	await await_idle_frame()
 	assert_str(String(animation.idle_clip)).is_equal("ual1/Idle")
 	# A clip with no stand-in is its own.
-	assert_str(String(CharacterClips.stand_in(CharacterClips.JUMP_START))).is_equal(
-		String(CharacterClips.JUMP_START)
+	assert_str(String(CharacterClips.stand_in(CharacterClips.PUSH))).is_equal(
+		String(CharacterClips.PUSH)
 	)
 
 

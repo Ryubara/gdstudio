@@ -39,7 +39,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(1, str(HERE.parent))
 
 import measure_hash  # noqa: E402
-from clips import crouch_idle, crouch_walk, directed, gait, idle, lean, moves, stance  # noqa: E402
+from clips import crouch_idle, crouch_walk, directed, gait, idle, jump, lean, moves, stance  # noqa: E402
 from clips.joined import Joined, described  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
@@ -67,6 +67,15 @@ TYPES = {
     "crouch_walk": ("Crouch_Walk", crouch_walk.describe),
     "stand_to_crouch": ("Stand_To_Crouch", stance.describe_down),
     "crouch_to_stand": ("Crouch_To_Stand", stance.describe_up),
+    "jump_start": ("Jump_Start", jump.describe_start),
+    "jump_start_run_l": ("Jump_Start_Run_L", jump.describe_start_run_l),
+    "jump_start_run_r": ("Jump_Start_Run_R", jump.describe_start_run_r),
+    "jump_rise": ("Jump_Rise", jump.describe_rise),
+    "jump_apex": ("Jump_Apex", jump.describe_apex),
+    "jump_fall": ("Jump_Fall", jump.describe_fall),
+    "land_soft": ("Land_Soft", jump.describe_land_soft),
+    "land_hard": ("Land_Hard", jump.describe_land_hard),
+    "land_to_jog": ("Land_To_Jog", jump.describe_land_to_jog),
     "walk_back": ("Walk_Back", directed.walk_back),
     "walk_left": ("Walk_Left", directed.walk_left),
     "walk_right": ("Walk_Right", directed.walk_right),
@@ -125,6 +134,15 @@ GROUPS = {
         "Jog_Stop_R",
         "Sprint_Stop_L",
         "Sprint_Stop_R",
+        "Jump_Start",
+        "Jump_Start_Run_L",
+        "Jump_Start_Run_R",
+        "Jump_Rise",
+        "Jump_Apex",
+        "Jump_Fall",
+        "Land_Soft",
+        "Land_Hard",
+        "Land_To_Jog",
     ]
 }
 ## The deepest a limb may be inside another part of the body, on every body (mm).

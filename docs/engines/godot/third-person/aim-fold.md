@@ -56,3 +56,8 @@ standing and crouched and a shot from the carry, from the game camera; record at
   set of clips, `slerp` between two points, a missing bone left as drawn, the hand as drawn) was off by 5 degrees
   crouched, 14 standing and 20 lying, each from a different input; the test still passed with a 3 degree margin on
   the pre-merge clips. **Seen:** gdstudio #1318, 2026-11-12 (merging main into the fix; the margin is now 1 degree).
+- **Approach:** After a recoil keeps the aim offset's turn, ease its last pass with the release (`eased`), and test
+  the muzzle's line in the character's space through a jump with a shot against the ground's moves. **Watch out
+  for:** the pass put back in one tick what the release spread out; a jump moves the pose 16 degrees under a kept
+  turn, so the chest snapped 10 to 20 degrees (1239 degrees a second). **Seen:** gdstudio #1369, 2026-11-13
+  (`test_jump_weapon_hold.gd`; the takeoff's older step: #1462).
