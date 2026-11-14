@@ -52,9 +52,12 @@ Numbers that gave the template's look, in `world/lighting/`:
   The level has used `ProtoBlock` instead since #788; the note holds for any CSG level.
 - **A flat `Label3D`** reads from the +z side when rotated (-90, 0, 0); (-90, 180, 0) reads from the -z side, the
   side a player standing in the middle of the level looking at the jump blocks sees.
-- **Movie Maker is one frame behind `_process`.** The frame written is the state `_process` left on the previous call,
-  so a tour that cuts to a new view every N frames sets the first view in `_ready` and chooses each view one frame
-  ahead; otherwise frame 0 is the default camera and every cut shows late.
+- **A tour camera moved in `_process` is drawn a frame late.** The frame written shows the camera where `_process`
+  left it on the previous call, so a tour that cuts to a new view every N frames sets the first view in `_ready` and
+  chooses each view one frame ahead; otherwise frame 0 is the default camera and every cut shows late. The cause is
+  physics interpolation, not Movie Maker: an interpolated node moved outside the tick is drawn between its last two
+  places, while the skin's bones are drawn as this frame left them; a camera with `physics_interpolation_mode` OFF is
+  drawn where it was put ([Physics interpolation](physics-interpolation.md#using-it), gdstudio #1473).
 - **The synced `gds_ui` addon's demo does not parse without the `UIRouter` autoload.** Import, a run and the tests
   are clean, but the editor and `--export-release` load every script and printed parse errors for the five demo
   scripts. Registering the autoload and the plugin in the template's `project.godot` fixed it (gdstudio #814); the

@@ -6,7 +6,7 @@ Nothing here is copied from a library clip or from another game: a clip is a des
 
 | File | What it is |
 | --- | --- |
-| `bodies_overlap.json` | The shipped file's deepest limb crossing per clip and body, with the file's SHA-256; the build writes it and the Godot suite reads it, so a file that was rebuilt and not measured fails. |
+| `bodies_overlap.json` | The shipped file's deepest limb crossing per clip and body, with the file's SHA-256, the hash of the measure's code and each body file's (`../measure_hash.py`); the build writes it and the Godot suite reads it, so a file that was rebuilt and not measured fails, and so does a report made by another `../limb_overlap.py` or on another body. |
 | `locomotion.glb`, `locomotion.json` | The shipped clips and what the game needs to know of each (`clips.json` of the plan): loop, length, speed, travel and turn curves, contact times per foot, the foot it starts and ends on, events. Godot imports the glb as an `AnimationLibrary`; the player's `AnimationPlayer` holds it as `gds`, so the clip is `gds/Idle`. |
 | `picks.json` | Which variant each shipped clip is built from (`"Idle": "A"`). |
 | `clips/<type>.py` | A clip type's description, with every number a style may set and what it means. |
@@ -62,12 +62,12 @@ floor.
 - **The four `ik_` targets are keyed** (`ik_foot_l/r`, `ik_hand_l/r`), since the prototype rig has them: each
   clip has 52 bones' rotations, the pelvis's place and the targets' places and turns. The Quaternius skeleton has
   no such bones and the tracks move nothing there. With the eight clips before the starts and stops the shipped
-  file was 356 KB and imported to 130 KB for 24.8 s of clips (5.3 KB a second; the budget is 6); with the twelve
-  starts and stops and the nine jump clips it was 1.4 MB and imported to 352 KB for 50.8 s (6.8 KB a second); with
-  the strafes and lean poses of kit #1159 too it is 1.5 MB and imports to 397 KB for 55.7 s (7,126 bytes a second:
-  over the plan's 6, 42 bytes a second inside the 7 the test holds while the maintainer decides, below), with
-  Godot's compression pages at 32 KiB: at 8 a long dense clip lost its pelvis's keys (`test_own_jump_clips.gd`
-  compares the import with the file).
+  file was 356 KB and imported to 130 KB for 24.8 s of clips (5.3 KB a second; the budget was 6, 7 since
+  2026-11-13); with the twelve starts and stops and the nine jump clips it was 1.4 MB and imported to 352 KB for
+  50.8 s (6.8 KB a second); with the strafes and lean poses of kit #1159 too it is 1.5 MB and imports to 397 KB for
+  55.7 s (7,126 bytes a second, 42 bytes a second inside the 7 the test holds, below), with Godot's compression pages
+  at 32 KiB: at 8 a long dense clip lost its pelvis's keys (`test_own_jump_clips.gd` compares the import with the
+  file).
 - **The targets are set from the finished pose** (`build.retarget`, kit #1161) and checked on every frame
   (`checks.check_targets`, 4 mm). Before, the overlap pass left a hand's target up to 53 mm off in a walk, and a
   loop's first and last targets were a stride off (the shipped jog's `ik_foot_l` 2.46 m ahead); every clip was
@@ -456,10 +456,10 @@ placement, and each gait declares its own limit (`kb_a_second`: 24, 25 and 27 KB
 | Key bytes in the file | 20.6 KB | 16.5 KB | 14.3 KB |
 
 - **Imported size:** the library file was 68.4 KB imported with the idle and the three gaits, 5.6 KB a second over
-  their 12.1 s (130 KB and 5.3 with the crouch clips, 24.8 s), inside the 6 KB a second budget the test holds the
-  file to (57.6 KB and 4.8 on the Quaternius rig, before the `ik_` targets were keyed). A gait alone is over that
-  budget: a short loop of fast motion has few frames a reducer can drop, and the jog and the sprint are over the
-  40 % key budget for that reason (declared in the description, `keys_kept`).
+  their 12.1 s (130 KB and 5.3 with the crouch clips, 24.8 s), inside the budget the test holds the file to (6 KB
+  a second then, 7 since 2026-11-13) (57.6 KB and 4.8 on the Quaternius rig, before the `ik_` targets were keyed).
+  A gait alone is over that budget: a short loop of fast motion has few frames a reducer can drop, and the jog and
+  the sprint are over the 40 % key budget for that reason (declared in the description, `keys_kept`).
 - **Frame cost:** ten walking characters take 1.39 ms a frame with `gds/Walk` against 1.28 ms with the library
   walk on the desktop (the median of `tests/gameplay/test_parts_budget.gd`, five runs of each, interleaved): 8 %
   more, 0.011 ms a character, for 61 tracks where the library clip moves 21 bones.
@@ -519,7 +519,7 @@ What is left, and why: our cycles are shorter than the library's (26, 20 and 18 
 person's cadence at the game's speeds), so each frame is a larger share of the motion, and a foot that holds the
 floor at the game's speed has to swing faster than one that slides (the walk's joints change speed twice as hard as
 the library's, by the square of the pace). Keys at 60 a second would halve each step; that doubles the file's key
-bytes, over the 6 KB a second the import is held to, and is a budget decision, not a clip one.
+bytes, over the 7 KB a second the import is held to, and is a budget decision, not a clip one.
 
 ## The jump: take-offs, the air and landings
 
@@ -926,6 +926,6 @@ row shows. Measured by the build on `form_female` (frames are `_L`, `_R`):
   its last landing).
 - **Cost:** each start or stop keys the same tracks as the gaits (56 bones' rotations, the places of the pelvis and
   the four `ik_` targets). The library imports to 289,356 bytes for 43.7 s of clips at 32 KiB compression pages (6.6
-  KB a second; the plan's budget is 6, and the test holds 7 while the maintainer decides). Godot bakes a key a frame
+  KB a second, inside the plan's budget of 7, which the maintainer set on 2026-11-13). Godot bakes a key a frame
   on import, so the build's key reduction does not make the import smaller; leaving the hands' `ik_` targets out of
-  the twelve clips gave 275,564 bytes, still over 6.
+  the twelve clips gave 275,564 bytes (6.3 KB a second).

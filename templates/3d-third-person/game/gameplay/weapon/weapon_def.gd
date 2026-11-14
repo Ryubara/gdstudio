@@ -83,8 +83,16 @@ const FREE_ARM_BONE := &"clavicle_l"
 ## on only while the button is held, so letting go ends it after the shot already leaving (a quick
 ## tap fires fewer than `burst_size`). Weapon data: a server fires by the same setting.
 @export var full_burst_per_press := true
-## The shot goes off the aim by up to this angle, picked from the weapon's seeded sequence.
+## The most a shot goes off the aim (an angle picked from the weapon's seeded sequence), reached
+## by shots fired in a row (`ShotSpread`): a first shot from rest has `first_shot_spread`.
 @export_range(0.0, 15.0, 0.1, "suffix:deg") var spread := 0.0
+## The spread of a first shot from rest; 0 puts it on the crosshair's point (gdstudio #1411).
+@export_range(0.0, 15.0, 0.05, "suffix:deg") var first_shot_spread := 0.0
+## The shots fired in a row that take the spread from `first_shot_spread` up to `spread`.
+@export_range(1, 30, 1) var spread_build_shots := 4
+## Seconds the spread takes to fall from `spread` back to `first_shot_spread`, on the ticks the
+## weapon is ready to fire and is not fired.
+@export_range(0.0, 3.0, 0.01, "suffix:s") var spread_recovery_time := 0.3
 ## How hard a shot kicks the player's view: a share of the camera's `shot_kick_amplitude` (1: as
 ## the camera has it, 2: twice, 0: no kick, as for the fists). The kick is cosmetic and never sent.
 @export_range(0.0, 4.0, 0.05) var recoil := 1.0
@@ -360,6 +368,10 @@ const FREE_ARM_BONE := &"clavicle_l"
 @export var reload_sounds: Array[AudioStream] = []
 ## When each reload sound plays, as shares of `reload_time` (0 at the start, 1 at the end).
 @export var reload_sound_at: PackedFloat32Array = PackedFloat32Array()
+## On: the reload's last sound (the rifle's bolt) plays only in a reload of an empty magazine,
+## which ends with the charging handle's pull (`ChargePull`, kit #1402); with rounds left the bolt
+## stays home and makes none. Cosmetic.
+@export var last_reload_sound_when_empty := false
 ## The weapon coming out.
 @export var draw_sound: AudioStream
 

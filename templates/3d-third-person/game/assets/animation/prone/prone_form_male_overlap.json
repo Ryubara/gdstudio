@@ -1,6 +1,10 @@
 {
  "clips_file": "prone_form_male.glb",
  "sha256": "85ab0e23432e909f15c3d00043be7900fed3f226fe9e0fe2d87e698eee3ad3fb",
+ "measure_sha256": "fb342c8ac8b3f7e566dfec22c792caf3abe94c3493d9177faab3bfc4f8be606a",
+ "bodies_sha256": {
+  "form_male": "849173d1d1bf583ff7135713da7ddfdebcabc7b709c93476fd4c67d0790cbe3d"
+ },
  "fps": 30,
  "limit_mm": 5.0,
  "clips": {

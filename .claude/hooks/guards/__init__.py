@@ -90,8 +90,9 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
     cwd = Path(payload.get("cwd") or ".")
     reasons = check_comments(command) + check_transcript_text(command)
     lost = False  # a `cd` this cannot follow came before: a relative path no longer has a known folder
-    for words in segments(command):
-        moved, folder = change_dir(words, cwd)
+    assigned: dict[str, str] = {}  # the line's shell variables, so `cd "$WT"` is followed
+    for words in segments(command, assigned):
+        moved, folder = change_dir(words, cwd, assigned)
         if moved:
             if folder is None:
                 lost = True  # and it stays so for the rest of the line, whatever a later `cd` says
@@ -107,9 +108,10 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
             from .behind_base import check_behind
             from .bodies import check_pr_body
             from .issues import check_labels
-            from .merges import check_hold, check_merge, coordinator_lift
+            from .merges import check_hold, check_merge, check_task_merge, coordinator_lift
             from .red_default import check_red_main
 
+            reasons += check_task_merge(words, payload)
             reasons += check_merge(words, cwd)
             reasons += check_hold(words, cwd, coordinator_lift(payload))
             reasons += check_behind(words, cwd)

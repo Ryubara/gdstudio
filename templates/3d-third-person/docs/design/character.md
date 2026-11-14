@@ -186,7 +186,9 @@ A `PhysicsProp` has a `push_speed` of its own: the cubes of the map are 60 kg, g
 m/s, so the character (15 percent faster than the cube, to stay against it) walks slowly into them and the push clip
 plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The pistol's
 definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full automatic,
-spread, damage (34 before the hit zone's multiplier), aim range, the push it gives a body (40 N·s), the magazine (12),
+spread (none on a first shot from rest; `spread`, `first_shot_spread`, `spread_build_shots` and
+`spread_recovery_time` say how it grows over shots in a row and falls back), damage (34 before the hit zone's
+multiplier), aim range, the push it gives a body (40 N·s), the magazine (12),
 the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when the magazine is
 empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0, so it flies
 straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random pitch, two
@@ -425,7 +427,7 @@ is tuned in its inspector while the game runs:
 | --- | --- | --- |
 | `grip_pose`, `trigger_pose` | `pistol_grip_pose.tres`, `pistol_trigger_pose.tres` | The right hand on the grip with the index finger along the frame, and the index finger on the trigger, blended in as the character aims. |
 | `trigger_way_pose` | `pistol_trigger_way_pose.tres` | Where the index finger is half-way between the frame and the trigger: it goes round by this pose, clear of the left thumb, never straight. |
-| `trigger_way` | `pistol_trigger_way.tres` (the male body's in his fit) | The poses the index finger passes through between the frame and the trigger with both hands on the pistol: off the frame to its own side, its last two bones bent there, then into the trigger guard, clear of the guard and the left hand all the way. Written by `tools/hold/solve_pistol_trigger_way.gd`; when it is set, two-handed, `trigger_way_pose` is not used. |
+| `trigger_way` | `pistol_trigger_way.tres` (the male body's in his fit) | The poses the index finger passes through between the frame and the trigger with both hands on the pistol: clear of the guard and the left hand all the way (no deeper than the finger is where it holds). Planned by `tools/hold/plan_trigger_way.py` (the rifle's planner) on what `tools/hold/solve_pistol_trigger_way.gd --dump=` writes, then checked and written by `solve_pistol_trigger_way.gd --way=`; when it is set, two-handed, `trigger_way_pose` is not used. |
 | `thumb_pose` | `pistol_thumb_pose.tres` | The right thumb while the left hand is on the pistol: on the root of the left thumb, which takes its place on the frame. |
 | `thumb_way_pose` | `pistol_thumb_way_pose.tres` | Where the right thumb is half-way between the frame and the left thumb's root: lifted clear of the frame's rear edge, which the straight blend passed through. Set by hand. |
 | `support_pose` | `pistol_support_pose.tres` | The left hand on the pistol and over the right hand, used while aiming or firing. |

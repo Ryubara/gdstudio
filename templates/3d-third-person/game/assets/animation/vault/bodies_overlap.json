@@ -1,6 +1,11 @@
 {
  "clips_file": "vault_quaternius.glb",
  "sha256": "4a3c236d942750454a3deca8677fda5b1e4c066fb5f3274c502cdaa62d6909f2",
+ "measure_sha256": "fb342c8ac8b3f7e566dfec22c792caf3abe94c3493d9177faab3bfc4f8be606a",
+ "bodies_sha256": {
+  "mannequin_female": "2ee6cc3fe888d9b144afa8cc4b2ab7bfc5d13a0d5b7548df777f61f64ad65fa6",
+  "mannequin_male": "0a67bc1965336dff6d6e61c997719dcae2824b00b97c130d18acbbca31e7dcc6"
+ },
  "fps": 24,
  "limit_mm": 5.0,
  "clips": {

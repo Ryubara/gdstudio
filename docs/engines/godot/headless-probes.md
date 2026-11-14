@@ -70,9 +70,10 @@ minutes). How it is started decides what it can build.
   it, start the work after `await process_frame`, check `FileAccess.open` for null (`push_error`, `quit(1)`), pass an
   absolute `--out` (a relative one resolves inside the project), and exit 1 when nothing was measured. **Watch out
   for:** a `-s` SceneTree script that fails to parse, or errors in `_init` or `_initialize` before `quit()`, never
-  quits: the engine keeps an empty main loop (30 minutes idle; nine runs left at full CPU after `store_string` on a
-  null file; six silent minutes through a pipe into `tail`). **Seen:** Deadnight #415, #460, 2026-11-01; Deadnight,
-  2026-11-02 (a report script with a parse error in a class it used).
+  quits: the engine keeps an empty main loop (30 minutes idle; nine runs at full CPU after `store_string` on a null
+  file; six silent minutes piped into `tail`). **Seen:** Deadnight #415, #460, 2026-11-01; Deadnight,
+  2026-11-02 (a parse error in a report script's class); gdstudio #1438, 2026-11-13
+  (`--quit-after` ends one).
 
 ## A parse error is reported on its users {#parse-errors}
 

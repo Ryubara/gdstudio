@@ -15,16 +15,21 @@ extends SkeletonModifier3D
 ## `exp(x(t)) * pose` with `x(t) = (x0 + (v0 + x0 y) t) e^(-y t)`, `y = 2 ln 2 / half_life`, to
 ## every bone that differed, and the same to the pelvis's place. Nothing while the tree is off (a
 ## ragdoll holds the skeleton). Cosmetic, never sent.
+##
+## The new state's pose reaches the skeleton a frame or two after the key changes (the state
+## machine reports its new node in the frame it travels, and the tree draws it on a later update),
+## so the blend starts again from the pose last shown on each of `SETTLE_FRAMES` frames after a
+## change: each start keeps the drawn pose and its speed, and the one on the frame the new pose
+## arrives takes the whole jump (gdstudio #1416). Nothing while an action clip covers the whole
+## body (`CharacterAnimation.is_acting(true)`): the action cross-fades in the tree.
 
 ## Parts of the bone names it leaves to the clip alone.
 const SKIPPED: Array[String] = [
 	"thumb", "index", "middle", "ring", "pinky", "twist", "socket", "ik_", "root"
 ]
 
-## The body states whose changes in or out may start the blend again: the jump's.
-const AIRBORNE: Array[StringName] = [
-	CharacterAnimation.JUMP, CharacterAnimation.FALL, CharacterAnimation.LAND
-]
+## Frames after a change of key on which the blend starts again from the pose last shown.
+const SETTLE_FRAMES := 3
 
 ## The node whose body state it follows (`CharacterGait.pose_key()`).
 var animation: CharacterAnimation
@@ -49,8 +54,7 @@ var _pelvis_x0 := Vector3.ZERO
 var _pelvis_j0 := Vector3.ZERO
 var _t := 0.0
 var _blending := false
-var _again := false
-var _state: StringName = &""
+var _settle := 0
 
 
 ## True while a difference is dying away.
@@ -84,21 +88,17 @@ func _process_modification_with_delta(delta: float) -> void:
 		_forget()
 		_follow(skeleton)
 	var key: Variant = animation.gait.pose_key(animation)
-	var state := animation.body_state()
-	if key != _key and _seen >= 2 and delta > 0.0:
-		_begin(skeleton, delta)
-		_again = state in AIRBORNE or _state in AIRBORNE
-	elif _again and delta > 0.0:
-		# The state machine can name its new state a frame before the new state's pose reaches
-		# the skeleton: begun on the change alone, the blend carried a few hundredths of a radian
-		# and the pose jumped whole on the next frame (the arms 20 degrees in a tick as a landing
-		# gave way to the ground, gdstudio #1369). Begun again here from the pose last shown, on
-		# the jump's changes only: begun again on every change, it carried the old speed twice and
-		# a vault's planted hand slid 20 to 29 mm (10 mm with one start).
-		_begin(skeleton, delta)
-		_again = false
+	if key != _key and _seen >= 2:
+		_settle = SETTLE_FRAMES
 	_key = key
-	_state = state
+	if animation.is_acting(true):
+		# The action's own cross-fade covers the body, and the clip moves fast (a vault's hands):
+		# a start then would hold its motion back and lift a planted hand off its place.
+		_settle = 0
+		_blending = false
+	if _settle > 0 and delta > 0.0:
+		_settle -= 1
+		_begin(skeleton, delta)
 	if _blending:
 		_apply(skeleton, delta)
 	_remember(skeleton)
@@ -175,8 +175,8 @@ func _follow(skeleton: Skeleton3D) -> void:
 
 func _forget() -> void:
 	_seen = 0
+	_settle = 0
 	_blending = false
-	_again = false
 	_key = null
 
 

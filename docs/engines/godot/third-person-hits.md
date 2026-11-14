@@ -15,8 +15,10 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
 - **How a shot finds the part (two steps).** The `Projectile` flies against the character's capsule as it does against
   anything. When it touches a capsule tagged by a `HitZones` (the metadata `hit_zones`), it asks
   `HitZones.shot(collider, point, direction, damage, strength, source, centre)`: the zones are put on their bones of the
-  animated skeleton (`follow_bones()`) and a ray along the shot's own line, from the projectile's centre through the
-  capsule (`ray_length`, 1.2 m), looks for the first zone with `PhysicsLayers.HIT_ZONE_MASK`. A zone met: a
+  animated skeleton (`follow_bones()`) and a ray along the shot's own line, from `look_back` (0.5 m) before the
+  projectile's centre through the capsule (`ray_length`, 1.2 m), looks for the first zone with
+  `PhysicsLayers.HIT_ZONE_MASK`, so a part the pose holds in front of the capsule (a crouch's hips, seen from behind)
+  is met on the shot's way in. A zone met: a
   `HitRecord` goes to the character's `take_hit()`. None: the shot passed between the parts (beside the waist, between
   the legs), takes the capsule as an exception and flies on in the same tick. A lying body is met on its ragdoll bones
   (they carry the same tag while limp), and the record names the bone.
@@ -26,8 +28,10 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   leaves the muzzle toward that point, so a close shot lands on the part under the crosshair, not beside it
   (gdstudio #1251, [Shooting](third-person/shooting.md#crouch-aim-shoot)).
 - **Why two steps.** The zones move only for a shot that reached a capsule, never every frame: they cost nothing while
-  nobody shoots (the numbers are below). The price: a part held outside the capsule (an arm stretched out to aim) is
-  not hit, since the capsule is the first test.
+  nobody shoots (the numbers are below). The price: a part held outside the capsule to the side (an arm stretched out
+  to aim, a crouch's hips seen from the side) is not hit, since the capsule is the first test; so the drawn pose must
+  match the capsule's stance (a body drawn standing over its crouched capsule lost every shot at its head and chest,
+  gdstudio #1412, [the cause](animation-tree.md#gait-fitting)).
 - **The record.** `HitRecord`: `damage` (the zone's multiplier applied), `zone`, `bone`, `point`, `direction`,
   `strength` (the shot's impulse, N·s), and three local fields never sent (`source`, `knockback`, `killed`).
   `encode()` packs the sent part in about 40 bytes (`decode()` reads it back and refuses a short or non-finite one). It
@@ -66,7 +70,7 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
 
 - **On `HitZones`** (a `StaticBody3D` on layer 6, Hit Zones, mask none): `receiver` (the character), `model` (the slot
   whose skeleton the zones follow), `ragdoll`, `enabled` (off: a shot on the capsule hits the whole body, no zone and no
-  multiplier) and `ray_length`.
+  multiplier), `ray_length` and `look_back` (how far before the capsule's surface the second test starts, 0.5 m).
 - **On each `HitZone`** (a `CollisionShape3D` under it; size its shape in the inspector): `zone` (its name), `bone`,
   `offset` (in the bone's frame, Y along the bone; the node's own transform is overwritten), `damage_multiplier` and
   `enabled`. The eleven: `head` (sphere, 3.0), `chest` and `pelvis` (1.0), `arm_l`, `arm_r`, `forearm_l`, `forearm_r`
@@ -122,6 +126,12 @@ state, locomotion node and layers (`POSE` lines) through a seeded soak, to trace
   for:** at a capture's 10 frames a second each frame runs six physics ticks while the camera moves once, so an aim
   loop in `_physics_process` turned six times too far and swung about the target for the whole clip, firing nothing,
   while the same loop converged headless at 60. **Seen:** gdstudio #876, 2026-11-10 (`hit_tour.gd`).
+- **Approach:** When shots pass through bodies in play, run the seeded AI soak with a probe that casts rays of
+  `SHOT_MASK` at each living character's drawn head, chest and pelvis and sorts what they met (nothing, the wall
+  behind, the capsule with no zone on the line) by the body's state, crouch, tree state and throttle period.
+  **Watch out for:** the hit-zone tests shot standing bodies only, so all passed while crouched bodies lost 65 percent
+  of the rays at their drawn head and chest (drawn standing over a 1.1 m capsule). **Seen:** gdstudio #1412,
+  2026-11-13 (2 and 0.2 percent after; `tools/capture/crouch_cover_tour.tscn`: 0 of 8 chest shots hit before, 8 after).
 
 ## The Health component {#health}
 

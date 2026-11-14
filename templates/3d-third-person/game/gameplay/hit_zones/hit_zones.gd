@@ -9,7 +9,8 @@ extends StaticBody3D
 ## A shot finds a zone in two steps. It flies against the character's capsule as it does against
 ## anything (cheap: one shape); when it touches the capsule it asks this node (`shot()`), which
 ## puts every zone on its bone of the animated skeleton (`follow_bones()`) and casts a short ray
-## along the shot through the capsule against the zones alone. The zone the ray meets first is
+## along the shot through the capsule against the zones alone, from `look_back` before the touch
+## (a part the pose puts in front of the capsule is met too). The zone the ray meets first is
 ## hit; a ray that meets none passed between the parts (beside the waist, between the legs) and
 ## the shot flies on. So the zones cost nothing while nobody shoots: they are moved only for a
 ## shot that reached the capsule, never every frame. A part held outside the capsule (an arm
@@ -54,6 +55,10 @@ extends StaticBody3D
 ## How far past the capsule's surface the second test looks along the shot, metres: the
 ## capsule's width is enough for a level shot, more for a steep one.
 @export_range(0.2, 4.0, 0.05, "suffix:m") var ray_length := 1.2
+## How far before the capsule's surface the second test starts along the shot, metres: a part the
+## pose puts in front of the capsule (the hips of a crouch, behind the body's middle) is met on the
+## shot's way in, not passed over (gdstudio #1412).
+@export_range(0.05, 1.0, 0.05, "suffix:m") var look_back := 0.5
 
 var _bones_found := false
 
@@ -121,7 +126,7 @@ func shot(
 	if not enabled or zones().is_empty():
 		return HitRecord.shot(damage, &"", &"", point, along, strength, source)
 	var start := centre if centre.is_finite() else point
-	var found := find(start - along * 0.05, point + along * ray_length)
+	var found := find(start - along * look_back, point + along * ray_length)
 	if found.is_empty():
 		return null
 	var part: HitZone = found.zone
@@ -138,7 +143,7 @@ func aimed_point(point: Vector3, along: Vector3) -> Vector3:
 	if not enabled or zones().is_empty():
 		return point
 	var way := along.normalized()
-	var found := find(point - way * 0.05, point + way * ray_length)
+	var found := find(point - way * look_back, point + way * ray_length)
 	return found.point if not found.is_empty() else Vector3.INF
 
 
