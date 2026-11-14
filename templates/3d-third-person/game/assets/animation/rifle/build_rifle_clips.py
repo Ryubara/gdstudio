@@ -158,7 +158,8 @@ SHOT_KEYS = [(0, 0.0), (1, 1.0), (2, 0.72), (3, 0.36), (4, 0.08), (5, -0.14), (7
 # drop), in degrees. The eyes go down to the magazine well as the hand leaves the hand guard, follow the hand to
 # the belt as the left shoulder drops with it and come back to the well for the new magazine; the seat of the
 # magazine is a small jolt (`RELOAD_JOLTS`: share, degrees the chest pitches back for a frame or two). Both reloads
-# share that much; their ends are their own (kit #1508).
+# share these keys and their ends are their own (kit #1508); the curves are one to 0.50, since a key's slope reads
+# the keys beside it.
 RELOAD_KEYS = [
     (0.00, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.14, 20.0, 4.0, 3.0, 0.0, 0.0),
