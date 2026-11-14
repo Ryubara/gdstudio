@@ -4,7 +4,7 @@
      its own step of the hold, with its own solve and captures (gdstudio #1266) -->
 
 How the 3D Third Person rifle's left hand pulls the charging handle at the end of a reload. Part of
-[the rifle in both hands](weapon-pickups.md#rifle-hands), whose reload brings the hand to the seated magazine first.
+[the rifle in both hands](rifle-hands.md#rifle-hands), whose reload brings the hand to the seated magazine first.
 
 ## The pull after the magazine {#rifle-charge}
 
