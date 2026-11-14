@@ -168,7 +168,7 @@ every exit, kept with `--keep`, two calls at once).
   checkout whose `python` folder `--project` names, not the folder you stand in, so `--project` names the worktree's
   (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
   **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
-  gdstudio #940, 2026-11-10 (the main checkout's `python` tested the main checkout's template); #1274.
+  gdstudio #940, 2026-11-10 (the main checkout's `python` tested its own template); #1274; PR #1427.
 - **Approach:** Run a desktop probe or a bench of a template in a kept game (`gds template game`, or the game
   `bench-web` keeps without `--run`), never with `--path templates/<t>/game`. **Watch out for:** an import there
   failed to parse the menus and settings (37 errors: their classes come with the game) and rewrote three levels'

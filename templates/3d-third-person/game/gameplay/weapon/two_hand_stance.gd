@@ -19,6 +19,9 @@ const HEAD := &"Head"
 
 ## The hold that made it.
 var hold: TwoHandHold
+## How far the body leans for a peek, either way, 0 to 1, for a hold with no `character` (posed by
+## hand); with one, its `CharacterPeek.drawn()` (gdstudio #1436).
+var lean_share := 0.0
 
 var _head := -2
 # The spine (kit #1347): its bones and the skeleton's parents, read once; whether each spine bone's
@@ -71,7 +74,9 @@ func _process_modification_with_delta(_delta: float) -> void:
 	if top >= 0:
 		var ahead := (chest.basis.orthonormalized() * _rest_inverse) * Vector3.BACK
 		yaw = rad_to_deg(atan2(ahead.x, ahead.z))
-	var degrees := (hold.chest_turn_now() - yaw) * hold.chest_weight()
+	# `left_chest_turn` on the left shoulder (a left peek lean, gdstudio #1435).
+	var turn_now := lerpf(hold.chest_turn, hold.left_chest_turn, hold.side)
+	var degrees := (turn_now - yaw) * hold.chest_weight()
 	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
 	_turn_head(skeleton, top, degrees)
 	_straighten_chest(skeleton, top)
@@ -158,11 +163,14 @@ func _turn_head(skeleton: Skeleton3D, top: int, degrees: float) -> void:
 # shoulders' line (the chest's side axis), which the roll leaves pointing where the shoulders are,
 # and it goes by the lean's share: an upright body is left as it was.
 func _turn_back(skeleton: Skeleton3D, top: int) -> void:
-	if hold.lean_share <= 0.0 or top < 0 or not _chain:
+	var character := hold.character
+	var lean := absf(character.peek_motion.drawn()) if character != null else lean_share
+	if lean <= 0.0 or top < 0 or not _chain:
 		return
 	var across := (_posed[-1].basis.orthonormalized() * _rest_inverse) * Vector3.RIGHT
 	var yaw := rad_to_deg(atan2(-across.z, across.x))
-	var degrees := (hold.chest_turn_now() - yaw) * hold.chest_weight() * hold.lean_share
+	var turn_now := lerpf(hold.chest_turn, hold.left_chest_turn, hold.side)
+	var degrees := (turn_now - yaw) * hold.chest_weight() * lean
 	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
 	_turn_head(skeleton, top, degrees)
 

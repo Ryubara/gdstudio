@@ -66,7 +66,7 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   name them at parse. **Seen:** gdstudio #881 (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965
   (`next_up`), #1047, 2026-11-10; #906, #907, #909, #1127, #970 (`before`), #1337 (`after`), 2026-11-11; a game
   script too: #1336, 2026-11-12 (a parameter `amount` beside an `amount()`, a local `free`); #1400, 2026-11-13 (a
-  test's local `snapped`); #1435, 2026-11-13 (`side`, `roll`).
+  test's local `snapped`); #1435, 2026-11-13 (`side`, `roll`; a helper moved into a class with a `top` field).
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
   `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
@@ -200,7 +200,8 @@ game](new-game.md#proof), gdstudio #830 and #917).
 - **Approach:** When a change renames a method or changes its signature, search the tests for its callers (`git grep
   -n "<name>(" -- '*.gd'`) and run the full suite once, not only `--suite` on the files you changed. **Watch out
   for:** GDScript finds a wrong call only when the calling script loads, so the changed suites passed and the callers
-  in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10.
+  in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10; PR #1427, 2026-11-13
+  (a blend fix pushed with the full run still going: seven suites outside the changed files had passed on the snap).
 - **Approach:** Read the run's exit code, not only its summary: free every node a suite keeps out of the tree (a pool's
   parked characters, a node removed with `remove_child`) inside the case, or keep it in the tree. **Watch out for:**
   GdUnit counts a node outside the tree as an orphan and exits 101 with every case green; CI pipes the run with

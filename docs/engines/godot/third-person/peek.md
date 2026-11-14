@@ -166,15 +166,16 @@ standing and 78 to 84 crouched, against the hold's `chest_turn` of 30. The stanc
 the chest's forward axis, which the roll leaves pointing ahead, so it saw nothing wrong. With the left shoulder
 forward of the gun, the grip was ahead of the right shoulder and to its left, and the arm reached across the chest.
 
-Now the stance turns the chest again after the raise (`two_hand_stance.gd`, `_turn_back`), by the lean's share
-(`TwoHandHold.lean_share`, the drawn lean either way): it reads the turn from the shoulders' line (the chest's side
-axis) and turns the spine and the head back by what is left to `chest_turn_now()`, as the first turn does. An upright
-body is left as it was. On the left shoulder the right hand still reaches across the chest, and there two more things
-take the arm out: the right elbow points toward `RightPoleLeft` (a marker of `two_hand_hold.tscn`, high and forward of
-the chest) by `side` instead of `RightPole`, and the chest stands at `left_chest_turn` 10 degrees, the right shoulder a
-little forward (square on, the female's right arm was still 3 to 8 mm into her chest; at 15 the left hand came 1.3 mm
-off its place). Every case now measures 0.0 mm, both hands stay on their places (under 1 micrometre) and the aim
-layer keeps the muzzle on the aim. A pose on each machine from the lean the body already has: never sent.
+Now the stance turns the chest again after the raise (`two_hand_stance.gd`, `_turn_back`), by the lean's share (the
+character's drawn lean either way; `TwoHandStance.lean_share` for a figure posed by hand): it reads the turn from the
+shoulders' line (the chest's side axis) and turns the spine and the head back by what is left to the hold's turn
+(`chest_turn`, or `left_chest_turn` by `side`), as the first turn does. An upright body is left as it was. On the left
+shoulder the right hand still reaches across the chest, and there two more things take the arm out: the right elbow
+points toward `RightPoleLeft` (a marker of `two_hand_hold.tscn`, high and forward of the chest) by `side` instead of
+`RightPole` (`HoldBones.pole()`), and the chest stands at `left_chest_turn` 10 degrees, the right shoulder a little
+forward (square on, the female's right arm was still 3 to 8 mm into her chest; at 15 the left hand came 1.3 mm off its
+place). Every case now measures 0.0 mm, both hands stay on their places (under 1 micrometre) and the aim layer keeps the
+muzzle on the aim. A pose on each machine from the lean the body already has: never sent.
 
 `tests/gameplay/test_peek_lean_arms.gd` reads the drawn pose after the hold's modifiers for twelve updates, upright and
 leaning each way, crouched and standing, on both bodies: no vertex of the upper arms and forearms (the hands, which
