@@ -23,6 +23,7 @@ import re
 import subprocess
 import unicodedata
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 
 DOCS = Path("docs")
@@ -549,24 +550,40 @@ class Match:
     moved_from: str = ""  # the pointer's `page.md#anchor` when the section was reached through one
 
 
+#: How much more a section scores in `gds learn` for holding the query's words side by side as the query has them
+#: ("fails in a full run", "passes alone"): its score grows by this times the share of the query's adjacent word pairs
+#: it has. Common words are not terms, so "full run" is a pair in "fails in a full run" too. Without it a long section
+#: that has every word scattered outranked the one that says the phrase (gdstudio #1471: `ui-input-tests.md#leaks`
+#: fell from the top three as main's pages grew).
+PAIR_BONUS = 1.0
+
+
+def _pairs(*texts: list[str]) -> set[tuple[str, str]]:
+    """The adjacent term pairs of each term list (pairs never span two lists)."""
+    return {pair for words in texts for pair in pairwise(words)}
+
+
 def _rank(query: list[str], docs: list[tuple[object, list[str], list[str], list[str]]]) -> list[tuple[float, object]]:
-    """BM25 over (item, title terms, path terms, body terms): a title word counts 4, a path word 2, a body word 1, and
-    the score is scaled by the share of the query's terms the item has."""
+    """BM25 over (item, title terms, path terms, body terms): a title word counts 4, a path word 2, a body word 1, the
+    score is scaled by the share of the query's terms the item has, and raised by the share of the query's adjacent
+    pairs it has side by side (`PAIR_BONUS`)."""
     wanted = list(dict.fromkeys(query))
     if not wanted or not docs:
         return []
+    asked = _pairs(query) - {(w, w) for w in wanted}
     counted = []
     for item, title, path, body in docs:
         tf: dict[str, float] = {}
         for weight, words in ((4.0, title), (2.0, path), (1.0, body)):
             for w in words:
                 tf[w] = tf.get(w, 0.0) + weight
-        counted.append((item, tf, len(title) * 4 + len(path) * 2 + len(body)))
+        near = len(asked & _pairs(title, body)) / len(asked) if asked else 0.0
+        counted.append((item, tf, len(title) * 4 + len(path) * 2 + len(body), near))
     total = len(counted)
-    average = sum(n for _, _, n in counted) / total or 1.0
-    df = {t: sum(1 for _, tf, _ in counted if t in tf) for t in wanted}
+    average = sum(n for _, _, n, _ in counted) / total or 1.0
+    df = {t: sum(1 for _, tf, _, _ in counted if t in tf) for t in wanted}
     out = []
-    for item, tf, length in counted:
+    for item, tf, length, near in counted:
         hits = [t for t in wanted if t in tf]
         if not hits:
             continue
@@ -574,7 +591,7 @@ def _rank(query: list[str], docs: list[tuple[object, list[str], list[str], list[
         for t in hits:
             idf = math.log(1 + (total - df[t] + 0.5) / (df[t] + 0.5))
             score += idf * tf[t] * 2.2 / (tf[t] + 1.2 * (0.25 + 0.75 * length / average))
-        out.append((score * len(hits) / len(wanted), item))
+        out.append((score * len(hits) / len(wanted) * (1 + PAIR_BONUS * near), item))
     return sorted(out, key=lambda pair: -pair[0])
 
 

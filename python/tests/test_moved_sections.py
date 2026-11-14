@@ -123,6 +123,40 @@ def test_learn_puts_a_named_section_first_and_follows_it(moved_kit):
     assert refs[0] == "tools/blender/animation-research.md#research-weight"
 
 
+SCATTERED = """# Test speed
+
+## Time-driven values {#time-driven}
+
+A test that waits on the clock runs slower in a full suite: every test shares the clock, and a value read against time
+can fail when the frame is late. Measure it alone first. A timing test may fail once in a long run; alone, the same
+test passes. Keep each test's run short, and in a long run read the frame count, not the time, so no test can fail on
+a late frame.
+"""
+
+PHRASED = """# UI input tests
+
+## Leaks between suites {#leaks}
+
+When a UI test passes alone and fails in a full run, an earlier suite left global state behind: bisect to the pair
+and print what it left before forming a theory.
+"""
+
+
+def test_learn_ranks_the_section_that_says_the_words_side_by_side(tmp_path, monkeypatch):
+    """A long section with every word of the query scattered through it outranked the one that says the query's phrase
+    ("fails in a full run", "passes alone") until adjacent pairs counted (`PAIR_BONUS`, gdstudio #1471)."""
+    godot = tmp_path / "docs" / "engines" / "godot"
+    godot.mkdir(parents=True)
+    (godot / "test-speed.md").write_text(SCATTERED, encoding="utf-8")
+    (godot / "ui-input-tests.md").write_text(PHRASED, encoding="utf-8")
+    words = "a test fails in a full run and passes alone"
+    leaks, scattered = "engines/godot/ui-input-tests.md#leaks", "engines/godot/test-speed.md#time-driven"
+    monkeypatch.setattr(lessons, "PAIR_BONUS", 0.0)
+    assert [m.section.ref for m in lessons.learn(tmp_path, words)][:2] == [scattered, leaks]  # words alone
+    monkeypatch.undo()
+    assert [m.section.ref for m in lessons.learn(tmp_path, words)][:2] == [leaks, scattered]
+
+
 # --- the kit's own docs: the cases of gdstudio #1471 and the agents' reports of 2026-11-13 --------------------------
 
 
@@ -146,8 +180,10 @@ def test_the_kit_learns_the_new_page_of_a_split():
         ("audit gaits", f"{blender}/library-clip-audit.md#audit-gaits", f"{blender}/own-animation.md#audit-gaits"),
         ("clip toolkit", f"{blender}/clip-toolkit.md#toolkit", f"{blender}/animation.md#toolkit"),
     ):
+        # The five `gds learn` prints; the order among the new page's own sections and its neighbours moves as the
+        # kit's pages grow (0.03 apart on 2026-11-13), so `test_learn_names_the_new_page_not_the_pointer` pins it.
         refs = [m.section.ref for m in lessons.learn(KIT, words)]
-        assert new in refs[:2] and old not in refs
+        assert new in refs and old not in refs and len(refs) == len(set(refs))
 
 
 def test_no_pointer_section_of_the_kit_points_nowhere():

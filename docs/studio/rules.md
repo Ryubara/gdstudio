@@ -46,6 +46,13 @@ sharpen that one. Only when nothing fits do you make a new section, and only whe
   folding the old lessons each made their own sections, so main got two `#simulator` sections, overlapping sections of
   `gamedev/testing.md` and two pages on running GdUnit4. **Seen:** gdstudio #770, 2026-11-07 (fix: `gdunit-tests.md`
   was folded into `running-gdunit.md` and the duplicate sections merged before each pull request landed).
+- **Approach:** Prove how `gds learn` or `gds brief` ranks on a small kit of the test's own (`tmp_path`), and let a
+  case on the live kit's pages assert what the agent sees (the five `gds learn` prints, the brief's lines) or a place
+  held by a clear margin. **Watch out for:** the live pages grow every day; words that say a phrase ("fails in a full
+  run and passes alone") scored no better than a long section with each word scattered, so `ui-input-tests.md#leaks`
+  fell from third to fourth by 0.001 when main's pages grew, and CI failed on a pull request that changed none of
+  them. **Seen:** gdstudio #1471, 2026-11-13 (fix in PR #1485: adjacent word pairs count, `lessons.PAIR_BONUS`, proved
+  on a fixed kit; the live split case asserts the five).
 
 ## An entry {#rule}
 
