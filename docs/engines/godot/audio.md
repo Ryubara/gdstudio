@@ -356,12 +356,13 @@ A bed is judged by what the player hears of it in its own place, not by a loudne
   2026-11-02 (fix: the waiting `_exit_tree`; a test runs a child Godot that starts sounds and quits at once and fails
   on any leak line, as it did before the fix every time).
 - **Approach:** In a GdUnit run, drain from a session hook: a `GdUnitTestSessionHook` script listed in `project.godot`
-  (`[gdunit4]`, `hooks/session_hooks=Dictionary[String, bool]({"res://tests/fixtures/<hook>.gd": true})`) whose
-  `shutdown()` stops every player under the root, waits on the mixer and awaits two frames (3D Third Person:
-  `audio_drain_session_hook.gd`). **Watch out for:** a sounding autoload (`MenuSounds`) outlives every suite, and
-  GdUnit quits after a 0.1 s timer that `--fixed-fps 60` makes a few milliseconds, against a mix every 70 to 90 ms:
-  `test_screen_host.gd` alone left two menu voices (10 instances) in 11 runs of 20. **Seen:** gdstudio #1506,
-  2026-11-14 (shard 4 on main, run 43558346864, and PR #1474; with the hook 0 of 20).
+  by uid (`[gdunit4]`, `hooks/session_hooks=Dictionary[String, bool]({"uid://...": true})`: the web pack carries the
+  settings and must name no `res://tests/`) whose `shutdown()` stops every player under the root, waits on the mixer and
+  awaits two frames (3D Third Person: `audio_drain_session_hook.gd`). **Watch out for:** a sounding autoload
+  (`MenuSounds`) outlives every suite, and GdUnit quits after a 0.1 s timer that `--fixed-fps 60` makes a few
+  milliseconds, against a mix every 70 to 90 ms: `test_screen_host.gd` alone left two menu voices (10 instances) in 11
+  runs of 20. **Seen:** gdstudio #1506, 2026-11-14 (shard 4 on main, run 43558346864, and PR #1474; with the hook 0 of
+  20; a `res://` key failed the web pack check).
 
 ## Sound through windows, not walls (Deadnight #657) {#sound-through-windows-not-walls-deadnight-657}
 

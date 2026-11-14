@@ -10,10 +10,16 @@ const HOOKS_SETTING := "gdunit4/hooks/session_hooks"
 const RELEASE_FRAMES := 4
 
 
-func test_the_hook_is_registered_and_enabled() -> void:
+# Listed by its uid: the project settings ship in the web pack, which must not name `res://tests/`.
+func test_the_hook_is_registered_by_uid_and_enabled() -> void:
 	assert_bool(ProjectSettings.has_setting(HOOKS_SETTING)).is_true()
 	var hooks: Dictionary = ProjectSettings.get_setting(HOOKS_SETTING, {})
-	assert_bool(hooks.get(HOOK_PATH, false)).is_true()
+	var found := false
+	for key: String in hooks:
+		assert_str(key).starts_with("uid://")
+		if ResourceUID.uid_to_path(key) == HOOK_PATH:
+			found = hooks[key]
+	assert_bool(found).is_true()
 
 
 func test_the_hook_lets_go_of_a_playing_voice() -> void:

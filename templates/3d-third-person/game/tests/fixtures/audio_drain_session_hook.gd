@@ -7,7 +7,8 @@ extends GdUnitTestSessionHook
 ## thread mixes every 70 to 90 ms: the voice was still held at exit (`10 ObjectDB instances were
 ## leaked`, two decoded menu sounds), whichever suite happened to run last (gdstudio #1506). Here
 ## every player in the tree is stopped and the mixer is waited on, then a frame lets the main thread
-## delete what the audio thread let go of. Registered in `project.godot` (`gdunit4/hooks`).
+## delete what the audio thread let go of. Registered in `project.godot` (`gdunit4/hooks`)
+## by its uid: the project settings ship in the web pack, which must name no `res://tests/` path.
 
 ## The frames after the drain in which the main thread deletes the released playbacks.
 const RELEASE_FRAMES := 2
