@@ -216,13 +216,13 @@ func refresh() -> void:
 func is_at_rest() -> bool:
 	if full_refresh or character == null or animation == null or animation.tree == null:
 		return false
-	if _is_on(_modifier) or _is_on(_head) or _is_on(_upright):
+	# Through the accessors: a model taken out frees the modifiers before they are made again.
+	var aim := modifier()
+	var looking := head_modifier()
+	var upright := upright_modifier()
+	if (aim and aim.active) or (looking and looking.active) or (upright and upright.active):
 		return false
 	return animation.pistol_weights().y <= 0.0 and animation.melee.aim_of(character) <= 0.0
-
-
-static func _is_on(made: SkeletonModifier3D) -> bool:
-	return made != null and is_instance_valid(made) and made.active
 
 
 # Gives the modifier the weapon's aim pose alone at the aim's pitch now (the prone aim's, by how
