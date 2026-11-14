@@ -24,10 +24,10 @@ const STOP_TICKS := 8
 ## Ticks read from the jump press, and the updates in the jump state that are its takeoff.
 const READ_TICKS := 24
 const TAKEOFF_UPDATES := 4
-## The stop clips of each foot, and the ticks of standing still before a run that move the jog's
-## phase at the stop until both have played.
+## The stop clips of each foot, and the ticks of jog that move the jog's phase at the stop until
+## both have played (a walk cycle is about a second).
 const STOPS: Array[StringName] = [&"gds/Walk_Stop_L", &"gds/Walk_Stop_R"]
-const SETTLES: Array[int] = [20, 30, 40, 50, 60, 70]
+const JOGS: Array[int] = [45, 52, 59, 66, 73, 80, 87, 94]
 ## How many updates into the jump the body machine may still name another state.
 const JUMP_STATE_BY := 2
 ## How much faster than the stop it leaves, the rest of its jump, or a still stand's takeoff, the
@@ -78,8 +78,10 @@ func _either_foot(body: String) -> void:
 	await _player_with(body)
 	var still := _fastest(await _jump(false), Part.TAKEOFF)
 	var seen: Array[StringName] = []
-	for settle in SETTLES:
-		var run := await _jump(true, settle)
+	for jog in JOGS:
+		if seen.size() == STOPS.size():
+			break
+		var run := await _jump(true, jog)
 		if _stop_clip in seen:
 			continue
 		seen.append(_stop_clip)
@@ -98,8 +100,11 @@ func _either_foot(body: String) -> void:
 		)
 		prints("AIMED_TAKEOFF " + message)
 		assert_float(turn.whole).override_failure_message(message).is_less_equal(bound)
-	seen.sort()
-	assert_array(seen).override_failure_message("stops played: %s" % [seen]).is_equal(STOPS)
+	(
+		assert_array(seen)
+		. override_failure_message("stops played: %s" % [seen])
+		. contains_exactly_in_any_order(STOPS)
+	)
 
 
 func _takeoffs(body: String) -> void:
@@ -180,19 +185,19 @@ func _player_with(body: String) -> void:
 	_muzzle_in_hand = _bone(_hand).affine_inverse() * muzzle.global_transform
 
 
-# One aimed jump from the middle of the arena after `settle` ticks there, read on every update:
-# from a stop (the aim up, a jog, the stick let go, read from there, and the jump pressed while
-# the stop clip plays) or from a still stand with the aim up (read from the press).
-func _jump(from_stop: bool, settle := 20) -> Array[Dictionary]:
+# One aimed jump from the middle of the arena, read on every update: from a stop (the aim up,
+# `jog` ticks of jog, the stick let go, read from there, and the jump pressed while the stop clip
+# plays) or from a still stand with the aim up (read from the press).
+func _jump(from_stop: bool, jog := JOG_TICKS) -> Array[Dictionary]:
 	_player.teleport(Vector3.ZERO, PI)
-	await InputSim.ticks(get_tree(), settle)
+	await InputSim.ticks(get_tree(), 20)
 	_updates.clear()
 	var reader := _read.bind("from a stop" if from_stop else "from a still stand")
 	InputSim.mouse_button(MOUSE_BUTTON_RIGHT, true)
 	if from_stop:
 		await InputSim.ticks(get_tree(), AIM_TICKS)
 		InputSim.key(KEY_W, true)
-		await InputSim.ticks(get_tree(), JOG_TICKS)
+		await InputSim.ticks(get_tree(), jog)
 		InputSim.key(KEY_W, false)
 		_skeleton.skeleton_updated.connect(reader)
 		await InputSim.ticks(get_tree(), STOP_TICKS)
