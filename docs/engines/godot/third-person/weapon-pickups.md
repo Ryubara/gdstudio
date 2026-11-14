@@ -119,8 +119,10 @@ are named as such.
   chest's left side forward under the stock, and both again in the same frame only when the push moved more than 3 mm.
   What is still short then brings the gun back along its barrel (`pull_limit`, 0 now: nothing is short).
 - **The left shoulder.** On a left peek lean the stance mirrors the pocket and the gun's turn across the body and
-  turns the chest square on (`side`, `left_chest_turn`); the hands keep their places on the rifle
-  ([the weapon on the left side](peek.md#left-shoulder), gdstudio #1435).
+  turns the chest nearly square on (`side`, `left_chest_turn`, 10 degrees) with the right elbow toward
+  `RightPoleLeft`; the hands keep their places on the rifle ([the weapon on the left side](peek.md#left-shoulder),
+  gdstudio #1435). On a peek lean either way the stance turns the chest back to its turn after raising it, so the
+  right arm stays out of the chest ([the arms on a rifle lean](peek.md#rifle-lean-arms), gdstudio #1436).
 - **The arms** are a `HoldArm` each (the pistol's own reach, given the hand's place in the skeleton's space by the
   stance in the same update), toward `RightHandTarget` and `LeftHandTarget` on the rifle, the elbows toward
   `RightPole` and `LeftPole`. Both are on their places in every update of every state (0.0 mm in 110 poses of both

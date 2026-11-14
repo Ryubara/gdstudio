@@ -88,9 +88,10 @@ const _PUSH_STEP := 0.003
 ## The clip's own turn of the chest is taken off, so the shoulders keep this in a walk or a run.
 @export_range(-60.0, 60.0, 0.5, "suffix:deg") var chest_turn := -30.0
 ## How far the chest stands turned with the gun on the left shoulder (a left peek lean, gdstudio
-## #1435), as `chest_turn`: square on, since the right hand reaches across to the grip and the left
-## arm forward to the hand guard (turned the mirrored 30 degrees, the left hand was 15 mm short).
-@export_range(-60.0, 60.0, 0.5, "suffix:deg") var left_chest_turn := 0.0
+## #1435), as `chest_turn`: nearly square on, since the right hand reaches across to the grip and
+## the left arm forward to the hand guard (turned the mirrored 30 degrees, the left hand was 15 mm
+## short; square on, the female's right arm was 3 to 8 mm in her chest, gdstudio #1436).
+@export_range(-60.0, 60.0, 0.5, "suffix:deg") var left_chest_turn := 10.0
 ## The most the chest leans (from its rest, the way the clip has it) while the gun is up: a chest
 ## that leans more (a crouch's hunch) is raised toward this as the gun comes to the shoulder.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var aim_lean_limit := 25.0
@@ -243,10 +244,15 @@ var posed_free := 0.0
 var posed_blow := 0.0
 ## How far the gun is on the left shoulder, for a figure posed by hand (gdstudio #1435).
 var posed_side := 0.0
+## How far the body leans for a peek, either way, for a figure posed by hand (gdstudio #1436).
+var posed_lean := 0.0
 ## How far the gun is on the left shoulder now, 0 to 1: a left peek lean's share
 ## (`CharacterPeek.shoulder_share()`). The pockets, the gun's turn across and the chest's turn
 ## are mirrored by it; the hands stay on their places on the gun.
 var side := 0.0
+## How far the body leans for a peek now, either way, 0 to 1 (`CharacterPeek.drawn()`): the stance
+## turns the chest back to its turn after raising a leaning chest by it (gdstudio #1436).
+var lean_share := 0.0
 ## True while the camera is past `fingers_far_distance` (set by `CharacterAnimationThrottle`).
 var fingers_far := false
 
@@ -281,6 +287,8 @@ var _pivot: Node3D
 var _gun: Node3D
 var _targets: Array[Node3D] = [null, null]
 var _poles: Array[Node3D] = [null, null]
+# Where the right elbow points with the gun on the left shoulder (`RightPoleLeft`, gdstudio #1436).
+var _left_pole: Node3D
 var _on_magazine: Node3D
 var _mag: Node3D
 var _mag_far: Node3D
@@ -592,6 +600,8 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		var pole := _poles[index]
 		if pole != null:
 			var pole_here := pole.transform if pole.get_parent() == self else _in_here(pole)
+			if index == 0 and side > 0.0 and _left_pole != null:
+				pole_here.origin = pole_here.origin.lerp(_left_pole.position, side)
 			_arms[index].elbow = to_skeleton * pole_here.origin
 
 
@@ -704,6 +714,7 @@ func _step(delta: float) -> void:
 		_freed = _free.amount()
 		_blow.step(character)
 		side = character.peek_motion.shoulder_share(character)
+		lean_share = absf(character.peek_motion.drawn())
 		var wants := _blow.aim(character)
 		_shot_left = maxf(_shot_left - delta, 0.0)
 		if _shot_left > 0.0:
@@ -716,6 +727,7 @@ func _step(delta: float) -> void:
 		_freed = posed_free
 		_blow.amount = posed_blow
 		side = posed_side
+		lean_share = posed_lean
 	_kick = move_toward(_kick, 0.0, delta / maxf(kick_recover_time, 0.001))
 
 
@@ -948,6 +960,7 @@ func _find_parts() -> void:
 	_targets[1] = find_child("LeftHandTarget", true, false) as Node3D
 	_poles[0] = get_node_or_null(^"RightPole") as Node3D
 	_poles[1] = get_node_or_null(^"LeftPole") as Node3D
+	_left_pole = get_node_or_null(^"RightPoleLeft") as Node3D
 	_on_magazine = find_child("MagazineHand", true, false) as Node3D
 	_gun = _targets[1].get_parent() as Node3D if _targets[1] != null else null
 	_mag = get_node_or_null(magazine) as Node3D

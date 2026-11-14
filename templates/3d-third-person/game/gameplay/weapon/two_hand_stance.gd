@@ -75,6 +75,7 @@ func _process_modification_with_delta(_delta: float) -> void:
 	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
 	_turn_head(skeleton, top, degrees)
 	_straighten_chest(skeleton, top)
+	_turn_back(skeleton, top)
 	hold.place(skeleton, _posed[-1] if _chain else Transform3D(), _chain)
 
 
@@ -148,6 +149,22 @@ func _turn_head(skeleton: Skeleton3D, top: int, degrees: float) -> void:
 	skeleton.set_bone_pose(
 		_head, neck.affine_inverse() * Transform3D(back * head.basis, head.origin)
 	)
+
+
+# Turns a peek lean's chest back to the hold's turn after `_straighten_chest()` (gdstudio #1436):
+# the lean rolls a chest the crouch bends forward about the model's front, and raising that chest
+# the short way swung its shoulders round, up to 84 degrees past `chest_turn` crouched, so the
+# right hand reached across the chest and the arm went into it. The turn is read from the
+# shoulders' line (the chest's side axis), which the roll leaves pointing where the shoulders are,
+# and it goes by the lean's share: an upright body is left as it was.
+func _turn_back(skeleton: Skeleton3D, top: int) -> void:
+	if hold.lean_share <= 0.0 or top < 0 or not _chain:
+		return
+	var across := (_posed[-1].basis.orthonormalized() * _rest_inverse) * Vector3.RIGHT
+	var yaw := rad_to_deg(atan2(-across.z, across.x))
+	var degrees := (hold.chest_turn_now() - yaw) * hold.chest_weight() * hold.lean_share
+	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
+	_turn_head(skeleton, top, degrees)
 
 
 # Raises a chest that leans more than the hold's `aim_lean_limit` toward that limit as the gun comes

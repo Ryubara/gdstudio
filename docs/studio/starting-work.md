@@ -252,6 +252,10 @@ lands (a squash merge makes a new commit on `main`), so the line keeps naming th
   and folded its page into another section while the stacked branch was resolving `main` alone, so the fold made
   there (a section of its own) was redone into the base's section, and the clip that joins the base's would have
   been solved on the base's old files. **Seen:** gdstudio #1265 on #1191, 2026-11-12.
+- **Approach:** Commit the merge of an open base branch with a message file that ends in the trailer (`git commit
+  --cleanup=strip -F <file>`); `gds merge-main` covers only `main`. **Watch out for:** after resolving conflicts,
+  `git commit --no-edit` leaves git's `# Conflicts:` list as the last paragraph, so the commit-trailers hook refused the
+  merge. **Seen:** gdstudio #1436 on #1456, 2026-11-13.
 
 ### The worktree is removed when the work is finished {#sweep}
 
