@@ -18,14 +18,16 @@ var _let_go := Vector3.INF
 var _let_go_speed := 0.0
 
 
-func before_test() -> void:
+func after_test() -> void:
+	_rig = null
+	_client = null
+
+
+func test_a_sprint_stop_ends_where_the_server_body_ends() -> void:
 	_rig = auto_free(OnlineRig.new())
 	add_child(_rig)
 	assert_bool(_rig.start()).is_true()
 	_let_go = Vector3.INF
-
-
-func test_a_sprint_stop_ends_where_the_server_body_ends() -> void:
 	_client = await _rig.join("Ada")
 	assert_object(_client).is_not_null()
 	_rig.controllers[0].plan = _plan

@@ -342,7 +342,7 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
 - **Momentum.** A state machine transition with `xfade_time` 0 reports its new node from
   `get_current_node()` in the update it travels, but the skeleton shows the new pose a frame later (measured at
   `skeleton_updated`, stepped by hand and in the running game alike), so the modifier starts the decaying difference
-  from the last drawn pose again on each of the three frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
+  from the last drawn pose again on each of the four frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
   start on the frame the new pose arrives takes the whole jump. A `SkeletonModifier3D` added as an internal child at
   the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
 
@@ -400,7 +400,8 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   its new node, a frame before the skeleton showed it, so it carried nothing and the new pose arrived whole: 88 cm in
   one frame at a walk's stop, 70 cm into the crouch, for our clips and the library's alike; the blend's own test
   checked only that it was blending. **Seen:** gdstudio #1416, 2026-11-13 (the maintainer's playtest;
-  `test_own_clip_blends.gd`).
+  `test_own_clip_blends.gd`); PR #1422, 11-14 (slower stops: a 1.3 rad gap at a sprint stop's start moved 23 cm in
+  the frame after the last restart; `SETTLE_FRAMES` 4).
 - **Approach:** Keep a state-change blend out while an action clip covers the whole body
   (`CharacterAnimation.is_acting(true)`); the action cross-fades in the tree. **Watch out for:** the body state
   under a vault still changes, and a restart then took the clip's own fast motion for a jump and held it back: a
