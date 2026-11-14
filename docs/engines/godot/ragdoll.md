@@ -181,6 +181,20 @@ the joints. That is physics, and not what a death looks like.
   times its run (16 m/s for 4 m/s: flung with a leg up), on any other tick it lost its run. Far targets are the
   rifle's, so it looked like a rifle fault. **Seen:** gdstudio #1343, 2026-11-12
   (`test_death_push.gd`, a far running AI killed on each tick of the step cycle; `tools/capture/kill_tour.tscn`).
+- **Approach:** Read the pose's speed between the last two samples that differ, over the ticks between them
+  (`RagdollPose.span()`), and give no speed once it has not moved for longer than a frame holds ticks
+  (`is_still()`). **Watch out for:** the tree moves on idle frames, and a frame's ticks run before its idle step: a
+  slow frame's ticks read one pose (0 m/s at a death there) and the next tick read the frame's three ticks of motion
+  as one (three times the speed); a tree throttled to every fourth tick gave 4 times or 0. `--fixed-fps` hides it
+  (one frame, one tick), a browser does not. **Seen:** gdstudio #1359, 2026-11-13 (`test_ragdoll_pose.gd`: the old
+  sampler read 0, 6 and 9 m/s for a 3 m/s hand over frames of 1 to 3 ticks).
+- **Approach:** Pair pose samples only when no physics tick was missed between reads and the later one is from
+  this tick or the one before (`RagdollPose` stamps each read with `Engine.get_physics_frames()` and starts the count
+  again after a gap). **Watch out for:** the animation throttle turns `pose_velocity` off while it holds a tree, so the
+  sampler stopped with its last read kept; a hit hands the tree back, the first read after it paired with that read
+  from seconds before as one tick, and a death on the next tick left at 6.6 m/s with a bone at 27 m/s for a 4 m/s run.
+  With the check that death leaves at the character's velocity (4.0 m/s), as any death while throttled does.
+  **Seen:** gdstudio #1388, 2026-11-13 (`test_ragdoll_hand_back.gd`: killed 0, 1 and 2 ticks after the hand-back).
 
 ## Drawing between ticks {#drawing}
 
@@ -497,3 +511,11 @@ into a game made from the template to run it (`scenario=`, `variants=`, `model=`
   (the modifiers' pose is thrown away after the skin update), and a single fresh flinch on a standing body stretched
   2 cm: the rods needed a body moved or revived since its bones were last simulated. **Seen:** gdstudio #1338,
   2026-11-12 (`test_hit_bone_lengths.gd`).
+- **Approach:** Stage a death that a test compares with a bound on the physics clock and on a clean slate: hand the
+  character's tree to the ticks (`set_throttled(true)` and `advance(1 / ticks)` on `physics_frame`) from its first
+  tick, put the arena in a `SubViewport` with `own_world_3d` (a Jolt space of its own), and clear the `RagdollPool`
+  with `warmed` set. **Watch out for:** one run-and-shove death lay 3.1 to 3.9 cm deep by the bodies left in the world
+  before it (Jolt solves in body order) and by the pool's warm-up; on the real clock 0.6 to 5.9 cm, and one death tick
+  of the sprint 6.4: now and then CI crossed the 6 cm bound. Staged, it is the same to six digits alone, after other
+  suites, on `--fixed-fps` and the real clock. **Seen:** gdstudio #1359, 2026-11-13
+  (`test_ragdoll_natural.gd`, `_stage_on_ticks`).

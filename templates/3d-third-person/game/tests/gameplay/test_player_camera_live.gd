@@ -45,6 +45,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"aim_point_range": 100.0,
 		&"aim_point_min_distance": 2.0,
 		&"aim_point_mask": PhysicsLayers.SHOT_MASK,
+		&"keep_aim_layers": PhysicsLayers.CHARACTERS | PhysicsLayers.RAGDOLL,
 		&"sprint_fov_change": 6.0,
 		&"sprint_distance_change": 0.4,
 		&"sprint_zoom_speed": 3.0,

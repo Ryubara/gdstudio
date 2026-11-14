@@ -56,6 +56,7 @@ func _assert_same(actual: PlayerCommand, expected: PlayerCommand) -> void:
 	assert_float(actual.shot_yaw).is_equal(expected.shot_yaw)
 	assert_float(actual.shot_pitch).is_equal(expected.shot_pitch)
 	assert_int(actual.view_tick).is_equal(expected.view_tick)
+	assert_int(actual.use_place).is_equal(expected.use_place)
 
 
 func test_a_command_is_15_bytes_and_27_with_a_shot_block() -> void:
@@ -141,6 +142,32 @@ func test_the_melee_press_takes_bit_0_of_byte_13_and_the_size_stays() -> void:
 	later.clear_edges()
 	assert_bool(later.melee_pressed).is_false()
 	assert_int(NetWire.VERSION).is_greater_equal(8)
+
+
+func test_the_hotbar_place_takes_byte_14_and_the_size_stays() -> void:
+	var command := PlayerCommand.new()
+	assert_int(CommandCodec.encode(command)[CommandCodec.USE_AT]).is_equal(0)
+	assert_int(CommandCodec.decode(CommandCodec.encode(command)).use_place).is_equal(-1)
+	command.use_place = 2
+	var packet := CommandCodec.encode(command)
+	assert_int(packet.size()).is_equal(NetWire.COMMAND_SIZE)
+	assert_int(packet[CommandCodec.USE_AT]).is_equal(3)
+	assert_int(packet[CommandCodec.MORE_FLAGS_AT]).is_equal(0)
+	assert_int(CommandCodec.decode(packet).use_place).is_equal(2)
+	# A place past the most the byte names is refused, as an unknown flag is.
+	var drops := NetDrops.new()
+	packet[CommandCodec.USE_AT] = CommandCodec.MAX_USE_PLACES + 1
+	assert_object(CommandCodec.decode(packet, drops)).is_null()
+	assert_int(drops.total()).is_equal(1)
+	# Two commands in one tick keep the press (the earlier one's when the later has none); a
+	# repeat drops it.
+	var later := PlayerCommand.new()
+	later.merge_edges_from(command)
+	assert_int(later.use_place).is_equal(2)
+	assert_int(later.clone().use_place).is_equal(2)
+	later.clear_edges()
+	assert_int(later.use_place).is_equal(-1)
+	assert_int(NetWire.VERSION).is_greater_equal(9)
 
 
 func test_the_weapon_presses_take_bits_11_to_14_beside_prone_on_bit_15() -> void:
@@ -285,6 +312,7 @@ func test_every_decoded_number_is_finite_whatever_the_bytes() -> void:
 		packet[0] = NetWire.Type.COMMAND
 		packet.encode_u16(11, packet.decode_u16(11) & 0x7FF | CommandCodec.F_SHOT)
 		packet[CommandCodec.MORE_FLAGS_AT] &= CommandCodec.G_MELEE_PRESSED
+		packet[CommandCodec.USE_AT] %= CommandCodec.MAX_USE_PLACES + 1
 		var decoded := CommandCodec.decode(packet, NetDrops.new())
 		assert_object(decoded).is_not_null()
 		assert_bool(decoded.all_finite()).is_true()
