@@ -44,7 +44,7 @@ What was measured on the Quaternius skins is measured again on the two `form` bo
 - **The rifle's hold is solved per body too** (kit #1040): `solve_rifle_hold.py --body=female|male`, the female's in
   `rifle_held.tscn` and the five `rifle_*_pose.tres`, the male's in `rifle_fit_male.tres`, listed in
   `TwoHandHold.fits`. The smaller hands also needed a place of their own on the grip
-  ([the rifle in both hands](weapon-pickups.md#rifle-hands)).
+  ([the rifle in both hands](rifle-hands.md#rifle-hands)).
 - **The hit zones** (`character_dressed.tscn`'s `HitZones`) are sized from `tools/mannequin/measure_segments.gd`: the
   arms are longer and thinner than the Quaternius female's (upper arm 0.26 to 0.28 m long and 0.047 to 0.057 m
   round, against 0.22 and 0.068) and the calves thinner, so the arm zones are longer and narrower, the thigh and pelvis

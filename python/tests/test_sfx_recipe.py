@@ -1,4 +1,4 @@
-"""The sound-effects recipe's parts that need no package: cost, budget, names and the data file's promises."""
+"""The sound-effects recipe's parts that need no package: cost, credits check, names and the data file's promises."""
 
 import importlib.util
 import json
@@ -30,19 +30,19 @@ def test_no_length_outside_the_api_range_is_requested(data):
         sfx.request_cost(data, 31.0)
 
 
-def test_the_plan_of_the_set_is_4960_credits_and_inside_the_budget(data, tmp_path):
-    # The effects (3900, #1083), the menu sounds (708, #1100) and the weapon pickup (160, #889), asked again from an
-    # empty cache.
+def test_the_plan_of_the_set_is_5728_credits(data, tmp_path):
+    # The effects (3900, #1083), the menu sounds (708, #1100), the weapon pickup (160, #889) and the pistol's and
+    # rifle's shots (256 and 512, #1414), asked again from an empty cache. No fixed budget caps it (#1447).
     rows = sfx.plan_rows(data, tmp_path)
-    assert sum(r["credits"] for r in rows) == 4960
-    assert sfx.check_budget(data, tmp_path, rows) == (0, 4960)
-    assert data["budget"] <= 5000
+    assert sum(r["credits"] for r in rows) == 5728
+    assert sfx.check_credits(rows, None) == 5728
+    assert sfx.check_credits(rows, 5728) == 5728
+    assert "budget" not in data
 
 
-def test_a_plan_over_the_budget_is_refused(data, tmp_path):
-    data["budget"] = 2000
-    with pytest.raises(SystemExit, match="over budget"):
-        sfx.check_budget(data, tmp_path, sfx.plan_rows(data, tmp_path))
+def test_a_plan_over_the_account_s_credits_left_is_refused(data, tmp_path):
+    with pytest.raises(SystemExit, match="over the credits left"):
+        sfx.check_credits(sfx.plan_rows(data, tmp_path), 2000)
 
 
 def test_a_cached_take_costs_nothing_and_the_ledger_counts_what_was_billed(data, tmp_path):
