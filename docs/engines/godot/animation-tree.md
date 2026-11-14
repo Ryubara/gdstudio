@@ -353,6 +353,15 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   idle and the walk slid 13.6 mm across; the test at the three points alone passed. **Seen:** gdstudio #1158,
   2026-11-12 (`test_gait_speed_match.gd`: every speed under 7 mm after the stretch and the trim; 167 mm between the
   jog and the sprint before).
+- **Approach:** Start a blend that reads the pose a state change hands over from on the update the new state's pose
+  is drawn, not the update the playback names it, and test it on every drawn update (`skeleton_updated`) for a
+  joint moving further in one update than the blend lets it. **Watch out for:** `MomentumBlend` began on the update
+  `get_current_node()` changed, saw the old state's pose there, measured no difference, and the new pose came in
+  whole on the next update: the head moved 0.75 to 0.95 m in one frame as a slide ended in the crouch, the slide's
+  start 0.48 to 0.68 m, with every weapon and on both bodies; `test_gait_parts.gd` read only the blend's largest
+  offset, which a blend begun a frame early still showed.
+  **Seen:** gdstudio #1439, 2026-11-13 (fixed by kit #1427's `SETTLE_FRAMES`; `test_slide_end_blend.gd`, 0.16 to
+  0.18 m after).
 - **Approach:** Feed each `AnimationNodeBlendTree` node's output to one input only; a pose used twice (the base of
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
