@@ -118,6 +118,22 @@ of the step went from 1.38 to 1.45 to 1.26 to 1.35 on the desktop (4 to 8 µs) a
 in Chrome. The budget case's limits stay: the case does not see the skeleton's update, and a few percent of the frame
 leaves the twice-as-slow case's margin as it was.
 
+Re-taken after main took the peek lean (#1437), the own-clip blends (#1427) and the charging handle pull (#1370), in
+one build of #1438 with `helper_tracks` on and one with it off (seven interleaved desktop runs of each at 9 to 28
+Godot processes, four of each web build):
+
+| | Step | Script | Tree | Skeleton | Physics | `AimLayer` | `WeaponHold` | `PeekLayer` |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Desktop, tracks on | 46 to 92 | 53 to 82 | 61 to 91 | 21 to 31 | 16 to 25 | 14 to 19 | 15 to 21 | 2 to 5 |
+| Desktop, tracks off | 53 to 68 | 58 to 70 | 62 to 81 | 24 to 36 | 18 to 23 | 15 to 18 | 17 to 24 | 2 to 3 |
+| Chrome, tracks on | 58 to 60 | 62 to 67 | 46 to 54 | 23 to 26 | 12 to 16 | 15 to 16 | 18 to 22 | 3 |
+| Chrome, tracks off | 62 to 64 | 67 to 71 | 48 to 54 | 25 to 27 | 16 to 20 | 16 to 18 | 21 to 22 | 3 to 4 |
+
+At that load the desktop's spread is wider than the saving: the tree's share of the step is 0.90 to 1.33 with the
+tracks (middle run 1.27) and 1.03 to 1.35 without (1.17). In Chrome it is 0.80 to 0.89 and 0.78 to 0.85, lower
+without the tracks in each of the four pairs. The peek lean's `PeekLayer` processes on a character that never peeks
+(2 to 4), and the momentum blend after #1427 takes 3 to 7 of the skeleton's update.
+
 **The budget on CI** (gdstudio #1451). The limit of 1.7 was set on the desktop and failed main at 2.40 on code whose
 parts held still. `.github/workflows/parts-budget.yml` runs the suite 50 times on the runners (by hand, and on a pull
 request that changes it). Over 100 runs that printed four more rulers beside the loop (an `AnimationTree` of its own
