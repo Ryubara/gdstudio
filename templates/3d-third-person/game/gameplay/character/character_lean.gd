@@ -34,6 +34,9 @@ static func can_take(body: Character) -> bool:
 		or command.previous_weapon_pressed
 		or command.unarmed_pressed
 		or command.melee_pressed
+		or command.lean_left
+		or command.lean_right
+		or body.peek_motion.leaning()
 	):
 		return false
 	# A melee blow (gdstudio #1254), and the fire press of a melee weapon that throws one, take the
@@ -241,6 +244,7 @@ static func _trigger(body: Character, delta: float) -> void:
 	weapon.spread_share = 1.0
 	if body.fire_press(command):
 		body._fire_buffer = body.tuning.fire_buffer_time
+	body._release_burst(command)
 	var burst := weapon.bursting
 	var wanted := body._fire_buffer > 0.0 or body._trigger_held(command) or burst
 	if wanted and body.aiming and body.aim_amount >= body.tuning.shot_aim_amount:

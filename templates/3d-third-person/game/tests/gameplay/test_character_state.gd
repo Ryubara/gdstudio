@@ -32,11 +32,14 @@ const NOT_STATE := {
 	&"aim_limits": "read only, the current move's tuning",
 	&"aim_yaw": "read only, from view_yaw and facing",
 	&"goal_speed": "read only, from the last command and the tuning",
+	&"move_goal": "a CharacterGoal: a puppet's motion, set by whoever places it",
 	&"_slide": "the slide; its step state is CharacterState.slide",
 	&"_stand_probe": "a shape made for a query",
 	&"vault_settings": "an export",
 	&"vault_motion": "its step state is CharacterState.vault (CharacterVault.save_step_state)",
 	&"turn_motion": "its step state is CharacterState.turn (CharacterTurnMotion.save_step_state)",
+	&"peek_tuning": "an export",
+	&"peek_motion": "its step state is CharacterState.peek (CharacterPeek.save_step_state)",
 	&"_prone": "the prone stance; its step state is CharacterState.prone",
 	&"_spawn_rng": "only respawn() reads it, and the step never calls that",
 	&"is_puppet": "set once by make_puppet() before the body enters the tree; a puppet never steps",
@@ -209,6 +212,7 @@ func test_restore_puts_back_the_weapons_cooldown_and_its_place_in_the_spread() -
 	# Its own copy: the pistol's definition is shared by every weapon that holds it.
 	_player.weapon.definition = _player.weapon.definition.duplicate()
 	_player.weapon.definition.spread = 5.0
+	_player.weapon.definition.first_shot_spread = 5.0
 	var aim := CommandDriver.walking(Vector3.ZERO, Vector3.FORWARD)
 	aim.aim = true
 	await _run(aim, 30)
@@ -216,8 +220,9 @@ func test_restore_puts_back_the_weapons_cooldown_and_its_place_in_the_spread() -
 	assert_array(await _press_fire(10)).has_size(2)
 	var kept := _player.state_snapshot()
 	# The cooldown, the spread's place, the magazine, the reserve and the reload, then the melee
-	# blow's eight (gdstudio #1254), then the shots of a burst under way (gdstudio #1352).
-	assert_array(kept.weapon).has_size(14)
+	# blow's eight (gdstudio #1254), then the shots of a burst under way (gdstudio #1352) and the
+	# spread's heat (gdstudio #1411).
+	assert_array(kept.weapon).has_size(15)
 	assert_float(kept.weapon[0]).is_between(0.06, 0.11)
 	# The next press waits for the rest of the cooldown, then the shot leaves, off the aim.
 	var first := await _press_fire(40)

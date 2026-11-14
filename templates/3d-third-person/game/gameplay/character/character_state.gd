@@ -73,6 +73,8 @@ var slide: Array = []
 ## The reversal or pivot the body follows (`CharacterTurnMotion.save_step_state()`: the clip, the
 ## time into it and the frame it began in), so a body put back mid-turn turns on the same path.
 var turn: Array = []
+## The peek lean (`CharacterPeek.save_step_state()`: how far it leans, and to which side).
+var peek: Array = []
 
 
 ## Copies `body`'s step state into this one (what `Character.state_snapshot()` returns).
@@ -94,6 +96,7 @@ func take(body: Character) -> void:
 	body._prone.save_step_state(prone)
 	body._slide.save_step_state(slide)
 	body.turn_motion.save_step_state(turn)
+	body.peek_motion.save_step_state(peek)
 
 
 ## Puts this step state back into `body` (`Character.restore()`, which then fits the capsule and
@@ -111,3 +114,4 @@ func put_back(body: Character) -> void:
 	body._prone.load_step_state(prone)
 	body._slide.load_step_state(slide)
 	body.turn_motion.load_step_state(turn)
+	body.peek_motion.load_step_state(peek)

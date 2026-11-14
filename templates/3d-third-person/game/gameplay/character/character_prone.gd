@@ -48,6 +48,17 @@ func is_changing() -> bool:
 	return amount > 0.0 and amount < 1.0
 
 
+## Whether a body may aim now: standing, or lying with `tuning.aim_allowed` and neither going
+## down nor getting up.
+func lets_aim(tuning: ProneTuning) -> bool:
+	return not is_prone() or (tuning.aim_allowed and not is_changing())
+
+
+## Whether a body may fire now: standing, or lying with `tuning.fire_allowed`.
+func lets_fire(tuning: ProneTuning) -> bool:
+	return not is_prone() or tuning.fire_allowed
+
+
 ## How far down the body is, eased (0 up, 1 lying): what the capsule and the camera follow.
 func share() -> float:
 	return smoothstep(0.0, 1.0, amount)

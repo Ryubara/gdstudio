@@ -18,6 +18,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Disk | under `[disk] hard_gb` free (10 GB): a task agent's start, `git worktree add` (and `gds issue start`) ([below](#disk)) | `gds disk guard`; report what is left to the coordinator and the maintainer |
 | Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
+| Task-agent merges | a subagent's merge call (its hook input carries `agent_id`; the main session's never does): `gh pr merge` with any flag but `--disable-auto`, a `gh api` write to `.../pulls/<n>/merge`, GraphQL merge mutations (gdstudio #1466) | report the green head SHA and stop: the coordinator lands from its queue ([Landing](landing.md#landing)) |
 | Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations; a session writing a session transcript or spelling an entry as the maintainer's ([below](#hold)) | stop and report; only the maintainer takes a hold off, or the coordinator once the maintainer approves that lift in its session |
 | Behind main | a merge command (as in Hold) on a pull request whose head lacks the tip of its base, by GitHub's compare (`behind_by` > 0); an API failure only warns ([Landing](landing.md#landing)) | `gds merge-main --path <worktree>`, push, merge once the checks pass |
 | Red main | a merge command (as in Hold) while a `CI failing on the default branch` issue is open in that repository, unless the body says `Fixes #<that issue>`; an API failure only warns ([Red main](hooks-red-main.md#red-main)) | wait for the fix, `gds merge-main`, push, merge |
@@ -469,7 +470,7 @@ Standard library only: the hooks start under `uv run --no-project`.
 | `issues.py` | issue order and the labels of progress ([below](#issues)) |
 | `bodies.py` | pull request bodies before `gh pr create\|edit` runs and after it ran ([the image guard](pull-requests.md#attach-paths)) |
 | `commits.py` | commits and pushes |
-| `merges.py` | `gh pr merge`, manual paths, the hold and the coordinator's approved lift ([above](#hold)) |
+| `merges.py` | `gh pr merge`, task agents' merges, manual paths, the hold and the coordinator's approved lift ([above](#hold)) |
 | `behind_base.py` | a merge only of a head that holds its base's tip |
 | `red_default.py` | no merge but the fix forward while main is red ([Red main](hooks-red-main.md#red-main)) |
 | `comments.py` | no comment or review under the maintainer's account ([above](#comments)) |

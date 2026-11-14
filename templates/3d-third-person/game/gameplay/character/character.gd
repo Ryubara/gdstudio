@@ -128,6 +128,10 @@ const CHEST_SHARE := 0.72
 			slide_tuning.changed.connect(_apply_tuning)
 			_apply_tuning()
 
+@export_group("Peek")
+## The peek lean around cover (`CharacterPeek`): how far, how fast, the shape. Empty: the defaults.
+@export var peek_tuning: PeekTuning
+
 @export_group("Weapon")
 ## What the character shoots with. Empty: it cannot aim or shoot. The character steps it: the
 ## weapon's own `self_ticking` is turned off and `step` counts its cooldown.
@@ -175,10 +179,15 @@ var died_by_clip := false
 
 ## The ground speed the last command steers the body toward, in m/s (0 when it asks for no move):
 ## the speed the body is heading for, which the animation's transitions read (`GaitTransitions`).
+## A body that never steps reads it from `move_goal` instead (`CharacterGoal`).
 var goal_speed: float:
 	get:
+		if move_goal.from_motion:
+			return move_goal.speed()
 		var push := _wish_direction().length() if _action_lock <= 0.0 else 0.0
 		return _target_speed(push) if push > 0.0 else 0.0
+## A puppet's goal, and the way any body is asked to go (`CharacterGoal`, gdstudio #1420).
+var move_goal := CharacterGoal.new()
 ## What the body is doing; `CharacterAnimation` plays the clip for it.
 var state := State.IDLE:
 	set(value):
@@ -243,6 +252,8 @@ var aim_yaw: float:
 var vault_motion := CharacterVault.new()
 ## The reversals and pivots moved by their clip's root (gdstudio #1442).
 var turn_motion := CharacterTurnMotion.new()
+## The peek lean (`CharacterPeek`): `amount` -1 (left) to 1 (right); its step state is `peek`.
+var peek_motion := CharacterPeek.new()
 ## On while the hands are busy with something else (an `ItemUse` using a bandage): the character
 ## neither aims nor shoots, and an aim held lowers until it is off again.
 var hands_busy := false
@@ -289,6 +300,8 @@ func _ready() -> void:
 		prone_tuning = ProneTuning.new()
 	if slide_tuning == null:
 		slide_tuning = SlideTuning.new()
+	if peek_tuning == null:
+		peek_tuning = PeekTuning.new()
 	_apply_tuning()
 	if Engine.is_editor_hint():
 		return
@@ -347,6 +360,7 @@ func step(command: PlayerCommand, delta: float) -> void:
 		_fall_out()
 	else:
 		_move(delta)
+	peek_motion.step(self, delta)
 	# Last, as the weapon's own tick came after the body's; the switch before the weapon.
 	if loadout != null:
 		loadout.tick(delta)
@@ -470,6 +484,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	_rider.platform = null
 	_fallen = false
 	_slide.reset()
+	peek_motion.reset()
 	_fit_body()
 	if not is_nan(heading):
 		facing = heading
@@ -686,10 +701,12 @@ func _update_crouch(delta: float) -> void:
 
 func _update_aim(delta: float) -> void:
 	var wants := false
-	if weapon != null and _action_lock <= 0.0 and not hands_busy and _prone_lets_aim():
+	if weapon != null and _action_lock <= 0.0 and not hands_busy and _prone.lets_aim(prone_tuning):
 		var held := weapon.definition
 		aim_held = last_command.aim and (held == null or held.can_aim)
-		fire_held = last_command.fire and _prone_lets_fire() and _weapon_lets_fire(aim_held)
+		fire_held = (
+			last_command.fire and _prone.lets_fire(prone_tuning) and _weapon_lets_fire(aim_held)
+		)
 		# A melee blow turns the body to the way it goes, as an aim does (gdstudio #1254), and a
 		# press still to fire keeps the arm coming up after the button is let go (gdstudio #1352).
 		wants = aim_held or fire_held or weapon.meleeing or _shot_pending()
@@ -728,18 +745,6 @@ func _wish_direction() -> Vector3:
 	return last_command.world_move()
 
 
-# Lying down, the character aims only when the prone tuning allows it, and never while it goes
-# down or gets up.
-func _prone_lets_aim() -> bool:
-	if not _prone.is_prone():
-		return true
-	return prone_tuning.aim_allowed and not _prone.is_changing()
-
-
-func _prone_lets_fire() -> bool:
-	return not _prone.is_prone() or prone_tuning.fire_allowed
-
-
 # True when the character may throw a melee blow now: alive, not lying down, not staggered by a
 # hit, not vaulting, and its weapon ready for one (`Weapon.melee_ready`).
 func _can_melee() -> bool:
@@ -773,6 +778,8 @@ func _target_speed(strength: float) -> float:
 		speed = tuning.walk_speed * maxf(strength, tuning.least_walk_share)
 	if aiming:
 		speed = minf(speed, tuning.walk_speed * tuning.aim_walk_cap) * tuning.aim_move_scale
+	if peek_motion.leaning():
+		speed = minf(speed, peek_tuning.move_speed)
 	if _push_cap > 0.0:
 		speed = minf(speed, _push_cap)
 	return speed
@@ -793,8 +800,8 @@ func _steer(wish: Vector3, delta: float) -> void:
 	flat = flat.move_toward(goal, rate * delta)
 	velocity.x = flat.x
 	velocity.z = flat.z
-	if aiming and _action_lock <= 0.0:
-		# Aiming turns the body to the view's heading, however it walks.
+	if (aiming or peek_motion.leaning()) and _action_lock <= 0.0:
+		# Aiming (or a peek lean) turns the body to the view's heading, however it walks.
 		var aim_turn := prone_tuning.aim_turn_speed if _prone.is_prone() else tuning.aim_turn_speed
 		facing = lerp_angle(facing, view_yaw + PI, clampf(aim_turn * delta, 0.0, 1.0))
 		_present_facing()
@@ -919,7 +926,7 @@ func _use_weapon(delta: float) -> void:
 		held = false
 	if blow and _can_melee():
 		weapon.melee(_blow_origin(), _aim_direction())
-	if not _prone_lets_fire() or not _weapon_lets_fire(aim_held):
+	if not _prone.lets_fire(prone_tuning) or not _weapon_lets_fire(aim_held):
 		pressed = false
 		held = false
 		weapon.bursting = false
@@ -928,6 +935,7 @@ func _use_weapon(delta: float) -> void:
 	# longer, or a click held past its shot leaves a second one buffered (gdstudio #1335).
 	if pressed:
 		_fire_buffer = tuning.fire_buffer_time
+	_release_burst(last_command)
 	var burst := weapon.bursting
 	var wanted := _fire_buffer > 0.0 or held or burst
 	if wanted and aiming and aim_amount >= tuning.shot_aim_amount and _within_reach():
@@ -935,6 +943,15 @@ func _use_weapon(delta: float) -> void:
 		if weapon.pull(_aim_origin(), _aim_direction()) != Weapon.Pull.BUSY and not burst:
 			_fire_buffer = 0.0
 	elif burst:
+		weapon.bursting = false
+
+
+# Ends a burst under way on a tick the fire button is up, for a weapon whose burst lasts only while
+# it is held (`WeaponDef.full_burst_per_press` off): the shot already gone stays. The client and the
+# server step the same commands, so both end it on the same tick.
+func _release_burst(command: PlayerCommand) -> void:
+	var held := weapon.definition
+	if held != null and not held.full_burst_per_press and not command.fire:
 		weapon.bursting = false
 
 
@@ -948,7 +965,7 @@ func _shot_pending() -> bool:
 		_fire_buffer > 0.0
 		and not weapon.lowered
 		and not weapon.is_reloading()
-		and _prone_lets_fire()
+		and _prone.lets_fire(prone_tuning)
 		and _weapon_lets_fire(aim_held)
 	)
 

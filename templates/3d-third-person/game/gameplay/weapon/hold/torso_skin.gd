@@ -17,6 +17,9 @@ const _SKIN_REGION := AABB(Vector3(-0.32, -0.2, 0.0), Vector3(0.47, 0.5, 0.3))
 const _PUSH_MOST := 0.25
 ## The least share of a move along the barrel: the hold's pitch limit keeps it over 0.5.
 const _LEAST_ALONG := 0.1
+## How much farther than its last push the push along a way is first looked for, in metres
+## (`_push_along()`): more than a push moves between frames.
+const _ALONG_SLACK := 0.02
 
 # Each point in its main bone's rest space, in groups (a cell of `_SKIN_CHUNK` under one bone):
 # the points of group `i` run from `_skin_starts[i]` to the next start, inside `_skin_boxes[i]`,
@@ -38,6 +41,15 @@ var _torso_starts := PackedInt32Array()
 var _torso_up := PackedInt32Array()
 var _torso_posed: Array[Transform3D] = []
 var _torso_parents := PackedInt32Array()
+# The last push along a way (`_push_along()`), which the next one is first looked for near.
+var _along_last := _PUSH_MOST
+# The spine's poses of this update in the skeleton's space, the stance's own array
+# (`use_spine()`), with each torso bone's place in it (below 0: not a spine bone), and the
+# `HoldBones` whose `top` says the stance filled them in this update: a push takes those poses
+# as they are, not each again from the local ones up to the root (kit #1347).
+var _spine_poses: Array[Transform3D] = []
+var _torso_spine := PackedInt32Array()
+var _spine_from: HoldBones
 
 
 ## Keeps a thinned set of the torso's skin, each point in its main bone's rest space, for the butt
@@ -55,6 +67,8 @@ func measure(
 	_torso_starts = PackedInt32Array()
 	_torso_up = PackedInt32Array()
 	_torso_posed.clear()
+	_torso_spine = PackedInt32Array()
+	_along_last = _PUSH_MOST
 	if chest < 0:
 		return
 	var origin := skeleton.get_bone_global_rest(chest).origin
@@ -167,6 +181,18 @@ func measure(
 	_torso_posed.resize(_torso_bones.size())
 
 
+## Takes the spine's poses from the stance (kit #1347): `poses` is its array of the poses of
+## `spine` (bone indexes) in the skeleton's space, which it fills in every update it hands the
+## hold the spine's top (`from.top` at 0 or over); the push then reads them and not the local
+## poses up to the root. Called after `measure()`.
+func use_spine(from: HoldBones, spine: PackedInt32Array, poses: Array[Transform3D]) -> void:
+	_spine_from = from
+	_spine_poses = poses
+	_torso_spine.resize(_torso_bones.size())
+	for bone in _torso_bones.size():
+		_torso_spine[bone] = spine.find(_torso_bones[bone])
+
+
 # Keeps `rest` (a point of the skin on the rest pose, `ahead` of the chest bone) as its cell's
 # point when it is in the region the stock can meet and the frontmost there.
 func _keep(
@@ -208,7 +234,8 @@ func push(
 		if absf(local.y) > 1e-4:
 			var move := Vector2(local.y, maxf(local.z, _LEAST_ALONG)).normalized()
 			return _push_along(skeleton, gun, to_here, butt_pad, butt_depth, butt_margin, move)
-	var deepest_of_all := 0.0
+	_pose_bones(skeleton)
+	var deepest := -butt_margin
 	var to_gun := gun.affine_inverse() * to_here
 	var wide := butt_pad.x * 0.5 + butt_margin
 	var high := butt_pad.y * 0.5 + butt_margin
@@ -217,27 +244,33 @@ func push(
 		Vector3(wide * 2.0, high * 2.0, butt_depth + butt_margin)
 	)
 	for bone in _torso_bones.size():
-		var pose := to_gun * _posed(skeleton, bone)
-		var deepest := 0.0
-		# The stock's box in the bone's rest space (a box round it): the boxes of the bone and its
-		# groups are met against that as they are, not each turned into the gun's space. A point
-		# inside the stock is inside both, so the same points are gone through (kit #1347).
-		var near := pose.affine_inverse() * stock
-		if _torso_boxes[bone].intersects(near):
-			for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
-				if not _skin_boxes[group].intersects(near):
-					continue
-				for at in pose * _group_points[group]:
-					if stock.has_point(at):
-						deepest = maxf(deepest, at.z + butt_margin)
-		deepest_of_all = maxf(deepest_of_all, deepest)
-	return deepest_of_all
+		var pose := to_gun * _torso_posed[bone]
+		# The bone's and its groups' boxes turned into the gun's space, where the stock is a box:
+		# turned the other way, the stock's box in the bone's space let more groups through.
+		if not (pose * _torso_boxes[bone]).intersects(stock):
+			continue
+		for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
+			if not (pose * _skin_boxes[group]).intersects(stock):
+				continue
+			for at in pose * _group_points[group]:
+				if stock.has_point(at):
+					deepest = maxf(deepest, at.z)
+	return deepest + butt_margin
 
 
 # The push along `move` (up the gun and along its barrel, in the gun's space): each point of the
 # skin near the stock forbids the moves that leave it inside the stock, one open run (low, high),
 # and the push is the least move forward no run forbids, so the skin ahead of the stock that the
 # move brings back along it counts too.
+#
+# Only the points the stock passes over in a move of `reach` are gone through (kit #1433): a
+# point it does not pass over forbids no move short of `reach`, so a push under `reach` is the
+# push of every point, and only a push that reaches it is worked out again over `_PUSH_MOST`.
+# `reach` is the last push and `_ALONG_SLACK`. The points are met in the frame of their runs, in
+# which the stock's sweep is a box (`swept`): in the gun's own frame its box was twice the sweep,
+# and turned into a bone's rest space (as `push()` does with the stock) it covered most of the
+# torso, so three in four points gone through were outside it; and each point's run is then two
+# sums and two tests.
 func _push_along(
 	skeleton: Skeleton3D,
 	gun: Transform3D,
@@ -247,57 +280,75 @@ func _push_along(
 	butt_margin: float,
 	move: Vector2
 ) -> float:
-	var to_gun := gun.affine_inverse() * to_here
 	var wide := butt_pad.x * 0.5 + butt_margin
 	var high := butt_pad.y * 0.5 + butt_margin
-	var rise := absf(move.x) * _PUSH_MOST
-	var near := AABB(
-		Vector3(-wide, -high - rise, -butt_margin),
-		Vector3(wide * 2.0, (high + rise) * 2.0, butt_depth + butt_margin + _PUSH_MOST)
+	# Each point is met in a frame of its own run (`move.y` is over 0, `_LEAST_ALONG`): x as it
+	# is, `along` the move that brings the stock's back edge to it (`(z - butt_depth) / move.y`)
+	# and `off` the move that brings its edge across the way up there, less `along`. Moved by
+	# `d`, a point is inside the stock while `d` is over `along` and `along + off`, and under
+	# `along + span` and `along + off + rise`: one transform turns a group's points into it.
+	var enters := -high if move.x > 0.0 else high
+	var span := (butt_depth + butt_margin) / move.y
+	var rise := 2.0 * high / absf(move.x)
+	var into_run := Transform3D(
+		Basis(Vector3.RIGHT, Vector3(0.0, 1.0 / move.x, 0.0), Vector3(0.0, -1.0, 1.0) / move.y),
+		Vector3(0.0, enters / move.x + butt_depth / move.y, -butt_depth / move.y)
 	)
-	var runs := PackedVector2Array()
-	for bone in _torso_bones.size():
-		var pose := to_gun * _posed(skeleton, bone)
-		# As in `push()`: the boxes are met against the near box in the bone's rest space.
-		var near_bone := pose.affine_inverse() * near
-		if not _torso_boxes[bone].intersects(near_bone):
-			continue
-		for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
-			if not _skin_boxes[group].intersects(near_bone):
-				continue
-			for at in pose * _group_points[group]:
-				if not near.has_point(at) or absf(at.x) >= wide:
-					continue
-				# Moved by `d` the point is at `at.y - d * move.x` up and `at.z - d * move.y` along.
-				var one := (at.y - high) / move.x
-				var other := (at.y + high) / move.x
-				var low := maxf((at.z - butt_depth) / move.y, minf(one, other))
-				var top := minf((at.z + butt_margin) / move.y, maxf(one, other))
-				if top > maxf(low, 0.0):
-					runs.append(Vector2(low, top))
-	runs.sort()
+	var to_run := into_run * gun.affine_inverse() * to_here
+	var reach := minf(_along_last + _ALONG_SLACK, _PUSH_MOST)
 	var pushed := 0.0
-	for run in runs:
-		if run.x >= pushed:
+	_pose_bones(skeleton)
+	while true:
+		# Where a point forbids a move under `reach`: `off` between `-rise` and `span`, `along`
+		# between `-span` and `reach`.
+		var swept := AABB(
+			Vector3(-wide, -rise, -span), Vector3(wide * 2.0, rise + span, span + reach)
+		)
+		var runs := PackedVector2Array()
+		for bone in _torso_bones.size():
+			var pose := to_run * _torso_posed[bone]
+			if not (pose * _torso_boxes[bone]).intersects(swept):
+				continue
+			for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
+				if not (pose * _skin_boxes[group]).intersects(swept):
+					continue
+				# A point inside the sweep has a run that is empty only on its edge, and a run
+				# that ends at or before 0 forbids no move forward: neither changes the push, so
+				# neither is tested for (kit #1347).
+				for at in pose * _group_points[group]:
+					if swept.has_point(at):
+						runs.append(Vector2(at.z + maxf(at.y, 0.0), at.z + minf(span, at.y + rise)))
+		runs.sort()
+		pushed = 0.0
+		for run in runs:
+			if run.x >= pushed:
+				break
+			pushed = maxf(pushed, run.y)
+		if pushed < reach or reach >= _PUSH_MOST:
 			break
-		pushed = maxf(pushed, run.y)
+		reach = _PUSH_MOST
+	_along_last = pushed
 	return pushed
 
 
-# The pose of the torso bone at `bone` (its place in `_torso_bones`) in the skeleton's space, kept
-# for the bones under it: a bone under another of them takes that one's pose and its own local
-# one, the others go up every parent (`HandPoseModifier.global_pose()` written out: a call costs
-# more than a line in the web build). The bones are gone through in their order (kit #1347).
-func _posed(skeleton: Skeleton3D, bone: int) -> Transform3D:
-	var up := _torso_up[bone]
-	var posed: Transform3D
-	if up >= 0 and up < bone:
-		posed = _torso_posed[up] * skeleton.get_bone_pose(_torso_bones[bone])
-	else:
+# Puts the pose of each torso bone in the skeleton's space in `_torso_posed`, once a push: a spine
+# bone's from the stance (`use_spine()`) when it filled them in this update, a bone under another of
+# them from that one's pose and its own local one, the others from every parent up to the root
+# (`HandPoseModifier.global_pose()` written out: a call costs more than a line in the web build).
+# The bones are gone through in their order (kit #1347).
+func _pose_bones(skeleton: Skeleton3D) -> void:
+	var shared := _spine_from != null and _spine_from.top >= 0 and not _torso_spine.is_empty()
+	for bone in _torso_bones.size():
+		if shared and _torso_spine[bone] >= 0:
+			_torso_posed[bone] = _spine_poses[_torso_spine[bone]]
+			continue
+		var up := _torso_up[bone]
+		if up >= 0 and up < bone:
+			_torso_posed[bone] = _torso_posed[up] * skeleton.get_bone_pose(_torso_bones[bone])
+			continue
 		var cursor := _torso_bones[bone]
-		posed = Transform3D.IDENTITY
+		var posed := Transform3D.IDENTITY
 		while cursor >= 0:
 			posed = skeleton.get_bone_pose(cursor) * posed
 			cursor = _torso_parents[cursor]
-	_torso_posed[bone] = posed
-	return posed
+		_torso_posed[bone] = posed

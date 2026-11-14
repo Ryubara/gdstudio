@@ -15,7 +15,9 @@ Every clip passes every check of `gdsanim/checks.py` on every body before anythi
 build says the check was not run and writes nothing unless `--no-overlap` is given). A failed build leaves the
 last good file in place and exits 1; the last line of a good build is `BUILT <file>`. A shipped file's limb
 numbers on every body are written beside it as `bodies_overlap.json` with the file's SHA-256, which the Godot
-suite reads (`tests/fixtures/bodies_overlap.gd`): a file that was rebuilt and not measured fails there.
+suite reads (`tests/fixtures/bodies_overlap.gd`): a file that was rebuilt and not measured fails there. The report
+also carries the hash of the measure's code and of each body file (`../measure_hash.py`, kit #1479), so it fails as
+well when `../limb_overlap.py` or a body is no longer the one measured, here under `--check` and in the suite.
 
 `--check` builds and compares with the files on disk instead of writing: exit 1 when a byte differs.
 """
@@ -32,8 +34,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ## Blender's Python must not leave `__pycache__` folders in the game (the layout test refuses them).
 QUIET = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+sys.dont_write_bytecode = True  # also when run without -B: no `__pycache__` beside `../measure_hash.py`
 sys.path.insert(0, str(HERE))
+sys.path.insert(1, str(HERE.parent))
 
+import measure_hash  # noqa: E402
 from clips import crouch_idle, crouch_walk, directed, gait, idle, lean, moves, stance, turns  # noqa: E402
 from clips.joined import Joined, described  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
@@ -197,6 +202,8 @@ def make(args, builts: list, frozen: list, rig: Rig, bodies: list, out: Path) ->
     limbs_report = {
         "clips_file": out.name,
         "sha256": hashlib.sha256(result["glb"]).hexdigest(),
+        "measure_sha256": measure_hash.script_sha256(),
+        "bodies_sha256": measure_hash.bodies_sha256(body.path for body in bodies),
         "fps": build.FPS,
         "limit_mm": OVERLAP_MM,
         "clips": brief,
