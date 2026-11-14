@@ -795,16 +795,16 @@ func _target_speed(strength: float) -> float:
 func _steer(wish: Vector3, delta: float) -> void:
 	var flat := Vector3(velocity.x, 0.0, velocity.z)
 	var strength := wish.length()
-	var goal := wish.normalized() * _target_speed(strength) if strength > 0.0 else Vector3.ZERO
+	var steer_to := wish.normalized() * _target_speed(strength) if strength > 0.0 else Vector3.ZERO
 	var rate := tuning.acceleration if strength > 0.0 else tuning.deceleration
 	if _prone.is_prone():
 		rate = prone_tuning.acceleration if strength > 0.0 else prone_tuning.deceleration
 	if not _grounded:
 		rate *= tuning.air_control
-		goal = _slide.air_goal(self, wish, goal, delta)
+		steer_to = _slide.air_goal(self, wish, steer_to, delta)
 	if _action_lock > 0.0 and state == State.HIT:
 		rate = 0.0
-	flat = flat.move_toward(goal, rate * delta)
+	flat = flat.move_toward(steer_to, rate * delta)
 	velocity.x = flat.x
 	velocity.z = flat.z
 	if (aiming or peek_motion.leaning()) and _action_lock <= 0.0:
