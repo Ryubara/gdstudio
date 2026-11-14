@@ -6,8 +6,9 @@ extends RefCounted
 ## `arrive_distance` ran on past the point by the rest of the stop. The navigator lets go once what
 ## is left of the path (to the goal, to the band of a follow, or to a link it waits at) is the
 ## ground the body's stop covers (`CharacterTuning.stop_distance`), and keeps letting go until the
-## body is at rest or the goal moves on. Nothing here is sent: the server's AI decides it, and the
-## body's commands carry it.
+## body is at rest or the goal moves on. A follower aims a little inside its band, measured to
+## its leader as it stands now (gdstudio #1529). Nothing here is sent: the server's AI decides it,
+## and the body's commands carry it.
 
 ## Below this ground speed (m/s) a body let go to stop is at rest.
 const DONE := 0.3
@@ -15,6 +16,8 @@ const DONE := 0.3
 const SLACK := 0.5
 ## Metres more than the stop's reach within which the navigator steers at every step.
 const EVERY_STEP_MARGIN := 0.25
+## The most of a follow's band a follower aims inside it (its `arrive_distance` at most).
+const FOLLOW_INSIDE_SHARE := 0.5
 
 ## True once the body was let go to stop, until it is at rest or the goal moves on: asked again
 ## each step, a stop that keeps pace with what is left would flicker on and off.
@@ -37,14 +40,22 @@ func wants(navigator: AiNavigator, at: Vector3) -> bool:
 		latched = false
 		return false
 	var room := path.left(at)
+	# Short of the goal by more than this at rest, it walks the rest.
+	var short := navigator.arrive_distance
 	if mode == AiNavigator.Mode.FOLLOW:
-		room -= navigator.follow_band
+		# Measured to the leader as it is now, not to the end of a path asked before it moved on
+		# (a slot asks again only once it moved 0.5 m), and aimed `short` inside the band: a
+		# follow arrives only inside it, so a stop on its edge left the body standing outside,
+		# not arrived and never walking on (gdstudio #1529).
+		short = minf(navigator.arrive_distance, navigator.follow_band * FOLLOW_INSIDE_SHARE)
+		room += AiNavPath.flat(navigator.target - path.end(navigator.target)).length()
+		room -= navigator.follow_band - short
 	var reach := stop_distance(body)
 	if not navigator.auto_traverse_links:
 		room = minf(room, _room_to_link(path, at, reach + SLACK))
 	if room > reach + SLACK:
 		latched = false  # The goal moved on, or a link let it by.
-	elif latched and body.ground_speed() < DONE and room > navigator.arrive_distance:
+	elif latched and body.ground_speed() < DONE and room > short:
 		latched = false  # It came to rest short: it walks the rest.
 	elif room <= reach:
 		latched = true

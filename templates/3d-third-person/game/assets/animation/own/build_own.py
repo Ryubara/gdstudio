@@ -88,8 +88,9 @@ TYPES = {
     "lean_back": ("Lean_Back", lean.lean_back),
     "lean_ref": ("Lean_Ref", lean.reference),
 }
-## The types that are a family of clips (kit #1156: a start or a stop on the left foot and on the right): a review
-## file holds every clip of the family once per style, and one letter of `picks.json` picks them all.
+## The types that are a family of clips (kit #1156: a start or a stop on the left foot and on the right; gdstudio
+## #1525: a running stop's entries between the strikes too): a review file holds the family's clips on a strike once
+## per style, and one letter of `picks.json` picks them all.
 FAMILIES = {
     "idle_to_walk": ("Idle_To_Walk", moves.family("walk", True)),
     "idle_to_jog": ("Idle_To_Jog", moves.family("jog", True)),
@@ -150,6 +151,22 @@ GROUPS = {
         "Turn_In_Place_90_R",
         "Turn_In_Place_180_L",
         "Turn_In_Place_180_R",
+        "Jog_Stop_02",
+        "Jog_Stop_04",
+        "Jog_Stop_06",
+        "Jog_Stop_08",
+        "Jog_Stop_12",
+        "Jog_Stop_14",
+        "Jog_Stop_16",
+        "Jog_Stop_18",
+        "Sprint_Stop_02",
+        "Sprint_Stop_04",
+        "Sprint_Stop_06",
+        "Sprint_Stop_08",
+        "Sprint_Stop_11",
+        "Sprint_Stop_13",
+        "Sprint_Stop_15",
+        "Sprint_Stop_17",
         "Jump_Start",
         "Jump_Start_Run_L",
         "Jump_Start_Run_R",
@@ -268,6 +285,9 @@ def main() -> int:
     joined = Joined(rig, solver, styles, picks, TYPES)
     if args.what == "review" and args.name in FAMILIES:
         _, members = FAMILIES[args.name]
+        # The variants are compared on the clips that begin on a strike; a stop's entries between the strikes
+        # (`moves.ENTRIES`) are built from the picked letter only, for the shipped file.
+        members = [(name, describe) for name, describe in members if moves.on_strike(name)]
         builts, frozen = [], []
         for letter, one in styles.items():
             for name, describe in members:

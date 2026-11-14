@@ -376,17 +376,20 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `helper_tracks` | off | the clips' `ik_` target tracks blended; off, switched off in the game (`HelperTracks`, gdstudio #1438): nothing drawn follows them, the pose is the same and the tree 4 to 5 µs a character cheaper |
 
 **What a transition clip needs** (gdstudio #1156, #1157). A name in `GaitTransitionSet` is a base: the tree plays
-`<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start), the
-foot that lands next in the gait's phase (a stop), or the way the body turns (a reversal, a pivot, a turn on the
-spot: `_L` turns to the left; since kit #1442 a reversal is named so too, and plants the foot on the other side). The
-defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`, `gds/Jog_Stop`,
-`gds/Sprint_Stop`, `gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`, `gds/Turn_In_Place_90` and
-`gds/Turn_In_Place_180`. From its record in `clips.json` the tree reads `travel` (a start or a stop is played at the
-time its travel has covered the ground the body really covered), `turn` (a turn on the spot: the time it has turned
-as far as the body, run at most `transition_pace` times its own pace; a reversal or a pivot: below), and
-`exit_phase` (the share of the gait's cycle it ends on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half
-its cycle). A clip whose body has finished its part plays on at its own pace; a body asked for something else leaves it
-at once. A start is picked while the body
+`<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start)
+or the way the body turns (a reversal, a pivot, a turn on the spot: `_L` turns to the left; since kit #1442 a
+reversal is named so too, and plants the foot on the other side). A stop begins nearest the phase the stick is let
+go at: of `<base>_L`, `<base>_R` and the entries between them named by the gait's frame they begin on
+(`gds/Sprint_Stop_05`), the one whose `joins.first_frame` is nearest (`GaitTransitionSet.pick_entry`, gdstudio #1525;
+the jog and the sprint have one every two frames, so a body is drawn at most a frame from it). The defaults are
+`gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`, `gds/Jog_Stop`, `gds/Sprint_Stop`,
+`gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`, `gds/Turn_In_Place_90` and `gds/Turn_In_Place_180`.
+From its record in `clips.json` the tree reads `travel` (a start or a stop is played at the time its travel has
+covered the ground the body really covered), `turn` (a turn on the spot: the time it has turned as far as the body,
+run at most `transition_pace` times its own pace; a reversal or a pivot: below), and `exit_phase` (the share of the
+gait's cycle it ends on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose
+body has finished its part plays on at its own pace; a body asked for something else leaves it at once. A start is
+picked while the body
 stood at most `GaitTransitions.START_GRACE` (4) frames ago, since the controller's acceleration has it past
 `standing_speed` on the tick it is asked to move (gdstudio #1416); a state asked for while a clip plays (a crouch in a
 stop) is the one the machine goes on to. `tools/capture/own_blend_tour.tscn` films each start, stop and crouch from

@@ -376,15 +376,18 @@ What carries a clip over to a body with other proportions, and what one clip fil
 | --- | --- | --- |
 | Tracks a gait clip keys | 22 body bones and the pelvis's position; fingers only where they move | fingers at rest come from one hand-pose clip under the gait; a clip names its bones and the export strips the rest |
 | Keys | under 40 % of the frames on a moving bone at half a degree | curves solved at 30 a second, reduced by the build, checked against the full curve on the skinned mesh (1 mm at the hands and feet) |
-| Imported size | 7 KB a second of clip (the maintainer's figure of 2026-11-13; it was 6), compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second; 6.6 with the starts and stops of kit #1156, 7.0 (7,126 bytes) with the jump of kit #1161 and the strafes and lean of kit #1159, inside the 7 (7,168 bytes) the test holds; with kit #1442's turns and braking reversals beside them 7,274 bytes a second, 587,982 bytes for 80.8 s, over it, though each side alone was inside it) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
+| Imported size | 7 KB a second of clip (the maintainer's figure of 2026-11-13; it was 6), compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second; 6.6 with the starts and stops of kit #1156, 7.0 (7,126 bytes) with the jump of kit #1161 and the strafes and lean of kit #1159, 6.8 (6,819 bytes) with the stops' sixteen entries between the strikes and no `ik_` targets in any start or stop (gdstudio #1525), 6.7 (6,670 bytes, 751,755 for 112.7 s) with the turns and braking reversals of kit #1442, which leave the targets out too, inside the 7 (7,168 bytes) the test holds) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
 | Clips blended at once | four on a character near the camera (two gaits, a transition or an action, one additive); one on a far one | the tree's layers are counted in the Godot issue's bench, in the browser |
 | Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)): 1.16 MB off 3D Third Person's pack (9.18 to 8.02 MB, kit #1366) |
 
 - **Approach:** After merging main into a branch that adds clips to `locomotion.glb`, rebuild the file from the merged
-  inputs (`ship locomotion`), compare every clip with the side it came from by its animation accessors, and run
-  `test_own_clips.gd` before pushing: the budget is read on the merged file, not on either side. **Watch out for:** two
-  pull requests each inside the 7 KB a second can be over it together. **Seen:** gdstudio #1442 merging #1369's jump,
-  2026-11-14 (7,124 and 7,126 bytes a second alone, 7,274 merged; left to the maintainer, as the figure is theirs).
+  inputs (`ship locomotion`), compare every clip with its side's by its animation accessors, and run
+  `test_own_clips.gd`: the budget is read on the merged file. Over it, leave out the tracks nothing plays
+  (`Clip.bones` without the `ik_` targets) and show every other track's keys are the same bytes. **Watch out for:**
+  two pull requests each inside the 7 KB a second can be over it together; the import's `compression/page_size` is
+  no way back (64 to 256 KiB: 7,246 bytes a second, 0.4 % off the 32's; 16 failed 13 of the suite's 17 cases).
+  **Seen:** gdstudio #1442 merging #1369's jump, 2026-11-14 (7,124 and 7,126 bytes a second
+  alone, 7,274 merged); with the turns' targets left out after #1536, 6,670, every clip's other tracks unchanged.
 
 ## Waves and child issues {#waves}
 

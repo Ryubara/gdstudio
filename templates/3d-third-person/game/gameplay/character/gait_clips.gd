@@ -19,6 +19,9 @@ const SOURCES := {
 const REFERENCE_HIPS := 0.9166
 ## Frames a second of a record's frame numbers, when a file does not say.
 const FPS := 30.0
+## Metres short of a travel curve's end at which a clip counts as at the end of its travel: twice
+## the curve's rounding (`clips.json` keeps a tenth of a millimetre).
+const REST_TRAVEL := 0.0002
 
 static var _records: Dictionary = {}
 static var _loaded: Dictionary = {}
@@ -106,17 +109,34 @@ static func travel_at(clip: StringName, time: float) -> float:
 
 ## The time in seconds at which `clip`'s travel curve first reaches `distance` metres (on the
 ## reference body), held to the clip's length: a transition is played by the ground the body
-## really covered. -1 without a record or a curve that never moves.
+## really covered. -1 without a record or a curve that never moves. Within `REST_TRAVEL` of the
+## curve's end it is the frame the curve gets there: a stop creeps its last tenth of a millimetre
+## over the frames of its settle, and reading through them moved the clip 18 frames in one tick, a
+## hand 31 cm (gdstudio #1525); the rest plays at its own pace once the body is at rest.
 static func time_at_travel(clip: StringName, distance: float) -> float:
 	var curve: Array = record(clip).get("travel", [])
 	if curve.size() < 2 or is_zero_approx(curve[-1][1] - curve[0][1]):
 		return -1.0
+	if distance >= curve[-1][1] - REST_TRAVEL:
+		return travel_end(clip)
 	for index in range(curve.size() - 1):
 		var a: Array = curve[index]
 		var b: Array = curve[index + 1]
 		if distance <= b[1] or index == curve.size() - 2:
 			var share := clampf((distance - a[1]) / maxf(b[1] - a[1], 0.0001), 0.0, 1.0)
 			return lerpf(a[0], b[0], share) / FPS
+	return float(curve[-1][0]) / FPS
+
+
+## The time in seconds at which `clip`'s travel curve is within `REST_TRAVEL` of its end: where a
+## stop's body is at rest and the clip plays on at its own pace. 0 without a curve.
+static func travel_end(clip: StringName) -> float:
+	var curve: Array = record(clip).get("travel", [])
+	if curve.is_empty():
+		return 0.0
+	for point: Array in curve:
+		if point[1] >= curve[-1][1] - REST_TRAVEL:
+			return float(point[0]) / FPS
 	return float(curve[-1][0]) / FPS
 
 

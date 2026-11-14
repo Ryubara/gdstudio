@@ -106,3 +106,10 @@ on the floor; the next turning clip (a curved run, a landing into a turn) starts
   shift, no plant ahead and no carried lean, and read as unnatural (this replaces the entry above that turned a
   reversal over its plant foot); a carry over about 44 degrees, or a plant over 0.12 m past the root's stop, folds
   the ankle past its 55 degree cone. **Seen:** gdstudio #1442, 2026-11-13, from the maintainer's review.
+- **Approach:** When main changes the moves (`clips/moves.py`) under a branch that adds turns, rebuild the turns
+  and compare their keys with the branch's own file before anything else: `Turn` is a `Move` that never runs
+  `Move.__init__`, so an attribute main's `Move` now reads must be given to `Turn` too, with the value that keeps
+  its old motion. **Watch out for:** gdstudio #1536 made `Move.ghost` a per-foot `ghosts` and added the entry
+  `offset`; after the merge every turn failed to build (`'Turn' object has no attribute 'ghosts'`). `Turn.ghosts`
+  (its one `ghost` by side) and `Turn.offset = 0` rebuilt all ten turns with their keys unchanged. **Seen:**
+  gdstudio #1442, 2026-11-14.

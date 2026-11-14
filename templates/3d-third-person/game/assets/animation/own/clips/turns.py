@@ -36,7 +36,7 @@ import math
 import numpy as np
 
 from gdsanim import maths, overlap, weight
-from gdsanim.build import Clip
+from gdsanim.build import Clip, keyed_bones
 from gdsanim.maths import FPS, Y, body_turn
 from gdsanim.plan import ContactPlan, Footfall, Travel
 from gdsanim.rig import SIDES
@@ -259,6 +259,15 @@ def _ease(f: float, a: float, b: float) -> float:
 
 class Turn(Move):
     """One reversal, pivot or turn on the spot, on one foot or one way, for one rig and one set of numbers."""
+
+    # A turn begins on the gait's own frame, never an entry between strikes (`Move.offset`, gdstudio #1525).
+    offset = 0
+
+    @property
+    def ghosts(self) -> dict:
+        """`Move.ghosts`: the one foot a run's turn begins with in the air (`ghost`), on its way to the gait's
+        next landing."""
+        return {} if self.ghost is None else {self.ghost.side: self.ghost}
 
     def __init__(self, rig, joined, kind: str, side: str, numbers: dict):
         self.rig, self.n, self.side, self.type = rig, numbers, side, kind
@@ -1005,9 +1014,13 @@ def describe(kind: str, side: str, rig, style, name: str, joined) -> Clip:
         "keys_kept": n["keys_kept"],
         "kb_a_second": n["kb_a_second"],
     }
+    # A turn leaves the `ik_` targets out, as the starts and stops do (gdstudio #1525): nothing in the game reads
+    # them (`HelperTracks` mutes them), and with them the turns took `locomotion.glb` over its import budget.
+    bones = [b for b in keyed_bones(rig) if not b.startswith("ik_")]
     return Clip(
         name=name,
         frames=F,
+        bones=bones,
         plan=turn.plan(),
         spec=turn.spec,
         loop=False,
