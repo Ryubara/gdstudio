@@ -325,7 +325,8 @@ uv run --project <workspace>/repos/gdstudio/python gds brief <owner/repo>#N [--w
 
 It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), at most six, best first:
 
-1. every section the issue names as `page.md#anchor`;
+1. every section the issue names as `page.md#anchor`; a section a split left as a pointer gives the section it moved
+   to, here and in the steps below ([page size](rules.md#size), gdstudio #1471);
 2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
    issue's words, any other path the closest section that mentions it (`.claude/hooks/guards/` finds the hooks
    pages), when that section's words score at least a third of the best section's (a pull request's changed files

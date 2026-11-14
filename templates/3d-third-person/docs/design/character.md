@@ -186,7 +186,9 @@ A `PhysicsProp` has a `push_speed` of its own: the cubes of the map are 60 kg, g
 m/s, so the character (15 percent faster than the cube, to stay against it) walks slowly into them and the push clip
 plays for as long as it keeps going (0 leaves a prop to the character's push strength, as the spheres are). The pistol's
 definition (`gameplay/weapon/pistol.tres`) holds the shot's numbers: fire rate (4 a second), semi or full automatic,
-spread, damage (34 before the hit zone's multiplier), aim range, the push it gives a body (40 N·s), the magazine (12),
+spread (none on a first shot from rest; `spread`, `first_shot_spread`, `spread_build_shots` and
+`spread_recovery_time` say how it grows over shots in a row and falls back), damage (34 before the hit zone's
+multiplier), aim range, the push it gives a body (40 N·s), the magazine (12),
 the reserve (36, at most 96, filled by a `Pickup` of `pistol_ammo`), the reload (1.6 s, by itself when the magazine is
 empty), the switch (0.2 s down, 0.25 s up), the projectile's speed (45 m/s), size, colour, gravity (0, so it flies
 straight at the crosshair), lifetime and bounces, the clips and the sounds (five shots at a small random pitch, two
@@ -226,12 +228,14 @@ needs the arm half up, so a tap shorter than about 75 ms shoots nothing).
 own **H Offset** and **V Offset** (they shift the view without moving the camera or its wall cast), and `PlayerCamera`
 sets them from its Shoulder group: `shoulder` (left, center, right; Q or a click of the right stick swaps left and
 right), `shoulder_offset` (0.5 m to the side), `vertical_offset` and `shoulder_time` (the seconds a swap takes, 0.3; 0
-swaps at once). A swap made while aiming keeps what the crosshair is on under it (Shoulder swap subgroup; a swap while
-walking or sprinting only slides the view, so the run keeps its way, unless `keep_aim_when_not_aiming`, off, is on):
-`keep_aim_on_swap` (on) finds
-the point under the crosshair when the swap starts (what the weapon would hit, or the ray's end at `aim_point_range`,
-100 m, when nothing is there; never nearer than `aim_point_min_distance`, 2 m, past the arm, on `aim_point_mask`) and
-turns the view inward as it slides so the point stays put, so a shot fired mid-swap goes there; `aim_shoulder_time`
+swaps at once). A swap made while aiming at a character keeps what the crosshair is on under it (Shoulder swap
+subgroup; a swap while walking or sprinting only slides the view, so the run keeps its way, unless
+`keep_aim_when_not_aiming`, off, is on). What counts as a character is `keep_aim_layers` (the Characters and Ragdoll
+layers: the player, friends, enemies and a limp body); aimed at a wall, the floor, a prop or the sky the swap moves the
+view to the other shoulder without turning it. `keep_aim_on_swap` (on) finds the point under the crosshair when the
+swap starts (what the weapon would hit; never nearer than `aim_point_min_distance`, 2 m, past the arm, on
+`aim_point_mask`, looked for up to `aim_point_range`, 100 m) and turns the view inward as it slides so the point stays
+put, so a shot fired mid-swap goes there; `aim_shoulder_time`
 (0.15 s) is the swap's time while aiming; `swap_anchor_strength` (1) is how much of that turn is made; `swap_look` says
 what the player's own look does during the swap: `ADD` (the default) turns the view by it on top of the anchor, `RELEASE`
 does too until it adds up to `swap_release_angle` (4 degrees) and then lets the point go. Tune
@@ -423,7 +427,7 @@ is tuned in its inspector while the game runs:
 | --- | --- | --- |
 | `grip_pose`, `trigger_pose` | `pistol_grip_pose.tres`, `pistol_trigger_pose.tres` | The right hand on the grip with the index finger along the frame, and the index finger on the trigger, blended in as the character aims. |
 | `trigger_way_pose` | `pistol_trigger_way_pose.tres` | Where the index finger is half-way between the frame and the trigger: it goes round by this pose, clear of the left thumb, never straight. |
-| `trigger_way` | `pistol_trigger_way.tres` (the male body's in his fit) | The poses the index finger passes through between the frame and the trigger with both hands on the pistol: off the frame to its own side, its last two bones bent there, then into the trigger guard, clear of the guard and the left hand all the way. Written by `tools/hold/solve_pistol_trigger_way.gd`; when it is set, two-handed, `trigger_way_pose` is not used. |
+| `trigger_way` | `pistol_trigger_way.tres` (the male body's in his fit) | The poses the index finger passes through between the frame and the trigger with both hands on the pistol: clear of the guard and the left hand all the way (no deeper than the finger is where it holds). Planned by `tools/hold/plan_trigger_way.py` (the rifle's planner) on what `tools/hold/solve_pistol_trigger_way.gd --dump=` writes, then checked and written by `solve_pistol_trigger_way.gd --way=`; when it is set, two-handed, `trigger_way_pose` is not used. |
 | `thumb_pose` | `pistol_thumb_pose.tres` | The right thumb while the left hand is on the pistol: on the root of the left thumb, which takes its place on the frame. |
 | `thumb_way_pose` | `pistol_thumb_way_pose.tres` | Where the right thumb is half-way between the frame and the left thumb's root: lifted clear of the frame's rear edge, which the straight blend passed through. Set by hand. |
 | `support_pose` | `pistol_support_pose.tres` | The left hand on the pistol and over the right hand, used while aiming or firing. |

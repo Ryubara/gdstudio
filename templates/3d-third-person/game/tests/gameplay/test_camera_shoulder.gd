@@ -76,9 +76,9 @@ func test_a_change_of_shoulder_crosses_over_the_time_it_is_given() -> void:
 
 func test_the_swap_action_changes_shoulder() -> void:
 	assert_bool(InputMap.has_action(&"shoulder_swap")).is_true()
-	var event := InputEventKey.new()
-	event.keycode = KEY_Q
-	event.physical_keycode = KEY_Q
+	# The middle mouse button since Q leans (gdstudio #1400).
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_MIDDLE
 	event.pressed = true
 	_rig._unhandled_input(event)
 	assert_int(_rig.shoulder).is_equal(PlayerCamera.Shoulder.LEFT)

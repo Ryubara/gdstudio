@@ -111,6 +111,19 @@ is 37 bytes, 38 while one aims; eight players 109, 117 all aiming; the longest W
 for each aiming player at 30 TICKs a second, nothing for one who does not aim. The capture is
 `tools/capture/puppet_aim_tour.tscn` (Ada's screen beside Bo's).
 
+**Its starts and stops** (gdstudio #1420). `GaitTransitions` picks a start, a stop or a reversal from the body's goal
+(`Character.goal_speed` and `move_goal.direction(body)`), which a stepped body reads from its last command. A puppet has
+none: `PlayerPuppet.make` sets the body's `CharacterGoal.from_motion`, and `RemotePlayers` sets its `motion` each step with
+`PlayerPuppet.goal_of`: nothing once the entry's `halt` flag says the player asked for no move (bit 7 of the flags
+byte, set by the server from the body's goal, protocol 13, no byte more), else the velocity between the two newest
+snapshots (`InterpolationTrack.heading`, 0.1 s ahead of the moment drawn), and the goal it had while that heading is
+under 0.5 m/s (a reversal passes through 0; a stepped body's goal never does). The track takes `halt` from the snapshot
+the drawn move heads to, so a stop begins with the move toward the halted snapshot. On the gait tour (Ada's screen beside
+Bo's) the puppet now plays `Walk_Stop`, `Jog_Stop` and `Sprint_Stop` where her own body does, about 6 frames after it
+(the draw delay), and its largest bone turns 10 to 20 degrees a frame while it moves, against 0.1 to 0.2 before; tested
+by `test_net_puppet_gait.gd`. A start picks its gait from the heading while the body still speeds up, so a jog or
+sprint start from standing shows the walk's start.
+
 Its animation throttle and render layer: [what a puppet costs](puppet-cost.md#puppet-cost). How a puppet shows a
 vault it never stepped: [a puppet's vault](traversal.md#online).
 
@@ -125,13 +138,21 @@ vault it never stepped: [a puppet's vault](traversal.md#online).
   the last client's follow camera while each viewport's `get_camera_3d()` was still its own `Camera3D`: a test that
   reads only the viewport's camera passes. The game itself runs one client a process. **Seen:** gdstudio #905,
   2026-11-11 (`OnlineRig._own_cameras`; the test asks the host's `get_active_pcam()`).
+- **Approach:** For every part of the drawing code a puppet runs, list what it reads from the body and check each
+  value is written by `PlayerPuppet.place` or worked out from the snapshots; a value from `last_command`, or a getter
+  built on it (`goal_speed`), is empty on a puppet. **Watch out for:** the gait transitions read `goal_speed`, always 0
+  on a puppet, so every moving puppet was taken for a body asked to stop and slid along in the walk's stop clip's last
+  frame; the drawn motion alone could not tell a stop from a slow-down to a jog in the first 0.1 s of the brake (a
+  brake guess either picked the jog's stop for a sprint or a stop for a slow-down), so one free flag bit carries the
+  stop. **Seen:** gdstudio #1420, 2026-11-13 (`PlayerPuppet.goal_of`, `PlayerEntry.halt`).
 - **Approach:** Film a puppet's turn off its body (an aim to the side) from ahead of it, on a lane read from the level's
   scene (each block's place and size) before the first run, with the watcher's camera turned to follow it; put a test's
   route on the same lane. **Watch out for:** from beside or above at 5 to 10 m a 50 degree aim and an aim along the
   body looked the same (the before and after captures could not be told apart while the suite measured 49.8 against
   0.5 degrees); routes picked blind started inside the ragdoll ledge and ran into crates and the steps, and the
   slide's 8 m/s carried the body 10 m past a watcher in a second. **Seen:** gdstudio #1277, 2026-11-11
-  (`puppet_aim_tour.tscn`, five captures before the front view).
+  (`puppet_aim_tour.tscn`, five captures before the front view); #1367, 2026-11-13 (`puppet_gait_tour.tscn`: a
+  column beside the watcher filled his camera's view).
 
 ## What it measured {#client-costs}
 

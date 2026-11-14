@@ -53,7 +53,8 @@ func size() -> int:
 
 
 ## The player at server time `at`, written into `into` (position and facing blended, the state and
-## the flags from the snapshot before), and its velocity (m/s) between the two snapshots around it.
+## the flags from the snapshot before, `halt` from the one after), and its velocity (m/s) between
+## the two snapshots around it.
 ## Answers the velocity; `into` is left alone when the track is empty.
 func sample(at: float, into: PlayerEntry) -> Vector3:
 	if _times.is_empty():
@@ -71,6 +72,9 @@ func sample(at: float, into: PlayerEntry) -> Vector3:
 	var a := _entries[index]
 	var b := _entries[index + 1]
 	_copy(a, into)
+	# The goal is the one the drawn move heads for: a stop begins as the move toward a halted
+	# snapshot does, a start as the move away from one does (gdstudio #1420).
+	into.halt = b.halt
 	if a.position.distance_to(b.position) > WARP_DISTANCE:
 		return Vector3.ZERO
 	var share := (at - _times[index]) / (_times[index + 1] - _times[index])
@@ -78,7 +82,16 @@ func sample(at: float, into: PlayerEntry) -> Vector3:
 	into.yaw = lerp_angle(a.yaw, b.yaw, share)
 	into.pitch = lerpf(a.pitch, b.pitch, share)
 	into.aim_yaw = lerp_angle(a.aim_yaw, b.aim_yaw, share)
+	into.peek = lerpf(a.peek, b.peek, share)
 	return _velocity(index)
+
+
+## The velocity (m/s) the snapshots head for: the one between the two newest, ahead of the moment
+## a puppet is drawn at. A puppet's animation reads it as the goal a stepped body's command gives
+## (`CharacterGoal.motion`, with the entry's `halt` for a stop), so a start begins as the body
+## sets off (gdstudio #1420).
+func heading() -> Vector3:
+	return _velocity(_times.size() - 2)
 
 
 func clear() -> void:
@@ -107,5 +120,7 @@ static func _copy(from: PlayerEntry, into: PlayerEntry) -> void:
 	into.air = from.air
 	into.rising = from.rising
 	into.dead = from.dead
+	into.halt = from.halt
 	into.pitch = from.pitch
 	into.aim_yaw = from.aim_yaw
+	into.peek = from.peek

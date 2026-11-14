@@ -339,9 +339,12 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   half and half let a planted foot slide 10 mm forward and 4 mm across in a contact, a turn blended not being a place
   blended. So each gait plays alone over a range of paces (`stretch`), the blend is kept to the speeds between, its
   stride is the weights' geometric mean, and a trim measured from the planted foot itself corrects the rest.
-- **Momentum.** A state machine transition with `xfade_time` 0 shows the new state in the same process; the
-  modifier then adds the decaying difference from the last drawn pose. A `SkeletonModifier3D` added as an internal
-  child at the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
+- **Momentum.** A state machine transition with `xfade_time` 0 reports its new node from
+  `get_current_node()` in the update it travels, but the skeleton shows the new pose a frame later (measured at
+  `skeleton_updated`, stepped by hand and in the running game alike), so the modifier starts the decaying difference
+  from the last drawn pose again on each of the three frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
+  start on the frame the new pose arrives takes the whole jump. A `SkeletonModifier3D` added as an internal child at
+  the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
 
 - **Approach:** Play a gait alone, slowed or sped up, for as many speeds as it looks right at, and blend two gaits
   only across the speeds between; measure a planted foot's slide in the world in a test that steps the body and the
@@ -350,10 +353,34 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   idle and the walk slid 13.6 mm across; the test at the three points alone passed. **Seen:** gdstudio #1158,
   2026-11-12 (`test_gait_speed_match.gd`: every speed under 7 mm after the stretch and the trim; 167 mm between the
   jog and the sprint before).
+- **Approach:** Start a blend that reads the pose a state change hands over from on the update the new state's pose
+  is drawn, not the update the playback names it, and test it on every drawn update (`skeleton_updated`) for a
+  joint moving further in one update than the blend lets it. **Watch out for:** `MomentumBlend` began on the update
+  `get_current_node()` changed, saw the old state's pose there, measured no difference, and the new pose came in
+  whole on the next update: the head moved 0.75 to 0.95 m in one frame as a slide ended in the crouch, the slide's
+  start 0.48 to 0.68 m, with every weapon and on both bodies; `test_gait_parts.gd` read only the blend's largest
+  offset, which a blend begun a frame early still showed.
+  **Seen:** gdstudio #1439, 2026-11-13 (fixed by kit #1427's `SETTLE_FRAMES`; `test_slide_end_blend.gd`, 0.16 to
+  0.18 m after).
 - **Approach:** Feed each `AnimationNodeBlendTree` node's output to one input only; a pose used twice (the base of
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
   **Seen:** gdstudio #1158, 2026-11-12 (the lean's base pose, three errors for four poses).
+- **Approach:** Set every `AnimationNodeSub2`'s `sub_amount` (and every `Add2`'s `add_amount`) on the tree after
+  building it, and test an additive layer with the real poses at full weight on the real tree: the head goes the
+  pose's way, the feet and the `ik_` targets stay on their limbs. **Watch out for:** both amounts are tree parameters
+  that start at 0; the lean set `add_amount` each tick and never `sub_amount`, so each difference was the whole lean
+  pose and the tree added it over the gait (a hand rose 0.3 m, the targets moved 0.7 to 0.9 m, the feet 24 to 43 mm),
+  while a stand-in clip of the test's own showed nothing. **Seen:** gdstudio #1159, 2026-11-12 (`gait_lean.gd` sets
+  the differences once a built tree; `test_own_directions.gd`'s player lean test).
+- **Approach:** For additive poses sharing one base, take the base off with an `AnimationNodeAdd2` at a negative
+  amount after the body (a `Sub2` blends its base first, ahead of the body), once for ways that never play together,
+  and blend clips trimmed to the tracks the poses move; prove it with the old build on a second body, bone by bone.
+  **Watch out for:** a held clip costs every track it holds; normalization counts negative weights, so a trimmed base
+  holds exactly its poses' tracks; `Quaternion.angle_to` reads 0.03 to 0.08 degrees for equal turns (acos), so
+  compare by `2 atan2(|xyz|, w)`. **Seen:** gdstudio #1403, 2026-11-13 (`GaitLean`, `LeanClips`; the first
+  comparison read 0.07 degrees on finger leaves; the made library broke the shipped clip count in
+  `test_character_clips.gd`, which now leaves `LeanClips.LIBRARY` out).
 - **Approach:** Start a transition clip only while the character's own state is one the transition plays over
   (standing, walking, running), and end one that plays when the state leaves those; test the tree with real clips
   in the libraries, not only made-up ones in a test library. **Watch out for:** a push, a vault or a hit begins on a
@@ -361,3 +388,34 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   that frame and held the body in it, so the push clip never played and the vault's hands left the top by 0.3 m;
   the transition tests passed, since their clips existed only in their own suite. **Seen:** gdstudio #1156,
   2026-11-12 (`GaitTransitions.on_foot`; `test_player_actions.gd`, `test_push_cubes.gd`, `test_vault_contacts.gd`).
+- **Approach:** Prove a cost change keeps the pose with two bodies side by side, stepped by the same commands in the
+  same frames, each skeleton's update called by hand and every bone read inside its `skeleton_updated` (what the skin
+  gets, before the engine puts the unmodified poses back); give the body under test its own copies of the clips when
+  the change is to shared ones. **Watch out for:** two players made one after the other and walked through the same
+  commands were drawn up to 1 radian apart at their first frame (the upper arm), with the change on in both.
+  **Seen:** gdstudio #1438, 2026-11-13 (`test_helper_tracks.gd`: side by side, 0 apart in place and turn).
+- **Approach:** Prove an inertialization (or any blend started on a change of state) by the drawn pose: record each
+  body bone's place in the model's frame at `skeleton_updated` every frame through the change, and fail on a move far
+  above the clip's own largest. **Watch out for:** the momentum blend began on the frame the state machine reported
+  its new node, a frame before the skeleton showed it, so it carried nothing and the new pose arrived whole: 88 cm in
+  one frame at a walk's stop, 70 cm into the crouch, for our clips and the library's alike; the blend's own test
+  checked only that it was blending. **Seen:** gdstudio #1416, 2026-11-13 (the maintainer's playtest;
+  `test_own_clip_blends.gd`).
+- **Approach:** Keep a state-change blend out while an action clip covers the whole body
+  (`CharacterAnimation.is_acting(true)`); the action cross-fades in the tree. **Watch out for:** the body state
+  under a vault still changes, and a restart then took the clip's own fast motion for a jump and held it back: a
+  planted hand 16 cm off the top. **Seen:** gdstudio PR #1427, 2026-11-13 (`test_vault_contacts.gd`,
+  `test_net_puppet_vault.gd`).
+- **Approach:** Pick a start from the speed the body had before the tick that asked it to move (`START_GRACE`
+  frames since it last stood), not from its speed after. **Watch out for:** at 28 m/s² the body is at 0.47 m/s, past
+  `standing_speed` (0.3), on the first tick of a press, so the starts were never picked for the player and the idle
+  snapped to the walk in two frames; the transition tests set the speed by hand. Pick no start for an aimed walk (it
+  faces the view and strafes), and in a test that reads the steady gait after a press from standing, wait until the
+  machine is back in `ground`: once starts played, four suites read the start instead. **Seen:** gdstudio #1416,
+  2026-11-13 (PR #1427: pistol carry, aim release, rifle run state, a ragdoll that died mid-start).
+- **Approach:** Never send a state machine somewhere because `get_current_node()` reads a state: `travel()` is only a
+  request until the tree advances. Keep the state last asked (`GaitTransitions._asked`, set in `route()`) and travel
+  there. **Watch out for:** a crouch asked during a stop clip asked for `crouch`; the same frame's `step()` still read
+  `gait_transition` and sent the machine to `ground`, the last request won, and the body stood drawn over its
+  crouched capsule for as long as it crouched (an AI in cover looked stuck, shots at its chest flew over the capsule).
+  **Seen:** gdstudio #1412, 2026-11-13 (`test_a_crouch_asked_during_a_stop_takes_the_body_to_the_crouch`).

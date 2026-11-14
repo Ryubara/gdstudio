@@ -35,7 +35,8 @@ pickup is a scene that inherits it and puts the model under `Visual`: the templa
   is not in the character's scene: the loadout makes the definition's `view_scene` under the `Model` slot the first time
   the character carries the weapon, so a character without a rifle carries none of its nodes. Its parts are below:
   [the rifle in both hands](#rifle-hands).
-- **The rifle**: hitscan, automatic, 10 shots a second, spread 1.2 degrees, recoil 0.6, damage 22, a magazine of 30,
+- **The rifle**: hitscan, automatic, 10 shots a second, no spread on a first shot growing to 1.2 degrees over 5
+  shots in a row and back in 0.35 s ([spread](fire-modes.md#spread)), recoil 0.6, damage 22, a magazine of 30,
   60 to 180 in reserve (`rifle_ammo`), reload 2.2 s, holster 0.3 s, draw 0.4 s; Deadnight's synthesised M4A1 mechanics
   (`assets/audio/rifle/`, MIT) and four generated shots (kit #1414), the shot at -24.5 dB.
 
@@ -118,6 +119,9 @@ are named as such.
   the gun where the last frame's push had it; the butt is brought to the skin after it, since the turn brings the
   chest's left side forward under the stock, and both again in the same frame only when the push moved more than 3 mm.
   What is still short then brings the gun back along its barrel (`pull_limit`, 0 now: nothing is short).
+- **The left shoulder.** On a left peek lean the stance mirrors the pocket and the gun's turn across the body and
+  turns the chest square on (`side`, `left_chest_turn`); the hands keep their places on the rifle
+  ([the weapon on the left side](peek.md#left-shoulder), gdstudio #1435).
 - **The arms** are a `HoldArm` each (the pistol's own reach, given the hand's place in the skeleton's space by the
   stance in the same update), toward `RightHandTarget` and `LeftHandTarget` on the rifle, the elbows toward
   `RightPole` and `LeftPole`. Both are on their places in every update of every state (0.0 mm in 110 poses of both
@@ -156,9 +160,10 @@ are named as such.
   the female's into `rifle_trigger_way.tres` and the male's into his fit (`HoldFit.trigger_way`), nothing when a
   step is deeper than 2 mm; run it after `write_hold.gd`, which keeps a fit's way. Measured at every hundredth of
   the raise (`test_rifle_fingers.gd`): at most 1.59 mm in (female) and 1.60 mm (male), against 3.7 and 4.6 mm for
-  the way of two poses before (a roll of 90 and 105 degrees). The ends hold as before. The planner's `FingerChain`
-  and `plan_way` know nothing of the rifle, so another finger (the pistol's trigger finger) can be planned the same
-  way from its own dump.
+  the way of two poses before (a roll of 90 and 105 degrees). The ends hold as before. The planner knows nothing of the
+  rifle: the pistol's trigger finger is planned by it too, its dump adding the grid, the limit, the left hand's skin
+  and depth read through thin parts ([between the poses](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md#between-the-poses));
+  what both solvers share is `tools/hold/finger_way_files.gd`.
 - **A switch** is one sequence on the loadout's own times. Going away, the gun goes down to its stow place
   (`stow_pocket`, `stow_pitch`, `stow_yaw`) with both hands on it through the `holster_time`, is hidden in the tick
   the next weapon appears in the right hand, and the arms go from the gun's places to that weapon's pose while it
@@ -169,7 +174,8 @@ are named as such.
   thumb's side off the hand guard (`reload_clearance`), across to beside the magazine and onto `MagazineHand`
   (`reload_leave`), closes on the magazine, takes it straight down out of the well (`magazine_well`) and to the belt
   at the left hip (`reload_belt`, a place on the body; `reload_out`), where the magazine is out of sight and changed,
-  comes back up and straight in (`reload_in`), and goes back under the hand guard the way it came (`reload_return`).
+  comes back up and straight in (`reload_in`), pulls the charging handle after an empty magazine (below), and goes
+  back under the hand guard the way it came (`reload_return`).
   The `magazine` node rides the hand. The thumb goes from the hand guard's side to its place behind the magazine
   while the hand comes down off the hand guard (`_WAY_THUMB`), and on the magazine the four fingers close as one
   (`HandPoseModifier.open_together`; off the hand guard they open knuckles first).
@@ -190,7 +196,12 @@ the clips were built round it on both bodies, each under its own fit
 numbers, a fit or the solved hands change, their build is run again
 (`assets/animation/rifle/build_rifle_clips.py`, 90 s; a new step of the hold is ported to the build's `Hold`
 first). The
-left hand does not go to the charging handle yet (kit #1266).
+left arm's way to the charging handle and its pull are the hold's `ChargePull`, ported to the build's `Hold`
+(kit #1266).
+
+- **The charging handle**: after the new magazine of an empty reload the left hand pulls it (kit #1266, kit
+  #1402, `ChargePull`), on
+  [its own page](rifle-charge.md#rifle-charge).
 
 Measured on the skinned mesh against the rifle (`HandContact`, the same in every clip, since the fingers are absolute
 and the arms reach their places), on the prototype bodies:
@@ -259,6 +270,43 @@ groups of an 8 cm cell under each bone with a box round each group and each bone
 the shoulder reaches for the gun where the last frame's push had it and the push is measured once after it, again
 only when it moved more than 3 mm (a new pose); the reach's angle is worked out in closed form; every pose comes
 from the local ones; past `fingers_far_distance` the last near push is kept.
+
+Cut again (kit #1347), the same bench, the branch and `main` in turns, two rounds a body (microseconds a character a
+frame, female / male): the rifle at the ready 39 / 36 against 54 / 54, low 39 / 36 against 51 / 55, reloading 46 / 42
+against 62 / 57, past `fingers_far_distance` 25 / 22 against 33 / 33; the pistol carried and aimed as they were (10 /
+10 and 19 / 16 against 9 / 9 and 19 / 18). A build from before the stock fix (after kit #1289), in the same session,
+read 31 / 32, 29 / 27 and 38 / 36, so the push and the shoulder's reach still cost 6 to 9 more than the hold did
+before them. Every bone came out within 2.3 micrometres of `main` in 36 poses (both bodies, six clips, up and down,
+four shares of a reload). What cut it, in order of what it saved: the small helpers written out at their callers
+(the web build pays more for a GDScript call than for a line, [what a line costs](../gdscript.md#web-cost)), the push
+turning each group's points by one engine call (`Transform3D * PackedVector3Array`, `AABB.has_point`) and meeting the
+groups' boxes in the bone's space, the stance handing `place()` the spine's top pose (`HoldBones`), what is written to
+the modifiers kept and written only when it changes (`HoldWeights`), the trigger finger set straight to its pose when
+it is all the way on, and no pull worked out while `pull_limit` is 0. With the butt's push along `push_level`'s way
+(kit #1346) merged in, the push along it (`TorsoSkin._push_along()`) takes the same three speedups; the low ready aims
+the barrel down and takes that way, so most of its cost is the new push: on a busy machine 72 / 119 against 79 / 119,
+where the ready went 50 / 74 against 70 / 93 and the reload 54 / 82 against 75 / 103.
+
+Cut again (kit #1433), the same bench, the branch and `main` in turns, three rounds a body: the low ready 60 / 60
+against 68 / 84, the ready 49 / 47 against 48 / 48; every bone the same as `main` in 100 poses. The low ready went
+through 143 / 170 skin points a frame against 37 / 54 at the ready: the groups' boxes were met against the stock's
+sweep turned into each bone's space, and that long, thin box turned there covered most of the torso. Now each point
+is turned into the frame of its own run (the move that brings the stock's back edge to it, and the one that brings
+its edge across), where the sweep is a box and the run two sums; and the sweep is first looked at only as far as the
+last push and 2 cm, exact for any push under that (a point the stock does not pass over forbids no shorter move), the
+whole reach again only when the push reaches it. It goes through 34 / 61 points; the low ready is still 11 / 13 over
+the ready, the 23 / 32 points that do forbid a move.
+
+Cut again (kit #1347, second round), the same bench, `main` and the branch in turns with a build from before the stock
+fix, three rounds a body (female / male): the ready 40 / 45 against 48 / 47, the low ready 50 / 56 against 54 / 61,
+reloading 53 / 49 against 51 / 56 (the female reload within the noise); before the stock fix 35 / 36, 34 / 33 and 48 /
+47. The push takes the spine's poses from the stance (`TorsoSkin.use_spine()`: the stance's own array, read once, so a
+push no longer works five bones out from the root; 1.3 microseconds a push), meets the groups' boxes in the gun's space
+(18 / 27 points gone through at the ready, against 37 / 54), and gives each point's run in one line (an empty run and
+one that ends at or before 0 change nothing). Every bone within 0.84 micrometres of `main` in 124 poses. What is left
+over the hold before the stock fix is the push and the reach themselves (about 5 microseconds at the ready on the
+desktop, 9 to 13 for the push along a way at the low ready, which kit #1346 added): the bone and group boxes, the
+points the stock passes over and the runs' sort are each 1 to 2.5.
 
 The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
 body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
@@ -454,3 +502,13 @@ stock test's 10 mm.
   and many poses inside it), clipped to the weapon's own bounds. **Watch out for:** a grid round the straight way
   alone read a point beyond it as the edge's distance plus the way there, so a way through the receiver above it
   read 1.6 mm on the grid and 6 mm in the game. **Seen:** gdstudio #1283, 2026-11-12.
+- **Approach:** Make a stage that a suite will `settle()` with `RifleStage.make_rifle(holder, model)`, the measured
+  default. **Watch out for:** `measured = false` connects nothing to `skeleton_updated`, so `settle()` waits forever
+  and GdUnit stops the suite at 5 minutes. **Seen:** gdstudio #1433, 2026-11-13 (`test_torso_skin_push.gd`).
+- **Approach:** Keep `Pivot` (and so the rifle and its hand places) out of physics interpolation
+  (`physics_interpolation_mode` OFF in `two_hand_hold.tscn`), and prove the hands on the rifle where the engine draws
+  them (`test_rifle_drawn_hands.gd`), not only in `skeleton_updated`. **Watch out for:** the hold places the pivot in
+  the skeleton's update, every frame; interpolated, the rifle was drawn where the last ticks had it while the skin
+  had this frame's bones, 145 mm off both hands at each landing (the land clip drops the chest fast), and every pose
+  test passed ([physics interpolation](../physics-interpolation.md#using-it)). **Seen:** gdstudio #1464, 2026-11-13
+  (found by the jump captures of #1369).

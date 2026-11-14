@@ -27,6 +27,10 @@
 - `assets/animation/limb_overlap.py` measures, with the pinned Blender, how deep any limb is inside another on every
   frame of a clip, on both mannequins' skinned meshes; a build that keys clips runs it before it exports. From the
   command line it reads a clip file at the file's own frame rate (`test_limb_overlap.py` proves both ways agree).
+  Its `--brief` reports (`bodies_overlap.json`, `<file>_overlap.json`) carry the hash of the clip file, of the
+  script's code and of each body file (`measure_hash.py`), and `tests/fixtures/bodies_overlap.gd` fails a report
+  when one of them is no longer the one measured: measure every report again after a change to the script's code
+  or to a body.
 - `assets/weapons/pistol/` is GDStudio's own pistol (MIT, from Deadnight's build script, with a `LICENSE.md`), and
   `pistol_held.tscn` puts it in the mannequin's right hand for the pistol clips (the folder's README).
 - `assets/audio/coin/` (a coin pickup, four variants), `assets/audio/footsteps/` (four soft steps),

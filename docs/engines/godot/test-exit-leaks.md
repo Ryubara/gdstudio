@@ -66,6 +66,9 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
 - **Find it by running the suite alone** (`-a <one suite>`, `--verbose`), not by reading the shard's log: a suite that
   leaks alone is the cause, and it reproduced on Windows with the shard's own list. A single test case of it leaks the
   same count (the suite's script), so do not read its tests.
+- **A list of only GdUnit4's and the autoloads' scripts is not yet a cause.** Cut the suite until two names remain:
+  a fixture that extends a game class and keeps a static variable gives the same list
+  ([A subclass that keeps a static variable](#a-subclass-with-statics)).
 - **Probe scripts:** `extends SceneTree`, `load(OS.get_environment("PROBE_PATH"))` in `_init`, `quit()`: a second a
   script; a sweep of every game script lists the ones that leak alone.
 - **Load every game script first, in name order.** A command line tool that does so before GdUnit's own
@@ -173,15 +176,22 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   use` before the pull request, even when the full run is green. **Watch out for:** `LoopbackLink.pair()` made ends
   that held each other strongly, so every pair a test made stayed alive: 526 template tests passed with one line `4
   resources still in use at exit`, which only a run of each suite alone traced to the loopback suite. **Seen:**
-  gdstudio #903, 2026-11-10 (fix: weak references and a test that frees one end).
+  gdstudio #903, 2026-11-10 (fix: weak references and a test that frees one end); gdstudio #1386, 2026-11-13
+  (`ClientItems` kept the `ClientCombat` that owns it: 18 instances leaked; fix: the owner is an argument of each
+  call, never kept).
 - **Approach:** A scene's script makes its nodes in `_ready` (or adds them as children at once), never in a member
   initializer (`var _dummy := Node3D.new()`) that only `_ready` adds to the tree. **Watch out for:** a test that
   `instantiate()`s every scene and frees it outside the tree (the layer check) frees the children, not a node held
   only in a member, so the run ended with `1 orphans` and `1 ObjectDB instance was leaked at exit` (exit 101) from
-  the minimap bench. **Seen:** gdstudio #954, 2026-11-10 (fix: the bench makes its dummy in `_ready`); gdstudio #926,
-  2026-11-10 (the parts bench's frame-end node, the same way); gdstudio #966 (the senses tour's walker); gdstudio
-  #1075, 2026-11-11 (the navigation sync bench's probe: every suite passed locally, and only CI's exit 101 named
-  it; grep a new bench or tour for `:= .*\.new()` on a `var` line before the push).
+  the minimap bench. **Seen:** gdstudio #954, #926, #966, 2026-11-10 (the minimap and parts benches, the senses
+  tour); #1075, 2026-11-11 (a probe: green locally, only CI's exit 101 named it; grep a new bench or tour for
+  `:= .*\.new()` on a `var` line before the push); #1408, 2026-11-13 (the burst tour's caption `Label`).
+- **Approach:** A fixture that owns sounding bodies (`OnlineRig`) stops their players and waits on the mixer
+  (`AudioDrain.stop_all(self)`) in its `NOTIFICATION_PREDELETE`, only when one plays; `AudioStreamPlayback*` in the
+  `Leaked instance:` list is a voice. **Watch out for:** on `--fixed-fps` the last ticks pass in milliseconds while
+  headless audio mixes every 70 to 90 ms, so a swing outlived the run (6 instances, one to three runs in four);
+  `_exit_tree` runs after the players stopped, so it cannot tell one played; `assert_object(playback)` keeps it alive.
+  **Seen:** gdstudio #1495, 2026-11-14 (`test_net_rig_voices.gd`; [details](audio.md#leaks-at-exit-in-a-test-run)).
 - **Approach:** A cache of resources shared by every instance of a class (`static var _meshes: Dictionary[float,
   SphereMesh]`) is emptied when the last instance goes: count instances in `_init` and `NOTIFICATION_PREDELETE`, and
   clear the dictionaries at zero. **Watch out for:** a static holds its resources until the script unloads, after the
@@ -261,3 +271,38 @@ only *named* `WeaponDef` (the call compiled, never run) was clean. So read every
   `held_definition()`) were both `WeaponLoadout.slots`, which has no self-cast. **Seen:** gdstudio #1236, 2026-11-11
   (four other suites of #1138 already clean alone at 9ebaa690); gdstudio #1249, 2026-11-11 (fix: `slots` as
   `Array[Resource]`: prone 188 objects and 117 resources to none, player step 191 and 120 to none).
+
+## A subclass that keeps a static variable {#a-subclass-with-statics}
+
+<!-- new section: the sections above name a suite that only names a class and an exported typed array; neither
+     covers a test fixture whose own static variable leaves GdUnit4's scripts in use when its base is named first -->
+
+Under Godot 4.7.2 a script that **extends a game class and reads a static variable of its own in a function** leaves
+GdUnit4's scripts and the autoloads' (`gds_ui`, Phantom Camera, the audio settings, the camera shake, decoded sounds)
+in use at exit when a suite names the base class before the subclass: 213 objects and 118 resources for a suite of
+one assert, and, in 3D Third Person's `test_net_ai_online.gd`, 779 objects, 553 resources and RID lines (JoltShape3D,
+DummyMesh) from everything those statics reach. The suite's own script and the two classes are not in the list.
+
+What the probes showed (a one-assert suite whose unused helper only names the classes, each run alone):
+
+| Suite names | Subclass body | At exit |
+| --- | --- | --- |
+| `Character`, then `CountingAi` | `static var` read in a function | 213 objects, 118 resources |
+| `CountingAi` only, or `CountingAi` first | the same | clean |
+| `Character`, then `CountingAi` | `static var` never read, or a plain `var` | clean |
+| `Character`, then `CountingAi` | counts in a `RefCounted` class of their own | clean |
+| `CharacterController`, then `PlayerInput` | `static var _key_holders` | 213 objects, 118 resources |
+| a ten-line base in `tests/`, then its subclass | `static var` read in a static function | 213 objects, 118 resources |
+
+Loading the base script first through a wrapper of `GdUnitCmdTool.gd` leaked the same; loading the subclass first
+cured it. Some bases did not show it (`Health`, `Hotbar`, `AiDirector`), so a clean probe of one base proves nothing
+about another. A `-s` script that loads the two scripts and quits, without GdUnit4, was clean.
+
+- **Approach:** Keep the shared counters of a test fixture that extends a game class in a `RefCounted` class of their
+  own (`AiCallCounts`) and have the fixture add to it; the fixture keeps no `static var`. Find such a leak by running
+  one case alone (`-i <suite>:<case>` for each other case), then copies of the suite with one case's body, then with
+  its lines cut, until two names remain. **Watch out for:** the lead was the class-loading family of the sections
+  above, since the list held only GdUnit4's and the autoloads' scripts, and even the suite's one-assert case leaked
+  683 objects; the cause was `CountingAi`'s three static counters, read by `new_counts()`, once the suite had named
+  `AiCharacter`. **Seen:** gdstudio #1499, 2026-11-14 (`test_net_ai_online.gd` alone: 779 objects and 553 resources
+  to none, the same 7 cases); #1502, 2026-11-14 (`PlayerInput`, now `RagdollKeyHolders`).

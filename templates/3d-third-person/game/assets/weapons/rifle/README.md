@@ -6,8 +6,8 @@ cross-sections, on the same palette and material as the pistol. Licence: [LICENS
 
 | File | What it is |
 | --- | --- |
-| `rifle.glb` | The near level (held, close up): 1,236 triangles, one material (`Weapons`), 0.766 x 0.386 x 0.097 m |
-| `rifle_far.glb` | The far level: 420 triangles, the same parts with no chamfers, half the sides on round parts and the small parts left out, every node at the near level's place |
+| `rifle.glb` | The near level (held, close up): 1,260 triangles, one material (`Weapons`), 0.766 x 0.386 x 0.097 m |
+| `rifle_far.glb` | The far level: 444 triangles, the same parts with no chamfers, half the sides on round parts and the small parts left out, every node at the near level's place |
 | `rifle.tscn` | Both levels in one scene: `Near` drawn to 10 m, `Far` from 10 m (each mesh's Visibility Range, 0.5 m margin) |
 | `rifle_weapons_palette.png`, `rifle_far_weapons_palette.png` | The 32 x 32 palette Godot extracts from each glb (lossless, no mipmaps, Detect 3D off) |
 | `build_rifle.py` | Rebuilds both glbs with the pinned Blender (`blender -b --factory-startup -P build_rifle.py`) |
@@ -25,7 +25,7 @@ grip. In Godot the muzzle points along -X, up is +Y and the gun's left is +Z (th
 | Node | Where (m, in `Rifle`) | Use |
 | --- | --- | --- |
 | `Magazine` | (-0.121, 0.055, 0) | the magazine, its own mesh, origin at the well's mouth: drop it along its -Y for a reload |
-| `Bolt` | (0.034, 0.168, 0) | the charging handle, origin at its root: pull it along +X (Deadnight uses 0.06 m) |
+| `Bolt` | (0.034, 0.173, 0) | the charging handle, origin at its root: pull it along +X (Deadnight uses 0.06 m); its latch runs on past the stock on the left with a tab beside it, which the left hand hooks (kit #1266) |
 | `Muzzle` | (-0.506, 0.130, 0) | the flash hider's open end; its -Z points out of the barrel (flash, shot) |
 | `Eject` | (-0.066, 0.135, -0.036) | the ejection port on the right; its -Z points out of the port |
 | `Grip` | (0, 0, 0) | the right hand's handle; +Y up the handle (raked back 16 degrees), -Z along the fingers (the barrel) |
