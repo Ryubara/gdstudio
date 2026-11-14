@@ -66,7 +66,11 @@ nearest it begun `offset` frames after or before that strike, named by the gait'
   `offset` frames sooner (after the strike) or later (before it), and the clip is that much longer at its end.
 - **What the gait has at the first frame goes on as the gait's.** A planted foot stays the gait's contact until it
   leaves; a foot in the air (`Move.ghosts`) swings as the gait's toward the gait's next landing and is let go for
-  the clip's own over its swing. Before a strike, the strike is a brake step placed by the lean, not the gait's place.
+  the clip's own over its swing, landing only as far toward the clip's place as its frames left allow (`REDIRECT`).
+  Before a strike, the strike is a brake step placed by the lean, not the gait's place.
+- **No start or stop keys the `ik_` targets** since, as the library clips do (`Clip.bones`; the join check leaves
+  the unkeyed targets out): a stop imports at 7.1 KB a second without them, 8.5 with, and `locomotion.glb` at
+  6,819 bytes a second with the sixteen entries (7,126 before them, with the targets).
 - **The review compares letters on the strikes' clips only** (`moves.on_strike`); the entries are built from the
   picked letter for the shipped file.
 
@@ -76,6 +80,17 @@ nearest it begun `offset` frames after or before that strike, named by the gait'
   left the body 21.5 degrees off the braking's lean (limit 16); solved from the next strike, 1 frame before it,
   14.1. 2 frames after a strike still read 16.5 (the first brake step lands at 6.3 m/s), declared as
   `entry_lean_limit` 17. **Seen:** gdstudio #1525, 2026-11-14.
+- **Approach:** Move the landing of a foot that is in the air at an entry's first frame toward the clip's place
+  only as far as its frames left allow, and test the first frame's step of every bone against the gait's.
+  **Watch out for:** the swing's blend from the gait's landing to the brake step's ran over the frames to the
+  landing, so one frame before a strike the foot moved 99 mm more than the gait's in that frame (66 mm in the jog);
+  every numpy check passed. Godot's `test_own_moves.gd` found it; `REDIRECT` 8 frames: 6 to 10 mm. **Seen:**
+  gdstudio #1525, 2026-11-14.
+- **Approach:** Measure what a new clip costs imported before choosing how many to add: the budget is a mean per
+  second, and a clip denser than the file's mean eats its margin whatever its count. **Watch out for:** the stops
+  import at 8.5 KB a second against the file's 7.1 and a margin of 42 bytes a second: sixteen entries read 7,602
+  bytes a second in `test_own_clips.gd`. Without the `ik_` targets in every start and stop, 6,819. **Seen:**
+  gdstudio #1525, 2026-11-14.
 - **Approach:** Start the swing of a foot that leaves after an entry's first frame as the gait's (the same ghost as
   a foot already in the air), and before a strike make the strike a brake step. **Watch out for:** the jog's entry 4
   frames after the left strike swung its leaving foot straight to the clip's slow landing; the leg stretched, the

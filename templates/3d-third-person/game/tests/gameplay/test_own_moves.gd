@@ -148,6 +148,8 @@ func test_a_start_and_a_stop_meet_their_gait_moving_as_it_moves() -> void:
 				var worst := 0.0
 				var worst_bone := ""
 				for bone: String in mine_a:
+					if bone.begins_with("ik_"):
+						continue  # the starts and stops key no `ik_` targets (gdstudio #1525)
 					var mine: Vector3 = mine_b[bone] - mine_a[bone]
 					var theirs: Vector3 = gait_b[bone] - gait_a[bone]
 					if mine.distance_to(theirs) > worst:
@@ -322,6 +324,8 @@ func test_every_stop_entry_begins_on_its_gait_s_frame_over_the_same_ground() -> 
 			var worst_pose := 0.0
 			var worst_step := 0.0
 			for bone: String in mine_a:
+				if bone.begins_with("ik_"):
+					continue  # left out of the entries, as the library leaves them out
 				worst_pose = maxf(worst_pose, (mine_a[bone] as Vector3).distance_to(gait_a[bone]))
 				var mine: Vector3 = mine_b[bone] - mine_a[bone]
 				var theirs: Vector3 = gait_b[bone] - gait_a[bone]

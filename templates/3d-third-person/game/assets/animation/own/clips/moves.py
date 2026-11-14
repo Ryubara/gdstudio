@@ -33,7 +33,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from gdsanim import maths, overlap, weight
-from gdsanim.build import Clip
+from gdsanim.build import Clip, keyed_bones
 from gdsanim.maths import FPS, body_turn
 from gdsanim.plan import ContactPlan, Footfall, Travel
 from gdsanim.rig import SIDES
@@ -190,7 +190,9 @@ STOPS = {
         "air": [-4, -3, 3],
         "gait_like": [0.8, 0.5, 0.2, 0.0],
         "lean_limit": 17.0,
-        "entry_lean_limit": 17.0,
+        # Two frames before a strike the strike lands too soon to reach the brake step's place (`REDIRECT`), and
+        # the body passes over a foot under it while it brakes: 18.3 to 18.6 degrees (gdstudio #1525).
+        "entry_lean_limit": 19.0,
         "halt": 2,
         "dip": 0.035,
         "speed_limit": 55.0,
@@ -225,6 +227,8 @@ HALF = {"jog": 10, "sprint": 9}
 ## and a stance that long at speed covers more ground than the lean can hold (the sprint at 8 frames after: 21.5
 ## degrees off the acceleration's lean, against 16).
 ENTRY_AFTER = {"jog": 4, "sprint": 4}
+## Frames of swing a foot in the air at a stop's first frame needs to land on the clip's own place, not the gait's.
+REDIRECT = 8.0
 
 
 @dataclass
@@ -554,6 +558,14 @@ class Move:
             if self.contact < self.half:
                 # A run: the other foot is in the air as the clip begins, on its way to the gait's next landing.
                 self.ghosts[b] = self._own_tread(b, self.half - o, root(self.half - o))
+        # A foot in the air as a stop begins lands where the gait would put it, moved toward the clip's own place
+        # only as far as its swing has frames left to go there (`REDIRECT`): one frame before it lands it cannot
+        # be put down 10 cm further on.
+        for s, ghost in self.ghosts.items():
+            first = next(t for t in treads[s] if t.land > 0.0)
+            share = maths.smooth(min(first.land / REDIRECT, 1.0))
+            first.place = tuple(g + (c - g) * share for g, c in zip(ghost.place, first.place, strict=True))
+            first.yaw = ghost.yaw + (first.yaw - ghost.yaw) * share
         self.treads = treads
 
     def _state(self, s: str, pivot: str, at: np.ndarray, pitch: float, yaw: float) -> dict:
@@ -918,9 +930,14 @@ def describe(kind: str, start: bool, side: str, rig, style, name: str, joined, o
     def spec(f: int) -> dict:
         return move.spec(f)
 
+    # A start or a stop leaves the `ik_` targets out, as the library clips do: nothing in the game reads them
+    # (`HelperTracks` mutes them), and their 8 of 61 tracks are a sixth of what a clip costs imported (a stop
+    # 8.5 KB a second with them, 7.1 without, against the budget of 7; gdstudio #1525).
+    bones = [b for b in keyed_bones(rig) if not b.startswith("ik_")]
     return Clip(
         name=name,
         frames=F,
+        bones=bones,
         plan=move.plan(),
         spec=spec,
         loop=False,

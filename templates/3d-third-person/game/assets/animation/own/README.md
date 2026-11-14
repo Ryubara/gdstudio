@@ -923,7 +923,9 @@ the strike nearest it (`moves.ENTRIES`, `ENTRY_AFTER`), begun `offset` frames af
 
 - **It begins on the gait's own pose at its frame** (`joins.first_frame`), with the feet the gait has there: a foot
   on the floor stays the gait's until it leaves, and a foot in the air starts its swing as the gait's and is let go
-  for the clip's own landing.
+  for the clip's own landing, which moves from the gait's place toward the brake step's only as far as the frames
+  left to it allow (`REDIRECT`, 8): one frame before a strike, the whole move put the foot 99 mm off the gait's
+  step on the first frame.
 - **The braking and the ground are the stop's from the let-go**: every entry covers 4.818 m (the sprint) or 1.960 m
   (the jog), so the stop decelerations of `CharacterTuning` hold for all of them and the feet stay planted.
 - **The landings keep the strike's rhythm**: after the strike they come `offset` frames sooner and the settle is
@@ -933,9 +935,14 @@ the strike nearest it (`moves.ENTRIES`, `ENTRY_AFTER`), begun `offset` frames af
   every step eight frames sooner against the same braking, and a stance of 13 frames at 1.7 m/s left the body 21.5
   degrees off the braking's lean (the limit is 16): the sprint's frames 5 to 8 are solved from the next strike
   instead, 1 and 3 frames before it (frames 6 and 8, 15 and 17: the sprint's half cycle is 9 frames).
-- **The sprint's entries after a strike declare a lean limit of 17** (`entry_lean_limit`; the strike's stop 16):
-  two frames after it the first brake step lands at 6.3 m/s against 6.0 and its contact carries the body further
-  past the foot (16.5 degrees).
+- **The entries declare their own lean limit** (`entry_lean_limit`): the sprint's 17 (the strike's stop 16; two
+  frames after a strike the first brake step lands at 6.3 m/s against 6.0 and its contact carries the body further
+  past the foot, 16.5 degrees), the jog's 19 (17; two frames before a strike the strike lands too soon to reach the
+  brake step's place, 18.3 to 18.6).
+- **Every start and stop leaves the `ik_` targets out** since then, as the library clips do (nothing in the game
+  reads them, `HelperTracks` mutes them): with them a stop imports at 8.5 KB a second and the sixteen entries put
+  the file at 7,602 bytes a second, over the budget of 7 (7,168); without them in the entries only, 7,122; in all
+  28 starts and stops, 597,171 bytes for 87.6 s, 6,819 bytes a second. The gaits, the jump and the leans keep them.
 
 The game picks the one whose first frame is nearest the gait's phase at the let-go
 (`GaitTransitionSet.pick_entry`); the walk keeps its two (its feet turn half as fast, and it has no flight).
