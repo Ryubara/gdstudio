@@ -19,8 +19,8 @@ const LONGEST := 4.0
 ## Below this ground speed the body is at rest (m/s).
 const AT_REST := 0.005
 ## The runs: a name, the stick's push forward, the walk button, the sprint button, the stop
-## clip it plays (the foot that lands next when the stick is let go) and the seconds it runs before
-## (a steady speed, and half a cycle more for the other foot).
+## clip of its gait and the seconds it runs before (a steady speed, and half a cycle more for the
+## other foot): a gait's two runs between them play both its feet's stops.
 const RUNS: Array[Array] = [
 	["walk", 1.0, true, false, "gds/Walk_Stop_L", 1.2],
 	["jog", 1.0, false, false, "gds/Jog_Stop_L", 1.2],
@@ -146,16 +146,28 @@ func _line(run: Array, found: Dictionary) -> String:
 
 
 func test_a_jog_and_a_sprint_stop_cover_the_clip_s_travel() -> void:
+	# Which foot a run's stop lands on follows the cycle's phase when the stick is let go, and a
+	# start clip before the cycle shifts it (gdstudio #1416), so each gait's runs need only cover
+	# both its feet between them, in either order.
 	var failures: Array[String] = []
+	var played := {}
+	var runs := {}
 	for run in RUNS:
 		var found := await _stop(run)
 		var line := _line(run, found)
 		print(line)
-		if found.clip != StringName(run[4]):
-			failures.append("no %s clip: %s" % [run[4], line])
+		var gait: String = run[0]
+		runs[gait] = runs.get(gait, 0) + 1
+		if not String(found.clip).begins_with(String(run[4]).left(-1)):
+			failures.append("no %s stop clip: %s" % [gait, line])
 			continue
+		played[found.clip] = gait
 		if absf(found.covered - found.travel) > found.travel * TRAVEL_SHARE:
 			failures.append(line)
+	for gait: String in runs:
+		var feet := played.values().count(gait)
+		if feet < runs[gait]:
+			failures.append("%s: %d runs played %d of its feet's stops" % [gait, runs[gait], feet])
 	assert_array(failures).override_failure_message("\n".join(failures)).is_empty()
 
 
