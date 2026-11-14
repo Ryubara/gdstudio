@@ -413,7 +413,8 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   one frame at a walk's stop, 70 cm into the crouch, for our clips and the library's alike; the blend's own test
   checked only that it was blending. **Seen:** gdstudio #1416, 2026-11-13 (the maintainer's playtest;
   `test_own_clip_blends.gd`); PR #1422, 11-14 (slower stops: a 1.3 rad gap at a sprint stop's start moved 23 cm in
-  the frame after the last restart; `SETTLE_FRAMES` 4).
+  the frame after the last restart; its cause:
+  [stop entries](../../tools/blender/start-stop-clips.md#taught)).
 - **Approach:** Keep a state-change blend out while an action clip covers the whole body
   (`CharacterAnimation.is_acting(true)`); the action cross-fades in the tree. **Watch out for:** the body state
   under a vault still changes, and a restart then took the clip's own fast motion for a jump and held it back: a
@@ -432,6 +433,12 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   `gait_transition` and sent the machine to `ground`, the last request won, and the body stood drawn over its
   crouched capsule for as long as it crouched (an AI in cover looked stuck, shots at its chest flew over the capsule).
   **Seen:** gdstudio #1412, 2026-11-13 (`test_a_crouch_asked_during_a_stop_takes_the_body_to_the_crouch`).
+- **Approach:** Prove a takeoff begun in a transition clip by the machine's state on each drawn update of the jump,
+  and by the weapon's turn there against the stop it leaves and the rest of its jump. **Watch out for:** a jump pressed
+  in a stop clip flew on the ground's pose, its gun 244 degrees a second at the takeoff; once the momentum blend
+  carried the stop's pose, that turn read 41 with the bug and without it, so only the state shows the fault. Read the
+  muzzle node's -Z, as the pistol node's own -Z points to the side. **Seen:** gdstudio #1462, 2026-11-14
+  (`test_aimed_takeoff.gd`).
 - **Approach:** A transition played by the ground the body covers needs a body that covers the clip's ground: give the
   controller a deceleration (or an acceleration) per gait that covers the clip's `travel`, follow the clip until the
   body is at rest, count from the tick the input changed (its velocity times a tick), and test the distance and a

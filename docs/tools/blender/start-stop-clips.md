@@ -110,3 +110,11 @@ that follow -->
   `ik_` targets, over 6 (the plan's 7 now).
   **Seen:** gdstudio #1156, 2026-11-12 (`tests/gameplay/test_own_moves.gd`'s
   `test_the_import_keeps_every_start_and_stop_s_motion`).
+- **Approach:** Give a stop an entry at every phase its gap needs, each on the gait's own pose at that phase
+  (`joins.first_frame`) with the whole travel ahead; measure the gait at each let-go phase against the stop's first
+  frame first. The body brakes from the let-go by speed alone, so waiting for the strike, entering part way or
+  stretching the travel slides a planted foot by up to a step. **Watch out for:** the stops begin only at a strike
+  (sprint frames 0 and 9 of 18), so a sprint let go between them entered its stop up to 9 frames early: 1.1 to 1.8
+  rad on a calf, hand or upper arm on both bodies, 21 to 23 cm in a frame through the momentum blend (limit 21). The
+  sprint's calf turns 0.42 rad a frame near a strike: entries 2 frames apart keep it near 0.4. **Seen:** gdstudio
+  #1525, 2026-11-14 (36 let-go phases probed).

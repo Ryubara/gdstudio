@@ -315,6 +315,22 @@ The enemies of [the AI section](ai-characters.md#parts) set the male body (`form
   so a new export adds its line there in the same change (#1011, #1013). A new modifier or layer export moves two
   more pins in the same commit: the layer's settings pin (`test_aim_layer.gd`) and the character's node count
   (`test_parts_budget.gd`, 60 to 61 with the head modifier, #1353).
+- **The animation's parts.** `CharacterAnimation` (`character_animation.gd`) keeps the inspector settings, the
+  signals, the build order of its tree (`_build_root`), the per-frame order (`_drive`) and the reads the game and the
+  tests call (`body_state()`, `pistol_weights()`, `reload_progress()` and the rest); each part of the tree is a class
+  beside it (#1287 split it at 999 lines):
+
+  | What it builds or does | Class (file) | The tree's nodes |
+  | --- | --- | --- |
+  | The body's state machine and which state a `Character.State` travels to | `BodyMachine` (`body_machine.gd`), an instance `_body` | `Locomotion` and its states |
+  | The weapon layer, built from the held `WeaponDef` and set every frame (grip, aim pose, shots, reload) | `WeaponLayers` (`weapon_layers.gd`), an instance `_weapons` | `Armed`, `PistolIdle`, `Aim`, `AimPose`, `Shoot*`, `Reload*` |
+  | The one-shot of the actions (`play_clip()`, interact, a hit, a vault) | `ActionLayer` (`action_layer.gd`), an instance `_actions` | `Action`, `ActionClip`, `ActionScale` and the vault's seek |
+  | The tree moving itself, or the AI's throttle moving it (`set_throttled()`, `advance()`) | `TreeClock` (`tree_clock.gd`), an instance `_clock` | none |
+  | Clip nodes and bone filters | `TreeParts` (`tree_parts.gd`), static | none |
+  | The gaits, prone, a vault, the aim brace, the shot, rack, melee, hit and use layers | `CharacterGait`, `ProneAnimation`, `VaultAnimation`, `AimBrace`, `ShotLayer`, `RackLayer`, `MeleeLayer`, `HitLayer`, `UseLayer` | their own |
+
+  A new layer goes in a class of its own the same way, with one call in `_build_root` or `_drive`; the node names stay
+  as they are, since the tests and the helpers read the tree's parameters by them.
 
 ## A second kind of controller {#second-controller}
 
