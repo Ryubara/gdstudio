@@ -133,6 +133,7 @@ const RIFLE_AIM_UP := &"rifle/Rifle_Aim_Up"
 const RIFLE_AIM_DOWN := &"rifle/Rifle_Aim_Down"
 const RIFLE_SHOOT := &"rifle/Rifle_Shoot"
 const RIFLE_RELOAD := &"rifle/Rifle_Reload"
+const RIFLE_RELOAD_EMPTY := &"rifle/Rifle_Reload_Empty"
 
 ## Every clip of the ten libraries, with its library.
 const ALL: Array[StringName] = [
@@ -270,6 +271,7 @@ const ALL: Array[StringName] = [
 	&"rifle/Rifle_Aim_Up",
 	&"rifle/Rifle_Idle",
 	&"rifle/Rifle_Reload",
+	&"rifle/Rifle_Reload_Empty",
 	&"rifle/Rifle_Shoot",
 	&"fixed/Jump_Land",
 	&"fixed/NinjaJump_Land",
