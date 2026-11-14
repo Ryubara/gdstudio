@@ -872,7 +872,10 @@ func _play_reload_steps() -> void:
 		return
 	var steps := definition.reload_sounds
 	var progress := reload_progress()
-	while _reload_sounds_played < steps.size() - reload_steps_held:
+	var held := maxi(
+		reload_steps_held, int(definition.last_reload_sound_when_empty and _magazine > 0)
+	)
+	while _reload_sounds_played < steps.size() - held:
 		var at := (
 			definition.reload_sound_at[_reload_sounds_played]
 			if _reload_sounds_played < definition.reload_sound_at.size()
