@@ -3,10 +3,12 @@
 # from the skeleton's modifiers, the pistol's `BoneAttachment3D` at `skeleton_updated`) was drawn
 # between its last two places, a frame behind the skin, which draws the bones of this update: the
 # rifle trailed the hands by a frame of the pose's movement (tens of millimetres at a sprint,
-# 0.3 m at a jump). Read after each frame, where the renderer was sent the meshes, through a
-# sprint, a jump and its landing, a sprint into a slide that ends in the crouch, and an aim: the
-# rifle's grip and hand guard are drawn where this update puts them from the drawn hands (the
-# hand on its place or not), and the pistol where its seat has it on the drawn hand.
+# 0.7 m on the frame a slide's end jumped to the crouch). Read after every frame at the suites' 60
+# ticks, where the renderer was sent the meshes (`AfterFrameReader`), through a sprint, a sprint
+# into a slide that ends in the crouch, standing up and an aim while walking: the rifle's grip and
+# hand guard are drawn where this update puts them from the drawn hands (the hand on its place or
+# not), on both bodies, and the pistol where its seat has it on the drawn hand. Jumps and their
+# landings are `test_rifle_drawn_hands.gd`'s (gdstudio #1464, the same cause).
 extends GdUnitTestSuite
 
 const RIFLE := "res://gameplay/weapon/rifle.tres"
@@ -132,17 +134,13 @@ func _drawn_bone(bone: StringName) -> Vector3:
 	return (_skeleton.get_global_transform_interpolated() * (_poses[bone] as Transform3D)).origin
 
 
-# Fast moves, as a player makes them: a sprint, a jump and its landing, a sprint into a slide
-# that ends in the crouch, standing up, and an aim while walking.
+# Fast moves, as a player makes them: a sprint into a slide that ends in the crouch, standing up,
+# and an aim while walking.
 func _tour() -> void:
 	var tree := get_tree()
 	InputSim.key(KEY_W, true)
 	InputSim.key(KEY_SHIFT, true)
-	await InputSim.ticks(tree, 30)
-	InputSim.key(KEY_SPACE, true)
-	await InputSim.ticks(tree, 3)
-	InputSim.key(KEY_SPACE, false)
-	await InputSim.ticks(tree, 50)
+	await InputSim.ticks(tree, 40)
 	InputSim.key(KEY_C, true)
 	await InputSim.ticks(tree, 70)
 	InputSim.key(KEY_SHIFT, false)

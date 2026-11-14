@@ -72,16 +72,13 @@ draw the blend of the last two ticks.
 
 ## Measuring it {#measuring-it}
 
-- **Approach:** To read where a node is drawn on every frame at the suites' own rate (60 frames and 60 ticks), read
-  `get_global_transform_interpolated()` after the frame and before the next tick, once the frame-end pass has run:
-  the 3D Third Person template's `AfterFrameReader` queues an input event no action uses in the frame, and the engine
-  hands it out at the start of the next loop, before the tick, headless too. Compare a held thing with the skin as
-  `drawn skeleton * the bone's pose of this update`. **Watch out for:** reads in the frame (`_process`,
-  `skeleton_updated`, `process_frame`, a modifier) come before that frame's end pass, and a read in the tick gets the
-  plain transform, so all of them showed the rifle on the hands while it was drawn a frame behind; a rendered check
-  (additive markers, one skinned to the hand bone, one on the gun, alone on a black frame) agreed to the pixel. A
-  `skeleton_updated` measure of a drawn pose is only the pose: the pistol's pages pointed there before. **Seen:**
-  gdstudio #1473, 2026-11-13 (`tests/gameplay/test_held_weapon_drawn.gd`: 0.7 m before, 0.0 mm after; the slower
+- **Approach:** To read where a node is drawn on every frame at 60 frames and 60 ticks, read
+  `get_global_transform_interpolated()` after the frame-end pass and before the next tick (the 3D Third Person
+  template's `AfterFrameReader`: an input event no action uses, queued in the frame, is handed out at the start of the
+  next loop, headless too), against the skin as `drawn skeleton * the bone's pose of this update`. **Watch out for:**
+  reads in the frame (`_process`, `skeleton_updated`, `process_frame`, a modifier) come before that pass and a read in
+  the tick gets the plain transform: all showed the rifle on the hands while it was drawn a frame behind (a rendered
+  marker check agreed to the pixel). **Seen:** gdstudio #1473, 2026-11-13 (`test_held_weapon_drawn.gd`; the slower
   ticks' way is the last entry here).
 - The node's `global_transform` shows the tick, never the blend: measure where the renderer draws. In a headless test,
   `Node3D.get_global_transform_interpolated()` through `Camera3D.unproject_position()`; in a capture, find a marker ball
