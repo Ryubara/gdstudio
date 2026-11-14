@@ -27,9 +27,15 @@ How the 3D Third Person rifle's left hand pulls the charging handle at the end o
   under the hand guard by `straight_return` (0.66 to 0.86, the way it took before the pull existed), and the bolt's
   sound is left out (`WeaponDef.last_reload_sound_when_empty`, read by `Weapon` against its magazine). A switch or a
   blow cuts the reload short and the bolt is home; a shot cannot come in a reload, and the pull ends at 0.98, before
-  the rounds go in. The pull keeps the reload's shares, so `Rifle_Reload` stays one clip for both reloads (its small
-  beat for the bolt plays in both). Tests: `tests/gameplay/test_rifle_charge_reloads.gd` (the player's own scene on
-  both bodies, and the tactical way on the stage every half hundredth, `charge_bolt.posed_pulls`). Captures:
+  the rounds go in. The pull keeps the reload's shares; the body under it has a clip a reload (kit #1508):
+  `Rifle_Reload` for rounds left, whose eyes follow the hand forward under the hand guard and settle with no beat for
+  the bolt, and `Rifle_Reload_Empty` (the clip both reloads played before) with the eyes lifting to the handle from
+  0.72 and the chest's jolt at 0.86 where the bolt is let go. `WeaponDef.empty_reload_clip` names the second and
+  `ProneAnimation.reload_clip()` picks it from the same magazine `ChargeBolt.pulls()` reads, so the clip and the
+  pull always agree; a weapon with none plays `reload_clip` for both (the pistol, whose rack is its own clip).
+  Tests: `tests/gameplay/test_rifle_charge_reloads.gd` (the player's own scene on both bodies, each reload's clip,
+  and the tactical way on the stage every half hundredth, `charge_bolt.posed_pulls`), `test_rifle_clips.gd`
+  (`test_only_the_empty_reload_has_the_bolts_beat`). Captures:
   `tools/capture/rifle_reload_live.tscn` (`RELOAD_ROUNDS`, `RELOAD_VIEW=game`, `close` or `left`, `RELOAD_MODEL`).
 - **How the handle is held.** The model's latch was a 1.4 cm bar within the stock's width with its rear face on
   the stock's front, so no finger fitted in front of it and a pull ran it into the stock: `build_rifle.py` now
@@ -75,3 +81,9 @@ How the 3D Third Person rifle's left hand pulls the charging handle at the end o
   lying down passed on `main`, where every reload pulls, because the rifle is stowed (hidden) through a reload lying
   down, so the hold reads no reload there; the tactical cases failed on `main` as they should. **Seen:** gdstudio
   #1402, 2026-11-14 (the doc and the case name the stow).
+- **Approach:** When a clip is split in two that share a start, share the keys in the build and expect the curves
+  to be one only up to the last shared key before the first key that differs, then compare them in Godot within
+  the importer's error. **Watch out for:** the reloads shared every key to the seat (0.62), and the test that held
+  them equal to there failed: a spline key's slope reads the keys beside it, so the seat's key already leant
+  toward each reload's own end, and the imported clips differed by up to 0.35 degrees even where the file's keys
+  were equal. **Seen:** gdstudio #1508, 2026-11-14 (`test_only_the_empty_reload_has_the_bolts_beat`, to 0.50).

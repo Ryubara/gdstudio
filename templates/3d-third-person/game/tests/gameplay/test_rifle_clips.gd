@@ -1,4 +1,4 @@
-# The rifle clips (`assets/animation/rifle/rifle_clips.glb`, kit #1082): the library holds the six
+# The rifle clips (`assets/animation/rifle/rifle_clips.glb`, kit #1082): the library holds the seven
 # clips at their lengths with the loops marked; every track finds its bone on both mannequins;
 # a loop's last pose is its first, the shot starts and ends on the aim's first pose and the reload
 # on the idle's; the arms the clips key are the hold's own on the mannequin they were keyed on (the
@@ -22,17 +22,28 @@ const CLIPS: Dictionary[StringName, Array] = {
 	&"Rifle_Aim_Down": [2.0, true],
 	&"Rifle_Shoot": [0.4, false],
 	&"Rifle_Reload": [2.2, false],
+	&"Rifle_Reload_Empty": [2.2, false],
 }
 ## What the hold is told while each clip plays: how far the rifle is up, the view's pitch in
-## degrees, and whether the clip's share is the reload's.
+## degrees, whether the clip's share is the reload's, and whether that reload pulls the charging
+## handle (an empty magazine's, kit #1508).
 const STATES: Dictionary[StringName, Array] = {
-	&"Rifle_Idle": [0.0, 0.0, false],
-	&"Rifle_Aim_Neutral": [1.0, 0.0, false],
-	&"Rifle_Aim_Up": [1.0, 45.0, false],
-	&"Rifle_Aim_Down": [1.0, -45.0, false],
-	&"Rifle_Shoot": [1.0, 0.0, false],
-	&"Rifle_Reload": [0.0, 0.0, true],
+	&"Rifle_Idle": [0.0, 0.0, false, false],
+	&"Rifle_Aim_Neutral": [1.0, 0.0, false, false],
+	&"Rifle_Aim_Up": [1.0, 45.0, false, false],
+	&"Rifle_Aim_Down": [1.0, -45.0, false, false],
+	&"Rifle_Shoot": [1.0, 0.0, false, false],
+	&"Rifle_Reload": [0.0, 0.0, true, false],
+	&"Rifle_Reload_Empty": [0.0, 0.0, true, true],
 }
+## Where the two reloads part (the last key before the seat: a key's slope reads its neighbours,
+## so the seat's key already leans toward each reload's own end) and where the empty one's bolt is
+## let go, as shares of the reload (`build_rifle_clips.py`: `RELOAD_KEYS`, `RELOAD_EMPTY_JOLTS`).
+const RELOADS_PART := 0.5
+const BOLT_LET_GO := 0.86
+## Degrees the importer's key reduction leaves between two clips keyed the same (Godot drops keys
+## within its error per clip, so two equal stretches come in up to 0.35 degrees apart).
+const IMPORTED_SAME := 0.5
 ## The legs the clips are tried over, each at its first frame.
 const LEGS: Array[StringName] = [CharacterClips.IDLE, CharacterClips.CROUCH_IDLE]
 ## The bone the clips take the body from in the game (`CharacterAnimation.upper_body_bone`).
@@ -63,7 +74,7 @@ func after_test() -> void:
 	_arena = null
 
 
-func test_the_library_holds_the_six_clips_and_every_track_finds_its_bone() -> void:
+func test_the_library_holds_the_seven_clips_and_every_track_finds_its_bone() -> void:
 	var library := load(LIBRARY) as AnimationLibrary
 	assert_object(library).is_not_null()
 	var names: Array[String] = []
@@ -113,6 +124,45 @@ func test_loops_close_and_the_shot_and_the_reload_join_the_poses_they_leave() ->
 	var idle := library.get_animation(&"Rifle_Idle")
 	_assert_same_pose(reload, 0.0, idle, 0.0, "the reload's start")
 	_assert_same_pose(reload, reload.length, idle, 0.0, "the reload's end")
+	var empty := library.get_animation(&"Rifle_Reload_Empty")
+	_assert_same_pose(empty, 0.0, idle, 0.0, "the empty reload's start")
+	_assert_same_pose(empty, empty.length, idle, 0.0, "the empty reload's end")
+
+
+# The two reloads are one until the new magazine comes up to the well; after the seat only the
+# empty one's body has the beat for the charging handle: its chest jolts where the bolt is let go,
+# the tactical's does not.
+func test_only_the_empty_reload_has_the_bolts_beat() -> void:
+	var library := load(LIBRARY) as AnimationLibrary
+	var tactical := library.get_animation(&"Rifle_Reload")
+	var empty := library.get_animation(&"Rifle_Reload_Empty")
+	var frame := 1.0 / 30.0
+	var at := 0.0
+	while at <= RELOADS_PART * tactical.length + 0.0001:
+		_assert_same_pose(tactical, at, empty, at, "the reloads at %.2f s" % at, IMPORTED_SAME)
+		at += frame
+	var jolts := {}
+	for clip: Animation in [tactical, empty]:
+		# The chest's turn a frame against the straight way between its neighbours: a jolt is a
+		# frame or two off that way.
+		var track := _track(clip, "spine_03")
+		var worst := 0.0
+		var middle := roundf(BOLT_LET_GO * clip.length / frame) * frame
+		for step in range(-3, 4):
+			var t := middle + step * frame
+			var earlier := clip.rotation_track_interpolate(track, t - frame)
+			var later := clip.rotation_track_interpolate(track, t + frame)
+			var here := clip.rotation_track_interpolate(track, t)
+			worst = maxf(worst, rad_to_deg(here.angle_to(earlier.slerp(later, 0.5))))
+		jolts[clip] = worst
+	prints(
+		(
+			"RIFLE_CLIPS chest off its way by the bolt: tactical %.3f, empty %.3f degrees"
+			% [jolts[tactical], jolts[empty]]
+		)
+	)
+	assert_float(jolts[empty]).is_greater(0.3)
+	assert_float(jolts[tactical]).is_less(jolts[empty] * 0.5)
 
 
 func test_the_clips_own_arms_are_the_holds_on_the_mannequin_they_were_keyed_on() -> void:
@@ -197,6 +247,7 @@ func test_the_rifle_names_its_clips_and_the_player_plays_them() -> void:
 	assert_str(String(rifle.aim_up_clip)).is_equal(String(CharacterClips.RIFLE_AIM_UP))
 	assert_str(String(rifle.aim_down_clip)).is_equal(String(CharacterClips.RIFLE_AIM_DOWN))
 	assert_str(String(rifle.reload_clip)).is_equal(String(CharacterClips.RIFLE_RELOAD))
+	assert_str(String(rifle.empty_reload_clip)).is_equal(String(CharacterClips.RIFLE_RELOAD_EMPTY))
 	assert_array(rifle.shoot_clips).contains_exactly([CharacterClips.RIFLE_SHOOT])
 	assert_bool(rifle.shoot_additive).is_true()
 	_arena = auto_free(PlayArena.new())
@@ -295,6 +346,7 @@ func _pose(
 	held.posed_aim = state[0]
 	held.posed_pitch = state[1]
 	held.posed_reload = share if state[2] and share > 0.0 and share < 1.0 else -1.0
+	held.charge_bolt.posed_pulls = state[3]
 	held.posed_lowered = 0.0
 	var kept := stage.hold
 	stage.hold = null
@@ -328,7 +380,9 @@ func _track(clip: Animation, bone: String) -> int:
 	return -1
 
 
-func _assert_same_pose(a: Animation, at_a: float, b: Animation, at_b: float, tag: String) -> void:
+func _assert_same_pose(
+	a: Animation, at_a: float, b: Animation, at_b: float, tag: String, limit := SAME_POSE
+) -> void:
 	var worst := 0.0
 	var where := ""
 	for track in a.get_track_count():
@@ -349,7 +403,7 @@ func _assert_same_pose(a: Animation, at_a: float, b: Animation, at_b: float, tag
 	(
 		assert_float(worst)
 		. override_failure_message("%s: %s is %.3f degrees off" % [tag, where, worst])
-		. is_less(SAME_POSE)
+		. is_less(limit)
 	)
 
 

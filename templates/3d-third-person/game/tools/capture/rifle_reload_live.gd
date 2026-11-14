@@ -4,9 +4,11 @@
 ## which has none and leaves the bolt home). Recorded by Movie Maker frame by frame from the game's
 ## own camera (`RELOAD_VIEW=game`, the default) or from a close-up camera where the aim camera is,
 ## behind the right shoulder, zoomed on the rifle (`RELOAD_VIEW=close`), or from the character's
-## left front, where the body hides neither hand (`RELOAD_VIEW=left`); `RELOAD_MODEL=male` puts the
-## male body on the player. It prints a `RELOAD` line a frame (the reload's share, the bolt's
-## travel back in millimetres, the rounds).
+## left front, where the body hides neither hand (`RELOAD_VIEW=left`), or from farther out on
+## the left front, fixed to the body, with the head, the chest and the rifle in view
+## (`RELOAD_VIEW=body`, kit #1508: the body's beats of the two reload clips); `RELOAD_MODEL=male`
+## puts the male body on the player. It prints a `RELOAD` line a frame (the reload's share, the
+## bolt's travel back in millimetres, the rounds).
 ##
 ## `gds capture frames --project game --scene res://tools/capture/rifle_reload_live.tscn
 ## --seconds 3.6 --fps 30`. It lives in tools/, which the export leaves out.
@@ -23,6 +25,10 @@ const CLOSE_FOV := 24.0
 ## of view.
 const LEFT := Vector3(0.75, 0.2, 0.7)
 const LEFT_FOV := 30.0
+## Where the body camera is and what it looks at, in the character's space, and its field of view.
+const BODY := Vector3(1.3, 1.65, 1.5)
+const BODY_AT := Vector3(0.0, 1.35, 0.15)
+const BODY_FOV := 32.0
 
 var _player: Player
 var _camera: Camera3D
@@ -41,9 +47,10 @@ func _ready() -> void:
 		old.free()
 		slot.add_child((load(CharacterBodies.MALE) as PackedScene).instantiate())
 	_player.loadout.give.call_deferred(load(RIFLE) as WeaponDef, 60)
-	if OS.get_environment("RELOAD_VIEW") in ["close", "left"]:
+	var view := OS.get_environment("RELOAD_VIEW")
+	if view in ["close", "left", "body"]:
 		_camera = Camera3D.new()
-		_camera.fov = CLOSE_FOV if OS.get_environment("RELOAD_VIEW") == "close" else LEFT_FOV
+		_camera.fov = {"close": CLOSE_FOV, "left": LEFT_FOV, "body": BODY_FOV}[view]
 		_camera.near = 0.02
 		add_child(_camera)
 		_camera.make_current()
@@ -65,6 +72,9 @@ func _process(delta: float) -> void:
 	if _camera != null and OS.get_environment("RELOAD_VIEW") == "close":
 		_camera.global_position = _player.model.global_transform * CLOSE
 		_camera.look_at(rifle.global_position, Vector3.UP)
+	elif _camera != null and OS.get_environment("RELOAD_VIEW") == "body":
+		_camera.global_position = _player.model.global_transform * BODY
+		_camera.look_at(_player.model.global_transform * BODY_AT, Vector3.UP)
 	elif _camera != null:
 		_camera.global_position = rifle.global_position + _player.model.global_basis * LEFT
 		_camera.look_at(rifle.global_position, Vector3.UP)

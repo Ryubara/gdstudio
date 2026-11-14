@@ -120,13 +120,19 @@ func step_crawl_share(speed: float, blend_time: float, delta: float) -> float:
 
 ## The clip a reload of `hold` plays now: its prone reload on a body that lies with a prone aim
 ## (none when it has none: the standing clip folds the arms under a lying chest), else its
-## standing one, and none where `body` lies too far for the weapon's clips (`lies_past_clips`).
+## standing one (its empty one for an empty magazine), and none where `body` lies too far for
+## the weapon's clips (`lies_past_clips`).
 ## The choice is kept, so `reload_misplaced` can tell when the body has changed.
 func reload_clip(body: Character, hold: WeaponDef) -> StringName:
 	_reload_lying = lies > 0.5
 	if hold == null or lies_past_clips(body, hold):
 		return &""
-	return hold.prone_reload_clip if _reload_lying else hold.reload_clip
+	if _reload_lying:
+		return hold.prone_reload_clip
+	# An empty magazine's reload has its own clip (kit #1508): its rounds go in at its end, so it is
+	# empty here exactly when the reload began empty, as `ChargeBolt.pulls()` reads it.
+	var weapon := body.weapon
+	return hold.standing_reload_clip(weapon != null and weapon.ammo is int and weapon.ammo == 0)
 
 
 ## True when the reload clip that plays was chosen for the other way of holding the body: a

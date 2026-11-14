@@ -335,6 +335,13 @@ const FREE_ARM_BONE := &"clavicle_l"
 	set(value):
 		reload_clip = value
 		emit_changed()
+## The reload of an empty magazine, played in place of `reload_clip` when the magazine is empty as
+## the reload begins (the rifle's `rifle/Rifle_Reload_Empty`, kit #1508: the body's beat for the
+## charging handle's pull, which only an empty reload has). Empty: `reload_clip` for both.
+@export var empty_reload_clip: StringName = &"":
+	set(value):
+		empty_reload_clip = value
+		emit_changed()
 ## The reload of a lying body, played the same way in place of `reload_clip` while the body lies
 ## with a prone aim (the pistol's `prone_reload/Prone_Reload_Pistol`: from the prone aim's pose
 ## and back to it, with the left hand's times of `reload_clip`, which `WeaponHold` follows).
@@ -392,6 +399,11 @@ var automatic: bool:
 
 ## How a shot of this weapon travels now: `MELEE` for a melee weapon, `HITSCAN` when `hitscan` is
 ## on or `kind` says so, else `PROJECTILE`. The weapon reads this, never `kind` alone.
+## The standing reload's clip for a magazine that is `empty` (or not) as the reload begins.
+func standing_reload_clip(empty: bool) -> StringName:
+	return empty_reload_clip if empty and empty_reload_clip != &"" else reload_clip
+
+
 func shot_kind() -> Kind:
 	if kind == Kind.MELEE:
 		return Kind.MELEE

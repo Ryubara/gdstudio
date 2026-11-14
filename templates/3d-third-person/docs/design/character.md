@@ -528,10 +528,10 @@ The two mannequins, both animation libraries and Phantom Camera are third-party 
 and MIT for Phantom Camera. Give them a line on the game's Credits screen. The pistol and the rifle are GDStudio's own
 (MIT, from Deadnight's build scripts), with a `LICENSE.md` each in `assets/weapons/`. The prone and crawl
 clips are GDStudio's own too, on the Quaternius rig (`assets/animation/prone/README.md`), and so are the slide
-rack clip (`assets/animation/pistol/LICENSE.md`) and the six rifle clips (`assets/animation/rifle/README.md`): the
-low ready, the aim level, up and down, a shot and a reload, played on the upper body under the two-handed hold, the
-library `rifle`. The fixed clips (`assets/animation/fixed/`) are five of the library's clips with one arm or one leg
-moved, CC0 like the library, with their own `LICENSE.md`.
+rack clip (`assets/animation/pistol/LICENSE.md`) and the seven rifle clips (`assets/animation/rifle/README.md`): the
+low ready, the aim level, up and down, a shot and two reloads (with rounds left, and of an empty magazine), played
+on the upper body under the two-handed hold, the library `rifle`. The fixed clips (`assets/animation/fixed/`) are
+five of the library's clips with one arm or one leg moved, CC0 like the library, with their own `LICENSE.md`.
 
 ## Testing it in a browser
 

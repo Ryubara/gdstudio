@@ -16,7 +16,8 @@ extends Node3D
 
 const LIBRARY := "res://assets/animation/rifle/rifle_clips.glb"
 const DATA := "res://assets/animation/rifle/rifle_clips.json"
-const CLIP := &"Rifle_Reload"
+## The empty magazine's reload: only it has the pull (kit #1508).
+const CLIP := &"Rifle_Reload_Empty"
 const UPPER := &"spine_01"
 ## The reach, the grip, the pull's end, the release and back on the hand guard.
 const SHARES: Array[float] = [0.74, 0.8, 0.86, 0.88]
