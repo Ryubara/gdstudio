@@ -47,7 +47,9 @@ The left hand's way to the magazine, the belt and back, and the magazine's move,
 reload share); the reload clip moves the body at the same shares. After the magazine the hand goes to the
 charging handle, hooks the latch, pulls the `Bolt` node back 6 cm and lets it go (the hold's `ChargePull` of kit
 issue 1266, ported to the build's `Hold`, so the clip's own left arm follows it); the clip has the body's beat for it,
-the head lifting from 0.72 and the jolt at 0.86 where the bolt's sound is.
+the head lifting from 0.72 and the jolt at 0.86 where the bolt's sound is. Only a reload of an empty magazine has
+the pull (kit issue 1402): with rounds left the hold takes the hand straight back from the magazine
+(`ChargePull.straight_return`) and the clip, one for both reloads, keeps its beat for the bolt, which is small.
 
 ## How the body is shaped
 

@@ -18,6 +18,19 @@ How the 3D Third Person rifle's left hand pulls the charging handle at the end o
   (0.94) and onto it by 0.98, the hold's own last leg, its fingers following the hold's own way back from where
   they are open. The far level's `Bolt` moves with the near one (both a `ChargeBolt`), and a reload cut off puts
   the bolt home. A hold with no `charge`, `ChargeHand` or `charge_pose` keeps the straight way back.
+- **Only after an empty magazine** (kit #1402), as the pistol's slide is racked only then
+  ([the slide rack](../../../tools/blender/weapon-hands/pistol-slide-rack.md#the-slide-rack)). `ChargeBolt.pulls()`
+  decides it every update from what the weapon already has, so nothing is sent: the magazine is empty while the
+  reload runs exactly when it was empty at its start (the rounds go in at its end), and a body that lies down before
+  the pull begins (`leave.x`) loses it for that reload; lying down, the rifle is stowed through a reload anyway. A
+  reload with rounds left (a tactical reload) leaves the bolt home and the hand goes straight back from the magazine
+  under the hand guard by `straight_return` (0.66 to 0.86, the way it took before the pull existed), and the bolt's
+  sound is left out (`WeaponDef.last_reload_sound_when_empty`, read by `Weapon` against its magazine). A switch or a
+  blow cuts the reload short and the bolt is home; a shot cannot come in a reload, and the pull ends at 0.98, before
+  the rounds go in. The pull keeps the reload's shares, so `Rifle_Reload` stays one clip for both reloads (its small
+  beat for the bolt plays in both). Tests: `tests/gameplay/test_rifle_charge_reloads.gd` (the player's own scene on
+  both bodies, and the tactical way on the stage every half hundredth, `charge_bolt.posed_pulls`). Captures:
+  `tools/capture/rifle_reload_live.tscn` (`RELOAD_ROUNDS`, `RELOAD_VIEW=game`, `close` or `left`, `RELOAD_MODEL`).
 - **How the handle is held.** The model's latch was a 1.4 cm bar within the stock's width with its rear face on
   the stock's front, so no finger fitted in front of it and a pull ran it into the stock: `build_rifle.py` now
   runs the handle 5 mm higher (`BOLT_Z`, 1 mm over the stock's top) and gives the latch an extended left side, the
@@ -57,3 +70,8 @@ How the 3D Third Person rifle's left hand pulls the charging handle at the end o
   `open_together` itself left the cache believing its last values, so the fingers would have stayed as the pull
   left them after it; and both sides together made `two_hand_hold.gd` 1024 lines (the bolt nodes went to
   `hold/charge_bolt.gd`). **Seen:** gdstudio #1370, 2026-11-13 (merge of main after #1391).
+- **Approach:** Run each new case of a conditional step against `main` before trusting it, and when one passes there,
+  find what already gives that outcome and write it beside the case. **Watch out for:** the case for an empty reload
+  lying down passed on `main`, where every reload pulls, because the rifle is stowed (hidden) through a reload lying
+  down, so the hold reads no reload there; the tactical cases failed on `main` as they should. **Seen:** gdstudio
+  #1402, 2026-11-14 (the doc and the case name the stow).
