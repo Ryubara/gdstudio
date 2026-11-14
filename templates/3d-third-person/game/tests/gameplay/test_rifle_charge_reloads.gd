@@ -6,7 +6,8 @@
 # sound, and the hand goes straight back from the magazine under the hand guard. A switch or a
 # blow cuts the pull short with the bolt home; a body lying down has no pull. On the stage
 # (`RifleStage`, every half hundredth) the tactical reload's hand holds the hand guard at its ends
-# and passes through nothing on the way.
+# and passes through nothing on the way. Each reload plays its own clip on the body (kit #1508):
+# `Rifle_Reload_Empty`, with the beat for the bolt, only in the empty one.
 extends GdUnitTestSuite
 
 const MODELS: Array[String] = ["female", "male"]
@@ -69,6 +70,7 @@ func test_an_empty_reload_ends_with_the_pull_on_both_bodies() -> void:
 			. override_failure_message("%s: the bolt's sound at %.3f" % [model, run.bolt_sound_at])
 			. is_between(_hold.charge.release.x - 0.01, _hold.charge.release.x + 0.03)
 		)
+		assert_str(String(run.clip)).is_equal(String(CharacterClips.RIFLE_RELOAD_EMPTY))
 		_assert_ends_at_rest(run, model)
 		await _clear()
 
@@ -94,6 +96,7 @@ func test_a_reload_with_rounds_left_has_no_pull_on_both_bodies() -> void:
 			. is_less(0.0)
 		)
 		assert_int(run.sounds).override_failure_message("%s: reload sounds" % model).is_equal(2)
+		assert_str(String(run.clip)).is_equal(String(CharacterClips.RIFLE_RELOAD))
 		# Back under the hand guard by the end of the straight way, well before the reload's end.
 		(
 			assert_float(run.home_at)
@@ -236,12 +239,16 @@ func _reload(model: String, rounds: int) -> Dictionary:
 		"home_at": -1.0,
 		"left": left,
 		"bolt": bolt,
+		"clip": &"",
 	}
 	_player.weapon.set_ammo(rounds, 60)
 	await InputSim.ticks(get_tree(), 2)
 	sound.stream = null
 	_skeleton.skeleton_updated.connect(_read_gaps)
 	await _tap(KEY_R)
+	var animation := _player.get_node("Animation") as CharacterAnimation
+	var root := animation.tree.tree_root as AnimationNodeBlendTree
+	run.clip = (root.get_node(&"ReloadClip") as AnimationNodeAnimation).animation
 	var last_stream: AudioStream = null
 	var away := false
 	for _tick in roundi(_player.weapon.definition.reload_time * 60.0) + AFTER:

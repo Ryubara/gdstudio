@@ -752,7 +752,15 @@ def main():
     parser.add_argument("--report")
     parser.add_argument("--preview", action="store_true", help="export even when a check fails, to look at it")
     parser.add_argument("--arms-only", action="store_true", help="skip the limb check and the export (tuning)")
+    parser.add_argument("--check", action="store_true", help="compare with the files on disk, write nothing")
     args = parser.parse_args(argv)
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # clip_check.py
+    sys.dont_write_bytecode = True  # Blender ignores PYTHONDONTWRITEBYTECODE
+    import clip_check
+
+    checking = clip_check.Check(args.check)
+    args.out = checking.file(args.out)
+    args.data = checking.file(args.data)
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.scene.render.fps = FPS
@@ -912,6 +920,7 @@ def main():
         Path(args.data).write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8", newline="\n")
     export(arm, args.out)
     print("EXPORTED", args.out)
+    checking.finish()
 
 
 if __name__ == "__main__":
