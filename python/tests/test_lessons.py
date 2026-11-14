@@ -234,6 +234,19 @@ def test_the_fixture_kit_passes(kit):
     assert lessons.problems(kit) == []
 
 
+def test_a_page_within_two_kb_of_the_limit_is_listed_and_one_further_under_is_not(kit):
+    """The list of full pages comes from the checkout, never from a hand-kept list (gdstudio #1542): a page 1 KB under
+    the limit is a warning, one 3 KB under is not, and neither is a problem."""
+    limit = lessons.MAX_PAGE_KB * 1024
+    folder = kit / "docs" / "engines" / "godot"
+    (folder / "full.md").write_text("# Full\n\n" + "a" * (limit - 1024 - 8), encoding="utf-8")
+    (folder / "roomy.md").write_text("# Roomy\n\n" + "a" * (limit - 3072 - 9), encoding="utf-8")
+    near = lessons.near_limit(kit)
+    assert len(near) == 1
+    assert near[0].startswith("warning: docs/engines/godot/full.md: 50,176 of 51,200 bytes, 1,024 left")
+    assert lessons.problems(kit) == []
+
+
 @pytest.mark.parametrize("mark", ['"', "'", "“", "‘", "«"])
 def test_a_log_row_that_quotes_the_maintainer_is_a_problem(kit, mark):
     """The maintainer's prompts are never quoted in a public repository (gdstudio #780): a row with a cell that starts
