@@ -149,6 +149,7 @@ func test_a_spread_shot_leaves_the_puppet_the_way_the_server_fired_it() -> void:
 	var pistol := load("res://gameplay/weapon/pistol.tres") as WeaponDef
 	var spread := pistol.spread
 	pistol.spread = 8.0
+	pistol.first_shot_spread = 8.0
 	await _start()
 	var server_ada := _rig.server_body(_ada)
 	var puppet := _bo.remote_players.puppet_at(_ada.slot)
@@ -166,6 +167,7 @@ func test_a_spread_shot_leaves_the_puppet_the_way_the_server_fired_it() -> void:
 	var both := func() -> bool: return puppet_shots.size() == 2
 	var arrived := await _rig.until(both, 180)
 	pistol.spread = spread
+	pistol.first_shot_spread = 0.0
 	assert_bool(arrived).is_true()
 	for index in 2:
 		# The event carries the heading in steps of a 65536th of a turn.

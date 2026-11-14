@@ -207,6 +207,19 @@ jobs:
           pck=repos/template-check/build/web/index.pck
           grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
           if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
+      - name: The template's export carries the clips it plays
+        # 3D Third Person's pack holds only the Universal Animation Library clips the game names (ClipExport of
+        # gds_game): the check reads the pack and fails on a clip the game names that is missing, a clip nothing
+        # names that is still there, or a clip of the player's tree that the pack's player cannot find (kit
+        # docs/tools/blender/own-animation.md#replacing). A template without the script has nothing to check.
+        run: |
+          set -o pipefail
+          check=repos/template-check/game/tools/export_check/export_clips_check.gd
+          if [ ! -f "$check" ]; then echo "no $check: nothing to check"; exit 0; fi
+          godot=$(uv run --project repos/gdstudio/python --frozen gds tool path godot)
+          "$godot" --headless --path repos/template-check/game -s res://tools/export_check/export_clips_check.gd -- ../build/web/index.pck 2>&1 | tee clips.log
+          grep -q "export clips: ok" clips.log
+          grep -E "^(pack|ual|the tree)" clips.log | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY"
       - name: The browser for the boot check
         # Playwright's own headless Chromium, the one the local probes use (docs/engines/godot/web-probes.md#running).
         # The runner image already has the shared libraries Chromium needs; --with-deps adds fonts from the Ubuntu

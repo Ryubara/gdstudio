@@ -233,6 +233,41 @@ game](new-game.md#proof), gdstudio #830 and #917).
   real before rates were 2, 3 and 0 of 100). **Seen:** Deadnight #764, 2026-11-03; Deadnight, 2026-11-04 (cold loop)
   (fix: a separate probe for the old tree; the lot, where the ray is never asked, matched in both arms).
 
+## A gate on time on a shared runner {#timing-gates}
+
+<!-- new section: the page said how to run the suites, not how a suite that judges a timing reads GitHub's shared
+     runners, which turned main red on unchanged code (gdstudio #1405) -->
+
+A suite that judges a time runs on GitHub's hosted runners, a pool of several processor models shared with other
+jobs, and on a desktop other agents load. Read its number as the runner's as much as the code's:
+
+- **Counts tight, time loose.** Hold what does not move with the machine exactly (paths asked, thinks, rays, nodes,
+  bodies stepped) and a time only as a ratio of a ruler timed in the same seconds, with a limit wide enough for every
+  runner ([the budgets](performance-budgets.md#budgets-counts-tight-time-loose)).
+- **Choose the ruler from CI, not from the desktop.** Print every candidate ruler beside the timing, run the suite 50
+  times on the runners (a matrix of shards with `lscpu` printed, as `.github/workflows/ai-cost-gate.yml` does) and
+  keep the ruler whose ratio spreads least from the fastest run to the slowest. Expect a spread left over: the same
+  runner reads the same code 1.3 times apart from one process to the next while every ruler holds still.
+- **A table for each system.** Linux and Windows build the same code to different speeds (the C library's `sin`, the
+  physics), so a ratio that is right on the desktop is wrong on the runner. Key the limits by `OS.get_name()`.
+- **Put the limit between the highest ratio seen and twice the lowest**, and prove it in the suite: a case that makes
+  the timed work cost twice itself (spin on the clock as long again after it) and expects the gate to fail, so the
+  gate's teeth run wherever the gate runs.
+
+- **Approach:** For a timing gate that fails on CI with nothing near it changed, collect its printed rows from 100 or
+  more CI runs (`gh api --allow-escape-sequences repos/<repo>/actions/jobs/<id>/logs`, then grep the rows; without the
+  flag `gh` refuses a log with colour codes and writes nothing), compare each candidate divisor's spread, and soak the
+  change 50 times before trusting it. **Watch out for:** the AI cost gate's ruler (a GDScript loop) was chosen on the
+  desktop and followed the step on the runners at a slope of 0.6, so the step ratio read 3.9 to 8.1 and failed main at
+  8.06 against 8.0; a physics ruler spread 1.55 times over 150 runs where the GDScript one spread 1.73. **Seen:**
+  gdstudio #1405, 2026-11-13 (fix: `PhysicsRuler`, limits by system, the teeth case `SlowAiDirector`).
+- **Approach:** When one timing gate is found reading the runner, list every other gate on time in the suites (`grep
+  -rln "calibration\|ruler" tests/`) and treat each the same way in the same week; print the processor beside each
+  row and read the spread model by model. **Watch out for:** the walking crowd's frame budget, set on the desktop,
+  read 2.40 against 1.70 on CI the day the AI gate was fixed; one processor model's runs agreed within a few percent
+  while the models stood 1.5 times apart over every ruler tried, so the limit, not the ruler, was wrong. **Seen:**
+  gdstudio #1451, 2026-11-13 (limits 2.2 Linux, 2.4 Windows, the best of three windows, a twice-as-slow case).
+
 ## Running more than one {#parallel}
 
 - **Approach:** Before filing a flake, reproduce it with nothing else of the same project running and ask whether the

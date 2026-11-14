@@ -13,6 +13,7 @@ const MOST_OVERLAP := 0.06
 const LIMIT_SLACK := 25.0
 ## Ticks a start from standing may still play after the first 40 (two seconds at most).
 const START_TICKS := 120
+const TUNING := "res://gameplay/player/player_tuning.tres"
 
 var _arena: PlayArena
 var _player: Player
@@ -23,19 +24,52 @@ func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, 0.0))
-	_player.tuning = (
-		(load("res://gameplay/player/player_tuning.tres") as CharacterTuning).duplicate()
-	)
+	_player.tuning = (load(TUNING) as CharacterTuning).duplicate()
 	_ragdoll = _player.ragdoll_body
 	await InputSim.ticks(get_tree(), 4)
 
 
 func after_test() -> void:
 	InputSim.release_all()
+	if get_tree().physics_frame.is_connected(_animate_one_tick):
+		get_tree().physics_frame.disconnect(_animate_one_tick)
 
 
 func _ticks(count: int) -> void:
 	await InputSim.ticks(get_tree(), count)
+
+
+# A death that is the same every run and in every place of the suite (gdstudio #1359): what it
+# depended on, besides the code under test, was
+# - the clock: the character's tree runs on idle frames (real time without `--fixed-fps`), so the
+#   pose and the limbs' speed at a death through `die()` were the clock's choice. The tree is
+#   handed to the physics clock, one tick of animation each tick, from the player's first tick;
+# - what ran before: Jolt solves in the order of its bodies, so the bodies other suites left in
+#   the world moved the fall by 1 cm in 3, and the ragdoll pool's sets carry where they were made.
+#   The player stands in a world of its own, and the pool starts empty (warmed, as in any game
+#   after its loading).
+func _stage_on_ticks() -> void:
+	_arena.free()
+	var pool := RagdollPool.instance(get_tree())
+	pool.clear()
+	pool.warmed = true
+	var world := SubViewport.new()
+	world.own_world_3d = true
+	add_child(auto_free(world))
+	_arena = PlayArena.new()
+	world.add_child(_arena)
+	_player = _arena.add_player(Vector3.ZERO)
+	_player.tuning = (load(TUNING) as CharacterTuning).duplicate()
+	_ragdoll = _player.ragdoll_body
+	(_player.get_node("Animation") as CharacterAnimation).set_throttled(true)
+	get_tree().physics_frame.connect(_animate_one_tick)
+	await _ticks(4)
+
+
+func _animate_one_tick() -> void:
+	if is_instance_valid(_player):
+		var animation := _player.get_node("Animation") as CharacterAnimation
+		animation.advance(1.0 / Engine.physics_ticks_per_second)
 
 
 # --- limbs meet ---
@@ -60,6 +94,7 @@ func test_limbs_do_not_pass_through_the_body_after_a_fall() -> void:
 
 
 func test_limbs_do_not_pass_through_the_body_after_a_run_and_a_shove() -> void:
+	await _stage_on_ticks()
 	InputSim.key(KEY_W, true)
 	InputSim.key(KEY_SHIFT, true)
 	await _ticks(40)
