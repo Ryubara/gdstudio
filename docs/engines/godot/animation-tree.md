@@ -354,6 +354,21 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.
   **Seen:** gdstudio #1158, 2026-11-12 (the lean's base pose, three errors for four poses).
+- **Approach:** Set every `AnimationNodeSub2`'s `sub_amount` (and every `Add2`'s `add_amount`) on the tree after
+  building it, and test an additive layer with the real poses at full weight on the real tree: the head goes the
+  pose's way, the feet and the `ik_` targets stay on their limbs. **Watch out for:** both amounts are tree parameters
+  that start at 0; the lean set `add_amount` each tick and never `sub_amount`, so each difference was the whole lean
+  pose and the tree added it over the gait (a hand rose 0.3 m, the targets moved 0.7 to 0.9 m, the feet 24 to 43 mm),
+  while a stand-in clip of the test's own showed nothing. **Seen:** gdstudio #1159, 2026-11-12 (`gait_lean.gd` sets
+  the differences once a built tree; `test_own_directions.gd`'s player lean test).
+- **Approach:** For additive poses sharing one base, take the base off with an `AnimationNodeAdd2` at a negative
+  amount after the body (a `Sub2` blends its base first, ahead of the body), once for ways that never play together,
+  and blend clips trimmed to the tracks the poses move; prove it with the old build on a second body, bone by bone.
+  **Watch out for:** a held clip costs every track it holds; normalization counts negative weights, so a trimmed base
+  holds exactly its poses' tracks; `Quaternion.angle_to` reads 0.03 to 0.08 degrees for equal turns (acos), so
+  compare by `2 atan2(|xyz|, w)`. **Seen:** gdstudio #1403, 2026-11-13 (`GaitLean`, `LeanClips`; the first
+  comparison read 0.07 degrees on finger leaves; the made library broke the shipped clip count in
+  `test_character_clips.gd`, which now leaves `LeanClips.LIBRARY` out).
 - **Approach:** Start a transition clip only while the character's own state is one the transition plays over
   (standing, walking, running), and end one that plays when the state leaves those; test the tree with real clips
   in the libraries, not only made-up ones in a test library. **Watch out for:** a push, a vault or a hit begins on a

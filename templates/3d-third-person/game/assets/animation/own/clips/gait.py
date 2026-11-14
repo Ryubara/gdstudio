@@ -312,6 +312,9 @@ def _through_spring(lag: float, overshoot: float, frames: int) -> tuple:
 class Gait:
     """One gait's description for one rig and one set of numbers."""
 
+    ## The numbers a side may have of its own; a gait that goes another way has more (`directed.py`).
+    sided = SIDED
+
     def __init__(self, rig, numbers: dict, lags: dict):
         self.rig, self.n = rig, numbers
         n = numbers
@@ -327,7 +330,7 @@ class Gait:
         self.lags = lags
         self.base = 0.0
         for name in ("left", "right"):
-            unknown = sorted(set(n[name]) - set(SIDED))
+            unknown = sorted(set(n[name]) - set(self.sided))
             assert not unknown, f"`{name}` sets {unknown}, which a side cannot have of its own"
         ## The pelvis's solved place on each whole frame, from the last pass of `settle_height`: where the
         ## build's own solve starts from.

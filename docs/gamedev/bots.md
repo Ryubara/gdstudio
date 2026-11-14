@@ -254,6 +254,14 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   body and drawn standing (a crouch asked during a stop clip was sent back to `ground`,
   [the cause](../engines/godot/animation-tree.md#gait-fitting)); no gate reads the drawn pose. **Seen:** gdstudio
   #1412, 2026-11-13.
+- **Approach:** Reproduce a soak failure on the commit it was seen on (keep that game, with its probe, until the fix is
+  proved), track the failing body every tick in a ring of full snapshots (transforms, velocities, contacts, seconds
+  since the death) and dump it with the static shapes around at the first wild value; prove the fix there, and judge
+  main by a sweep of seeds. **Watch out for:** the issue's two seeds ran clean on later main (50 of 50) while seed 28
+  still broke on the old commit, and copying the dumped state of the body into a test, at the death or 20 ticks before
+  the throw, gave a calm body on Windows and Linux alike: the solver's history is not in a snapshot. Velocities
+  parsed out of `var_to_str` text with a number regex pick up the 3 of `Vector3`. **Seen:** gdstudio #1372,
+  2026-11-13 (`FiniteProbe` snapshots, [Joint limits](../engines/godot/ragdoll.md#limits)).
 - **Approach:** Check a soak's replay in fresh processes, and look for static counters (`static var`) before calling a
   run nondeterministic. **Watch out for:** two runs of the same seed in one GdUnit process gave different hashes
   while separate processes matched. **Seen:** gdstudio #971, 2026-11-11 (`test_the_same_seed_repeats_its_commands`).

@@ -107,9 +107,10 @@ def pre_tool_use(payload: dict[str, Any], config: dict[str, Any]) -> list[str]:
             from .behind_base import check_behind
             from .bodies import check_pr_body
             from .issues import check_labels
-            from .merges import check_hold, check_merge, coordinator_lift
+            from .merges import check_hold, check_merge, check_task_merge, coordinator_lift
             from .red_default import check_red_main
 
+            reasons += check_task_merge(words, payload)
             reasons += check_merge(words, cwd)
             reasons += check_hold(words, cwd, coordinator_lift(payload))
             reasons += check_behind(words, cwd)

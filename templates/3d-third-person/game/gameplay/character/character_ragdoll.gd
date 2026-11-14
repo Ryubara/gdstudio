@@ -94,7 +94,7 @@ static var _counted := 0
 ## How many times the physics solver holds each elbow and knee in its range per step: 1 is the
 ## joint alone, more keeps a straight or bent limb from giving way when the body lands on it (an
 ## elbow folded 30 degrees past its range, or bent 50 backwards, in 10 deaths of 70 with 1). Each
-## one past the first is another hinge between the same two bones, solved only while limp.
+## one past the first is another hinge between the same two bones, held for `brace_time`.
 @export_range(1, 8, 1) var hinge_passes := 6:
 	set(value):
 		hinge_passes = value
@@ -105,6 +105,10 @@ static var _counted := 0
 	set(value):
 		cone_passes = value
 		_rebuild()
+## Seconds after the death the extra joints of `hinge_passes` and `cone_passes` hold, through the
+## landing; then the body lies on its own joints, which do not spin a limb pressed between the trunk
+## and a wall at the engine's limit, as six of each did (gdstudio #1372). Each death has them again.
+@export_range(0.0, 10.0, 0.1, "suffix:s") var brace_time := 1.5
 ## How much the bones slow down moving through the air (0 keeps their speed).
 @export_range(0.0, 10.0, 0.01) var linear_damp := 0.1:
 	set(value):
@@ -323,6 +327,8 @@ func start(velocity: Vector3 = Vector3.ZERO, viewer := Vector3.INF) -> bool:
 	var clamped := _clamped_world()
 	if _simulator.is_simulating_physics():
 		_simulator.physical_bones_stop_simulation()
+	if _braces.is_empty() and _braces.has_plan():
+		_braces.remake()
 	_simulator.influence = 1.0
 	_simulator.active = true
 	_simulator.physical_bones_start_simulation()
@@ -758,24 +764,6 @@ func _centre(entry: Dictionary) -> Basis:
 	return frame * Basis(Vector3.BACK, deg_to_rad(middle)) * frame.inverse()
 
 
-## A turn read as a twist about X and then a swing about Y and Z of what is left, in degrees (the
-## way Jolt reads a 6DOF joint). `tools/ragdoll/measure_joints.gd` reads the clips with it.
-static func swing_twist(turn: Basis) -> Vector3:
-	var q := turn.get_rotation_quaternion()
-	if q.w < 0.0:
-		q = -q
-	var twist := Quaternion(q.x, 0.0, 0.0, q.w).normalized()
-	var swing := q * twist.inverse()
-	return (
-		Vector3(
-			2.0 * atan2(twist.x, twist.w),
-			2.0 * atan2(swing.y, swing.w),
-			2.0 * atan2(swing.z, swing.w)
-		)
-		* (180.0 / PI)
-	)
-
-
 # The nearest bone above `bone` in the skeleton that has a body, or empty for the root.
 func _parent_body(skeleton: Skeleton3D, bone: StringName) -> StringName:
 	var index := skeleton.get_bone_parent(skeleton.find_bone(bone))
@@ -962,6 +950,8 @@ func _while_limp(delta: float) -> void:
 			bone.apply_central_impulse(
 				Vector3.DOWN * bone.mass * relax_gravity * float(RELAXED[key]) * delta
 			)
+	if _since_start >= brace_time and not _braces.is_empty():
+		_free_braces()
 	if not _settled and _since_start >= settle_time and _all_asleep():
 		_settled = true
 		_count(false)
