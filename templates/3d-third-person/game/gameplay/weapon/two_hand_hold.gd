@@ -369,9 +369,10 @@ func free_amount() -> float:
 
 ## Lets the left hand go for an action of `seconds` that reaches with it (the gun goes down in
 ## the right hand); a reload keeps the hand. The character's `interacted` does it by itself.
-func free_hand(seconds: float) -> void:
+## With `by` above 0 the hand is off within that many seconds (a vault's hand plant).
+func free_hand(seconds: float, by := -1.0) -> void:
 	if visible and _reload_progress() < 0.0:
-		_free.release_time = free_release_time
+		_free.release_time = minf(free_release_time, by) if by > 0.0 else free_release_time
 		_free.return_time = free_return_time
 		_free.start(seconds)
 
@@ -419,7 +420,9 @@ func refresh() -> void:
 		_pivot_shown = int(alive)
 	var far := fingers_far and fingers_far_distance > 0.0
 	var fingers := 1.0 if shown and not far else 0.0
-	_weights.weigh(_modifiers, alive, _reach, fingers, _freed, _blow.amount)
+	# Both arms go to the clip while the gun is put away for an action (a high vault: gdstudio
+	# #1409), the left one alone while an action reaches with it.
+	_weights.weigh(_modifiers, alive, _reach, fingers, _freed, _blow.amount, not shown)
 	if _fingers.size() < 2:
 		return
 	# The finger is on the trigger while the gun is up, and off it through a reload.
@@ -441,9 +444,7 @@ func refresh() -> void:
 	var left := Vector4(thumb, opened, float(together), 0.0)
 	if _charging():
 		left = charge.finger_weights(reload, left)
-	_weights.hands(_fingers[0], _fingers[1], trigger, left.x, left.y, left.z > 0.5)
-	if _fingers[1].third_weight != left.w:
-		_fingers[1].third_weight = left.w
+	_weights.hands(_fingers[0], _fingers[1], trigger, left.x, left.y, left.z > 0.5, left.w)
 
 
 ## Puts the pocket and the gun where they are this frame, and gives each arm its hand's place.
@@ -697,7 +698,8 @@ func _on_switch_finished() -> void:
 func _step(delta: float) -> void:
 	if character != null:
 		_free.step(delta)
-		if _reload_progress() >= 0.0 or not visible:
+		# Put away by a switch, not for the action (a high vault hides the gun it frees).
+		if _reload_progress() >= 0.0 or not visible and _reach <= 0.0:
 			_free.stop()
 		_freed = _free.amount()
 		_blow.step(character)
