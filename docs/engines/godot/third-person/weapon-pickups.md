@@ -125,7 +125,8 @@ are named as such.
   the pelvis to `neck_01`, in the model's space) over half a second (`LEAN_SMOOTHING`) and takes what that average has
   over `carry_lean_limit` (9 degrees) off, as a turn about the model's side axis spread evenly over the spine bones,
   so the stride's own rise and fall of the trunk stays and no twist is added. The head keeps the facing the clip gave
-  it. It comes in and goes over `carry_time` (0.25 s) and fades out as the gun comes up (`carry_amount()`). The run's
+  it. It comes in and goes over `carry_time` (0.25 s) and fades out as the gun comes up
+  (`carry_amount()`); the butt then stays `carry_butt_margin` (2 cm) off the skin. The run's
   own trunk under the rifle's idle leaned 13.2 degrees (female) and 13.0 (male) on average and the sprint's 14.2 and
   14.0 (the unarmed run 7.8 and 7.5); with the carry both read 8.9 to 9.3, the stride's rise and fall 0.4 to 1.0
   degrees (0.5 to 0.7 before; holding each frame's lean at the limit left it at 0). Standing, the rifle's idle leans
@@ -479,10 +480,11 @@ stock test's 10 mm.
 - **Approach:** Sweep a hold through the game's whole aim range on every body (every 15 degrees, 45 down to 45 up)
   and choose the way a contact moves a part out, not only how far: a way along the skin needs more travel and
   slides the part off its place. Film a section at the contact. **Watch out for:** pushed along the barrel, the butt
-  slid down the chest at 45 degrees down while the tests, aimed 30, passed; the rifle's own stock sections put the
-  male's stock 12 mm in, as a skin thinned to a point a 3 cm cell lets a tight shape between its points; a level way
+  slid down the chest at 45 degrees down while the tests, aimed 30, passed; the stock's sections put the male's
+  stock 12 mm in, as a skin thinned to a point a 3 cm cell lets a tight shape between its points; a level way
   aimed up made the push jump on a walk (`test_aim_head.gd`, 0.71 degrees a frame). **Seen:** gdstudio #1346,
-  2026-11-12 (fix: `push_level` while the muzzle is down; `rifle_stock.tscn -- pitch`).
+  2026-11-12 (fix: `push_level` while the muzzle is down; `rifle_stock.tscn -- pitch`); gdstudio #1348,
+  2026-11-13 (the carry's sprint: the male's butt corner 10 mm in; `carry_butt_margin` 2 cm).
 - **Approach:** Make the test of a moving hand step as finely as the scan that found its faults (half a hundredth
   of the reload here), and give each finger the order that suits the part: knuckles first off a part the fingers
   are hooked over, all joints together onto a part they close round. **Watch out for:** at steps of 2 hundredths

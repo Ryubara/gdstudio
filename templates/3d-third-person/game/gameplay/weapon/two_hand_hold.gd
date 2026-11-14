@@ -107,6 +107,9 @@ const CARRY_STATES: Array[Character.State] = [
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var carry_lean_limit := 9.0
 ## How long the upright carry takes to come in or go (a crouch, a slide), in seconds.
 @export_range(0.0, 2.0, 0.01, "suffix:s") var carry_time := 0.25
+## `butt_margin` while carried upright (`carry_amount()`): at 1 cm the straightened spine put the
+## male's butt corner 10 mm in the chest, between two `skin_spacing` points; none at 2 cm.
+@export_range(0.0, 0.05, 0.001, "suffix:m") var carry_butt_margin := 0.02
 ## The most of its length the left arm stretches to. When the hand guard is farther than that
 ## from the left shoulder (a clip leans or drops the shoulder), the gun comes back along its
 ## barrel until the hand reaches, by `pull_limit` at most.
@@ -564,7 +567,7 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 			to_here,
 			butt_pad,
 			butt_depth,
-			butt_margin,
+			lerpf(butt_margin, carry_butt_margin, carry_amount()),
 			way
 		)
 		pivot_xf.origin = pocket + way * _push - basis_now.z * kick_distance * _kick

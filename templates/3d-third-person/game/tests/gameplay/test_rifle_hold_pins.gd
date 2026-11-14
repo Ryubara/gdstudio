@@ -13,6 +13,7 @@ const HOLD_PINS := {
 	&"aim_lean_limit": 25.0,
 	&"carry_lean_limit": 9.0,
 	&"carry_time": 0.25,
+	&"carry_butt_margin": 0.02,
 	&"arm_stretch": 0.97,
 	&"pull_limit": 0.0,
 	&"butt_pad": Vector2(0.062, 0.145),
