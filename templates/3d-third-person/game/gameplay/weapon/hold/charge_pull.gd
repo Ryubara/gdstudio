@@ -9,7 +9,9 @@ extends Resource
 ## and how far back the bolt is (`bolt_pull()`). The hand's place on the handle is the hold's
 ## `ChargeHand` marker and its fingers the hold's `charge_pose`, both solved on each body by
 ## `tools/hold/solve_rifle_hold.py` (a `HoldFit` holds another body's). The last leg, from under
-## the hand guard onto it, is the hold's own (`TwoHandHold.reload_return`). Cosmetic, never sent.
+## the hand guard onto it, is the hold's own (`TwoHandHold.reload_return`). Only a reload of an
+## empty magazine has it (kit #1402, `ChargeBolt.pulls()`): with rounds left the bolt stays home and
+## the hand goes straight back from the magazine by `straight_return`. Cosmetic, never sent.
 
 ## How far the bolt runs back, in the gun's space (the model's README: along +X).
 @export var travel := Vector3(0.06, 0.0, 0.0)
@@ -36,6 +38,10 @@ extends Resource
 ## Between these it lets go and opens; the bolt runs home within `slam` of the first.
 @export var release := Vector2(0.86, 0.88)
 @export_range(0.001, 0.1, 0.001) var slam := 0.015
+## A reload with rounds left (no pull): between these the hand goes from the magazine straight
+## back under the hand guard and onto it, in place of the hold's `reload_return`, which is where
+## the pull's way ends.
+@export var straight_return := Vector2(0.66, 0.86)
 
 
 ## Whether the hand is on the pull's way (from the magazine until it is under the hand guard,

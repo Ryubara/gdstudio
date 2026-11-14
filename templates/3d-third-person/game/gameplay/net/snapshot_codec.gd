@@ -33,6 +33,8 @@ const F_RISING := 1 << 4
 const F_DEAD := 1 << 5
 ## The player leans (a byte of the lean follows the aim's).
 const F_PEEK := 1 << 6
+## Asked for no move (`PlayerEntry.halt`).
+const F_HALT := 1 << 7
 
 ## The shortest event (a kind and one byte) and the longest: an ENTITY with the longest state (20
 ## bytes), one longer than a JOINED with the longest name (19).
@@ -365,6 +367,7 @@ static func read_player(reader: WireReader) -> PlayerEntry:
 	player.air = flags & F_AIR != 0
 	player.rising = flags & F_RISING != 0
 	player.dead = flags & F_DEAD != 0
+	player.halt = flags & F_HALT != 0
 	player.pitch = pitch_from_step(reader.s8())
 	if player.aim:
 		player.aim_yaw = aim_yaw_from_step(reader.s8())
@@ -429,6 +432,7 @@ static func _player_flags(player: PlayerEntry) -> int:
 	flags |= F_RISING if player.rising else 0
 	flags |= F_DEAD if player.dead else 0
 	flags |= F_PEEK if peek_step(player.peek) != 0 else 0
+	flags |= F_HALT if player.halt else 0
 	return flags
 
 
