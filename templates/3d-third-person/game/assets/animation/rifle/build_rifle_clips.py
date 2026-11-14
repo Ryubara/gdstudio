@@ -10,7 +10,8 @@ Animation Library has pistol clips and no rifle clip. Six clips, at the library'
   butt and the head the game gives an aimed rifle, canted to the stock with the right eye by the sights;
 - `Rifle_Shoot`: a shot's recoil taken by the body, from `Rifle_Aim_Neutral`'s first pose and back to it;
 - `Rifle_Reload`: the body through a magazine change and the charging handle, from `Rifle_Idle`'s first pose and
-  back to it, the beats at the shares of the reload the game's hold moves the left hand by.
+  back to it, the beats at the shares of the reload the game's hold moves the left hand by (the left arm's way to the
+  handle and its pull are the hold's `ChargePull`, kit #1266).
 
 Nothing is copied from another game's or pack's motion. The legs and the pelvis are the game's own standing idle
 (`gds/Idle`) on its steadiest frame, held: the game plays these clips on the upper body only, over its own
@@ -165,7 +166,7 @@ RELOAD_KEYS = [
     (0.86, 5.0, 0.0, 1.0, 0.0, 0.0),
     (1.00, 0.0, 0.0, 0.0, 0.0, 0.0),
 ]
-RELOAD_JOLTS = [(0.62, 0.9), (0.88, 1.2)]
+RELOAD_JOLTS = [(0.62, 0.9), (0.86, 1.2)]  # the seat, and the bolt let go (`ChargePull.release`, its sound)
 
 
 # ---- small maths --------------------------------------------------------------------------------------------------
@@ -294,15 +295,20 @@ def read_fit(path):
     found = re.finditer(r'\[sub_resource [^\]]*id="(\w+)"\](.*?)(?=\n\[|\Z)', head, re.S)
     blocks = {m.group(1): m.group(2) for m in found}
     fingers = {}
-    for name in ("grip", "trigger", "support", "open", "magazine"):
-        fingers[name] = quaternions_in(blocks[re.search(name + r'_pose = SubResource\("(\w+)"\)', main).group(1)])
-    return {
+    for name in ("grip", "trigger", "support", "open", "magazine", "charge"):
+        found = re.search(name + r'_pose = SubResource\("(\w+)"\)', main)
+        if found:
+            fingers[name] = quaternions_in(blocks[found.group(1)])
+    out = {
         "body": re.search(r'body = "([^"]*)"', main).group(1),
         "right": np.linalg.inv(transform_in(main, "seat")),
         "left": transform_in(main, "support_hand"),
         "on_magazine": transform_in(main, "magazine_hand"),
         "fingers": fingers,
     }
+    if "charge_hand = " in main:
+        out["on_handle"] = transform_in(main, "charge_hand")
+    return out
 
 
 def _value(text):
@@ -314,6 +320,14 @@ def _value(text):
         return float(text)
     except ValueError:
         return text
+
+
+def script_numbers(script):
+    """A script's exported and constant numbers by name, as it gives them."""
+    out = {}
+    for name, value in re.findall(r"^(?:@export\S*(?:\([^\n]*\))? var|const) (\w+)(?:: \w+)? :?= (.+)$", script, re.M):
+        out[name] = _value(value)
+    return out
 
 
 def read_numbers(script, scene, node):
@@ -480,6 +494,10 @@ class Hold:
         self.right = read_transform(held, "RightHandTarget")
         self.left = read_transform(held, "LeftHandTarget")
         self.on_magazine = read_transform(held, "MagazineHand")
+        # The charging handle's pull (kit #1266): `ChargePull`'s numbers (the scene keeps its defaults) and where
+        # the hand sits on the handle.
+        self.charge = script_numbers((weapon / "hold/charge_pull.gd").read_text(encoding="utf-8"))
+        self.on_handle = read_transform(held, "ChargeHand")
         global SIGHT_EYE, SIGHT_AHEAD
         sights = read_transform(held, "AimEye")
         SIGHT_EYE, SIGHT_AHEAD = sights[:3, 3], -sights[:3, 2]
@@ -490,19 +508,22 @@ class Hold:
         poses = weapon / "hold"
         self.fingers = {
             name: read_quaternions(poses / f"rifle_{name}_pose.tres")
-            for name in ("grip", "trigger", "support", "open", "magazine")
+            for name in ("grip", "trigger", "support", "open", "magazine", "charge")
         }
         self.fit = "the scene's own"
         for path in re.findall(r'path="res://([^"]*fit[^"]*\.tres)"', held.read_text(encoding="utf-8")):
             fit = read_fit(GAME / path)
             if fit["body"] == body_file:
                 self.right, self.left, self.on_magazine = fit["right"], fit["left"], fit["on_magazine"]
-                self.fingers, self.fit = fit["fingers"], path
+                self.on_handle = fit.get("on_handle", self.on_handle)
+                self.fingers, self.fit = {**self.fingers, **fit["fingers"]}, path
         self.spine = ["spine_01", "spine_02", "spine_03"]
         torso = re.search(r"torso_bones: Array\[StringName\] = \[(.*?)\]", script, re.S).group(1)
         self.torso = re.findall(r'&"(\w+)"', torso)
         self.clavicle = re.search(r'left_clavicle: StringName = &"(\w+)"', script).group(1)
-        region = re.search(r"_SKIN_REGION := AABB\((.*)\)", script).group(1)
+        # The torso's skin is its own class since kit #1336 (`hold/torso_skin.gd`): its region is read there.
+        skin_script = (weapon / "hold/torso_skin.gd").read_text(encoding="utf-8")
+        region = re.search(r"_SKIN_REGION := AABB\((.*)\)", script + skin_script).group(1)
         region = [float(v) for v in re.findall(r"-?\d+\.?\d*", region.replace("Vector3", ""))]
         self.region = (np.array(region[:3]), np.array(region[:3]) + np.array(region[3:]))
         self.skin = {}  # the torso's skin the butt meets, by bone, each point in the bone's rest space
@@ -677,9 +698,51 @@ class Hold:
             high = min(high, max(whole_ - math.acos(max(share, -1.0)), 0.0))
         rig.turn(pose, self.clavicle, axis_angle(axis, math.degrees(high)))
 
+    def charge_way(self, progress):
+        """`ChargePull.to_magazine`: how far along the hold's own way to the magazine the hand counts as on the
+        pull's way, or below 0 before it."""
+        c, n = self.charge, self.n
+        if progress < c["leave"][0]:
+            return -1.0
+        if progress < c["release"][1]:
+            return 1.0
+        home, rest = n["reload_return"]
+        middle = c["release"][1] + (home - c["release"][1]) * c["home_beside"]
+        if progress < middle:
+            t = smoothstep(c["release"][1], middle, progress)
+            return n["_WAY_ON"] + (n["_WAY_BESIDE"] - n["_WAY_ON"]) * t
+        if progress < home:
+            return n["_WAY_BESIDE"] + (n["_WAY_DOWN"] - n["_WAY_BESIDE"]) * smoothstep(middle, home, progress)
+        return n["_WAY_DOWN"] * (1.0 - smoothstep(home, rest, progress))
+
+    def charge_place(self, progress, beside, below):
+        """`ChargePull.hand_place`: the left hand bone's place on the pull's way."""
+        c, home = self.charge, self.n["reload_return"][0]
+        handle = self.on_handle
+        pulled = moved(handle, c["travel"] * smoothstep(c["pull"][0], c["pull"][1], progress))
+        near = moved(handle, c["approach"])
+        if progress < c["reach"][0]:
+            return between(self.on_magazine, beside, smoothstep(c["leave"][0], c["leave"][1], progress))
+        if progress < c["grip"][0]:
+            return between(beside, near, smoothstep(c["reach"][0], c["reach"][1], progress))
+        if progress < c["pull"][0]:
+            return between(near, handle, smoothstep(c["grip"][0], c["grip"][1], progress))
+        if progress < c["release"][0]:
+            return pulled
+        off = moved(pulled, c["let_go"])
+        if progress < c["release"][1]:
+            return between(pulled, off, smoothstep(c["release"][0], c["release"][1], progress))
+        middle = c["release"][1] + (home - c["release"][1]) * c["home_beside"]
+        if progress < middle:
+            return between(off, beside, smoothstep(c["release"][1], middle, progress))
+        return between(beside, below, smoothstep(middle, home, progress))
+
     def to_magazine(self, progress):
         if progress < 0.0:
             return 0.0
+        way = self.charge_way(progress)
+        if way >= 0.0:
+            return way
         leave, back = self.n["reload_leave"], self.n["reload_return"]
         return smoothstep(leave[0], leave[1], progress) * (1.0 - smoothstep(back[0], back[1], progress))
 
@@ -699,6 +762,8 @@ class Hold:
         hand = between(hand, below, smoothstep(n["_WAY_OPEN"] * 0.5, n["_WAY_DOWN"], to_magazine))
         hand = between(hand, beside, smoothstep(n["_WAY_DOWN"], n["_WAY_BESIDE"], to_magazine))
         hand = between(hand, self.on_magazine, smoothstep(n["_WAY_BESIDE"], n["_WAY_ON"], to_magazine))
+        if self.charge["leave"][0] <= progress < n["reload_return"][0]:
+            hand = self.charge_place(progress, beside, below)
         out = -Y * n["magazine_well"] * min(away / n["_WELL_SHARE"], 1.0)
         to_belt = smoothstep(0.0, 1.0, (away - n["_WELL_SHARE"]) / (1.0 - n["_WELL_SHARE"]))
         gun = pivot @ self.rifle
@@ -779,6 +844,14 @@ class Hold:
         second = smoothstep(n["_WAY_THUMB"][0], n["_WAY_THUMB"][1], to_magazine)
         opened = smoothstep(0.0, n["_WAY_OPEN"], to_magazine) * (1.0 - smoothstep(n["_WAY_ON"], 1.0, to_magazine))
         together = to_magazine > n["_WAY_DOWN"]  # on the magazine the four fingers close as one
+        # The charging handle's pull (`ChargePull.set_fingers`): off the magazine the fingers open as one, then
+        # close on the latch (the `third` pose) and open again.
+        c, hooked = self.charge, 0.0
+        if c["leave"][0] <= reload < c["release"][1]:
+            second, together = 1.0, True
+            opened = smoothstep(c["leave"][0], c["leave"][1], reload)
+            hooked = smoothstep(c["grip"][0], c["grip"][1], reload)
+            hooked *= 1.0 - smoothstep(c["release"][0], c["release"][1], reload)
         for bone, rotation in self.fingers["support"].items():
             if second > 0.0 and bone in self.fingers["magazine"]:
                 rotation = slerp(rotation, self.fingers["magazine"][bone], second)
@@ -789,6 +862,8 @@ class Hold:
                 if not together:
                     share = min(opened / 0.5, 1.0) if "_01_" in bone else max((opened - 0.5) / 0.5, 0.0)
                 rotation = slerp(rotation, self.fingers["open"][bone], share)
+            if hooked > 0.0 and bone in self.fingers["charge"]:
+                rotation = slerp(rotation, self.fingers["charge"][bone], hooked)
             pose["local"][bone] = rotation
 
 
