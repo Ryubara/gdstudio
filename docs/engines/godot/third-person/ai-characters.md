@@ -136,30 +136,45 @@ soak's director step (180 s, desktop native) was 650 µs mean, 998 p95, with a m
 `tests/gameplay/test_ai_cost_gate.gd` (the template job) runs 50, 100 and
 200 of the template's `civilian.tscn` on a 28 m test mesh round a visitor in the player's faction and a raider in the
 enemy's (seen and fled from), 300 ticks after a 120-tick warm-up, under the director's shipped budgets with its desktop
-cap raised to 200. Counts are held exactly: no character asks for more paths than its `repath_seconds` allows, thinks
-more often than its `think_rate` or casts more than `max_rays_per_think` (2) rays a think, and the shared budget is
-never overspent. Time is held as medians: the step a character and a think over the median of a ruler timed every 50
-ticks of the window (`tests/fixtures/physics_ruler.gd`: a capsule's `move_and_slide` round a post and a ray at it, 400
-times, the engine's work an AI step spends most on, about 8 ms here and 7 to 11 on a runner), and the hit history over
-the step of the same ticks (a section of a few microseconds that a ruler does not follow:
-[the ruler](../performance-budgets.md#budgets-counts-tight-time-loose)). The limits have a table for Linux (the CI
-runners) and one for Windows (the desktop), since the same code builds to different speeds on each, and each limit
-sits between the highest ratio seen and twice the lowest. The suite's second case, `test_a_step_twice_as_slow_fails_the_gate`,
-runs the same crowds on `SlowAiDirector` (`tests/fixtures/`: the step spins on the clock as long again as its work
-took, so it costs twice itself on any machine) and must see the step fail at every size with no count broken: the
-gate's teeth run wherever the gate runs. A failure prints the row. `.github/workflows/ai-cost-gate.yml` runs the suite
-50 times on the runners (by hand, and on a pull request that changes the gate). Linux: 150 CI runs on four processor
-models (AMD EPYC 7763, 9V74, 9V45, Intel Xeon 8573C), 2026-11-13; Windows: 4 desktop runs with 25 Godot processes
-beside them:
+cap raised to 200. The measure is `tests/fixtures/ai_cost_bench.tscn` (`AiCostBench`), run in fresh headless processes
+of its own (three for the gate, one for the teeth), which print one `AI_COST_ROW` line a crowd size: inside the
+template job's long test process the AI's counters and the heap differ with what ran before, so the same code read 1.6
+times apart there and the paths asked moved (0.54 to 0.61 a second each) where a fresh process reads them the same
+every time. Counts are held exactly in every process: no character asks for more paths than its `repath_seconds`
+allows, thinks more often than its `think_rate` or casts more than `max_rays_per_think` (2) rays a think, and the shared
+budget is never overspent. Time is held as medians: the step a character and a think over the median of a ruler timed
+every 50 ticks of the window (`tests/fixtures/physics_ruler.gd`: a capsule's `move_and_slide` round a post and a ray
+at it, 400 times, the engine's work an AI step spends most on, about 8 ms here and 7 to 11 on a runner), and the hit
+history over the step of the same ticks (a section of a few microseconds that a ruler does not follow:
+[the ruler](../performance-budgets.md#budgets-counts-tight-time-loose)). The step is judged as one **score**: each
+size's step ratio over the ratio unchanged code typically reads (`STEP_RATIO_TYPICAL`, a table for Linux, the CI
+runners, and one for Windows, the desktop, since the same code builds to different speeds), pooled as a geometric
+mean, the median of the three processes, at most 1.48; one size alone may read at most 1.6 times its typical ratio, so
+a step that grows only with the crowd does not hide in the pool. The suite's second case,
+`test_a_step_twice_as_slow_fails_the_gate`, runs the bench on `SlowAiDirector` (`tests/fixtures/`: the step spins on
+the clock as long again as its work took, so it costs twice itself on any machine) and must see the score fail with no
+count broken: the gate's teeth run wherever the gate runs. A failure prints the rows. `.github/workflows/ai-cost-gate.yml`
+runs the suite 50 times on the runners (by hand, and on a pull request that changes the gate or its bench) and keeps
+every bench row with the runner's processor. Linux: 150 CI runs on four processor models (AMD EPYC 7763, 9V74, 9V45,
+Intel Xeon 8573C), 2026-11-13; Windows: 4 desktop runs with 25 Godot processes beside them:
 
 | Civilians | Step a character a tick | A think | Hit history a character (`ai_history_us`) | Paths / thinks a second each | Rays a think | Walking |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 50 | 41 to 103 us; a ruler ms: Linux 6.2 to 9.6 (limit 11), Windows 10.5 to 12.2 (limit 15) | 58 to 144 us; Linux 8.7 to 13.4 (limit 15.5), Windows 12.7 to 15.4 (limit 19) | 1.1 to 3.4 us (0.024 to 0.040 of the step; limit 0.055) | 0.58 / 10.0 | 0.18 | 54 % |
-| 100 | 39 to 88 us; Linux 5.9 to 8.1 (limit 9.5), Windows 9.4 to 11.6 (limit 14) | 78 to 166 us; Linux 11.1 to 15.4 (limit 18), Windows 17.4 to 20.2 (limit 25) | 1.3 to 3.3 us (0.028 to 0.044; limit 0.06) | 0.50 / 6.7 | 0.09 | 53 % |
-| 200 | 33 to 69 us; Linux 5.0 to 6.4 (limit 7.5), Windows 8.0 to 8.9 (limit 11.5) | 105 to 210 us; Linux 14.8 to 19.6 (limit 23), Windows 23.6 to 26.0 (limit 32) | 1.7 to 3.5 us (0.037 to 0.060; limit 0.09) | 0.36 / 3.6 | 0.09 | 39 % |
+| 50 | 41 to 103 us; a ruler ms: Linux 6.2 to 9.6 (typical 8.7), Windows 10.5 to 12.2 (typical 11.0) | 58 to 144 us; Linux 8.7 to 13.4 (limit 15.5), Windows 12.7 to 15.4 (limit 19) | 1.1 to 3.4 us (0.024 to 0.040 of the step; limit 0.055) | 0.58 / 10.0 | 0.18 | 54 % |
+| 100 | 39 to 88 us; Linux 5.9 to 8.1 (typical 7.65), Windows 9.4 to 11.6 (typical 9.5) | 78 to 166 us; Linux 11.1 to 15.4 (limit 18), Windows 17.4 to 20.2 (limit 25) | 1.3 to 3.3 us (0.028 to 0.044; limit 0.06) | 0.50 / 6.7 | 0.09 | 53 % |
+| 200 | 33 to 69 us; Linux 5.0 to 6.4 (typical 6.2), Windows 8.0 to 8.9 (typical 7.8) | 105 to 210 us; Linux 14.8 to 19.6 (limit 23), Windows 23.6 to 26.0 (limit 32) | 1.7 to 3.5 us (0.037 to 0.060; limit 0.09) | 0.36 / 3.6 | 0.09 | 39 % |
 
-- Twice as slow, the step read 19.7 to 22.8, 20.3 to 21.3 and 15.1 to 17.5 a ruler ms on the desktop; on Linux twice
-  the lowest ratio of the 150 runs is 12.4, 11.8 and 9.9, over every limit.
+- Twice as slow, the step read 19.7 to 22.8, 20.3 to 21.3 and 15.1 to 17.5 a ruler ms on the desktop.
+- The score (#1526), 150 suite runs of fresh processes on CI in three soaks, 2026-11-14 (AMD EPYC 9V45, 9V74, 7763,
+  Intel Xeon 6975P-C, 8573C): the gate scored 0.88 to 1.26 (the median of three processes; one process 0.87 to 1.27),
+  twice as slow 1.76 to 2.54, and a step made twice as slow in `AiDirector` itself 1.86 on the desktop. The typical
+  ratios are the medians of the first soak: 8.7, 7.65 and 6.2 a ruler ms. Per-size limits of a ratio (11.0, 9.5 and
+  7.5) had failed twice that day on unchanged code (11.27 at 50 on main, 9.97 at 100) inside the template job, whose
+  153 runs read the step 1.6 to 1.8 times apart; replayed, those rows score 0.80 to 1.30 and their slow rows 1.61 up.
+- What is left is the runner's neighbours, not its speed: one runner read every process at 0.88 for half an hour while
+  another of the same model drifted from 1.0 to 1.2 and back within minutes, and the physics ruler held on both. A ruler
+  that follows that drift has to feel what the step feels there (most likely the memory the neighbours share); a ruler
+  moved inside the tick, 60 moves of the same physics, followed it no better (1.38 against 1.40 over 50 runs).
 - The ruler before this one (#1405) was a GDScript loop of vector, array and dictionary work, chosen on the desktop:
   on the runners it followed the step at a slope of 0.6, so the step read 3.9 to 8.1 loops on unchanged code and
   failed main at 8.06 against a limit of 8.0. Over the same 150 runs the step spread 1.73 times over that loop, 1.86

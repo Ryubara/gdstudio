@@ -11,6 +11,9 @@
 ## wide as a right lean's shot clears (0.8 m): on a left lean the weapon goes to the left side
 ## (gdstudio #1435) and its shot clears the other edge too; `LEFT_SHOULDER=0` films it as before,
 ## the weapon right of the head and the left shot in the pillar. Each hit prints `HIT <tick> <who>`.
+## `PEEK_BODY=male` films the male prototype body. `PEEK_VIEW=front` films the chest and the arms
+## from a camera in front of the body, beside the game's (gdstudio #1436: an arm in the chest is
+## hidden from behind the shoulder).
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -22,6 +25,9 @@ const PILLAR_AT := Vector3(0.0, 300.0, -1.4)
 const PILLAR_SIZE := Vector3(0.8, 2.6, 0.5)
 const TARGETS: Array[Vector3] = [Vector3(3.5, 300.0, -10.0), Vector3(-3.5, 300.0, -10.0)]
 const PITCH := 3.0
+## The view's pitch crouched: on the targets' boards (at 1.5 degrees the shots met their lower
+## edge, and the left one missed below it once the left shoulder's chest turned, gdstudio #1436).
+const CROUCHED_PITCH := -1.0
 ## The view's heading toward each target, degrees (positive turns left).
 const RIGHT_YAW := -19.0
 const LEFT_YAW := 19.0
@@ -60,7 +66,7 @@ const STAGES: Array[Dictionary] = [
 		"name": "crouched lean right",
 		"hold": [&"crouch", &"aim", &"lean_right"],
 		"yaw": RIGHT_YAW + 1.0,
-		"pitch": PITCH - 1.5,
+		"pitch": CROUCHED_PITCH,
 		"seconds": 2.0,
 		"fire": [1.1],
 	},
@@ -68,7 +74,7 @@ const STAGES: Array[Dictionary] = [
 		"name": "crouched lean left",
 		"hold": [&"crouch", &"aim", &"lean_left"],
 		"yaw": LEFT_YAW - 1.0,
-		"pitch": PITCH - 1.5,
+		"pitch": CROUCHED_PITCH,
 		"seconds": 2.3,
 		"fire": [1.4],
 	},
@@ -80,6 +86,7 @@ var _weapon := 0
 var _index := -1
 var _clock := 0.0
 var _held: Array[StringName] = []
+var _front: Camera3D
 
 @onready var _player: Player = $Main/PlayerRig/Player
 @onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
@@ -107,6 +114,16 @@ func _ready() -> void:
 		_player.peek_tuning = _player.peek_tuning.duplicate()
 		_player.peek_tuning.left_shoulder = false
 	_watch_hits(pillar.get_node(^"Body"), "pillar")
+	if OS.get_environment("PEEK_BODY") == "male":
+		var old := _player.model.rig()
+		_player.model.remove_child(old)
+		old.free()
+		_player.model.add_child((load(CharacterBodies.MALE) as PackedScene).instantiate())
+	if OS.get_environment("PEEK_VIEW") == "front":
+		_front = Camera3D.new()
+		_front.fov = 40.0
+		add_child(_front)
+		_front.make_current()
 	_player.loadout.give(load("res://gameplay/weapon/rifle.tres") as WeaponDef, 60)
 	_player.teleport(START, PI)
 	_player.weapon.fired.connect(
@@ -134,6 +151,21 @@ func _physics_process(delta: float) -> void:
 			actions.append(&"fire")
 	_clock += delta
 	_hold(actions)
+	if _front != null:
+		_film_front()
+
+
+# The front camera: ahead of the body and a little to its right, level with the chest, on it.
+func _film_front() -> void:
+	var skeleton := _player.model.skeleton()
+	var chest := (
+		skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(&"spine_03"))
+	)
+	var ahead := _player.model.global_basis.z
+	ahead = Vector3(ahead.x, 0.0, ahead.z).normalized()
+	var right := ahead.cross(Vector3.UP)
+	_front.global_position = chest.origin + ahead * 1.3 + right * 0.45 + Vector3.UP * 0.1
+	_front.look_at(chest.origin, Vector3.UP)
 
 
 func _next_stage() -> void:

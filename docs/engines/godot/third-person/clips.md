@@ -402,8 +402,11 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 
 **What a transition clip needs** (gdstudio #1156, #1157). A name in `GaitTransitionSet` is a base: the tree plays
 `<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start),
-the foot that lands next in the gait's phase (a stop, a reversal) or the way the body turns (a pivot, a turn on the
-spot). The defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`,
+the foot that lands next in the gait's phase (a reversal) or the way the body turns (a pivot, a turn on the
+spot). A stop begins nearest the phase the stick is let go at: of `<base>_L`, `<base>_R` and the entries between
+them named by the gait's frame they begin on (`gds/Sprint_Stop_05`), the one whose `joins.first_frame` is nearest
+(`GaitTransitionSet.pick_entry`, gdstudio #1525; the jog and the sprint have one every two frames, so a body is
+drawn at most a frame from it). The defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`,
 `gds/Jog_Stop`, `gds/Sprint_Stop`, `gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`,
 `gds/Turn_In_Place_90` and `gds/Turn_In_Place_180`. From its record in `clips.json` the tree reads `travel` (a start
 or a stop is played at the time its travel has covered the ground the body really covered), `turn` (a reversal, a

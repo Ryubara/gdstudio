@@ -47,6 +47,42 @@ static func pick(player: AnimationPlayer, base: StringName, side: String) -> Str
 	return base if player.has_animation(base) else &""
 
 
+## The stop of `base` that begins nearest `phase` (0 to 1) of `gait`'s cycle, among the one on each
+## foot's strike (`<base>_L`, `<base>_R`, picked by `side` when the gait has no record) and the
+## entries between them that `player` holds, named by the gait's frame they begin on
+## (`<base>_05`, gdstudio #1525). Each begins on the gait's own pose at its frame
+## (`joins.first_frame`), so a body let go between two strikes is drawn at most half the spacing
+## from it, not the half cycle to the next strike.
+static func pick_entry(
+	player: AnimationPlayer, base: StringName, side: String, gait: StringName, phase: float
+) -> StringName:
+	var picked := pick(player, base, side)
+	var frames := roundi(GaitClips.seconds(gait) * GaitClips.FPS)
+	if picked == &"" or frames <= 0:
+		return picked
+	var at := fposmod(phase, 1.0) * frames
+	var nearest := INF
+	for name: StringName in [StringName("%s_L" % base), StringName("%s_R" % base)]:
+		var joins: Dictionary = GaitClips.record(name).get("joins", {})
+		if player.has_animation(name) and joins.has("first_frame"):
+			var gap := _frames_apart(float(joins.first_frame), at, frames)
+			if gap < nearest:
+				nearest = gap
+				picked = name
+	for frame in frames:
+		var entry := StringName("%s_%02d" % [base, frame])
+		var gap := _frames_apart(float(frame), at, frames)
+		if gap < nearest and player.has_animation(entry):
+			nearest = gap
+			picked = entry
+	return picked
+
+
+static func _frames_apart(a: float, b: float, frames: int) -> float:
+	var apart := absf(a - b)
+	return minf(apart, frames - apart)
+
+
 ## The clip `bases[key]` (a gait's) for `side` that `player` holds, or `&""`.
 static func pick_in(
 	player: AnimationPlayer,

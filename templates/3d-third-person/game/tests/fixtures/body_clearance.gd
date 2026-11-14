@@ -16,6 +16,12 @@ const NOT_TORSO: Array[StringName] = [
 ## The bones left out to measure the whole body (kit #1340): only the forearms and hands, which
 ## hold the weapon (`HandContact` measures them); the legs, upper arms and head count.
 const HOLDING: Array[StringName] = [&"lowerarm_r", &"lowerarm_l"]
+## The arms whose skin `arms_in_torso()` looks at, and the hands under them it leaves out.
+const ARMS: Array[StringName] = [&"upperarm_r", &"upperarm_l"]
+const HANDS: Array[StringName] = [&"hand_r", &"hand_l"]
+## How far from the upper arm's bone, on the rest pose, the arm's skin is left out of
+## `arms_in_torso()`, metres: the shoulder's, which meets the chest's in every pose.
+const SHOULDER := 0.08
 ## How far round the weapon the skin is looked at, in metres: deeper than this reads as this.
 const REACH := 0.15
 const _CELL := 0.02
@@ -95,8 +101,6 @@ func deepest(weapon: Node3D, with_gap := false) -> Dictionary:
 func pose_skin(region: AABB) -> void:
 	_skin = PackedVector3Array()
 	_owner = PackedInt32Array()
-	_columns = {}
-	_cells = {}
 	for surface: Dictionary in _surfaces:
 		var posed := _posed(surface)
 		var indices: PackedInt32Array = surface.indices
@@ -117,6 +121,13 @@ func pose_skin(region: AABB) -> void:
 				continue
 			_skin.append_array([a, b, c])
 			_owner.append(main[indices[triangle * 3]])
+	_index_skin()
+
+
+# Files each triangle of `_skin` under the columns and cells it covers.
+func _index_skin() -> void:
+	_columns = {}
+	_cells = {}
 	for triangle in _owner.size():
 		var a := _skin[triangle * 3]
 		var b := _skin[triangle * 3 + 1]
@@ -151,6 +162,100 @@ func depth_at(at: Vector3) -> Dictionary:
 		"bone": _skeleton.get_bone_name(_owner[nearest[1]]),
 		"out": nearest[2],
 	}
+
+
+## The deepest a vertex of the arms' skin is inside the torso in the pose now (gdstudio #1436): the
+## vertices whose main bone is under `ARMS` and not under `HANDS` (which hold the weapon), against
+## the torso's skin alone (every bone but `NOT_TORSO`'s). {"depth": metres (0 when clear), "bone":
+## the arm's bone, "torso": the torso's bone it is in, "at": the vertex in the skeleton's space,
+## "sides": for each of `ARMS`, {"depth", "from_shoulder": that vertex's distance from the bone}}.
+func arms_in_torso() -> Dictionary:
+	var torso := PackedByteArray()
+	var arm := PackedByteArray()
+	var side := PackedInt32Array()
+	torso.resize(_skeleton.get_bone_count())
+	arm.resize(_skeleton.get_bone_count())
+	side.resize(_skeleton.get_bone_count())
+	for bone in _skeleton.get_bone_count():
+		torso[bone] = 1
+		var cursor := bone
+		while cursor >= 0:
+			var bone_name := _skeleton.get_bone_name(cursor)
+			if NOT_TORSO.has(bone_name):
+				torso[bone] = 0
+			if HANDS.has(bone_name):
+				arm[bone] = 2
+			elif ARMS.has(bone_name) and arm[bone] == 0:
+				arm[bone] = 1
+				side[bone] = cursor
+			cursor = _skeleton.get_bone_parent(cursor)
+	var points := PackedVector3Array()
+	var owners := PackedInt32Array()
+	var bounds := AABB()
+	_skin = PackedVector3Array()
+	_owner = PackedInt32Array()
+	var posed_surfaces: Array[PackedVector3Array] = []
+	for surface: Dictionary in _surfaces:
+		var posed := _posed(surface)
+		posed_surfaces.append(posed)
+		var main: PackedInt32Array = surface.main
+		var rest: PackedVector3Array = surface.vertices
+		var bind_bones: PackedInt32Array = surface.bind_bones
+		var bind_poses: Array[Transform3D] = surface.bind_poses
+		for vertex in posed.size():
+			if arm[main[vertex]] != 1:
+				continue
+			# Where the arm joins the chest the two skins meet in every pose: left out.
+			var bind := bind_bones.find(side[main[vertex]])
+			if bind < 0 or (bind_poses[bind] * rest[vertex]).length() >= SHOULDER:
+				bounds = AABB(posed[vertex], Vector3.ZERO) if points.is_empty() else bounds
+				bounds = bounds.expand(posed[vertex])
+				points.append(posed[vertex])
+				owners.append(main[vertex])
+	var found := {"depth": 0.0, "bone": &"", "torso": &"", "at": Vector3.ZERO, "sides": {}}
+	for root_name in ARMS:
+		found.sides[root_name] = {"depth": 0.0, "from_shoulder": 0.0}
+	if points.is_empty():
+		return found
+	var region := bounds.grow(REACH)
+	for index in _surfaces.size():
+		var surface := _surfaces[index]
+		var posed := posed_surfaces[index]
+		var indices: PackedInt32Array = surface.indices
+		var main: PackedInt32Array = surface.main
+		for triangle in indices.size() / 3:
+			if torso[main[indices[triangle * 3]]] == 0:
+				continue
+			var a := posed[indices[triangle * 3]]
+			var b := posed[indices[triangle * 3 + 1]]
+			var c := posed[indices[triangle * 3 + 2]]
+			var low := a.min(b).min(c)
+			var high := a.max(b).max(c)
+			if (
+				high.x < region.position.x
+				or low.x > region.end.x
+				or high.y < region.position.y
+				or low.y > region.end.y
+			):
+				continue
+			_skin.append_array([a, b, c])
+			_owner.append(main[indices[triangle * 3]])
+	_index_skin()
+	for index in points.size():
+		var hit := depth_at(points[index])
+		var root := side[owners[index]]
+		var per: Dictionary = found.sides[_skeleton.get_bone_name(root)]
+		if hit.depth > per.depth:
+			per.depth = hit.depth
+			per.from_shoulder = (
+				_contact.bone_pose(_skeleton.get_bone_name(root)).origin.distance_to(points[index])
+			)
+		if hit.depth > found.depth:
+			found.depth = hit.depth
+			found.bone = _skeleton.get_bone_name(owners[index])
+			found.torso = hit.bone
+			found.at = points[index]
+	return found
 
 
 # The nearest triangle to `at` within `REACH`: [distance, triangle, the way to it], or

@@ -7,12 +7,21 @@
 # from which the game may cut to new input. Planted feet, skin on the floor, tracks, limbs and
 # the budget are `test_own_clips.gd`'s, which reads every clip of the file. The compressed
 # import keeps every bone's motion of these clips as the file has it, and the player plays them.
+# The jog's and the sprint's stops also begin between the strikes (gdstudio #1525), each on the
+# gait's own pose at its frame, over the same ground, and the tree picks the one nearest the phase
+# the stick is let go at.
 extends GdUnitTestSuite
 
 const OWN := "res://assets/animation/own/locomotion.glb"
 const RECORDS := "res://assets/animation/own/locomotion.json"
 const GAITS: Array[String] = ["Walk", "Jog", "Sprint"]
 const FEET: Array[String] = ["L", "R"]
+## The stops of the running gaits that begin between the strikes, by the gait's frame they begin on
+## (gdstudio #1525): every phase of the cycle is within a frame of one of them or of a strike.
+const ENTRIES := {
+	"Jog": [2, 4, 6, 8, 12, 14, 16, 18],
+	"Sprint": [2, 4, 6, 8, 11, 13, 15, 17],
+}
 ## The furthest a bone's step over the frame at a join may be from the gait's own step there, in
 ## metres: the build reads 0.5 to 7 mm on the file's own keys, and the import's compression adds
 ## to it.
@@ -139,6 +148,8 @@ func test_a_start_and_a_stop_meet_their_gait_moving_as_it_moves() -> void:
 				var worst := 0.0
 				var worst_bone := ""
 				for bone: String in mine_a:
+					if bone.begins_with("ik_"):
+						continue  # the starts and stops key no `ik_` targets (gdstudio #1525)
 					var mine: Vector3 = mine_b[bone] - mine_a[bone]
 					var theirs: Vector3 = gait_b[bone] - gait_a[bone]
 					if mine.distance_to(theirs) > worst:
@@ -265,3 +276,126 @@ func test_the_player_plays_our_start_and_stop() -> void:
 	var stopped := names.any(func(n: String) -> bool: return n.begins_with("gds/Walk_Stop_"))
 	assert_bool(started).override_failure_message(str(names)).is_true()
 	assert_bool(stopped).override_failure_message(str(names)).is_true()
+
+
+# The gait's cycle in frames, the first frame of every stop of `gait` (the strikes' and the
+# entries'), by clip name.
+func _stops(records: Dictionary, gait: String) -> Dictionary:
+	var out := {}
+	var names: Array[String] = ["%s_Stop_L" % gait, "%s_Stop_R" % gait]
+	for frame: int in ENTRIES.get(gait, []):
+		names.append("%s_Stop_%02d" % [gait, frame])
+	for clip in names:
+		out[clip] = float(records[clip].joins.first_frame)
+	return out
+
+
+func test_every_stop_entry_begins_on_its_gait_s_frame_over_the_same_ground() -> void:
+	var records := _records()
+	_stage(CharacterBodies.FEMALE)
+	for gait: String in ENTRIES:
+		var cycle: Dictionary = records[gait]
+		var strike: Dictionary = records[gait + "_Stop_L"]
+		for frame: int in ENTRIES[gait]:
+			var clip := "%s_Stop_%02d" % [gait, frame]
+			assert_bool(records.has(clip)).override_failure_message(clip).is_true()
+			var record: Dictionary = records[clip]
+			assert_str(record.joins.first).is_equal(gait)
+			assert_str(record.joins.last).is_equal("Idle")
+			assert_float(float(record.joins.first_frame)).is_equal(float(frame))
+			# The body brakes from the let-go by its speed alone, so every entry covers the
+			# strike's stop's ground.
+			(
+				assert_float(float(record.travel[-1][1]))
+				. override_failure_message(clip)
+				. is_equal_approx(float(strike.travel[-1][1]), 0.001)
+			)
+			assert_float(_speed(record, false)).override_failure_message(clip).is_equal_approx(
+				cycle.speed, 0.02 * cycle.speed
+			)
+			assert_float(_speed(record, true)).override_failure_message(clip).is_equal_approx(
+				0.0, 0.002
+			)
+			# Its first two frames step as the gait's do from that frame.
+			var mine_a := _places(clip, 0.0)
+			var mine_b := _places(clip, 1.0)
+			var gait_a := _places(gait, float(frame))
+			var gait_b := _places(gait, float(frame) + 1.0)
+			var worst_pose := 0.0
+			var worst_step := 0.0
+			for bone: String in mine_a:
+				if bone.begins_with("ik_"):
+					continue  # left out of the entries, as the library leaves them out
+				worst_pose = maxf(worst_pose, (mine_a[bone] as Vector3).distance_to(gait_a[bone]))
+				var mine: Vector3 = mine_b[bone] - mine_a[bone]
+				var theirs: Vector3 = gait_b[bone] - gait_a[bone]
+				worst_step = maxf(worst_step, mine.distance_to(theirs))
+			var where := (
+				"%s: first pose %.1f mm, first step %.1f mm off the gait's at frame %d"
+				% [clip, worst_pose * 1e3, worst_step * 1e3, frame]
+			)
+			print(where)
+			assert_float(worst_pose).override_failure_message(where).is_less(0.002)
+			assert_float(worst_step).override_failure_message(where).is_less(JOIN_STEP)
+
+
+func test_the_entries_half_a_cycle_apart_are_not_mirror_images() -> void:
+	# An entry after the left foot's strike and the one as far after the right's are two solves.
+	var records := _records()
+	_stage(CharacterBodies.FEMALE)
+	for gait: String in ENTRIES:
+		var half: int = int(records[gait].frames) / 2
+		for frame: int in ENTRIES[gait]:
+			var twin_frame: int = (frame + half) % (2 * half)
+			if twin_frame < frame or not ENTRIES[gait].has(twin_frame):
+				continue
+			var one_clip := "%s_Stop_%02d" % [gait, frame]
+			var two_clip := "%s_Stop_%02d" % [gait, twin_frame]
+			var worst := 0.0
+			for share: float in [0.25, 0.5, 0.75]:
+				var one := _places(one_clip, roundf(share * records[one_clip].frames))
+				var two := _places(two_clip, roundf(share * records[two_clip].frames))
+				for bone: String in one:
+					var twin := bone
+					if bone.ends_with("_l"):
+						twin = bone.trim_suffix("_l") + "_r"
+					elif bone.ends_with("_r"):
+						twin = bone.trim_suffix("_r") + "_l"
+					var mirrored: Vector3 = two[twin] * Vector3(-1.0, 1.0, 1.0)
+					worst = maxf(worst, (one[bone] as Vector3).distance_to(mirrored))
+			var where := (
+				"%s and %s differ by %.0f mm as mirror images" % [one_clip, two_clip, worst * 1e3]
+			)
+			print(where)
+			assert_float(worst).override_failure_message(where).is_greater(NOT_A_MIRROR)
+
+
+func test_a_stop_begins_on_the_entry_nearest_the_phase_it_is_let_go_at() -> void:
+	# `GaitTransitionSet.pick_entry`: every phase of the cycle picks a stop that begins within a
+	# frame of it; the walk, which has none between its strikes, picks the nearer strike's.
+	var records := _records()
+	_stage(CharacterBodies.FEMALE)
+	for gait: String in ["Walk", "Jog", "Sprint"]:
+		var frames := float(records[gait].frames)
+		var firsts := _stops(records, gait)
+		var furthest := 0.0
+		for step in int(frames) * 4:
+			var phase := step / (frames * 4.0)
+			var gait_clip := StringName("gds/" + gait)
+			var picked := GaitTransitionSet.pick_entry(
+				_player,
+				StringName("gds/%s_Stop" % gait),
+				GaitTransitions.next_foot(gait_clip, phase),
+				gait_clip,
+				phase
+			)
+			var clip := String(picked).trim_prefix("gds/")
+			assert_bool(firsts.has(clip)).override_failure_message(String(picked)).is_true()
+			var apart := absf(firsts.get(clip, 0.0) - phase * frames)
+			furthest = maxf(furthest, minf(apart, frames - apart))
+		var where := (
+			"%s: a stop begins at most %.2f frames from the phase let go at" % [gait, furthest]
+		)
+		print(where)
+		var most := frames / 4.0 if gait == "Walk" else 1.0
+		assert_float(furthest).override_failure_message(where).is_less_equal(most + 0.001)
