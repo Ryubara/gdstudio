@@ -105,14 +105,13 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   gdstudio, 2026-11-02; Deadnight, 2026-11-01 and 2026-11-05 (fix: read the line that names the scanned folder before
   trusting a result); gdstudio #879, #903, #966, #970, 2026-11-10 (another agent's `sync.sh` in the scratchpad synced its
   branch); #968, 2026-11-11 (a PR body in the scratchpad was swapped for another's).
-- **Approach:** From a session that sits in the kit's main checkout, commit and push in a worktree with `git -C
-  <worktree> commit|push ...`, not `cd <worktree> && git commit|push`. **Watch out for:** the Git guard judges the
-  command from the session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would
-  have run in the worktree. **Seen:** gdstudio #1221 (PR #1225) and #1178, 2026-11-11 (a line that set a variable
-  before its `cd <worktree> &&` was refused; with the `cd` first it passed, and `git -C` always passes); #1293,
-  2026-11-11 (a worktree's own agent: a command that sourced a helper file and changed folder after it was refused as a
-  commit on `main`); PR #1424, 2026-11-13 (a push after `cd <worktree> &&` was refused as one to `main`); fix: #1472
-  follows `cd "$WT"` when the line set `WT`, not a variable from a sourced file.
+- **Approach:** Commit and push in a worktree with `git -C <absolute worktree path> ...`, or after a plain absolute
+  `cd <worktree> &&` (or a variable the line set: `WT=...; cd "$WT"`, `$wt = '...'; Set-Location $wt`). **Watch out
+  for:** after a `cd` the Git guard cannot follow (`cd "$(...)"`, a sourced variable, `cd -`, `popd`) it refuses a
+  commit or a push of the current branch; before #1520 it judged the session's folder, refusing worktree work as
+  `main` and, from a worktree session, missing a commit on `main`. **Seen:** gdstudio #1221, #1178, #1293, 2026-11-11
+  (refused after a variable or a sourced file); PR #1424, 2026-11-13; fix: #1472 (`cd "$WT"`), #1520, 2026-11-14
+  (PowerShell assignments; an unfollowed `cd` refused with the `git -C` hint).
 
 ## Background commands and processes {#background}
 
