@@ -304,9 +304,36 @@ jobs:
           git status --porcelain
           test -z "$(git status --porcelain)"
 
+  clips:
+    # 3D Third Person's own clips are built from their scripts (assets/animation/own/build_own.py, numpy only): the
+    # build is run again with `--check` and fails when a byte of the committed `locomotion.glb` or its json differs,
+    # so a committed clip that its scripts no longer make fails here (kit #1472,
+    # docs/tools/blender/own-animation.md#checks). `--no-overlap`: the limb measure needs Blender, which the runners do
+    # not have; the Godot suite reads that measure's report by the file's SHA-256. numpy is the version the file was
+    # built with, so a numpy release cannot move a byte.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: repos/gdstudio
+          persist-credentials: false
+      - name: Fetch the clip files the builds compare with (LFS)
+        working-directory: repos/gdstudio
+        run: git lfs pull --include "templates/3d-third-person/game/assets/animation/own/*.glb,templates/3d-third-person/game/assets/characters/prototype/*.glb,templates/3d-third-person/game/assets/characters/mannequin/*.glb"
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Build the own clips again and compare
+        working-directory: repos/gdstudio/templates/3d-third-person/game/assets/animation/own
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -o pipefail
+          uv run --no-project --python 3.14 --with numpy==2.5.4 python -B build_own.py ship locomotion --check --no-overlap 2>&1 | grep -v "^NUMBERS" | tee check.log
+          grep -q "^SAME locomotion.glb" check.log
+
   build-ok:
     if: always()
-    needs: [test, godot, template]
+    needs: [test, godot, template, clips]
     runs-on: ubuntu-24.04
     steps:
       - name: Every job passed
