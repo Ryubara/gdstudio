@@ -94,6 +94,28 @@ func test_a_crouched_body_is_hit_at_its_hips_from_the_side() -> void:
 		assert_str(String(_records[0].zone)).is_equal("pelvis")
 
 
+func test_a_puppets_tracer_ends_on_the_drawn_part_not_the_hull() -> void:
+	await _steps(_crouch(), 40)
+	var hips := _part(&"pelvis")
+	var line := _side_line(&"pelvis", hips)
+	assert_array(line).is_not_empty()
+	if line.is_empty():
+		return
+	var from: Vector3 = line[0]
+	var along: Vector3 = line[1]
+	# The raw ray meets the hull first, out from the part.
+	var query := PhysicsRayQueryParameters3D.create(from, hips + along, PhysicsLayers.SHOT_MASK)
+	var raw := _arena.get_world_3d().direct_space_state.intersect_ray(query)
+	assert_object(raw.get("collider")).is_instanceof(ShotHull)
+	var weapon: Weapon = auto_free(Weapon.new())
+	_arena.add_child(weapon)
+	var end := WeaponRay.end_of(weapon, from, along, 6.0, PhysicsLayers.SHOT_MASK)
+	var on_part := _zones.find(from, hips + along)
+	assert_vector(end).is_equal_approx(on_part.point, Vector3.ONE * 0.001)
+	var hull_at: Vector3 = raw.get("position", from)
+	assert_float(end.distance_to(from)).is_greater(hull_at.distance_to(from) + 0.01)
+
+
 func test_a_body_standing_up_is_hit_at_its_drawn_head() -> void:
 	await _steps(_crouch(), 40)
 	# Let go: the pose is upright long before the capsule has grown to the standing height.
