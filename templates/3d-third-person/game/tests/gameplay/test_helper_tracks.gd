@@ -25,6 +25,10 @@ func before_test() -> void:
 func _player(spot: Vector3) -> Player:
 	var body := _arena.add_player(spot)
 	body.tuning = (TUNING as CharacterTuning).duplicate()
+	# The reversal at tick 60 plays over the steering, as the tree plays it for any body: moved
+	# by its clip's root (#1442) each body is placed from its own spot, and a micrometre of
+	# rounding apart turns the bones by more than this suite's limit.
+	body.tuning.turn_root_motion = false
 	CommandDriver.take(body)
 	return body
 

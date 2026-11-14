@@ -407,6 +407,12 @@ drawn are the ones the body moves by: on open floor the body is on the travel cu
   facing and travel read apart, and show the clip at the step's time. **Watch out for:** a body the controller turns
   in 0.26 s under a clip seeked by the angle turned, raced to catch up (`transition_pace`), turned too soon and too
   neatly, with no brake ahead of the body. **Seen:** gdstudio #1442, 2026-11-13, from the maintainer's review.
+- **Approach:** In a suite that compares two bodies stepped side by side to a few micrometres (helper tracks on and
+  off, a setting on and off), switch `turn_root_motion` off in both tunings when the commands reverse or cut, so
+  the tree plays the clip over the steering. **Watch out for:** a body moved by its clip's root is placed from its
+  own spot, so two bodies at x -3 and 3 end 1e-6 m apart after a sprint reversal, and the stop that follows turns
+  their spines 0.001 degrees apart, over a 1e-5 radian limit. **Seen:** gdstudio #1442, 2026-11-14
+  (`test_helper_tracks.gd` from #1488, red only after main was merged in).
 
 **What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
 pose's difference from the idle's first frame, so it keys every bone the idle keys, the `ik_` targets too (where
