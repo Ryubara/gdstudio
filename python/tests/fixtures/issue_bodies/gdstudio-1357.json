@@ -1,0 +1,10 @@
+{
+  "title": "Fix the AI section test's guard noticing a player behind it under load",
+  "body": "`templates/3d-third-person/game/tests/gameplay/test_ai_section.gd` failed at line 100 in two separate local full-suite runs on 2026-11-12: a guard noticed the player standing behind it. Seen on the #1306 and #1262 branches, both after main at 70473979. Each time it passed alone three times, and on #1306 also three times after the same preceding suites. The machine was heavily loaded both times (about 15 Godot runs at once).\n\nA guard's perception should never see behind it, whatever the frame timing. A timing-dependent pass means the perception check depends on how many physics ticks run, or on a stale facing, before the test reads it.\n\nDone when:\n- The cause is found: the guard's facing or the view cone read on a tick where the guard is still turning, a perception tick count that depends on frame time, or a test that reads too early.\n- The test is deterministic: it passes under a fixed clock and under a slowed or loaded clock (for example `Engine.time_scale` or skipped frames), and fails first on the cause.\n- If the guard really can notice behind it under load, that's fixed in the perception code, not the test.\n",
+  "labels": {
+    "bug": "Something is broken",
+    "task": "A piece of work for a maintainer or an agent",
+    "A-godot": "Area: shared Godot addons and the scenario harness",
+    "A-tests": "Area: test-only changes"
+  }
+}

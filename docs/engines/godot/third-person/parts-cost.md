@@ -177,6 +177,15 @@ What is left at rest: the layer's aim ray each tick (kept, so the first aimed fr
 steps as before) and one look at the aim; the hold's read of the weapon layer, the reload and the rack, the grip's
 weights and the slide.
 
+- **Approach:** A part added to a living character (a weapon hold's modifier or marker, an aim or peek layer, an idle
+  sound player, a component node) changes the node count `NODES_ALIVE` pins in `tests/gameplay/test_parts_budget.gd`:
+  count what the part adds to a dressed character, raise the pin by that many and add a line naming the part and its
+  pull request to the comment above it, in the same commit, and run the budget suite beside the part's own suites.
+  **Watch out for:** a hold's, a lean's or an aim layer's own suites never run the budget suite, so the pin fails
+  only in the full run or on CI; nine pull requests from the pistol hold (#1001) to the fists' upright aim (#1395)
+  each moved it by 1 to 6 nodes. **Seen:** gdstudio #1001, #1337, #1351 and #1395; gdstudio #1435, 2026-11-13 (the
+  peek lean's left-shoulder hold; agents' reports of the day named the pin late).
+
 - **Approach:** Empty the `RagdollPool` (`clear()`) before counting a living character's nodes, so it makes the pool's
   sets whatever ran first; leave out the controller the test added and hold the count equal. The count includes the
   empty `PhysicalBoneSimulator3D` every `Skeleton3D` adds as an internal child on entering the tree (4.7.2's
