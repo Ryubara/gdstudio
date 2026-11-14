@@ -53,6 +53,12 @@ sharpen that one. Only when nothing fits do you make a new section, and only whe
   fell from third to fourth by 0.001 when main's pages grew, and CI failed on a pull request that changed none of
   them. **Seen:** gdstudio #1471, 2026-11-13 (fix in PR #1485: adjacent word pairs count, `lessons.PAIR_BONUS`, proved
   on a fixed kit; the live split case asserts the five).
+- **Approach:** When an entry names a file (a test, a script) that another section already names, run `gds brief` for
+  the issue the entry comes from and check that both sections are among its lines. **Watch out for:** a brief gave a
+  path the issue names only its one closest mentioning section, so a new on-topic entry beside the code pushed the
+  cause's section out: `third-person/ai.md#proof`, naming `test_ai_section.gd`, took the place of
+  `ui-input-tests.md#leaks` in #1357's brief, and the issue's words alone ranked leaks ninth. **Seen:** gdstudio PR
+  #1474, 2026-11-14 (fix in PR #1517: two mentioning sections per path, `lessons.MENTIONS_PER_PATH`).
 
 ## An entry {#rule}
 
