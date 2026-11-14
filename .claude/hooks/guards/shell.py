@@ -66,6 +66,29 @@ def split_commands(command: str) -> list[str]:
 
 # `NAME=value`, with the value quoted or a `$(...)` that holds spaces (shlex leaves it one word): never a program
 _ASSIGNMENT = re.compile(r"[A-Za-z_]\w*=")
+# PowerShell's `$name = 'value'`, `$name='value'`, `$env:NAME = "value"` (gdstudio #1520)
+_PS_ASSIGNMENT = re.compile(r"^\$((?:env:)?[A-Za-z_]\w*)(=.*)?$", re.IGNORECASE)
+
+
+def _ps_assignment(words: list[str], assigned: dict[str, str]) -> bool:
+    """True when `words` is a PowerShell assignment, recorded in `assigned` when its value is one plain word; a value
+    that runs a command (`$wt = git rev-parse ...`, `$wt = (Get-Location)`) forgets the name, so a later `cd $wt` is
+    one this cannot follow."""
+    found = _PS_ASSIGNMENT.match(words[0])
+    if not found:
+        return False
+    if found.group(2) is not None:
+        values = [found.group(2)[1:], *words[1:]]
+    elif words[1:2] == ["="] or (len(words) > 1 and words[1].startswith("=") and len(words[1]) > 1):
+        values = words[2:] if words[1] == "=" else [words[1][1:], *words[2:]]
+    else:
+        return False
+    name = found.group(1)
+    if len(values) == 1 and not values[0].startswith(("(", "$(", "@(")):
+        assigned[name] = expand(values[0], assigned)
+    else:
+        assigned.pop(name, None)
+    return True
 
 
 def segments(command: str, assigned: dict[str, str] | None = None) -> list[list[str]]:
@@ -83,6 +106,8 @@ def segments(command: str, assigned: dict[str, str] | None = None) -> list[list[
             words = part.split()
         if assigned is not None and words[:1] == ["export"]:
             words = words[1:]
+        if assigned is not None and words and _ps_assignment(words, assigned):
+            continue
         while words:
             if _ASSIGNMENT.match(words[0]) and assigned is not None:
                 name, _, value = words[0].partition("=")
@@ -152,6 +177,21 @@ def git_dir_of(words: list[str], cwd: Path) -> tuple[Path, list[str]]:
     return here, words[i:]
 
 
+def git_dir_anchored(words: list[str]) -> bool:
+    """A `git` command whose folder does not depend on the shell's: some `-C` names an absolute folder."""
+    i = 1
+    while i < len(words) and words[i].startswith("-"):
+        if words[i] == "-C" and i + 1 < len(words):
+            if absolute(words[i + 1]):
+                return True
+            i += 2
+        elif words[i] in ("-c", "--git-dir", "--work-tree") and i + 1 < len(words):
+            i += 2
+        else:
+            i += 1
+    return False
+
+
 def flag_values(words: list[str], flags: tuple[str, ...]) -> list[str]:
     """Every value given to any of `flags` (`--flag value` or `--flag=value`)."""
     found: list[str] = []
@@ -165,7 +205,7 @@ def flag_values(words: list[str], flags: tuple[str, ...]) -> list[str]:
     return found
 
 
-_VARIABLE = re.compile(r"\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))")
+_VARIABLE = re.compile(r"\$(?:\{([A-Za-z_]\w*)\}|((?:env:)?[A-Za-z_]\w*))", re.IGNORECASE)
 
 
 def expand(word: str, assigned: dict[str, str]) -> str:
@@ -174,17 +214,20 @@ def expand(word: str, assigned: dict[str, str]) -> str:
 
 
 _CD_PROGRAMS = ("cd", "chdir", "pushd", "set-location", "sl")
+_CD_BACK = ("popd", "pop-location")  # back to a folder this never saw: a `cd` it cannot follow
 _CD_FLAGS = ("/d", "-p", "-l", "--", "-path", "-literalpath")
 _MSYS_DRIVE = re.compile(r"^/([A-Za-z])(?=/|$)")
 
 
-def change_dir(words: list[str], cwd: Path, assigned: dict[str, str] | None = None) -> tuple[bool, Path | None]:
-    """(True, folder) for a plain `cd <dir>` (also `cd /d`, `pushd`, `Set-Location [-Path]`) as it moves `cwd`; (True,
-    None) for a `cd` this cannot follow (`cd`, `cd -`, a `$DIR` the line did not assign, a glob, more than one folder);
-    (False, None) when the command is not a `cd`. The target is joined to `cwd` when relative, as the shell does; a
-    variable the line assigned earlier (`assigned`, from `segments`) is replaced by its value (kit #1472: a
-    `WT=<worktree>; cd "$WT" && git commit` was judged from the session's folder)."""
-    if words[0].lower() not in _CD_PROGRAMS:
+def cd_target(words: list[str], assigned: dict[str, str] | None = None) -> tuple[bool, str | None]:
+    """(True, target) for a plain `cd <dir>` (also `cd /d`, `pushd`, `Set-Location [-Path]`), the folder as written
+    with the line's variables replaced, `~` expanded and Git Bash's `/c/dir` as `C:/dir`; (True, None) for a `cd` this
+    cannot follow (`cd`, `cd -`, `popd`, a `$DIR` the line did not assign, a `$(...)`, a glob, more than one folder);
+    (False, None) when the command is not a `cd`."""
+    first = words[0].lower()
+    if first in _CD_BACK:
+        return True, None
+    if first not in _CD_PROGRAMS:
         return False, None
     args = [expand(w, assigned or {}) for w in words[1:] if w.lower() not in _CD_FLAGS]
     if len(args) != 1 or args[0] == "-" or any(ch in args[0] for ch in "$`*?%(){}"):
@@ -194,7 +237,23 @@ def change_dir(words: list[str], cwd: Path, assigned: dict[str, str] | None = No
         target = os.path.expanduser(target)
     elif os.name == "nt" and (drive := _MSYS_DRIVE.match(target)):  # Git Bash's /c/dir is C:/dir
         target = f"{drive.group(1).upper()}:{target[drive.end() :] or '/'}"
+    return True, target
+
+
+def change_dir(words: list[str], cwd: Path, assigned: dict[str, str] | None = None) -> tuple[bool, Path | None]:
+    """(True, folder) for a plain `cd <dir>` as it moves `cwd`; (True, None) for a `cd` this cannot follow; (False,
+    None) when the command is not a `cd` (`cd_target`). The target is joined to `cwd` when relative, as the shell does;
+    a variable the line assigned earlier (`assigned`, from `segments`) is replaced by its value (kit #1472: a
+    `WT=<worktree>; cd "$WT" && git commit` was judged from the session's folder)."""
+    moved, target = cd_target(words, assigned)
+    if not moved or target is None:
+        return moved, None
     try:
         return True, (cwd / target).resolve()
     except (OSError, ValueError):
         return True, None
+
+
+def absolute(target: str) -> bool:
+    """A folder that names its drive (or, off Windows, starts at the root): it does not depend on where the shell is."""
+    return Path(target).is_absolute()
