@@ -39,7 +39,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(1, str(HERE.parent))
 
 import measure_hash  # noqa: E402
-from clips import crouch_idle, crouch_walk, directed, gait, idle, lean, moves, stance  # noqa: E402
+from clips import crouch_idle, crouch_walk, directed, gait, idle, lean, moves, stance, turns  # noqa: E402
 from clips.joined import Joined, described  # noqa: E402
 from gdsanim import build, selftest, style  # noqa: E402
 from gdsanim.rig import Rig  # noqa: E402
@@ -88,6 +88,12 @@ FAMILIES = {
     "walk_stop": ("Walk_Stop", moves.family("walk", False)),
     "jog_stop": ("Jog_Stop", moves.family("jog", False)),
     "sprint_stop": ("Sprint_Stop", moves.family("sprint", False)),
+    # Kit #1157: a reversal by the foot that plants, a pivot and a turn on the spot by the way it turns.
+    "jog_turn_90": ("Jog_Turn_90", turns.family("jog_turn_90")),
+    "jog_turn_180": ("Jog_Turn_180", turns.family("jog_turn_180")),
+    "sprint_turn_180": ("Sprint_Turn_180", turns.family("sprint_turn_180")),
+    "turn_in_place_90": ("Turn_In_Place_90", turns.family("turn_in_place_90")),
+    "turn_in_place_180": ("Turn_In_Place_180", turns.family("turn_in_place_180")),
 }
 ## Every clip of a family by its own name, with the name `picks.json` picks it under.
 MEMBERS = {name: (pick, describe) for pick, members in FAMILIES.values() for name, describe in members}
@@ -125,6 +131,16 @@ GROUPS = {
         "Jog_Stop_R",
         "Sprint_Stop_L",
         "Sprint_Stop_R",
+        "Jog_Turn_90_L",
+        "Jog_Turn_90_R",
+        "Jog_Turn_180_L",
+        "Jog_Turn_180_R",
+        "Sprint_Turn_180_L",
+        "Sprint_Turn_180_R",
+        "Turn_In_Place_90_L",
+        "Turn_In_Place_90_R",
+        "Turn_In_Place_180_L",
+        "Turn_In_Place_180_R",
     ]
 }
 ## The deepest a limb may be inside another part of the body, on every body (mm).

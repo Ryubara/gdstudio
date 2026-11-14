@@ -41,6 +41,10 @@ extends Resource
 @export_range(10.0, 180.0, 1.0, "suffix:deg") var turn_angle := 50.0
 ## Below this ground speed the body is standing for the transitions (m/s).
 @export_range(0.0, 2.0, 0.01, "suffix:m/s") var standing_speed := 0.3
+## The fastest a turn on the spot's clip runs to catch up with the body, against its own pace.
+## A reversal and a pivot no longer race: the body moves by their clip's root
+## (`CharacterTurnMotion`, #1442) and they play at the step's time or their own pace.
+@export_range(1.0, 8.0, 0.1) var transition_pace := 2.0
 
 @export_group("Momentum blend")
 ## Starts each body state from the pose and the motion the last one left and lets the difference

@@ -27,12 +27,13 @@ uv run --with numpy --with pillow python -B review_sheet.py <type> --blender <th
 
 A rebuild writes the same bytes (`--check` compares with the files on disk and writes nothing). The clip from the
 game's camera is `tools/capture/own_clips_review.tscn` (the starts and stops: `own_moves_review.tscn`); the Godot
-tests are `tests/gameplay/test_own_clips.gd` and `test_own_moves.gd`.
+tests are `tests/gameplay/test_own_clips.gd`, `test_own_moves.gd` and `test_own_turns.gd`.
 
 The clip types are `idle`, `walk`, `jog`, `sprint`, `crouch_idle`, `crouch_walk`, `stand_to_crouch`,
 `crouch_to_stand`, the directions `walk_back`, `walk_left`, `walk_right`, `jog_back`, `jog_left`, `jog_right`, the
-leans `lean_left`, `lean_right`, `lean_fwd`, `lean_back` (below, "The directions and the lean"), and the families
-`idle_to_walk`, `idle_to_jog`, `idle_to_sprint`, `walk_stop`, `jog_stop` and `sprint_stop` (two clips each). After
+leans `lean_left`, `lean_right`, `lean_fwd`, `lean_back` (below, "The directions and the lean"), the families
+`idle_to_walk`, `idle_to_jog`, `idle_to_sprint`, `walk_stop`, `jog_stop` and `sprint_stop`, and the turns
+`jog_turn_90`, `jog_turn_180`, `sprint_turn_180`, `turn_in_place_90` and `turn_in_place_180` (two clips each). After
 `ship locomotion` changes `Crouch_Idle`, rebuild the prone clips too (`../prone/`): their two transitions join its
 first pose. `fluidity.py` reads the shipped gaits against the library clips they replaced (below, "How fluid the
 gaits are").
@@ -836,3 +837,178 @@ row shows. Measured by the build on `form_female` (frames are `_L`, `_R`):
   KB a second, inside the plan's budget of 7, which the maintainer set on 2026-11-13). Godot bakes a key a frame
   on import, so the build's key reduction does not make the import smaller; leaving the hands' `ik_` targets out of
   the twelve clips gave 275,564 bytes (6.3 KB a second).
+
+## The turns: `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90`, `Turn_In_Place_90`, `Turn_In_Place_180`
+
+Kit #1157. All new: Quaternius's library has no turn, and the game turned the body at `turn_speed` under a looping gait,
+so a body that reversed out of a sprint spun round with its feet still running. Each type is two clips, `_L` and `_R`: every
+clip is named for the way it turns (since kit #1442 a reversal too: it plants the outside foot, as a cut
+does). All ten are one description, `clips/turns.py`, and each type is a family in
+`build_own.py` (`FAMILIES`): `review jog_turn_180` builds both clips under every letter, and one letter of `picks.json`
+picks the pair.
+
+### How a body turns (the research)
+
+Read on 2026-11-13, before the numbers were set. "Summary" means only a search's summary of the page was read, so
+the finding is a lead; "computed" is our own arithmetic from the physics named; where nothing was found it says so
+and the clip's number is a declared choice.
+
+| What | Finding | Source | What the clips do with it |
+| --- | --- | --- | --- |
+| How a 180 degree turn out of a run is done | Braking is spread over the last contacts before the turn: the penultimate contact brakes hardest and lowers the load on the plant foot; faster turners lean the trunk back as they brake, set the plant foot turned in, and have short, horizontal pushes; a programme that coached penultimate braking, a backward trunk and a neutral plant foot made turns faster. | [Dos'Santos et al., the modified and traditional 505](https://salford-repository.worktribe.com/output/1362224/biomechanical-determinants-of-the-modified-and-traditional-505-change-of-direction-speed-test); [technique training for 180 degree turns](https://salford-repository.worktribe.com/output/1340514/change-of-direction-speed-and-technique-modification-training-improves-180-turning-performance-kinetics-and-kinematics) (both summary) | A reversal begins as a foot strikes and brakes from its second frame over one (C) to three steps (the sprint's A and B), each landing ahead of where a steady step would by the braking's lean, no further than a leg reaches; the trunk comes back by a share of `atan(a / g)`; the plant foot is the last braking step and is set turned toward the new way. |
+| How long the plant foot stands, how fast the body comes in | The final contact of a 180 degree turn lasts 0.46 s (SD 0.10) and 0.52 s (SD 0.08) in two studies, entering at 4.0 m/s (SD 0.2); a 90 degree cut's final contact 0.25 s (SD 0.06), entering at 4.4 m/s (SD 0.22); average speeds through 45, 90 and 180 degree turns 4.7, 3.8 and 3.4 m/s for men; sharper turns come in slower and leave slower. | [Dos'Santos et al., 2018, the angle and velocity trade-off](https://www.springermedizin.de/the-effect-of-angle-and-velocity-on-change-of-direction-biomecha/16023850) (the review's table, read) | The plant stands 8 frames (0.27 s) in the jog's A, shorter than the studies: a planted foot while the hips turn 120 degrees wanders 8 mm on `form_male`, whose hip joints are 3 mm closer than `form_female`'s (the clip is solved on her), and the check's limit is 5. The pivot dips to 0.6 of the jog's speed (2.4 m/s) and comes back. |
+| How a person turns on the spot | In a 180 degree turn on the spot at a fast pace, young adults begin with the head (0.52 s after the cue), then the chest (0.55), the hips (0.57), the leading foot (0.69) and the trailing foot (0.89); they take 2.95 steps (SD 0.31) of 79 degrees each over 1.72 s; the head turns up to 272 degrees a second and leads the hips by up to 22 degrees. Slower turns take more steps, every part later. | [Khobkhun, Hollands and Richards, 2021, Sensors 21, 2827](https://knowledge.lancashire.ac.uk/id/eprint/37496/1/sensors-21-02827.pdf) (Table 1, read) | A turn on the spot leads with the head, then the chest, then the hips (`head_lead`, `chest_lead`: frames ahead of the hips, on top of the overlap pass's lag), the foot on the side of the turn lifts about four frames after the hips begin and the other foot follows; a 180 takes three steps in A and C and four in B, a 90 two. No foot turns on the floor. |
+| A 90 degree turn on the spot or walking | Half to three quarters of walking 90 degree turns were step turns, the foot opposite the turn redirecting the body; the turn took 1.4 to 1.7 s and three to four footfalls. | [a study of walking 90 degree turns](https://pmc.ncbi.nlm.nih.gov/articles/PMC10722562) (read) | Not used for the turn on the spot (both feet step on their own idle places); the numbers say a body takes longer than the game's 0.13 s (`turn_speed` 12 rad/s). |
+| How far a body leans in a bend | Not found as a number in a source we could open. Physics gives it: a body that stays over its feet leans by `atan(a / g)` of the acceleration toward the bend's middle, `v * dtheta / dt`; at 2.4 m/s through 90 degrees in a second that is up to 25 degrees. | computed | The trunk and the hips lean into the bend by the root's acceleration in its own frame, forward and back and to the side, through a spring (`lean_lag`); the feet land outside the bend by a share of it (`drive`), no further than `reach_side`. The build reads both against what the soles on the floor can hold (`lean_off_deg`, `side_lean_off_deg`). |
+
+Reread on 2026-11-13 for kit #1442, after the maintainer's review found the first reversals turned too soon and too
+neatly. Sports footage of shuttle runs, the 505 test and basketball and football stops shows the same order every time:
+the runner turns the hips side-on and drops them, plants the outside foot well ahead, is carried on over it while it
+brakes, and only then turns and pushes away.
+
+| What | Finding | Source | What the clips do with it |
+| --- | --- | --- | --- |
+| The 180 degree turn's body, measured | Before and after six weeks of turn coaching (modified 505, entering at 3.96 to 4.09 m/s): ground contact 0.46 to 0.53 s, pelvis turned 77 to 92 degrees at the turn, hip flexion 89 to 96 and knee 110 to 114 degrees at the penultimate contact, trunk inclined 32 to 42 degrees at the final contact; the coaching asked for lower hips and a harder penultimate brake. | [Dos'Santos et al., change-of-direction training study](https://pmc.ncbi.nlm.nih.gov/articles/PMC8225134) (read) | The hips are 0.42 of the turn (76 degrees) side-on by the plant's landing; the plant stands 16 frames (0.53 s) at a jog, 18 (0.6 s) at a sprint; the hips sink over the brake; the carried lean is 30 to 44 degrees. |
+| What makes a 505 fast | Penultimate-contact braking and triple flexion, medial trunk lean and the pelvis and foot turned in, short horizontal pushes at the final contact. | [Dos'Santos et al., determinants of the 505](https://e-space.mmu.ac.uk/626014/) (summary) | The step before the plant brakes too and lands wide toward the turn (`brake_wide`); the push off the plant lands on its own side (`push_wide`). |
+| A sprint against a jog | Faster approaches need the braking spread over more contacts before the turn (same sources; the penultimate contact is the "preparatory step"). | [the turning-phase review](https://www.mdpi.com/1660-4601/18/11/5519) (summary) | The sprint reversal brakes over three steps from frame 3, then the plant; the jog over one step and the plant. |
+
+### How the turns are built
+
+Since kit #1442 a reversal and a cut are a velocity mixed from the old way's and the new way's (`brake_from`,
+`stop_at`, `brake_shape`, half and half late in the plant's contact), a sideways `lane` for a reversal, the facing on
+its own curve (`side_on` by the plant's landing, the rest from `turn_lead` before the stop to `turn_after` after it),
+the trunk carried the old way while the plant brakes (`carry`, `carry_cut`, `carry_hold`) and the plant placed from
+the root's place at the stop (`plant_out`, `plant_aside`). The game moves the body on the clip's own root
+(`CharacterController.turn_clips`). The rest of this section is how a turn on the spot is built, and the steps and
+the body of every turn:
+
+- **The root is a speed and a heading** (the kit's `docs/tools/blender/turn-clips.md#description`), integrated into
+  a place and a yaw that `locomotion.json` carries as `travel` (frame, metres forward, metres left) and `turn`
+  (frame, degrees to the left). A reversal and a pivot follow the velocity and the facing above; a turn on the
+  spot turns from `yaw_early` frames before its first lift
+  to `yaw_late` after its last landing, on a curve skewed by `yaw_turn`.
+- **The steps.** A reversal's and a pivot's begin and end on the gait's own contacts; the steps between land where
+  a steady step would, moved by the acceleration's lean forward and to the side (`drive`), never across the middle
+  line (`own_side`), set turned a share of the root's turn over their contact (`foot_turn`, `plant_turn` for the
+  plant). A turn on the spot steps each foot to the idle's own place turned by a share of the angle (`steps`: which
+  foot, the share, frames in the air, frames standing), the steps before a foot's last one `apart` metres wider, the
+  stepping foot carried round in front of the standing one.
+- **The body** is posed in the root's frame and put on the floor: the hips over the foot that carries the weight
+  (`shift`), the lean of the root's acceleration in its own frame through a spring (`lean_lag`), the head and the
+  chest turning ahead of the hips (`head_lead`, `chest_lead`, `head_more`), the arms opening while the body turns
+  (`arm_wide`) and while the foot on their side steps (`arm_clear`).
+- **The ends are the joined clips' own poses** (the gait's at the frame its foot strikes, or the idle's first),
+  0.0 mm and 0.09 degrees in every variant.
+
+### The turns' variants
+
+Since kit #1442 the moving types' variants are the momentum model's: A grounded (the description's numbers), B loose
+(a longer plant, a later turn, trailing parts; its carried lean kept lower where the long plant folds the ankle), C
+sharp (the hips most side-on, a shorter plant, a quick turn). Each variant's two lines on its sheet say its numbers;
+the tables below for the moving types are the first reversals', kept as the record of what was rejected.
+
+- **A, grounded** (shipped until a letter is picked): a person's numbers where a source gave them: three steps for a
+  90 on the spot and four for a 180 (the study's 2.95 put a thigh into the other), the head 3 frames ahead of the
+  hips and the chest 1.5; a reversal that brakes over two steps (the sprint's three) and stands 8 frames on its
+  plant foot; a pivot that dips to 0.6 of the jog's speed.
+- **B, loose**: longer and later. The hips turn late on a skewed curve while the head runs past them, the arms open
+  wide, the early steps on the spot land 0.12 m wider; a reversal comes nearly to rest, sinks deeper and braces
+  toward the idle's carriage; the lean follows late.
+- **C, sharp**: quick, planted poses. A turn on the spot steps every 6 to 8 frames with one-frame rests; a reversal
+  brakes in one step and sets its plant foot turned 0.7 of the way; a pivot takes four landings, not five.
+
+The numbers from the review builds (`build_own.py review <type> --report`), the worst of `_L` and `_R`:
+
+| | A, grounded | B, loose | C, sharp |
+| --- | --- | --- | --- |
+| **`Turn_In_Place_90`**: frames (`_L`, `_R`) | 46, 44 | 59, 57 | 34, 32 |
+| Seconds, and metres the root ends from where it began | 1.53 s, 0.00 m from where it began | 1.97 s, 0.00 m from where it began | 1.13 s, 0.00 m from where it began |
+| Landings inside the clip | 3 | 3 | 3 |
+| The frame the game may cut from (`free`) | 37, 35 | 47, 45 | 27, 25 |
+| Lean off the acceleration's over a step, degrees | 0.0 forward, 0.0 to the side | 0.0 forward, 0.0 to the side | 0.0 forward, 0.0 to the side |
+| Fastest drop of the centre of mass with a foot down | 0.80 of gravity | 0.69 of gravity | 0.29 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 1.24 and 3.31 mm | 1.25 and 2.96 mm | 1.17 and 2.48 mm |
+| A planted sole off the floor, the same two | 0.1 and 0.2 mm | 0.1 and 0.2 mm | 0.1 and 0.2 mm |
+| Limbs inside limbs, the worst of the four bodies | 4.6 mm | 4.4 mm | 3.8 mm |
+| Largest change of a joint's speed in a frame | 23 degrees | 23 degrees | 23 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 37 KB | 47 KB | 30 KB |
+| **`Turn_In_Place_180`**: frames (`_L`, `_R`) | 58, 56 | 79, 77 | 44, 42 |
+| Seconds, and metres the root ends from where it began | 1.93 s, 0.00 m from where it began | 2.63 s, 0.00 m from where it began | 1.47 s, 0.00 m from where it began |
+| Landings inside the clip | 4 | 5 | 4 |
+| The frame the game may cut from (`free`) | 48, 46 | 67, 65 | 37, 35 |
+| Lean off the acceleration's over a step, degrees | 0.0 forward, 0.0 to the side | 0.0 forward, 0.0 to the side | 0.0 forward, 0.0 to the side |
+| Fastest drop of the centre of mass with a foot down | 0.79 of gravity | 0.80 of gravity | 0.32 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 1.32 and 3.74 mm | 1.16 and 4.66 mm | 1.16 and 4.01 mm |
+| A planted sole off the floor, the same two | 0.1 and 0.2 mm | 0.1 and 0.2 mm | 0.1 and 0.2 mm |
+| Limbs inside limbs, the worst of the four bodies | 4.8 mm | 4.7 mm | 4.1 mm |
+| Largest change of a joint's speed in a frame | 23 degrees | 23 degrees | 23 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 46 KB | 63 KB | 38 KB |
+| **`Jog_Turn_90`**: frames (`_L`, `_R`) | 60, 60 | 62, 62 | 50, 50 |
+| Seconds, and metres the root ends from where it began | 2.00 s, 5.59 m from where it began | 2.07 s, 5.63 m from where it began | 1.67 s, 4.56 m from where it began |
+| Landings inside the clip | 5 | 5 | 4 |
+| The frame the game may cut from (`free`) | 50, 50 | 52, 52 | 40, 40 |
+| Lean off the acceleration's over a step, degrees | 16.8 forward, 19.2 to the side | 17.5 forward, 17.9 to the side | 16.7 forward, 20.6 to the side |
+| Fastest drop of the centre of mass with a foot down | 0.84 of gravity | 0.84 of gravity | 0.84 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.44 and 3.44 mm | 2.44 and 3.90 mm | 2.44 and 3.63 mm |
+| A planted sole off the floor, the same two | 0.5 and 0.5 mm | 0.5 and 0.5 mm | 0.5 and 0.5 mm |
+| Limbs inside limbs, the worst of the four bodies | 4.2 mm | 4.3 mm | 3.9 mm |
+| Largest change of a joint's speed in a frame | 35 degrees | 38 degrees | 31 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 96 KB | 98 KB | 80 KB |
+| **`Jog_Turn_180`**: frames (`_L`, `_R`) | 69, 69 | 72, 72 | 58, 58 |
+| Seconds, and metres the root ends from where it began | 2.30 s, 2.29 m from where it began | 2.40 s, 2.26 m from where it began | 1.93 s, 1.60 m from where it began |
+| Landings inside the clip | 6 | 6 | 5 |
+| The frame the game may cut from (`free`) | 59, 59 | 62, 62 | 48, 48 |
+| Lean off the acceleration's over a step, degrees | 16.4 forward, 8.1 to the side | 16.1 forward, 5.5 to the side | 17.4 forward, 10.2 to the side |
+| Fastest drop of the centre of mass with a foot down | 0.92 of gravity | 0.87 of gravity | 0.93 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.44 and 3.69 mm | 2.44 and 4.15 mm | 2.44 and 3.72 mm |
+| A planted sole off the floor, the same two | 0.3 and 0.3 mm | 0.3 and 0.3 mm | 0.5 and 0.5 mm |
+| Limbs inside limbs, the worst of the four bodies | 4.6 mm | 5.0 mm | 4.2 mm |
+| Largest change of a joint's speed in a frame | 31 degrees | 30 degrees | 31 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 111 KB | 118 KB | 96 KB |
+| **`Sprint_Turn_180`**: frames (`_L`, `_R`) | 96, 96 | 108, 108 | 86, 86 |
+| Seconds, and metres the root ends from where it began | 3.20 s, 4.39 m from where it began | 3.60 s, 5.63 m from where it began | 2.87 s, 3.26 m from where it began |
+| Landings inside the clip | 9 | 10 | 8 |
+| The frame the game may cut from (`free`) | 87, 87 | 99, 99 | 77, 77 |
+| Lean off the acceleration's over a step, degrees | 22.0 forward, 9.0 to the side | 22.4 forward, 7.5 to the side | 21.7 forward, 9.8 to the side |
+| Fastest drop of the centre of mass with a foot down | 0.85 of gravity | 0.89 of gravity | 0.91 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.09 and 4.09 mm | 2.13 and 4.47 mm | 2.09 and 4.63 mm |
+| A planted sole off the floor, the same two | 0.3 and 0.3 mm | 0.3 and 0.3 mm | 0.4 and 0.4 mm |
+| Limbs inside limbs, the worst of the four bodies | 3.9 mm | 3.8 mm | 3.9 mm |
+| Largest change of a joint's speed in a frame | 54 degrees | 55 degrees | 50 degrees |
+| First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
+| Key bytes, the pair | 160 KB | 178 KB | 150 KB |
+
+### What the turns' numbers do not say
+
+- **The lean rows are over the plan's 5 degrees in every moving turn, and each type declares its limit**
+  (`lean_limit`, `side_lean_limit`: the pivot 18 and 20, C 20 and 23; the jog reversal 18 and 18, C 25 and 20; the
+  sprint reversal 24 and 20, C 30 and 20). A body that reverses from 4 m/s inside a second would lean near 25
+  degrees; the feet landing outside the bend take a share of the lean into it.
+- **The controller turns far faster than a person** (12 rad/s: a 180 in 0.26 s; the study's turn on the spot takes
+  1.72 s). The tree plays a turn by the angle the body has turned, at most `transition_pace` (2) times the clip's
+  own pace, and once the body has turned it plays on to its end at its own pace, so in play most of a turn's
+  slow head-first start is gone. A controller that follows the clips' root curves is #1415's.
+- **Planted feet on other bodies** wander more than in a straight clip: a foot planted while the hips turn over it
+  carries the difference between the bodies' hip joints round with it (up to 4.7 mm on `form_male` against 2.4 on
+  `form_female`, whom the clips are solved on). The build and `test_own_clips.gd` hold a turning clip to 5 mm on
+  every body.
+- **The thighs come within the 5 mm limit on `form_male`** in several clips (4.6 to 5.0 mm): his thighs already meet
+  by 1.9 mm standing.
+
+### Numbers for the code (the turns)
+
+- `joins` in `locomotion.json`: `{"first": "Jog", "first_frame": 0, "last": "Jog", "last_frame": 10}` for a
+  reversal or a pivot (it begins and ends as a foot strikes), `{"first": "Idle", "last": "Idle"}` for a turn on the
+  spot. `turn` is the root's yaw curve (frame, degrees to the left; `_R` turns the other way), monotonic, ending on
+  the clip's angle; `travel` is the root's place, at the gait's speed at both ends of a moving turn and still at
+  both ends of a turn on the spot.
+- `contacts`, `flat` and `events` as for a start or a stop (a `footstep` per landing, one `free`).
+- **Cost:** each turn keys the same tracks as the gaits (56 bones' rotations, the places of the pelvis and
+  the four `ik_` targets). With the ten turns the library imports to 456,512 bytes for 65.5 s of clips (7.0 KB a
+  second), and with the directions and leans of kit #1374 beside them to 501,814 bytes for 70.4 s, and with
+  the braking reversals of kit #1442 to 525,750 bytes for 73.8 s (6.96 KB a second at 32 KiB pages), inside
+  the 7 KB a second the test holds.

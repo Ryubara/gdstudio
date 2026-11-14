@@ -492,6 +492,19 @@ def check_weight(built, played: dict) -> tuple:
                     f"weight: the centre of mass drops at {fall:.2f} of gravity with a foot on the floor, over {FALL}"
                 )
     accel = np.gradient(speed) * FPS
+    side = np.zeros(count)
+    if np.ptp(yaws) > 1e-6:
+        # A root that turns (kit #1157): its acceleration in its own frame, along the way it faces and to its left,
+        # from the travel's place, not from the change of its speed, which is the same whichever way it goes.
+        accel, side = _turning_accel(places, yaws)
+    if np.abs(side).max() > 0.5 and built.clip.kind == "transition":
+        over = max(int(built.clip.declared.get("lean_over", 0)), 2)
+        off = {f: _lean_outside(rig, world, com, down[f], f, weight.lean_for(side[f]), 0) for f in range(1, count - 1) if down[f]}
+        worst = _over_a_step(off, count, over)
+        numbers["side_lean_off_deg"] = round(worst, 1)
+        limit = built.clip.declared.get("side_lean_limit", LEAN)
+        if worst > limit:
+            failures.append(f"weight: the lean into the turn is {worst:.1f} degrees from the acceleration's")
     if np.abs(accel).max() > 0.5 and built.clip.kind == "transition":
         worst = 0.0
         over = int(built.clip.declared.get("lean_over", 0))
@@ -528,6 +541,40 @@ def check_weight(built, played: dict) -> tuple:
         if worst > limit:
             failures.append(f"weight: the lean is {worst:.1f} degrees from the acceleration's")
     return {"weight": numbers}, failures
+
+
+def _turning_accel(places: np.ndarray, yaws: np.ndarray) -> tuple:
+    """The root's acceleration (m/s2) on each frame in its own frame: along the way it faces, and to its left."""
+    velocity = np.gradient(places[:, [0, 2]], axis=0) * FPS
+    world = np.gradient(velocity, axis=0) * FPS
+    r = np.radians(yaws)
+    ahead = world[:, 0] * np.sin(r) + world[:, 1] * np.cos(r)
+    left = world[:, 0] * np.cos(r) - world[:, 1] * np.sin(r)
+    return ahead, left
+
+
+def _lean_outside(rig: Rig, world: np.ndarray, com: np.ndarray, down: list, f: int, want: float, axis: int) -> float:
+    """How far (degrees) the lean `want` is outside the range a body can hold over the soles on the floor, about
+    the axis that tips the body forward (`axis` 2) or to its left (`axis` 0); 0 inside the range."""
+    leans = []
+    for s in down:
+        points = rig.sole_points(world[f : f + 1], s)
+        floor = rig.sole[s]["floor"]
+        for key in ("heel", "ball", "toe"):
+            at = points[key][0]
+            if key == "ball" or at[1] < floor + 0.015:
+                leans.append(math.degrees(math.atan2(com[f, axis] - at[axis], com[f, 1] - at[1])))
+    return want - max(leans) if want > max(leans) else min(want - min(leans), 0.0)
+
+
+def _over_a_step(off: dict, count: int, over: int) -> float:
+    """The worst of `off` averaged over `over` frames, where at least half of them have a number."""
+    worst = 0.0
+    for first in range(1, count - over):
+        frames = [f for f in range(first, first + over) if f in off]
+        if len(frames) >= max(over // 2, 2):
+            worst = max(worst, abs(float(np.mean([off[f] for f in frames]))))
+    return worst
 
 
 def pose_gap(rig: Rig, world_a: np.ndarray, world_b: np.ndarray) -> tuple:

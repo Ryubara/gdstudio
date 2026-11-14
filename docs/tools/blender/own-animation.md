@@ -211,7 +211,7 @@ In the build, on every frame and on every shipped body's skinned mesh, before th
 | Limbs inside limbs | at most 5 mm on every body (`limb_overlap.py`) |
 | Gait | legs half a cycle apart within a frame; each arm with the other side's leg (correlation over 0.7); shoulders against hips; cadence, planted share and bob inside [the feel](#feel)'s ranges or the variant's declared ones |
 | Overlap | the forearm, hand, chest and head each trail their parent by the variant's declared frames, within half a frame; no part moves more than 0.5 degrees on the frame a contact lands without its parent moving |
-| Weight | in the air the centre of mass is on a free fall's arc within 15 mm; on the ground its lean is the acceleration's within 5 degrees; standing, it is over the feet; with a foot down it drops at no more than 1.05 of gravity |
+| Weight | in the air the centre of mass is on a free fall's arc within 15 mm; on the ground its lean is the acceleration's within 5 degrees, or within the limit a clip declares (`lean_limit` forward, `side_lean_limit` into a bend) with the reason in its variant's notes: no start, stop, reversal or pivot leans the whole `atan(a / g)` while its feet push, so each declares its own (the jog reversal 18 and 18, [turn clips](turn-clips.md#description)); standing, it is over the feet; with a foot down it drops at no more than 1.05 of gravity |
 | Joins | a transition's first and last pose are the poses it joins within 1 mm and half a degree, at the phase `clips.json` names, and its speed there is the joined clip's |
 | Travel | a transition's root travel is the distance and the turn `clips.json` declares; a planted foot stays within 5 mm in the world while the root travels |
 | Limits | no joint past a person's range ([the ragdoll's limits](../../engines/godot/ragdoll.md#limits)); no elbow or knee bending backward; no change of a joint's speed over a per-joint limit in one frame |
@@ -245,7 +245,10 @@ The pull request for a clip type carries one **review sheet** per type, made by 
 
 1. **A strip image:** one column per variant and a last column for the library clip it replaces (or "none"), every
    column the same frames of the cycle; rows for the side, the front and the top, over a 0.25 m floor grid moving at
-   the game's speed, so a foot that slides is seen sliding.
+   the game's speed, so a foot that slides is seen sliding. A clip whose root turns cannot be shown on a floor
+   moving along one line: its shots carry the root (`[x, z, yaw]`), the body is put in the world on a still floor
+   and the camera follows its place, so the turn reads as the body makes it
+   ([turn clips](turn-clips.md#toolkit-rows); `review_sheet.py` does it for any clip with a turn curve).
 2. **A clip (mp4):** the variants side by side in Godot from the game's camera, on the template's map: the loop for
    five seconds, then the moves that use it (start, turn, stop) driven by the same recorded input for each
    (`tools/capture/own_clips_review.tscn`; `OWN_ONLY=<clip>` films one variant, short enough for a GIF). Film it
@@ -357,7 +360,7 @@ What carries a clip over to a body with other proportions, and what one clip fil
 | --- | --- | --- |
 | Tracks a gait clip keys | 22 body bones and the pelvis's position; fingers only where they move | fingers at rest come from one hand-pose clip under the gait; a clip names its bones and the export strips the rest |
 | Keys | under 40 % of the frames on a moving bone at half a degree | curves solved at 30 a second, reduced by the build, checked against the full curve on the skinned mesh (1 mm at the hands and feet) |
-| Imported size | 7 KB a second of clip (the maintainer's figure of 2026-11-13; it was 6), compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second; 6.6 with the starts and stops of kit #1156, inside the 7 the test holds) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
+| Imported size | 7 KB a second of clip (the maintainer's figure of 2026-11-13; it was 6), compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second; 6.6 with the starts and stops of kit #1156, 7.0 with the turns of kit #1157 (456,512 bytes for 65.5 s), 6.96 with the directions and leans of kit #1374 beside them (501,814 bytes for 70.4 s; 525,750 for 73.8 s with kit #1442's braking reversals), inside the 7 the test holds) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
 | Clips blended at once | four on a character near the camera (two gaits, a transition or an action, one additive); one on a far one | the tree's layers are counted in the Godot issue's bench, in the browser |
 | Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)): 1.16 MB off 3D Third Person's pack (9.18 to 8.02 MB, kit #1366) |
 
@@ -373,7 +376,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | #1154 the clip toolkit and the review sheet (done) | `Idle`, three variants, A shipped as `gds/Idle`; the shared build, the checks and their self-test, `review_sheet.py`, the first swap ([the toolkit](animation.md#toolkit)) |
 | #1155 the loops (done) | `Walk`, `Jog`, `Sprint`, three variants, `Walk` B and `Jog` and `Sprint` A shipped; one description, `clips/gait.py` ([adding a gait](animation.md#toolkit)) |
 | #1156 starts and stops (done) | `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`; `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`; each `_L` and `_R`, three variants, A shipped; one description, `clips/moves.py` ([start and stop clips](start-stop-clips.md#description)) |
-| #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |
+| #1157 the reversal, pivots, turns on the spot (done) | `Sprint_Turn_180`, `Jog_Turn_180` (named for the foot that plants), `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R`, three variants, A shipped; one description, `clips/turns.py` ([turn clips](turn-clips.md#description)) |
 | #1158 the tree (Godot) (done) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost ([gaits fitted to the body](../../engines/godot/animation-tree.md#gait-fitting)) |
 | #1159 directions and lean (done; the strafes and backpedals B, the leans A) | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`, in step with `Walk` and `Jog` at their own speeds (1.3, 1.2 and 3.0 m/s); `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` as poses with their reference `Lean_Ref`; one description each, `clips/directed.py` and `clips/lean.py` ([the toolkit's rows](clip-toolkit.md#toolkit)) |
 | #1160 crouch (done) | `Crouch_Idle`, `Crouch_Walk`, `Stand_To_Crouch` (B, chosen), `Crouch_To_Stand` (A, chosen), solved on `form_female`; the prone transitions rebuilt on the new crouch |

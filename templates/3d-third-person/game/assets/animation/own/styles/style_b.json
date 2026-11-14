@@ -338,6 +338,26 @@
   "sprint_stop": [
    "71 frames over 5.01 m: six landings, the hips 65 mm down, a 14 frame settle.",
    "Lean 16.4 degrees off (declared 17): the trunk's late swing back adds to it."
+  ],
+  "turn_in_place_90": [
+   "Slower and looser: 59 and 57 frames; the hips turn late on a skewed curve (`yaw_turn` 0.55) while the head runs 9 degrees past them, the arms open 13 and 14 degrees, and the steps before each foot's last land 0.12 m wider than the idle's places.",
+   "Tried: steps on the idle's places with the hips turning early put form_male's thighs 6.5 mm into each other; the wider steps then put the left hand 5.5 mm into its thigh on the Quaternius female until the arm opens 18 degrees while its foot is up."
+  ],
+  "jog_turn_90": [
+   "Loose cut: a longer plant and more carry (18 degrees), the head leading later.",
+   "The push lands flatter (toes down 8 degrees)."
+  ],
+  "turn_in_place_180": [
+   "Five steps over 79 and 77 frames: the hips late on a skewed curve, the head 14 degrees past them, the arms opening wide, the early steps 0.12 m wider than the idle's places.",
+   "Tried: steps on the idle's places with the hips turning early put form_male's thighs 6.2 mm into each other; wider, the left hand went 10.3 mm into its thigh on the Quaternius female until the arm opens 18 degrees while its foot is up."
+  ],
+  "jog_turn_180": [
+   "Loose: a longer plant (18 frames) and a later turn; the parts trail further behind.",
+   "Carried lean 40 degrees; the body hangs over the plant longest before it turns (limit 35, declared)."
+  ],
+  "sprint_turn_180": [
+   "Loose: a 20-frame plant and the latest turn; arms and head trail.",
+   "Carried lean held to 28 degrees: over that the long plant folds the ankle past its cone."
   ]
  },
  "overlap_stand_to_crouch": {
@@ -1067,5 +1087,197 @@
   "dip": 0.065,
   "halt": 4,
   "lean_limit": 17.0
+ },
+ "turn_in_place_90": {
+  "prep": [
+   11,
+   9
+  ],
+  "steps": [
+   [
+    "lead",
+    0.5,
+    10,
+    3
+   ],
+   [
+    "trail",
+    1.0,
+    11,
+    3
+   ],
+   [
+    "lead",
+    1.0,
+    9,
+    4
+   ]
+  ],
+  "settle": 12,
+  "head_lead": 4.5,
+  "head_more": 9.0,
+  "chest_lead": 2.5,
+  "yaw_turn": 0.55,
+  "dip": 0.02,
+  "arm_wide": [
+   13.0,
+   14.0
+  ],
+  "shift": 0.7,
+  "apart": 0.12,
+  "arm_clear": [
+   18.0,
+   8.0
+  ]
+ },
+ "turn_in_place_180": {
+  "prep": [
+   10,
+   8
+  ],
+  "steps": [
+   [
+    "lead",
+    0.3,
+    9,
+    3
+   ],
+   [
+    "trail",
+    0.5,
+    10,
+    3
+   ],
+   [
+    "lead",
+    0.8,
+    9,
+    3
+   ],
+   [
+    "trail",
+    1.0,
+    9,
+    3
+   ],
+   [
+    "lead",
+    1.0,
+    8,
+    3
+   ]
+  ],
+  "settle": 12,
+  "head_lead": 4.5,
+  "head_more": 14.0,
+  "chest_lead": 2.5,
+  "yaw_turn": 0.55,
+  "dip": 0.02,
+  "arm_wide": [
+   13.0,
+   14.0
+  ],
+  "shift": 0.7,
+  "apart": 0.12,
+  "arm_clear": [
+   18.0,
+   8.0
+  ]
+ },
+ "jog_turn_90": {
+  "steps": [
+   10,
+   10,
+   10,
+   14,
+   10,
+   10,
+   10,
+   10
+  ],
+  "air": [
+   -4,
+   -2,
+   1,
+   -3,
+   -4,
+   -4,
+   -4
+  ],
+  "carry": 18.0,
+  "turn_after": 15,
+  "lean_lag": [
+   3.0,
+   0.2
+  ],
+  "head_lead": 4.5,
+  "push_heel": -8.0,
+  "toe_most": 58.0
+ },
+ "jog_turn_180": {
+  "steps": [
+   10,
+   10,
+   10,
+   20,
+   10,
+   10,
+   10,
+   10
+  ],
+  "air": [
+   -4,
+   -2,
+   2,
+   -2,
+   -3,
+   -4,
+   -4
+  ],
+  "side_on": 0.38,
+  "carry": 40.0,
+  "turn_after": 20,
+  "lean_lag": [
+   3.0,
+   0.2
+  ],
+  "head_lead": 4.5,
+  "side_lean_limit": 35.0,
+  "plant_out": 0.1
+ },
+ "sprint_turn_180": {
+  "steps": [
+   9,
+   9,
+   10,
+   11,
+   22,
+   11,
+   10,
+   9,
+   9,
+   9
+  ],
+  "air": [
+   -5,
+   -4,
+   -4,
+   -2,
+   -2,
+   -3,
+   -4,
+   -5,
+   -5
+  ],
+  "side_on": 0.38,
+  "carry": 28.0,
+  "turn_after": 22,
+  "lean_lag": [
+   3.0,
+   0.2
+  ],
+  "head_lead": 4.5,
+  "brake_shape": 1.3,
+  "brake_from": 3
  }
 }

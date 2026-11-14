@@ -338,28 +338,81 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `stretch` | 0.8 to 1.3 | how far a gait is slowed and sped up alone before the next blends in: the walk alone to 2.21 m/s, the walk and the jog blended to 3.2, the jog alone to 5.2 |
 | `slowest_pace` | 0.5 | the walk alone down to half its pace (0.85 m/s), fading into the idle below |
 | `transitions`, `transition_clips` | on, `GaitTransitionSet` | a start, a stop, a reversal, a pivot or a turn on the spot when the controller does one and its clip exists |
-| `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the controller's numbers that pick them |
+| `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the numbers that pick them; a reversal or a pivot of a body that steps with `CharacterTuning.turn_root_motion` on is picked by the step instead ([turns moved by their clip](#turn-root-motion)) |
+| `transition_pace` | 2 | the fastest a turn on the spot runs to catch the body's turn up, against its own pace (kit #1157); a reversal and a pivot no longer race the body: they move it ([turns moved by their clip](#turn-root-motion)) |
 | `momentum_blend`, `momentum_half_life`, `momentum_speed_limit` | on, 0.05 s, 720 degrees a second | a change of body state shows at once and the difference from the drawn pose dies away (`MomentumBlend`), in place of the cross-fade over `blend_time` |
 | `lean`, `lean_clips`, `lean_full_at`, `lean_time` | on, `gds/Lean_Left` and the rest, 20 m/s², 0.12 s | the lean into the acceleration, built only when the four lean clips exist |
 | `helper_tracks` | off | the clips' `ik_` target tracks blended; off, switched off in the game (`HelperTracks`, gdstudio #1438): nothing drawn follows them, the pose is the same and the tree 4 to 5 µs a character cheaper |
 
 **What a transition clip needs** (gdstudio #1156, #1157). A name in `GaitTransitionSet` is a base: the tree plays
-`<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start),
-the foot that lands next in the gait's phase (a stop, a reversal) or the way the body turns (a pivot, a turn on the
-spot). The defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`,
-`gds/Jog_Stop`, `gds/Sprint_Stop`, `gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`,
-`gds/Turn_In_Place_90` and `gds/Turn_In_Place_180`. From its record in `clips.json` the tree reads `travel` (a start
-or a stop is played at the time its travel has covered the ground the body really covered), `turn` (a reversal, a
-pivot or a turn: the time it has turned as far as the body), and `exit_phase` (the share of the gait's cycle it ends
-on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose body has finished its
-part plays on at its own pace; a body asked for something else leaves it at once. A start is picked while the body
+`<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start), the
+foot that lands next in the gait's phase (a stop), or the way the body turns (a reversal, a pivot, a turn on the
+spot: `_L` turns to the left; since kit #1442 a reversal is named so too, and plants the foot on the other side). The
+defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`, `gds/Jog_Stop`,
+`gds/Sprint_Stop`, `gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`, `gds/Turn_In_Place_90` and
+`gds/Turn_In_Place_180`. From its record in `clips.json` the tree reads `travel` (a start or a stop is played at the
+time its travel has covered the ground the body really covered), `turn` (a turn on the spot: the time it has turned
+as far as the body, run at most `transition_pace` times its own pace; a reversal or a pivot: below), and
+`exit_phase` (the share of the gait's cycle it ends on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half
+its cycle). A clip whose body has finished its part plays on at its own pace; a body asked for something else leaves it
+at once. A start is picked while the body
 stood at most `GaitTransitions.START_GRACE` (4) frames ago, since the controller's acceleration has it past
 `standing_speed` on the tick it is asked to move (gdstudio #1416); a state asked for while a clip plays (a crouch in a
 stop) is the one the machine goes on to. `tools/capture/own_blend_tour.tscn` films each start, stop and crouch from
 the game camera, printing the largest move of a bone each frame. Until the clips exist nothing
 plays and the states change as before.
 The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
-so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are kit #1157's.
+so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are GDStudio's own since
+kit #1157 (each moving one ends as a foot strikes; a turn on the spot ends on the idle's first pose).
+
+### Turns moved by their clip {#turn-root-motion}
+
+<!-- new section: the reversals and pivots stopped being drawn over a body the controller turned in 0.26 s and became
+the body's own motion (gdstudio #1442); control, AI paths and the network change with it -->
+
+A body on its feet at a jog or a sprint that is asked to go back the way it came (`CharacterTuning.reversal_angle`,
+135 degrees between where it moves and where the stick points) or to cut off (`pivot_angle`, 60) is moved by the
+clip's own root (`CharacterTurnMotion`, in the step): each tick its velocity is the change of the record's `travel`
+over the tick, turned into the frame it ran in as the clip began and scaled by the tuning's gait speed over the
+clip's at its first frame, and its facing is where it began plus `turn`. Travel and facing are read apart, so the body
+brakes the old way while it already faces round and only then speeds up the new way. `GaitTransitions` plays the clip
+the step started at the step's time into it (`turn_motion.clip`, `elapsed`, a new one on each `serial`), so the feet
+drawn are the ones the body moves by: on open floor the body is on the travel curve to 0.1 mm and on the turn curve to
+0.01 degrees every committed tick (`test_turn_root_motion.gd`). Inspector: `CharacterTuning` > Turns (`turn_root_motion`,
+`pivot_angle`, `reversal_angle`, `turn_hand_back`, `reversal_clips`, `pivot_clips`), and `CharacterController.turn_clips`.
+
+- **Control.** The clip is picked on the tick the stick asks for the turn (no added latency: the body brakes from
+  that tick), its side by the way the stick asks the body to turn. The body is then committed: the stick's direction
+  is not read until the turn is made: the frame the record's `turn` reaches its last yaw, or its `free` event if
+  that comes first (from the shipped clips: 1.83 s of the jog reversal, 2.23 s of the sprint's, 1.53 s of the
+  pivot; the rest of each clip is the gait's run-out). Then the body's own steering takes over, its velocity blended
+  from the clip's into the steering's over `turn_hand_back` (0.25 s): the jog reversal hands back at 2.8 m/s and the
+  sprint's at 3.0 m/s, and the velocity changes by at most the steering's own acceleration a tick on the way up to
+  the gait's speed. Letting go of the stick, a jump, a
+  crouch, the aim, a hit, lying down, a slide or leaving the ground ends it at once, and the body's own steering
+  takes over from the velocity it has. A body arriving at a jog and asked to cut off is committed to the pivot too:
+  a scripted route that must turn sharply on a point stops on it first.
+- **AI paths.** An AI's controller turns `turn_clips` off, so its body keeps to the navigator's path and turns by its
+  steering as before (the clip, picked by the tree, plays at its own pace over it). On, a reversal would carry the body
+  3.7 m past the point it turned at from a jog and 6.3 m from a sprint, and a pivot would cut its corner by 0.58 m (the
+  shipped clips), so a game that turns it on for its AI leaves the navigator
+  that much room at a turn.
+- **The network.** It is simulation, never cosmetic: the server and the predicting client step it from the same
+  command and the same record (`locomotion.json` ships in both), and its step state is in `CharacterState.turn`, so a
+  correction puts a body back mid-turn on the same path. A sprint reversal online ends with the client's body
+  0.000000 m from the server's and no correction (`test_net_turn_root_motion.gd`). A body drawn from the network never
+  steps: it shows the capsule's path in its gait, and its turn clips are picked by the tree as before (a follow-up
+  like `PuppetVault`'s would show them).
+- **Approach:** Drive a turn that a clip describes from the clip's own travel and turn curves inside the step, with
+  facing and travel read apart, and show the clip at the step's time. **Watch out for:** a body the controller turns
+  in 0.26 s under a clip seeked by the angle turned, raced to catch up (`transition_pace`), turned too soon and too
+  neatly, with no brake ahead of the body. **Seen:** gdstudio #1442, 2026-11-13, from the maintainer's review.
+- **Approach:** In a suite that compares two bodies stepped side by side to a few micrometres (helper tracks on and
+  off, a setting on and off), switch `turn_root_motion` off in both tunings when the commands reverse or cut, so
+  the tree plays the clip over the steering. **Watch out for:** a body moved by its clip's root is placed from its
+  own spot, so two bodies at x -3 and 3 end 1e-6 m apart after a sprint reversal, and the stop that follows turns
+  their spines 0.001 degrees apart, over a 1e-5 radian limit. **Seen:** gdstudio #1442, 2026-11-14
+  (`test_helper_tracks.gd` from #1488, red only after main was merged in).
 
 **What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
 pose's difference from the idle's first frame, so it keys every bone the idle keys, the `ik_` targets too (where

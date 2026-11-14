@@ -19,6 +19,9 @@ func before_test() -> void:
 	_runner = scene_runner("res://main.tscn")
 	_scene = _runner.scene()
 	_player = _scene.get_node("PlayerRig/Player")
+	# The walks prove the map can be crossed: the body turns by its steering at the path's corners,
+	# not by a pivot clip that would carry it off the line (#1442, `CharacterController.turn_clips`).
+	_player.controller.turn_clips = false
 	# The walks are of the body alone: the AI section's population stays out of the way.
 	for spawner: AiSpawner in _scene.get_node("World/AISection/Population").get_children():
 		spawner.enabled = false

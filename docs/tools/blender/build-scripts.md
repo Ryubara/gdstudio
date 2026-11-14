@@ -108,7 +108,9 @@ again ([checked in CI](#ci)).
   --blender` for `own/bodies_overlap.json`) and commit them in the same pull request. **Watch out for:** an edit
   that only adds arguments or plumbing still changes the code's normal form, so every report's `measure_sha256` goes
   stale and `test_measure_hash.py` fails, though no number moves. **Seen:** gdstudio #1494 after #1489, 2026-11-14
-  (the `--check` argument; fix: the six reports measured again, only the hash changed).
+  (the `--check` argument; fix: the six reports measured again, only the hash changed); #1442 merging both,
+  2026-11-14 (a branch with its own `locomotion.glb`: the report conflicts on its hashes; measured again with the
+  merged build, then `--check` `SAME`, never one side taken).
 
 ## Checks in the build {#checks}
 

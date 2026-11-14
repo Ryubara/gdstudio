@@ -250,6 +250,8 @@ var aim_yaw: float:
 		return wrapf(view_yaw + PI - facing, -PI, PI)
 ## The vault and the mantle (`CharacterVault`): the running plan; its step state is `vault`.
 var vault_motion := CharacterVault.new()
+## The reversals and pivots moved by their clip's root (gdstudio #1442).
+var turn_motion := CharacterTurnMotion.new()
 ## The peek lean (`CharacterPeek`): `amount` -1 (left) to 1 (right); its step state is `peek`.
 var peek_motion := CharacterPeek.new()
 ## On while the hands are busy with something else (an `ItemUse` using a bandage): the character
@@ -388,7 +390,7 @@ func _move(delta: float) -> void:
 	if _slide.active:
 		_slide.steer(self, wish, delta)
 		_present_facing()
-	else:
+	elif not turn_motion.drive(self, wish, delta):
 		_steer(wish, delta)
 	_vertical(delta)
 	_climb(delta)
@@ -476,6 +478,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 			ragdoll_body.stop(false)
 		CharacterDeath.come_alive(self)
 	vault_motion.cancel(self)
+	turn_motion.cancel()
 	global_position = spot
 	velocity = Vector3.ZERO
 	_rider.platform = null
@@ -698,10 +701,12 @@ func _update_crouch(delta: float) -> void:
 
 func _update_aim(delta: float) -> void:
 	var wants := false
-	if weapon != null and _action_lock <= 0.0 and not hands_busy and _prone_lets_aim():
+	if weapon != null and _action_lock <= 0.0 and not hands_busy and _prone.lets_aim(prone_tuning):
 		var held := weapon.definition
 		aim_held = last_command.aim and (held == null or held.can_aim)
-		fire_held = last_command.fire and _prone_lets_fire() and _weapon_lets_fire(aim_held)
+		fire_held = (
+			last_command.fire and _prone.lets_fire(prone_tuning) and _weapon_lets_fire(aim_held)
+		)
 		# A melee blow turns the body to the way it goes, as an aim does (gdstudio #1254), and a
 		# press still to fire keeps the arm coming up after the button is let go (gdstudio #1352).
 		wants = aim_held or fire_held or weapon.meleeing or _shot_pending()
@@ -738,18 +743,6 @@ func _wish_direction() -> Vector3:
 	if last_command.move.is_zero_approx():
 		return Vector3.ZERO
 	return last_command.world_move()
-
-
-# Lying down, the character aims only when the prone tuning allows it, and never while it goes
-# down or gets up.
-func _prone_lets_aim() -> bool:
-	if not _prone.is_prone():
-		return true
-	return prone_tuning.aim_allowed and not _prone.is_changing()
-
-
-func _prone_lets_fire() -> bool:
-	return not _prone.is_prone() or prone_tuning.fire_allowed
 
 
 # True when the character may throw a melee blow now: alive, not lying down, not staggered by a
@@ -933,7 +926,7 @@ func _use_weapon(delta: float) -> void:
 		held = false
 	if blow and _can_melee():
 		weapon.melee(_blow_origin(), _aim_direction())
-	if not _prone_lets_fire() or not _weapon_lets_fire(aim_held):
+	if not _prone.lets_fire(prone_tuning) or not _weapon_lets_fire(aim_held):
 		pressed = false
 		held = false
 		weapon.bursting = false
@@ -972,7 +965,7 @@ func _shot_pending() -> bool:
 		_fire_buffer > 0.0
 		and not weapon.lowered
 		and not weapon.is_reloading()
-		and _prone_lets_fire()
+		and _prone.lets_fire(prone_tuning)
 		and _weapon_lets_fire(aim_held)
 	)
 

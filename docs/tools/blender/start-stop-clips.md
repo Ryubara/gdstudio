@@ -37,6 +37,11 @@ one (a pivot, a reversal, a landing into a run) starts from this -->
 - **Left and right are two solves.** `moves.family(kind, start)` returns the clip on the left foot and the one on
   the right from one description; neither is the other's mirror, because the idle and the gaits have a number per
   side ([no mirror poses](own-animation.md#feel)).
+- **A root that turns is told otherwise.** Everything above runs along one line: the root's speed is all there is,
+  and the lean is the change of that speed. A clip whose root turns (a reversal, a pivot, a turn on the spot) has a
+  heading as well as a speed, its body posed in the root's frame and turned onto the floor, and its lean read from
+  the acceleration in the root's own frame, forward and into the bend:
+  [How a clip whose root turns is described](turn-clips.md#description).
 
 ## What the toolkit gained for them {#toolkit-rows}
 

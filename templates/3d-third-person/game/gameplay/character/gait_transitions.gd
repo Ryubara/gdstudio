@@ -9,16 +9,20 @@ extends RefCounted
 ## asked to move starts; one that moves and is asked to stop stops; one asked to go back the way
 ## it came reverses, or pivots at a smaller angle; one that stands and aims away turns on the
 ## spot. The clip is the `GaitTransitionSet`'s for the gait (the ground blend space's point the
-## body is in, or heads for) and the side: the foot that lands next in the gait's phase for a stop
-## and a reversal, the way the body turns for a pivot and a turn. With no such clip in the
-## libraries nothing happens and the states blend as before.
+## body is in, or heads for) and the side: the foot that lands next in the gait's phase for a stop,
+## the foot on the side it turns to for a reversal, the way the body turns for a pivot and a turn.
+## With no such clip in the libraries nothing happens and the states blend as before.
 ##
 ## A clip plays in the machine's `gait_transition` state behind a seek and a time scale of 0, so
 ## only the seek moves it: to the time at which its travel curve (`GaitClips`) has covered the
-## ground the body really covered since it began, and for a turn the time at which its turn
-## curve has turned as far as the body. The controller stays the authority: a body that is asked
-## to go on, or to do something else, leaves the clip at once (the momentum blend smooths the
-## cut), and a clip whose body has finished its part plays on to its end at its own pace. Ending,
+## ground the body really covered since it began, and for a turn on the spot the time at which its
+## turn curve has turned as far as the body. A reversal or a pivot of a body that steps is the
+## body's own (`CharacterTurnMotion`, gdstudio #1442): the step starts it and moves the body by the
+## clip's root, and the clip is shown at the step's time into it; one picked here (a body drawn
+## from the network, or `CharacterTuning.turn_root_motion` off) plays at its own pace. The
+## controller stays the authority: a body that is asked to go on, or to do something else, leaves
+## the clip at once (the momentum blend smooths the cut), and a clip whose body has finished its
+## part plays on to its end at its own pace. Ending,
 ## it hands over to the gait at the phase its record names (`exit_phase`, or the foot it ends
 ## on). Nothing here is sent: each machine works it out from the body it draws.
 
@@ -54,6 +58,7 @@ var _along := Vector3.FORWARD
 var _facing := 0.0
 var _turn_to := 0.0
 var _pending := false
+var _motion_serial := 0
 var _since_standing := 0
 # The state the body machine was last asked for (`route()`): where it goes from this state when
 # it finds itself left there.
@@ -118,8 +123,7 @@ func step(
 	delta: float
 ) -> void:
 	_count_standing(animation.character)
-	if is_playing():
-		_go_on(animation, blend, playback, delta)
+	if _began_by_step(animation, playback) or _went_on(animation, blend, playback, delta):
 		return
 	var current := playback.get_current_node()
 	if current == STATE:
@@ -213,6 +217,8 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 		return _found(
 			Kind.STOP, GaitTransitionSet.pick_in(player, clips.stops, stop_point, stop_foot)
 		)
+	if body.turn_motion.follows(body):
+		return {}  # The step starts its reversals and pivots (`step()` follows them).
 	var wish := body.move_goal.direction(body)
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z).normalized()
 	var angle := rad_to_deg(moving.angle_to(wish))
@@ -220,9 +226,11 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 		return {}
 	var point := blend.main_point(CharacterAnimation.GROUND, speed)
 	if angle >= settings.reversal_angle:
-		var foot := _foot(animation, blend, speed)
+		# A reversal turns over the foot it plants (#1157: planting the left foot it turns to the
+		# left), so the clip that turns the body's way is the one for the foot on that side.
+		var plant := "r" if moving.cross(wish).y < 0.0 else "l"
 		return _found(
-			Kind.REVERSAL, GaitTransitionSet.pick_in(player, clips.reversals, point, foot)
+			Kind.REVERSAL, GaitTransitionSet.pick_in(player, clips.reversals, point, plant)
 		)
 	var side := "r" if moving.cross(wish).y < 0.0 else "l"
 	return _found(Kind.PIVOT, GaitTransitionSet.pick_in(player, clips.pivots, point, side))
@@ -304,9 +312,18 @@ func _go_on(
 		or (kind == Kind.TURN and goal > standing)
 		or ((kind == Kind.REVERSAL or kind == Kind.PIVOT) and goal <= standing)
 	)
-	var progress := _progress(body, blend.leg)
-	var done := _body_done(body)
-	_time = minf(maxf(progress, _time + (delta if done or progress < 0.0 else 0.0)), _length)
+	if kind == Kind.REVERSAL or kind == Kind.PIVOT:
+		# At the step's time into the clip while the step follows it, then at its own pace: the
+		# body moves by the clip's root, so its feet hold the floor (gdstudio #1442).
+		var motion := body.turn_motion
+		var at := motion.elapsed if motion.clip == clip and motion.is_active() else _time + delta
+		_time = minf(maxf(at, _time), _length)
+	else:
+		var progress := _progress(body, blend.leg)
+		if progress >= 0.0 and kind == Kind.TURN:
+			progress = minf(progress, _time + delta * settings.transition_pace)
+		var done := _body_done(body)
+		_time = minf(maxf(progress, _time + (delta if done or progress < 0.0 else 0.0)), _length)
 	animation.tree.set(_P_SEEK, _time)
 	if cancelled or _time >= _length:
 		_hand_over(animation, blend, playback, cancelled)
@@ -335,6 +352,52 @@ func _body_done(body: Character) -> bool:
 				absf(rad_to_deg(wrapf(body.facing - _facing, -PI, PI)))
 				>= absf(_turn_to) - TURN_DONE
 			)
+
+
+# Goes on with the clip that plays: true when one plays.
+func _went_on(
+	animation: CharacterAnimation,
+	blend: GaitBlend,
+	playback: AnimationNodeStateMachinePlayback,
+	delta: float
+) -> bool:
+	if not is_playing():
+		return false
+	_go_on(animation, blend, playback, delta)
+	return true
+
+
+# Starts the clip the body's step just started (`CharacterTurnMotion`), once: true when it did.
+func _began_by_step(
+	animation: CharacterAnimation, playback: AnimationNodeStateMachinePlayback
+) -> bool:
+	var motion := animation.character.turn_motion
+	if motion.serial == _motion_serial:
+		return false
+	_motion_serial = motion.serial
+	if not _follows(animation, playback):
+		return false
+	_begin(animation, {"kind": _kind_of(motion.clip), "clip": motion.clip}, playback)
+	return true
+
+
+# True when the clip the step just started can be shown: the machine is on the ground or in a
+# transition, no action holds the body, and the player holds the clip.
+func _follows(animation: CharacterAnimation, playback: AnimationNodeStateMachinePlayback) -> bool:
+	var motion := animation.character.turn_motion
+	if not motion.is_active() or settings == null or not settings.transitions:
+		return false
+	var current := playback.get_current_node()
+	if current != CharacterAnimation.GROUND and current != STATE:
+		return false
+	return not animation.is_acting() and animation.animation_player.has_animation(motion.clip)
+
+
+# A reversal for a clip that turns the body half round or more, a pivot otherwise.
+static func _kind_of(picked: StringName) -> Kind:
+	var curve: Array = GaitClips.record(picked).get("turn", [])
+	var turned: float = absf(curve[-1][1]) if not curve.is_empty() else 0.0
+	return Kind.REVERSAL if turned >= 135.0 else Kind.PIVOT
 
 
 func _turn_asked(body: Character) -> float:

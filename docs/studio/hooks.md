@@ -86,7 +86,8 @@ branch deletion and an empty push pass. `--no-verify` is refused by the Git guar
   is not checked and "Step" (or "Keep") is no verb: the commit hook refused the commit, and the chained `gh pr create`
   then said "No commits between main and <branch>", which hid the first error (it also means a push that never
   happened: check `git status -sb`). **Seen:** Deadnight #892, 2026-11-03 (fix: retitled "Fix the two-thumbs touch
-  test that waits on real frames"); gdstudio #1094, 2026-11-11 (a silent `git push -q` that never reached GitHub).
+  test that waits on real frames"); gdstudio #1094, 2026-11-11 (a silent `git push -q` that never reached GitHub);
+  gdstudio #1157, 2026-11-13 (two refused commits, unseen).
 
 ## The hold {#hold}
 
