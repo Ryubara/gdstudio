@@ -8,7 +8,8 @@ hands on the gun (kit #1480, `solve_pistol_trigger_way.gd --dump=` and `--way=`)
 
 What a dump may add to the finger, the weapon and the two ends (the pistol's has all four; the rifle's none):
 `axes` (the grid of poses searched, each angle's from, to and by, in place of `AXES`), `plan_limit` (the default
-`--limit`, metres), `other` (the other hand's skin as it holds, closed pieces in the weapon's space, measured as
+`--limit`, metres; with `plan_over_ends` the limit is the deeper end's depth plus that, within `plan_limit`, so the
+way touches nothing deeper than where the finger holds), `other` (the other hand's skin as it holds, closed pieces in the weapon's space, measured as
 `HandContact` measures a hand: inside where two of three rays along the axes say so) and `through` (depth into the
 weapon read against the part's thickness, as `HandContact.measure_through` reads it: a point more than `crossing`
 of the way to its part's middle reads the part's whole thickness).
@@ -389,11 +390,17 @@ def main():
         inside = np.max([-f(points) for f in fields], axis=0)
         return inside if every else inside.max(axis=1)
 
+    end_depth = 0.0
     for key in ("grip", "trigger"):
+        end_depth = max(end_depth, depth(ends[key][None])[0])
         print(f"{key}: {depth(ends[key][None])[0] * 1e3:.2f} mm in")
     straight = depth(leg_poses(ends["grip"], ends["trigger"])).max()
     print(f"straight way: {straight * 1e3:.2f} mm")
-    limit = option("limit", dump.get("plan_limit", 0.0015) * 1000.0) / 1000.0
+    limit = dump.get("plan_limit", 0.0015)
+    if "plan_over_ends" in dump:
+        limit = min(limit, end_depth + dump["plan_over_ends"])
+    limit = option("limit", limit * 1000.0) / 1000.0
+    print(f"limit {limit * 1e3:.2f} mm")
     way = plan_way(start, goal, depth, axes, chain.quaternions, limit)
     if way is None:
         print("no way found")

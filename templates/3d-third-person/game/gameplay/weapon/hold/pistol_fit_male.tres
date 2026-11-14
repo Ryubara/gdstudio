@@ -190,7 +190,7 @@ rotations = Dictionary[StringName, Quaternion]({
 [sub_resource type="Resource" id="Resource_s413v"]
 script = ExtResource("1_mew4d")
 rotations = Dictionary[StringName, Quaternion]({
-&"index_01_r": Quaternion(0.024678575, -0.6725014, -0.21850793, 0.7066733),
+&"index_01_r": Quaternion(0.006171567, -0.66655105, -0.23603709, 0.70707715),
 &"index_02_r": Quaternion(0.31730467, 1.6492786e-08, 3.261733e-08, 0.94832367),
 &"index_03_r": Quaternion(0.21643962, -2.1536046e-09, -9.713751e-09, 0.976296)
 })

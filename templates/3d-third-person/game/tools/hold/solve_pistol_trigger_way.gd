@@ -44,8 +44,12 @@ const AIM_TIME := 0.16
 ## test's own room (`test_pistol_trigger_way.gd`, `TRIGGER_ROOM`).
 const LIMIT := 0.001
 ## What the planner keeps each leg within, in metres (`plan_trigger_way.py --limit`, its default
-## for this dump): under `LIMIT`, so the planner's grid and the blend between its steps leave room.
+## for this dump): under `LIMIT`, so the planner's grid and the blend between its steps leave room,
+## and no deeper than `PLAN_OVER_ENDS` past the deeper of the two ends, so the way touches the gun
+## no harder than the finger holds it (with 0.8 mm the male finger leant 0.8 mm on the guard's
+## front strut half way, where it is 0.6 mm in the frame at the start, kit #1480).
 const PLAN_LIMIT := 0.0008
+const PLAN_OVER_ENDS := 0.00005
 ## The equal parts of the whole way it is checked at.
 const CHECK_STEPS := 100
 ## The grid of poses the planner searches, degrees, each from, to and by: the knuckle's spread
@@ -164,6 +168,7 @@ func _dump(path: String, grip: Dictionary, trigger: Dictionary, now: Array[Dicti
 	out["through"] = {"crossing": HandContact.CROSSING, "least": HandContact.CROSSING_LEAST}
 	out["axes"] = AXES
 	out["plan_limit"] = PLAN_LIMIT
+	out["plan_over_ends"] = PLAN_OVER_ENDS
 	var error := Files.save_dump(out, path)
 	_say("wrote %s (error %d)" % [path, error])
 	return error
