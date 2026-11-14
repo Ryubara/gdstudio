@@ -105,6 +105,12 @@ issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.
   requests sat open: #1299's body swap sent some 15 hand and clip pull requests back to a re-solve, two stacks hung on
   one hard fit each, three pull requests had no owner and superseded ones stayed open. **Seen:** gdstudio, 2026-11-12
   (fix: the freeze, its cap in the conventions, and an idle check that honours it).
+- **Approach:** After each agent's report and each landing, run `gds issue list --window 40` and start every issue
+  under "May start now" (`gds issue start`, `gds brief`, one agent each), give an agent to any in-progress issue whose
+  agent is gone, and block only on a `Depends on:` line or named conflicting files. **Watch out for:** a coordinator
+  busy landing a queue and relaying reports let agents finish one by one without starting new ones, until one agent
+  was left while five issues were ready. **Seen:** gdstudio coordinator, 2026-11-13 (a maintainer correction; the
+  five issues and #1347 then started at once).
 
 - **Approach:** Before building the core of a system, run `gh pr list` and search the open and in-progress issues for
   its words; if another branch builds it, build only the part that sits on top, against its interface, or wait for it to
@@ -233,7 +239,8 @@ relative path with `git -C` resolves inside the repository.
 
 Work that builds on a branch not landed yet starts from that branch, and its pull request against `main` carries the
 base branch's commits as well as its own. Its `Model:` line names the model of every co-author trailer on those
-commits, and its `Read first:` line the sections the base's author read. `gds pr check-body` runs the CI `commits`
+commits, and its `Read first:` line the sections the base's author read that are on `main` (one the base adds waits
+for the base to land: [anchors](rules.md#anchors)). `gds pr check-body` runs the CI `commits`
 check on the branch's commits since `origin/main` and refuses a `Model:` line that misses one ([the body
 guard](pull-requests.md#pr-body)); run it before `gh pr create`. The base's commits stay on the list after the base
 lands (a squash merge makes a new commit on `main`), so the line keeps naming their models.
@@ -325,11 +332,14 @@ uv run --project <workspace>/repos/gdstudio/python gds brief <owner/repo>#N [--w
 
 It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), at most six, best first:
 
-1. every section the issue names as `page.md#anchor`;
+1. every section the issue names as `page.md#anchor`; a section a split left as a pointer gives the section it moved
+   to, here and in the steps below ([page size](rules.md#size), gdstudio #1471);
 2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
-   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards/` finds the hooks
-   pages), when that section's words score at least a third of the best section's (a pull request's changed files
-   need no such closeness);
+   issue's words, any other path the two closest sections that mention it (`.claude/hooks/guards/` finds the hooks
+   pages), when their words score at least a third of the best section's (a pull request's changed files need no
+   such closeness). Two, because a file's lesson often sits beside its code and on the page of its cause: with one,
+   a new entry on `third-person/ai.md#proof` naming `test_ai_section.gd` took the place of
+   `ui-input-tests.md#leaks` (gdstudio #1474);
 3. the rest by the issue's words: its title, its area labels with their descriptions (`A-agents`, "Agents and their
    instructions"), then its body, which counts least.
 

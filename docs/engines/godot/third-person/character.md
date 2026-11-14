@@ -85,9 +85,9 @@ for the looks `form`, `joint` and `facet` and the bodies `male`, `female` and `c
 on them with no conversion ([Prototype mannequins](../../../tools/blender/prototype-mannequins.md),
 [the rig](../../../tools/blender/mannequin-rig.md)). Their import script (`mannequin_import.gd`) sets the skeleton's
 `motion_scale` (0.545 on the chibi, so the hips' keys fit its legs), adds the `MannequinTwist` modifier and shows the
-three levels of detail by distance. The Quaternius female stays the default until the maintainer has chosen a look:
-the pistol's solved hold, the ragdoll's joints and the hit zones are measured on the Quaternius skins and are solved
-again for the body that replaces them. `tests/assets/test_prototype_mannequins.gd` proves the bodies and
+three levels of detail by distance. The `form` look is the default (above); what was measured on the Quaternius
+skins (the pistol's hold, the ragdoll's joints, the hit zones) was measured again on the `form` bodies.
+`tests/assets/test_prototype_mannequins.gd` proves the bodies and
 `tools/capture/mannequin_parade.tscn` films them on a 0.25 m grid: `PARADE_LOOK` chooses the look, `PARADE_VIEW` the
 front, quarter, side or close view (the close one follows the hands through a hand roll, the pistol clips and a
 reach), `PARADE_CLIP` loops one clip for whole cycles and `PARADE_REFERENCE=1` adds the Quaternius male.
@@ -114,6 +114,11 @@ reach), `PARADE_CLIP` loops one clip for whole cycles and `PARADE_REFERENCE=1` a
   table missed (the swing now fades with the reload); and three numbers measured on the old body sat in suites that
   never name it: the node count, `Weapon.no_muzzle_offset` and the crawl's planted elbows (1.5 to 2.6 cm of slide on
   the longer upper arms, gdstudio #1286). **Seen:** gdstudio #1187, 2026-11-11.
+- **Approach:** When the body the template wears changes, grep the tests for numbers measured on one body and
+  measure each again on the new one: the shot's offset with no muzzle (`Weapon.no_muzzle_offset`, its copy in
+  `test_weapon.gd`, printed by `test_weapon_ray.gd`), the crawl's elbows, the vault's wrists
+  (`test_vault_contacts.gd`) and counts of the body's nodes. **Watch out for:** nothing lists them, so each surfaced
+  as a failure in another branch's run after the swap. **Seen:** gdstudio #1187 (PR #1299), 2026-11-11.
 
 ## Replacing the model {#replacing-the-model}
 
@@ -307,7 +312,9 @@ The enemies of [the AI section](ai-characters.md#parts) set the male body (`form
   snapshot out when it reached 1000. It is also at gdlint's twenty public methods (19 on 2026-11-11), so a new public
   function goes on a module, not on the body; and `test_ragdoll.gd`
   (`test_the_character_the_player_and_the_ragdoll_pin_their_exports`) pins every export of `Character` and `Player`,
-  so a new export adds its line there in the same change (#1011, #1013).
+  so a new export adds its line there in the same change (#1011, #1013). A new modifier or layer export moves two
+  more pins in the same commit: the layer's settings pin (`test_aim_layer.gd`) and the character's node count
+  (`test_parts_budget.gd`, 60 to 61 with the head modifier, #1353).
 
 ## A second kind of controller {#second-controller}
 

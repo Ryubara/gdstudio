@@ -24,6 +24,10 @@ performance review (#907, #929); the lessons are linked below.
   hides a free slot and switches its light off (so it holds no light place), and does no work while nothing plays; a
   muzzle flash and every bullet impact use it instead of each keeping pools of their own
   ([Effects](third-person-template.md#effects)).
+- **Approach:** Keep a one-shot that must be seen on screen for at least one frame at the slowest rate it is played
+  or filmed at (33 ms at 30 fps), and check it in a capture from the game camera. **Watch out for:** an effect shorter
+  than a frame lands in no drawn frame at 30 fps while every count test passes: a tracer on a 7 m shot lived 0.02 s
+  ([Shooting](third-person/shooting.md#weapons)). **Seen:** gdstudio #1270 (PR #1301), 2026-11-11.
 
 ## `_process` is on after ready {#process-is-on-after-ready}
 

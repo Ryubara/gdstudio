@@ -19,6 +19,10 @@ const GUESS_REACH := 0.35
 const GUESS_HEIGHT := 0.5
 ## Below this speed (m/s) a character is not guessed ahead.
 const GUESS_MIN_SPEED := 0.05
+## Metres a second below which the way the rows head is too slow to tell: a body asked to move
+## keeps the way it had (a reversal's speed passes through 0, and the stepped body's goal never
+## does), or faces it from standing (`PlayerPuppet.GOAL_HOLD_BELOW`).
+const GOAL_HOLD_BELOW := 0.5
 
 ## Metres past which a row sets the character down.
 var max_jump := 4.0
@@ -68,6 +72,33 @@ func waiting() -> int:
 ## Whether it is walking to a row now.
 func is_gliding() -> bool:
 	return _total > 0
+
+
+## The velocity (m/s) the rows head for: from the newest row released to the newest one waiting,
+## a few sends ahead of the moment drawn; the glide's own velocity when none waits.
+func heading() -> Vector3:
+	if row == null or _ticks.is_empty() or _ticks[-1] <= row_tick:
+		return velocity
+	var newest: AiRow = _queue[-1]
+	if newest.is_dead() or newest.position.distance_to(row.position) > max_jump:
+		return velocity
+	return (newest.position - row.position) * (float(NetLimits.TICK_RATE) / (_ticks[-1] - row_tick))
+
+
+## The goal a puppet's starts and stops read (`CharacterGoal.motion`, gdstudio #1452): none when
+## the row says the body is asked for no speed (`AiRow.speed`, the server body's goal speed), else
+## that speed along where the rows head (`heading`), or along `kept`, the goal it had, while they
+## head too slowly to tell a way, or along the way it faces from standing.
+func goal(kept: Vector3) -> Vector3:
+	if row == null or row.is_dead() or row.speed < GUESS_MIN_SPEED:
+		return Vector3.ZERO
+	var way := heading()
+	way.y = 0.0
+	if way.length() < GOAL_HOLD_BELOW:
+		way = Vector3(kept.x, 0.0, kept.z)
+	if way.is_zero_approx():
+		way = Vector3.BACK.rotated(Vector3.UP, row.yaw)
+	return way.normalized() * row.speed
 
 
 ## One physics tick with the clock at server tick `drawn`: the rows due are released, then the
