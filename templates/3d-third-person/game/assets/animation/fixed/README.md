@@ -24,7 +24,8 @@ upper arm is then swung 3 degrees, for the hand that was in the thigh on frame 4
 
 The numbers are the deepest any body part is inside another on any frame, on the skinned mesh
 (`../limb_overlap.py`, limit 5 mm). `fixed_clips.json` has them per clip and body with the swing on every frame and
-the hash of the file measured; `tests/assets/test_fixed_clips.gd` fails when `fixed.glb` is not that file, when a
+the hash of the file measured, of the measure's code and of each body file (kit #1491);
+`tests/assets/test_fixed_clips.gd` fails when `fixed.glb`, `limb_overlap.py` or a body is not the one measured, when a
 bone other than the swung one (and a swivelled leg's foot) differs from the library's clip, when the first or last
 pose does, or when a swivelled leg's foot is 1 mm from the library's on a template body.
 

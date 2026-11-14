@@ -17,6 +17,9 @@ when they are no longer the numbers the game's own script would read (`tests/fix
 Not covered: the Blender that ran the measure (the kit pins one, and a game cannot see the pin), a trailing comma
 a formatter adds or takes away (a token) and a line joined with a backslash (the scripts have none).
 
+The builds that solve against the measure and write their own numbers file (`fixed/fixed_clips.json`,
+`vault/vault*_clips.json`, `melee/melee_clips.json`) carry the same two hashes in it (`made_by`, kit #1491).
+
 No `bpy` here: `limb_overlap.py` imports this in Blender and `own/build_own.py` in plain Python. The Godot fixture
 has the same normal form in GDScript; `CASES` holds texts with the hash both must give (`--self-test` here,
 `tests/assets/test_bodies_overlap.gd` there).
@@ -121,6 +124,14 @@ def bodies_sha256(paths):
     """Each measured body file's SHA-256 by the body's name (the file's name without `.glb`, as the measure names
     it), which a report carries as `bodies_sha256`."""
     return {Path(path).stem: hashlib.sha256(Path(path).read_bytes()).hexdigest() for path in sorted(map(str, paths))}
+
+
+def made_by(bodies):
+    """What a build that solves against the measure writes into its own numbers file beside its numbers (kit
+    #1491): the measure's hash and each body's, under the names a report gives them, so the Godot test holds the
+    file to them the way it holds a report (`BodiesOverlap.stale`). `bodies` are the files of the bodies the build
+    measured."""
+    return {"measure_sha256": script_sha256(), "bodies_sha256": bodies_sha256(bodies)}
 
 
 def self_test():

@@ -11,6 +11,13 @@ const MODELS: Array[String] = ["female", "male"]
 const RIFLE := "res://gameplay/weapon/rifle.tres"
 const RIFLE_CATEGORY := "res://gameplay/weapon/categories/rifle.tres"
 const CLIPS_JSON := "res://assets/animation/melee/melee_clips.json"
+const MELEE := "res://assets/animation/melee/melee.glb"
+## The body files the melee build solves against, by file name.
+const MEASURED_BODIES: Array[String] = ["form_female", "form_male"]
+## The issue that measures `melee_clips.json` again, while its numbers are older than the game's
+## measure script: the build cannot make its files since kit #1399 (kit #1493), so the file names
+## no measure yet. The test fails once the file is measured again, so this goes with that rebuild.
+const STALE_UNTIL := "kit #1493"
 const BLOWS: Array[StringName] = [
 	CharacterClips.MELEE_RIFLE_BUTT_STROKE,
 	CharacterClips.MELEE_RIFLE_BUTT_JAB,
@@ -63,6 +70,33 @@ func _hold() -> TwoHandHold:
 
 func _clips() -> Dictionary:
 	return JSON.parse_string(FileAccess.get_file_as_string(CLIPS_JSON))["clips"]
+
+
+# The numbers are the build's measure of melee.glb (kit #1491): the file is the one measured, and
+# the measure script and the body files are the game's own, by their hashes, as for a limb
+# overlap report (`BodiesOverlap.stale`).
+func test_the_numbers_were_measured_on_this_file_by_the_games_measure() -> void:
+	var measured: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(CLIPS_JSON)).measured
+	(
+		assert_str(FileAccess.get_sha256(MELEE))
+		. override_failure_message(
+			"melee.glb is not the file melee_clips.json was measured on: run build_melee.py"
+		)
+		. is_equal(measured.sha256)
+	)
+	var stale := BodiesOverlap.stale(
+		measured.merged({"clips_file": MELEE.get_file()}), MEASURED_BODIES
+	)
+	if STALE_UNTIL.is_empty():
+		assert_array(stale).is_empty()
+	else:
+		(
+			assert_array(stale)
+			. override_failure_message(
+				"melee_clips.json is measured again: empty STALE_UNTIL (%s)" % STALE_UNTIL
+			)
+			. is_not_empty()
+		)
 
 
 func test_the_rifle_category_names_its_blows_and_their_measured_window() -> void:

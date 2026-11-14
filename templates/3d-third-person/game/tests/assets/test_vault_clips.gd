@@ -405,8 +405,9 @@ func test_no_leg_joint_cuts_the_box_between_the_keys() -> void:
 # the skinned mesh of the body the file is for, how deep any body part is inside one no joint
 # joins it to (`assets/animation/limb_overlap.py`), and writes the deepest into the sidecar with
 # the hash of the file it measured. A clip file that is not that file any more has not been
-# measured. (Kit #1294: in one file for every body the prototype bodies' thighs went 34.0 and
-# 23.6 mm into each other in `Vault_High`.)
+# measured, and neither has one solved against another measure script or body file (kit #1491).
+# (Kit #1294: in one file for every body the prototype bodies' thighs went 34.0 and 23.6 mm into
+# each other in `Vault_High`.)
 func test_no_limb_passes_through_another() -> void:
 	for body: String in SIDECARS:
 		_no_limb_passes_through_another(body)
@@ -429,6 +430,10 @@ func _no_limb_passes_through_another(body: String) -> void:
 		)
 		. is_equal(measured.sha256)
 	)
+	# Solved against the game's own measure script and body file (kit #1491).
+	var made_by := measured.merged({"clips_file": clips.get_file()})
+	var solved_on := MODELS[body].get_file().get_basename()
+	assert_array(BodiesOverlap.stale(made_by, [solved_on])).is_empty()
 	assert_float(measured.overlap_limit_mm).is_less_equal(5.0)
 	for clip in NAMES:
 		var overlap: Dictionary = file.clips[clip].contacts.overlap_mm
