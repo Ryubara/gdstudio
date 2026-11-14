@@ -73,3 +73,10 @@ extends Resource
 @export_range(1.0, 80.0, 0.5, "suffix:m/s²") var lean_full_at := 20.0
 ## Seconds the lean takes to follow the body (a lag that keeps a jolt of the controller off it).
 @export_range(0.0, 1.0, 0.01, "suffix:s") var lean_time := 0.12
+
+@export_group("Helper bones")
+## Blends the clips' tracks of the rig's helper bones (the `ik_` foot and hand targets), which
+## nothing drawn follows. Off: they are switched off in the game (`HelperTracks`), the same pose
+## for 4 to 5 fewer microseconds of the tree a character a frame; turn it on for a modifier that
+## reads the targets. The clips are shared: give every character the same choice.
+@export var helper_tracks := false
