@@ -25,6 +25,13 @@ const AIM_YAW_STEP := PI / PITCH_STEPS
 ## The lean is a signed byte, -127 (all the way left) to 127.
 const PEEK_STEPS := 127
 
+## A player's state is the state byte's low four bits (`Character.State` has 15); the top four
+## carry the goal speed in fifteenths of the body's sprint speed (`PlayerEntry.goal_step`,
+## gdstudio #1453), so the gait a start plays costs no byte.
+const STATE_MASK := 0x0F
+const GOAL_SHIFT := 4
+const GOAL_STEPS := 15
+
 const F_CROUCH := 1 << 0
 const F_AIM := 1 << 1
 const F_SPRINT := 1 << 2
@@ -33,6 +40,8 @@ const F_RISING := 1 << 4
 const F_DEAD := 1 << 5
 ## The player leans (a byte of the lean follows the aim's).
 const F_PEEK := 1 << 6
+## Asked for no move (`PlayerEntry.halt`).
+const F_HALT := 1 << 7
 
 ## The shortest event (a kind and one byte) and the longest: an ENTITY with the longest state (20
 ## bytes), one longer than a JOINED with the longest name (19).
@@ -337,7 +346,9 @@ static func write_player(out: StreamPeerBuffer, player: PlayerEntry) -> StringNa
 	out.put_16(CommandCodec.point_step(player.position.y))
 	out.put_16(CommandCodec.point_step(player.position.z))
 	out.put_u16(CommandCodec.yaw_step(player.yaw))
-	out.put_u8(clampi(player.state, 0, 0xFF))
+	out.put_u8(
+		clampi(player.state, 0, STATE_MASK) | clampi(player.goal_step, 0, GOAL_STEPS) << GOAL_SHIFT
+	)
 	out.put_u8(_player_flags(player))
 	out.put_8(pitch_step(player.pitch))
 	if player.aim:
@@ -357,7 +368,9 @@ static func read_player(reader: WireReader) -> PlayerEntry:
 	var z := CommandCodec.point_from_step(reader.s16())
 	player.position = Vector3(x, y, z)
 	player.yaw = CommandCodec.yaw_from_step(reader.u16())
-	player.state = reader.u8()
+	var state := reader.u8()
+	player.state = state & STATE_MASK
+	player.goal_step = state >> GOAL_SHIFT
 	var flags := reader.u8()
 	player.crouch = flags & F_CROUCH != 0
 	player.aim = flags & F_AIM != 0
@@ -365,6 +378,7 @@ static func read_player(reader: WireReader) -> PlayerEntry:
 	player.air = flags & F_AIR != 0
 	player.rising = flags & F_RISING != 0
 	player.dead = flags & F_DEAD != 0
+	player.halt = flags & F_HALT != 0
 	player.pitch = pitch_from_step(reader.s8())
 	if player.aim:
 		player.aim_yaw = aim_yaw_from_step(reader.s8())
@@ -399,6 +413,19 @@ static func pitch_from_step(step: int) -> float:
 	return clampi(step, -PITCH_STEPS, PITCH_STEPS) * PITCH_STEP
 
 
+## A goal speed (m/s) as a step of `GOAL_STEPS` over `full` (the body's sprint speed): 0 for no
+## move, at least 1 for any (a slow push still asks for a start).
+static func goal_step(goal: float, full: float) -> int:
+	if not is_finite(goal) or goal <= 0.0 or full <= 0.0:
+		return 0
+	return clampi(roundi(goal / full * GOAL_STEPS), 1, GOAL_STEPS)
+
+
+## The goal speed (m/s) a step means over `full`.
+static func goal_from_step(step: int, full: float) -> float:
+	return clampi(step, 0, GOAL_STEPS) * full / GOAL_STEPS
+
+
 static func aim_yaw_step(aim_yaw: float) -> int:
 	if not is_finite(aim_yaw):
 		return 0
@@ -429,6 +456,7 @@ static func _player_flags(player: PlayerEntry) -> int:
 	flags |= F_RISING if player.rising else 0
 	flags |= F_DEAD if player.dead else 0
 	flags |= F_PEEK if peek_step(player.peek) != 0 else 0
+	flags |= F_HALT if player.halt else 0
 	return flags
 
 

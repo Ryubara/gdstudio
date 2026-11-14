@@ -9,7 +9,11 @@ extends Node
 ## from the tree's `physics_frame` to its next `process_frame` (the nodes' physics callbacks and
 ## the physics server's step, never the wait for the next frame, so it works on the web too) over
 ## 300 ticks with every character standing, and `flinch_ms` the same with every character
-## flinching again each time its flinch ends (a chest hit, health off).
+## flinching again each time its flinch ends (a chest hit, health off). `walking_ms` is the same
+## with every character moved on each tick (its capsule and its shot hull with it), and
+## `walking_no_hull_ms` with the shot hulls taken out of the world, so the difference is what the
+## hulls cost (gdstudio #1431). `catch_up_us`: one throttled tree moved on by a tenth of a second,
+## what a shot at a character whose pose is held pays first (`HitZones.posing`).
 ##
 ## Run it headless on the desktop: `godot --headless --fixed-fps 60 --path game
 ## res://tools/bench/hit_zones_bench.tscn` and in a browser from the web export `gds template
@@ -51,6 +55,11 @@ func _run() -> void:
 		row["follow_us"] = _follow_cost(bodies)
 		row["physics_ms"] = await _physics_ms(bodies, false)
 		row["flinch_ms"] = await _physics_ms(bodies, true)
+		row["walking_ms"] = await _walking_ms(bodies)
+		_hulls_on(bodies, false)
+		row["walking_no_hull_ms"] = await _walking_ms(bodies)
+		_hulls_on(bodies, true)
+		row["catch_up_us"] = _catch_up_cost(bodies)
 		_results.append(row)
 		for body in bodies:
 			body.queue_free()
@@ -95,6 +104,53 @@ func _follow_cost(bodies: Array[Character]) -> float:
 		var start := Time.get_ticks_usec()
 		zones.follow_bones()
 		spent += Time.get_ticks_usec() - start
+	return float(spent) / SHOTS
+
+
+# Every character moved a little each tick, round a circle of its own, as a walking crowd is.
+func _walking_ms(bodies: Array[Character]) -> float:
+	var total := 0
+	var homes: Array[Vector3] = []
+	for body in bodies:
+		homes.append(body.global_position)
+	for tick in TICKS:
+		var angle := tick * 0.05
+		for index in bodies.size():
+			bodies[index].global_position = homes[index] + Vector3(cos(angle), 0.0, sin(angle))
+		await get_tree().physics_frame
+		var start := Time.get_ticks_usec()
+		await get_tree().process_frame
+		total += Time.get_ticks_usec() - start
+	for index in bodies.size():
+		bodies[index].global_position = homes[index]
+	return float(total) / TICKS / 1000.0
+
+
+# Puts the characters' shot hulls in the world or takes them out (their shapes off).
+func _hulls_on(bodies: Array[Character], on: bool) -> void:
+	for body in bodies:
+		var hull := ShotHull.of(body)
+		if hull == null:
+			continue
+		for child in hull.get_children():
+			if child is CollisionShape3D:
+				child.disabled = not on
+
+
+func _catch_up_cost(bodies: Array[Character]) -> float:
+	var spent := 0
+	var animations: Array[CharacterAnimation] = []
+	for body in bodies:
+		var animation := body.get_node("Animation") as CharacterAnimation
+		animation.set_throttled(true)
+		animations.append(animation)
+	for round_index in SHOTS:
+		var animation := animations[round_index % animations.size()]
+		var start := Time.get_ticks_usec()
+		animation.advance(0.1)
+		spent += Time.get_ticks_usec() - start
+	for animation in animations:
+		animation.set_throttled(false)
 	return float(spent) / SHOTS
 
 

@@ -21,12 +21,13 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
 
 - **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not
   `scale`; `earlier`, not `before`, in a GdUnit suite), no global function (`hash`, `snapped`) and no function of its
-  own class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
-  `[debug]` of `project.godot`, as the templates do. **Watch out for:** the editor warned on
+  class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
+  `[debug]` of `project.godot`, as templates do. **Watch out for:** the editor warned on
   opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
   `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857, #877
   (`name`); #902 (`hash`, `snapped`, `world_hash` beside such a function); #903 (`url` and `url()`); #901 (`before`);
-  #966 (`mesh`); #970 (`rows`); #1186 (`show`: a bench's web export failed); #1386 (`left` beside `NetEvent.left()`).
+  #966 (`mesh`); #970 (`rows`); #1186 (`show`: a bench's web export failed); #1386 (`left` beside
+  `NetEvent.left()`); #1420 (`newest`, `goal`).
 
 - **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
   `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an
@@ -120,6 +121,12 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   outer variable inside the lambda is the same trap. **Seen:** Deadnight #226, 2026-11-02 (bot counts, a
   mesh); gdstudio #836, 2026-11-08 (`hits += 1` read 0); gdstudio #1251, 2026-11-11 (`met = {...}` left the
   dict empty); gdstudio #1206, 2026-11-11 (a `maxf` into a captured float read 0 mm); #1158, 2026-11-12 (the same).
+- **Approach:** Defer a bound method (`_method.call_deferred()`) or a static callable (`Class.f.call_deferred(arg)`)
+  whose function checks `is_instance_valid()` on an untyped argument; never defer a lambda that captures `self` on a
+  node a test may free. **Watch out for:** a deferred bound method on a freed object is dropped quietly, but a
+  deferred lambda raises `Error calling deferred method: '<anonymous lambda>': Instance is null` when its node was
+  freed before the idle frame. **Seen:** PR #1397's merge, 2026-11-13 (`WeaponHold._build` deferred
+  `(func() -> void: X.f(_skeleton))`; the AI, senses and shot-rewind suites failed in CI).
 
 ## What a line costs in the web build {#web-cost}
 
@@ -148,6 +155,13 @@ reading its components in script.
   **Watch out for:** a long, thin sweep turned into each bone's rest space became a box over most of the torso, so the
   rifle's low ready went through 143 to 170 points a frame of which 23 to 32 counted, and cost 20 to 36 microseconds
   more than the ready. **Seen:** gdstudio #1433, 2026-11-13 (`TorsoSkin._push_along()`).
+- **Approach:** Before an exact rework of a per-frame part (one that must leave every result as it was), measure its
+  floor: the part turned off for the most there is to gain, and what one turn of each of its loops costs, then check
+  that what an exact rework can remove is near what the goal needs. **Watch out for:** in the rifle hold's push a group
+  box test, a point test and a run line cost 0.02 to 0.04 microseconds each hot on the desktop (a call with seven
+  arguments 0.12), spread evenly over the loops, so a larger or smaller group changed nothing, and a push started from
+  the groups that decided the last one, then checked with one box, went through 19 to 25 runs against 27 to 43 and
+  measured the same in place; the goal needed the push nearly free. **Seen:** gdstudio #1490, 2026-11-14.
 
 ## Project and scene files {#project-and-scene-files}
 

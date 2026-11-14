@@ -25,6 +25,8 @@ extends Node
 ## own velocities (a pose that moves every few frames has none worth keeping): a death in that
 ## time leaves with the character's velocity, as `pose_velocity` off does. A rifle's `TwoHandHold`
 ## is told when the camera is past its `fingers_far_distance` (kit #1178), so its fingers rest.
+## A shot that reaches a throttled character catches its tree up first (`HitZones.posing`), so its
+## hit zones are put on the pose it has now, not one frozen off screen (gdstudio #1431).
 ##
 ## Cosmetic and per machine: nothing here changes what the body does or what a network sends.
 
@@ -85,6 +87,7 @@ class Entry:
 	var animation: CharacterAnimation
 	var footsteps: Footsteps
 	var hold: WeaponHold
+	var zones: HitZones
 	## The rifle's hold under the model, found once the character carries it.
 	var two_hand: TwoHandHold
 	var pose_velocity := false
@@ -97,6 +100,7 @@ class Entry:
 	var since := 0
 	var on_hit: Callable
 	var on_change: Callable
+	var on_pose: Callable
 	## `on_change` for a signal with one argument (the subclass's own: the tier).
 	var on_change_1: Callable
 
@@ -114,6 +118,8 @@ func add(character: Character) -> void:
 			entry.footsteps = child
 		elif child is WeaponHold:
 			entry.hold = child
+		elif child is HitZones:
+			entry.zones = child
 	if entry.animation == null:
 		return
 	entry.slot = _next_slot
@@ -127,6 +133,9 @@ func add(character: Character) -> void:
 	character.hit_received.connect(entry.on_hit)
 	character.died.connect(entry.on_change)
 	character.revived.connect(entry.on_change)
+	if entry.zones != null:
+		entry.on_pose = _catch_up.bind(character)
+		entry.zones.posing.connect(entry.on_pose)
 	_follow(character, entry.on_change_1, true)
 	entry.since = frame
 
@@ -145,6 +154,8 @@ func remove(character: Character) -> void:
 		character.died.disconnect(entry.on_change)
 		character.revived.disconnect(entry.on_change)
 		_follow(character, entry.on_change_1, false)
+	if entry.zones != null and is_instance_valid(entry.zones):
+		entry.zones.posing.disconnect(entry.on_pose)
 	_set_period(entry, 1)
 
 
@@ -298,6 +309,17 @@ func _two_hand_of(character: Character) -> TwoHandHold:
 		if child is TwoHandHold:
 			return child
 	return null
+
+
+# A shot is about to put `character`'s hit zones on its bones: a throttled tree is moved on to now
+# first (a frozen one by at most `max_catch_up`, as when it is seen again).
+func _catch_up(character: Character) -> void:
+	var index := _index_of(character)
+	if index < 0:
+		return
+	var entry := _entries[index]
+	if entry.period != 1 and entry.pending > 0.0:
+		_advance(entry)
 
 
 # Moves a throttled tree on by the time since its last advance, and the hand's weights with it.

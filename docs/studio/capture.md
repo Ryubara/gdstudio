@@ -94,8 +94,8 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   ...`, which keeps the game's output in the terminal (Godot's
   `--log-file <path>` after `--` keeps it in a file). **Watch out for:** `gds capture frames` kept Godot's output
   to itself and showed only its `ERROR` lines, so a tour's `print` step lines never appeared and its log could not be
-  read beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11; #1037 (PR #1239), 11-11 (fix: since
-  gdstudio #1472 it prints every line and writes `godot.log` beside the frames).
+  read beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11; #1037 (PR #1239), 11-11; #1337 (PR #1385),
+  11-12 (fix: since gdstudio #1472 it prints every line and writes `godot.log` beside the frames).
 - **Approach:** Run `gds capture frames` on a game made from the template (`gds template test <t> --keep` or `gds
   template game <t>`), never on the template's own `game/` folder. **Watch out for:** a template's `game/` folder has no
   GdUnit4 and is not a game one opens (a new game gets its addons and its import when it is made), so a capture pointed
@@ -107,7 +107,15 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
   worktree's own `templates/<t>/game/` was never opened by the editor, so the run logged 547 errors and wrote
   `.godot` and `.import` files into the worktree; the 3D Third Person spawn pad ends 4.6 m ahead, so bodies filmed
   walking off it played their fall (`OWN_AHEAD`); and that offset, read from the camera at each turn's start while
-  it still looked back at the body, put later variants 6 m behind the spawn. **Seen:** gdstudio #1155, 2026-11-11.
+  it still looked back at the body, put later variants 6 m behind the spawn. **Seen:** gdstudio #1155, 2026-11-11;
+  #1442, 11-13 (a film from the template's own folder: the kit's audio and UI classes missing, 629 errors).
+- **Approach:** For a film that needs Godot's debug collision shapes, record with `gds godot -- --path <game>/game
+  --debug-collisions --write-movie <folder>/frame.png --fixed-fps 60 <scene>`, since `gds capture frames` has no
+  option for them. **Watch out for:** without the flag a film of shots passing through bodies shows the meshes only,
+  not the shapes the shots are tested against. **Seen:** gdstudio #1412 (PR #1432), 2026-11-13.
+- **Approach:** In a tour, hold for the whole stage an action that is a held button by default (crouch, unless
+  `crouch_toggle` is on), and release it to end the stage. **Watch out for:** the head tour tapped crouch, so its
+  "crouched" stages filmed a standing body. **Seen:** gdstudio #1351 (PR #1395), 2026-11-12.
 
 ## sheet {#sheet}
 
@@ -243,6 +251,11 @@ the new one (2 and 0).
   not a reference; written as `![clip](./clip.mp4)`, `--attach` turns it into the bare upload address that plays
   inline, so the old advice to write the bare address yourself misled. **Seen:** gdstudio #1154 (PR #1195), #1190
   (PR #1197) and #1203 (PR #1215), 2026-11-11 (the guard refused each, three times on #1215).
+- **Approach:** Look at the clip frame by frame around each change of state (a landing, a switch) even when a test
+  checks the pose there, and check the skinned pose against a capture of the drawn frame. **Watch out for:** a pose
+  check reads the bones at one point of the update and can pass while the drawn frame is wrong: the rifle hands were
+  drawn off the rifle for one or two frames at landings with the pose checks green. **Seen:** gdstudio #1369, 2026-11-13
+  (open as gdstudio #1464).
 
 ## Attaching {#attaching}
 

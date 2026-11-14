@@ -27,9 +27,10 @@ draw the blend of the last two ticks.
   picture away from the maths that placed it (gdstudio #884; [Minimap](minimap.md#drawing)).
 - After you set a new transform on a node that must not slide in (a teleport, a spawn, a pooled node reused), call
   `reset_physics_interpolation()` once the transform is set.
-- Skinned bones are not interpolated; a `BoneAttachment3D` child (a weapon in a hand) moved with a drawn-frame animation
-  was smooth in our measure. A ragdoll's bones are written once a tick by its `PhysicalBoneSimulator3D`, so its skin
-  steps while its `PhysicalBone3D` nodes glide: draw the bones from the bodies' interpolated transforms
+- Skinned bones are not interpolated: the skin draws the bones of this frame's update. A `BoneAttachment3D` child (a
+  weapon in a hand) is drawn with them (0.0 mm in gdstudio #1473's test, the pistol through a sprint, a slide and an
+  aim). A ragdoll's bones are written once a tick by its `PhysicalBoneSimulator3D`, so its skin steps while its
+  `PhysicalBone3D` nodes glide: draw the bones from the bodies' interpolated transforms
   ([Drawing between ticks](ragdoll.md#drawing)).
 - A node a skeleton modifier or `skeleton_updated` places every frame (a two-hand weapon placed from the chest, a hand
   target on it) is OFF, as the engine makes every `BoneAttachment3D` (its constructor sets the mode, and the editor
@@ -55,6 +56,13 @@ draw the blend of the last two ticks.
   player had not seen reported the frustum of its last place, so it found no probe there and waited for none, and only
   the suite's frame count showed it. **Seen:** gdstudio #981, 2026-11-10 (fix: `PHYSICS_INTERPOLATION_MODE_OFF` on the
   emitter's tour camera).
+- **Approach:** Turn physics interpolation off on a node that is placed from the skeleton's pose while the skeleton
+  updates (a held gun's pivot set by a modifier), in its scene, and test where it is drawn against the drawn skin on
+  every frame of the fast moves, not only the one where it showed ([below](#measuring-it)). **Watch out for:** the lag
+  is there on every frame, not only at a landing: the rifle trailed the hands by a frame of the pose's movement, 14 to
+  35 mm at a sprint and 0.7 m on the frame a slide's end jumped to the crouch, though every read in script had the
+  hands on it at 0 mm. **Seen:** gdstudio #1464 and #1473, 2026-11-13 (`Pivot` in `two_hand_hold.tscn`, PR #1475; the
+  pistol's `BoneAttachment3D` was in step).
 - **Approach:** Assert `is_physics_interpolated_and_enabled()` on the real body inside the real screen. **Watch out
   for:** a setting a node inherits holds only in the tree the game builds: interpolation was measured in a test room
   under a plain `Node`, while in the game the night hangs under a `Control`, which switched it off below, and the web
@@ -64,6 +72,14 @@ draw the blend of the last two ticks.
 
 ## Measuring it {#measuring-it}
 
+- **Approach:** To read where a node is drawn on every frame at 60 frames and 60 ticks, read
+  `get_global_transform_interpolated()` after the frame-end pass and before the next tick (the 3D Third Person
+  template's `AfterFrameReader`: an input event no action uses, queued in the frame, is handed out at the start of the
+  next loop, headless too), against the skin as `drawn skeleton * the bone's pose of this update`. **Watch out for:**
+  reads in the frame (`_process`, `skeleton_updated`, `process_frame`, a modifier) come before that pass and a read in
+  the tick gets the plain transform: all showed the rifle on the hands while it was drawn a frame behind (a rendered
+  marker check agreed to the pixel). **Seen:** gdstudio #1473, 2026-11-13 (`test_held_weapon_drawn.gd`; the slower
+  ticks' way is the last entry here).
 - The node's `global_transform` shows the tick, never the blend: measure where the renderer draws. In a headless test,
   `Node3D.get_global_transform_interpolated()` through `Camera3D.unproject_position()`; in a capture, find a marker ball
   in the rendered image (unshaded, `no_depth_test`).

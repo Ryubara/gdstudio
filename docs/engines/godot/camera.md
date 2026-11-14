@@ -184,8 +184,9 @@ Adding World to `keep_aim_layers` keeps the point on walls again.
 
 - **Approach:** Decide what the aimed point is worth keeping from what the ray hit, not only from what the player is
   doing: keep it on a target (an exported layer mask), slide past scenery. Test both through the real input (aim
-  trigger held, Q pressed), reading the view's yaw and pitch for the wall, floor and sky and the point at each physics
-  tick for a dressed character (`test_camera_swap_target.gd`); the geometry suite's boards stand on the Characters layer.
+  trigger held, the swap button pressed), reading the view's yaw and pitch for the wall, floor and sky and the point at
+  each physics tick for a dressed character (`test_camera_swap_target.gd`); the geometry suite's boards stand on the
+  Characters layer.
   **Watch out for:** a swap aimed at a wall 4 m out turned the view about 15 degrees, though nothing there was worth
   holding (`swap_target_tour` capture); and reading the crosshair right after `process_frame`, before the rig's
   `_process`, shows about 1.4 degrees off on a kept point that is within 0.25 at each physics tick, where a shot reads

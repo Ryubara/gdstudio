@@ -8,6 +8,8 @@ on the page of its subject, with an `{#anchor}`. A page is split at about 40 KB,
 
 - [The character and its model](character.md): the animation libraries, the mannequins, replacing the model, the
   controller, the ragdoll and touch controls.
+- [What the parts cost](parts-cost.md): what each part of a living character costs a frame, the node count
+  `NODES_ALIVE` pins, and how a part's cost is measured.
 - [Prone and sliding](moves.md): lying down, the crawl and the slide.
 - [Using things](interact.md): the `Interactable` component, the `Interactor` and the door's.
 - [The character's clips](clips.md): the animation libraries and the template's own vault clips, with their checks.

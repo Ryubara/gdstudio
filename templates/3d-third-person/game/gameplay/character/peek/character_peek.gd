@@ -147,6 +147,36 @@ func roll(body: Character) -> float:
 	return amount * full_angle(body, CharacterCapsule.eye_height(body))
 
 
+## How far a left lean has the weapon on the left side now, 0 to 1 (gdstudio #1435): the weapons
+## are right-handed, so leaning left the head cleared an edge before the muzzle did; the holds
+## bring the weapon across by this share (`TwoHandHold` mirrors the rifle to the left shoulder,
+## `LeftShoulder` takes the pistol across the face) and a weapon with no muzzle mirrors its shot's
+## start (`lean_offset()`). From the lean as drawn (`drawn()`), or the step's `amount` when
+## `drawn_lean` is off (a server's shot). 0 with `PeekTuning.left_shoulder` off.
+func shoulder_share(body: Character, drawn_lean := true) -> float:
+	var tuning := body.peek_tuning
+	if tuning == null or not tuning.left_shoulder:
+		return 0.0
+	var lean := drawn() if drawn_lean else amount
+	return smoothstep(0.0, 1.0, -lean) if lean < 0.0 else 0.0
+
+
+## Where a shot with no muzzle starts from the point of the aim ray beside the shooter: `offset`
+## in the frame `across`, `up`, `-along`, rolled with a leaning `shooter`'s upper body (gdstudio
+## #1400) and, on a left lean, mirrored to the left by `shoulder_share()` (gdstudio #1435), as the
+## dressed body's weapon is drawn.
+static func lean_offset(
+	shooter: Node3D, across: Vector3, up: Vector3, along: Vector3, offset: Vector3
+) -> Vector3:
+	var body := shooter as Character
+	if body != null and body.peek_motion.amount != 0.0:
+		var tilt := Basis(along, body.peek_motion.roll(body))
+		across = tilt * across
+		up = tilt * up
+		offset.x = lerpf(offset.x, -offset.x, body.peek_motion.shoulder_share(body, false))
+	return Basis(across, up, -along) * offset
+
+
 ## Where the eye goes from its upright place for a lean of `share` (-1 to 1), in the body's axes
 ## (the body's node is never turned; its model is): to the body's right and down a little as the
 ## bend tilts.

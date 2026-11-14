@@ -7,7 +7,10 @@
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
 ## `gds capture frames --project game --scene res://tools/capture/peek_tour.tscn --seconds 26
-## --fps 30`. `PEEK_ONLY=pistol` or `PEEK_ONLY=rifle` films one weapon (13 s).
+## --fps 30`. `PEEK_ONLY=pistol` or `PEEK_ONLY=rifle` films one weapon (13 s). The pillar is as
+## wide as a right lean's shot clears (0.8 m): on a left lean the weapon goes to the left side
+## (gdstudio #1435) and its shot clears the other edge too; `LEFT_SHOULDER=0` films it as before,
+## the weapon right of the head and the left shot in the pillar. Each hit prints `HIT <tick> <who>`.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -16,7 +19,7 @@ const FLOOR_AT := Vector3(0.0, 300.0, 0.0)
 const START := Vector3(0.0, 300.1, 0.0)
 ## The pillar in front of the character, and the two targets past its edges.
 const PILLAR_AT := Vector3(0.0, 300.0, -1.4)
-const PILLAR_SIZE := Vector3(0.64, 2.6, 0.5)
+const PILLAR_SIZE := Vector3(0.8, 2.6, 0.5)
 const TARGETS: Array[Vector3] = [Vector3(3.5, 300.0, -10.0), Vector3(-3.5, 300.0, -10.0)]
 const PITCH := 3.0
 ## The view's heading toward each target, degrees (positive turns left).
@@ -99,6 +102,11 @@ func _ready() -> void:
 		var target := (load("res://gameplay/target/target.tscn") as PackedScene).instantiate()
 		target.position = spot
 		add_child(target)
+		_watch_hits(target, "target right" if spot.x > 0.0 else "target left")
+	if OS.get_environment("LEFT_SHOULDER") == "0":
+		_player.peek_tuning = _player.peek_tuning.duplicate()
+		_player.peek_tuning.left_shoulder = false
+	_watch_hits(pillar.get_node(^"Body"), "pillar")
 	_player.loadout.give(load("res://gameplay/weapon/rifle.tres") as WeaponDef, 60)
 	_player.teleport(START, PI)
 	_player.weapon.fired.connect(
@@ -155,6 +163,20 @@ func _finish() -> void:
 	for _frame in 8:
 		await get_tree().process_frame
 	get_tree().quit()
+
+
+# Prints a line for each hit `node` takes: a `Health` of its own (one is given to the pillar).
+func _watch_hits(node: Node, who: String) -> void:
+	var health := node.get_node_or_null(^"Health") as Health
+	if health == null:
+		health = Health.new()
+		health.name = &"Health"
+		health.max_value = 1000.0
+		node.add_child(health)
+	health.damaged.connect(
+		func(_amount: float, _hit: HitRecord) -> void:
+			print("HIT ", Engine.get_physics_frames(), " ", who)
+	)
 
 
 # Holds exactly these actions down and lets go of the rest.

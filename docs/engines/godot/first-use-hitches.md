@@ -64,6 +64,10 @@ not their cause; headless Chrome with a real GPU (`channel="chrome"`) is enough,
   in those frames; timing every `WebGL2RenderingContext` method, with the engine's markers logged to the console,
   showed the level's warm-up (`EffectEmitter`'s tour of the probes, 6 s past the seat), not the puppets. **Seen:**
   gdstudio #1106, 2026-11-11 (fix: the probe joins after `warmed`; `FRAME_WATCH` in `net_play_smoke.py`).
+- **Approach:** Read a draw's GPU cost in the page from the first call that waits on the GPU process, not from a
+  Chrome trace. **Watch out for:** per-call timing from the page cannot see the GPU process's time inside a draw (it
+  lands in that waiting `getParameter`), and the `gpu.angle` trace category shows only shader compiles and links.
+  **Seen:** gdstudio #1260 (PR #1311), 2026-11-11.
 - **Approach:** Name each program linked after the loading screen by its fragment shader's `#define`s before warming
   anything up, and look for a second camera whose world draws without what the game camera has (fog, the sun): its
   view builds variants of its own. **Watch out for:** a browser's join linked 2 programs in the frame that first drew
@@ -398,6 +402,10 @@ list lacks 0 to 4 (the warm-up's timing); with 20 of its 157 programs taken out 
 it fails, record the list again with `--write <list> --merge` and commit it. A change to the warm-up counts too:
 touring the minimap's view (kit #1297) left the list 12 programs short, and recording it again (`--merge`, the page
 plain and with `?play`) took it from 157 to 169, after which the check missed 0 and 1.
+
+A change that draws nothing new (no material, shader, mesh or warm-up path) keeps the list as it is. `--merge` keeps
+every program already in the file, ones the build no longer links included; to drop those, record the list without
+it, from the same page runs (plain and with `?play`).
 
 To record it on this machine: make a game from the branch (`gds template test <template> --suite <one suite> --keep`),
 export it with the pinned Godot (`--headless --path <game>/game --export-release Web`, which writes `build/web` with

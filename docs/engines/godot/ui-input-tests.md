@@ -69,14 +69,14 @@ covered it -->
 <!-- new section: UI suites share the Input singleton, an autoload router and statics, and the failures show only in
 another order; the menus-under-test entry covers the router alone -->
 
-- **Approach:** When a UI input test passes alone and fails in the folder, a shard or a window, treat it as global
-  state an earlier suite left and bisect to the pair: take the shard's suite list from its log, run `[leaker, victim]`,
-  and print `UIRouter.depth()`, `get_viewport().gui_get_focus_owner()` and `busy` (or the added node's path and class,
-  for a wrong count) before forming a theory. **Watch out for:** what is left is a held action, a mouse button, a
-  router screen, a static or a setting, and the shard split moves it: a menu one suite left made a look suite read no
-  turn on two unrelated pull requests, and a held scoreboard key made another suite's HUD count 43 nodes. **Seen:**
-  Deadnight #1037, 2026-11-04; Deadnight, 2026-11-05 (fix: the leaking suites release in `after_test`, and a scan
-  test fails a suite that shows a screen or holds an action without cleaning up).
+- **Approach:** When a UI input test passes alone and fails in a full run, the folder, a shard or a window, treat it as
+  global state an earlier suite left and bisect to the pair: take the shard's suite list from its log, run `[leaker,
+  victim]`, and print `UIRouter.depth()`, `get_viewport().gui_get_focus_owner()` and `busy` (or the added node's path
+  and class, for a wrong count) before forming a theory. **Watch out for:** what is left is a held action, a mouse
+  button, a router screen, a static or a setting, and the shard split moves it: a menu one suite left made a look suite
+  read no turn on two unrelated pull requests, and a held scoreboard key made another suite's HUD count 43 nodes.
+  **Seen:** Deadnight #1037, 2026-11-04; Deadnight, 2026-11-05 (fix: the leaking suites release in `after_test`, and a
+  scan test fails a suite that shows a screen or holds an action without cleaning up).
 - **Approach:** A fixture that sends input through the `Input` singleton lets go of everything it may have pressed
   when it is freed (mouse buttons, actions, touch emulation, flushed with `Input.flush_buffered_events()`), and a scan
   that looks for presses lists every way the engine lets one be made (a call, an `InputEventAction` with `pressed`, a

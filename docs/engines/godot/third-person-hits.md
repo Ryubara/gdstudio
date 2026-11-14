@@ -12,26 +12,27 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
 `gameplay/hit_zones/` (`HitZones`, `HitZone`), `gameplay/character/hit_reaction.gd` and, in the synced
 `addons/gds_game/hits/`, `HitRecord` and `Health` ([below](#health)).
 
-- **How a shot finds the part (two steps).** The `Projectile` flies against the character's capsule as it does against
-  anything. When it touches a capsule tagged by a `HitZones` (the metadata `hit_zones`), it asks
+- **How a shot finds the part (two steps).** The `Projectile` flies against the character's shot hull (`ShotHull`,
+  [below](#shot-hull)) or its capsule as it does against anything. When it touches one tagged by a `HitZones` (the
+  metadata `hit_zones`), it asks
   `HitZones.shot(collider, point, direction, damage, strength, source, centre)`: the zones are put on their bones of the
   animated skeleton (`follow_bones()`) and a ray along the shot's own line, from `look_back` (0.5 m) before the
   projectile's centre through the capsule (`ray_length`, 1.2 m), looks for the first zone with
   `PhysicsLayers.HIT_ZONE_MASK`, so a part the pose holds in front of the capsule (a crouch's hips, seen from behind)
-  is met on the shot's way in. A zone met: a
-  `HitRecord` goes to the character's `take_hit()`. None: the shot passed between the parts (beside the waist, between
-  the legs), takes the capsule as an exception and flies on in the same tick. A lying body is met on its ragdoll bones
-  (they carry the same tag while limp), and the record names the bone.
+  is met on the shot's way in. A zone met: a `HitRecord` goes to the character's `take_hit()`. None: the shot passed
+  between the parts (beside the waist, between the legs), takes the hull and the capsule as exceptions and flies on in
+  the same tick. A lying body is met on its ragdoll bones (they carry the same tag while limp), and the record names
+  the bone.
 - **Where a weapon aims on a character.** The aim ray asks the same two steps: `HitZones.aimed_point(point, along)`
   answers the point on the part the ray meets past the capsule, or `Vector3.INF` when it passes between the parts, and
   `Weapon.aim_point` then goes on to what is behind the body (with the zones off it is the capsule's point). The shot
   leaves the muzzle toward that point, so a close shot lands on the part under the crosshair, not beside it
   (gdstudio #1251, [Shooting](third-person/shooting.md#crouch-aim-shoot)).
 - **Why two steps.** The zones move only for a shot that reached a capsule, never every frame: they cost nothing while
-  nobody shoots (the numbers are below). The price: a part held outside the capsule to the side (an arm stretched out
-  to aim, a crouch's hips seen from the side) is not hit, since the capsule is the first test; so the drawn pose must
-  match the capsule's stance (a body drawn standing over its crouched capsule lost every shot at its head and chest,
-  gdstudio #1412, [the cause](animation-tree.md#gait-fitting)).
+  nobody shoots (the numbers are below). The price: a part held outside the first test's shape is not hit, so that
+  shape is the shot hull, a little wider and taller than the moving capsule ([below](#shot-hull)); an arm stretched
+  far out to aim still is not. The drawn pose must still match the stance (a body drawn standing over its crouched
+  capsule lost every shot at its head and chest, gdstudio #1412, [the cause](animation-tree.md#gait-fitting)).
 - **The record.** `HitRecord`: `damage` (the zone's multiplier applied), `zone`, `bone`, `point`, `direction`,
   `strength` (the shot's impulse, N·s), and three local fields never sent (`source`, `knockback`, `killed`).
   `encode()` packs the sent part in about 40 bytes (`decode()` reads it back and refuses a short or non-finite one). It
@@ -66,11 +67,81 @@ shot into a body already lying pushes the bone it meets and leaves an impact mar
   chest, pelvis and thigh for both, and 10 to 26 m/s on an arm, forearm or shin before the cap, under 9 after.
   **Seen:** gdstudio #1343, 2026-11-12 (`test_death_push.gd`).
 
+### The shot hull {#shot-hull}
+
+<!-- new section: after #1412 a shot at a drawn body still missed where the pose holds a part outside the moving
+     capsule (a crouch's hips, the head while standing up) and on a pose frozen off screen (gdstudio #1431) -->
+
+The first test is a capsule that only shots and aim rays meet: `ShotHull` (`gameplay/hit_zones/shot_hull.gd`, a
+`StaticBody3D` child of the character in `character_dressed.tscn`, layer 8 Shot Hulls while armed, mask none,
+`HitZones.hull`).
+It is `margin` (0.12 m) wider than the moving capsule and `head_room` (0.25 m) taller than the taller of the capsule
+now and the stance the body goes to: standing up, the pose is upright at once while the capsule grows over
+`crouch_time`, so the hull is standing height from the first tick. `CharacterCapsule.fit` sizes it with the capsule.
+It costs a character nothing while nobody shoots, as the zones do: it is `top_level` (it does not follow the body, so
+the physics server never hears of it moving) and on no layer. Every shot, aim ray and projectile tick on the shot mask
+first calls `ShotHull.arm(space, from, to)`: one shape query (a box along the line, the widest `margin` across and
+`ARM_HEIGHT` up and down its vertical plane) against the characters' moving capsules, and only their hulls are put on
+their bodies and on layer 8, until the next `arm()` or the end of the frame (`WeaponRay.cast`, `ShotHull.ray_as_shot`,
+`Projectile._physics_process`; a test that casts a raw ray at a hull arms first). A hull is never armed while its body
+is dead, its capsule disabled or the body on no layer (a networked puppet). Movement, the camera, props, sensors
+and the ragdoll never meet it ([layers](physics-layers.md#template-layers)). A shot that meets it is a shot on the
+character: `HitZones.body_met` gives the character for marks and effects, and the hit's point is the part's
+(`HitRecord.point`), not the hull's surface; a shot that passes between the parts leaves out both
+(`HitZones.shot_bodies`). The shooter leaves out its own (`ShotHull.with_hull`, `rids_of`): the weapon's ray, a
+projectile's exceptions, the crosshair's ray. The weapon's rays live in `WeaponRay` (`gameplay/weapon/weapon_ray.gd`):
+the raw ray past the shooter, the aim ray that takes the part, and a puppet's cosmetic tracer, which ends on the drawn
+part, not the hull. The crosshair's ray and the tracer read a hull as a shot does
+(`ShotHull.ray_as_shot`): the part on its line, with the character as what it met, so the camera's shoulder swap still
+keeps a point on a character (`keep_aim_layers` counts Characters, not Shot Hulls). Online, `AiHitHistory` records
+the hull's size for the rewind
+([AI online](third-person/ai-online.md#rewind)).
+
+A pose frozen by the animation throttle (out of view, or far) is caught up before a shot puts the zones on it:
+`HitZones.find` says `posing`, and `CharacterAnimationThrottle` moves that tree on by the time it missed (at most
+`max_catch_up`), as being seen again does ([the throttle](third-person/ai.md#animation-throttle)).
+
+What it measured: the drawn-bone probe (rays from 8 m at each living AI's drawn head, chest and pelvis in the seeded
+soak, 3 seeds of 120 s, characters animated every frame) missed, before and after the hull, standing heads 10.9 and
+0.2 percent of rays (the head stands over the capsule's top), chests 9.0 and 0.2, pelvises 6.3 and 0.3; crouched
+pelvises 19.9 and 0.5; bodies standing up 44.7 percent of head rays and none. Of 1,234 and 1,121 ticks of a stand-up,
+the drawn head was over the capsule in 758 and 686, and over the hull in none. `tools/capture/stand_up_tour.tscn`
+(a body crouches and stands, the player shoots its head two ticks after it lets go): 0 of 6 hit before, 6 of 6 after.
+The price is in [What it costs](#cost).
+
+- **Approach:** Prove a miss at a drawn part with the thinnest shot that can be fired (a ray, or a 2 cm round), and
+  measure how far the part sits from the capsule's axis against the capsule's radius plus the round's. **Watch out
+  for:** the template's 14 cm round reaches 7 cm past the capsule by its own width, so a crouch's hips 0.37 to 0.41 m
+  from a 0.34 m capsule's axis were met by it on main and the first test written with it passed before the fix; the
+  probe's misses were rays (the aim ray, a hitscan weapon). **Seen:** gdstudio #1431, 2026-11-13
+  (`test_shot_hull.gd`).
+- **Approach:** Leave a shooter out of its own ray with `ShotHull.rids_of(shooter)` (its capsule and its hull), never
+  `[shooter.get_rid()]`, in the game, its test fixtures and its tour tools alike, and grep for `get_rid()]` when a
+  body gains another collider. **Watch out for:** the shooter's own hull sits around the muzzle, so a ray that left
+  out only the capsule met it at once: the old camera formula in `tests/fixtures/camera_aim.gd` disagreed with the
+  weapon at every pose (28 failures in `test_weapon_ray.gd`), and the muzzle light tour, which casts on every layer,
+  measured the light against the player's own hull. **Seen:** gdstudio #1431, 2026-11-13 (the full suite on PR #1459).
+- **Approach:** When a new collider joins `SHOT_MASK`, find every raw ray on that mask that reads what it met
+  (`grep -rn "aim_point_mask\|SHOT_MASK\|aim_mask" gameplay tools`) and route it through the shot's own resolution
+  (`ShotHull.ray_as_shot`, `HitZones.body_met`). **Watch out for:** the camera's crosshair ray met the target's hull
+  first; its layer (Shot Hulls) is not in `PlayerCamera.keep_aim_layers`, so an aimed shoulder swap at a character
+  stopped keeping its point (8.7 degrees off, no turn) in `test_camera_swap_target.gd`, a suite main added after the
+  branch's full run. **Seen:** gdstudio #1431, 2026-11-14 (PR #1459 after merging main).
+- **Approach:** After each merge of main, grep for `intersect_ray` in `gameplay tools tests` too: a query made with
+  no mask looks on every layer, Shot Hulls among them, and reads a hull as the body. **Watch out for:** the peek
+  lean's suites (#1437) cast on the default mask, so a ray beside the upright player met its hull and a shot at the
+  leaning head read the hull, not the head; a puppet's hitscan tracer (`Weapon._ray_end`, now `WeaponRay.end_of`)
+  ended on the hull's surface. **Seen:** gdstudio #1431, 2026-11-14 (PR #1459, its second merge of main).
+
 ### The inspector {#inspector}
 
 - **On `HitZones`** (a `StaticBody3D` on layer 6, Hit Zones, mask none): `receiver` (the character), `model` (the slot
-  whose skeleton the zones follow), `ragdoll`, `enabled` (off: a shot on the capsule hits the whole body, no zone and no
-  multiplier), `ray_length` and `look_back` (how far before the capsule's surface the second test starts, 0.5 m).
+  whose skeleton the zones follow), `ragdoll`, `hull` (the `ShotHull`; empty: shots meet the capsule alone), `enabled`
+  (off: a shot on the capsule hits the whole body, no zone and no multiplier), `ray_length` and `look_back` (how far
+  before the capsule's surface the second test starts, 0.5 m).
+- **On `ShotHull`** (layer 8, Shot Hulls, only while armed; mask none): `margin` (0.12 m wider than the moving
+  capsule) and
+  `head_room` (0.25 m over it, or over the stance it goes to).
 - **On each `HitZone`** (a `CollisionShape3D` under it; size its shape in the inspector): `zone` (its name), `bone`,
   `offset` (in the bone's frame, Y along the bone; the node's own transform is overwritten), `damage_multiplier` and
   `enabled`. The eleven: `head` (sphere, 3.0), `chest` and `pelvis` (1.0), `arm_l`, `arm_r`, `forearm_l`, `forearm_r`
@@ -96,6 +167,26 @@ is the tree's `physics_frame` to its next `process_frame` (the physics callbacks
 | Chrome, 1 / 4 / 10 | 23 to 29 µs | 9 to 12 µs | 0.18 / 0.37 / 0.71 ms | 0.31 / 0.56 / 1.09 ms |
 | Chrome at a 4x CPU throttle, 1 / 4 / 10 | 139 to 174 µs | 57 to 89 µs | 1.16 / 2.32 / 3.58 ms | 1.48 / 2.72 / 6.36 ms |
 
+The shot hull (gdstudio #1431, the same bench): every character moved each tick, with and without the hulls in the
+world, and a throttled tree's catch-up before a shot (`catch_up_us`, one `advance(0.1)`).
+
+| | frame walking, with hulls | without | catch-up |
+| --- | ---: | ---: | ---: |
+| Desktop, 1 / 4 / 10 characters (three runs) | 0.18 / 0.36 / 0.77 ms | 0.18 / 0.38 / 0.76 ms | 55 to 83 µs |
+| Chrome, 1 / 4 / 10 | 0.22 / 0.41 / 0.72 ms | 0.21 / 0.40 / 0.72 ms | 65 to 78 µs |
+| Chrome at 4x, 1 / 4 / 10 (two runs) | 0.95 / 1.9 to 2.1 / 4.2 to 5.5 ms | 0.84 / 1.9 to 2.1 / 3.1 to 5.0 ms | 370 to 590 µs |
+
+On the desktop and in Chrome the hulls cost nothing measurable; at the 4x throttle ten walking characters paid 0.5 to
+1.1 ms more in two runs on a machine other agents were using (their standing and flinching frames moved as much from
+run to run), so up to 0.1 ms a walking character there. That hull followed its body; since gdstudio #1459 it follows
+nothing and is armed for a shot near it (above). On the desktop, interleaved with main: the parts bench's step 36.9 to
+38.9 µs a character (main 36.8 to 42.5, the hull that followed 40.4 to 43.1) and the physics tick after the scripts
+14.4 to 14.9 µs (main 14.2 to 15.8, followed 16.3 to 17.7); `ShotHull.arm` costs 1 µs on a line near nobody and
+about 4 µs a hull it arms (41 µs on a line down a row of ten characters). A shot on a hull costs one second test as
+one on a capsule
+did (shots that pass within `margin` of a capsule now pay one too, and fly on); a shot at a held pose pays the
+catch-up once (a second shot in the same frame finds nothing left to catch up).
+
 The budget the task set: a shot's second test under 50 µs on the desktop and in Chrome, the zones nothing a frame, a
 flinching body under 0.05 ms a frame in Chrome (measured 0.04). The zones following every tick would have cost 0.1 ms
 a frame for ten characters in Chrome and 0.8 ms at the throttle, which is why they do not. Ten bodies flinching at once
@@ -109,7 +200,11 @@ machine other agents were using.
 death, a shot between the parts flying on, zones met by nothing but the second test, the record on the wire, the
 pins), `test_hit_reaction.gd` (the headshot and body-shot pushes, the flinch and its return in its time, a death during
 a flinch, a shot on a lying body pushing its bone and leaving a mark that rides it and goes on getting up),
-`test_physics_layers_meet.gd` (a living body has no bone in the world). The fixture is `tests/fixtures/hit_range.gd`.
+`test_physics_layers_meet.gd` (a living body has no bone in the world), `test_shot_hull.gd` (a crouched body's hips
+hit from the side, the head hit while standing up, a shot beside the parts flying on, the hull's stance, death and
+the shooter's own hull, and the hull following nothing and on no layer until a shot near it arms it),
+`test_ai_animation_throttle.gd` (a shot at an unseen body catches its pose up). The fixture
+is `tests/fixtures/hit_range.gd`.
 The zones' shapes are sized on the template's two prototype bodies (kit #1187, `tools/mannequin/measure_segments.gd`;
 [the bodies](third-person/character.md#mannequins)). `tools/capture/hit_tour.tscn` films it from the player's camera
 (`HIT_MODEL=male` for the male body):
@@ -126,6 +221,10 @@ state, locomotion node and layers (`POSE` lines) through a seeded soak, to trace
   for:** at a capture's 10 frames a second each frame runs six physics ticks while the camera moves once, so an aim
   loop in `_physics_process` turned six times too far and swung about the target for the whole clip, firing nothing,
   while the same loop converged headless at 60. **Seen:** gdstudio #876, 2026-11-10 (`hit_tour.gd`).
+- **Approach:** Give a capture target made from `character_dressed.tscn` the player's prone tuning
+  (`gameplay/player/prone_tuning.tres`) when it has to lie down. **Watch out for:** the dressed character holds no
+  `ProneTuning`, so a target told to go prone stayed standing in the capture. **Seen:** gdstudio #1292 (PR #1309),
+  2026-11-11.
 - **Approach:** When shots pass through bodies in play, run the seeded AI soak with a probe that casts rays of
   `SHOT_MASK` at each living character's drawn head, chest and pelvis and sorts what they met (nothing, the wall
   behind, the capsule with no zone on the line) by the body's state, crouch, tree state and throttle period.

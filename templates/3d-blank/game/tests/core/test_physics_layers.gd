@@ -42,6 +42,7 @@ func test_the_project_names_every_layer_the_constants_name() -> void:
 		PhysicsLayers.RAGDOLL: "Ragdoll",
 		PhysicsLayers.HIT_ZONES: "Hit Zones",
 		PhysicsLayers.SENSORS: "Sensors",
+		PhysicsLayers.SHOT_HULLS: "Shot Hulls",
 	}
 	for bit: int in bits:
 		assert_str(PhysicsLayers.project_name(PhysicsLayers.number(bit))).is_equal(bits[bit])

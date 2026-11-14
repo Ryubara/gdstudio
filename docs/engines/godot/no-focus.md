@@ -74,6 +74,11 @@ parent's id that a new program can be given (kit #229).
   the sweep's measured length. **Watch out for:** `gds quiet` ends the whole tree at the same 900 s default as `gds
   godot`, so a longer sweep stops with exit code 124 and its later probes never run. **Seen:** gdstudio #1153 (PR
   #1167), 2026-11-11.
+- **Approach:** The browser-probe guard refuses a command that runs a probe script (`python`, `node`, `npx` or
+  Playwright with a `web_smoke/*.py` after it), never one that only names its path. **Watch out for:** the first
+  guard matched the path anywhere in a command, so `gds issue block --conflict .../web_smoke/net_play_smoke.py` and an
+  `ls` of it were refused as a browser under pointer lock. **Seen:** gdstudio coordinator, 2026-11-11 (fix: the
+  guards rework, kit #929, matches a runner first, `.claude/hooks/guards/launches.py`).
 
 ## How it works {#how-it-works}
 

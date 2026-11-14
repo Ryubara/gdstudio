@@ -472,9 +472,23 @@ def test_the_third_person_project_file_holds_only_what_it_adds():
     """An extending template's `project.godot` is what it adds to 3D Blank's: the menu scene as the main scene, the
     `Settings` and `MenuSounds` autoloads (kit #1100), the landscape setting, the input map, the navigation cell
     height, the navigation builds on the physics step (no threaded region or map builds, kit #1075), Jolt
-    Physics and the libraries whose unnamed clips the export leaves out (kit #1366)."""
+    Physics, the libraries whose unnamed clips the export leaves out (kit #1366) and the test run's audio drain hook
+    (kit #1506)."""
     third = project_file.parse((KIT / "templates" / "3d-third-person" / "game" / "project.godot").read_text("utf-8"))
-    assert set(third.sections) == {"application", "autoload", "display", "gds_game", "input", "navigation", "physics"}
+    assert set(third.sections) == {
+        "application",
+        "autoload",
+        "display",
+        "gds_game",
+        "gdunit4",
+        "input",
+        "navigation",
+        "physics",
+    }
+    # The test run's audio drain (kit #1506), listed by uid: the web pack carries the settings and no tests path.
+    assert list(third.sections["gdunit4"]) == ["hooks/session_hooks"]
+    assert "uid://" in third.sections["gdunit4"]["hooks/session_hooks"]
+    assert "res://tests/" not in third.sections["gdunit4"]["hooks/session_hooks"]
     assert list(third.sections["gds_game"]) == ["clip_export/libraries", "clip_export/catalogue"]
     assert list(third.sections["application"]) == ["run/main_scene"]
     assert list(third.sections["autoload"]) == ["Settings", "MenuSounds"]
