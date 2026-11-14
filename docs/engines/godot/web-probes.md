@@ -313,3 +313,9 @@ headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdst
   `--run` starts the probe with the build folder alone (`bench_web.probe_command`) and removes the game when it ends,
   so a probe that looked for the game's folder or options of its own found neither. **Seen:** gdstudio #1270 (PR
   #1301), 2026-11-11.
+- **Approach:** Try a part's variants headless on the desktop first: the same kept game, `Time.get_ticks_usec()` spans
+  per part printed by the bench, and the part called N times a frame (its span over N) so a change of a microsecond
+  shows; then confirm the one kept in Chrome against `main`, in turns. **Watch out for:** an export and a Chrome round
+  take minutes, a desktop run 15 seconds; the desktop's spans read the rifle hold's parts within 10 to 25 % of the web
+  build's (the stance 26 against 28 microseconds, the push 8.9 against 8.9), but single runs on a busy machine still
+  moved 15 %. **Seen:** gdstudio #1347, 2026-11-13 (eleven variants of the push in an hour).

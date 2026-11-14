@@ -126,7 +126,8 @@ says where it was learned (Deadnight, the first game).
   presses' branch held bits 11 to 14, so the two were settled only at the merge; after them no flag bit is free.
   **Seen:** gdstudio #1012 (PR #1021) and #887, 2026-11-10
   ([the template's packets](../engines/godot/multiplayer.md#template-packets)); gdstudio #1254, 2026-11-11 (the
-  command's byte 13 was spare; it and #1277 both took version 7, so #1254, landing second, took 8).
+  command's byte 13 was spare; it and #1277 both took version 7, so #1254, landing second, took 8); #1420 (entry flag
+  bit 7 beside #1437's bit 6; version 13).
 - **Approach:** When you raise the protocol version, search the tests for the old number pinned as a literal
   (`grep -rn "is_equal(<old>)" tests`, the join suite's refusal case) and change it with the bump, before the full
   suite. **Watch out for:** the codec and wire suites read `NetWire.VERSION` and stay green, so the net suites run

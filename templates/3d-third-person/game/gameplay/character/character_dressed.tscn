@@ -29,6 +29,7 @@
 [ext_resource type="Script" path="res://gameplay/hit_zones/hit_zone.gd" id="11_hit_zone"]
 [ext_resource type="Script" path="res://gameplay/character/hit_reaction.gd" id="12_hit_reaction"]
 [ext_resource type="Script" path="res://gameplay/character/peek/peek_layer.gd" id="16_peek"]
+[ext_resource type="Script" path="res://gameplay/weapon/hold/left_shoulder.gd" id="17_left_shoulder"]
 [ext_resource type="PackedScene" path="res://gameplay/weapon/hold/weapon_hold.tscn" id="13_hold"]
 [ext_resource type="Script" path="res://core/minimap/minimap_heading.gd" id="14_heading"]
 [ext_resource type="Script" path="res://gameplay/character/aim/aim_layer.gd" id="15_aim"]
@@ -259,6 +260,13 @@ hold = NodePath("../WeaponHold")
 script = ExtResource("16_peek")
 character = NodePath("..")
 model = NodePath("../Model")
+
+[node name="LeftShoulder" type="Node" parent="." node_paths=PackedStringArray("character", "model", "hold", "aim")]
+script = ExtResource("17_left_shoulder")
+character = NodePath("..")
+model = NodePath("../Model")
+hold = NodePath("../WeaponHold")
+aim = NodePath("../AimLayer")
 
 [node name="MinimapHeading" type="Node" parent="." node_paths=PackedStringArray("turns")]
 script = ExtResource("14_heading")

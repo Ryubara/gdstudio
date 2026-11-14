@@ -84,7 +84,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   Python file written with the Write tool and run it, or use the Edit tool, then `cat -A` the lines it changed.
   **Watch out for:** a Python heredoc and a `sed -i` inside the Bash tool both turned `\r` into a real carriage return,
   twice over, so `tr -d '\r'` became `tr -d '<CR>'` and the script still passed `bash -n`. **Seen:** gdstudio #839,
-  2026-11-08 (fix: a Python file with the backslash built from a variable).
+  2026-11-08 (fix: a Python file with the backslash built from a variable); gdstudio #1472, 2026-11-13 (a `"\n"` in
+  a test and in `newline=`, and the backslash line ends of a workflow, came out as real line breaks; fix: the Edit tool).
 
 ## Folders and paths {#paths}
 
@@ -107,11 +108,11 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
 - **Approach:** From a session that sits in the kit's main checkout, commit and push in a worktree with `git -C
   <worktree> commit|push ...`, not `cd <worktree> && git commit|push`. **Watch out for:** the Git guard judges the
   command from the session's folder, before the `cd` runs, so it refused the commit as one on `main` though it would
-  have run in the worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11; gdstudio #1178, 2026-11-11 (a line that set
-  a variable before its `cd <worktree> &&` was refused; the same commit with the `cd` first passed, and `git -C` passes
-  always); #1293, 2026-11-11 (the same from a worktree's own agent: a command that sourced a helper file first and
-  changed folder after it was refused as a commit on `main`); gdstudio PR #1424, 2026-11-13 (a push after `cd <worktree>
-  &&` was refused as one to `main`).
+  have run in the worktree. **Seen:** gdstudio #1221 (PR #1225) and #1178, 2026-11-11 (a line that set a variable
+  before its `cd <worktree> &&` was refused; with the `cd` first it passed, and `git -C` always passes); #1293,
+  2026-11-11 (a worktree's own agent: a command that sourced a helper file and changed folder after it was refused as a
+  commit on `main`); PR #1424, 2026-11-13 (a push after `cd <worktree> &&` was refused as one to `main`); fix: #1472
+  follows `cd "$WT"` when the line set `WT`, not a variable from a sourced file.
 
 ## Background commands and processes {#background}
 
@@ -157,7 +158,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   (`RagdollBraces`, `test_ragdoll_cones.gd.uid`); gdstudio #926, 2026-11-10 (`character_ragdoll.gd` reached 1027
   lines with the lazy bones: the pose sample moved to `RagdollPose` and an unused helper went); gdstudio #963,
   2026-11-10 (eleven new scripts' `.uid`s, a tour's found late); #906, 2026-11-11 (a tour's, four jobs red); #1154;
-  #1403, 2026-11-13; #1411 (a test's); #1400 (four).
+  #1403, 2026-11-13; #1411, #1402 (a test's); #1400 (four).
 
 ## Reverting and checking out {#checkout}
 

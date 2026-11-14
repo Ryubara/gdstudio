@@ -32,7 +32,9 @@ and the log ends with nothing `still in use` ([why](../engines/godot/audio.md#ca
 | `--out` | Write the frames to exactly this folder instead of the scratch folder below. |
 
 The frames go to `<workspace>/scratch/<repo>/<branch>/<name>/` as `<name>00000000.png`, `<name>00000001.png`, ...
-next to Movie Maker's `<name>.wav` and a `capture.json` holding the frame rate. The repository and branch come from
+next to Movie Maker's `<name>.wav`, a `capture.json` holding the frame rate and `godot.log`, the game's whole output
+(each line is also printed as `godot: ...`, the game's own `print` lines and errors with the engine's; gdstudio #1472).
+The repository and branch come from
 the folder `gds` runs in, never from `--project`, so run it from your task's worktree: a throwaway game made by
 `gds template game` is a git repository of its own, and naming the folder from it would put every agent's frames in
 the shared `scratch/template-check/main/`. The rule is the hooks' one: the repository is the git top level's name (for
@@ -90,10 +92,10 @@ scale them down. Godot's `ERROR` lines are printed and flagged: a capture with e
 - **Approach:** When a tour's printed lines are part of the proof (each step's name, a measured number), have the
   scene also write them to a file under the capture folder, or record with `gds godot -- --path <game> --write-movie
   ...`, which keeps the game's output in the terminal (Godot's
-  `--log-file <path>` after `--` keeps it in a file). **Watch out for:** `gds capture frames` keeps Godot's output
-  to itself and shows only its `ERROR` lines, so a tour's `print` step lines never appear and its log cannot be read
-  beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11; #1037 (PR #1239), 11-11; #1337 (PR #1385),
-  11-12.
+  `--log-file <path>` after `--` keeps it in a file). **Watch out for:** `gds capture frames` kept Godot's output
+  to itself and showed only its `ERROR` lines, so a tour's `print` step lines never appeared and its log could not be
+  read beside the frames. **Seen:** gdstudio #1111 (PR #1191), 2026-11-11; #1037 (PR #1239), 11-11; #1337 (PR #1385),
+  11-12 (fix: since gdstudio #1472 it prints every line and writes `godot.log` beside the frames).
 - **Approach:** Run `gds capture frames` on a game made from the template (`gds template test <t> --keep` or `gds
   template game <t>`), never on the template's own `game/` folder. **Watch out for:** a template's `game/` folder has no
   GdUnit4 and is not a game one opens (a new game gets its addons and its import when it is made), so a capture pointed

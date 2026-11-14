@@ -154,7 +154,7 @@ class BandField(hold_field.PiecesField):
     about 90 microseconds a point on its million samples, so only the grid points within `BAND` of the surface
     (by a coarse grid built first) get the exact distance; a hand never measures from farther off."""
 
-    def __init__(self, tris, low, high, step, cache):
+    def __init__(self, tris, low, high, step, cache, rays=(2,)):
         self.low, self.step = np.array(low, float), step
         shape = np.ceil((np.array(high) - self.low) / step).astype(int) + 1
         try:
@@ -178,7 +178,7 @@ class BandField(hold_field.PiecesField):
         depth = np.zeros(shape)
         piece = hold_field.pieces(tris)
         for p in range(piece.max() + 1):
-            self._fill_piece(tris[piece == p], shape, depth, (2,))
+            self._fill_piece(tris[piece == p], shape, depth, rays)
         self.grid = np.where(depth > 0, -depth, dist).astype(np.float32)
         np.savez_compressed(cache, grid=self.grid, count=len(tris))
 

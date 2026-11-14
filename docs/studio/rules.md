@@ -46,6 +46,13 @@ sharpen that one. Only when nothing fits do you make a new section, and only whe
   folding the old lessons each made their own sections, so main got two `#simulator` sections, overlapping sections of
   `gamedev/testing.md` and two pages on running GdUnit4. **Seen:** gdstudio #770, 2026-11-07 (fix: `gdunit-tests.md`
   was folded into `running-gdunit.md` and the duplicate sections merged before each pull request landed).
+- **Approach:** Prove how `gds learn` or `gds brief` ranks on a small kit of the test's own (`tmp_path`), and let a
+  case on the live kit's pages assert what the agent sees (the five `gds learn` prints, the brief's lines) or a place
+  held by a clear margin. **Watch out for:** the live pages grow every day; words that say a phrase ("fails in a full
+  run and passes alone") scored no better than a long section with each word scattered, so `ui-input-tests.md#leaks`
+  fell from third to fourth by 0.001 when main's pages grew, and CI failed on a pull request that changed none of
+  them. **Seen:** gdstudio #1471, 2026-11-13 (fix in PR #1485: adjacent word pairs count, `lessons.PAIR_BONUS`, proved
+  on a fixed kit; the live split case asserts the five).
 
 ## An entry {#rule}
 
@@ -159,7 +166,10 @@ under `docs/`), so a 50.5 KB page still passes. When one nears it, the simplest 
 (as `landing.md`
 left `starting-work.md` and `ai-online.md` left `third-person/ai.md`), with a short section left behind for each moved
 `{#anchor}`; a topic that has outgrown its page altogether becomes a folder of subpages (as `gamedev/audio/` did).
-Those are the times a learning makes a new page. The check names the page and its size.
+Those are the times a learning makes a new page. The check names the page and its size. The section left behind is a
+short note, `Moved to [Title](new-page.md#anchor).`, linking to the same anchor on its new page (or a `<!-- moved: -->`
+note and one link): `gds brief` and `gds learn` follow it and name the new page, and an issue naming an anchor whose
+pointer was removed later still finds the one section that holds it (`lessons.moved_to`, gdstudio #1471).
 
 - **Approach:** Split a page that is filling up at about 40 KB, not at the limit: make a folder of subpages by subject,
   named apart from the page (`third-person/` beside `third-person-template.md`), with its own `index.md`; keep the old
