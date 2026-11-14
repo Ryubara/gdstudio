@@ -282,9 +282,10 @@ jobs, and on a desktop other agents load. Read its number as the runner's as muc
   and the same code read 1.6 to 1.8 times apart, against 1.4 fresh. **Seen:** gdstudio #1526, 2026-11-14 (fix:
   `AiCostBench`, three processes, score limit 1.45; 50 soak runs read 0.88 to 1.22, twice as slow 1.76 to 2.44).
 - **Approach:** When collecting a gate's rows from many CI runs, fetch only the job that prints them and wait on a run
-  with one background `gh run watch --interval 60`. **Watch out for:** 270 runs' job lists and logs beside three
-  `gh run watch` at the default 3 s used the account's hourly API budget, and every agent's `gh` call failed for ten
-  minutes. **Seen:** gdstudio #1526, 2026-11-14.
+  with one background `gh run watch --interval 60`; put everything the change needs (the shard time table too) in
+  before the pull request's soak starts. **Watch out for:** 270 runs' job lists and logs beside three `gh run watch`
+  at the default 3 s used the account's hourly API budget, and every agent's `gh` call failed for ten minutes; a push
+  after the soak passed started all 50 runs again. **Seen:** gdstudio #1526, 2026-11-14.
 - **Approach:** When one timing gate is found reading the runner, list every other gate on time in the suites (`grep
   -rln "calibration\|ruler" tests/`) and treat each the same way in the same week; print the processor beside each
   row and read the spread model by model. **Watch out for:** the walking crowd's frame budget, set on the desktop,
