@@ -70,7 +70,9 @@ func _physics_process(delta: float) -> void:
 		var puppet := _puppets[slot]
 		var kept := puppet.motion_goal
 		puppet.puppet_to(_sample, moving, delta)
-		puppet.motion_goal = PlayerPuppet.goal_of(_sample, track.heading(), kept)
+		puppet.motion_goal = PlayerPuppet.goal_of(
+			_sample, track.heading(), kept, puppet.tuning.sprint_speed
+		)
 	last_frame_us = Time.get_ticks_usec() - began
 
 

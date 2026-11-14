@@ -18,6 +18,7 @@ const BO_AT := Vector3(3.5, 0.0, 14.0)
 const MOVE_FRAMES := 30
 const STAND_FRAMES := 90
 ## The starts each gait plays, by base (no foot).
+const PLAYER := "res://gameplay/player/player.tscn"
 const STARTS := {
 	"walk": &"gds/Idle_To_Walk",
 	"jog": &"gds/Idle_To_Jog",
@@ -66,6 +67,49 @@ func test_starts_from_standing_play_on_her_own_screen_and_on_the_puppet() -> voi
 			)
 			. is_equal(want)
 		)
+
+
+func test_the_entry_carries_the_goal_speed_in_the_state_byte() -> void:
+	# The goal speed travels in the state byte's top four bits, in fifteenths of the sprint speed:
+	# no byte more, and every state still fits the low four.
+	assert_int(Character.State.size()).is_less_equal(SnapshotCodec.STATE_MASK + 1)
+	var entry := PlayerEntry.new()
+	entry.state = Character.State.MANTLE
+	entry.goal_step = SnapshotCodec.GOAL_STEPS
+	var read := SnapshotCodec.snap_player(entry)
+	assert_int(read.state).is_equal(Character.State.MANTLE)
+	assert_int(read.goal_step).is_equal(SnapshotCodec.GOAL_STEPS)
+	assert_int(SnapshotCodec.player_size(entry)).is_equal(SnapshotCodec.PLAYER_SIZE)
+	# The server sends the goal its body's command asks for; a puppet reads back the same gait.
+	var body := (load(PLAYER) as PackedScene).instantiate() as Player
+	add_child(body)
+	var tuning := body.tuning
+	for gait: String in STARTS:
+		var command := CommandDriver.walking(Vector3.LEFT)
+		command.walk = gait == "walk"
+		command.sprint = gait == "sprint"
+		body.last_command = command
+		var sent := SnapshotCodec.snap_player(NetServer.entry_of(0, body))
+		var goal := SnapshotCodec.goal_from_step(sent.goal_step, tuning.sprint_speed)
+		assert_float(goal).is_equal_approx(body.goal_speed, tuning.sprint_speed / 30.0)
+	body.last_command = PlayerCommand.new()
+	assert_int(NetServer.entry_of(0, body).goal_step).is_equal(0)
+	body.free()
+	# The puppet's goal: the entry's speed along where the snapshots head, along the goal it had
+	# while they head too slowly, along the facing with neither.
+	var asked := PlayerEntry.new()
+	asked.goal_step = SnapshotCodec.GOAL_STEPS
+	asked.yaw = PI / 2.0
+	(
+		assert_vector(PlayerPuppet.goal_of(asked, Vector3.LEFT * 1.2, Vector3.ZERO, 6.5))
+		. is_equal_approx(Vector3.LEFT * 6.5, Vector3.ONE * 0.001)
+	)
+	assert_vector(PlayerPuppet.goal_of(asked, Vector3.ZERO, Vector3.BACK, 6.5)).is_equal_approx(
+		Vector3.BACK * 6.5, Vector3.ONE * 0.001
+	)
+	assert_vector(PlayerPuppet.goal_of(asked, Vector3.ZERO, Vector3.ZERO, 6.5)).is_equal_approx(
+		Vector3.RIGHT * 6.5, Vector3.ONE * 0.001
+	)
 
 
 # Ada stands for `frames` physics frames.

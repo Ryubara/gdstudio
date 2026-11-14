@@ -27,9 +27,9 @@ extends RefCounted
 ##                before the first). 7 bytes
 ## PONG     S->C  u8 type=7, the same u32 and u16, u32 server tick. 11 bytes
 ##
-## A player entry: u8 slot, s16 x/y/z (cm), u16 yaw, u8 state, u8 flags (crouch, aim, sprint,
-## air, rising, dead, halt in bit 7), s8 pitch, and with the aim flag s8 the aim's heading off the
-## body (`SnapshotCodec`). 12 bytes, 13 while aiming.
+## A player entry: u8 slot, s16 x/y/z (cm), u16 yaw, u8 state (the goal speed in the top four
+## bits), u8 flags (crouch, aim, sprint, air, rising, dead, halt in bit 7), s8 pitch, and with the
+## aim flag s8 the aim's heading off the body (`SnapshotCodec`). 12 bytes, 13 while aiming.
 ##
 ## Every decoder checks each length before it reads, answers null (or -1) for a packet that is
 ## not exactly one message, and counts why in a `NetDrops` (never silent). The version is read
@@ -49,11 +49,12 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## ends with the aim's heading off the body (gdstudio #1277); 8: a COMMAND's byte 13 carries
 ## the melee press, a MELEE event and an AI event's `MELEE` code (gdstudio #1254); 9: a COMMAND's
 ## byte 14 carries the hotbar place used, and a USE event (gdstudio #1386); 10: a player entry's
-## flags carry `halt`, asked for no move (bit 7, gdstudio #1420).
-const VERSION := 10
+## flags carry `halt`, asked for no move (bit 7, gdstudio #1420); 13: a player entry's state byte
+## carries the goal speed in its top four bits (gdstudio #1453; 11 and 12 are open beside it).
+const VERSION := 13
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
-const MIN_VERSION := 10
+const MIN_VERSION := 13
 
 ## Where the version byte is in a HELLO and a WELCOME.
 const VERSION_AT := 1

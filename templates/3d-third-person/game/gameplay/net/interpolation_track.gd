@@ -75,6 +75,7 @@ func sample(at: float, into: PlayerEntry) -> Vector3:
 	# The goal is the one the drawn move heads for: a stop begins as the move toward a halted
 	# snapshot does, a start as the move away from one does (gdstudio #1420).
 	into.halt = b.halt
+	into.goal_step = b.goal_step
 	if a.position.distance_to(b.position) > WARP_DISTANCE:
 		return Vector3.ZERO
 	var share := (at - _times[index]) / (_times[index + 1] - _times[index])
@@ -120,5 +121,6 @@ static func _copy(from: PlayerEntry, into: PlayerEntry) -> void:
 	into.rising = from.rising
 	into.dead = from.dead
 	into.halt = from.halt
+	into.goal_step = from.goal_step
 	into.pitch = from.pitch
 	into.aim_yaw = from.aim_yaw
