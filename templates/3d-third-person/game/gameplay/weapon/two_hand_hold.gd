@@ -17,8 +17,7 @@ extends Node3D
 ## `Pivot`.
 ##
 ## The parts a person tunes are scene nodes: `Pivot` (the shoulder's pocket, which this node moves
-## and turns; its physics interpolation is off, since it is placed while the skeleton updates,
-## outside the tick, and an interpolated node is drawn a frame behind the skin: gdstudio #1473),
+## and turns; not physics-interpolated, or it is drawn a frame behind the skin: gdstudio #1473),
 ## the gun under it, the hands' places on the gun (`RightHandTarget`,
 ## `LeftHandTarget` and `MagazineHand`, where each hand's bone sits: written with the finger poses
 ## by `tools/hold/solve_rifle_hold.py`, so the skin meets the gun) and the elbows' pole markers
