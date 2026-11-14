@@ -187,7 +187,8 @@ weights and the slide.
   however inactive), raise `NODES_ALIVE` in `test_parts_budget.gd` by as many, with a line on what it is, in the same
   commit; grep the suites for `NODES_ALIVE` before the full run. **Watch out for:** the aim suites pass and only the
   full run counts the body, so the extra node shows up as an off-by-one in a suite that looks unrelated. **Seen:**
-  gdstudio #1351, 2026-11-12 (`AimUprightModifier`, 65 to 66).
+  gdstudio #1351, 2026-11-12 (`AimUprightModifier`, 65 to 66); #1435, 2026-11-13 (`LeftShoulder` and its two
+  modifiers, 72 to 75, found by the full run).
 - **Approach:** Save a part's cost by skipping work whose result is not drawn (a modifier that stays off), never by
   distance or visibility, and prove it with a switch that turns the shortcut off: two bodies side by side through the
   same commands, one with it off, every bone read inside `skeleton_updated`, through every state that turns the

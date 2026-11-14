@@ -71,7 +71,9 @@ func _process_modification_with_delta(_delta: float) -> void:
 	if top >= 0:
 		var ahead := (chest.basis.orthonormalized() * _rest_inverse) * Vector3.BACK
 		yaw = rad_to_deg(atan2(ahead.x, ahead.z))
-	var degrees := (hold.chest_turn - yaw) * hold.chest_weight()
+	# `left_chest_turn` on the left shoulder (a left peek lean, gdstudio #1435).
+	var turn_now := lerpf(hold.chest_turn, hold.left_chest_turn, hold.side)
+	var degrees := (turn_now - yaw) * hold.chest_weight()
 	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
 	_turn_head(skeleton, top, degrees)
 	_straighten_chest(skeleton, top)
