@@ -379,6 +379,12 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   that frame and held the body in it, so the push clip never played and the vault's hands left the top by 0.3 m;
   the transition tests passed, since their clips existed only in their own suite. **Seen:** gdstudio #1156,
   2026-11-12 (`GaitTransitions.on_foot`; `test_player_actions.gd`, `test_push_cubes.gd`, `test_vault_contacts.gd`).
+- **Approach:** Prove a cost change keeps the pose with two bodies side by side, stepped by the same commands in the
+  same frames, each skeleton's update called by hand and every bone read inside its `skeleton_updated` (what the skin
+  gets, before the engine puts the unmodified poses back); give the body under test its own copies of the clips when
+  the change is to shared ones. **Watch out for:** two players made one after the other and walked through the same
+  commands were drawn up to 1 radian apart at their first frame (the upper arm), with the change on in both.
+  **Seen:** gdstudio #1438, 2026-11-13 (`test_helper_tracks.gd`: side by side, 0 apart in place and turn).
 - **Approach:** Prove an inertialization (or any blend started on a change of state) by the drawn pose: record each
   body bone's place in the model's frame at `skeleton_updated` every frame through the change, and fail on a move far
   above the clip's own largest. **Watch out for:** the momentum blend began on the frame the state machine reported
