@@ -274,6 +274,17 @@ jobs, and on a desktop other agents load. Read its number as the runner's as muc
   8.06 against 8.0; a physics ruler spread 1.55 times over 150 runs where the GDScript one spread 1.73. **Seen:**
   gdstudio #1405, 2026-11-13 (fix: `PhysicsRuler`, limits by system, the teeth case `SlowAiDirector`); before it,
   8.52 and 8.349 on #1364 and #1399, 11-12.
+- **Approach:** Measure a timing gate in fresh processes of its own (a bench scene the suite starts headless with
+  `OS.execute`), judge the median of a few, and pool the sizes into one score over each size's typical ratio, with a
+  looser limit on one size; set both from a soak of those processes, the limit about as far over the highest score as
+  under the twice-as-slow case's lowest. **Watch out for:** limits set from a soak of the suite alone failed twice a
+  day in the template job, which runs it after other suites in one process: there the AI's counters and heap differ
+  and the same code read 1.6 to 1.8 times apart, against 1.4 fresh. **Seen:** gdstudio #1526, 2026-11-14 (fix:
+  `AiCostBench`, three processes, score limit 1.45; 50 soak runs read 0.88 to 1.22, twice as slow 1.76 to 2.44).
+- **Approach:** When collecting a gate's rows from many CI runs, fetch only the job that prints them and wait on a run
+  with one background `gh run watch --interval 60`. **Watch out for:** 270 runs' job lists and logs beside three
+  `gh run watch` at the default 3 s used the account's hourly API budget, and every agent's `gh` call failed for ten
+  minutes. **Seen:** gdstudio #1526, 2026-11-14.
 - **Approach:** When one timing gate is found reading the runner, list every other gate on time in the suites (`grep
   -rln "calibration\|ruler" tests/`) and treat each the same way in the same week; print the processor beside each
   row and read the spread model by model. **Watch out for:** the walking crowd's frame budget, set on the desktop,

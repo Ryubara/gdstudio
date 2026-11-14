@@ -32,17 +32,22 @@ const GATE_RUNS := 3
 ## Fresh processes the teeth case measures in (the slow step reads far over the limit).
 const SLOW_RUNS := 1
 ## The director's step a character a tick (median), microseconds a ruler millisecond (median),
-## that unchanged code reads in a typical fresh process, by system and crowd size: @@TYPICAL_NOTE@@
+## that unchanged code reads in a typical fresh process, by system and crowd size. Linux: the
+## medians of 150 processes on CI (50 suite runs, 2026-11-14), which read 7.4 to 12.1, 6.7 to 9.7
+## and 5.4 to 7.2; Windows: three desktop processes with other agents' Godot beside them.
 const STEP_RATIO_TYPICAL := {
-	"Linux": {50: 9.0, 100: 8.0, 200: 5.9},
+	"Linux": {50: 8.7, 100: 7.65, 200: 6.2},
 	"Windows": {50: 11.0, 100: 9.5, 200: 7.8},
 }
 ## The step's score at most: the geometric mean over the three sizes of the step ratio over its
-## typical value, the median of the runs. @@SCORE_NOTE@@
+## typical value, the median of the runs. Those 50 suite runs scored 0.88 to 1.22 (a single
+## process 0.87 to 1.23) and the step made twice as slow 1.76 to 2.44: the limit sits about a
+## fifth above the one and below the other.
 const STEP_SCORE_LIMIT := 1.45
 ## One size's step ratio over its typical value (the median of the runs) at most: a size that grew
-## alone (a step that grows with the crowd) does not hide in the pool. @@SIZE_NOTE@@
-const STEP_SIZE_LIMIT := 1.8
+## alone (a step that grows with the crowd) does not hide in the pool. The 50 suite runs read at
+## most 1.32, 1.20 and 1.14.
+const STEP_SIZE_LIMIT := 1.6
 ## A think (median), microseconds a ruler millisecond, at most, by system and crowd size (a think
 ## grows with the crowd it reads). Linux: 150 CI runs read 8.7 to 13.4, 11.1 to 15.4 and 14.8 to
 ## 19.6; Windows: the four desktop runs, 12.7 to 15.4, 17.4 to 20.2 and 23.6 to 26.0.
