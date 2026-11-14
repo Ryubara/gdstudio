@@ -53,9 +53,10 @@ enum Refusal { VERSION = 1, FULL = 2, WORLD = 3 }
 ## byte 14 carries the hotbar place used, and a USE event (gdstudio #1386); 11: a COMMAND's byte
 ## 13 carries the peek lean and a leaning player's entry ends with it (gdstudio #1400; 10 is named
 ## by open pull requests beside it); 13: a player entry's flags carry `halt`, asked for no move
-## (bit 7, gdstudio #1420; 12 is named by an open pull request beside it); 18: an AI row's speed
-## is the speed the body is asked for, not the one it has (gdstudio #1452; 16 and 17 are named by
-## open pull requests beside it).
+## (bit 7, gdstudio #1420); 16: a server's left-leaning body starts a muzzleless shot on the left
+## (gdstudio #1435), so a client predicts its shots as the server steps them; 18: an AI row's speed
+## is the speed the body is asked for, not the one it has (gdstudio #1452; 12, 14, 15 and 17 are
+## named by open pull requests beside it).
 const VERSION := 18
 ## The oldest client version this build's server takes; equal to `VERSION` while the web client
 ## and the server ship from one commit.
