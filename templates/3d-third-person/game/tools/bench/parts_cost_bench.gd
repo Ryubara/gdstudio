@@ -39,7 +39,7 @@ const FRAMES := 300
 ## processes is timed under `others`.
 const HAND_PARTS: Array[String] = ["Animation", "Footsteps", "Ragdoll"]
 ## Rounds and frames of the modifiers' split (each round: all on, then each one off in turn).
-const MODIFIER_ROUNDS := 3
+const MODIFIER_ROUNDS := 5
 const MODIFIER_FRAMES := 60
 const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 const MALE := CharacterBodies.MALE
@@ -284,22 +284,29 @@ static func _update_skeleton(skeleton: Skeleton3D, delta: float) -> void:
 
 
 # Each active modifier's share of the skeleton's update, microseconds a character a frame: the
-# update with all of them on less the update with that one off, in turns, the lowest of the rounds.
+# update with all of them on less the update with that one off, in turns, the median of the rounds.
 func _modifier_split(bodies: Array[Character]) -> Dictionary:
 	var names: Array[String] = []
 	for node in (bodies[0].model as CharacterModel).skeleton().get_children(true):
 		var modifier := node as SkeletonModifier3D
 		if modifier != null and modifier.active:
 			names.append(_modifier_name(modifier))
-	var best := {}
+	var shares := {}
+	# A first pass unmeasured: the first frames after the hand loop read slower.
+	await _skeleton_frames(bodies, "")
 	for _round in MODIFIER_ROUNDS:
 		var all_on := await _skeleton_frames(bodies, "")
 		for modifier_name in names:
 			var without := await _skeleton_frames(bodies, modifier_name)
-			best[modifier_name] = minf(best.get(modifier_name, INF), all_on - without)
-	for modifier_name: String in best:
-		best[modifier_name] = maxf(best[modifier_name], 0.0)
-	return best
+			if not shares.has(modifier_name):
+				shares[modifier_name] = []
+			shares[modifier_name].append(all_on - without)
+	var result := {}
+	for modifier_name: String in shares:
+		var values: Array = shares[modifier_name]
+		values.sort()
+		result[modifier_name] = maxf(values[values.size() / 2], 0.0)
+	return result
 
 
 # The skeleton's update a character a frame, microseconds, with the modifier named `off` switched
