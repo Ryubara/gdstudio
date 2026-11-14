@@ -16,8 +16,8 @@ extends RefCounted
 ##          left                                               9 + 14 n + 8 moves + 2 gone
 ##
 ## A row (`AiRow`): u16 id, s16 x/y/z (cm from the section's origin), u8 yaw (256 steps), u8 speed
-## (0.05 m/s), u8 mode (bits 0-2 the situation, 3-6 the body's state, 7 aiming), u16 target (a
-## HIT's id, `NO_TARGET`), u8 variant. 14 bytes.
+## (0.05 m/s, the speed the body is asked for: `AiRow.speed`), u8 mode (bits 0-2 the situation,
+## 3-6 the body's state, 7 aiming), u16 target (a HIT's id, `NO_TARGET`), u8 variant. 14 bytes.
 ##
 ## A move: a held character whose target and look did not change and whose place moved at most
 ## 1.27 m each way: u16 id, s8 x/y/z (cm from the place held), u8 yaw, u8 speed, u8 mode. 8 bytes:

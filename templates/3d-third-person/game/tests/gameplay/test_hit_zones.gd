@@ -219,8 +219,8 @@ func test_movement_the_camera_and_areas_never_meet_a_zone() -> void:
 		assert_int(masks[what] & PhysicsLayers.HIT_ZONES).override_failure_message(what).is_equal(0)
 	assert_int(_target.collision_mask & PhysicsLayers.HIT_ZONES).is_equal(0)
 	assert_int(_target.ragdoll_body.collision_mask & PhysicsLayers.HIT_ZONES).is_equal(0)
-	# In the world: a ray of every other mask through the head finds nothing (the capsule is
-	# excluded), a ray of the zones' own mask finds the head.
+	# In the world: a ray of every other mask through the head finds nothing (the capsule and its
+	# shot hull are excluded), a ray of the zones' own mask finds the head.
 	_zones.follow_bones()
 	var centre := _zones.zone(&"head").global_position
 	var space := _arena.get_world_3d().direct_space_state
@@ -231,7 +231,7 @@ func test_movement_the_camera_and_areas_never_meet_a_zone() -> void:
 		| PhysicsLayers.SHOT_MASK
 	)
 	var query := PhysicsRayQueryParameters3D.create(
-		centre + Vector3(0.0, 0.0, 2.0), centre, others, [_target.get_rid()]
+		centre + Vector3(0.0, 0.0, 2.0), centre, others, ShotHull.rids_of(_target)
 	)
 	query.collide_with_areas = true
 	var met := space.intersect_ray(query)
@@ -283,6 +283,7 @@ func test_the_hit_zones_pin_their_exports() -> void:
 		&"enabled": true,
 		&"ray_length": 1.2,
 		&"look_back": 0.5,
+		&"hull": null,
 	}
 	var holder := auto_free(HitZones.new()) as HitZones
 	assert_array(ExportPins.differences(holder, zones_pins)).is_empty()

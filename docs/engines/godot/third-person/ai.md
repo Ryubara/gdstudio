@@ -138,7 +138,9 @@ instead of every frame, and the ragdoll keeps no per-tick pose for its bones' ow
 leaves with the character's velocity, as `pose_velocity` off does). Footsteps play only for a character animated every
 frame within `footstep_range` of the camera, which is the listener. The tree keeps its callback mode: only its own
 update stops ([AnimationTree: throttling a running tree](../animation-tree.md#throttling-a-running-tree)). Cosmetic and
-per machine: nothing in it changes what a body does or what a network sends, and the player, a `character_dressed.tscn`
+per machine: nothing in it changes what a body does or what a network sends, and a shot that reaches a held pose
+catches it up first, so what it hits does not hang on the view ([the shot hull](../third-person-hits.md#shot-hull),
+gdstudio #1431); the player, a `character_dressed.tscn`
 alone and a director without a throttle animate exactly as before.
 
 Near the camera nothing changes: `tools/capture/ai_tour.tscn` filmed with the throttle on and off matches frame for
@@ -327,3 +329,10 @@ has it, a late joiner's one snapshot, a death's ragdoll on another screen from o
 the puppet, a browser's cap) and `test_net_ai_section.gd` (the AI section's population on a server, drawn by a
 client); the capture is `tools/capture/ai_online_tour.tscn` (the server's world beside Bo's
 screen) and the cost `tools/net/bandwidth.py --ai` ([the numbers](ai-online.md#replication-cost)).
+
+- **Approach:** When `test_ai_section.gd` fails in a full run with a guard noticing a player behind it, and passes
+  alone, look for a suite before it that left the left button down (a held left button is `fire`, and the guard turns
+  to the shot), not for machine load or the senses ([What a suite leaves behind](../ui-input-tests.md#leaks)).
+  **Watch out for:** it failed in nearly every local full run on 2026-11-12 and was put down to load, on six branches
+  that never touched the senses. **Seen:** gdstudio #1357 (PR #1396), 2026-11-12 (3D Blank's touch test kept the
+  button down).

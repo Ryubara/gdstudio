@@ -45,13 +45,15 @@ rifle carried it gives only rounds, with a full reserve it stays, the rifle fire
 no loadout leaves it, both hands reach their places and let go when it is put away, the step state takes a given
 weapon back), `test_rifle_hold.gd` ([the rifle in both hands](#rifle-hands)) and `test_rifle_run_state.gd` (the run,
 the sprint and the slide with the rifle are the same fresh, after a switch, after a burst, after a reload and after
-going unarmed, and the pistol's run the same after the rifle, on both bodies; `tools/capture/rifle_run_tour.tscn`
+going unarmed, and the pistol's run the same after the rifle, on both bodies; the rifle's run and sprint lean
+`carry_lean_limit` on average, [the carry](rifle-carry.md#rifle-carry); `tools/capture/rifle_run_tour.tscn`
 films it from the game camera with a side view, and with `RUN_STAGES=directions` the sprint in every direction and a
 reload on it), `test_rifle_sprint_carry.gd` ([the sprint](#rifle-hands)) and `test_rifle_draw_trunk.gd` (no spine bone
 past `chest_turn` and the head within 15 degrees of the front through a pickup and a switch to the rifle, standing, out
 of a run and a sprint, on both bodies, kit #1327). Captures:
 `tools/capture/rifle_tour.tscn` from the game camera (the floating rifle, taking it, the low ready, a walk, the aim, a
-burst, the aim up and down, the reload, hip fire, a crouch, a switch to the pistol and back) and
+burst, the aim up and down, the reload, hip fire, a crouch, a switch to the pistol and back; its pitch takes the
+camera rig's sign, positive looking down, gdstudio #1399) and
 `tools/capture/rifle_hands.tscn` (six close-ups at once in every state).
 
 Cost, measured on the desktop: a pickup's spin and bob 0.8 to 0.9 microseconds a frame; ten rifle pickups drew 35 draw

@@ -53,6 +53,12 @@ sharpen that one. Only when nothing fits do you make a new section, and only whe
   fell from third to fourth by 0.001 when main's pages grew, and CI failed on a pull request that changed none of
   them. **Seen:** gdstudio #1471, 2026-11-13 (fix in PR #1485: adjacent word pairs count, `lessons.PAIR_BONUS`, proved
   on a fixed kit; the live split case asserts the five).
+- **Approach:** When an entry names a file (a test, a script) that another section already names, run `gds brief` for
+  the issue the entry comes from and check that both sections are among its lines. **Watch out for:** a brief gave a
+  path the issue names only its one closest mentioning section, so a new on-topic entry beside the code pushed the
+  cause's section out: `third-person/ai.md#proof`, naming `test_ai_section.gd`, took the place of
+  `ui-input-tests.md#leaks` in #1357's brief, and the issue's words alone ranked leaks ninth. **Seen:** gdstudio PR
+  #1474, 2026-11-14 (fix in PR #1517: two mentioning sections per path, `lessons.MENTIONS_PER_PATH`).
 
 ## An entry {#rule}
 
@@ -161,7 +167,9 @@ and of a task agent's prompt, the corrections log), names it as `<page>#<anchor>
 
 ## Page size {#size}
 
-A page holds at most 50 KB. When one nears it, the simplest move is one subject to a sibling page (as `landing.md`
+A page holds at most 50 KB: 51,200 bytes as the check counts them (`MAX_PAGE_KB` in `lessons.py`, for the pages
+under `docs/`), so a 50.5 KB page still passes. When one nears it, the simplest move is one subject to a sibling page
+(as `landing.md`
 left `starting-work.md` and `ai-online.md` left `third-person/ai.md`), with a short section left behind for each moved
 `{#anchor}`; a topic that has outgrown its page altogether becomes a folder of subpages (as `gamedev/audio/` did).
 Those are the times a learning makes a new page. The check names the page and its size. The section left behind is a
@@ -182,15 +190,15 @@ pointer was removed later still finds the one section that holds it (`lessons.mo
   **Watch out for:** nothing on a page says it is near the limit, so entries kept landing on `online-client.md`,
   `third-person/ai.md` and `hooks.md` until each sat within a few hundred bytes of 50 KB and the next entry, or a
   merge of two that each fitted, failed the check. **Seen:** gdstudio #1193 (PR #1199), #1198 (PR #1223), #1208
-  (PR #1219) and #1222 (PR #1227), 2026-11-11.
+  (PR #1219) and #1222 (PR #1227), 2026-11-11; #1267 and #1191, 11-12 (each split `tools/blender/animation.md` its own
+  way: before a split, look for an open pull request splitting the same page).
 - **Approach:** After merging main into a branch that adds to a page, run `python .github/scripts/mistakes.py check`
   on the merge result; when the page is over 50 KB, move the branch's own section to a subpage of its subject and leave
   a pointer under the old anchor. **Watch out for:** each side was under the limit, so neither pull request's checks
-  saw it; only the merge put `hooks.md` over 50 KB, and the branch could not land. **Seen:** gdstudio #1202, 2026-11-11
-  (the hold section moved to `hooks-hold.md`, a pointer stays at `hooks.md#hold`; the check passed); gdstudio #1298,
-  2026-11-11 (main had `own-animation.md` at 49.8 KB, so the branch's `#audit-bodies` table moved to
-  `body-crossings.md`); gdstudio #1254 (PR #1315), 2026-11-12 (main's tracer and rifle entries left `shooting.md` at
-  50.5 KB, so the branch's melee section moved to `third-person/melee.md`).
+  saw it; only the merge put the page over. **Seen:** gdstudio #1202, 2026-11-11 (`hooks.md`, the hold section moved
+  to `hooks-hold.md`); #1298, 2026-11-11 (`own-animation.md`); #1254 (PR #1315), 2026-11-12 (`shooting.md`, melee
+  moved to `third-person/melee.md`); #1490 (PR #1516), 2026-11-14 (main grew `weapon-pickups.md` to 51,094 bytes
+  after the branch's base; the paragraph was dropped).
 
 ## Where the entry is named {#named}
 

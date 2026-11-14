@@ -47,6 +47,7 @@ enabled=PackedStringArray("res://addons/gds_game/plugin.cfg", "res://addons/gds_
 3d_physics/layer_5="Ragdoll"
 3d_physics/layer_6="Hit Zones"
 3d_physics/layer_7="Sensors"
+3d_physics/layer_8="Shot Hulls"
 
 [phantom_camera]
 

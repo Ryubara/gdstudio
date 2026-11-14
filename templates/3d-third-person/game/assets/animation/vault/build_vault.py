@@ -2093,7 +2093,14 @@ def main():
     parser.add_argument("--only", default="")
     parser.add_argument("--no-fail", action="store_true")
     parser.add_argument("--trace", action="store_true")
+    parser.add_argument("--check", action="store_true", help="compare with the files on disk, write nothing")
     args = parser.parse_args(argv)
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # clip_check.py
+    sys.dont_write_bytecode = True  # Blender ignores PYTHONDONTWRITEBYTECODE
+    import clip_check
+
+    checking = clip_check.Check(args.check)
+    args.out = checking.folder(args.out)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -2167,6 +2174,7 @@ def main():
     text = json.dumps(numbers, indent=2) + "\n"
     (out / rig.body["sidecar"]).write_text(text, encoding="utf-8", newline="\n")
     print("EXPORTED", path, json.dumps(found)[:400])
+    checking.finish()
 
 
 if __name__ == "__main__":

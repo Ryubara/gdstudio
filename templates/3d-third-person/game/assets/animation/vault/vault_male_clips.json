@@ -321,11 +321,11 @@
         ],
         "overlap_mm": {
           "form_male": {
-            "deepest": 4.6,
+            "deepest": 4.5,
             "frame": 16,
             "pair": "thigh_l in thigh_r",
             "by_class": {
-              "leg/leg": 4.6
+              "leg/leg": 4.5
             }
           }
         },

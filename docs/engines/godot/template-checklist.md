@@ -115,7 +115,7 @@ remote-inspector message ([Changing values like the remote inspector](editor-scr
   gdlint's `max-public-methods`. A non-exported `automatic` alias placed in `WeaponDef`'s Fire group made every export
   after it a `class-definitions-order` error (75 at once). **Seen:** gdstudio #1352, 2026-11-12 (both caught by the
   commit hook); gdstudio #1420, 2026-11-13 (`Character.goal_direction()` failed it; now
-  `CharacterGoal.direction()`, off `Character`).
+  `CharacterGoal.direction()`, off `Character`); #1452 (a `goal` member shadowed a local).
 
 - **Approach:** When a change adds a setting to an extending template's own `project.godot`, run
   `python/tests/test_new_game.py` before the push: it compares that file with the base's and lists each allowed

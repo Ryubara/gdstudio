@@ -145,6 +145,6 @@ static func probe(space: PhysicsDirectSpaceState3D, point: Vector3, normal: Vect
 		return {}
 	var along := normal.normalized() if normal.length_squared() > 0.0 else Vector3.UP
 	var query := PhysicsRayQueryParameters3D.create(
-		point + along * PROBE, point - along * PROBE, PhysicsLayers.SHOT_MASK
+		point + along * PROBE, point - along * PROBE, PhysicsLayers.SURFACE_MASK
 	)
 	return space.intersect_ray(query)

@@ -13,7 +13,8 @@ is under [Solving a held pose](#solved-holds).
 The 3D Third Person rifle is not on a bone: `TwoHandHold` places it from the chest bone after the clip, turns the
 chest, reaches the arms and closes the fingers. Its six clips
 (`templates/3d-third-person/game/assets/animation/rifle/build_rifle_clips.py`: idle, three aims, a shot, a reload)
-are the body under that.
+are the body under that. The built `rifle_clips.glb` is a Git LFS file: compare two builds through `git show
+<rev>:<path> | git lfs smudge`, never `git show` alone ([Reading a glb back](export.md#reimport)).
 
 - **Work the game's hold out in the build, from the game's own files.** The build reads the hold's exported numbers
   from its script, the hands' places from its scenes and the finger poses from their resources, and runs the same
