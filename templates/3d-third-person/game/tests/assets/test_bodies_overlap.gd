@@ -53,7 +53,7 @@ func after_test() -> void:
 
 # A copy of the measure script with `more` added at its end, outside the game.
 func _changed(more: String) -> String:
-	var copy := "user://limb_overlap_%d_%d.py" % [Time.get_ticks_usec(), _copies.size()]
+	var copy := "user://limb_overlap_%d_%d.py" % [OS.get_process_id(), _copies.size()]
 	var file := FileAccess.open(copy, FileAccess.WRITE)
 	file.store_string(FileAccess.get_file_as_string(BodiesOverlap.MEASURE) + more)
 	file.close()

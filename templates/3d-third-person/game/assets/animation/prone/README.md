@@ -21,7 +21,9 @@ lengths and crawl speed; which file it is loaded from follows the model:
 
 Each file has its limb overlap report beside it (`<file>_overlap.json`, written by `../limb_overlap.py --brief` on
 the body that plays it), which `tests/gameplay/test_prone_clips.gd` reads with the file's SHA-256: a rebuilt file
-that was not measured again fails.
+that was not measured again fails. The report also holds the hash of the measure's code and of the body's file
+(`../measure_hash.py`, kit #1479), so it is measured again as well when `../limb_overlap.py`'s code or the body
+changes (a comment or a rewrapped line in the script does not count).
 
 A clip holds the pelvis's height and every joint angle that sets an elbow's or a knee's height, so one file cannot
 rest both bodies on the floor: in `prone.glb` the male, whose upper arms are 5 cm longer (0.27 m against 0.22 m) and
