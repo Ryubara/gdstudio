@@ -18,10 +18,12 @@ load this file by path.
 from __future__ import annotations
 
 import math
+import posixpath
 import re
 import subprocess
 import unicodedata
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 
 DOCS = Path("docs")
@@ -187,6 +189,52 @@ def sections_in(root: Path) -> list[Section]:
     for path in topic_pages(root):
         out += parse_sections(path.relative_to(root / DOCS).as_posix(), path.read_text(encoding="utf-8"))
     return out
+
+
+#: A pointer section's own text (without its comments) is at most this long: a note that the section moved, not a
+#: section with text of its own.
+POINTER_CHARS = 400
+_MD_LINK = re.compile(r"\[[^\]]*\]\(\s*((?:[\w.-]+/)*[\w.-]+\.md)#([A-Za-z0-9_-]+)\s*\)")
+_MOVED_NOTE = re.compile(r"<!--\s*moved\b", re.IGNORECASE)
+
+
+def moved_to(section: Section) -> tuple[str, str] | None:
+    """(page under docs/, anchor) of the section a pointer left by a split sends its reader to, None for a section with
+    text of its own. A pointer is a short note (`POINTER_CHARS`) that links to a section on another page with its own
+    anchor, or, under a `<!-- moved: ... -->` note or starting "Moved", to one section (gdstudio #1471:
+    `own-animation.md#audit-gaits` says "Moved to [The gaits](library-clip-audit.md#audit-gaits)")."""
+    prose = re.sub(r"<!--.*?-->", "", section.body, flags=re.DOTALL).strip()
+    if not prose or len(prose) > POINTER_CHARS:
+        return None
+    links: list[tuple[str, str]] = []
+    for found in _MD_LINK.finditer(prose):
+        page = posixpath.normpath(posixpath.join(posixpath.dirname(section.page), found.group(1)))
+        if not page.startswith("../") and page != section.page and (page, found.group(2)) not in links:
+            links.append((page, found.group(2)))
+    same = [link for link in links if link[1] == section.anchor]
+    if same:
+        return same[0]
+    marked = prose.lower().startswith("moved") or _MOVED_NOTE.search(section.body)
+    return links[0] if marked and len(links) == 1 else None
+
+
+def follow(section: Section, by_ref: dict[str, Section]) -> Section:
+    """The section a pointer leads to through every hop (`moved_to`), the section itself when it is not a pointer or
+    its target is not in `by_ref`."""
+    seen = {section.ref}
+    while (target := moved_to(section)) and (ref := f"{target[0]}#{target[1]}") in by_ref and ref not in seen:
+        section = by_ref[ref]
+        seen.add(ref)
+    return section
+
+
+def moved_home(page: str, anchor: str, sections: list[Section]) -> Section | None:
+    """The section that holds `anchor` now that `page` no longer has it (a split whose pointer was removed later): the
+    only other section with that anchor, or the only one in the page's folder; None when no single one fits."""
+    found = [s for s in sections if s.anchor == anchor and s.page != page and not moved_to(s)]
+    if len(found) > 1:
+        found = [s for s in found if posixpath.dirname(s.page) == posixpath.dirname(page)]
+    return found[0] if len(found) == 1 else None
 
 
 def page_problems(page: str, text: str) -> list[str]:
@@ -499,26 +547,43 @@ def terms(text: str) -> list[str]:
 class Match:
     score: float
     section: Section | None = None
+    moved_from: str = ""  # the pointer's `page.md#anchor` when the section was reached through one
+
+
+#: How much more a section scores in `gds learn` for holding the query's words side by side as the query has them
+#: ("fails in a full run", "passes alone"): its score grows by this times the share of the query's adjacent word pairs
+#: it has. Common words are not terms, so "full run" is a pair in "fails in a full run" too. Without it a long section
+#: that has every word scattered outranked the one that says the phrase (gdstudio #1471: `ui-input-tests.md#leaks`
+#: fell from the top three as main's pages grew).
+PAIR_BONUS = 1.0
+
+
+def _pairs(*texts: list[str]) -> set[tuple[str, str]]:
+    """The adjacent term pairs of each term list (pairs never span two lists)."""
+    return {pair for words in texts for pair in pairwise(words)}
 
 
 def _rank(query: list[str], docs: list[tuple[object, list[str], list[str], list[str]]]) -> list[tuple[float, object]]:
-    """BM25 over (item, title terms, path terms, body terms): a title word counts 4, a path word 2, a body word 1, and
-    the score is scaled by the share of the query's terms the item has."""
+    """BM25 over (item, title terms, path terms, body terms): a title word counts 4, a path word 2, a body word 1, the
+    score is scaled by the share of the query's terms the item has, and raised by the share of the query's adjacent
+    pairs it has side by side (`PAIR_BONUS`)."""
     wanted = list(dict.fromkeys(query))
     if not wanted or not docs:
         return []
+    asked = _pairs(query) - {(w, w) for w in wanted}
     counted = []
     for item, title, path, body in docs:
         tf: dict[str, float] = {}
         for weight, words in ((4.0, title), (2.0, path), (1.0, body)):
             for w in words:
                 tf[w] = tf.get(w, 0.0) + weight
-        counted.append((item, tf, len(title) * 4 + len(path) * 2 + len(body)))
+        near = len(asked & _pairs(title, body)) / len(asked) if asked else 0.0
+        counted.append((item, tf, len(title) * 4 + len(path) * 2 + len(body), near))
     total = len(counted)
-    average = sum(n for _, _, n in counted) / total or 1.0
-    df = {t: sum(1 for _, tf, _ in counted if t in tf) for t in wanted}
+    average = sum(n for _, _, n, _ in counted) / total or 1.0
+    df = {t: sum(1 for _, tf, _, _ in counted if t in tf) for t in wanted}
     out = []
-    for item, tf, length in counted:
+    for item, tf, length, near in counted:
         hits = [t for t in wanted if t in tf]
         if not hits:
             continue
@@ -526,17 +591,51 @@ def _rank(query: list[str], docs: list[tuple[object, list[str], list[str], list[
         for t in hits:
             idf = math.log(1 + (total - df[t] + 0.5) / (df[t] + 0.5))
             score += idf * tf[t] * 2.2 / (tf[t] + 1.2 * (0.25 + 0.75 * length / average))
-        out.append((score * len(hits) / len(wanted), item))
+        out.append((score * len(hits) / len(wanted) * (1 + PAIR_BONUS * near), item))
     return sorted(out, key=lambda pair: -pair[0])
 
 
+def resolve_ref(
+    page: str, anchor: str, sections: list[Section], by_ref: dict[str, Section]
+) -> tuple[Section, str] | None:
+    """The section a named `page.md#anchor` leads to among `by_ref`, and the ref it moved from ("" when it did not): a
+    pointer is followed (`follow`), and an anchor its page no longer has goes to the section that has it now
+    (`moved_home`). None when the ref names a section left out of `by_ref` or nothing that can be found."""
+    ref = f"{page}#{anchor}"
+    if ref in by_ref:
+        found = by_ref[ref]
+    elif any(s.ref == ref for s in sections):
+        return None
+    elif (home := moved_home(page, anchor, list(by_ref.values()))) is not None:
+        found = home
+    else:
+        return None
+    target = follow(found, by_ref)
+    return target, ("" if target.ref == ref else ref)
+
+
 def learn(root: Path, words: str, limit: int = 5) -> list[Match]:
-    """The `limit` sections of the topic pages closest to `words`, best first."""
+    """The `limit` sections of the topic pages closest to `words`, best first: a section the words name as
+    `page.md#anchor` first, and a pointer a split left (`moved_to`) replaced by the section it leads to."""
     query = terms(words)
     skip = {RULES_DOC.relative_to(DOCS).as_posix()}  # the format; the log is left out too
-    sections = [s for s in sections_in(root) if s.page not in skip and not is_corrections_page(s.page)]
+    every = sections_in(root)
+    sections = [s for s in every if s.page not in skip and not is_corrections_page(s.page)]
+    by_ref = {s.ref: s for s in sections}
     ranked = _rank(query, [(s, terms(s.title), terms(s.page.replace(".md", "")), terms(s.body)) for s in sections])
-    return [Match(score, section=s) for score, s in ranked[:limit]]  # type: ignore[arg-type]
+    top = ranked[0][0] if ranked else 0.0
+    found: list[tuple[float, Section, str]] = []
+    for page, anchor in refs_in(words):
+        if (named := resolve_ref(page, anchor, every, by_ref)) is not None:
+            found.append((top, *named))
+    for score, s in ranked:
+        target = follow(s, by_ref)  # type: ignore[arg-type]
+        found.append((score, target, "" if target is s else s.ref))  # type: ignore[union-attr]
+    out: list[Match] = []
+    for score, s, moved in found:
+        if len(out) < limit and all(m.section and m.section.ref != s.ref for m in out):
+            out.append(Match(score, section=s, moved_from=moved))
+    return out
 
 
 def _first_words(text: str, limit: int) -> str:
@@ -547,16 +646,19 @@ def _first_words(text: str, limit: int) -> str:
 def learn_text(root: Path, words: str, limit: int = 5, rules_per: int = 4) -> str:
     """What `gds learn` prints: each close section as `page.md#anchor` with its rules (or its first words when it has
     none)."""
-    sections = [m.section for m in learn(root, words, limit) if m.section]
-    if not sections:
+    matches = [m for m in learn(root, words, limit) if m.section]
+    if not matches:
         return f"No section mentions {words!r}. Make a new one where it belongs ({RULES_DOC.as_posix()}#section)."
     lines = [
         f"The sections closest to {words!r}, best first. Update one of them (add to an entry's Seen, sharpen it, or "
         f"add an entry) before you make a new section ({RULES_DOC.as_posix()}):"
     ]
-    for number, s in enumerate(sections, 1):
+    for number, match in enumerate(matches, 1):
+        s = match.section
+        assert s is not None
         rules = s.rules()
-        lines += ["", f"{number}. {s.ref}  {s.title}  (docs/{s.page}:{s.line}, {len(rules)} entr(y/ies))"]
+        moved = f" (moved from {match.moved_from})" if match.moved_from else ""
+        lines += ["", f"{number}. {s.ref}  {s.title}  (docs/{s.page}:{s.line}, {len(rules)} entr(y/ies)){moved}"]
         if rules:
             for rule in rules[:rules_per]:
                 parts = rule_parts(rule) or {"Approach": rule}
@@ -686,7 +788,8 @@ def propose(
 ) -> list[Proposal]:
     """The sections of the kit's topic pages a task agent reads before it starts, best first, at most `limit`:
 
-    1. every `page.md#anchor` the issue names that exists;
+    1. every `page.md#anchor` the issue names that exists, or the section it moved to (`resolve_ref`; any section
+       proposed that a split left as a pointer is replaced by the one it leads to, gdstudio #1471);
     2. for each path it names (then `paths`, such as a pull request's changed files): a docs page gives its section
        closest to the issue's words, any other path the closest section that mentions it, when its words are not far
        from the issue's (`MENTION_FLOOR`; a pull request's changed files need no such closeness);
@@ -699,22 +802,26 @@ def propose(
     `index.md#blender`, the slugs of two titles, read as missing to the agents given them)."""
     query = _query(title, labels or {}, body)
     skip = {RULES_DOC.relative_to(DOCS).as_posix()}
-    sections = [s for s in sections_in(root) if s.explicit and s.page not in skip and not is_corrections_page(s.page)]
+    every = sections_in(root)
+    sections = [s for s in every if s.explicit and s.page not in skip and not is_corrections_page(s.page)]
     by_ref = {s.ref: s for s in sections}
     docs = [(s, terms(s.title), terms(s.page.replace(".md", "")), terms(s.body)) for s in sections]
     ranked = _weighted_rank(query, docs)
     score = {s.ref: sc for sc, s in ranked}
     out: list[Proposal] = []
 
-    def add(s: Section, why: str) -> bool:
-        if len(out) >= limit or any(p.section.ref == s.ref for p in out):
+    def add(s: Section, why: str, moved: str = "") -> bool:
+        """Propose `s`, or the section it points to when a split left it as a pointer (gdstudio #1471)."""
+        target = follow(s, by_ref)
+        moved = moved or ("" if target is s else s.ref)
+        if len(out) >= limit or any(p.section.ref == target.ref for p in out):
             return False
-        out.append(Proposal(s, why))
+        out.append(Proposal(target, f"{why} (moved from {moved})" if moved else why))
         return True
 
     for page, anchor in refs_in(f"{title}\n{body}"):
-        if f"{page}#{anchor}" in by_ref:
-            add(by_ref[f"{page}#{anchor}"], "named in the issue")
+        if (named := resolve_ref(page, anchor, every, by_ref)) is not None:
+            add(named[0], "named in the issue", named[1])
     for path in dict.fromkeys([*paths_in(f"{title}\n{body}"), *(paths or [])]):
         page = path.split("docs/", 1)[1] if path.startswith("docs/") else path
         on_page = [s for s in sections if s.page == page and _readable(s)]
@@ -735,8 +842,9 @@ def propose(
     for _, s in ranked:
         if len(out) >= limit:
             break
-        if _readable(s) and from_page.get(s.page, 0) < PER_PAGE and add(s, "closest to the issue's words"):
-            from_page[s.page] = from_page.get(s.page, 0) + 1
+        page = follow(s, by_ref).page
+        if _readable(s) and from_page.get(page, 0) < PER_PAGE and add(s, "closest to the issue's words"):
+            from_page[page] = from_page.get(page, 0) + 1
     return out
 
 

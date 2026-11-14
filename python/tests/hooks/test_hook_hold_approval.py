@@ -485,3 +485,102 @@ def test_the_spent_approvals_are_read_from_the_log():
     assert approval.used_approvals(log, 7, "Ryubara/gdstudio") == {found.timestamp}
     assert approval.used_approvals(log, 7, "Ryubara/deadnight") == set()
     assert approval.used_approvals(log, 17, "Ryubara/gdstudio") == {"t17"}  # logged without a repository: spent
+
+
+# --- an answer to the coordinator's numbered list: a question in parentheses, a list marker, a topic (#1467) ---
+
+LISTED = (
+    "Open questions:\n"
+    "1. #7 jump arms: the new arms swing on the jump. Lift its S-hold?\n"
+    "2. #9 pistol reload hand: lift its S-hold too?\n"
+    "3. #12 crouch timing: which variant?"
+)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "1. Approve #7 and #9 (did you check the hands from the side?)\n3. Later.",
+        "Yes, lift 7 (can you also look at the crouch?) and 9.",
+        "lift 7 and 9 (why?)",
+    ],
+)
+def test_a_question_in_parentheses_after_an_approval_does_not_refuse_it(workspace, text):
+    path = transcript(workspace, said(LISTED), typed(text))
+    assert run(workspace, LIFT, path) == ""
+    assert run(workspace, "gh issue edit 9 --remove-label S-hold", path) == ""
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "lift 7 (once the captures are in)",
+        "lift 7 (if CI is green)",
+        "lift 7 (not yet, actually)",
+        "Approve #7 (wait, did the hands clip?)",
+        "can you lift 7 (the jump one)?",
+    ],
+)
+def test_a_condition_or_negation_in_parentheses_still_refuses(workspace, text):
+    path = transcript(workspace, said(LISTED), typed(text))
+    assert run(workspace, LIFT, path) != ""
+
+
+@pytest.mark.parametrize(
+    "text", ["1) yes\n2) not yet", "1. Yes, go ahead.\n2. No.", "1) yes (did you check the hands?)\n2) wait"]
+)
+def test_a_yes_after_a_list_marker_answers_that_item_only(workspace, text):
+    path = transcript(workspace, said(LISTED), typed(text))
+    assert run(workspace, LIFT, path) == ""
+    assert run(workspace, "gh issue edit 9 --remove-label S-hold", path) != ""
+
+
+@pytest.mark.parametrize("text", ["2) yes", "1) not yet\n2) yes", "1) can you lift it?", "7) yes", "1) yes if green"])
+def test_a_list_marker_is_not_a_named_number_and_its_refusal_holds(workspace, text):
+    path = transcript(workspace, said(LISTED), typed(text))
+    assert run(workspace, LIFT, path) != ""
+
+
+def test_a_marker_digit_does_not_veto_the_pull_request_with_that_number(workspace):
+    reply = "1. #5 walk: lift S-hold?\n2. #6 jog: lift S-hold?\n7. #8 ammo counter: lift S-hold?"
+    path = transcript(workspace, said(reply), typed("7. no\n1. yes"))
+    assert run(workspace, "gh pr edit 5 --remove-label S-hold", path) == ""
+    assert run(workspace, "gh pr edit 8 --remove-label S-hold", path) != ""  # item 7's "no" vetoes #8
+    assert run(workspace, LIFT, path) != ""  # and names nothing about #7
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "The new jump arms are approved.",
+        "I looked at the jump arms in 3D Third Person, they look great.",
+        "Crouch: let's talk tomorrow. Jump arms approved.",
+    ],
+)
+def test_an_approval_naming_a_listed_topic_counts_as_naming_its_number(workspace, text):
+    path = transcript(workspace, said(LISTED), typed(text))
+    assert run(workspace, LIFT, path) == ""
+    assert "(topic)" in lifts(workspace)
+    assert run(workspace, "gh issue edit 9 --remove-label S-hold", path) != ""
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "The jump arms are not right yet.",
+        "Yes to everything, but keep the jump arms held.",
+        "Jump arms: wait until I see them from the side.",
+        "Do the jump arms clip?",
+        "The arms in 3D are approved.",  # half a topic is not the topic (and a digit: no plain yes)
+        'You wrote "jump arms approved", is that what you want?',
+    ],
+)
+def test_a_negated_partial_or_quoted_topic_does_not_approve(workspace, text):
+    path = transcript(workspace, said(LISTED), typed(text))
+    assert run(workspace, LIFT, path) != ""
+
+
+def test_a_topic_the_coordinator_did_not_list_with_the_number_names_nothing(workspace):
+    path = transcript(workspace, said("1. #9 jump arms: lift?\n2. #7 crouch: lift?"), typed("Jump arms approved."))
+    assert run(workspace, LIFT, path) != ""
+    assert run(workspace, "gh issue edit 9 --remove-label S-hold", path) == ""

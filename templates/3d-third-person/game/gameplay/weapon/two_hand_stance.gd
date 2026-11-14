@@ -192,3 +192,10 @@ func _straighten_chest(skeleton: Skeleton3D, top: int) -> void:
 	if axis.length_squared() < 1e-10:
 		return
 	_turn_spine(skeleton, Basis(axis.normalized(), (lean - limit) * share / _bones.size()))
+
+
+## The spine's poses in the skeleton's space, in the order of the hold's `spine_bones`: this array,
+## filled in every update the stance hands the hold the spine's top (kit #1347), so the hold's push
+## to the skin reads them and does not work them out again.
+func spine_poses() -> Array[Transform3D]:
+	return _posed
