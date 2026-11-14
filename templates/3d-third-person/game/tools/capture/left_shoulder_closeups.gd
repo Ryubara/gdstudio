@@ -7,9 +7,10 @@
 ##
 ## `gds godot -- --path game --fixed-fps 60 --write-movie <folder>/hands.png --resolution 1000x800
 ## res://tools/capture/left_shoulder_closeups.tscn` with `CLOSEUP_WEAPON=pistol|rifle` and
-## `CLOSEUP_SIDE=left|right`. It prints a `VIEW <name> <frame>` line as each view starts (the view's
-## last frame is the still to keep) and a `HANDS` line a view (the lean and the muzzle's place;
-## `test_peek_left_shoulder.gd` measures the hands). It lives in tools/, which the export leaves
+## `CLOSEUP_SIDE=left|right` (`CLOSEUP_BODY=male` wears the prototype male). It prints a
+## `VIEW <name> <frame>` line as each view starts (the view's last frame is the still to keep) and a
+## `HANDS` line a view (the lean and the muzzle's place; `test_peek_left_shoulder.gd` measures the
+## hands). It lives in tools/, which the export leaves
 ## out.
 extends Node3D
 
@@ -52,6 +53,12 @@ func _ready() -> void:
 	var arena := PlayArena.new()
 	add_child(arena)
 	_player = arena.add_player(Vector3.ZERO)
+	if OS.get_environment("CLOSEUP_BODY") == "male":
+		var slot := _player.model
+		var old := slot.rig()
+		slot.remove_child(old)
+		old.free()
+		slot.add_child((load(CharacterBodies.MALE) as PackedScene).instantiate())
 	if OS.get_environment("LEFT_SHOULDER") == "0":
 		_player.peek_tuning = _player.peek_tuning.duplicate()
 		_player.peek_tuning.left_shoulder = false
