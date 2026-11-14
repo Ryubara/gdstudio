@@ -932,6 +932,11 @@ func _bare_start(origin: Vector3, along: Vector3) -> Vector3:
 		side = Vector3.RIGHT
 	side = side.normalized()
 	var up := side.cross(along).normalized()
+	# A peek lean rolls the arms and the weapon with the upper body (gdstudio #1400).
+	var roll := (shooter as Character).peek_motion.roll(shooter) if shooter is Character else 0.0
+	if roll != 0.0:
+		side = Basis(along, roll) * side
+		up = Basis(along, roll) * up
 	return _at_shooter_depth(origin, along) + Basis(side, up, -along) * no_muzzle_offset
 
 
