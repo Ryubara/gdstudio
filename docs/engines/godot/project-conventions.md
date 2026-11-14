@@ -52,11 +52,10 @@ game/
   (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
   the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
   script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
-  Deadnight #687, 11-03; Deadnight #1359, 11-06 (perk and route rules moved into classes); gdstudio #1041, 11-10
-  (`character.gd` at 1000 failed three pull requests that passed alone; four parts moved to
-  [the body's modules](third-person/character.md#controller)); #1187, 11-11 (`main` over it: pre-push refused every
-  push); #1393, 11-13 (`two_hand_hold.gd` at 1042: `HoldCarry`); #1420, 11-13 (994-line `character.gd`:
-  `CharacterGoal`).
+  Deadnight #687, #1359, 11-03 to 11-06 (rules into classes); gdstudio #1041, 11-10 (`character.gd` at 1000 failed
+  three pull requests that passed alone: [its modules](third-person/character.md#controller)); #1187, 11-11 (pre-push
+  refused every push); #1393 (`HoldCarry`), #1420 (`CharacterGoal`), 11-13; #1287, 11-14 (`character_animation.gd`
+  at 999: five parts, bones byte-equal before and after).
 - **Approach:** When code leaves a script near the 1000-line limit, give whatever it adds to the old script or its base
   class (a member holding the new class) a name no local or parameter in the scripts that see it uses: grep them for the
   name before the first run ([names](gdscript.md#names-and-types)). **Watch out for:** a member is in scope in every

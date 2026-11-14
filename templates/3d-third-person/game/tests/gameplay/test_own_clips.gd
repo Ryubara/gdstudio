@@ -56,7 +56,8 @@ const GAITS := {
 ## maintainer's decision of 2026-11-13 (it was 6; the starts and stops of kit #1156 brought the
 ## file to 6.6, 289,356 bytes for 43.7 s at 32 KiB pages; the jump's nine of kit #1161 to 6.8,
 ## 351,746 bytes for 50.8 s; with the strafes and lean poses of kit #1159 7,126 bytes a second,
-## 396,903 bytes for 55.7 s) (kit docs,
+## 396,903 bytes for 55.7 s; with the stops' sixteen entries and no `ik_` targets in the starts
+## and stops, gdstudio #1525, 6,819: 597,171 bytes for 87.6 s) (kit docs,
 ## tools/blender/own-animation.md#budget).
 const BYTES_A_SECOND := 7168.0
 
@@ -344,6 +345,10 @@ func test_a_stance_change_begins_and_ends_on_the_poses_it_joins() -> void:
 				var other := _pose(StringName("gds/" + joins[end]), frame / 30.0)
 				joined += 1
 				for bone: String in own:
+					# A stop's entry leaves the `ik_` targets out, as the library does (gdstudio
+					# #1525): they stand at rest in it.
+					if bone.begins_with("ik_") and not (record.bones as Array).has(bone):
+						continue
 					var one: Transform3D = own[bone]
 					var two: Transform3D = other[bone]
 					var where := "%s %s on %s, %s" % [clip, end, joins[end], bone]
@@ -356,9 +361,10 @@ func test_a_stance_change_begins_and_ends_on_the_poses_it_joins() -> void:
 						two.basis.get_rotation_quaternion()
 					)
 					assert_float(rad_to_deg(turn)).override_failure_message(where).is_less(0.5)
-	# The two stance changes, a start and a stop on each foot for each of three gaits, and the
-	# three take-offs and the three landings, both ends of each.
-	assert_int(joined).is_equal((4 + 24 + 12) * MODELS.size())
+	# The two stance changes, a start and a stop on each foot for each of three gaits, the jog's
+	# and the sprint's eight stops between the strikes, and the three take-offs and the three
+	# landings, both ends of each.
+	assert_int(joined).is_equal((4 + 24 + 32 + 12) * MODELS.size())
 
 
 func test_the_crouch_clips_fit_the_game() -> void:

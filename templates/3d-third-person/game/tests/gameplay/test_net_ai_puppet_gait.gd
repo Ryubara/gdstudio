@@ -203,13 +203,14 @@ static func _transitions(body: Character) -> GaitTransitions:
 	return (body.get_node(^"Animation") as CharacterAnimation).gait.transitions
 
 
-# Adds the clip `transitions` began since `serial` to `begun` (its base, without the foot), and
-# answers the serial now.
+# Adds the clip `transitions` began since `serial` to `begun` (its base, without the foot or the
+# gait frame a stop's entry begins on, `_05`), and answers the serial now.
 static func _note_begun(transitions: GaitTransitions, serial: int, begun: Array[StringName]) -> int:
 	if transitions.serial != serial and transitions.is_playing():
 		var clip := String(transitions.clip)
-		if clip.ends_with("_L") or clip.ends_with("_R"):
-			clip = clip.left(-2)
+		var last := clip.get_slice("_", clip.get_slice_count("_") - 1)
+		if last == "L" or last == "R" or (last.length() == 2 and last.is_valid_int()):
+			clip = clip.left(-last.length() - 1)
 		begun.append(StringName(clip))
 	return transitions.serial
 

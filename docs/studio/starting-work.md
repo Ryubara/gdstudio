@@ -265,6 +265,11 @@ lands (a squash merge makes a new commit on `main`), so the line keeps naming th
   takes the base's whole file, which is `main`'s file from before the base last merged it: it dropped #1444's cost
   work in `gait_transitions.gd` (three other hunks, merged cleanly by git on its own) while keeping the base's one
   line, and only the diff against `main` showed it. **Seen:** gdstudio #1431 on #1432, 2026-11-13.
+- **Approach:** Commit the merge of an open base branch with a message file that ends in the trailer (`git commit
+  --cleanup=strip -F <file>`); `gds merge-main` covers only `main`. **Watch out for:** after resolving conflicts,
+  `git commit --no-edit` leaves git's `# Conflicts:` list as the last paragraph, so the commit-trailers hook refused the
+  merge. **Seen:** gdstudio #1436 on #1456, 2026-11-13 (twice: the second agent on the task did it again on its
+  first merge of the base).
 - **Approach:** Before reading the CI of a pull request stacked on a parked branch, merge `main` into it (`gds
   merge-main`, and retarget it to `main` if it targets the base's branch); read a red check first as a fix `main` has
   and the base was cut before. **Watch out for:** a stacked branch carries `main` only as of its base, so the fixes
