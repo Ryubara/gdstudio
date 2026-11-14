@@ -6,7 +6,7 @@ Nothing here is copied from a library clip or from another game: a clip is a des
 
 | File | What it is |
 | --- | --- |
-| `bodies_overlap.json` | The shipped file's deepest limb crossing per clip and body, with the file's SHA-256; the build writes it and the Godot suite reads it, so a file that was rebuilt and not measured fails. |
+| `bodies_overlap.json` | The shipped file's deepest limb crossing per clip and body, with the file's SHA-256, the hash of the measure's code and each body file's (`../measure_hash.py`); the build writes it and the Godot suite reads it, so a file that was rebuilt and not measured fails, and so does a report made by another `../limb_overlap.py` or on another body. |
 | `locomotion.glb`, `locomotion.json` | The shipped clips and what the game needs to know of each (`clips.json` of the plan): loop, length, speed, travel and turn curves, contact times per foot, the foot it starts and ends on, events. Godot imports the glb as an `AnimationLibrary`; the player's `AnimationPlayer` holds it as `gds`, so the clip is `gds/Idle`. |
 | `picks.json` | Which variant each shipped clip is built from (`"Idle": "A"`). |
 | `clips/<type>.py` | A clip type's description, with every number a style may set and what it means. |

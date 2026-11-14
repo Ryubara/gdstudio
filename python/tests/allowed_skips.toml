@@ -105,3 +105,8 @@ reason = "the main-green steps run under bash 4 on an ubuntu runner (macOS has b
 test = "test_main_green.py::test_the_sweep_holds_every_pull_request_but_the_fix_then_frees_them"
 platforms = ["win32", "darwin"]
 reason = "the main-green steps run under bash 4 on an ubuntu runner (macOS has bash 3.2); they run on the Linux job"
+
+[[skip]]
+test = "test_main_green.py::test_the_clear_step"
+platforms = ["win32", "darwin"]
+reason = "the ci-failure clear step runs under bash on an ubuntu runner (macOS has bash 3.2); it runs on the Linux job"

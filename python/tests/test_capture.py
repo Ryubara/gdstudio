@@ -137,6 +137,23 @@ def test_frames_reports_error_lines(project: Path, tmp_path: Path) -> None:
     assert any("WARNING" in line for line in logged)
 
 
+def test_frames_passes_the_games_own_output_through_and_keeps_it(project: Path, tmp_path: Path) -> None:
+    logged: list[str] = []
+    output = "Godot Engine v4.7\nspawned 3 props\nSCRIPT ERROR: bad index\n   at: main.gd:12\n"
+    out = tmp_path / "a"
+    capture.capture_frames(Path("g"), project, out, None, 1, 1, run=FakeGodot(1, output=output), log=logged.append)
+    for line in ("spawned 3 props", "SCRIPT ERROR: bad index", "at: main.gd:12"):
+        assert any(line in entry for entry in logged), line
+    assert (out / capture.LOG_FILE).read_text(encoding="utf-8") == output
+
+
+def test_frames_keeps_the_log_of_a_failed_capture(project: Path, tmp_path: Path) -> None:
+    out = tmp_path / "a"
+    with pytest.raises(CaptureError):
+        capture.capture_frames(Path("g"), project, out, None, 1, 1, run=FakeGodot(0, 1, "crash\n"), log=lambda m: None)
+    assert (out / capture.LOG_FILE).read_text(encoding="utf-8") == "crash\n"
+
+
 @pytest.mark.parametrize(("seconds", "fps"), [(0, 10), (1, 0), (10_000, 10)])
 def test_frames_rejects_bad_lengths(project: Path, tmp_path: Path, seconds: float, fps: int) -> None:
     with pytest.raises(CaptureError):

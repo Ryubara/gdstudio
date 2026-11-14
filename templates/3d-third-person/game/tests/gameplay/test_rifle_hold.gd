@@ -434,13 +434,14 @@ func test_the_player_keeps_both_hands_on_the_rifle_in_every_state() -> void:
 	assert_int(_player.weapon.ammo).is_less(30)
 
 
-# R starts the rifle's reload: the left hand leaves the hand guard, is on the magazine's marker
-# on its way out and in, on the charging handle as it pulls the bolt all the way back (kit
-# #1266), and is back under the hand guard at the end, with the magazine back in the rifle and
-# the bolt home; the right hand never leaves the grip.
+# R starts the empty rifle's reload: the left hand leaves the hand guard, is on the magazine's
+# marker on its way out and in, on the charging handle as it pulls the bolt all the way back
+# (kit #1266; only an empty magazine's reload has the pull, kit #1402), and is back under the
+# hand guard at the end, with the magazine back in the rifle and the bolt home; the right hand
+# never leaves the grip.
 func test_the_players_left_hand_leaves_the_rifle_only_for_the_reload() -> void:
 	await _player_with_the_rifle()
-	_player.weapon.set_ammo(3, 60)
+	_player.weapon.set_ammo(0, 60)
 	var left := _hold.find_child("LeftHandTarget", true, false) as Node3D
 	var marker := _hold.find_child("MagazineHand", true, false) as Node3D
 	var magazine := _hold.get_node(_hold.magazine) as Node3D
