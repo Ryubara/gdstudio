@@ -371,6 +371,20 @@ itself, and the sampler adds 3 to 9 µs a tick for each human.
 The desktop rows are the mean of two or three headless runs, the browser rows one run each of the web export in
 headless Chrome (`tools/bench/player_step_bench.py`, under `gds quiet`), on a machine other agents were using.
 
+## What the map and the character cost to draw {#draw-cost}
+
+<!-- new section: moved from the template page's "What is in it" when that page reached its size limit (gdstudio
+     #1400); it measures the map and this character -->
+
+Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview
+camera 0.34 ms CPU, 0.19 ms GPU, 145 draw calls, 84.4 MB of texture memory; with the character 0.38 / 0.21 ms, 149
+draw calls, the same texture memory (the mannequin has two flat materials and no texture) and 1.9 MB more video memory.
+The whole game from the third-person camera draws 64 calls. The trimmed 3D Blank (floor and walls) is 0.17 / 0.16 ms,
+10 draw calls and 64.2 MB. Forward+ is 0.21 / 0.68 ms and 348 MB for the character in the map. The web export is a
+0.92 MB `index.pck` for 3D Blank and 3.26 MB for 3D Third Person (the character and the two libraries are most of the
+difference), and both load in headless Chromium with no console error, page error or failed request (a SwiftShader
+frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says it runs with no GPU).
+
 ## What the parts cost {#parts-cost}
 
 <!-- new section: the step bench timed the body alone; nothing said what a dressed character's other parts or the world
@@ -449,7 +463,29 @@ and its next foot each frame before asking whether it wanted a stop, a reversal 
 record built its library's name and its contact list again. #1360 asks the controller's numbers first and keeps each
 record's lookup and contacts once (`GaitClips`): 7 to 9 µs, the same transitions picked. Our clips key the four `ik_`
 targets (8 of 61 tracks), which the tree blends too. What #1360 left is
-[gdstudio #1438](https://github.com/Ryubara/gdstudio/issues/1438).
+[gdstudio #1438](https://github.com/Ryubara/gdstudio/issues/1438). The lean's share of the tree went from 1.0 to 0.3
+of the step in gdstudio #1403 ([the lean's cost](clips.md#gait-settings)).
+
+**The budget on CI** (gdstudio #1451). The limit of 1.7 was set on the desktop and failed main at 2.40 on code whose
+parts held still. `.github/workflows/parts-budget.yml` runs the suite 50 times on the runners (by hand, and on a pull
+request that changes it). Over 100 runs that printed four more rulers beside the loop (an `AnimationTree` of its own
+blending three clips of a 61-bone skeleton made in code, `PhysicsRuler`, 6,000 small objects visited in a shuffled
+order, and a walk through a 16 MB table), the frame spread 1.50 times over the loop, 1.44 to 1.58 over the animation
+and physics rulers, 1.46 over the best mix and 2.0 over the memory ones. Within one processor model the runs agree
+within a few percent; the models are up to 1.5 times apart for every ruler, so no ruler removes the spread, and the
+loop stays. Heavy rulers timed between the measured frames made the frame about a third slower on the runners, so
+the suite times only the loop. The case now subtracts the empty arena's frame and takes the lowest of three windows'
+ratios (each window's median frame over its median loop). In the red run the AI step was 1.2 to 1.5 times slower
+too while the physics ruler held: a runner slows for a while on its own. The limits, by system:
+
+| Ten walkers, frame over loop | Unchanged | Twice as slow | Limit |
+| --- | ---: | ---: | ---: |
+| Linux, 150 soak runs (AMD EPYC 7763, 9V74, 9V45, Intel Xeon 8573C, 6975P-C) | 1.26 to 1.78 | 2.54 to 4.00 | 2.2 |
+| Windows, 10 desktop runs beside 9 to 11 Godot processes | 1.54 to 1.83 | 3.07 to 3.43 | 2.4 |
+
+One window of the 450 read 2.24 (four over 1.9): a single window would still fail now and then; the best of three
+did not fail once. The twice-as-slow case (the frame spun on the clock as long again) runs in the suite and failed
+the budget in all 150 runs.
 
 - **Approach:** Empty the `RagdollPool` (`clear()`) before counting a living character's nodes, so it makes the pool's
   sets whatever ran first; leave out the controller the test added and hold the count equal. The count includes the

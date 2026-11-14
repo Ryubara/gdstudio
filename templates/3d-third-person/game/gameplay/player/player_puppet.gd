@@ -30,6 +30,10 @@ static func make(player: Player) -> void:
 	player.ragdoll_by_command = false
 	player.collision_layer = 0
 	player.collision_mask = PhysicsLayers.WORLD
+	# Its item uses are the server's USE events (gdstudio #1386).
+	var use := ItemUse.of(player)
+	if use != null:
+		use.role = ItemUse.Role.PUPPET
 	var input := player.controller
 	player.controller = null
 	if input != null:
@@ -86,6 +90,8 @@ static func place(puppet: Player, entry: PlayerEntry, moving: Vector3, delta: fl
 	if Vector2(puppet._crouch_amount, puppet._prone.amount) != shape_before:
 		puppet._fit_body()
 	puppet.state = entry.state as Character.State
+	# The peek lean: the eye, the shape and the bend, as the server's body leans (gdstudio #1400).
+	puppet.peek_motion.show(puppet, entry.peek)
 	# A vault or a mantle: its plan and clip are worked out here (nothing about it is sent).
 	PuppetVault.follow(puppet, delta, PhysicsLayers.WORLD)
 
