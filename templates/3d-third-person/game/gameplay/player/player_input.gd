@@ -35,9 +35,6 @@ const NO_REQUEST := -2
 ## The most ticks a weapon request presses for before it gives up (a slot that cannot be reached).
 const REQUEST_TICKS := 32
 
-# How many `PlayerInput` nodes hold each key on the `ragdoll` action.
-static var _key_holders: Dictionary[Key, int] = {}
-
 @export_group("Nodes")
 ## The character this node makes commands for: its `input_enabled`, `ragdoll_key`, crouch mode
 ## and weapon are read here. Empty reads the parent.
@@ -109,31 +106,16 @@ func bind_ragdoll_key() -> void:
 	_bound_key = player.ragdoll_key if player != null else KEY_NONE
 	if _bound_key == KEY_NONE:
 		return
-	var holders: int = _key_holders.get(_bound_key, 0)
-	if holders == 0:
-		InputMap.action_add_event(RAGDOLL_ACTION, _key_event(_bound_key))
-	_key_holders[_bound_key] = holders + 1
+	RagdollKeyHolders.hold(RAGDOLL_ACTION, _bound_key)
 
 
-# Lets go of the key this node holds on the action; the last holder takes it off.
+# Lets go of the key this node holds on the action; the last holder takes it off
+# (`RagdollKeyHolders`, shared by every `PlayerInput`; no static variable here).
 func _release_key() -> void:
 	if _bound_key == KEY_NONE:
 		return
-	var holders: int = _key_holders.get(_bound_key, 0) - 1
-	if holders <= 0:
-		_key_holders.erase(_bound_key)
-		if InputMap.has_action(RAGDOLL_ACTION):
-			# The action drops the event equal to this one.
-			InputMap.action_erase_event(RAGDOLL_ACTION, _key_event(_bound_key))
-	else:
-		_key_holders[_bound_key] = holders
+	RagdollKeyHolders.release(RAGDOLL_ACTION, _bound_key)
 	_bound_key = KEY_NONE
-
-
-func _key_event(key: Key) -> InputEventKey:
-	var event := InputEventKey.new()
-	event.physical_keycode = key
-	return event
 
 
 func sample() -> PlayerCommand:
