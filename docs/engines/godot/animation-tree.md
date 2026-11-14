@@ -422,9 +422,9 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   **Seen:** gdstudio #1412, 2026-11-13 (`test_a_crouch_asked_during_a_stop_takes_the_body_to_the_crouch`).
 - **Approach:** A transition played by the ground the body covers needs a body that covers the clip's ground: give the
   controller a deceleration (or an acceleration) per gait that covers the clip's `travel`, follow the clip until the
-  body is at rest, count from the tick the input changed (`get_position_delta()`), and test the distance and a planted
-  foot's slide over the whole transition. **Watch out for:** the stops were played by travel while the body stopped by
-  one 36 m/s² in a tenth of the clip's ground; the clip then counted the body done under 0.3 m/s and played the rest at
-  its own pace, in place, its feet sliding 106 mm; the tests checked only that a stop clip played. **Seen:** gdstudio
-  #1415, 2026-11-13 (`CharacterTuning.stop_deceleration`, `test_gait_stops.gd`: 0.19 m covered of the jog stop's 1.96
-  before, 1.965 and 1.7 mm after); 12 cases waited fixed ticks for rest.
+  body is at rest, count from the tick the input changed (its velocity times a tick), and test the distance and a
+  planted foot's slide over the whole transition. **Watch out for:** the stops were played by travel while the body
+  stopped by one 36 m/s² in a tenth of the clip's ground; the clip then played the rest at its own pace, in place, its
+  feet sliding 106 mm; the tests checked only that a stop clip played. `get_position_delta()` is no tick's ground on a
+  puppet (placed, never stepped): an AI puppet's stop seeked to its end at once. **Seen:** gdstudio #1415, 2026-11-13
+  (0.19 m of the jog stop's 1.96 before, 1.965 after); PR #1422, 11-14 (an AI puppet).
