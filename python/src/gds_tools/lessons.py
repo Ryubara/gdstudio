@@ -35,6 +35,8 @@ RULES_DOC = DOCS / "studio" / "rules.md"
 
 #: `learning` of .github/conventions.yml (a test keeps them equal).
 MAX_PAGE_KB = 50
+#: A page within this much of MAX_PAGE_KB is listed as a warning that does not fail (`near_limit`, gdstudio #1542).
+NEAR_PAGE_KB = 2
 MAX_RULE_CHARS = 900
 RULE_PARTS = ("Approach:", "Watch out for:", "Seen:")
 REASON_LINE = "<!-- new section:"
@@ -283,6 +285,22 @@ def page_problems(page: str, text: str) -> list[str]:
 # --------------------------------------------------------------------------------------------------------------------
 # The old lessons folder, the corrections log and the checks
 # --------------------------------------------------------------------------------------------------------------------
+
+
+def near_limit(root: Path) -> list[str]:
+    """The topic pages within NEAR_PAGE_KB of the size limit and not over it, largest first, one warning line each:
+    the list of full pages that nobody keeps by hand (gdstudio #1542). A page over the limit is a problem instead."""
+    limit = MAX_PAGE_KB * 1024
+    sizes = [
+        (len(path.read_text(encoding="utf-8").encode("utf-8")), path.relative_to(root).as_posix())
+        for path in topic_pages(root)
+    ]
+    near = sorted(((size, page) for size, page in sizes if limit - NEAR_PAGE_KB * 1024 < size <= limit), reverse=True)
+    return [
+        f"warning: {page}: {size:,} of {limit:,} bytes, {limit - size:,} left; new text goes on a subpage "
+        f"({RULES_DOC.as_posix()}#size)"
+        for size, page in near
+    ]
 
 
 def problems(root: Path) -> list[str]:

@@ -6,7 +6,8 @@ request that exists is in progress, so it never needs a label of its own). `P-cr
 among them; the maintainer alone sets that label. "Oldest" is the lowest issue number.
 
 A blocked issue says why: `block` writes the label and a `Blocked (<who>, <date>): waits on #N ...` line in the body,
-`unblock` lifts both, and `list` shows the reason and which blocks outlived their cause (`parse_block`). The
+`unblock` lifts both, and `list` shows the reason and lifts each block whose every wait has closed, an issue closed or
+a pull request merged or closed (`parse_block`, `lift_closed_blocks`). The
 coordinator's Stop hook (`.claude/hooks/guards/idle.py`, `stop_idle`) loads this module by path to find the issues that
 may start and have no agent, so it stays standard library only.
 
@@ -31,7 +32,7 @@ import re
 import subprocess
 import tomllib
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -736,13 +737,40 @@ def unblock(repo: str, number: int, *, gh: Gh, ledger: Path, now: datetime | Non
         raise IssueError(f"{repo}#{number} is not an open issue")
     if BLOCKED not in issue.labels:
         raise IssueError(f"{repo}#{number} is not {BLOCKED}")
-    old = parse_block(issue.body)
-    edit = ["issue", "edit", str(number), "-R", repo, "--remove-label", BLOCKED, "--add-label", READY]
-    if old:
-        edit += ["--body", without_blocks(issue.body)]
-    gh(edit)
+    lift(repo, issue, gh)
     forget_reads(ledger)
     return [f"unblocked {repo}#{number}: back in the line as {READY}"]
+
+
+def lift(repo: str, issue: Issue, gh: Gh) -> Issue:
+    """The edit `unblock` makes, on an issue already read: `S-blocked` and the `Blocked (...)` line go,
+    `S-ready-to-start` comes back. Returns the issue as it is after the edit."""
+    edit = ["issue", "edit", str(issue.number), "-R", repo, "--remove-label", BLOCKED, "--add-label", READY]
+    body = issue.body
+    if parse_block(issue.body):
+        body = without_blocks(issue.body)
+        edit += ["--body", body]
+    gh(edit)
+    return replace(issue, labels=(issue.labels - {BLOCKED}) | {READY}, body=body)
+
+
+def lift_closed_blocks(repo: str, issues: list[Issue], window: Window, gh: Gh) -> tuple[list[Issue], list[str]]:
+    """Lift every block `compute_window` found outlived (`Window.unblocked`: each issue it waits on has closed, or each
+    pull request merged or closed), as `unblock` would, so `gds issue list` puts those issues back in the line on the
+    same run (#1541: blocks on a merged pull request and on the issue it closed stayed until someone lifted them by
+    hand). Returns the issues as they are after the edits and a line for each lift; a lift `gh` refuses leaves its
+    issue blocked, listed under "Unblocked" with the reason."""
+    lifted: dict[int, Issue] = {}
+    lines: list[str] = []
+    for issue in window.unblocked:
+        waits = ", ".join(f"{other}#{n}" if other else f"#{n}" for other, n in window.blocks[issue.number].waits_on)
+        try:
+            lifted[issue.number] = lift(repo, issue, gh)
+        except IssueError as error:
+            lines.append(f"  #{issue.number:<5} not lifted: {error}")
+            continue
+        lines.append(f"  #{issue.number:<5} {issue.title}  -- {waits} closed; back in the line as {READY}")
+    return [lifted.get(i.number, i) for i in issues], lines
 
 
 def done(repo: str, number: int, *, ledger: Path) -> list[str]:
@@ -754,7 +782,9 @@ def done(repo: str, number: int, *, ledger: Path) -> list[str]:
     return [f"cleared {repo}#{number} from the ledger"]
 
 
-def describe(repo: str, window: Window, prs: list[PullRequest], started: dict[str, dict]) -> list[str]:
+def describe(
+    repo: str, window: Window, prs: list[PullRequest], started: dict[str, dict], lifted: Sequence[str] = ()
+) -> list[str]:
     """`gds issue list`: the window, what is in progress and who owns it, what is blocked."""
     lines = [f"{repo}: open issues, oldest first (window of {window.size})"]
     if window.paused:
@@ -798,6 +828,8 @@ def describe(repo: str, window: Window, prs: list[PullRequest], started: dict[st
                 else f"no reason recorded: `gds issue block {window.repo}#{i.number} --on <#N|{MAINTAINER}> --why ...`"
             )
             lines.append(f"  #{i.number:<5} {i.title}  -- {why}")
+    if lifted:
+        lines += ["", "Blocks lifted by this run (every issue or pull request they waited on has closed):", *lifted]
     if window.unblocked:
         lines += [
             "",
@@ -822,7 +854,13 @@ def list_issues(repo: str, *, gh: Gh, ledger: Path, size: int = DEFAULT_WINDOW, 
     started = load_ledger(ledger)
     if prune_ledger(started, repo, {i.number for i in issues}):
         save_ledger(ledger, started)
-    return describe(repo, compute_window(repo, issues, prs, size, paused), prs, started)
+    window = compute_window(repo, issues, prs, size, paused)
+    lifted: list[str] = []
+    if window.unblocked:
+        issues, lifted = lift_closed_blocks(repo, issues, window, gh)
+        forget_reads(ledger)
+        window = compute_window(repo, issues, prs, size, paused)
+    return describe(repo, window, prs, started, lifted)
 
 
 def default_repo(gh: Gh) -> str:

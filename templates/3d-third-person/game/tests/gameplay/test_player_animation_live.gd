@@ -35,8 +35,13 @@ func _machine() -> AnimationNodeStateMachine:
 	return root.get_node("Locomotion") as AnimationNodeStateMachine
 
 
+# The clip a state plays; the air's is its fall point (`JumpAnimation`: the rise and the top too).
 func _clip_of(state: StringName) -> StringName:
-	return (_machine().get_node(state) as AnimationNodeAnimation).animation
+	var node := _machine().get_node(state)
+	if node is AnimationNodeBlendSpace1D:
+		var space := node as AnimationNodeBlendSpace1D
+		node = space.get_blend_point_node(space.find_blend_point_by_name(JumpAnimation.FALL))
+	return (node as AnimationNodeAnimation).animation
 
 
 func test_every_export_has_its_default_pinned() -> void:

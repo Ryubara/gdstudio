@@ -526,8 +526,8 @@ bytes, over the 7 KB a second the import is held to, and is a budget decision, n
 Nine clip types, one description (`clips/jump.py`, kit #1161). `Jump_Start`, `Jump_Fall` and `Land_Soft` replace
 `ual1/Jump_Start`, `ual1/Jump` and the fixed `Jump_Land`, which stay as their stand-ins. The other six are new
 (the library has no take-off from a run, no rise or apex of their own, one landing depth and no landing into a run;
-the kit's `docs/tools/blender/own-animation.md#audit-clips`) and no state plays them yet: the tree that picks them
-is gdstudio #1371.
+the kit's `docs/tools/blender/own-animation.md#audit-clips`); `JumpAnimation` picks them by the body's numbers
+(gdstudio #1371, the kit's `docs/engines/godot/third-person/clips.md#jump-clips`).
 
 ### How bodies jump and land (the research)
 
