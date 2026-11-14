@@ -185,7 +185,7 @@ func _pick_standing(animation: CharacterAnimation, blend: GaitBlend) -> Dictiona
 	var picked := {}
 	# An aimed walk faces the view and strafes; a start faces the way it moves, so none plays.
 	if goal > settings.standing_speed and not body.aiming:
-		var wish := body.last_command.world_move()
+		var wish := body.goal_direction
 		var forward := Vector3.BACK.rotated(Vector3.UP, body.facing)
 		var gait := blend.main_point(CharacterAnimation.GROUND, goal)
 		var side := "r" if forward.cross(wish).y < 0.0 else "l"
@@ -213,7 +213,7 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 		return _found(
 			Kind.STOP, GaitTransitionSet.pick_in(player, clips.stops, stop_point, stop_foot)
 		)
-	var wish := body.last_command.world_move()
+	var wish := body.goal_direction
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z).normalized()
 	var angle := rad_to_deg(moving.angle_to(wish))
 	if angle < settings.reversal_angle and angle < settings.pivot_angle:
@@ -270,7 +270,7 @@ func _begin(
 	_from = body.global_position
 	_facing = body.facing
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z)
-	var wish := body.last_command.world_move()
+	var wish := body.goal_direction
 	_along = moving.normalized() if kind == Kind.STOP else wish.normalized()
 	if _along.is_zero_approx():
 		_along = Vector3.BACK.rotated(Vector3.UP, body.facing)
@@ -340,7 +340,7 @@ func _body_done(body: Character) -> bool:
 func _turn_asked(body: Character) -> float:
 	if kind == Kind.TURN:
 		return rad_to_deg(wrapf(body.view_yaw + PI - body.facing, -PI, PI))
-	var wish := body.last_command.world_move()
+	var wish := body.goal_direction
 	if wish.is_zero_approx():
 		return 0.0
 	return rad_to_deg(wrapf(atan2(wish.x, wish.z) - body.facing, -PI, PI))

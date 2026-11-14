@@ -175,10 +175,26 @@ var died_by_clip := false
 
 ## The ground speed the last command steers the body toward, in m/s (0 when it asks for no move):
 ## the speed the body is heading for, which the animation's transitions read (`GaitTransitions`).
+## A body that never steps reads it from `motion_goal` instead (`goal_from_motion`).
 var goal_speed: float:
 	get:
+		if goal_from_motion:
+			return Vector2(motion_goal.x, motion_goal.z).length()
 		var push := _wish_direction().length() if _action_lock <= 0.0 else 0.0
 		return _target_speed(push) if push > 0.0 else 0.0
+## On for a body drawn from the network that never steps (a puppet), which has no command: its
+## goal (`goal_speed`, `goal_direction()`) is `motion_goal`, the velocity its drawn motion heads
+## for, which whoever places it sets (gdstudio #1420).
+var goal_from_motion := false
+## The velocity, m/s, a body with `goal_from_motion` heads for.
+var motion_goal := Vector3.ZERO
+## The way on the ground the body is asked to go (not normalized; zero for no move): the last
+## command's, or `motion_goal`'s for a body that never steps. Read only.
+var goal_direction: Vector3:
+	get:
+		if goal_from_motion:
+			return Vector3(motion_goal.x, 0.0, motion_goal.z)
+		return last_command.world_move()
 ## What the body is doing; `CharacterAnimation` plays the clip for it.
 var state := State.IDLE:
 	set(value):
