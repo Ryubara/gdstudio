@@ -292,6 +292,16 @@ it is all the way on, and no pull worked out while `pull_limit` is 0. With the b
 the barrel down and takes that way, so most of its cost is the new push: on a busy machine 72 / 119 against 79 / 119,
 where the ready went 50 / 74 against 70 / 93 and the reload 54 / 82 against 75 / 103.
 
+Cut again (kit #1433), the same bench, the branch and `main` in turns, three rounds a body: the low ready 60 / 60
+against 68 / 84, the ready 49 / 47 against 48 / 48; every bone the same as `main` in 100 poses. The low ready went
+through 143 / 170 skin points a frame against 37 / 54 at the ready: the groups' boxes were met against the stock's
+sweep turned into each bone's space, and that long, thin box turned there covered most of the torso. Now each point
+is turned into the frame of its own run (the move that brings the stock's back edge to it, and the one that brings
+its edge across), where the sweep is a box and the run two sums; and the sweep is first looked at only as far as the
+last push and 2 cm, exact for any push under that (a point the stock does not pass over forbids no shorter move), the
+whole reach again only when the push reaches it. It goes through 34 / 61 points; the low ready is still 11 / 13 over
+the ready, the 23 / 32 points that do forbid a move.
+
 The stock in the body (`tests/fixtures/body_clearance.gd`, `BodyClearance`: every point of the rifle against the
 body's skinned mesh at its nearest level, inside by a ray's crossings, the torso only, the arms, legs and head left
 out), the deepest in the six locomotion clips at the low ready and aimed and aimed 30 degrees up and down, on the
@@ -492,3 +502,6 @@ stock test's 10 mm.
   and many poses inside it), clipped to the weapon's own bounds. **Watch out for:** a grid round the straight way
   alone read a point beyond it as the edge's distance plus the way there, so a way through the receiver above it
   read 1.6 mm on the grid and 6 mm in the game. **Seen:** gdstudio #1283, 2026-11-12.
+- **Approach:** Make a stage that a suite will `settle()` with `RifleStage.make_rifle(holder, model)`, the measured
+  default. **Watch out for:** `measured = false` connects nothing to `skeleton_updated`, so `settle()` waits forever
+  and GdUnit stops the suite at 5 minutes. **Seen:** gdstudio #1433, 2026-11-13 (`test_torso_skin_push.gd`).

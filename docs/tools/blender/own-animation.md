@@ -276,6 +276,12 @@ other style files stay in the repository, so a game picks another vision by rebu
   from B to A, and A still had the jolt the review had asked out (pelvis path harmonic 3.69 against the library's
   1.88, the calf's speed changing 36.9 degrees in a frame) with every check green. **Seen:** gdstudio #1155
   (PR #1275), 2026-11-12 (fix: A's walk given `pelvis_waves`, `swing_ease`, no `swing_early` and a 27 degree limit).
+- **Approach:** After `ship` with a new pick, run the Godot suites that read the clips before anything else: a
+  suite may hold the clips tighter than the build, tuned on the variant that was shipped. **Watch out for:** the
+  strafes' B passed every build check (limbs under 5 mm) and failed `test_own_directions.gd`'s 3.5 mm for the
+  legs, `form_male`'s thighs 4.6 mm into each other in `Walk_Right` and 3.5 in `Jog_Left`; A, shipped until the
+  pick, read 2.8 and 2.6. **Seen:** gdstudio #1159 (PR #1374), 2026-11-12 (fix: B's two strafes set their feet
+  0.02 m off the middle line, `width`, 2.7 and 2.9 mm; the limit stays).
 
 ## How a chosen clip replaces the library's {#replacing}
 
@@ -292,11 +298,23 @@ other style files stay in the repository, so a game picks another vision by rebu
    along their travel curve against what the controller really did. That is the Godot child issue, not a clip
    issue (done in #1158: `GaitClips` reads the records, and what a transition clip's record needs is on
    [the template's gait settings](../../engines/godot/third-person/clips.md#gait-settings)).
-4. **The web build drops what nothing plays.** Once a group is replaced, the libraries' unused clips leave the
-   exported game (an import script keeps the clips a list names; the full files stay in the repository for
-   stand-ins and study), and the size before and after goes in the pull request.
+4. **The web build drops what nothing plays.** Every export carries `ual1` and `ual2` with only the clips the game
+   names (`ClipExport` of `gds_game`, kit #1366): a clip is named when a shipped script, scene or resource holds its
+   name (a weapon's `.tres`, an inspector override) or a script names the `CharacterClips` constant that holds it;
+   `ALL` and `STAND_INS` count for nothing, so a stand-in ships only once a scene sets it. Nothing lists the clips by
+   hand: a clip a new tree state or weapon names is kept by the next export. The editor and the suites keep the full
+   files. 3D Third Person's pack went from 9,179,812 to 8,024,856 bytes (16 of the 86 clips kept);
+   `test_export_clips.gd` walks the tree, the clip settings and the definitions, and CI's
+   `tools/export_check/export_clips_check.gd` reads the exported pack. A clip reached only by a name built at run
+   time goes in the project setting `gds_game/clip_export/keep`, or the export leaves it out.
 5. **Docs.** The clip's row on `engines/godot/third-person/clips.md` and the template's inspector list change in
    the same pull request.
+
+- **Approach:** List every clip a build adds to the shipped file in `CharacterClips.ALL` (and its count in
+  `test_character_clips.gd`), new clips that replace nothing as well, and run that suite with the clip's own before
+  the full one. **Watch out for:** the eleven directions and leans shipped in `locomotion.glb` without a line in
+  `ALL`; every suite of their own passed, and only the full run's count (133 clips for 122 listed) showed it.
+  **Seen:** gdstudio #1159, 2026-11-12.
 
 ## The rig, and other proportions {#rig}
 
@@ -335,9 +353,9 @@ What carries a clip over to a body with other proportions, and what one clip fil
 | --- | --- | --- |
 | Tracks a gait clip keys | 22 body bones and the pelvis's position; fingers only where they move | fingers at rest come from one hand-pose clip under the gait; a clip names its bones and the export strips the rest |
 | Keys | under 40 % of the frames on a moving bone at half a degree | curves solved at 30 a second, reduced by the build, checked against the full curve on the skinned mesh (1 mm at the hands and feet) |
-| Imported size | 6 KB a second of clip, compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second; 6.6 with the starts and stops of kit #1156, which the test holds to 7 until the maintainer decides) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
+| Imported size | 7 KB a second of clip (the maintainer's figure of 2026-11-13; it was 6), compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second; 6.6 with the starts and stops of kit #1156, inside the 7 the test holds) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
 | Clips blended at once | four on a character near the camera (two gaits, a transition or an action, one additive); one on a far one | the tree's layers are counted in the Godot issue's bench, in the browser |
-| Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)) |
+| Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)): 1.16 MB off 3D Third Person's pack (9.18 to 8.02 MB, kit #1366) |
 
 ## Waves and child issues {#waves}
 
@@ -353,7 +371,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | #1156 starts and stops (done) | `Idle_To_Walk`, `Idle_To_Jog`, `Idle_To_Sprint`; `Walk_Stop`, `Jog_Stop`, `Sprint_Stop`; each `_L` and `_R`, three variants, A shipped; one description, `clips/moves.py` ([start and stop clips](start-stop-clips.md#description)) |
 | #1157 the reversal, pivots, turns on the spot | `Sprint_Turn_180`, `Jog_Turn_180`, `Jog_Turn_90_L/R`, `Turn_In_Place_90_L/R`, `Turn_In_Place_180_L/R` |
 | #1158 the tree (Godot) (done) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost ([gaits fitted to the body](../../engines/godot/animation-tree.md#gait-fitting)) |
-| #1159 directions and lean | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`; `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` |
+| #1159 directions and lean (done; the strafes and backpedals B, the leans A) | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`, in step with `Walk` and `Jog` at their own speeds (1.3, 1.2 and 3.0 m/s); `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` as poses with their reference `Lean_Ref`; one description each, `clips/directed.py` and `clips/lean.py` ([the toolkit's rows](clip-toolkit.md#toolkit)) |
 | #1160 crouch (done) | `Crouch_Idle`, `Crouch_Walk`, `Stand_To_Crouch` (B, chosen), `Crouch_To_Stand` (A, chosen), solved on `form_female`; the prone transitions rebuilt on the new crouch |
 | #1161 jumps | `Jump_Start` (standing, running), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog` |
 
