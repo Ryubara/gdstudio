@@ -89,7 +89,9 @@ minutes). How it is started decides what it can build.
   is a Movie Maker capture whose output goes to a file. **Watch out for:** a sound level probe printed three levels
   that did not change with the volume: a loop variable in the script under test shadowed a method, the class did not
   compile, and the capture ran a game in which the use never started; the grep for the probe's own lines showed none
-  of it. **Seen:** gdstudio #1342, 2026-11-12.
+  of it. **Seen:** gdstudio #1342, 2026-11-12; gdstudio #1484, 2026-11-14 (a capture tool rewritten by a script lost
+  two constants: eight close-up runs each sat on an empty scene until their timeout, unread, before the template
+  suite's parse named the file; grep each run's log for `SCRIPT ERROR` as it ends, not after the batch).
 
 ## An engine error from a player's own file {#engine-errors-from-input}
 
