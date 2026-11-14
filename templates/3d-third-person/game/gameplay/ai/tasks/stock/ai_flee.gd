@@ -4,7 +4,12 @@ extends AiStockTask
 ## Runs from its subject (where it is believed to be, or `goal`): of `directions` points
 ## `step_distance` away around it, the one farthest from the threat that the navigator can reach,
 ## again and again until it is `safe_distance` away; then it ends and the situation calms to Alert.
-## With nowhere to run it fails `NO_PATH` (a row's fallback, a cower, runs).
+## With nowhere to run it fails `NO_PATH` (a row's fallback, a cower, runs), and so it does when
+## the navigator gives up `MOST_FAILED_LEGS` legs in a row (a point whose walk the shared budget
+## left unmeasured, on a piece of the mesh it cannot reach).
+
+## Legs in a row the navigator may give up before the flight fails `NO_PATH` (gdstudio #1532).
+const MOST_FAILED_LEGS := 2
 
 ## How far from the threat it is safe.
 @export_range(1.0, 200.0, 1.0, "suffix:m") var safe_distance := 25.0
@@ -16,6 +21,7 @@ extends AiStockTask
 @export var speed := Speed.SPRINT
 
 var _legs := 0
+var _failed_legs := 0
 
 
 func _init() -> void:
@@ -29,6 +35,7 @@ func _init() -> void:
 
 func start() -> void:
 	_legs = 0
+	_failed_legs = 0
 	last_known = _threat_at()
 	if not _leg():
 		_legs = -1
@@ -43,9 +50,12 @@ func update(_delta: float) -> Status:
 		stop_walk()
 		_calm()
 		return Status.SUCCEEDED
-	if walk_state() != Walk.GOING and not _leg():
-		reason = Reason.NO_PATH
-		return Status.FAILED
+	var walk := walk_state()
+	if walk != Walk.GOING:
+		_failed_legs = _failed_legs + 1 if walk == Walk.FAILED else 0
+		if _failed_legs >= MOST_FAILED_LEGS or not _leg():
+			reason = Reason.NO_PATH
+			return Status.FAILED
 	return Status.RUNNING
 
 

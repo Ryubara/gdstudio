@@ -58,8 +58,24 @@ func _crouched(character: AiCharacter) -> bool:
 
 
 func test_a_penned_civilian_with_a_hostile_in_view_cowers_and_stays_cowering() -> void:
+	await _penned_cowers(0)
+
+
+# The same with the shared budget at one path a tick (gdstudio #1532): most of the flee's points
+# go unmeasured, each looks as near as the straight line, and the navigator gives them up one by
+# one (the open ground outside the pen is a piece of the mesh it cannot reach); after
+# `AiFlee.MOST_FAILED_LEGS` given up in a row the flight fails and the cower runs.
+func test_a_penned_civilian_on_a_spent_path_budget_still_cowers() -> void:
+	await _penned_cowers(1)
+
+
+# A penned civilian cowers within 2 s of a hostile in view and keeps cowering; `paths_per_tick`
+# above 0 sets the director's shared path budget.
+func _penned_cowers(paths_per_tick: int) -> void:
 	await _pen()
 	var civilian := _arena.add_kind(BehaviourArena.CIVILIAN, SPOT, 0.0, {"courage": 0.5})
+	if paths_per_tick > 0:
+		civilian.budget.paths_per_tick = paths_per_tick
 	var runner := BehaviourArena.runner_of(civilian)
 	await _ticks(SECOND / 2)
 	runner.assign(_walk_out(), &"test")

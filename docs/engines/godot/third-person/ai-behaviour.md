@@ -92,13 +92,15 @@ it from running while Safe.
 target, a turn no faster than `aim_speed`, tracking noise that shrinks while on target, bursts of `burst_size` at
 `fire_interval`, and no shot at a memory or through a friend (`AiSenses.friend_in_line_of_fire()`).
 
-- **Approach:** A task that picks among points for the navigator judges each one by the navigator's own rules: snap it
-  with `AiRouteRules.snap_goal`, skip what `AiNavigator.refuses()` holds, and give `AiChoice.walk_cost` the
-  navigator's `END_SLACK` as its `max_gap`. **Watch out for:** the flee scored a point 6 to 8 m off the mesh by the
-  path to the mesh's edge plus twice the gap, which passed its cost limit and beat every point on open ground; the
-  navigator refused it as off open ground and then as unreachable a moment ago, and the cornered civilian asked again
-  every think, standing with a goal: every civilian stuck episode of 24 soak seeds was this. **Seen:** gdstudio #1532,
-  2026-11-14 (`AiFlee._leg`; `test_a_civilian_in_a_corner_of_the_mesh_runs_along_open_ground` fails on `main`).
+- **Approach:** A task that picks points for the navigator judges each by its rules: `AiRouteRules.snap_goal`, skip
+  what `AiNavigator.refuses()` holds, `AiChoice.walk_cost` with `max_gap` at `END_SLACK`, and a cap on legs given up
+  in a row (`AiFlee.MOST_FAILED_LEGS`). **Watch out for:** the flee scored a point 6 to 8 m off the mesh by the path
+  to the mesh's edge plus twice the gap, beating every point on open ground; the navigator refused it, and the
+  cornered civilian asked again every think, standing with a goal (every civilian stuck episode).
+  Skipping refused points alone let a penned civilian walk on through points the budget left unmeasured (4 paths a
+  tick, 8 points), never cowering. **Seen:** gdstudio #1532, 2026-11-14
+  (`test_a_civilian_in_a_corner_of_the_mesh_runs_along_open_ground` fails on `main`,
+  `test_a_penned_civilian_on_a_spent_path_budget_still_cowers` without the cap).
 
 ## The inspector {#inspector}
 
