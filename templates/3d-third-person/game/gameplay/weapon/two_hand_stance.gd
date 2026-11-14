@@ -1,8 +1,8 @@
 extends SkeletonModifier3D
 ## The first of a `TwoHandHold`'s modifiers, made by it at run time. It turns the chest about the
-## model's up axis, split evenly over the hold's spine bones, until the chest stands at the
-## hold's `chest_turn` from the model's front (by `chest_weight()`: not while the left hand is
-## away for an action): the turn the clip of this frame already has is
+## model's up axis (in a slide, its own: `_chest_up`), split evenly over the hold's spine bones,
+## until the chest stands at the hold's `chest_turn` from the model's front (by `chest_weight()`:
+## not while the left hand is away for an action): the turn the clip of this frame already has is
 ## taken off, so a walk or a run that swings the shoulders leaves the left shoulder forward and
 ## the left hand in reach of the hand guard. The turn goes by the hold's weight (a switch eases it
 ## in and out), and the head is turned back by as much, so it keeps the facing the clip gives it:
@@ -16,6 +16,10 @@ extends SkeletonModifier3D
 ## clip. The head and not the neck under it: the neck carries skin at the collar, and turning it
 ## put that skin 12 to 24 mm into the stock in the crouch (`test_rifle_hold.gd`).
 const HEAD := &"Head"
+## Over how long the trunk's lean is averaged before the upright carry takes off what it has over
+## the hold's `carry_lean_limit`, in seconds: about a stride, so the run's own rise and fall of the
+## trunk through a stride stays and only its standing lean is taken off.
+const LEAN_SMOOTHING := 0.5
 
 ## The hold that made it.
 var hold: TwoHandHold
@@ -39,6 +43,9 @@ var _locals: Array[Transform3D] = []
 var _posed: Array[Transform3D] = []
 # The rest turn of the chest (the last spine bone) inverted, read once.
 var _rest_inverse := Basis.IDENTITY
+# The trunk's lean averaged over `LEAN_SMOOTHING`, in radians, and whether it has a value yet.
+var _lean := 0.0
+var _leaning := false
 
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
@@ -46,7 +53,7 @@ func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
 	_laid_out = false
 
 
-func _process_modification_with_delta(_delta: float) -> void:
+func _process_modification_with_delta(delta: float) -> void:
 	var skeleton := get_skeleton()
 	if skeleton == null or hold == null:
 		return
@@ -56,9 +63,8 @@ func _process_modification_with_delta(_delta: float) -> void:
 		hold.place(skeleton)
 		return
 	var top := _bones[-1]
-	# The clip's spine, and how far it has the chest turned from the model's front now, in
-	# degrees about the up axis (the way `chest_turn` counts): where the turn from the bone's rest
-	# sends the model's front.
+	# The clip's spine, and how far it has the chest turned from the model's front now
+	# (`_chest_yaw`).
 	var chest := Transform3D.IDENTITY
 	if _chain:
 		var above := _parents[_bones[0]]
@@ -70,17 +76,23 @@ func _process_modification_with_delta(_delta: float) -> void:
 			_posed[index] = chest
 	elif top >= 0:
 		chest = HandPoseModifier.global_pose(skeleton, top)
+	# About the chest's own up axis in a slide, not the model's: a slide lays the chest back, and
+	# a turn about the model's up axis rolled it onto its side instead (kit #1413).
 	var yaw := 0.0
+	var axis := Vector3.UP
 	if top >= 0:
-		var ahead := (chest.basis.orthonormalized() * _rest_inverse) * Vector3.BACK
-		yaw = rad_to_deg(atan2(ahead.x, ahead.z))
+		var turned := chest.basis.orthonormalized() * _rest_inverse
+		var lying := CharacterSlide.lying(hold.character)
+		yaw = _chest_yaw(turned, lying)
+		axis = _chest_up(turned, lying)
 	# `left_chest_turn` on the left shoulder (a left peek lean, gdstudio #1435).
 	var turn_now := lerpf(hold.chest_turn, hold.left_chest_turn, hold.side)
 	var degrees := (turn_now - yaw) * hold.chest_weight()
-	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
-	_turn_head(skeleton, top, degrees)
+	_turn_spine(skeleton, Basis(axis, deg_to_rad(degrees / _bones.size())))
+	_turn_head(skeleton, top, degrees, axis)
 	_straighten_chest(skeleton, top)
 	_turn_back(skeleton, top)
+	_carry_upright(skeleton, top, delta)
 	hold.place(skeleton, _posed[-1] if _chain else Transform3D(), _chain)
 
 
@@ -131,26 +143,16 @@ func _turn_spine(skeleton: Skeleton3D, turn: Basis) -> void:
 		parent = turned
 
 
-# Turns the head back by the chest's turn of `degrees`, so it keeps the clip's facing; its
-# parent's pose comes from the chest's (`top`) when it is under it.
-func _turn_head(skeleton: Skeleton3D, top: int, degrees: float) -> void:
+# Turns the head back by the chest's turn of `degrees` about `axis`, so it keeps the clip's
+# facing; its parent's pose comes from the chest's (`top`) when it is under it.
+func _turn_head(skeleton: Skeleton3D, top: int, degrees: float, axis: Vector3) -> void:
 	if _head == -2:
 		_head = skeleton.find_bone(HEAD)
 	if _head < 0:
 		return
-	var bone := _parents[_head] if _head < _parents.size() else skeleton.get_bone_parent(_head)
-	var neck := Transform3D.IDENTITY
-	var cursor := bone
-	if _chain:
-		while cursor >= 0 and cursor != top:
-			neck = skeleton.get_bone_pose(cursor) * neck
-			cursor = _parents[cursor]
-	if _chain and cursor == top:
-		neck = _posed[-1] * neck
-	else:
-		neck = HandPoseModifier.global_pose(skeleton, bone)
+	var neck := _neck_pose(skeleton, top)
 	var head := neck * skeleton.get_bone_pose(_head)
-	var back := Basis(Vector3.UP, -deg_to_rad(degrees))
+	var back := Basis(axis, -deg_to_rad(degrees))
 	skeleton.set_bone_pose(
 		_head, neck.affine_inverse() * Transform3D(back * head.basis, head.origin)
 	)
@@ -172,7 +174,7 @@ func _turn_back(skeleton: Skeleton3D, top: int) -> void:
 	var turn_now := lerpf(hold.chest_turn, hold.left_chest_turn, hold.side)
 	var degrees := (turn_now - yaw) * hold.chest_weight() * lean
 	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
-	_turn_head(skeleton, top, degrees)
+	_turn_head(skeleton, top, degrees, Vector3.UP)
 
 
 # Raises a chest that leans more than the hold's `aim_lean_limit` toward that limit as the gun comes
@@ -194,8 +196,94 @@ func _straighten_chest(skeleton: Skeleton3D, top: int) -> void:
 	_turn_spine(skeleton, Basis(axis.normalized(), (lean - limit) * share / _bones.size()))
 
 
+# The pose of the head's parent (the neck) in the skeleton's space, from the chest's (`top`) when
+# it is under it.
+func _neck_pose(skeleton: Skeleton3D, top: int) -> Transform3D:
+	var bone := _parents[_head] if _head < _parents.size() else skeleton.get_bone_parent(_head)
+	var neck := Transform3D.IDENTITY
+	var cursor := bone
+	if _chain:
+		while cursor >= 0 and cursor != top:
+			neck = skeleton.get_bone_pose(cursor) * neck
+			cursor = _parents[cursor]
+	if _chain and cursor == top:
+		return _posed[-1] * neck
+	return HandPoseModifier.global_pose(skeleton, bone) if bone >= 0 else Transform3D()
+
+
+# Raises a trunk that leans forward more than the hold's `carry_lean_limit` at the low ready
+# (`TwoHandHold.carry_amount()`; kit #1348) by what its lean, averaged over `LEAN_SMOOTHING`, has
+# over it: the run's own trunk under the rifle's idle leaned 13 degrees and the sprint's 14. The
+# lean is the line from the spine's parent (the pelvis) to the head's parent (the neck), forward
+# in the model's space, the way the run test reads it. It is a turn about the model's side axis
+# spread evenly over the spine bones, so it adds no twist (kit #1379); the head keeps the facing
+# the clip gave it, as for the chest's turn. It runs only while the carry is on, and its poses
+# come from the spine's of this update (kit #1347).
+func _carry_upright(skeleton: Skeleton3D, top: int, delta: float) -> void:
+	var share := hold.carry_amount()
+	if share <= 0.0 or _head < 0 or _bones[0] < 0:
+		_leaning = false
+		return
+	var root := _parents[_bones[0]]
+	if root < 0:
+		return
+	var pelvis := _base.origin if _chain else HandPoseModifier.global_pose(skeleton, root).origin
+	var neck := _neck_pose(skeleton, top)
+	var trunk := neck.origin - pelvis
+	var lean := atan2(trunk.z, trunk.y)
+	if not _leaning:
+		_lean = lean
+		_leaning = true
+	_lean = lerpf(_lean, lean, 1.0 - exp(-delta / LEAN_SMOOTHING))
+	var wanted := (_lean - deg_to_rad(hold.carry_lean_limit)) * share
+	if wanted <= 0.0:
+		return
+	var head_local := skeleton.get_bone_pose(_head)
+	var head_before := (neck * head_local).basis
+	# The spine turns about its own bones, above the pelvis, so the trunk's line turns by less
+	# than the spine (about half); the first pass measures by how much and the second takes the
+	# rest at that rate.
+	_turn_spine(skeleton, Basis(Vector3.RIGHT, -wanted / _bones.size()))
+	neck = _neck_pose(skeleton, top)
+	trunk = neck.origin - pelvis
+	var moved := lean - atan2(trunk.z, trunk.y)
+	if moved > wanted * 0.1:
+		var spine := (wanted - moved) * wanted / moved
+		_turn_spine(skeleton, Basis(Vector3.RIGHT, -spine / _bones.size()))
+		neck = _neck_pose(skeleton, top)
+	var head := neck * head_local
+	skeleton.set_bone_pose(_head, neck.affine_inverse() * Transform3D(head_before, head.origin))
+
+
 ## The spine's poses in the skeleton's space, in the order of the hold's `spine_bones`: this array,
 ## filled in every update the stance hands the hold the spine's top (kit #1347), so the hold's push
 ## to the skin reads them and does not work them out again.
 func spine_poses() -> Array[Transform3D]:
 	return _posed
+
+
+# How far the clip has the chest turned from the model's front now, in degrees (the way
+# `chest_turn` counts), from `turned`, the chest's turn from its rest in the model's space: where
+# it sends the model's front, about the model's up axis, and by `lying` (a slide's share,
+# `CharacterSlide.lying`) about the chest's own up axis. Laid back by a slide, the front points
+# up, its turn about the model's up axis came from the slightest roll, a different one every
+# slide, and a turn about that axis rolled the trunk onto its side (kit #1413). Not by the chest's
+# lean: the reload and the clips lean it as far as a slide does.
+static func _chest_yaw(turned: Basis, lying: float) -> float:
+	var ahead := turned * Vector3.BACK
+	var upright := rad_to_deg(atan2(ahead.x, ahead.z))
+	var up := (turned * Vector3.UP).normalized()
+	if lying <= 0.0 or up.dot(Vector3.UP) < -0.99:
+		return upright
+	var leaned := Basis(Quaternion(Vector3.UP, up)) * Vector3.BACK
+	return lerpf(upright, rad_to_deg(leaned.signed_angle_to(ahead, up)), lying)
+
+
+# The axis the chest turns about now, in the model's space (`_chest_yaw`).
+static func _chest_up(turned: Basis, lying: float) -> Vector3:
+	if lying <= 0.0:
+		return Vector3.UP
+	var up := (turned * Vector3.UP).normalized()
+	if up.dot(Vector3.UP) < -0.99:
+		return Vector3.UP
+	return Vector3.UP.slerp(up, lying).normalized()

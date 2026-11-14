@@ -66,12 +66,12 @@ func bodies() -> Array[AiCharacter]:
 	return _bodies
 
 
-## Their bodies' RIDs, for a ray's `exclude`.
+## Their bodies' RIDs (and their shot hulls'), for a ray's `exclude`.
 func excluded() -> Array[RID]:
 	var out: Array[RID] = []
 	for body in _bodies:
 		if is_instance_valid(body):
-			out.append(body.get_rid())
+			out.append_array(ShotHull.rids_of(body))
 	return out
 
 

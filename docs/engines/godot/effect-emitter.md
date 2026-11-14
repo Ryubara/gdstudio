@@ -98,6 +98,13 @@ sky, so none of its programs has the radiance map (`USE_RADIANCE_MAP`), and it h
 minimap's view of the first flash, sparks and mark linked 6 or 7 programs at the first shot (gdstudio #1297). With
 `warm_up_every_probe` off the other views are still drawn once, where the player's camera stands.
 
+- **Approach:** An effect drawn outside the emitter (the tracers' `MultiMesh` in `TracerPool`) warms itself: it
+  draws one unseen streak in front of the camera from the level's start and keeps it until the emitter's `warmed`
+  (`EffectEmitter.find(self)`, `is_warming()`), so the probe tour draws it under every probe too. **Watch out for:**
+  its own few frames link only the programs for where the camera stands; the web build links one for each way a
+  surface is drawn, so the first shot under a reflection probe linked the rest. **Seen:** gdstudio #1270 (PR #1301),
+  2026-11-11 (`TracerPool.warm_up_frames`).
+
 ## What it costs {#cost}
 
 Measured with `tools/bench/effects_cost.tscn` (the pistol fires at every chance, at 4 and at 30 shots a second, 300
