@@ -6,6 +6,9 @@ The subpages of [the 3D Third Person template](../third-person-template.md), spl
 on the page of its subject, with an `{#anchor}`. A page is split at about 40 KB, before the 50 KB the check refuses
 ([Page size](../../../studio/rules.md#size)).
 
+- [The character's parts](body-parts.md), [The weapon parts](weapon-parts.md), [The camera, screen and map
+  parts](screen-parts.md) and [The AI and online parts](online-parts.md): each row of the template's table of parts in
+  full (where it lives, its notes, its inspector), one section a part (#1457).
 - [The character and its model](character.md): the animation libraries, the mannequins, replacing the model, the
   controller, the ragdoll and touch controls.
 - [What the parts cost](parts-cost.md): what each part of a living character costs a frame, the node count
@@ -33,4 +36,5 @@ on the page of its subject, with an `{#anchor}`. A page is split at about 40 KB,
 - [Networked map parts](net-world.md): doors, platforms and pickups the server owns, met at the command's tick on both
   sides, and the checklist of a network-ready component.
 
-What is in the template, the scene map and the route for a clip stay on [the template page](../third-person-template.md).
+The one-line table of parts, the scene map and the pointers of moved sections stay on [the template
+page](../third-person-template.md).

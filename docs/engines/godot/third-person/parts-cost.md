@@ -17,7 +17,9 @@ processing off and called by hand, a first death, and 100 of each world part aga
 come from its export in headless Chrome (`tools/bench/parts_cost_bench.py`, under `gds quiet`). A frame's "work" is from
 its first physics tick to its last node processed (the scripts, the animation and the physics step, not the drawing).
 `tests/gameplay/test_parts_budget.gd` holds the counts tight in CI and ten walking characters' frame loosely, as a
-multiple of a calibration loop.
+multiple of a calibration loop. What each part is, where it lives and its inspector are on the parts pages ([the
+character's parts](body-parts.md), [the weapon parts](weapon-parts.md)); a part that adds a node to the character, as
+a weapon hold, a left-shoulder hold or the peek lean do, moves the count this test pins.
 
 | Median frame work, ms | 1 | 10 | 25 | 50 walking |
 | --- | ---: | ---: | ---: | ---: |
