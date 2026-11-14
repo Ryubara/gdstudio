@@ -171,7 +171,9 @@ it on Linux with the pinned Blender and Godot (fetched by `gds workspace init --
 --blender`); the numpy-only `clips` job checks the own clips without Blender on every pull request. A pull request
 runs `blender-clips` only when it changes the template's `assets/animation`, `assets/characters`, `assets/weapons`,
 `gameplay/weapon`, `gameplay/character` or `tools/hold`, `tools.toml` or `ci.yml`; every push to `main` runs it, so
-an input the list misses is still caught there. About 4 minutes with the fetch, the game and the dump.
+an input the list misses is still caught there. It takes about 7 minutes on a runner: the fetch 47 s, the game
+and the dump 23 s, the builds 130 s on 4 workers and the own clips' limb report 205 s; the template job takes
+longer, so it adds nothing to the time to green.
 
 Windows makes every committed clip again byte for byte. Linux does not: Blender there rounds the last bit of a float
 differently, so every glb comes out a few bytes apart (at most 7e-7 in any value, one float32 step, and a node scale
