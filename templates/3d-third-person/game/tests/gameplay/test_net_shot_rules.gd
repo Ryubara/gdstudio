@@ -218,6 +218,7 @@ func test_one_seed_gives_one_pellet_whatever_was_fired_before() -> void:
 		(load("res://gameplay/weapon/pistol.tres") as WeaponDef).duplicate() as WeaponDef
 	)
 	definition.spread = 6.0
+	definition.first_shot_spread = 6.0
 	definition.fire_rate = 60.0
 	var headings: Array[Vector3] = []
 	for earlier in [0, 5]:
