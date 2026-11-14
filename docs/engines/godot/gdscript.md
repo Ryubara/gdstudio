@@ -32,7 +32,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   member added later makes old locals of that name errors in scripts the change never touched. **Seen:** gdstudio #902
   (`world_hash` beside such a function); #903 (`url` and `url()`); #1386 (`left` beside `NetEvent.left()`); #1420
   (`newest`, `goal`); #1436 (`pole()`'s); PR #1454, 2026-11-14 (a member `goal` moved out of `character.gd`, now
-  `move_goal`: [Rules](project-conventions.md#rules)).
+  `move_goal`: [Rules](project-conventions.md#rules)); PR #1537, 2026-11-14 (a local `target` in `AiFlee`, a member
+  of `AiTaskContract`: gdlint and gdformat passed, Godot refused the script).
 
 - **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
   `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an

@@ -162,8 +162,18 @@ Intel Xeon 8573C), 2026-11-13; Windows: 4 desktop runs with 25 Godot processes b
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 50 | 41 to 103 us; a ruler ms: Linux 6.2 to 9.6 (typical 8.7), Windows 10.5 to 12.2 (typical 11.0) | 58 to 144 us; Linux 8.7 to 13.4 (limit 15.5), Windows 12.7 to 15.4 (limit 19) | 1.1 to 3.4 us (0.024 to 0.040 of the step; limit 0.055) | 0.58 / 10.0 | 0.18 | 54 % |
 | 100 | 39 to 88 us; Linux 5.9 to 8.1 (typical 7.65), Windows 9.4 to 11.6 (typical 9.5) | 78 to 166 us; Linux 11.1 to 15.4 (limit 18), Windows 17.4 to 20.2 (limit 25) | 1.3 to 3.3 us (0.028 to 0.044; limit 0.06) | 0.50 / 6.7 | 0.09 | 53 % |
-| 200 | 33 to 69 us; Linux 5.0 to 6.4 (typical 6.2), Windows 8.0 to 8.9 (typical 7.8) | 105 to 210 us; Linux 14.8 to 19.6 (limit 23), Windows 23.6 to 26.0 (limit 32) | 1.7 to 3.5 us (0.037 to 0.060; limit 0.09) | 0.36 / 3.6 | 0.09 | 39 % |
+| 200 | 33 to 69 us; Linux 5.0 to 6.4 (typical 6.2), Windows 8.0 to 8.9 (typical 7.8) | 105 to 210 us; Linux 14.8 to 19.6, since #1532 18.5 to 23.5 (limit 27.5), Windows 23.6 to 26.0, since #1532 25.4 to 26.8 (limit 36) | 1.7 to 3.5 us (0.037 to 0.060; limit 0.09) | 0.36 / 3.6 | 0.09 | 39 % |
 
+- **Approach:** When a behaviour fix changes how much the gate's crowd walks (its rows' `walking_share`), dispatch
+  `ai-cost-gate.yml` on the branch and set the think limits from its 50 runs, keeping their margin over the highest
+  run. **Watch out for:** a fleeing think asks for paths, so a flight that stops failing costs more a think on the
+  same code; trimming the fix's own queries saved nothing measurable. **Seen:** PR #1537, 2026-11-14 (think at 200
+  read 24.4 on CI against 23; snapping only the points tried read the same as snapping all 8 on the desktop).
+- The flight's fix (gdstudio #1532, PR #1537) made the 200 civilians flee instead of standing on goals the navigator
+  refused: walking 61 % against 39 to 44 %, and a think about a fifth dearer, since a fleeing think asks for paths. 50
+  suite runs on CI (AMD EPYC 9V74, 7763, Intel Xeon 6975P-C, 8370C), 2026-11-14, read the think at 200 at 18.5 to 23.5
+  (2 over the old limit of 23); 50 and 100 stayed inside theirs (9.0 to 12.1, 11.2 to 14.5). The limits at 200 moved
+  to 27.5 (Linux) and 36 (Windows), the margin they had over unchanged code before.
 - Twice as slow, the step read 19.7 to 22.8, 20.3 to 21.3 and 15.1 to 17.5 a ruler ms on the desktop.
 - The score (#1526), 150 suite runs of fresh processes on CI in three soaks, 2026-11-14 (AMD EPYC 9V45, 9V74, 7763,
   Intel Xeon 6975P-C, 8573C): the gate scored 0.88 to 1.26 (the median of three processes; one process 0.87 to 1.27),
