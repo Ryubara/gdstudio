@@ -89,6 +89,8 @@ func test_every_number_has_its_default_pinned() -> void:
 		&"knockback_speed": 5.0,
 		&"land_clip_speed": 4.5,
 		&"land_time": 0.3,
+		&"hard_land_speed": 9.0,
+		&"hard_land_time": 20.0 / 30.0,
 		&"stand_speed": 0.15,
 		&"radius": 0.34,
 		&"height": 1.8,
