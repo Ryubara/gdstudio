@@ -163,13 +163,18 @@ every exit, kept with `--keep`, two calls at once).
   plugin and the autoload, and the parse check fails 5 of 329 scripts on the old template); gdstudio #909, 2026-11-11
   (a probe's Variant `:=` broke the player rig; no suite loaded the probe).
 - **Approach:** To run a template's own tests, run `gds template test <t>` from your worktree (see above); it makes the
-  game from the working tree each time. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests
-  cannot run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a
-  dropped approach stayed in it and broke every test until the game was made again); the template comes from the
-  checkout whose `python` folder `--project` names, not the folder you stand in, so `--project` names the worktree's
-  (the `game` line prints which checkout it used); `gds new game --local --workspace <folder>` builds the same way.
-  **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds new game`);
-  gdstudio #940, 2026-11-10 (the main checkout's `python` tested its own template); #1274; PR #1427.
+  game from the working tree each time. **Watch out for:** `templates/<t>/game` has no GdUnit addon, so its tests cannot
+  run there, and a game made by hand earlier keeps the template as it was (the old `.tres` and scene of a dropped
+  approach stayed in it and broke every test until the game was made again); `gds new game --local --workspace <folder>`
+  builds the same way. **Seen:** gdstudio #830, 2026-11-08 (the command: gdstudio #917); gdstudio #857, 2026-11-09 (`gds
+  new game`).
+- **Approach:** Name your worktree's `python` folder in `--project` (`uv run --project <worktree>/python gds template
+  test <t>`) and read the `game` line for the checkout it used; a suite that runs 0 cases, or "Given directory or file
+  does not exists" for a suite the branch adds, means the wrong checkout, never a pass. **Watch out for:** the template
+  comes from the checkout whose `python` folder `--project` names, not the folder you stand in, so the kit's main
+  `python` run from inside a worktree tested `main`'s template, and its green runs were `main`'s copies of the suites.
+  **Seen:** gdstudio #940, 2026-11-10 (the main checkout's `python` tested its own template); #1274; PR #1427,
+  2026-11-14 (the coordinator, standing in the pull request's worktree).
 - **Approach:** Run a desktop probe or a bench of a template in a kept game (`gds template game`, or the game
   `bench-web` keeps without `--run`), never with `--path templates/<t>/game`. **Watch out for:** an import there
   failed to parse the menus and settings (37 errors: their classes come with the game) and rewrote three levels'

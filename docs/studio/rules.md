@@ -93,6 +93,12 @@ on the [corrections log](maintainer-corrections.md). The old form (`**Rule:** ..
   several numbers) or start a new entry. **Watch out for:** both sides of a conflict kept whole made a 973-character
   entry, and one more source on a long entry 1026, so the merge commit and a docs commit were refused by pre-commit.
   **Seen:** gdstudio #970, 2026-11-11 (`running-gdunit.md`, `online-client.md`; both folded or split, the check passed).
+- **Approach:** Count the 900 characters with the `Seen:` part: when a new case does not fit, tighten the wording and
+  fold the dates, and when that is not enough split the entry in two by subject, each with its own approach and its
+  sources (as `gdscript.md#names-and-types` split its shadowing entry), or give the new case an entry of its own. Never
+  cut a case, a source or the words that teach the approach to make room. **Watch out for:** an entry with a long
+  `Seen:` list has no room for a new case, and several agents cut an entry's wording to fit one, losing what it taught.
+  **Seen:** gdstudio PR #1454 and PR #1460, 2026-11-14 (the shadowing entry split by #1514).
 
 ## A section {#section}
 
@@ -193,12 +199,13 @@ pointer was removed later still finds the one section that holds it (`lessons.mo
   (PR #1219) and #1222 (PR #1227), 2026-11-11; #1267 and #1191, 11-12 (each split `tools/blender/animation.md` its own
   way: before a split, look for an open pull request splitting the same page).
 - **Approach:** After merging main into a branch that adds to a page, run `python .github/scripts/mistakes.py check`
-  on the merge result; when the page is over 50 KB, move the branch's own section to a subpage of its subject and leave
-  a pointer under the old anchor. **Watch out for:** each side was under the limit, so neither pull request's checks
-  saw it; only the merge put the page over. **Seen:** gdstudio #1202, 2026-11-11 (`hooks.md`, the hold section moved
-  to `hooks-hold.md`); #1298, 2026-11-11 (`own-animation.md`); #1254 (PR #1315), 2026-11-12 (`shooting.md`, melee
-  moved to `third-person/melee.md`); #1490 (PR #1516), 2026-11-14 (main grew `weapon-pickups.md` to 51,094 bytes
-  after the branch's base; the paragraph was dropped).
+  on the merge result; when the page is over 50 KB, look for an open pull request splitting it (`gh pr list --search
+  <page>`), then move the branch's own section to a subpage of its subject and leave a pointer under the old
+  anchor. **Watch out for:** each side was under the limit, so neither pull request's checks saw it; only the merge
+  put the page over. **Seen:** gdstudio #1202 (`hooks.md`, the hold section moved to `hooks-hold.md`) and #1298
+  (`own-animation.md`), 2026-11-11; #1254 (PR #1315), 11-12 (`shooting.md`, melee moved to `third-person/melee.md`);
+  #1490 (PR #1516), 11-14 (main grew `weapon-pickups.md` to 51,094 bytes after the branch's base; the paragraph was
+  dropped); PR #1474, 11-14 (its split clashed with #1488's move of the same section and was thrown away).
 
 ## Where the entry is named {#named}
 

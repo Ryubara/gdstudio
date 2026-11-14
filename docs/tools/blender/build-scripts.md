@@ -153,6 +153,12 @@ A clip that passes an obstacle is also read between its keys, as a game draws it
   or of their axes) with a limit in millimetres, not by the angle from `acos` of a dot product. **Watch out for:**
   `mathutils` is single precision, so an arc cosine of a dot product near 1 reads 0.04 to 0.09 degrees between two
   poses that are the same, and a pose-gap check failed on noise. **Seen:** gdstudio #1081 (PR #1103), 2026-11-11.
+- **Approach:** Lint a template's Python (a build script, a measure, a capture tool) yourself before the commit, with
+  the kit's settings: `uv run --project python ruff check --no-cache --config python/pyproject.toml <files>` and the
+  same `ruff format --check`. **Watch out for:** the pre-commit ruff hooks run only on `python/` and `.claude/hooks/`,
+  so nothing lints a template's Python at commit; a bare `uvx ruff` from the kit's root reads no config and judges it at
+  88 columns, not the kit's 120 ([Rules](../../engines/godot/project-conventions.md#rules) has the cache and rewrap
+  side). **Seen:** gdstudio PR #1489, 2026-11-14.
 
 ## Checked in CI {#ci}
 

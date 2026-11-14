@@ -77,7 +77,8 @@ level's three meshes and the ring). The hold's cost is with [its section](#rifle
      with no clip is placed in the model's space with both arms reaching it, and its switch and reload are built in
      code (gdstudio #889, after the maintainer's review of 2026-11-11) -->
 
-How a carbine is held, which the hold copies. The firing hand is high on the pistol grip, with no space left under
+Lying down the rifle is put away for a whole reload ([the prone reload](moves.md#prone)). How a carbine is held,
+which the hold copies. The firing hand is high on the pistol grip, with no space left under
 the receiver, and the support hand is forward on the hand guard with its thumb along the rail's side, pulling the
 rifle back into the shoulder ([Guns & Ammo](https://www.gunsandammo.com/editorial/tactical-shooting-get-ahold-of-that-carbine/248479)).
 The trigger finger is taught straight along the lower receiver until the shot

@@ -117,6 +117,13 @@ they are rerun, replayed or read from another branch -->
   stayed `IN_PROGRESS` in the rollup while its run had finished green, so a loop over `gh pr checks` waited on a check
   that would never change, with the pull request already `CLEAN`. **Seen:** gdstudio #1000, 2026-11-10 (run
   42893048440).
+- **Approach:** When a pull request with no conflict still shows only the `pull_request_target` checks (`pr`,
+  `main-green`, `hold`) five minutes after a push, list the head's runs (`gh api
+  "repos/<owner>/<repo>/actions/runs?head_sha=<sha>" --jq '.workflow_runs[].name'`); when `ci`, `docs` and `conventions`
+  have no run at all, close and reopen the pull request. **Watch out for:** GitHub can start no `pull_request` workflow
+  for a push, with no skip marker in the commit and no incident on its status page, so the pull request waits on checks
+  that never come and more waiting does not bring them. **Seen:** gdstudio PR #1486, 2026-11-14 (two pushes in a row;
+  the reopen started all three at once).
 - **Approach:** Judge a check on a commit by its newest run alone (`pr_status.py`'s `newest_runs`: by start time,
   then id), and when a status label disagrees with `gh pr checks`, list the commit's check runs with their suites.
   **Watch out for:** `check-runs?filter=latest` is the latest run of each check per check suite, and every event
