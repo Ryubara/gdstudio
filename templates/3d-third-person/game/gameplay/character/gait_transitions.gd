@@ -39,8 +39,10 @@ const TURN_DONE := 5.0
 const START_GRACE := 4
 ## Below this ground speed a stopping body is at rest and its clip plays on at its own pace (m/s).
 const STOP_DONE := 0.02
-## The fastest a stop clip is played, as a share of its own pace (gdstudio #1525).
+## The fastest a stop clip is played once its body is slower than `standing_speed`, as a share of
+## its own pace, and the furthest behind its ground it may fall for it, in seconds (gdstudio #1525).
 const STOP_PACE_MOST := 2.0
+const STOP_LAG_MOST := 0.1
 
 var settings: GaitSettings
 ## What plays now, and its clip.
@@ -328,10 +330,10 @@ func _go_on(
 	# millimetres were covered, it stood still for a few ticks and went on with a jump.
 	var done := _body_done(body) or (kind == Kind.STOP and progress >= GaitClips.travel_end(clip))
 	var next := maxf(progress, _time + (delta if done or progress < 0.0 else 0.0))
-	if kind == Kind.STOP:
+	if kind == Kind.STOP and body.ground_speed() < standing:
 		# The body's last braking is harder than the clip's ease to rest: read by the ground alone,
 		# a jog stop's last step played at four times its pace, a hand 16 cm in a tick.
-		next = minf(next, _time + delta * STOP_PACE_MOST)
+		next = minf(next, maxf(_time + delta * STOP_PACE_MOST, progress - STOP_LAG_MOST))
 	_time = minf(next, _length)
 	animation.tree.set(_P_SEEK, _time)
 	if cancelled or _time >= _length:
