@@ -272,7 +272,10 @@ func _begin(
 	_from = body.global_position
 	if kind == Kind.STOP:
 		# The stick was let go a tick before the tree saw it: the stop's ground counts from there.
-		_from -= body.get_position_delta()
+		# From the velocity, not `get_position_delta()`: a puppet is placed, never stepped, and
+		# its delta is from wherever it was last stepped, so its stop seeked to the end at once.
+		var tick := 1.0 / Engine.physics_ticks_per_second
+		_from -= Vector3(body.velocity.x, 0.0, body.velocity.z) * tick
 	_facing = body.facing
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z)
 	var wish := body.move_goal.direction(body)
