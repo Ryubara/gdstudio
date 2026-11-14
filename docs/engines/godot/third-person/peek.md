@@ -29,7 +29,9 @@ degrees) standing or `crouch_max_angle` (45) crouched, about a pivot `pivot_shar
 crosshair ray leaves) moves with it (`CharacterCapsule.fit` places it), the body walks no faster than `move_speed`
 (1.2 m/s) and turns to the view as an aim turns it, and `PeekShape`, a capsule on the body along the bent spine from
 `shape_start` of the bend to a radius above the eye, is enabled: a shot meets it outside the upright capsule and the
-hit zones on the bent skeleton answer. Before the lean grows, that capsule (grown by `wall_margin`) is tried at the
+hit zones on the bent skeleton answer. On a dressed body the shot hull (0.46 m round the axis,
+[the hull](../third-person-hits.md#shot-hull)) is met first and asks the same zones; `PeekShape` takes what leans past
+it. Before the lean grows, that capsule (grown by `wall_margin`) is tried at the
 whole lean and halved toward the last free share six times when it meets something (`room`); the lean is held at
 `room`, so the head and the shape never go into a wall and the feet are never pushed (`CharacterLean.can_take` sends a
 leaning body through the full tick). A weapon with no muzzle (a server's body) rolls its `no_muzzle_offset` with the

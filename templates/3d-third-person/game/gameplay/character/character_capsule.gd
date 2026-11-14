@@ -20,8 +20,9 @@ static func height(body: Character) -> float:
 	return lerpf(crouched, prone_height(body), body._prone.share())
 
 
-## Sizes `body`'s capsule and its camera's target for the crouch, the slide, the prone stance and
-## the peek lean: the capsule keeps its feet on the ground and loses height from the top.
+## Sizes `body`'s capsule, its camera's target and its shot hull (`ShotHull`) for the crouch, the
+## slide, the prone stance and the peek lean: the capsule keeps its feet on the ground and loses
+## height from the top.
 static func fit(body: Character) -> void:
 	var tuning := body.tuning
 	var capsule := body._body.shape as CapsuleShape3D
@@ -38,6 +39,10 @@ static func fit(body: Character) -> void:
 		body._body.position.y = tall / 2.0
 	# The eye goes with a peek lean (`CharacterPeek`), and the lean's shape with it.
 	body.peek_motion.place(body, body._camera_target, eye_height(body))
+	# The shot-only hull around it, with room for the pose (gdstudio #1431).
+	var hull := ShotHull.of(body)
+	if hull != null:
+		hull.fit(body)
 
 
 ## The eye point's height above the feet now (the camera's target), upright: lower crouched,

@@ -138,7 +138,9 @@ instead of every frame, and the ragdoll keeps no per-tick pose for its bones' ow
 leaves with the character's velocity, as `pose_velocity` off does). Footsteps play only for a character animated every
 frame within `footstep_range` of the camera, which is the listener. The tree keeps its callback mode: only its own
 update stops ([AnimationTree: throttling a running tree](../animation-tree.md#throttling-a-running-tree)). Cosmetic and
-per machine: nothing in it changes what a body does or what a network sends, and the player, a `character_dressed.tscn`
+per machine: nothing in it changes what a body does or what a network sends, and a shot that reaches a held pose
+catches it up first, so what it hits does not hang on the view ([the shot hull](../third-person-hits.md#shot-hull),
+gdstudio #1431); the player, a `character_dressed.tscn`
 alone and a director without a throttle animate exactly as before.
 
 Near the camera nothing changes: `tools/capture/ai_tour.tscn` filmed with the throttle on and off matches frame for

@@ -135,10 +135,13 @@ func test_the_shape_stands_for_the_leaning_shoulders_and_head() -> void:
 	assert_object(_ray(from, to)).is_null()
 
 
+# What a shot from `from` to `to` meets, as a shot sees it: a body's shot hull gives the part on
+# the line or is passed (`ShotHull.ray_as_shot`, kit #1431).
 func _ray(from: Vector3, to: Vector3, exclude: Array[RID] = []) -> Object:
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.exclude = exclude
-	var hit := _arena.get_world_3d().direct_space_state.intersect_ray(query)
+	var space := _arena.get_world_3d().direct_space_state
+	var hit := ShotHull.ray_as_shot(space, query, (to - from).normalized())
 	return hit.collider if not hit.is_empty() else null
 
 
@@ -158,7 +161,8 @@ func test_a_wall_beside_the_body_stops_the_lean_short() -> void:
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = shape.shape
 	query.transform = shape.global_transform
-	query.exclude = [body.get_rid()]
+	# The body and its own shot hull (kit #1431), around it on every layer.
+	query.exclude = ShotHull.rids_of(body)
 	var met := _arena.get_world_3d().direct_space_state.intersect_shape(query, 4)
 	assert_array(met).is_empty()
 	assert_vector(body.global_position).is_equal_approx(feet, Vector3.ONE * 0.001)
@@ -251,14 +255,14 @@ func test_a_lean_shows_and_shoots_a_target_the_upright_body_cannot(
 	health.max_value = 100.0
 	target.add_child(health)
 	await get_tree().physics_frame
-	var wall_first := _ray(_eye(body), TARGET, [body.get_rid()])
+	var wall_first := _ray(_eye(body), TARGET, ShotHull.rids_of(body))
 	assert_object(wall_first).is_not_same(target)
 	await _fire(body, false)
 	assert_float(health.value).override_failure_message("upright hit through the wall").is_equal(
 		100.0
 	)
 	await _step(body, _leaning(1), 20)
-	assert_object(_ray(_eye(body), TARGET, [body.get_rid()])).is_same(target)
+	assert_object(_ray(_eye(body), TARGET, ShotHull.rids_of(body))).is_same(target)
 	await _fire(body, true)
 	assert_float(health.value).override_failure_message("the lean's shot missed").is_less(100.0)
 
