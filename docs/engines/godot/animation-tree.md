@@ -413,7 +413,8 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   one frame at a walk's stop, 70 cm into the crouch, for our clips and the library's alike; the blend's own test
   checked only that it was blending. **Seen:** gdstudio #1416, 2026-11-13 (the maintainer's playtest;
   `test_own_clip_blends.gd`); PR #1422, 11-14 (slower stops: a 1.3 rad gap at a sprint stop's start moved 23 cm in
-  the frame after the last restart; `SETTLE_FRAMES` 4).
+  the frame after the last restart; its cause:
+  [stop entries](../../tools/blender/start-stop-clips.md#taught)).
 - **Approach:** Keep a state-change blend out while an action clip covers the whole body
   (`CharacterAnimation.is_acting(true)`); the action cross-fades in the tree. **Watch out for:** the body state
   under a vault still changes, and a restart then took the clip's own fast motion for a jump and held it back: a
