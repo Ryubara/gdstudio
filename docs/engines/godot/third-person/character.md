@@ -452,6 +452,37 @@ targets (8 of 61 tracks), which the tree blends too. What #1360 left is
 [gdstudio #1438](https://github.com/Ryubara/gdstudio/issues/1438). The lean's share of the tree went from 1.0 to 0.3
 of the step in gdstudio #1403 ([the lean's cost](clips.md#gait-settings)).
 
+**The rest of the frame** (gdstudio #1438). The bench now times every part of a walking character: the skeleton's
+update (deferred by the engine to the end of the frame, so outside `*_work_ms` and the budget case: the bones' global
+poses, the modifiers, the skin), the physics tick after the scripts (less an empty arena's) and each other node that
+processes. µs a character a frame, 25 walking, three interleaved runs of a game at each commit (desktop at 9 to 12
+Godot processes) and two of each web build:
+
+| | Step | Script | Tree | Skeleton | Physics | `AimLayer` | `WeaponHold` |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Desktop, db19fdc0 | 32 to 42 | 10 to 15 | 23 to 26 | 16 to 19 | 12 to 16 | 4 to 5 | 3 to 8 |
+| Desktop, main (6d826e5a) | 40 to 44 | 47 to 53 | 58 to 63 | 19 to 22 | 16 to 17 | 12 to 14 | 14 to 16 |
+| Desktop, #1438 | 37 to 44 | 41 to 50 | 49 to 55 | 17 to 20 | 15 to 18 | 11 to 13 | 12 to 15 |
+| Chrome, main | 49 to 53 | 56 to 63 | 43 to 48 | 22 to 23 | 12 | 14 to 15 | 18 to 20 |
+| Chrome, #1438 | 48 to 54 | 55 to 63 | 38 to 48 | 20 to 24 | 12 to 16 | 14 to 15 | 17 to 20 |
+
+Read as shares of the step, what grew since db19fdc0 is the script (0.30 to 1.17), the tree (0.68 to 1.40) and the
+two weapon nodes (`AimLayer` 0.13 to 0.31, `WeaponHold` 0.10 to 0.34, run every frame by a character that does not
+aim: [gdstudio #1478](https://github.com/Ryubara/gdstudio/issues/1478)); the skeleton's update (0.47) and the physics
+tick (0.38) did not grow. The footsteps (2 to 3; 9 to 10 in Chrome), the ragdoll (3 to 4), the `NoiseMaker` (1 to 2)
+and the `Weapon` (1 to 2) are their expected cost. Of the skeleton's update the modifiers take: the hold's grip
+(`HoldGrip`) 5 to 7, the momentum blend 1 to 4 (#1360 read 6.5 with the probe's own calls), `MannequinTwist` 1 to 2
+and the engine's empty simulator under 1; the rest is the engine's: every bone's global pose (again after each
+modifier that moves one), the poses kept and put back around the modifiers, and the 82 binds of the skin (the three
+levels of detail share one). That is their expected cost, as is the script's split on #1438's issue.
+
+The tree blended the clips' `ik_` target tracks (8 of 61 in our clips, 286 in the libraries), which nothing drawn
+follows: no vertex is weighted to them and no bone hangs under them. `HelperTracks` switches them off in the shared
+clips (`GaitSettings.helper_tracks`, off), drawn bones the same to the bit (`test_helper_tracks.gd`); the tree's share
+of the step went from 1.38 to 1.45 to 1.26 to 1.35 on the desktop (4 to 8 µs) and from 0.88 to 0.90 to 0.79 to 0.89
+in Chrome. The budget case's limits stay: the case does not see the skeleton's update, and a few percent of the frame
+leaves the twice-as-slow case's margin as it was.
+
 **The budget on CI** (gdstudio #1451). The limit of 1.7 was set on the desktop and failed main at 2.40 on code whose
 parts held still. `.github/workflows/parts-budget.yml` runs the suite 50 times on the runners (by hand, and on a pull
 request that changes it). Over 100 runs that printed four more rulers beside the loop (an `AnimationTree` of its own

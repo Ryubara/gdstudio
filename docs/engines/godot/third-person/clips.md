@@ -117,6 +117,12 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   counts every clip of every library on the player, so a library added only to `character_dressed.tscn` passes every
   targeted suite and fails only in the full run. **Seen:** kit #1254, the six melee clips (90 to 96, then 99
   beside the three vault clips of #1239).
+- **Approach:** Take a track out of every character's blend by switching it off in the shared clips
+  (`Animation.track_set_enabled(track, false)`, once per library at run time: `HelperTracks`); the mixer makes no
+  cache for a track no clip has on, and skips it in the blend. **Watch out for:** `remove_track` on a clip of a
+  compressed library (`gds`) is refused ("Compressed tracks can't be manually removed"), and the switch holds for
+  every player in the process, tests included: a suite that reads the switched-off bones switches them on for itself.
+  **Seen:** gdstudio #1438, 2026-11-13 (the `ik_` targets, 286 tracks; `test_own_directions.gd` reads them).
 
 ## The fixed clips {#fixed-clips}
 
@@ -335,6 +341,7 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the controller's numbers that pick them |
 | `momentum_blend`, `momentum_half_life`, `momentum_speed_limit` | on, 0.05 s, 720 degrees a second | a change of body state shows at once and the difference from the drawn pose dies away (`MomentumBlend`), in place of the cross-fade over `blend_time` |
 | `lean`, `lean_clips`, `lean_full_at`, `lean_time` | on, `gds/Lean_Left` and the rest, 20 m/s², 0.12 s | the lean into the acceleration, built only when the four lean clips exist |
+| `helper_tracks` | off | the clips' `ik_` target tracks blended; off, switched off in the game (`HelperTracks`, gdstudio #1438): nothing drawn follows them, the pose is the same and the tree 4 to 5 µs a character cheaper |
 
 **What a transition clip needs** (gdstudio #1156, #1157). A name in `GaitTransitionSet` is a base: the tree plays
 `<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start),
