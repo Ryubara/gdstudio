@@ -50,6 +50,9 @@ var _along := Vector3.FORWARD
 var _facing := 0.0
 var _turn_to := 0.0
 var _pending := false
+# The state the body machine was last asked for (`route()`): where it goes from this state when
+# it finds itself left there.
+var _asked: StringName = CharacterAnimation.GROUND
 
 
 ## The state's node: the clip behind a seek and a time scale of 0.
@@ -93,6 +96,7 @@ func is_playing() -> bool:
 ## plays keeps the body while the ground is asked for (it hands over by itself); anything else
 ## ends it.
 func route(state: StringName) -> StringName:
+	_asked = state
 	if not is_playing():
 		return state
 	if state == CharacterAnimation.GROUND:
@@ -113,7 +117,10 @@ func step(
 		return
 	var current := playback.get_current_node()
 	if current == STATE:
-		playback.travel(CharacterAnimation.GROUND)  # Left there by a rebuild of the tree.
+		# Left there by a rebuild of the tree, or by a state asked as a clip ended that the machine
+		# has not reached yet (a crouch asked during a stop): on to the state last asked, never back
+		# to the ground over it (gdstudio #1412: the body stood drawn over its crouched capsule).
+		playback.travel(_asked)
 		return
 	if (
 		not _any
