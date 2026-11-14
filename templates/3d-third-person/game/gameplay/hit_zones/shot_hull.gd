@@ -83,6 +83,28 @@ static func rids_of(body: CollisionObject3D) -> Array[RID]:
 	return rids
 
 
+## `query`'s ray cast as a shot sees it: a shot hull it meets (nowhere drawn) gives the part on
+## the ray's line (`HitZones.aimed_point`) with the character as the `collider`; a ray between
+## the parts looks on past the hull. The aim rays use it (`PlayerCamera.crosshair_point`), so the
+## point and the body under the crosshair are the drawn ones (gdstudio #1431). `along` is the
+## ray's direction; `query.exclude` grows by each hull passed.
+static func ray_as_shot(
+	space: PhysicsDirectSpaceState3D, query: PhysicsRayQueryParameters3D, along: Vector3
+) -> Dictionary:
+	var hit := space.intersect_ray(query)
+	if hit.is_empty() or not hit["collider"] is ShotHull:
+		return hit
+	var zones := HitZones.of(hit["collider"])
+	if zones != null:
+		var on_part := zones.aimed_point(hit["position"], along)
+		if on_part.is_finite():
+			return {"position": on_part, "collider": zones.body_met(hit["collider"])}
+	var skipped := query.exclude
+	skipped.append(hit["rid"])
+	query.exclude = skipped
+	return space.intersect_ray(query)
+
+
 ## Sizes the hull around `body`'s capsule as it is now: `margin` wider, and `head_room` over the
 ## taller of the capsule now and the stance it is going to (standing up, the pose is there at once).
 func fit(body: Character) -> void:

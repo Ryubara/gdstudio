@@ -82,7 +82,10 @@ and the ragdoll never meet it ([layers](physics-layers.md#template-layers)). A s
 character: `HitZones.body_met` gives the character for marks and effects, and the hit's point is the part's
 (`HitRecord.point`), not the hull's surface; a shot that passes between the parts leaves out both
 (`HitZones.shot_bodies`). The shooter leaves out its own (`ShotHull.with_hull`, `rids_of`): the weapon's ray, a
-projectile's exceptions, the crosshair's ray. Online, `AiHitHistory` records the hull's size for the rewind
+projectile's exceptions, the crosshair's ray. The crosshair's ray reads a hull as a shot does
+(`ShotHull.ray_as_shot`): the part on its line, with the character as what it met, so the camera's shoulder swap still
+keeps a point on a character (`keep_aim_layers` counts Characters, not Shot Hulls). Online, `AiHitHistory` records
+the hull's size for the rewind
 ([AI online](third-person/ai-online.md#rewind)).
 
 A pose frozen by the animation throttle (out of view, or far) is caught up before a shot puts the zones on it:
@@ -109,6 +112,12 @@ The price is in [What it costs](#cost).
   out only the capsule met it at once: the old camera formula in `tests/fixtures/camera_aim.gd` disagreed with the
   weapon at every pose (28 failures in `test_weapon_ray.gd`), and the muzzle light tour, which casts on every layer,
   measured the light against the player's own hull. **Seen:** gdstudio #1431, 2026-11-13 (the full suite on PR #1459).
+- **Approach:** When a new collider joins `SHOT_MASK`, find every raw ray on that mask that reads what it met
+  (`grep -rn "aim_point_mask\|SHOT_MASK" gameplay tools`) and route it through the shot's own resolution
+  (`ShotHull.ray_as_shot`, `HitZones.body_met`). **Watch out for:** the camera's crosshair ray met the target's hull
+  first; its layer (Shot Hulls) is not in `PlayerCamera.keep_aim_layers`, so an aimed shoulder swap at a character
+  stopped keeping its point (8.7 degrees off, no turn) in `test_camera_swap_target.gd`, a suite main added after the
+  branch's full run. **Seen:** gdstudio #1431, 2026-11-14 (PR #1459 after merging main).
 
 ### The inspector {#inspector}
 
