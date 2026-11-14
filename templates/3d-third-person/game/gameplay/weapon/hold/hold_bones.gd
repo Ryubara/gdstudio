@@ -102,13 +102,13 @@ static func pull(off: Vector3, back: Vector3, length: float) -> float:
 	return -along - sqrt(maxf(length * length - beside, 0.0))
 
 
-## A node's transform in the space of `top`, one of its parents, from the transforms between: no
-## global transform is asked for while the skeleton updates (the pistol's attachment follows the
+## A node's transform in the space of `ancestor`, one of its parents, from the transforms between:
+## no global transform is asked for while the skeleton updates (the pistol's attachment follows the
 ## skeleton a frame late).
-static func between(node: Node3D, top: Node) -> Transform3D:
+static func between(node: Node3D, ancestor: Node) -> Transform3D:
 	var xf := node.transform
 	var above := node.get_parent() as Node3D
-	while above != null and above != top:
+	while above != null and above != ancestor:
 		xf = above.transform * xf
 		above = above.get_parent() as Node3D
 	return xf
