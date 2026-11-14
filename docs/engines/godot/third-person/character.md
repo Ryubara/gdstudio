@@ -15,7 +15,7 @@ Moved to [The character's clips](clips.md#animation-libraries).
 
 <!-- new section: a pointer left when the section moved to its own page at the size limit (#1016) -->
 
-Moved to [The character's clips](clips.md#vault-clips).
+Moved to [Vaulting's clips](vault-clips.md#vault-clips).
 
 ## The bodies {#mannequins}
 
