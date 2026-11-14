@@ -24,7 +24,8 @@ static func aim_point(weapon: Weapon) -> Vector3:
 	var end := start + ray * weapon.definition.aim_range
 	var query := PhysicsRayQueryParameters3D.create(start, end, weapon.aim_mask)
 	if shooter != null:
-		query.exclude = [shooter.get_rid()]
+		# The shooter and its shot hull (#1431), as `Weapon._cast()` leaves them out.
+		query.exclude = ShotHull.rids_of(shooter)
 	var found := weapon.get_world_3d().direct_space_state.intersect_ray(query)
 	return found["position"] if not found.is_empty() else end
 

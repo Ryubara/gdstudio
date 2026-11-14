@@ -172,7 +172,7 @@ func _muzzle_reach() -> float:
 	var from := muzzle.global_position
 	var to := from - muzzle.global_basis.z.normalized() * 20.0
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	query.exclude = [_player.get_rid()]
+	query.exclude = ShotHull.rids_of(_player)
 	var hit := _player.get_world_3d().direct_space_state.intersect_ray(query)
 	return from.distance_to(hit["position"]) if not hit.is_empty() else 20.0
 

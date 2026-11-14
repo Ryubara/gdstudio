@@ -33,7 +33,7 @@ func test_the_history_keeps_each_tick_and_holds_one_it_did_not_keep() -> void:
 	# Older than kept: the oldest kept; newer: the newest.
 	assert_vector(history.position_at(7, 2)).is_equal(Vector3(12, 0, 0))
 	assert_vector(history.position_at(7, 40)).is_equal(Vector3(15, 0, 0))
-	assert_float(history.size_at(7, 14).x).is_equal_approx(guard.tuning.radius, 0.001)
+	assert_float(history.size_at(7, 14).x).is_equal_approx(_shot_radius(guard), 0.001)
 	assert_float(history.size_at(7, 14).y).is_greater(1.0)
 	assert_vector(history.position_at(8, 14)).is_equal(Vector3.INF)
 	# Gone from the map's ids: forgotten.
@@ -125,12 +125,13 @@ func test_a_shot_meets_the_character_where_it_was_drawn_and_hits_where_it_is() -
 	rewind.behind = func(_body: AiCharacter) -> int: return 2
 	var shot := rewind.for_shot(Vector3(0.1, 1.2, 5.0), Vector3.FORWARD, 20.0)
 	assert_int(shot.tick_of(guard)).is_equal(102)
-	assert_array(shot.excluded()).has_size(1)
+	# The body and its shot hull.
+	assert_array(shot.excluded()).has_size(ShotHull.with_hull(guard).size())
 	var met := shot.meet(Vector3(0.1, 1.2, 5.0), Vector3(0.1, 1.2, -5.0))
 	assert_bool(met.is_empty()).is_false()
 	assert_object(met["collider"]).is_same(guard)
 	assert_vector(met["position"] as Vector3).is_equal_approx(
-		Vector3(1.0, 1.2, guard.tuning.radius), Vector3.ONE * 0.001
+		Vector3(1.0, 1.2, _shot_radius(guard)), Vector3.ONE * 0.001
 	)
 	# The same shot where it is now (x = 1) passes behind it as drawn.
 	var now := shot.meet(Vector3(1.0, 1.2, 5.0), Vector3(1.0, 1.2, -5.0))
@@ -194,6 +195,12 @@ func test_with_120_characters_the_history_and_a_shot_cost_microseconds() -> void
 	assert_int(near).is_greater(30)
 	assert_float(record_us).is_less(RECORD_BUDGET_US)
 	assert_float(meet_us / near).is_less(MEET_BUDGET_US)
+
+
+# The radius a shot meets the guard at: its shot hull's (gdstudio #1431), else its capsule's.
+func _shot_radius(guard: AiCharacter) -> float:
+	var hull := ShotHull.of(guard)
+	return hull.capsule().radius if hull != null else guard.tuning.radius
 
 
 func _guard(spot: Vector3) -> AiCharacter:

@@ -2,8 +2,8 @@
 
 Serves a web export of the bench (`gds template bench-web 3d-third-person hit_zones_bench` makes it: kit
 docs/engines/godot/web-probes.md#bench-web), waits for `window.__hit_zones_bench`, and prints, for 1, 4 and 10
-characters, a shot's second test and a `follow_bones()` in microseconds and the mean physics frame standing and
-flinching. The optional second argument is a CPU throttle (4 is the weak-machine stand-in).
+characters, a shot's second test and a `follow_bones()` in microseconds, the mean physics frame standing, flinching
+and walking (with and without the shot hulls), and a throttled tree's catch-up in microseconds. The optional second argument is a CPU throttle (4 is the weak-machine stand-in).
 
     uv run --project <kit>/python gds quiet -- \\
         uv run --with playwright==1.64.1 python tools/bench/hit_zones_bench.py build/web 4
@@ -66,6 +66,8 @@ def main() -> int:
             print(
                 f"{row['characters']:>3} characters  shot {row['shot_us']:7.1f} us  follow {row['follow_us']:7.1f} us"
                 f"  physics {row['physics_ms']:6.3f} ms  flinching {row['flinch_ms']:6.3f} ms"
+                f"  walking {row.get('walking_ms', 0.0):6.3f} ms (no hulls {row.get('walking_no_hull_ms', 0.0):6.3f})"
+                f"  catch-up {row.get('catch_up_us', 0.0):6.1f} us"
             )
     for line in failed:
         print("FAIL", line)
