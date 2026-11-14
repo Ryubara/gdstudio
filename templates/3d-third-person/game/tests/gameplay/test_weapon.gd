@@ -64,6 +64,7 @@ func test_the_pistol_definition_holds_the_numbers_the_pistol_always_had() -> voi
 		&"fire_rate": 4.0,
 		&"burst_size": 3,
 		&"burst_rate": 15.0,
+		&"full_burst_per_press": true,
 		&"spread": 0.0,
 		&"first_shot_spread": 0.0,
 		&"spread_build_shots": 4,

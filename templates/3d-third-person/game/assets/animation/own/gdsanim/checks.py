@@ -111,6 +111,30 @@ class Played:
         return share[np.isin(rig.owner, bones)] >= FIRM
 
 
+class _Faced:
+    """A played clip with each limb seen in the plane it swings in: the audit's measures read a swing fore and
+    aft, and a strafe's legs swing along the way it travels (`declared["legs_facing"]`, degrees to the left)
+    while its arms swing across the way its turned hips face (`declared["facing"]`)."""
+
+    def __init__(self, body: Played, degrees: float, legs: float):
+        self.rig, self.rotation = body.rig, body.rotation
+        back = np.eye(4)
+        back[:3, :3] = maths.axis_angle(maths.Y, -degrees)
+        self.world = back[None, None] @ body.world
+        if legs != degrees:
+            back[:3, :3] = maths.axis_angle(maths.Y, -legs)
+            names = [n for n in body.rig.bones if n.startswith(("thigh_", "calf_", "foot_", "ball_"))]
+            index = [body.rig.index[n] for n in names]
+            self.world[:, index] = back[None, None] @ body.world[:, index]
+
+
+def _faced(built, body: Played):
+    declared = built.clip.declared
+    degrees = float(declared.get("facing", 0.0))
+    legs = float(declared.get("legs_facing", degrees))
+    return _Faced(body, degrees, legs) if degrees or legs else body
+
+
 def _travel(built, count: int) -> tuple:
     travel = built.clip.plan.travel
     places = np.array([travel.at(float(f))[0] for f in range(count)])
@@ -302,14 +326,34 @@ def gait_numbers(body: Played, loop: bool) -> dict:
     return out
 
 
+def _landing_off(body: Played, cycle: int) -> float:
+    """How far the two soles' landings are from half a cycle apart, in frames, on the played skin: a sole lands
+    on the first frame its lowest vertex is within 5 mm of the floor after a frame it was not."""
+    lands = {}
+    for s, _ in SIDES:
+        height = body.foot(s)[:cycle, :, 1].min(axis=1) - body.rig.sole[s]["floor"]
+        down = height <= 0.005 + body.toes_off
+        lands[s] = [f for f in range(cycle) if down[f] and not down[f - 1]]
+    if not lands["l"] or not lands["r"]:
+        return float(cycle)
+    apart = (lands["r"][0] - lands["l"][0]) % cycle
+    return round(abs(apart - cycle / 2.0), 2)
+
+
 def check_gait(built, played: dict) -> tuple:
     """A gait's legs are half a cycle apart, each arm swings with the other side's leg, the shoulders turn
     against the hips, and cadence, planted share and bob are inside the declared ranges."""
     if built.clip.kind != "gait":
         return {}, []
-    body = next(iter(played.values()))
+    body = _faced(built, next(iter(played.values())))
     numbers = gait_numbers(body, built.clip.loop)
     cycle = built.clip.frames
+    if built.clip.declared.get("legs_by_landing"):
+        # A gait whose two steps are not alike (a strafe's open step and its crossed one) swings its thighs on
+        # two shapes, and the shift that best lays one curve on the other is not the legs' phase
+        # (`docs/tools/blender/gaits.md`): read it where each sole comes down on the played skin.
+        numbers["thigh_shift_off"] = numbers.get("half_cycle_off")
+        numbers["half_cycle_off"] = _landing_off(next(iter(played.values())), cycle)
     duty = float(np.mean([sum(lift - land for land, lift in built.record["contacts"][s]) / cycle for s, _ in SIDES]))
     numbers["planted_share"] = round(duty, 3)
     failures = []
@@ -357,7 +401,7 @@ def check_overlap(built, played: dict) -> tuple:
     """Each part trails its parent by the declared frames (`declared["lags"]`, where the motion is large enough
     to measure), and nothing pops on a landing frame while its parent does not."""
     body = next(iter(played.values()))
-    numbers = {"lags": lag_numbers(body, built.clip.loop)}
+    numbers = {"lags": lag_numbers(_faced(built, body), built.clip.loop)}
     failures = []
     for part, want in built.clip.declared.get("lags", {}).items():
         got = numbers["lags"].get(part)

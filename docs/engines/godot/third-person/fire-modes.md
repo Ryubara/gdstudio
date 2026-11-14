@@ -17,12 +17,13 @@ What one press of the fire button fires, weapon by weapon, what a tap does and h
 | Mode | A press | Held |
 | --- | --- | --- |
 | `SINGLE` (the pistol) | one shot | still one shot |
-| `BURST` | `burst_size` shots (3), `burst_rate` apart (15 a second) | still one burst |
+| `BURST` | `burst_size` shots (3), `burst_rate` apart (15 a second); a short press: [tap](#tap) | still one burst |
 | `AUTOMATIC` (the rifle) | one shot | `fire_rate` shots a second until it is let go |
 
 `fire_rate` is also the wait after a burst's last shot before the next burst can start (one `shot_interval()`).
-`burst_size` and `burst_rate` are greyed out in the inspector unless the mode is `BURST`. `automatic` is still there for
-older code: reading it says whether the mode is `AUTOMATIC`, and setting it picks `AUTOMATIC` or `SINGLE`.
+`burst_size`, `burst_rate` and `full_burst_per_press` are greyed out in the inspector unless the mode is `BURST`.
+`automatic` is still there for older code: reading it says whether the mode is `AUTOMATIC`, and setting it picks
+`AUTOMATIC` or `SINGLE`.
 
 - **How a burst runs.** The weapon counts the shots still to come (`Weapon.bursting`, in its step state after the
   melee blow's eight numbers, `Weapon.BURST_AT` 13). The character pulls the trigger on every tick while a burst is
@@ -44,9 +45,10 @@ older code: reading it says whether the mode is `AUTOMATIC`, and setting it pick
 
 Tests: `test_burst_fire.gd` (the weapon alone and the player with simulated mouse presses), `test_fire_count.gd` and
 `test_net_fire_count.gd` (every weapon in every mode: a one-tick press, a tap under the shot interval and a 2 s hold,
-offline and client against server). Capture: `tools/capture/burst_tour.tscn` films the rifle on burst from the game
-camera: a tap from the hip, a tap while aiming, a press held for a second and two quick taps, with the ammo counter
-going down 3 per press.
+offline and client against server; with `full_burst_per_press` off, a one-tick press, a 2-tick hold and a 2 s hold).
+Capture: `tools/capture/burst_tour.tscn` films the rifle on burst from the game camera: a tap from the hip, a tap while
+aiming, a press held for a second and two quick taps, with the ammo counter going down 3 per press; then, with
+`full_burst_per_press` off, an aimed tap (one shot), a 5-tick press (two) and a press held a second (three).
 
 ## A tap from the hip {#tap}
 
@@ -59,11 +61,27 @@ Every press fires. A press is buffered (`fire_buffer_time`, 0.3 s) and the shot 
 fires one shot or one whole burst, and the aim ends on the tick after the last shot. Only the arm then lowers, over
 `shot_hold_time`.
 
+What a short press fires on burst is the weapon's choice, `WeaponDef.full_burst_per_press`:
+
+- **On (the default):** every press fires the whole burst, however short, as above.
+- **Off:** the burst lasts only while the button is held. On a tick the button is up, `Character._release_burst` ends
+  the burst before the pull (`bursting = false`), so the shot already gone stays and no more leave. A one-tick tap fires
+  one shot (from the hip too: the arm still comes up for it), a hold fires a shot every `burst_rate` spacing from its
+  first tick (2 ticks: one, 5 ticks: two at 15 a second), a long hold the whole burst. The next press still waits one
+  shot interval after the last shot. The setting is weapon data and the held button is already in every command, so
+  the server and the predicting client end the burst on the same tick; no packet changed (`NetWire.VERSION` 8).
+
 - **Approach:** Answer what a press does in every state (arm down, arm up, held, tapped) and every fire mode at once,
   and test each one with simulated input. **Watch out for:** before #1352 a one-frame press from the arm down fired
   nothing, since the aim dropped with the button before the arm was half up. A burst started from the hip would have
   stopped after its first shot, when the arm went down. **Seen:** gdstudio #1352, 2026-11-12 (`test_fire_count.gd`
   failed 7 times with the arm-up fix taken out, `test_burst_fire.gd` twice).
+- **Approach:** End a burst on release from the character (`_release_burst`, called by `_use_weapon` and the lean
+  step), not from a new `Weapon` method, and in a weapon-alone test step at least one tick with the button up before
+  checking what follows. **Watch out for:** `weapon.gd` sits near gdlint's 1000 lines and at its 20 public methods,
+  so a `Weapon.set_trigger_down()` failed the commit hook on both; a test that pressed one tick and stopped never let
+  go, so the burst went on and fired its second shot where the test expected a refused pull. **Seen:** gdstudio
+  burst tap setting (follows #1394), 2026-11-13.
 
 ## Spread over shots in a row {#spread}
 

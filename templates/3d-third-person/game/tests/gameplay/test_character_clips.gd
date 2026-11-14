@@ -21,10 +21,13 @@ func test_every_listed_clip_exists_and_every_clip_is_listed() -> void:
 		)
 	var in_libraries := 0
 	for library_name in animation_player.get_animation_library_list():
+		# The lean's trimmed poses are made from listed clips when the tree is built (gdstudio #1403).
+		if library_name == LeanClips.LIBRARY:
+			continue
 		var library := animation_player.get_animation_library(library_name)
 		in_libraries += library.get_animation_list().size()
 	assert_int(in_libraries).is_equal(CharacterClips.ALL.size())
-	assert_int(CharacterClips.ALL.size()).is_equal(138)
+	assert_int(CharacterClips.ALL.size()).is_equal(149)
 
 
 func test_every_constant_names_a_listed_clip() -> void:
