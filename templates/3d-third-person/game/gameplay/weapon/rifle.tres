@@ -74,6 +74,7 @@ aim_down_clip = &"rifle/Rifle_Aim_Down"
 shoot_clips = Array[StringName]([&"rifle/Rifle_Shoot"])
 shoot_additive = true
 reload_clip = &"rifle/Rifle_Reload"
+empty_reload_clip = &"rifle/Rifle_Reload_Empty"
 shot_sound = SubResource("AudioStreamRandomizer_shot")
 shot_volume_db = -27.0
 empty_sound = SubResource("AudioStreamRandomizer_empty")
