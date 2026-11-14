@@ -172,7 +172,9 @@ every exit, kept with `--keep`, two calls at once).
 - **Approach:** Run a desktop probe or a bench of a template in a kept game (`gds template game`, or the game
   `bench-web` keeps without `--run`), never with `--path templates/<t>/game`. **Watch out for:** an import there
   failed to parse the menus and settings (37 errors: their classes come with the game) and rewrote three levels'
-  lightmap `.import` files in the worktree. **Seen:** gdstudio #1433, 2026-11-13 (put back with `git checkout`);
+  lightmap `.import` files in the worktree (the ASTC copy dropped); committed, they fail CI's step that the build left
+  nothing for git, so read `git diff --stat origin/main -- '*.import'` before a push. **Seen:** gdstudio #1433,
+  2026-11-13 (put back with `git checkout`); #1400 (PR #1437), 2026-11-13 (two lightmaps' `.exr.import` committed);
   gdstudio #1436, 2026-11-13 (the same 37 errors and one lightmap `.import`).
 - **Approach:** Give a new script or shader its `.uid` before `gds template test` with `gds template uids
   <template>` (the template's name, or a folder holding `project.godot`): it writes each missing file in Godot's form
@@ -180,8 +182,8 @@ every exit, kept with `--keep`, two calls at once).
   <template>`, import, copy it back). **Watch out for:** the layout check refuses a script without its `.uid` and the
   template's own folder cannot be opened to make one, so agents copied uids back from a kept game or wrote them by
   hand, and hand-made ones held text Godot never writes. **Seen:** gdstudio #1009, 2026-11-10; gdstudio #1068 (PR
-  #1092), 2026-11-11; gdstudio #1148, 2026-11-11 (a suite written after the scripts); kit #1129, 2026-11-11 (the
-  command); gdstudio #1405, 2026-11-13 (fixtures tried in a kept game).
+  #1092), 2026-11-11; gdstudio #1148, 2026-11-11; kit #1129, 2026-11-11 (the command); gdstudio #1359 and #1405,
+  2026-11-13 (a suite and fixtures run in a kept game, whose uids the worktree lacked).
 - **Approach:** Read the source before the results: the first line of `gds template test` and `gds template game` (the
   `from` line in `gds new game`) is `kit <path> (<branch> at <commit>, ...)` and must name your worktree (the kit is the
   `--project` checkout, not your folder). Send a run's log to a new name in your own scratch folder or from `mktemp`,
