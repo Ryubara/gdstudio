@@ -103,12 +103,13 @@ again ([checked in CI](#ci)).
   the dash's leg swivel at 34 degrees for 41. **Seen:** gdstudio #1325 after #1323, 2026-11-12 (fix: rebuilt after
   merging `main`); #1479 and #1491, 2026-11-14 (the limb reports and the fixed, vault and melee numbers carry the
   hash of the measure's code and of each body, `measure_hash.made_by`; `BodiesOverlap.stale` fails on another).
-- **Approach:** After any edit to `limb_overlap.py`, measure every `*_overlap.json` report again with the pinned
-  Blender (the commands in `check_clip_builds.py`'s `overlap_*` entries, and `own/build_own.py ship locomotion
-  --blender` for `own/bodies_overlap.json`) and commit them in the same pull request. **Watch out for:** an edit
-  that only adds arguments or plumbing still changes the code's normal form, so every report's `measure_sha256` goes
-  stale and `test_measure_hash.py` fails, though no number moves. **Seen:** gdstudio #1494 after #1489, 2026-11-14
-  (the `--check` argument; fix: the six reports measured again, only the hash changed).
+- **Approach:** After any edit to `limb_overlap.py`, yours or one a merge of `main` brings, measure every
+  `*_overlap.json` report again with the pinned Blender (the commands in `check_clip_builds.py`'s `overlap_*` entries,
+  and `own/build_own.py ship locomotion --blender` for `own/bodies_overlap.json`) and commit them in the same pull
+  request. **Watch out for:** an edit that only adds arguments or plumbing still changes the code's normal form, so
+  every report's `measure_sha256` goes stale and `test_measure_hash.py` fails, though no number moves. **Seen:**
+  gdstudio #1494 after #1489, 2026-11-14 (the `--check` argument; fix: the six reports measured again, only the hash
+  changed); PR #1369, 11-14 (a merge: its clips unchanged, only the hashes).
 
 ## Checks in the build {#checks}
 
@@ -206,3 +207,8 @@ SHA-256 strings. `KNOWN` in the runner names a build that cannot make its files 
   to another answer: the rifle build on Linux keyed its aim and shot clips up to 0.007 apart in a bone's rotation
   (about 0.8 degrees at the forearm), the same on every Linux run, while every other build stayed within 7e-7.
   **Seen:** gdstudio #1481, 2026-11-13 (`WINDOWS_ONLY` in `check_clip_builds.py`).
+- **Approach:** When a test reads a numbers file whose build sits in `KNOWN` (it cannot make its files today), hold the
+  stale state on purpose: a constant names the issue that rebuilds it (`STALE_UNTIL := "kit #1493"`) and, while it is
+  set, the test asserts the file is still stale, so it fails once the rebuild lands and the exception goes with it.
+  **Watch out for:** a skipped or loosened check outlives the rebuild unseen, and a strict one fails on `main` until the
+  build can run. **Seen:** gdstudio #1491 (PR #1518), 2026-11-14 (`test_rifle_melee.gd`).

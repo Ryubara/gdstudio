@@ -553,9 +553,18 @@ def check_weight(built, played: dict) -> tuple:
     return {"weight": numbers}, failures
 
 
-def pose_gap(rig: Rig, world_a: np.ndarray, world_b: np.ndarray) -> tuple:
-    """The furthest any bone of one pose is from the same bone of another: metres, and degrees."""
-    bones = [rig.index[n] for n in rig.bones]
+def _unkeyed_helpers(rig: Rig, built) -> set:
+    """The `ik_` targets a clip that names its bones leaves out (a stop's entry, gdstudio #1525): they stand at
+    rest in it, as in a library clip, and nothing in the game reads them."""
+    if built.clip.bones is None:
+        return set()
+    return {n for n in rig.bones if n.startswith("ik_") and n not in built.clip.bones}
+
+
+def pose_gap(rig: Rig, world_a: np.ndarray, world_b: np.ndarray, leave_out: set = frozenset()) -> tuple:
+    """The furthest any bone of one pose is from the same bone of another (but those in `leave_out`): metres, and
+    degrees."""
+    bones = [rig.index[n] for n in rig.bones if n not in leave_out]
     apart = float(np.linalg.norm(world_a[bones, :3, 3] - world_b[bones, :3, 3], axis=1).max())
     turn = max(maths.angle_between(world_a[i, :3, :3], world_b[i, :3, :3]) for i in bones)
     return apart, turn
@@ -574,7 +583,7 @@ def check_joins(built, played: dict) -> tuple:
         if end in joins:
             rotation, translation = joins[end]
             want = rig.world(rotation[None], translation[None])[0]
-            apart, turn = pose_gap(rig, body.world[frame_no], want)
+            apart, turn = pose_gap(rig, body.world[frame_no], want, _unkeyed_helpers(rig, built))
             numbers[end] = {"mm": round(apart * 1000, 2), "deg": round(turn, 2)}
             if apart > JOIN_PLACE or turn > JOIN_TURN:
                 failures.append(

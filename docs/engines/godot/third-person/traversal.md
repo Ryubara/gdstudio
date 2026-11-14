@@ -28,7 +28,7 @@ side is `gameplay/character/character_vault.gd`. Part of [the 3D Third Person te
 <!-- new section: kit #1037 put the template's own vault clips into the vault; how one clip is fitted to the obstacle
      measured and why the model leaves the capsule had no place -->
 
-The vault clips ([the vault clips](clips.md#vault-clips)) carry the body's rise and fall themselves, in the pelvis,
+The vault clips ([the vault clips](vault-clips.md#vault-clips)) carry the body's rise and fall themselves, in the pelvis,
 over a reference obstacle, and were keyed with the root moving forward at a constant speed. A `VaultClip` holds those
 numbers, and the plan fits the clip to the obstacle measured:
 

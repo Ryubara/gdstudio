@@ -59,6 +59,13 @@ sharpen that one. Only when nothing fits do you make a new section, and only whe
   cause's section out: `third-person/ai.md#proof`, naming `test_ai_section.gd`, took the place of
   `ui-input-tests.md#leaks` in #1357's brief, and the issue's words alone ranked leaks ninth. **Seen:** gdstudio PR
   #1474, 2026-11-14 (fix in PR #1517: two mentioning sections per path, `lessons.MENTIONS_PER_PATH`).
+- **Approach:** Link to another section by a short name (its title, or the page and anchor) rather than a phrase
+  that retells its subject, and run `gds brief` for the issues the touched sections came from after the edit.
+  **Watch out for:** link text counts as the section's own words, so a pointer line can lift a long section past one
+  a brief needs: `rifle-hands.md#rifle-hands` gained "the arms out of the chest on either lean", passed
+  `parts-cost.md#parts-cost` at the sixth line of #1435's brief, and the kit's pytest failed on the merged head.
+  **Seen:** gdstudio PR #1505, 2026-11-14 (fix: the pointer was dropped, as `peek.md#left-shoulder` already links
+  there).
 
 ## An entry {#rule}
 
@@ -192,12 +199,13 @@ pointer was removed later still finds the one section that holds it (`lessons.mo
   one section it holds repeats its anchor, which the check refuses. **Seen:** gdstudio #983, #1029 (templates);
   #1016 (`clips.md`); #1067 (`audio-mixing/`); #1115 (`corrections-log/`); #1123 (`multiplayer-server/`).
 - **Approach:** Before adding to a page, read its size (`wc -c`): over about 45 KB, move one subject to a sibling page
-  first, in the same pull request, rather than a whole folder split; say in its reason line which page it left.
-  **Watch out for:** nothing on a page says it is near the limit, so entries kept landing on `online-client.md`,
-  `third-person/ai.md` and `hooks.md` until each sat within a few hundred bytes of 50 KB and the next entry, or a
-  merge of two that each fitted, failed the check. **Seen:** gdstudio #1193 (PR #1199), #1198 (PR #1223), #1208
-  (PR #1219) and #1222 (PR #1227), 2026-11-11; #1267 and #1191, 11-12 (each split `tools/blender/animation.md` its own
-  way: before a split, look for an open pull request splitting the same page).
+  first, in the same pull request, rather than a whole folder split; say in its reason line which page it left. **Watch
+  out for:** nothing on a page says it is near the limit, so entries kept landing on `online-client.md`,
+  `third-person/ai.md` and `hooks.md` until each sat within a few hundred bytes of 50 KB and the next entry, or a merge
+  of two that each fitted, failed the check. **Seen:** gdstudio #1193 (PR #1199), #1198 (PR #1223), #1208 (PR #1219) and
+  #1222 (PR #1227), 2026-11-11; #1267 and #1191, 11-12 (each split `tools/blender/animation.md` its own way: before a
+  split, look for an open pull request splitting the same page); PR #1440, 11-14 (a brief's list of full pages was
+  stale: read `wc -c` yourself; the check is #1542).
 - **Approach:** After merging main into a branch that adds to a page, run `python .github/scripts/mistakes.py check`
   on the merge result; when the page is over 50 KB, look for an open pull request splitting it (`gh pr list --search
   <page>`), then move the branch's own section to a subpage of its subject and leave a pointer under the old
@@ -206,6 +214,13 @@ pointer was removed later still finds the one section that holds it (`lessons.mo
   (`own-animation.md`), 2026-11-11; #1254 (PR #1315), 11-12 (`shooting.md`, melee moved to `third-person/melee.md`);
   #1490 (PR #1516), 11-14 (main grew `weapon-pickups.md` to 51,094 bytes after the branch's base; the paragraph was
   dropped); PR #1474, 11-14 (its split clashed with #1488's move of the same section and was thrown away).
+- **Approach:** When a split turns one long section into many (a table's rows into sections), give each new section an
+  anchor no other page has (`-part`) and run the full pytest: `test_moved_sections.py` pins real `gds brief` results.
+  A pinned section that drops gets a real cross-link that names its subject, never a reworded test. **Watch out for:**
+  the ranking weighs a word by how few sections hold it, so 42 new sections full of "peek", "hold" and "node" pushed
+  `parts-cost.md#parts-cost` out of the brief for #1435 (it was sixth, 0.5 points clear of the seventh); a reused
+  anchor such as `#ragdoll` would make the moved-section lookup ambiguous. **Seen:** gdstudio #1457, 2026-11-14
+  (the template's table of parts moved to `third-person/*-parts.md`; fix: `parts-cost.md` links the parts pages).
 
 ## Where the entry is named {#named}
 
