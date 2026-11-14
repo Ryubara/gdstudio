@@ -97,10 +97,11 @@ node, answers the same on every machine and is what a test can hash; AGENT is th
   up to the next point carried the body 0.8 m past a link it had to wait at. **Seen:** gdstudio #1415, 2026-11-13
   (`AiNavBrake`, `test_ai_nav_stops.gd`, `test_ai_nav_recovery.gd`'s waiting link).
 - **Approach:** Let a follow's brake aim inside the band, measured to the leader as it is now, and walk on from a rest
-  outside it: a follow arrives only inside its band. Test a leader that walks off and stands, not only a still one.
-  **Watch out for:** the brake stopped on the band's edge by a path asked before the leader stopped; at rest just
-  outside, it stayed let go, not arrived, its stuck watch unsampled, standing "walking" until the leader moved: 6 of 8
-  sprint follows ended 2.50 to 2.96 m from a still leader (band 2.5) and the soak's allies doubled its stuck share.
+  outside it: a follow arrives only inside its band. Test a leader that walks off and stands, judged by the follow's
+  own rule (arrived, within band and slack). **Watch out for:** the brake stopped on the band's edge by a path asked
+  before the leader stopped; at rest just outside, it stayed let go, not arrived, its stuck watch unsampled, standing
+  "walking" until the leader moved: 6 of 8 sprint follows ended 2.50 to 2.96 m from a still leader (band 2.5), and the
+  soak's allies doubled its stuck share. A test that wanted the band itself failed on Linux at 2.87 m, arrived.
   **Seen:** gdstudio #1529, 2026-11-14 (`AiNavBrake.wants`, `test_ai_nav_stops.gd`).
 
 ## What it costs {#cost}

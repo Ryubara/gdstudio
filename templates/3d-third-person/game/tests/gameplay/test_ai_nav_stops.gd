@@ -113,8 +113,14 @@ func test_the_stopping_distance_is_the_stop_decelerations_ground() -> void:
 	assert_float(tuning.call(&"stop_distance", tuning.sprint_speed)).is_equal_approx(4.80, 0.08)
 
 
+# The farthest from its leader a follower stays arrived: once inside the band it walks again only
+# past the band and `AiNavigator.FOLLOW_SLACK` (a leader that stops while it stands may be there).
+func _kept() -> float:
+	return BAND + AiNavigator.FOLLOW_SLACK
+
+
 # Follows a still leader from `start` metres away at `speed` in the built arena and returns what
-# failed (empty: it arrived, came to rest inside the band and was arrived `FOLLOW_SECONDS` on).
+# failed (empty: it was arrived and at rest `FOLLOW_SECONDS` on, within `_kept()`).
 func _follow_still(start: float, speed: float) -> String:
 	var leader := Node3D.new()
 	_arena.add_child(leader)
@@ -130,7 +136,7 @@ func _follow_still(start: float, speed: float) -> String:
 		% [start, speed, away, BAND, body.ground_speed(), navigator.is_arrived()]
 	)
 	print(line)
-	var failed := not navigator.is_arrived() or away > BAND or body.ground_speed() > 0.05
+	var failed := not navigator.is_arrived() or away > _kept() or body.ground_speed() > 0.05
 	leader.free()
 	body.free()
 	return line if failed else ""
@@ -149,7 +155,7 @@ func test_a_follower_comes_to_rest_inside_its_band() -> void:
 
 
 # Follows a leader that walks off at `pace` m/s for `walk_seconds`, then stands, and returns what
-# failed (empty: the follower was arrived and at rest inside the band `FOLLOW_SECONDS` later).
+# failed (empty: the follower was arrived and at rest within `_kept()` `FOLLOW_SECONDS` later).
 func _follow_walker(pace: float, walk_seconds: float, speed: float) -> String:
 	var leader := Node3D.new()
 	_arena.add_child(leader)
@@ -168,7 +174,7 @@ func _follow_walker(pace: float, walk_seconds: float, speed: float) -> String:
 		% [pace, walk_seconds, speed, away, BAND, body.ground_speed(), navigator.is_arrived()]
 	)
 	print(line)
-	var failed := not navigator.is_arrived() or away > BAND or body.ground_speed() > 0.05
+	var failed := not navigator.is_arrived() or away > _kept() or body.ground_speed() > 0.05
 	leader.free()
 	body.free()
 	return line if failed else ""
