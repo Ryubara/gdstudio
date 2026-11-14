@@ -3,7 +3,8 @@
 Three clips of the Universal Animation Library put a forearm through a shin on the template's bodies (the prototype
 `form` pair), whose shins and forearms are thicker than the Quaternius mannequins' the clips were keyed on. `fixed.glb`
 holds those clips with that one arm swung clear; everything else in them is the library's. The game plays
-`fixed/Jump_Land` and `fixed/Slide_Exit` (`CharacterClips.LAND`, `SLIDE_EXIT`); `CharacterClips.STAND_INS` names the
+`fixed/Slide_Exit` (`CharacterClips.SLIDE_EXIT`), and `fixed/Jump_Land` is the stand-in of GDStudio's own
+landing (`gds/Land_Soft`, kit #1161); `CharacterClips.STAND_INS` names the
 library clip each came from, for a game whose bodies the library's suit.
 
 | Clip | From | Swung | Peak | Frames | form_female before, after | form_male | Quaternius female, male |

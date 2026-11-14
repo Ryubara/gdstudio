@@ -16,7 +16,7 @@ which finds the kit by the workspace marker. Settings: `.claude/hooks/hooks.toml
 | Issue order | a task agent whose prompt names no started issue (`Issue: owner/repo#N`) or open pull request (`PR: owner/repo#N`); `gh issue edit\|create --add-label S-in-progress`; `S-in-progress` on a pull request; `P-critical` from a session | `gds issue start <ref> --agent <name>` ([Starting work](starting-work.md)) |
 | Sections read first | a task agent whose prompt has no `Read: <page>.md#<anchor>` line, or names a section the kit's `docs/` does not have (`[brief] enforce`) | `gds brief <owner/repo>#N` and its lines in the prompt ([Starting an agent](starting-work.md#starting-an-agent)) |
 | Disk | under `[disk] hard_gb` free (10 GB): a task agent's start, `git worktree add` (and `gds issue start`) ([below](#disk)) | `gds disk guard`; report what is left to the coordinator and the maintainer |
-| Git | commits or pushes on `main`; force pushes; `--no-verify` | a branch in a worktree, a pull request |
+| Git | commits or pushes on `main` (`git push origin HEAD` too); force pushes; `--no-verify`; after a `cd` it cannot follow, a commit or a push of the current branch | a branch in a worktree, a pull request; `git -C <absolute path>` |
 | Merge | `gh pr merge --admin`; merging a pull request that changes a manual path | let checks pass; report it to the maintainer |
 | Task-agent merges | a subagent's merge call (its hook input carries `agent_id`; the main session's never does): `gh pr merge` with any flag but `--disable-auto`, a `gh api` write to `.../pulls/<n>/merge`, GraphQL merge mutations (gdstudio #1466) | report the green head SHA and stop: the coordinator lands from its queue ([Landing](landing.md#landing)) |
 | Hold | a merge command (`gh pr merge`, with or without `--auto`, or `gh api .../pulls/<n>/merge`) on a pull request carrying `S-hold`; taking `S-hold` off (`--remove-label`, a `gh api` write, `gh label delete\|edit`); GraphQL merge and label mutations; a session writing a session transcript or spelling an entry as the maintainer's ([below](#hold)) | stop and report; only the maintainer takes a hold off, or the coordinator once the maintainer approves that lift in its session |
@@ -43,7 +43,9 @@ included) and the words `&`, `.`, `call`, `exec`, `time` and `sudo`, so `GODOT="
 assignment, never a Godot start, and `FOO=1 git push` is judged as `git push` (`segments` in
 `.claude/hooks/guards/shell.py`; gdstudio #1004). A launcher (`env`, `nohup`, `timeout`, `cmd /c`, `start`,
 `Start-Process`) is judged by the program it starts, and a continued line (`\` or a backtick) stays one command. A
-plain `cd <dir>` is followed: the commands after it are judged in that folder.
+plain `cd <dir>` is followed, also to a variable the line set to a path (`WT=<dir>; cd "$WT"`,
+`$wt = '<dir>'; Set-Location $wt`); after a `cd` it cannot follow (`$(...)`, `cd -`, `popd`) the Git guard refuses
+until an absolute `cd` or `git -C` names the folder, never judging the session's folder (gdstudio #1520).
 
 - **Approach:** Judge each simple command by its program word, after any launcher, never by a word after it.
   **Watch out for:** a newline after `find \` made `godot -name '*.gd'` a Godot start, while `env godot` passed; a

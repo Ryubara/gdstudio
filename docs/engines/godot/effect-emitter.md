@@ -25,13 +25,14 @@ if emitter != null:
 - **`EffectDef` (the effect), in the inspector.** Particles: `particles`, a scene of one-shot `CPUParticles3D` or
   `GPUParticles3D` nodes (the root may be one; every one is restarted and the effect lasts as long as the longest).
   Sound: `sound` (an `AudioStreamRandomizer` gives variants), `sound_volume_db`, `sound_bus` (`SFX`),
-  `sound_max_distance`. Light: `light_energy` (0 makes none), `light_color`, `light_range`, `light_time` (it fades out
-  over it), `light_attenuation` (Godot's falloff, 1; below 1 for a light that can sit against a wall) and
-  `light_alone` (a new play takes the light over from the earlier plays of the same effect). Timing: `duration` (0
-  waits for the parts to end by themselves; a number cuts the effect) and `max_instances` (4: how many show at once, a
-  newer one takes the oldest's place). Placement: `offset`, `rotation_degrees` and `size` (the particles' scale and the
-  light's reach). Every part is optional, and every number is read when the effect plays, so a change while the game
-  runs shows in the next play.
+  `sound_max_distance`, `sound_filter_db` (Godot's distance filter, -24; 0 turns it off, as the template's impacts do:
+  [why](../../gamedev/audio/sound-effects.md#fire)). Light: `light_energy` (0 makes none), `light_color`, `light_range`,
+  `light_time` (it fades out over it), `light_attenuation` (Godot's falloff, 1; below 1 for a light that can sit against
+  a wall) and `light_alone` (a new play takes the light over from the earlier plays of the same effect). Timing:
+  `duration` (0 waits for the parts to end by themselves; a number cuts the effect) and `max_instances` (4: how many
+  show at once, a newer one takes the oldest's place). Placement: `offset`, `rotation_degrees` and `size` (the
+  particles' scale and the light's reach). Every part is optional, and every number is read when the effect plays, so a
+  change while the game runs shows in the next play.
 - **`EffectEmitter`, in the inspector.** `enabled`, `particles_enabled`, `sounds_enabled` and `lights_enabled` switch
   the whole level's effects; `max_effects` (24) and `web_max_effects` (12, used in the web build and on phones) cap the
   pool; `max_lights` (2) caps the flashes of light at once (past it an effect plays without its light: the

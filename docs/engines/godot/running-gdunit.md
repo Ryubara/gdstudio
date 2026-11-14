@@ -83,8 +83,9 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form
   of a filter here, nor is `x.gd:test_y`: nothing ran and the exit code was 0 in 2 s, and no failure reads as a
-  pass; `-i` (ignore) ran the whole suite. To run one case of a long suite, copy the suite in the game under a new
-  name with every other `func test_` renamed to a plain function, and run that file. **Seen:** Deadnight, 2026-11-04
+  pass; `-i <suite>:<case>` skips that case (`GdUnitTestCIRunner.is_skipped`), so it ran the rest. To run one case,
+  give `-a res://tests/x.gd` and an `-i res://tests/x.gd:test_other` for each other case. **Seen:** Deadnight,
+  2026-11-04
   (fix: run the suite and read the count); gdstudio #1252, 2026-11-11 (`:` and `-i`); gdstudio #1213, 2026-11-11 (one
   case of the 9-minute pistol hold suite).
 
@@ -180,6 +181,13 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   for:** `gds template test` says only that leak lines exist; a list of scripts alone (GdUnit4's, the autoloads') with
   a few bare `RefCounted` and `RegEx` is that engine pattern, not a node a test forgot. **Seen:** gdstudio #1236,
   2026-11-11.
+- **Approach:** To read what a suite prints (measured numbers) or leaves at exit (`Leaked instance:`, `Resource still in
+  use:`), keep the game (`gds template test <t> --keep --suite <s>`) and run GdUnit's command line on its `game/`
+  directly, with `--verbose` for the leak lines; for one case alone, add an `-i <suite>:<case>` for each other case
+  ([the command line](#command-line)). **Watch out for:** `gds template test` prints one line a suite that passes and
+  the last 30 lines of GdUnit's output for one that fails, `--godot-args=--verbose` included, so a suite's `print` lines
+  and the leak list never reach you. **Seen:** gdstudio PR #1470 (the numbers) and PR #1501 (the leak lines),
+  2026-11-14.
 
 ## Before the push {#before-the-push}
 
@@ -213,7 +221,7 @@ game](new-game.md#proof), gdstudio #830 and #917).
   1710 cases passed and the exit was 101 from the spawner's parked pools in the net suites, which load the map ([the
   spawner](third-person/ai-characters.md#spawner): it now makes its pool on the approach). **Seen:** kit #969,
   2026-11-11; PR #1233, 11-11 (`after_test` too late); PR #1248, 11-11 (a member `Late.new()` added in `_ready`:
-  freed at `NOTIFICATION_PREDELETE`).
+  freed at `NOTIFICATION_PREDELETE`); PR #1422, 11-14 (rig in `before_test`, join in the case: 1548).
 - **Approach:** Judge a `leaked at exit` line against `main` only from a full run of both; a run of a few `--suite`s
   that ends with one is run on `main` with the same suites before it counts against the change. **Watch out for:** a
   subset run can end with "leaked at exit" on `main` too (which scripts load, and in what order, depends on what ran:

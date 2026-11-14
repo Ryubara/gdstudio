@@ -1,6 +1,6 @@
 # Rifle clips
 
-Six clips of GDStudio's own for a character holding the template's rifle in both hands (kit #1082), because the
+Seven clips of GDStudio's own for a character holding the template's rifle in both hands (kit #1082), because the
 Universal Animation Library has pistol clips and no rifle clip. Keyed from nothing by `build_rifle_clips.py` on
 the prototype mannequin rig (`form_female.glb`, the player's body), at the library's 30 frames a second. Licence:
 [LICENSE.md](LICENSE.md).
@@ -11,7 +11,8 @@ the prototype mannequin rig (`form_female.glb`, the player's body), at the libra
 | `Rifle_Aim_Neutral` | 2.0 s, loops | At the shoulder, the view level: the trunk leant into the rifle, the right shoulder up behind the butt, the head canted toward the stock with the eye by the sights |
 | `Rifle_Aim_Up`, `Rifle_Aim_Down` | 2.0 s, loop | The same with the view 45 degrees up and down (`CharacterAnimation.aim_pitch_range`) |
 | `Rifle_Shoot` | 0.4 s | A shot's recoil in the body: the upper spine rocks back 1.1 degrees a bone in one frame, the right collarbone is pushed back, the head stays by the sights; back by frame 4, a small sway forward, still from frame 9. It starts and ends on `Rifle_Aim_Neutral`'s first pose |
-| `Rifle_Reload` | 2.2 s | The body through a magazine change: the eyes go down to the magazine well (0.14 of the clip), follow the left hand to the belt as the left shoulder drops (0.42), come back for the new magazine, a jolt as it seats (0.62) and as the bolt runs home (0.86), level again at the end. It starts and ends on `Rifle_Idle`'s first pose |
+| `Rifle_Reload` | 2.2 s | The body through a magazine change with rounds left (a tactical reload): the eyes go down to the magazine well (0.14 of the clip), follow the left hand to the belt as the left shoulder drops (0.42), come back for the new magazine, a jolt as it seats (0.62), then follow the hand forward under the hand guard (0.75), come up a little past level (0.94) and settle. No beat for the bolt, which stays home. It starts and ends on `Rifle_Idle`'s first pose |
+| `Rifle_Reload_Empty` | 2.2 s | The same reload of an empty magazine (kit #1508), the same to 0.50: after the seat the eyes lift to the charging handle (0.72) and the chest jolts as the bolt is let go and runs home (0.86), level again at the end. The game plays it in place of `Rifle_Reload` when the magazine is empty (`WeaponDef.empty_reload_clip`), the reload whose hold pulls the handle |
 
 The game plays them on the upper body (`spine_01` and everything under it) over its own locomotion:
 `gameplay/weapon/rifle.tres` names them, the idle as the grip clip, the three aims by the view's pitch, the shot
@@ -103,10 +104,11 @@ and fails before it exports over a limit:
 | The head's skin inside the rifle | 5 mm | 0.0 mm | 0.0 mm |
 | The right eye off the sight line: level, up, down | reported (the game's test holds 81 mm) | 61.7, 59.9, 65.8 mm | 73.1, 61.3, 78.4 mm |
 | A limb inside another (`../limb_overlap.py`): idle, the aims, the shot | 5 mm, or what the hold alone does plus 3 mm | 0.0 mm | 1.9 mm (his thighs meet by that at rest) |
-| The same in `Rifle_Reload` | the same | 0.0 mm | 8.4 mm (the left hand in the right, frame 42) |
+| The same in `Rifle_Reload` | the same | 0.0 mm | 8.2 mm (the left hand in the right, frame 10) |
+| The same in `Rifle_Reload_Empty` | the same | 0.0 mm | 8.4 mm (the left hand in the right, frame 42) |
 
 The floor is the hold run on the idle pose with no rifle clip: 0 mm on the female and 1.9 mm on the male at the
-low ready and aimed, and 10.6 and 18.2 mm through the reload (27.0 mm at the low ready and 38.9 and 35.8 mm
+low ready and aimed, and 12.2 and 21.3 mm through either reload (27.0 mm at the low ready and 38.9 and 35.8 mm
 through the reload before the butt was brought to the skin, kit #1177). Under the clips only the male's reload is
 over nothing: his opened left hand passes 8.2 mm through the fingers of the right on its way to the magazine
 (frame 10) and 8.4 mm as it comes off the seated one for the charging handle (frame 42), which are the hold's

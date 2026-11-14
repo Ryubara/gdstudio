@@ -19,15 +19,20 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   `_set`); gdstudio #1073, 2026-11-11 (a capture tour's `_set(move)` helper: the tour did not load and the first
   capture was 180 black frames; renamed `_walk`).
 
-- **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not
-  `scale`; `earlier`, not `before`, in a GdUnit suite), no global function (`hash`, `snapped`) and no function of its
-  class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
-  `[debug]` of `project.godot`, as templates do. **Watch out for:** the editor warned on
-  opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
-  `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857, #877
-  (`name`); #902 (`hash`, `snapped`, `world_hash` beside such a function); #903 (`url` and `url()`); #901 (`before`);
-  #966 (`mesh`); #970 (`rows`); #1186 (`show`: a bench's web export failed); #1386 (`left` beside
-  `NetEvent.left()`); #1420 (`newest`, `goal`).
+- **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not `scale`;
+  `earlier`, not `before`, in a GdUnit suite) and no global function (`hash`, `snapped`), and set `shadowed_variable`,
+  `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in `[debug]` of `project.godot`, as templates
+  do. **Watch out for:** the editor warned on opening 3D Third Person ("local variable "scale" is shadowing..."), which
+  a headless run never shows; as errors, `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a
+  lambda's `_body`); #857, #877 (`name`); #902 (`hash`, `snapped`); #901 (`before`); #966 (`mesh`); #970 (`rows`); #1186
+  (`show`: a bench's web export failed).
+- **Approach:** Name a local or parameter after no function or member of its own script and its base classes either, and
+  before giving a class a new member (one moved in from a long script too), grep the class and every script that extends
+  it for locals and parameters of that name. **Watch out for:** the same errors fire for a script's own names, and a
+  member added later makes old locals of that name errors in scripts the change never touched. **Seen:** gdstudio #902
+  (`world_hash` beside such a function); #903 (`url` and `url()`); #1386 (`left` beside `NetEvent.left()`); #1420
+  (`newest`, `goal`); PR #1454, 2026-11-14 (a member `goal` moved out of `character.gd`, now `move_goal`:
+  [Rules](project-conventions.md#rules)).
 
 - **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
   `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an

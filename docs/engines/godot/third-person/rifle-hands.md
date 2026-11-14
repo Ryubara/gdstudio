@@ -14,7 +14,8 @@ handle's pull on [The rifle's charging handle](rifle-charge.md#rifle-charge).
      with no clip is placed in the model's space with both arms reaching it, and its switch and reload are built in
      code (gdstudio #889, after the maintainer's review of 2026-11-11) -->
 
-How a carbine is held, which the hold copies. The firing hand is high on the pistol grip, with no space left under
+Lying down the rifle is put away for a whole reload ([the prone reload](moves.md#prone)). How a carbine is held,
+which the hold copies. The firing hand is high on the pistol grip, with no space left under
 the receiver, and the support hand is forward on the hand guard with its thumb along the rail's side, pulling the
 rifle back into the shoulder ([Guns & Ammo](https://www.gunsandammo.com/editorial/tactical-shooting-get-ahold-of-that-carbine/248479)).
 The trigger finger is taught straight along the lower receiver until the shot
@@ -61,7 +62,7 @@ are named as such.
 - **The carry** (kit #1348): running at the low ready the stance carries the trunk upright, to `carry_lean_limit`
   on average; how, what it measured and what it costs are on [the upright carry](rifle-carry.md#rifle-carry).
 - **The left shoulder.** On a left peek lean the stance mirrors the pocket and the gun's turn across the body and
-  turns the chest square on (`side`, `left_chest_turn`); the hands keep their places on the rifle
+  turns the chest square on (`side`, `left_chest_turn`, `left_pocket_in`); the hands keep their places on the rifle
   ([the weapon on the left side](peek.md#left-shoulder), gdstudio #1435).
 - **The arms** are a `HoldArm` each (the pistol's own reach, given the hand's place in the skeleton's space by the
   stance in the same update), toward `RightHandTarget` and `LeftHandTarget` on the rifle, the elbows toward

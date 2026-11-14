@@ -49,8 +49,10 @@ func test_commands_walk_it_to_the_gate_and_use_it() -> void:
 	await _run(PlayerCommand.new(), 10)
 	assert_bool(gate.is_open()).is_false()
 	# The gate opens by itself for a character that walks up to it (3 m), +Z from here.
+	# At a walk, whose stop is short (a jog's covers 1.96 m since gdstudio #1415).
 	var toward := CommandDriver.walking(Vector3.BACK)
-	await _run(toward, 25)
+	toward.walk = true
+	await _run(toward, 40)
 	await _run(PlayerCommand.new(), 80)
 	assert_float(_player.global_position.z).is_greater(7.5)
 	assert_bool(gate.is_open()).is_true()
@@ -70,8 +72,10 @@ func test_commands_walk_it_onto_the_pad_and_the_door_answers() -> void:
 	_player.teleport(PAD_AT + Vector3(0.0, 0.0, 2.5), PI)
 	await _run(PlayerCommand.new(), 20)
 	assert_bool(pad.is_active()).is_false()
-	await _run(CommandDriver.walking(Vector3.FORWARD), 45)
-	await _run(PlayerCommand.new(), 30)
+	var onto := CommandDriver.walking(Vector3.FORWARD)
+	onto.walk = true
+	await _run(onto, 60)
+	await _run(PlayerCommand.new(), 40)
 	assert_float(_player.global_position.distance_to(PAD_AT)).is_less(1.2)
 	assert_bool(pad.is_active()).is_true()
 	assert_bool(door.is_open() or door.is_moving()).is_true()
