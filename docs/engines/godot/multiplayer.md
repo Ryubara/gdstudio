@@ -223,7 +223,7 @@ that byte, a `MELEE` event (slot, seq) and the AI event's `MELEE` code ([melee](
 ([item uses online](third-person/online-items.md#item-uses)). `NetWire.VERSION` 11 (#1400; 10 is named by open pull
 requests): the lean bits and a leaning player's entry byte ([the peek lean](third-person/peek.md#peek)).
 `NetWire.VERSION` 13 (#1420): a player entry's flag bit 7, `halt` ([puppets](third-person/online-client.md#puppets)).
-`NetWire.VERSION` 15 (#1452; 14 is named by an open pull request): an AI row's speed byte is the speed the body is
+`NetWire.VERSION` 18 (#1452; 16 and 17 are named by open pull requests): an AI row's speed byte is the speed the body is
 asked for, not the one it has; no byte more ([the AI online](third-person/ai-online.md#replication)).
 `NetWire.VERSION` 4 (#906): a shot
 carries the weapon and the low 16 bits of its `seq`, a hit the health it left

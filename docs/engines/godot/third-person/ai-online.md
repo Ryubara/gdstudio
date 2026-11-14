@@ -38,7 +38,7 @@ while they head under 0.5 m/s, or the way it faces from standing. The row's spee
 (`Character.goal_speed`), not its measured one: the stop needs a signal the drawn motion cannot give in the first
 0.1 s of a brake, and the byte already travels, so it costs no byte and no bit (the layout is the same; the client's
 drawn speed is the glide's own, and a guess ahead now stops at once when the walk is let go). The protocol version
-still goes up (15), since an older client would read the byte as the measured speed.
+still goes up (18), since an older client would read the byte as the measured speed.
 On a loopback walk, run, sprint and stop (`test_net_ai_puppet_gait.gd`) the puppet begins what the server's body
 begins (`Sprint_Stop` at the stop), plays no stop on any steady frame and its largest bone turns more than 3 degrees a
 frame while it moves; on the base code 8 checks fail (`Walk_Stop` while it walked, no stop when it stopped, 40 of 40
