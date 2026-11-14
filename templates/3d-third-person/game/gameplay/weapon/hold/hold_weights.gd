@@ -17,7 +17,7 @@ const LEFT_FINGERS := 4
 var _kinds := PackedByteArray()
 var _influences := PackedFloat64Array()
 var _actives := PackedByteArray()
-var _hands := PackedFloat64Array([NAN, NAN, NAN, NAN])
+var _hands := PackedFloat64Array([NAN, NAN, NAN, NAN, NAN])
 var _elbow := NAN
 
 
@@ -33,7 +33,7 @@ func clear() -> void:
 	_kinds.clear()
 	_influences.clear()
 	_actives.clear()
-	_hands = PackedFloat64Array([NAN, NAN, NAN, NAN])
+	_hands = PackedFloat64Array([NAN, NAN, NAN, NAN, NAN])
 	_elbow = NAN
 
 
@@ -78,14 +78,16 @@ func weigh(
 
 
 ## Gives the right hand its trigger finger's way and the left hand its thumb's way, its opening
-## and whether its fingers open together.
+## whether its fingers open together and its hook on the charging handle (`charge`, the left
+## hand's third pose: `ChargePull`).
 func hands(
 	right: HandPoseModifier,
 	left: HandPoseModifier,
 	trigger: float,
 	thumb: float,
 	opened: float,
-	together: bool
+	together: bool,
+	charge := 0.0
 ) -> void:
 	if trigger != _hands[0]:
 		right.second_weight = trigger
@@ -99,3 +101,6 @@ func hands(
 	if int(together) != int(_hands[3]):
 		left.open_together = together
 		_hands[3] = float(together)
+	if charge != _hands[4]:
+		left.third_weight = charge
+		_hands[4] = charge

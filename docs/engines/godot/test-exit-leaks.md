@@ -186,6 +186,12 @@ exit, with the statics, fonts, textures and banks it reaches. `weapons/test_recu
   the minimap bench. **Seen:** gdstudio #954, #926, #966, 2026-11-10 (the minimap and parts benches, the senses
   tour); #1075, 2026-11-11 (a probe: green locally, only CI's exit 101 named it; grep a new bench or tour for
   `:= .*\.new()` on a `var` line before the push); #1408, 2026-11-13 (the burst tour's caption `Label`).
+- **Approach:** A fixture that owns sounding bodies (`OnlineRig`) stops their players and waits on the mixer
+  (`AudioDrain.stop_all(self)`) in its `NOTIFICATION_PREDELETE`, only when one plays; `AudioStreamPlayback*` in the
+  `Leaked instance:` list is a voice. **Watch out for:** on `--fixed-fps` the last ticks pass in milliseconds while
+  headless audio mixes every 70 to 90 ms, so a swing outlived the run (6 instances, one to three runs in four);
+  `_exit_tree` runs after the players stopped, so it cannot tell one played; `assert_object(playback)` keeps it alive.
+  **Seen:** gdstudio #1495, 2026-11-14 (`test_net_rig_voices.gd`; [details](audio.md#leaks-at-exit-in-a-test-run)).
 - **Approach:** A cache of resources shared by every instance of a class (`static var _meshes: Dictionary[float,
   SphereMesh]`) is emptied when the last instance goes: count instances in `_init` and `NOTIFICATION_PREDELETE`, and
   clear the dictionaries at zero. **Watch out for:** a static holds its resources until the script unloads, after the

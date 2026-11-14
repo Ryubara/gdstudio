@@ -7,7 +7,9 @@ extends CharacterController
 ##
 ## It reads these actions (all devices): `move_left`, `move_right`, `move_forward`, `move_back`,
 ## `jump`, `sprint`, `walk`, `interact`, `crouch`, `prone`, `aim`, `fire`, the weapon presses
-## `reload`, `next_weapon`, `previous_weapon` and `toggle_unarmed`, the melee button `melee`, and
+## `reload`, `next_weapon`, `previous_weapon` and `toggle_unarmed`, the melee button `melee`, the
+## peek lean `lean_left` and `lean_right` (and on a pad `lean_left_pad` and `lean_right_pad`, the
+## d-pad's left and right, while aim is held: `PeekInput`), and
 ## `ragdoll` (made at run time,
 ## holding the player's `ragdoll_key`). A weapon chosen on a screen (`request_weapon`) is sent as
 ## those same weapon presses, one a tick, so a screen adds nothing to the command. The number keys
@@ -62,6 +64,7 @@ var _bound_key: Key = KEY_NONE
 var _wanted_slot := NO_REQUEST
 var _request_ticks := 0
 var _quick_keys := QuickKeys.new()
+var _peek := PeekInput.new()
 
 
 func _ready() -> void:
@@ -149,6 +152,9 @@ func sample() -> PlayerCommand:
 	command.crouch = _crouch_latch
 	_step_prone(enabled)
 	command.prone = _prone_latch
+	_peek.step(player, enabled, self)
+	command.lean_left = _peek.side < 0
+	command.lean_right = _peek.side > 0
 	# As before the command: a jump held when the input is turned off still rises its full height.
 	command.jump = Input.is_action_pressed(&"jump")
 	if not enabled:
@@ -168,6 +174,10 @@ func sample() -> PlayerCommand:
 	# The action exists: `_ready` made it.
 	command.ragdoll_pressed = Input.is_action_just_pressed(RAGDOLL_ACTION)
 	var presses := _weapon_presses()
+	if _peek.pad_leaning:
+		# The d-pad leans while aim is held: its left and right switch no weapon then.
+		presses[1] = presses[1] and not Input.is_action_pressed(&"lean_right_pad")
+		presses[2] = presses[2] and not Input.is_action_pressed(&"lean_left_pad")
 	command.reload_pressed = presses[0]
 	command.next_weapon_pressed = presses[1]
 	command.previous_weapon_pressed = presses[2]
@@ -341,3 +351,4 @@ func _step_crouch_hold(tuning: ProneTuning) -> void:
 func _on_died() -> void:
 	_crouch_latch = false
 	_prone_latch = false
+	_peek.side = 0
