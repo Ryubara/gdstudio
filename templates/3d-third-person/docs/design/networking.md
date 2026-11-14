@@ -72,15 +72,18 @@ the two TICKs around that moment, so they walk, run, crouch, aim, jump and land 
 A vault or a mantle is planned again on this screen when a puppet's state turns to one (`PuppetVault`, also used by
 the AI's puppets), so its clip plays as on the body that steps it with nothing more sent, and its planted hand rests
 on the obstacle's top on every screen (`tests/gameplay/test_net_puppet_vault.gd`). A puppet's starts and stops are
-picked from where its TICKs head and the entry's `halt` flag (the player asked for no move), so it plays the stop the
-stepping body plays instead of sliding in one (`tests/gameplay/test_net_puppet_gait.gd`). Nothing that only looks
-(a footstep, a hand pose, a muzzle flash) crosses the network.
+picked from where its TICKs head, the entry's `halt` flag (the player asked for no move) and the goal speed in the
+state byte's top four bits, so it plays the stop and the start the stepping body plays instead of sliding in one or
+showing the walk's start for a sprint (`tests/gameplay/test_net_puppet_gait.gd`, `tests/gameplay/test_net_starts.gd`).
+Nothing that only looks (a footstep, a hand pose, a muzzle flash) crosses the network.
 
 The AI characters run on the server only. When the client joins, its own map's AI (the director and every AI
 character, with their senses, brain, tasks and navigator) stands down before it runs a frame, and an `AiReplica`
 (`ai_replica.gd`) draws the server's characters from the few bytes each TICK carries for this client: each one a
 dressed character with no AI and no collision, walked evenly from one row to the next a tenth of a second behind, its
-animation from the row (walking, running, crouching, aiming), its death a ragdoll this screen makes itself from one
+animation from the row (walking, running, crouching, aiming; its starts and stops from where its rows head and the
+speed the row says it is asked for, so it plays the stop its server body plays instead of gliding in one,
+`tests/gameplay/test_net_ai_puppet_gait.gd`), its death a ragdoll this screen makes itself from one
 event, its shot a muzzle flash this screen plays. A crowd that arrives at once (the join, a crowd walking into range)
 is made and shown a few characters a frame, the nearest first, so joining does not freeze the screen. Characters
 farther away are sent less often (`ai_tier_rates.tres`
