@@ -22,6 +22,10 @@ const SAME := 0.0005
 const SAME_TURN := 0.2
 ## How far a swivelled leg's foot may be from the library's on any frame (m): the build's limit.
 const FOOT_STAYS := 0.001
+## The body files the build solved against, by file name: the template's pair, then Quaternius's.
+const MEASURED_BODIES: Array[String] = [
+	"form_female", "form_male", "mannequin_female", "mannequin_male"
+]
 
 var _report: Dictionary
 
@@ -49,7 +53,9 @@ func _turn(animation: Animation, track: int, frame: int) -> Quaternion:
 
 # The numbers in the sidecar are the Blender measure's, on the skinned meshes of both template
 # bodies and both Quaternius mannequins (`assets/animation/limb_overlap.py`). A fixed.glb that is
-# not the file they were read on has not been measured.
+# not the file they were read on has not been measured, and neither has one solved against
+# another measure script or another body file (kit #1491: the sidecar names both by their hash,
+# as a limb overlap report does).
 func test_the_file_is_the_one_the_build_measured_and_no_limb_is_deeper_than_the_limit() -> void:
 	var measured: Dictionary = _report.measured
 	(
@@ -59,6 +65,8 @@ func test_the_file_is_the_one_the_build_measured_and_no_limb_is_deeper_than_the_
 		)
 		. is_equal(measured.sha256)
 	)
+	var made_by := measured.merged({"clips_file": FIXED.get_file()})
+	assert_array(BodiesOverlap.stale(made_by, MEASURED_BODIES)).is_empty()
 	assert_float(measured.limit_mm).is_less_equal(5.0)
 	assert_array(measured.clear_on).contains_exactly_in_any_order(["form_female", "form_male"])
 	for clip: String in _report.clips:
