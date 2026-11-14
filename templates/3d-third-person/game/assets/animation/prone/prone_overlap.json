@@ -1,6 +1,10 @@
 {
  "clips_file": "prone.glb",
  "sha256": "7ea451f4a719ba59b1fb02b8fb9ad39b8d484780aca8ade108314d47b54d3f45",
+ "measure_sha256": "fb342c8ac8b3f7e566dfec22c792caf3abe94c3493d9177faab3bfc4f8be606a",
+ "bodies_sha256": {
+  "mannequin_female": "2ee6cc3fe888d9b144afa8cc4b2ab7bfc5d13a0d5b7548df777f61f64ad65fa6"
+ },
  "fps": 30,
  "limit_mm": 5.0,
  "clips": {
