@@ -10,8 +10,13 @@ extends Node
 ##   the nodes and the physics bodies each character adds, and what spawning one cost.
 ## - `parts`: 25 walking characters with each part's processing turned off and called here by
 ##   hand, timed apart: microseconds a character a frame for the body's step, the animation script,
-##   the animation tree's own advance, the skeleton's pose update after it (read once here, so the
-##   parts after it do not pay for it), the footsteps and the ragdoll.
+##   the animation tree's own advance, the skeleton's update after it (what the engine defers to
+##   the end of the frame, outside `*_work_ms`: the bones' global poses, the skeleton's modifiers
+##   and the skin; gdstudio #1438), the footsteps, the ragdoll, every other node of the character
+##   that processes (`others`, by name) and the physics tick after the scripts (`physics`: the
+##   rest of the tick, the physics server's step among it, less an empty arena's). `modifiers`
+##   splits the skeleton's update: each active modifier's share, read as the update's cost with
+##   that one switched off, in turns with all of them on.
 ## - `death`: what the first death of a character costs (it takes a set of the ragdoll's bones from
 ##   the `RagdollPool`, or makes them) and a later one, in milliseconds; `death_male` the same on
 ##   the male mannequin, whose first death takes a set the pool made on the female and fits it.
@@ -30,6 +35,12 @@ const PART_CROWD := 25
 const WORLD_COUNT := 100
 const WARM_FRAMES := 60
 const FRAMES := 300
+## The parts the bench switches off and calls by hand; any other node of the character that
+## processes is timed under `others`.
+const HAND_PARTS: Array[String] = ["Animation", "Footsteps", "Ragdoll"]
+## Rounds and frames of the modifiers' split (each round: all on, then each one off in turn).
+const MODIFIER_ROUNDS := 3
+const MODIFIER_FRAMES := 60
 const CHARACTER := "res://gameplay/character/character_dressed.tscn"
 const MALE := CharacterBodies.MALE
 const WORLD_PARTS := {
@@ -43,6 +54,7 @@ var _arena: Node3D
 var _works: Array[float] = []
 var _tick_start := -1
 var _frame_end: FrameEnd
+var _sections: Array[String] = []
 
 
 ## Walks a slow circle when `walking` is on, else asks for nothing: a stand-in for an AI's
@@ -95,23 +107,35 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	for arg in OS.get_cmdline_user_args():
+		_sections.append(arg.trim_prefix("--"))
 	var report := {"frames": FRAMES, "crowd": [], "parts": {}, "world": []}
-	for count in CROWD:
-		report.crowd.append(await _crowd(count))
-	report.parts = await _parts(PART_CROWD)
-	report.death = await _death(false)
-	report.death_male = await _death(true)
-	var empty := await _empty_frame()
-	for kind: String in WORLD_PARTS:
-		report.world.append(await _world(kind, empty))
-	report.empty_frame_ms = empty.wall
-	report.empty_work_ms = empty.work
+	if _wants("crowd"):
+		for count in CROWD:
+			report.crowd.append(await _crowd(count))
+	if _wants("parts"):
+		report.parts = await _parts(PART_CROWD)
+	if _wants("death"):
+		report.death = await _death(false)
+		report.death_male = await _death(true)
+	if _wants("world"):
+		var empty := await _empty_frame()
+		for kind: String in WORLD_PARTS:
+			report.world.append(await _world(kind, empty))
+		report.empty_frame_ms = empty.wall
+		report.empty_work_ms = empty.work
 	var line := JSON.stringify(report)
 	print("PARTS_COST_BENCH ", line)
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.__parts_cost_bench = %s;" % line, true)
 	else:
 		get_tree().quit()
+
+
+# The sections to run: all of them, or on the desktop those named after `--` (`-- parts`,
+# `-- crowd world`).
+func _wants(section: String) -> bool:
+	return _sections.is_empty() or _sections.has(section)
 
 
 func _crowd(count: int) -> Dictionary:
@@ -143,51 +167,172 @@ func _crowd(count: int) -> Dictionary:
 # Microseconds a character a frame for each part, its own processing off and called here.
 func _parts(count: int) -> Dictionary:
 	_new_arena()
+	# The physics tick's rest with nobody in the arena, taken off the crowd's below.
+	var empty_rest := await _hand_frames([], [], {}, {})
 	var walkers := _spawn(count)
 	var bodies: Array[Character] = []
+	var others: Array[Node] = []
+	var hows := {}
 	for walker in walkers:
 		walker.walking = true
 		var body := walker.get_parent() as Character
 		bodies.append(body)
 		body.set_physics_process(false)
-		for part_name in ["Animation", "Footsteps", "Ragdoll"]:
+		for part_name in HAND_PARTS:
 			var part := body.get_node(part_name)
 			part.set_process(false)
 			part.set_physics_process(false)
 		var tree := body.get_node("AnimationTree") as AnimationTree
 		tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		var skeleton := (body.model as CharacterModel).skeleton()
+		skeleton.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
+		for node in body.find_children("*", "", true, false):
+			if node == walker or not (node.is_processing() or node.is_physics_processing()):
+				continue
+			hows[node] = {
+				"name": String(node.name),
+				"physics": node.is_physics_processing() and node.has_method(&"_physics_process"),
+				"idle": node.is_processing() and node.has_method(&"_process"),
+			}
+			node.set_process(false)
+			node.set_physics_process(false)
+			others.append(node)
 	var spent := {"step": 0, "animation": 0, "tree": 0, "skeleton": 0, "footsteps": 0, "ragdoll": 0}
+	var other_spent := {}
+	var rest := await _hand_frames(bodies, others, hows, spent, other_spent)
+	var modifiers := await _modifier_split(bodies)
+	_arena.free()
+	var result := {"characters": count}
+	for key: String in spent:
+		result[key + "_us"] = float(spent[key]) / (FRAMES * count)
+	result.physics_us = maxf(rest - empty_rest, 0.0) / count
+	var other_us := {}
+	for key: String in other_spent:
+		other_us[key] = float(other_spent[key]) / (FRAMES * count)
+	result.others = other_us
+	result.modifiers = modifiers
+	return result
+
+
+# Steps `bodies` by hand for the warm-up and the measured frames, adding each part's microseconds
+# to `spent` and each other processing node's, by name, to `other_spent`, and returns the median
+# of the physics tick's rest: from the last part called to the frame's processing (the tick's
+# deferred calls and the physics server's step), in microseconds.
+func _hand_frames(
+	bodies: Array[Character],
+	others: Array[Node],
+	hows: Dictionary,
+	spent: Dictionary,
+	other_spent: Dictionary = {},
+) -> float:
+	var rests: Array[float] = []
 	for frame in WARM_FRAMES + FRAMES:
 		await get_tree().physics_frame
 		var delta := get_physics_process_delta_time()
 		var counts := frame >= WARM_FRAMES
 		var at := Time.get_ticks_usec()
+		if not bodies.is_empty():
+			at = _step_parts(bodies, delta, spent, counts, at)
+		for node in others:
+			var how: Dictionary = hows[node]
+			if how.physics:
+				node._physics_process(delta)
+			if how.idle:
+				node._process(delta)
+			var now := Time.get_ticks_usec()
+			if counts:
+				other_spent[how.name] = other_spent.get(how.name, 0) + now - at
+			at = now
+		await get_tree().process_frame
+		if counts:
+			rests.append(float(Time.get_ticks_usec() - at))
+	rests.sort()
+	return rests[rests.size() / 2]
+
+
+func _step_parts(
+	bodies: Array[Character], delta: float, spent: Dictionary, counts: bool, at: int
+) -> int:
+	for body in bodies:
+		body._physics_process(delta)
+	at = _add(spent, "step", at, counts)
+	for body in bodies:
+		body.get_node("Animation")._physics_process(delta)
+		body.get_node("Animation")._process(delta)
+	at = _add(spent, "animation", at, counts)
+	for body in bodies:
+		(body.get_node("AnimationTree") as AnimationTree).advance(delta)
+	at = _add(spent, "tree", at, counts)
+	# The skeleton's deferred update, here instead of at the end of the frame.
+	for body in bodies:
+		_update_skeleton((body.model as CharacterModel).skeleton(), delta)
+	at = _add(spent, "skeleton", at, counts)
+	for body in bodies:
+		body.get_node("Footsteps")._process(delta)
+	at = _add(spent, "footsteps", at, counts)
+	for body in bodies:
+		body.get_node("Ragdoll")._physics_process(delta)
+		body.get_node("Ragdoll")._process(delta)
+	return _add(spent, "ragdoll", at, counts)
+
+
+# What the engine does at the end of a frame for a skeleton whose bones moved: the modifiers in
+# turn, the bones' global poses and the skin's transforms (`Skeleton3D`'s update notification).
+static func _update_skeleton(skeleton: Skeleton3D, delta: float) -> void:
+	skeleton.advance(delta)
+	skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)
+
+
+# Each active modifier's share of the skeleton's update, microseconds a character a frame: the
+# update with all of them on less the update with that one off, in turns, the lowest of the rounds.
+func _modifier_split(bodies: Array[Character]) -> Dictionary:
+	var names: Array[String] = []
+	for node in (bodies[0].model as CharacterModel).skeleton().get_children(true):
+		var modifier := node as SkeletonModifier3D
+		if modifier != null and modifier.active:
+			names.append(_modifier_name(modifier))
+	var best := {}
+	for _round in MODIFIER_ROUNDS:
+		var all_on := await _skeleton_frames(bodies, "")
+		for modifier_name in names:
+			var without := await _skeleton_frames(bodies, modifier_name)
+			best[modifier_name] = minf(best.get(modifier_name, INF), all_on - without)
+	for modifier_name: String in best:
+		best[modifier_name] = maxf(best[modifier_name], 0.0)
+	return best
+
+
+# The skeleton's update a character a frame, microseconds, with the modifier named `off` switched
+# off (none with `""`). The bodies walk and their trees advance as before, untimed.
+func _skeleton_frames(bodies: Array[Character], off: String) -> float:
+	var switched: Array[SkeletonModifier3D] = []
+	for body in bodies:
+		for node in (body.model as CharacterModel).skeleton().get_children(true):
+			var modifier := node as SkeletonModifier3D
+			if modifier != null and modifier.active and _modifier_name(modifier) == off:
+				modifier.active = false
+				switched.append(modifier)
+	var spent := 0
+	for frame in WARM_FRAMES / 6 + MODIFIER_FRAMES:
+		await get_tree().physics_frame
+		var delta := get_physics_process_delta_time()
 		for body in bodies:
 			body._physics_process(delta)
-		at = _add(spent, "step", at, counts)
-		for body in bodies:
-			body.get_node("Animation")._physics_process(delta)
 			body.get_node("Animation")._process(delta)
-		at = _add(spent, "animation", at, counts)
-		for body in bodies:
 			(body.get_node("AnimationTree") as AnimationTree).advance(delta)
-		at = _add(spent, "tree", at, counts)
-		# The skeleton's pose after the tree moved it: whoever reads a bone first pays for it.
+		var at := Time.get_ticks_usec()
 		for body in bodies:
-			(body.model as CharacterModel).skeleton().get_bone_global_pose(0)
-		at = _add(spent, "skeleton", at, counts)
-		for body in bodies:
-			body.get_node("Footsteps")._process(delta)
-		at = _add(spent, "footsteps", at, counts)
-		for body in bodies:
-			body.get_node("Ragdoll")._physics_process(delta)
-			body.get_node("Ragdoll")._process(delta)
-		_add(spent, "ragdoll", at, counts)
-	_arena.free()
-	var result := {"characters": count}
-	for key: String in spent:
-		result[key + "_us"] = float(spent[key]) / (FRAMES * count)
-	return result
+			_update_skeleton((body.model as CharacterModel).skeleton(), delta)
+		if frame >= WARM_FRAMES / 6:
+			spent += Time.get_ticks_usec() - at
+	for modifier in switched:
+		modifier.active = true
+	return float(spent) / (MODIFIER_FRAMES * bodies.size())
+
+
+# The engine's own simulator has a generated name.
+static func _modifier_name(modifier: SkeletonModifier3D) -> String:
+	return "Simulator" if modifier is PhysicalBoneSimulator3D else String(modifier.name)
 
 
 # Milliseconds a death takes, the first (which brings the ragdoll's bones) and a later one, on the
