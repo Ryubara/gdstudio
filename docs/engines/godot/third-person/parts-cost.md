@@ -1,7 +1,10 @@
 # What the parts cost
 
-<!-- new section: the character page reached the 50 KB limit, and what its parts cost is its largest subject and
-     keeps growing with every part (gdstudio #1471) -->
+<!-- new section: character.md went over its size limit (gdstudio #1438 met #1487 there); the parts bench and its
+     numbers moved here whole -->
+
+What each part of a dressed character and each world part costs a frame in 3D Third Person, how the bench measures
+it and what took it down. Part of [the character and its model](character.md).
 
 ## What the parts cost {#parts-cost}
 
@@ -83,6 +86,54 @@ record's lookup and contacts once (`GaitClips`): 7 to 9 µs, the same transition
 targets (8 of 61 tracks), which the tree blends too. What #1360 left is
 [gdstudio #1438](https://github.com/Ryubara/gdstudio/issues/1438). The lean's share of the tree went from 1.0 to 0.3
 of the step in gdstudio #1403 ([the lean's cost](clips.md#gait-settings)).
+
+**The rest of the frame** (gdstudio #1438). The bench now times every part of a walking character: the skeleton's
+update (deferred by the engine to the end of the frame, so outside `*_work_ms` and the budget case: the bones' global
+poses, the modifiers, the skin), the physics tick after the scripts (less an empty arena's) and each other node that
+processes. µs a character a frame, 25 walking, three interleaved runs of a game at each commit (desktop at 9 to 12
+Godot processes) and two of each web build:
+
+| | Step | Script | Tree | Skeleton | Physics | `AimLayer` | `WeaponHold` |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Desktop, db19fdc0 | 32 to 42 | 10 to 15 | 23 to 26 | 16 to 19 | 12 to 16 | 4 to 5 | 3 to 8 |
+| Desktop, main (6d826e5a) | 40 to 44 | 47 to 53 | 58 to 63 | 19 to 22 | 16 to 17 | 12 to 14 | 14 to 16 |
+| Desktop, #1438 | 37 to 44 | 41 to 50 | 49 to 55 | 17 to 20 | 15 to 18 | 11 to 13 | 12 to 15 |
+| Chrome, main | 49 to 53 | 56 to 63 | 43 to 48 | 22 to 23 | 12 | 14 to 15 | 18 to 20 |
+| Chrome, #1438 | 48 to 54 | 55 to 63 | 38 to 48 | 20 to 24 | 12 to 16 | 14 to 15 | 17 to 20 |
+
+Read as shares of the step, what grew since db19fdc0 is the script (0.30 to 1.17), the tree (0.68 to 1.40) and the
+two weapon nodes (`AimLayer` 0.13 to 0.31, `WeaponHold` 0.10 to 0.34, run every frame by a character that does not
+aim: [gdstudio #1478](https://github.com/Ryubara/gdstudio/issues/1478)); the skeleton's update (0.47) and the physics
+tick (0.38) did not grow. The footsteps (2 to 3; 9 to 10 in Chrome), the ragdoll (3 to 4), the `NoiseMaker` (1 to 2)
+and the `Weapon` (1 to 2) are their expected cost. Of the skeleton's update the modifiers take: the hold's grip
+(`HoldGrip`) 5 to 7, the momentum blend 1 to 4 (#1360 read 6.5 with the probe's own calls), `MannequinTwist` 1 to 2
+and the engine's empty simulator under 1; the rest is the engine's: every bone's global pose (again after each
+modifier that moves one), the poses kept and put back around the modifiers, and the 82 binds of the skin (the three
+levels of detail share one). That is their expected cost, as is the script's split on #1438's issue.
+
+The tree blended the clips' `ik_` target tracks (8 of 61 in our clips, 286 in the libraries), which nothing drawn
+follows: no vertex is weighted to them and no bone hangs under them. `HelperTracks` switches them off in the shared
+clips (`GaitSettings.helper_tracks`, off), drawn bones the same to the bit (`test_helper_tracks.gd`); the tree's share
+of the step went from 1.38 to 1.45 to 1.26 to 1.35 on the desktop (4 to 8 µs) and from 0.88 to 0.90 to 0.79 to 0.89
+in Chrome. The budget case's limits stay: the case does not see the skeleton's update, and a few percent of the frame
+leaves the twice-as-slow case's margin as it was.
+
+Re-taken after main took the peek lean (#1437), the own-clip blends (#1427) and the charging handle pull (#1370), in
+one build of #1438 with `helper_tracks` on and one with it off (seven interleaved desktop runs of each at 9 to 28
+Godot processes, four of each web build):
+
+| | Step | Script | Tree | Skeleton | Physics | `AimLayer` | `WeaponHold` | `PeekLayer` |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Desktop, tracks on | 46 to 92 | 53 to 82 | 61 to 91 | 21 to 31 | 16 to 25 | 14 to 19 | 15 to 21 | 2 to 5 |
+| Desktop, tracks off | 53 to 68 | 58 to 70 | 62 to 81 | 24 to 36 | 18 to 23 | 15 to 18 | 17 to 24 | 2 to 3 |
+| Chrome, tracks on | 58 to 60 | 62 to 67 | 46 to 54 | 23 to 26 | 12 to 16 | 15 to 16 | 18 to 22 | 3 |
+| Chrome, tracks off | 62 to 64 | 67 to 71 | 48 to 54 | 25 to 27 | 16 to 20 | 16 to 18 | 21 to 22 | 3 to 4 |
+
+At that load the desktop's spread is wider than the saving: the tree's share of the step is 0.90 to 1.33 with the
+tracks (middle run 1.27) and 1.03 to 1.35 without (1.17). In Chrome it is 0.80 to 0.89 and 0.78 to 0.85, lower
+without the tracks in each of the four pairs. The peek lean's `PeekLayer` processes on a character that never peeks
+(2 to 4), and the momentum blend after #1427 takes 3 to 7 of the skeleton's update. These runs came before the aim
+layer's and the hold's rest (#1478, below), which took their two columns down.
 
 **The budget on CI** (gdstudio #1451). The limit of 1.7 was set on the desktop and failed main at 2.40 on code whose
 parts held still. `.github/workflows/parts-budget.yml` runs the suite 50 times on the runners (by hand, and on a pull

@@ -387,7 +387,8 @@ frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says
 
 ## What the parts cost {#parts-cost}
 
-Moved to [What the parts cost](parts-cost.md#parts-cost).
+What each part of a dressed character and each world part costs a frame (the parts bench, its web numbers, the walking
+crowd's tree and helper tracks, the CI budget) moved to [what the parts cost](parts-cost.md#parts-cost).
 
 ## Prone and the crawl {#prone}
 
