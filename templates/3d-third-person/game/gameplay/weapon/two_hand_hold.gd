@@ -79,6 +79,9 @@ const _PUSH_STEP := 0.003
 @export var aim_pocket := Vector3(-0.16, 0.11, 0.08)
 ## Where it sits at rest (the low ready).
 @export var low_pocket := Vector3(-0.16, 0.1, 0.08)
+## How much nearer the chest's middle the pockets are on the left shoulder (`side`): mirrored, the
+## stock lay over the reaching left upper arm, up to 34 mm inside it (gdstudio #1484).
+@export_range(0.0, 0.1, 0.005, "suffix:m") var left_pocket_in := 0.045
 ## How far the muzzle points down at rest.
 @export_range(0.0, 80.0, 0.5, "suffix:deg") var low_pitch := 35.0
 ## How far the muzzle points across the body at rest (toward the left). More lies the stock along
@@ -94,9 +97,8 @@ const _PUSH_STEP := 0.003
 ## The most the chest leans (from its rest, the way the clip has it) while the gun is up: a chest
 ## that leans more (a crouch's hunch) is raised toward this as the gun comes to the shoulder.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var aim_lean_limit := 25.0
-## The most of its length the left arm stretches to. When the hand guard is farther than that
-## from the left shoulder (a clip leans or drops the shoulder), the gun comes back along its
-## barrel until the hand reaches, by `pull_limit` at most.
+## The most of its length the left arm stretches to: past it (a clip leans or drops the shoulder)
+## the gun comes back along its barrel until the hand reaches, by `pull_limit` at most.
 @export_range(0.5, 1.0, 0.005) var arm_stretch := 0.97
 @export_range(0.0, 0.3, 0.005, "suffix:m") var pull_limit := 0.0
 ## The butt's width and height, centred on `Pivot` (the butt's place), and how far along the
@@ -104,12 +106,10 @@ const _PUSH_STEP := 0.003
 ## skin is inside that box, so the pockets may be given a little inside the chest.
 @export var butt_pad := Vector2(0.062, 0.145)
 @export_range(0.0, 0.4, 0.005, "suffix:m") var butt_depth := 0.16
-## How far off the skin the butt stays (the skin points ride one bone each, so they are a few
-## millimetres off the drawn skin near a joint).
+## How far off the skin the butt stays (its points ride one bone each: a few mm off near a joint).
 @export_range(0.0, 0.03, 0.001, "suffix:m") var butt_margin := 0.01
-## How much of the barrel's fall the butt's way to the skin leaves out while the muzzle is down
-## (1: it comes level out of the pocket; 0: along the barrel). Along the barrel, a steep aim down
-## slid the butt down the chest and 10 cm off the shoulder before it was clear (kit #1346).
+## How much of the barrel's fall the butt's way to the skin leaves out with the muzzle down (1:
+## level out of the pocket; 0: along the barrel, which slid it 10 cm down the chest: kit #1346).
 @export_range(0.0, 1.0, 0.01) var push_level := 1.0
 ## The torso's skin is thinned to one point in each cell this size.
 @export_range(0.005, 0.1, 0.005, "suffix:m") var skin_spacing := 0.03
@@ -512,7 +512,7 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		turn = turn.slerp(_turned(stow_pitch, stow_yaw), eased)
 		pocket = pocket.lerp(stow_pocket, eased)
 	if side > 0.0:
-		pocket.x = lerpf(pocket.x, -pocket.x, side)
+		pocket.x = lerpf(pocket.x, -pocket.x - left_pocket_in, side)
 		turn = turn.slerp(LeftShoulder.mirrored(turn), side)
 	var basis_now := Basis(turn)
 	# The frame the pockets are given in: the chest's turn about the up axis, and `pocket_lean` of

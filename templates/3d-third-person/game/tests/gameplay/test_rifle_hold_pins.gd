@@ -7,6 +7,7 @@ const HOLD_PINS := {
 	&"character": null,
 	&"aim_pocket": Vector3(-0.16, 0.11, 0.08),
 	&"low_pocket": Vector3(-0.16, 0.1, 0.08),
+	&"left_pocket_in": 0.045,
 	&"low_pitch": 35.0,
 	&"low_yaw": 10.0,
 	&"chest_turn": -30.0,

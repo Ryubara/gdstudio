@@ -113,6 +113,11 @@ does too, by `CharacterPeek.shoulder_share()` (the left lean as drawn, eased; th
   across the body (`LeftShoulder.mirrored()`: the yaw and roll of the turn change sign) and turns the chest toward
   `left_chest_turn` (0, square on). The hands stay on their places on the rifle, so the right hand reaches across the
   chest to the grip and the left arm forward to the hand guard; the head's sight goal follows the rifle's `AimEye`.
+  The left pocket is `left_pocket_in` (0.045 m) nearer the chest's middle than the mirror (gdstudio #1484): mirrored,
+  the stock lay over the left upper arm reaching forward under it, its deepest point 32 to 34 mm inside the female's
+  (`upperarm_twist_01_l`) and 6 to 9 mm inside the male's, aimed, and crouched at the low ready 43 mm in the male's
+  left thigh; now 4.4 to 5.4 mm (female, aimed), 0.0 (male, aimed), 0.0 and 4.3 at the low ready, with the hands on
+  their places, measured over the whole body as the sprint test measures it (`BodyClearance.HOLDING`).
 - **The pistol** goes across the face to the left eye: `LeftShoulder` (a node of `character_dressed.tscn`) makes a
   `LeftShoulderCross` and a `HoldArm` on the right arm right before the hold's support arm; while the pistol is aimed
   (the hold's aim weight, less a reload and the rack) they move the right hand `pistol_shift` (0.19 m) to the left
@@ -123,10 +128,10 @@ does too, by `CharacterPeek.shoulder_share()` (the left lean as drawn, eased; th
   4 cm of each other on a left lean as on a right one.
 
 Aimed ahead, a left lean now holds the pistol's muzzle 0.361 m left (the right lean's 0.364 m right) and the rifle's
-0.297 m (0.283). The fingers are solved on the weapon, not on the body, so the grip, the trigger finger and the support
-hand close on it as they do on the right (0.0 mm from their places in every frame of the way across). A pose on each
-machine from the lean the body already has: never sent. Off: `PeekTuning.left_shoulder` (the rifle, the pistol and the
-server's shot), `LeftShoulder.disabled` (the pistol alone).
+0.253 m (0.283; 0.297 before the pocket came in for the arm). The fingers are solved on the weapon, not on the body, so
+the grip, the trigger finger and the support hand close on it as they do on the right (0.0 mm from their places in every
+frame of the way across). A pose on each machine from the lean the body already has: never sent. Off:
+`PeekTuning.left_shoulder` (the rifle, the pistol and the server's shot), `LeftShoulder.disabled` (the pistol alone).
 
 `tests/gameplay/test_peek_left_shoulder.gd`: aimed ahead, the left lean's muzzle is within 4 cm of the right lean's
 mirrored, both hands on their places and the aim under 3 degrees off, for the pistol and the rifle; the same over a
@@ -134,13 +139,23 @@ lean to the left, to the right and upright tick by tick; from one spot behind a 
 each hit a target past their edge, and neither strikes the pillar, with the pistol, the rifle and on the server's bare
 body. Without the hold the muzzle cases and the three pillar cases fail (the left shot struck the pillar). The online
 case of `test_peek_lean_online.gd` runs leaning left too. Close-ups: `tools/capture/left_shoulder_closeups.tscn`
-(`CLOSEUP_WEAPON`, `CLOSEUP_SIDE`, `LEFT_SHOULDER=0`).
+(`CLOSEUP_WEAPON`, `CLOSEUP_SIDE`, `LEFT_SHOULDER=0`, `CLOSEUP_BODY=male`). `test_peek_left_stock.gd`: leaning left
+with the rifle, aimed standing and crouched and at the low ready, on both prototype bodies, no point of it is over
+10 mm inside the body over the lean's way in and held, both hands within 5 mm; the stock's close-ups round the left
+shoulder are `tools/capture/left_stock_closeups.tscn` (`CLOSEUP_BODY`, `CLOSEUP_CROUCH=1`).
 
 - **Approach:** Measure where a weapon's muzzle is on both leans, aimed ahead, before choosing how to move it, and
   move only the weapon's place: let the hold's own reach put the hands on it. **Watch out for:** the rifle's chest
   turn mirrored with its pocket (30 degrees, the right shoulder forward) left the left shoulder so far back that the
   left hand stopped 15 mm short of the hand guard; square on (0 degrees) both hands reach (0.0 mm). **Seen:** gdstudio
   #1435, 2026-11-13 (`left_chest_turn`).
+- **Approach:** Measure a weapon moved to the other side over the whole body (`BodyClearance.HOLDING`), the arms and
+  legs included, not only against the torso the butt's push sees, and move its pocket rather than the arm when an
+  arm reaching along the weapon is in the way. **Watch out for:** the mirrored pocket put the stock over the left
+  upper arm, which reaches forward under it to the hand guard (on the right shoulder that arm is the firing one and
+  hangs clear), 34 mm in; turning the elbow out took 5 mm off it on the female, since the stretched arm barely
+  bends, while 4.5 cm in toward the chest's middle cleared it, at 1 cm of the muzzle's reach per cm. **Seen:**
+  gdstudio #1484, 2026-11-14 (`left_pocket_in`).
 - **Approach:** Move a weapon to the other side across the leaning chest, along the bend's roll, not level.
   **Watch out for:** a level move put the left lean's pistol 20 cm higher than the right lean's mirror (the bend
   drops the right side on a right lean), and the server's mirrored shot start left 13 cm under the client's.
