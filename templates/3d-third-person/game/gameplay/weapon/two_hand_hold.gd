@@ -88,9 +88,9 @@ const _PUSH_STEP := 0.003
 ## spine bones; negative brings the left shoulder forward so the left hand reaches the fore-end.
 ## The clip's own turn of the chest is taken off, so the shoulders keep this in a walk or a run.
 @export_range(-60.0, 60.0, 0.5, "suffix:deg") var chest_turn := -30.0
-## `chest_turn` with the gun on the left shoulder (a left peek lean, #1435): square on, the right
-## hand across to the grip (turned the mirrored 30 degrees, the left hand was 15 mm short).
-@export_range(-60.0, 60.0, 0.5, "suffix:deg") var left_chest_turn := 0.0
+## `chest_turn` with the gun on the left shoulder (a left peek lean, #1435): turned the mirrored 30
+## degrees the left hand was 15 mm short, square on the right arm was in the chest (#1436).
+@export_range(-60.0, 60.0, 0.5, "suffix:deg") var left_chest_turn := 10.0
 ## The most the chest leans (from its rest, the way the clip has it) while the gun is up: a chest
 ## that leans more (a crouch's hunch) is raised toward this as the gun comes to the shoulder.
 @export_range(0.0, 90.0, 0.5, "suffix:deg") var aim_lean_limit := 25.0
@@ -288,7 +288,7 @@ var _loadout: WeaponLoadout
 var _pivot: Node3D
 var _gun: Node3D
 var _targets: Array[Node3D] = [null, null]
-var _poles: Array[Node3D] = [null, null]
+var _poles: Array[Node3D] = [null, null, null, null]
 var _on_magazine: Node3D
 var _on_handle: Node3D
 var _mag: Node3D
@@ -607,8 +607,7 @@ func place(skeleton: Skeleton3D, spine_top := Transform3D(), has_top := false) -
 		_arms[index].offset = to_skeleton * target_here
 		var pole := _poles[index]
 		if pole != null:
-			var pole_here := pole.transform if pole.get_parent() == self else _in_here(pole)
-			_arms[index].elbow = to_skeleton * pole_here.origin
+			_arms[index].elbow = to_skeleton * HoldBones.pole(self, pole, _poles[index + 2], side)
 
 
 ## The skeleton's indexes of `spine_bones`, for the stance modifier.
@@ -968,6 +967,7 @@ func _find_parts() -> void:
 	_targets[1] = find_child("LeftHandTarget", true, false) as Node3D
 	_poles[0] = get_node_or_null(^"RightPole") as Node3D
 	_poles[1] = get_node_or_null(^"LeftPole") as Node3D
+	_poles[2] = get_node_or_null(^"RightPoleLeft") as Node3D
 	_on_magazine = find_child("MagazineHand", true, false) as Node3D
 	_on_handle = find_child("ChargeHand", true, false) as Node3D
 	charge_bolt.find(self, [bolt, bolt_far])
