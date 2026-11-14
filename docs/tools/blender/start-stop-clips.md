@@ -51,6 +51,38 @@ crouch's do on stance-clips.md -->
 | Name the frame a join meets | `declared["join_names"]`: `{"first": "Idle", "last": "Walk", "last_frame": 13}`; `clips.json` carries it as `joins` |
 | Say where the game may cut | an event `free` in `Clip.events` |
 
+## Entries between the strikes {#entries}
+
+<!-- new section: a stop that begins only on a strike is entered off its pose when let go between strikes; how a
+stop gets entries at other phases of its gait, and what making them taught, had no place (gdstudio #1525) -->
+
+A running gait's stop has an entry every two frames of its cycle (`moves.ENTRIES`), each the stop of the strike
+nearest it begun `offset` frames after or before that strike, named by the gait's frame it begins on
+(`Sprint_Stop_05`); the game picks the one whose `joins.first_frame` is nearest the phase it is let go at
+(`GaitTransitionSet.pick_entry`, [the gait settings](../../engines/godot/third-person/clips.md#gait-settings)).
+
+- **The braking is the let-go's, the rhythm the strike's.** The root's speed curve and the clip's ground are the
+  strike's stop's for every entry, so the controller's stop deceleration fits them all; every landing comes
+  `offset` frames sooner (after the strike) or later (before it), and the clip is that much longer at its end.
+- **What the gait has at the first frame goes on as the gait's.** A planted foot stays the gait's contact until it
+  leaves; a foot in the air (`Move.ghosts`) swings as the gait's toward the gait's next landing and is let go for
+  the clip's own over its swing. Before a strike, the strike is a brake step placed by the lean, not the gait's place.
+- **The review compares letters on the strikes' clips only** (`moves.on_strike`); the entries are built from the
+  picked letter for the shipped file.
+
+- **Approach:** Solve an entry from the strike nearest it, never more than a quarter of the cycle after it, and read
+  the lean check of every entry, not only the strike's. **Watch out for:** an entry 8 frames after the sprint's strike
+  kept the strike's steps and landed each 8 frames sooner against the same braking: a 13-frame stance at 1.7 m/s
+  left the body 21.5 degrees off the braking's lean (limit 16); solved from the next strike, 1 frame before it,
+  14.1. 2 frames after a strike still read 16.5 (the first brake step lands at 6.3 m/s), declared as
+  `entry_lean_limit` 17. **Seen:** gdstudio #1525, 2026-11-14.
+- **Approach:** Start the swing of a foot that leaves after an entry's first frame as the gait's (the same ghost as
+  a foot already in the air), and before a strike make the strike a brake step. **Watch out for:** the jog's entry 4
+  frames after the left strike swung its leaving foot straight to the clip's slow landing; the leg stretched, the
+  reach pass lowered the hips 42 mm in two frames and the centre of mass dropped at 2.75 g with a foot down. Before a
+  strike, the gait's own place under the strike left the jog's entries 19 to 20 degrees off the lean (limit 17);
+  placed by the lean, 14.4 to 14.6. **Seen:** gdstudio #1525, 2026-11-14.
+
 ## What the starts and stops taught {#taught}
 
 <!-- new section: the mistakes made on the first clips that change speed, for the pivots, reversals and landings

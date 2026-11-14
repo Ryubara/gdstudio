@@ -911,6 +911,35 @@ row shows. Measured by the build on `form_female` (frames are `_L`, `_R`):
 - **The stops sit low** in the middle (the hips come down 5 to 11 cm in the sprint's) and the forearms are carried
   ahead of the body while the trunk comes back: the arms are mixed from the run's bent carriage to the idle's hang.
 
+### The stops between the strikes (gdstudio #1525)
+
+A stop that begins only as a foot strikes is entered up to half a cycle off its first pose: the stick is let go at
+any phase, and the body brakes from that tick by its speed alone (so a predicting client and the server agree), so
+the clip cannot wait for the strike. Let go between the sprint's strikes, the drawn pose jumped 1.1 to 1.8 rad on a
+calf, a hand or an upper arm, and 21 to 23 cm in a frame through the momentum blend. So the jog and the sprint have
+a stop every two frames of their cycle, eight more each, named by the gait's frame they begin on (`Jog_Stop_02` to
+`_18`; `Sprint_Stop_02`, `_04`, `_06`, `_08`, `_11`, `_13`, `_15`, `_17`). Each is the description of the stop on
+the strike nearest it (`moves.ENTRIES`, `ENTRY_AFTER`), begun `offset` frames after that strike or before it:
+
+- **It begins on the gait's own pose at its frame** (`joins.first_frame`), with the feet the gait has there: a foot
+  on the floor stays the gait's until it leaves, and a foot in the air starts its swing as the gait's and is let go
+  for the clip's own landing.
+- **The braking and the ground are the stop's from the let-go**: every entry covers 4.818 m (the sprint) or 1.960 m
+  (the jog), so the stop decelerations of `CharacterTuning` hold for all of them and the feet stay planted.
+- **The landings keep the strike's rhythm**: after the strike they come `offset` frames sooner and the settle is
+  that much longer; before it the strike after the let-go is a brake step that reaches further ahead than the gait's
+  place (its swing starts as the gait's), and the clip is `offset` frames longer.
+- **At most four frames after a strike.** An entry eight frames after the sprint's strike, solved from it, landed
+  every step eight frames sooner against the same braking, and a stance of 13 frames at 1.7 m/s left the body 21.5
+  degrees off the braking's lean (the limit is 16): the sprint's frames 5 to 8 are solved from the next strike
+  instead, 1 and 3 frames before it (frames 6 and 8, 15 and 17: the sprint's half cycle is 9 frames).
+- **The sprint's entries after a strike declare a lean limit of 17** (`entry_lean_limit`; the strike's stop 16):
+  two frames after it the first brake step lands at 6.3 m/s against 6.0 and its contact carries the body further
+  past the foot (16.5 degrees).
+
+The game picks the one whose first frame is nearest the gait's phase at the let-go
+(`GaitTransitionSet.pick_entry`); the walk keeps its two (its feet turn half as fast, and it has no flight).
+
 ### Numbers for the code (the starts and stops)
 
 - `joins` in `locomotion.json`: `{"first": "Idle", "last": "Walk", "last_frame": 13}` for a start, `{"first":

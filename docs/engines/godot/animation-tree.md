@@ -342,7 +342,7 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
 - **Momentum.** A state machine transition with `xfade_time` 0 reports its new node from
   `get_current_node()` in the update it travels, but the skeleton shows the new pose a frame later (measured at
   `skeleton_updated`, stepped by hand and in the running game alike), so the modifier starts the decaying difference
-  from the last drawn pose again on each of the four frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
+  from the last drawn pose again on each of the three frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
   start on the frame the new pose arrives takes the whole jump. A `SkeletonModifier3D` added as an internal child at
   the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
 

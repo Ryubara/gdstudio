@@ -211,9 +211,17 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	var speed := body.ground_speed()
 	if body.goal_speed <= settings.standing_speed:
 		var stop_point := blend.main_point(CharacterAnimation.GROUND, speed)
-		var stop_foot := _foot(animation, blend, speed)
+		var stop_gait := blend.main_gait(CharacterAnimation.GROUND, speed)
+		var stop_phase := blend.phase(animation.tree, CharacterAnimation.GROUND)
 		return _found(
-			Kind.STOP, GaitTransitionSet.pick_in(player, clips.stops, stop_point, stop_foot)
+			Kind.STOP,
+			GaitTransitionSet.pick_entry(
+				player,
+				clips.stops.get(stop_point, &""),
+				next_foot(stop_gait, stop_phase),
+				stop_gait,
+				stop_phase
+			)
 		)
 	var wish := body.move_goal.direction(body)
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z).normalized()
@@ -230,7 +238,8 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	return _found(Kind.PIVOT, GaitTransitionSet.pick_in(player, clips.pivots, point, side))
 
 
-# The foot that lands next in the ground gait that weighs most at `speed`.
+# The foot that lands next in the ground gait that weighs most at `speed` (a reversal's side; a
+# stop picks the entry nearest the phase, `GaitTransitionSet.pick_entry`).
 func _foot(animation: CharacterAnimation, blend: GaitBlend, speed: float) -> String:
 	var gait_clip := blend.main_gait(CharacterAnimation.GROUND, speed)
 	return next_foot(gait_clip, blend.phase(animation.tree, CharacterAnimation.GROUND))

@@ -178,6 +178,7 @@ STOP = {
     "meet": 3,
     "speed_limit": 40.0,
     "lean_limit": 8.0,
+    "entry_lean_limit": 8.0,  # the same for an entry off the strike (`ENTRIES`), whose landings meet the braking sooner
     "keys_kept": 0.9,
     "kb_a_second": 40.0,
 }
@@ -189,6 +190,7 @@ STOPS = {
         "air": [-4, -3, 3],
         "gait_like": [0.8, 0.5, 0.2, 0.0],
         "lean_limit": 17.0,
+        "entry_lean_limit": 17.0,
         "halt": 2,
         "dip": 0.035,
         "speed_limit": 55.0,
@@ -199,12 +201,30 @@ STOPS = {
         "air": [-5, -5, -4, -2, 3],
         "gait_like": [0.9, 0.75, 0.55, 0.35, 0.15, 0.0],
         "lean_limit": 16.0,
+        # Two frames after a strike the first brake step lands two frames sooner, at 6.3 m/s against 6.0, and its
+        # contact carries the body further past the foot: 16.5 degrees (gdstudio #1525).
+        "entry_lean_limit": 17.0,
         "stretch": 0.99,
         "halt": 2,
         "dip": 0.05,
         "speed_limit": 80.0,
     },
 }
+
+
+## A stop of a running gait has an entry every this many frames of the gait's cycle (30 a second), each beginning
+## on the gait's own pose there (`joins.first_frame`), so a body let go between two strikes plays one that begins at
+## most a frame from the pose it is drawn in (gdstudio #1525). Two frames keep the largest turn of a bone between
+## the gait's pose and the entry's first near 0.4 rad (the sprint's calf turns 0.42 rad a frame near a strike), for
+## four clips a side. The walk's stops begin on the strike only.
+ENTRIES = {"jog": 2, "sprint": 2}
+## Half of each gait's cycle in frames (`clips/gait.py`), the frames between its two strikes.
+HALF = {"jog": 10, "sprint": 9}
+## The furthest after its strike an entry is solved from it, in frames; one further on is solved from the next
+## strike, before it. Every landing of an entry after its strike comes that much sooner against the same braking,
+## and a stance that long at speed covers more ground than the lean can hold (the sprint at 8 frames after: 21.5
+## degrees off the acceleration's lean, against 16).
+ENTRY_AFTER = {"jog": 4, "sprint": 4}
 
 
 @dataclass
@@ -272,8 +292,11 @@ def _soft(values: np.ndarray, sigma: float) -> np.ndarray:
 class Move:
     """A start or a stop of one gait, on one foot, for one rig and one set of numbers."""
 
-    def __init__(self, rig, joined, kind: str, start: bool, side: str, numbers: dict):
+    def __init__(self, rig, joined, kind: str, start: bool, side: str, numbers: dict, offset: int = 0):
         self.rig, self.kind, self.start, self.side, self.n = rig, kind, start, side, numbers
+        ## Frames of the gait's cycle from the strike to where a stop's entry begins (`ENTRIES`): 0 on the strike,
+        ## over 0 after it, under 0 before it (the foot that strikes is still on its way down).
+        self.offset = int(offset)
         self.g, self.lags = picked_gait(rig, joined, kind)
         g, n = self.g, numbers
         self.cycle, self.half, self.contact, self.v = g.frames, g.frames // 2, g.contact, g.n["speed"]
@@ -301,10 +324,18 @@ class Move:
             ## The side that strikes as the clip ends, and the gait's frame there.
             self.strike = side if self.landings % 2 == 1 else OTHER[side]
         else:
-            self.lands = list(np.cumsum(steps))
-            self.frames = int(self.lands[-1] + int(n["settle"]))
+            # An entry off the strike keeps the steps' rhythm from the strike, so every landing comes `offset`
+            # frames sooner (later, before the strike), and keeps the braking from the let-go: its travel is the
+            # stop's on the strike to the millimetre. One after the strike settles `offset` frames longer, and one
+            # before it is as many frames longer.
+            assert -self.half < self.offset < steps[0], "an entry begins within the gait's half cycle of its strike"
+            self.strikes = [int(x) for x in np.cumsum(steps)]
+            self.lands = [land - self.offset for land in self.strikes]
+            self.frames = int(self.strikes[-1] + int(n["settle"]) + max(-self.offset, 0))
             self.strike = side
-        self.phase = 0 if self.strike == "l" else self.half
+        assert not start or self.offset == 0, "a start begins standing"
+        ## The gait's frame the clip begins on (`joins.first_frame`).
+        self.phase = ((0 if self.strike == "l" else self.half) + self.offset) % self.cycle
         self._travel()
         self._treads()
         self._clock()
@@ -358,7 +389,7 @@ class Move:
             speed = self.v * np.where(y >= 2.0 - ease, 1.0, soft)
         else:
             a = float(n["brake_from"])
-            b = float(self.lands[-2] + n["halt"]) if self.landings > 1 else float(self.lands[-1])
+            b = float(self.strikes[-2] + n["halt"]) if self.landings > 1 else float(self.strikes[-1])
             assert a >= 1.0 and b <= self.frames - 1, "the root is at speed on the first frame and still on the last"
             rise, fall = n["brake_in"], n["brake_out"]
             u = np.clip((t - a) / (b - a), 0.0, 1.0)
@@ -454,7 +485,8 @@ class Move:
         like = [float(x) for x in n["gait_like"]]
         air = [float(x) for x in n["air"]]
         treads = {"l": [], "r": []}
-        self.ghost = None
+        ## The gait's own next landing of a foot that is in the air as a stop begins: its swing starts as the gait's.
+        self.ghosts = {}
         if self.start:
             m = self.landings
             sides = [a if i % 2 == 0 else b for i in range(m)]
@@ -479,20 +511,36 @@ class Move:
             treads[last].append(self._own_tread(last, F + self.half, root(F + self.half)))
             treads[self.strike].append(self._own_tread(self.strike, F + self.cycle, root(F + self.cycle)))
         else:
-            m = self.landings
+            m, o = self.landings, float(self.offset)
             sides = [b if i % 2 == 0 else a for i in range(m)]
             root = lambda f: self.v * f / FPS  # noqa: E731
             lifts = [self.lands[i] + air[i] for i in range(m - 1)]
             # The contacts the gait is in as the clip begins, and the ones before them (the overlap pass's lead-in).
             for back in (2, 1):
-                treads[a].append(self._own_tread(a, -back * self.cycle, root(-back * self.cycle)))
-                treads[b].append(self._own_tread(b, -back * self.cycle - self.half, root(-back * self.cycle - self.half)))
-            treads[b].append(self._own_tread(b, -self.half, root(-self.half)))
-            strike = self._own_tread(a, 0.0, 0.0, lift=float(lifts[0]))
-            strike.foot = dict(strike.foot)
-            slow = self._numbers(a, like[0])
-            strike.foot["roll_out"] = min(slow["roll_out"] + 1.0, lifts[0] - strike.foot["roll_in"])
-            strike.foot["toe_off"] = slow["toe_off"]
+                treads[a].append(self._own_tread(a, -back * self.cycle - o, root(-back * self.cycle - o)))
+                treads[b].append(
+                    self._own_tread(b, -back * self.cycle - self.half - o, root(-back * self.cycle - self.half - o))
+                )
+            treads[b].append(self._own_tread(b, -self.half - o, root(-self.half - o)))
+            if self.offset <= 0:
+                # The strike after the let-go is the gait's own, and its foot leaves the floor as a brake's. Let go
+                # before it, the foot on its way down reaches further ahead to brake (the body slows from the
+                # let-go, and the gait's own place under it could not hold the lean): its swing starts as the
+                # gait's and is let go for that place.
+                if self.offset < 0:
+                    self.ghosts[a] = self._own_tread(a, -o, root(-o))
+                    strike = self._free_tread(a, -o, float(lifts[0]), 1.0)
+                else:
+                    strike = self._own_tread(a, -o, root(-o), lift=float(lifts[0]))
+                strike.foot = dict(strike.foot)
+                slow = self._numbers(a, like[0])
+                strike.foot["roll_out"] = min(slow["roll_out"] + 1.0, lifts[0] + o - strike.foot["roll_in"])
+                strike.foot["toe_off"] = slow["toe_off"]
+            else:
+                # Let go after the strike: the foot on the floor is the gait's, as it was, until it leaves; then
+                # (or already in the air) on its way to the gait's next landing, let go for the clip's own.
+                strike = self._own_tread(a, -o, root(-o))
+                self.ghosts[a] = self._own_tread(a, self.cycle - o, root(self.cycle - o))
             treads[a].append(strike)
             end = self.x(F)
             for i in range(m):
@@ -505,7 +553,7 @@ class Move:
             treads[sides[-1]][-1].swing = {**treads[sides[-1]][-1].swing, "clear": float(n["close_clear"])}
             if self.contact < self.half:
                 # A run: the other foot is in the air as the clip begins, on its way to the gait's next landing.
-                self.ghost = self._own_tread(b, float(self.half), root(float(self.half)))
+                self.ghosts[b] = self._own_tread(b, self.half - o, root(self.half - o))
         self.treads = treads
 
     def _state(self, s: str, pivot: str, at: np.ndarray, pitch: float, yaw: float) -> dict:
@@ -583,10 +631,11 @@ class Move:
             after = [t for t in self.treads[s] if t.land > f]
             assert before and after, f"the {s} foot has no contact on one side of frame {f}"
             out = self._swing(before[-1], after[0], f)
-            if self.ghost is not None and s == self.ghost.side and before[-1].lift < 0.0 < after[0].land:
+            ghost = self.ghosts.get(s)
+            if ghost is not None and before[-1].land <= 0.0 < after[0].land:
                 # The gait's own swing as the clip begins, let go for the clip's own landing.
-                own = self._swing(before[-1], self.ghost, min(f, self.ghost.land))
-                share = maths.smoother(f / min(after[0].land, self.ghost.land)) if f > 0.0 else 0.0
+                own = self._swing(before[-1], ghost, min(f, ghost.land))
+                share = maths.smoother(f / min(after[0].land, ghost.land)) if f > 0.0 else 0.0
                 out = {
                     "ankle": own["ankle"] + (out["ankle"] - own["ankle"]) * share,
                     "foot": tuple(x + (y - x) * share for x, y in zip(own["foot"], out["foot"], strict=True)),
@@ -602,7 +651,7 @@ class Move:
         foot's own frame of the cycle, and through every foot's leaving for the air at the frame the gait's
         leaves, so the rise and fall the gait has for a flight is played while the clip's feet are in the air."""
         half, F = self.half, float(self.frames)
-        first = self.phase + (self.cycle * 4 - (self.landings - 1) * half if self.start else half)
+        first = self.phase + (self.cycle * 4 - (self.landings - 1) * half if self.start else half - self.offset)
         knots = {float(land): first + i * half for i, land in enumerate(self.lands)}
         if not self.start:
             knots[0.0] = float(self.phase)
@@ -841,11 +890,11 @@ class Move:
         return ContactPlan(self.frames, falls, Travel(forward=self.x), loop=False, tread=False)
 
 
-def describe(kind: str, start: bool, side: str, rig, style, name: str, joined) -> Clip:
+def describe(kind: str, start: bool, side: str, rig, style, name: str, joined, offset: int = 0) -> Clip:
     assert joined is not None, "a start or a stop needs the clips it joins (`clips.joined.Joined`)"
     section = f"idle_to_{kind}" if start else f"{kind}_stop"
     n = style.numbers(section, (STARTS if start else STOPS)[kind])
-    move = Move(rig, joined, kind, start, side, n)
+    move = Move(rig, joined, kind, start, side, n, offset)
     move.settle()
     gait_name = kind.capitalize()
     idle, own = joined.built("Idle"), joined.built(gait_name)
@@ -885,7 +934,7 @@ def describe(kind: str, start: bool, side: str, rig, style, name: str, joined) -
             "turn": 0.0,
             "join_names": names,
             "speed_limit": n["speed_limit"],
-            "lean_limit": n["lean_limit"],
+            "lean_limit": n["entry_lean_limit"] if offset else n["lean_limit"],
             "lean_over": move.half,
             "feet": [
                 (t.side, t.land, t.lift, round(t.place[1] - move.x(t.land), 3), round(t.place[1] - move.x(t.lift), 3))
@@ -903,14 +952,44 @@ def describe(kind: str, start: bool, side: str, rig, style, name: str, joined) -
     )
 
 
+def entries(kind: str, start: bool) -> list:
+    """The frames from each strike at which a clip of the type begins: the strike's own, and for a stop of a
+    running gait one every `ENTRIES` frames of the gait's cycle, each from the strike nearest it (a quarter of
+    the cycle after it at most, `ENTRY_AFTER`), so that no entry's landings come much sooner than the strike's."""
+    if start or kind not in ENTRIES:
+        return [0]
+    spacing, half = ENTRIES[kind], HALF[kind]
+    after = list(range(spacing, ENTRY_AFTER[kind] + 1, spacing))
+    # From the next strike back to past the last of those, every `spacing` frames: an odd half cycle (the
+    # sprint's 9) has them a frame nearer the strike than its own frames would be (8 and 6 for 7 and 5).
+    before = [-x for x in range(half - after[-1] - spacing, 0, -spacing)]
+    return [0] + after + before
+
+
+def entry_name(stem: str, side: str, offset: int, kind: str) -> str:
+    """`Sprint_Stop_L` on the left foot's strike and `Sprint_Stop_R` on the right's; an entry between them is named
+    by the gait's frame it begins on: `Sprint_Stop_05`."""
+    if not offset:
+        return f"{stem}_{side.upper()}"
+    half = HALF[kind]
+    return f"{stem}_{((0 if side == 'l' else half) + offset) % (2 * half):02d}"
+
+
+def on_strike(name: str) -> bool:
+    """True for a clip of a family that begins on a strike (`_L`, `_R`), not an entry between them."""
+    return name.endswith(("_L", "_R"))
+
+
 def family(kind: str, start: bool) -> list:
-    """The clips of one type, `[(name, describe), ...]`: the one on the left foot, then the one on the right."""
+    """The clips of one type, `[(name, describe), ...]`: the ones on the left foot, then the ones on the right,
+    each side's entries in the order of the gait's cycle."""
     stem = f"Idle_To_{kind.capitalize()}" if start else f"{kind.capitalize()}_Stop"
     out = []
     for side in ("l", "r"):
+        for offset in entries(kind, start):
 
-        def one(rig, style, name, joined=None, side=side):
-            return describe(kind, start, side, rig, style, name, joined)
+            def one(rig, style, name, joined=None, side=side, offset=offset):
+                return describe(kind, start, side, rig, style, name, joined, offset)
 
-        out.append((f"{stem}_{side.upper()}", one))
+            out.append((entry_name(stem, side, offset, kind), one))
     return out
