@@ -91,6 +91,10 @@ const _PRONE_PITCH := (
 ## On: the chest keeps the clips' lean while aiming the fists (as before kit #1351).
 @export var upright_disabled := false
 
+## On: every refresh works the three modifiers out, even at rest (`refresh()`); the pose test
+## compares the two (kit #1478).
+var full_refresh := false
+
 var _modifier: AimOffsetModifier
 var _aim_pose := AimPose.new()
 var _prone_pose := AimPose.new()
@@ -178,8 +182,12 @@ func weight() -> float:
 	return animation.pistol_weights().y * (1.0 - _reloading())
 
 
-## Puts the aim on the modifiers now (the frame's own `_process` does it too).
+## Puts the aim on the modifiers now (the frame's own `_process` does it too). At rest (nothing
+## aimed and the three modifiers off, as the last refresh left them) it writes nothing: each of
+## the three would stay off, so nothing drawn changes (kit #1478).
 func refresh() -> void:
+	if is_at_rest():
+		return
 	_refresh_head()
 	_refresh_upright()
 	var aim := modifier()
@@ -198,6 +206,23 @@ func refresh() -> void:
 	aim.hold_turn = animation.is_shooting() or animation.is_reloading() or _racking()
 	aim.release_time = release_time
 	_pose_aim(aim)
+
+
+## True while the weapon is not aimed (the layer's weight), the character's aim is not up (the
+## head's) and the three modifiers are off: every share is 0 then, whatever the reload, the weapon
+## or the move, and `refresh()` writes nothing. The aim and the melee blow's aim are asked once,
+## where the shares asked them twice each (`MeleeLayer.aim_of` answers the same however often it
+## is asked in a frame).
+func is_at_rest() -> bool:
+	if full_refresh or character == null or animation == null or animation.tree == null:
+		return false
+	if _is_on(_modifier) or _is_on(_head) or _is_on(_upright):
+		return false
+	return animation.pistol_weights().y <= 0.0 and animation.melee.aim_of(character) <= 0.0
+
+
+static func _is_on(made: SkeletonModifier3D) -> bool:
+	return made != null and is_instance_valid(made) and made.active
 
 
 # Gives the modifier the weapon's aim pose alone at the aim's pitch now (the prone aim's, by how
