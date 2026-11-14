@@ -7,6 +7,8 @@ extends Node
 ## with a `ScriptedController` in place of its `PlayerInput`. `loopback` joins every client through
 ## a `LoopbackListener` (lockstep: a packet is read the tick after it is sent); otherwise over a
 ## real socket on 127.0.0.1. Every clock is the physics frame count. Free it with `auto_free`.
+## In a run that draws, `join` also draws the new screen's reflection probes to the end at once, so
+## a capture never films a body dark from a probe still drawing (`ProbeSettle`).
 
 const SERVER_SCENE := "res://gameplay/net/net_server.tscn"
 const ARENA_SCENE := "res://tests/fixtures/online_arena.tscn"
@@ -30,6 +32,28 @@ var prepare_arena := Callable()
 
 func _init(use_loopback := true) -> void:
 	loopback = use_loopback
+
+
+# The bodies' voices (a shot, a swing) are let go of by the audio thread a few mixes after they
+# stop, and a run on `--fixed-fps` frees the rig a fraction of a second after the last press: when
+# that suite is the run's last, the engine quits with the voice still held and reports it leaked
+# (gdstudio #1495). The offline arenas' suites call `AudioDrain` in `after_test`; the rig does it
+# itself, so no online suite can forget it. Before the free, not in `_exit_tree`: the players have
+# left the tree (and stopped) before their parent's `_exit_tree` runs, so it cannot tell whether
+# one was playing, and the wait (a few mixes, about a quarter of a second headless) is only worth
+# it for a voice still playing; one that ended by itself was let go of as it ended.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and is_inside_tree() and _playing():
+		AudioDrain.stop_all(self)
+
+
+func _playing() -> bool:
+	var players := find_children("*", "AudioStreamPlayer3D", true, false)
+	players.append_array(find_children("*", "AudioStreamPlayer", true, false))
+	for player in players:
+		if player.get(&"playing"):
+			return true
+	return false
 
 
 ## Adds the server (it listens in its `_ready`); false when it is not listening.
@@ -80,7 +104,20 @@ func join(player_name: String, frames := 240) -> NetClient:
 		link = conditioner
 	client.join_with(link)
 	var welcomed := await until(func() -> bool: return client.is_seated(), frames)
+	await settle(view)
 	return client if welcomed else null
+
+
+## Draws the reflection probes of `view`'s world to the end now, within this frame, so no frame
+## a capture records shows one half drawn (`ProbeSettle`; nothing to do in a headless run). `join`
+## calls it for each client's screen; a capture calls it for `server_view` after giving the
+## server's world a camera.
+func settle(view: Viewport) -> void:
+	if ProbeSettle.draws_nothing():
+		return
+	# Drawn once first, so its camera has seen its probes.
+	await get_tree().process_frame
+	ProbeSettle.draw_through(ProbeSettle.probes_to_draw([view]))
 
 
 ## Waits physics frames until `condition` holds; false after `frames`.

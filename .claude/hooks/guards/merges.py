@@ -205,6 +205,24 @@ def merge_asks(words: list[str]) -> list[tuple[str, str | None]]:
     return asks
 
 
+_TASK_MERGE = (
+    "a task agent makes no merge call: the coordinator lands every pull request from its queue "
+    "(docs/studio/landing.md#landing). Report your pull request's green head SHA and stop; only "
+    "`gh pr merge --disable-auto` (turning auto-merge off) is allowed"
+)
+
+
+def check_task_merge(words: list[str], payload: dict[str, Any]) -> list[str]:
+    """A task agent never lands a pull request (gdstudio #1466): `gh pr merge` with any flags but `--disable-auto`, a
+    write to `gh api .../pulls/<n>/merge`, or a GraphQL merge mutation. A subagent is told by `agent_id`, which Claude
+    Code sets on every hook call made inside a subagent and never in the main session; `agent_type` alone is also set
+    on a main session started with `--agent`, so it does not count. The main session (the coordinator) passes."""
+    if not payload.get("agent_id") or len(words) < 3:
+        return []
+    graphql = words[1:3] == ["api", "graphql"] and _MERGE_MUTATIONS.search(" ".join(words[3:]))
+    return [_TASK_MERGE] if merge_asks(words) or graphql else []
+
+
 # --- the maintainer's approval in the coordinator's session (docs/studio/hooks-hold.md#hold) ---
 
 Lift = Callable[[str, str | None, Path], str]

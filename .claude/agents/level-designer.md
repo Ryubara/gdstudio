@@ -113,7 +113,9 @@ finding**: "looks sealed", "looks dark" and "reads fine" are never results.
 8. **Pull request.** `uvx pre-commit run --all-files`, commit (`area: Verb the rest`, the Co-Authored-By trailer), push,
    open the pull request from the template with `Fixes #N`, `Before:` and `After:` captures attached, the body checked
    with `gds pr check-body <file> --title <title file>`, and auto-merge on (`gh pr merge --squash --auto`) unless the
-   hooks say the change is hand-merged or whoever started you holds the pull request (a hold outranks this step; on a
+   hooks say the change is hand-merged, whoever started you holds the pull request, or a coordinator lands it from a
+   queue (then report the green head and stop, no merge call of any kind: `studio/landing.md#landing`; resumed
+   without your starting prompt, you stop too). A hold outranks this step (on a
    green pull request `--auto` merges at once, so a held one gets `gds pr hold <owner/repo>#N` at once, and only the
    maintainer takes `S-hold` off). The review page of a map holds, for each area, the verdict, the evidence
    and the issue.

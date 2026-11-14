@@ -277,6 +277,14 @@ What the exported page itself does before the engine boots, the WebGL context it
 for and the extensions Emscripten enables, and the shader list it links while the engine downloads, is on
 [First-use hitches: the page starts it](first-use-hitches.md#prelink-page) (gdstudio #1214).
 
+- **Approach:** To ship a smaller copy of an imported resource (an animation library with fewer clips), customize it
+  in an `EditorExportPlugin`: `_begin_customize_resources` returns true, `_customize_resource` returns the copy for
+  that resource and null for every other, and `_get_customization_configuration_hash` hashes whatever decides the
+  copy; read the pack afterwards (`load_resource_pack(pck, true)`, then load with `CACHE_MODE_IGNORE`).
+  **Watch out for:** the export caches customized files under that hash, so a hash without the clip list ships the
+  old copy after the list changes; and a GdUnit run cannot make an `EditorExportPlugin` ("can only be instantiated
+  by editor"): put the logic in static functions. **Seen:** kit #1366, 2026-11-13 (`ClipExport`: 4.7.2 hands the
+  imported library to `_customize_resource`; 86 clips to 16).
 - **Approach:** Grep for `class_name <Name>` before choosing one, and export the web build before calling a new script
   class done. **Watch out for:** two scripts that say `class_name NeonSign` print `Parse Error: Class "NeonSign" hides
   a global script class` and the script fails to load only in the web export; the editor, a headless import and the

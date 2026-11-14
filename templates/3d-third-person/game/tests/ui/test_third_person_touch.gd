@@ -40,12 +40,12 @@ func _touch_event(index: int, at: Vector2, pressed: bool) -> void:
 	_touch._input(event)
 
 
-func test_the_scene_adds_seven_buttons_to_the_base_and_keeps_its_two() -> void:
+func test_the_scene_adds_nine_buttons_to_the_base_and_keeps_its_two() -> void:
 	var packed := load(SCENE) as PackedScene
 	var inherited := auto_free(packed.instantiate()) as TouchControls
 	add_child(inherited)
 	await get_tree().process_frame
-	assert_int(inherited.button_count()).is_equal(9)
+	assert_int(inherited.button_count()).is_equal(11)
 	var actions := {}
 	for button in inherited.buttons_root.get_children():
 		actions[(button as TouchButton).action] = (button as TouchButton).label
@@ -62,6 +62,8 @@ func test_the_scene_adds_seven_buttons_to_the_base_and_keeps_its_two() -> void:
 				&"next_weapon": "Swap",
 				&"prone": "Prone",
 				&"melee": "Melee",
+				&"lean_left": "Lean L",
+				&"lean_right": "Lean R",
 			}
 		)
 	)

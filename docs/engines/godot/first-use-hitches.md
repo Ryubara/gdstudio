@@ -64,6 +64,10 @@ not their cause; headless Chrome with a real GPU (`channel="chrome"`) is enough,
   in those frames; timing every `WebGL2RenderingContext` method, with the engine's markers logged to the console,
   showed the level's warm-up (`EffectEmitter`'s tour of the probes, 6 s past the seat), not the puppets. **Seen:**
   gdstudio #1106, 2026-11-11 (fix: the probe joins after `warmed`; `FRAME_WATCH` in `net_play_smoke.py`).
+- **Approach:** Read a draw's GPU cost in the page from the first call that waits on the GPU process, not from a
+  Chrome trace. **Watch out for:** per-call timing from the page cannot see the GPU process's time inside a draw (it
+  lands in that waiting `getParameter`), and the `gpu.angle` trace category shows only shader compiles and links.
+  **Seen:** gdstudio #1260 (PR #1311), 2026-11-11.
 - **Approach:** Name each program linked after the loading screen by its fragment shader's `#define`s before warming
   anything up, and look for a second camera whose world draws without what the game camera has (fog, the sun): its
   view builds variants of its own. **Watch out for:** a browser's join linked 2 programs in the frame that first drew
@@ -234,6 +238,14 @@ Read in the engine (`RendererSceneCull::render_probes` and `_render_reflection_p
   (`Camera3D.get_frustum()`, a box wholly over one plane is out) and wait 15 frames for each that updates once, one
   for each that updates always (3D Third Person's `EffectEmitter.probe_frames()`). Those frames also build the level's
   own probe programs behind the loading, which before were an 11-program, 1.2 s frame just after it.
+- **A probe is read from its first step, and the queue is the whole process's.** The probe has its atlas slot at its
+  first face and is sampled from then on (reflection and, in its default ambient mode, the diffuse light at the most
+  blurred level) while the faces not yet drawn are black, so a body inside it goes almost black above the hips for the
+  six face frames (Forward+, Godot 4.7: `reflection_probe_instance_has_reflection` is true once the atlas is set).
+  One such probe steps per frame for every world in the process (`render_probes` keeps one list), so with several
+  `SubViewport` worlds the later worlds' probes wait behind the earlier ones and their dark frames come seconds in.
+  `RenderingServer.force_draw(false)` draws every viewport once more within the frame, a probe step each, and nothing
+  that Movie Maker records (3D Third Person's `tests/fixtures/probe_settle.gd`).
 - **What moves under a probe is drawn with its program too, and so is what has none.** A probe in view at the start is
   drawn then, and the walls inside it with it, but a character, an effect or a mark only builds its program for that
   probe (or for two, `SECOND_REFLECTION_PROBE`, in a room inside the outdoor probe's box) when it is first drawn there.
@@ -259,6 +271,15 @@ Read in the engine (`RendererSceneCull::render_probes` and `_render_reflection_p
   left an effect drawn without a probe now and then (1 program, about 35 ms) until it also drew outside them all.
   **Seen:** gdstudio #981, 2026-11-10 (fix: `EffectEmitter` visits every probe from a `SubViewport` of its own and
   draws `warm_up_groups` materials there; 0 programs in four runs after).
+
+- **Approach:** When several worlds draw in one process (an online rig, a split screen, a menu's 3D view), draw each
+  new world's probes to the end before anything films it (`force_draw` for each probe's steps, `OnlineRig.settle`),
+  and prove it by the brightness of the bodies across the first seconds of frames. **Watch out for:** the dark frames
+  were blamed on a shadow or the sun at first; a run with the probes removed showed none, and the engine's probe queue
+  explained why only the second client's screen went dark, 2.2 to 2.7 s in: its probes waited behind the first
+  client's. Waiting the steps out in frames instead left 4 to 7 s of empty screens at the start of every 10 fps
+  capture. **Seen:** gdstudio #1430, 2026-11-13 (fix: the rig draws the probes through within the join; Bo's back
+  stayed at 120 to 121 instead of falling from 143 to 55 in `online_tour.tscn`).
 
 ## Linking every program at once {#prelink}
 
@@ -381,6 +402,10 @@ list lacks 0 to 4 (the warm-up's timing); with 20 of its 157 programs taken out 
 it fails, record the list again with `--write <list> --merge` and commit it. A change to the warm-up counts too:
 touring the minimap's view (kit #1297) left the list 12 programs short, and recording it again (`--merge`, the page
 plain and with `?play`) took it from 157 to 169, after which the check missed 0 and 1.
+
+A change that draws nothing new (no material, shader, mesh or warm-up path) keeps the list as it is. `--merge` keeps
+every program already in the file, ones the build no longer links included; to drop those, record the list without
+it, from the same page runs (plain and with `?play`).
 
 To record it on this machine: make a game from the branch (`gds template test <template> --suite <one suite> --keep`),
 export it with the pinned Godot (`--headless --path <game>/game --export-release Web`, which writes `build/web` with

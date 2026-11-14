@@ -43,6 +43,13 @@ var _torso_posed: Array[Transform3D] = []
 var _torso_parents := PackedInt32Array()
 # The last push along a way (`_push_along()`), which the next one is first looked for near.
 var _along_last := _PUSH_MOST
+# The spine's poses of this update in the skeleton's space, the stance's own array
+# (`use_spine()`), with each torso bone's place in it (below 0: not a spine bone), and the
+# `HoldBones` whose `top` says the stance filled them in this update: a push takes those poses
+# as they are, not each again from the local ones up to the root (kit #1347).
+var _spine_poses: Array[Transform3D] = []
+var _torso_spine := PackedInt32Array()
+var _spine_from: HoldBones
 
 
 ## Keeps a thinned set of the torso's skin, each point in its main bone's rest space, for the butt
@@ -60,6 +67,7 @@ func measure(
 	_torso_starts = PackedInt32Array()
 	_torso_up = PackedInt32Array()
 	_torso_posed.clear()
+	_torso_spine = PackedInt32Array()
 	_along_last = _PUSH_MOST
 	if chest < 0:
 		return
@@ -173,6 +181,18 @@ func measure(
 	_torso_posed.resize(_torso_bones.size())
 
 
+## Takes the spine's poses from the stance (kit #1347): `poses` is its array of the poses of
+## `spine` (bone indexes) in the skeleton's space, which it fills in every update it hands the
+## hold the spine's top (`from.top` at 0 or over); the push then reads them and not the local
+## poses up to the root. Called after `measure()`.
+func use_spine(from: HoldBones, spine: PackedInt32Array, poses: Array[Transform3D]) -> void:
+	_spine_from = from
+	_spine_poses = poses
+	_torso_spine.resize(_torso_bones.size())
+	for bone in _torso_bones.size():
+		_torso_spine[bone] = spine.find(_torso_bones[bone])
+
+
 # Keeps `rest` (a point of the skin on the rest pose, `ahead` of the chest bone) as its cell's
 # point when it is in the region the stock can meet and the frontmost there.
 func _keep(
@@ -214,7 +234,8 @@ func push(
 		if absf(local.y) > 1e-4:
 			var move := Vector2(local.y, maxf(local.z, _LEAST_ALONG)).normalized()
 			return _push_along(skeleton, gun, to_here, butt_pad, butt_depth, butt_margin, move)
-	var deepest_of_all := 0.0
+	_pose_bones(skeleton)
+	var deepest := -butt_margin
 	var to_gun := gun.affine_inverse() * to_here
 	var wide := butt_pad.x * 0.5 + butt_margin
 	var high := butt_pad.y * 0.5 + butt_margin
@@ -223,21 +244,18 @@ func push(
 		Vector3(wide * 2.0, high * 2.0, butt_depth + butt_margin)
 	)
 	for bone in _torso_bones.size():
-		var pose := to_gun * _posed(skeleton, bone)
-		var deepest := 0.0
-		# The stock's box in the bone's rest space (a box round it): the boxes of the bone and its
-		# groups are met against that as they are, not each turned into the gun's space. A point
-		# inside the stock is inside both, so the same points are gone through (kit #1347).
-		var near := pose.affine_inverse() * stock
-		if _torso_boxes[bone].intersects(near):
-			for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
-				if not _skin_boxes[group].intersects(near):
-					continue
-				for at in pose * _group_points[group]:
-					if stock.has_point(at):
-						deepest = maxf(deepest, at.z + butt_margin)
-		deepest_of_all = maxf(deepest_of_all, deepest)
-	return deepest_of_all
+		var pose := to_gun * _torso_posed[bone]
+		# The bone's and its groups' boxes turned into the gun's space, where the stock is a box:
+		# turned the other way, the stock's box in the bone's space let more groups through.
+		if not (pose * _torso_boxes[bone]).intersects(stock):
+			continue
+		for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
+			if not (pose * _skin_boxes[group]).intersects(stock):
+				continue
+			for at in pose * _group_points[group]:
+				if stock.has_point(at):
+					deepest = maxf(deepest, at.z)
+	return deepest + butt_margin
 
 
 # The push along `move` (up the gun and along its barrel, in the gun's space): each point of the
@@ -279,6 +297,7 @@ func _push_along(
 	var to_run := into_run * gun.affine_inverse() * to_here
 	var reach := minf(_along_last + _ALONG_SLACK, _PUSH_MOST)
 	var pushed := 0.0
+	_pose_bones(skeleton)
 	while true:
 		# Where a point forbids a move under `reach`: `off` between `-rise` and `span`, `along`
 		# between `-span` and `reach`.
@@ -287,23 +306,18 @@ func _push_along(
 		)
 		var runs := PackedVector2Array()
 		for bone in _torso_bones.size():
-			var pose := to_run * _posed(skeleton, bone)
+			var pose := to_run * _torso_posed[bone]
 			if not (pose * _torso_boxes[bone]).intersects(swept):
 				continue
 			for group in range(_torso_starts[bone], _torso_starts[bone + 1]):
 				if not (pose * _skin_boxes[group]).intersects(swept):
 					continue
+				# A point inside the sweep has a run that is empty only on its edge, and a run
+				# that ends at or before 0 forbids no move forward: neither changes the push, so
+				# neither is tested for (kit #1347).
 				for at in pose * _group_points[group]:
-					if not swept.has_point(at):
-						continue
-					var low := at.z
-					var top := at.z + span
-					if at.y > 0.0:
-						low += at.y
-					if at.y + rise < span:
-						top = at.z + at.y + rise
-					if top > low and top > 0.0:
-						runs.append(Vector2(low, top))
+					if swept.has_point(at):
+						runs.append(Vector2(at.z + maxf(at.y, 0.0), at.z + minf(span, at.y + rise)))
 		runs.sort()
 		pushed = 0.0
 		for run in runs:
@@ -317,20 +331,24 @@ func _push_along(
 	return pushed
 
 
-# The pose of the torso bone at `bone` (its place in `_torso_bones`) in the skeleton's space, kept
-# for the bones under it: a bone under another of them takes that one's pose and its own local
-# one, the others go up every parent (`HandPoseModifier.global_pose()` written out: a call costs
-# more than a line in the web build). The bones are gone through in their order (kit #1347).
-func _posed(skeleton: Skeleton3D, bone: int) -> Transform3D:
-	var up := _torso_up[bone]
-	var posed: Transform3D
-	if up >= 0 and up < bone:
-		posed = _torso_posed[up] * skeleton.get_bone_pose(_torso_bones[bone])
-	else:
+# Puts the pose of each torso bone in the skeleton's space in `_torso_posed`, once a push: a spine
+# bone's from the stance (`use_spine()`) when it filled them in this update, a bone under another of
+# them from that one's pose and its own local one, the others from every parent up to the root
+# (`HandPoseModifier.global_pose()` written out: a call costs more than a line in the web build).
+# The bones are gone through in their order (kit #1347).
+func _pose_bones(skeleton: Skeleton3D) -> void:
+	var shared := _spine_from != null and _spine_from.top >= 0 and not _torso_spine.is_empty()
+	for bone in _torso_bones.size():
+		if shared and _torso_spine[bone] >= 0:
+			_torso_posed[bone] = _spine_poses[_torso_spine[bone]]
+			continue
+		var up := _torso_up[bone]
+		if up >= 0 and up < bone:
+			_torso_posed[bone] = _torso_posed[up] * skeleton.get_bone_pose(_torso_bones[bone])
+			continue
 		var cursor := _torso_bones[bone]
-		posed = Transform3D.IDENTITY
+		var posed := Transform3D.IDENTITY
 		while cursor >= 0:
 			posed = skeleton.get_bone_pose(cursor) * posed
 			cursor = _torso_parents[cursor]
-	_torso_posed[bone] = posed
-	return posed
+		_torso_posed[bone] = posed

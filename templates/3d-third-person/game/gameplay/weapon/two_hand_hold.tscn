@@ -6,6 +6,8 @@
 script = ExtResource("1_hold")
 
 [node name="Pivot" type="Node3D" parent="."]
+editor_description = "Not physics-interpolated: TwoHandHold places it in the skeleton's update, outside the physics tick, so interpolated it would be drawn a frame behind the hands (gdstudio #1464, #1473)."
+physics_interpolation_mode = 2
 transform = Transform3D(0.9396926, 0, 0.34202012, 0.1961747, 0.81915206, -0.53898555, -0.28016648, 0.57357645, 0.76975113, -0.120263, 1.330504, 0.059772998)
 
 [node name="RightPole" type="Marker3D" parent="."]

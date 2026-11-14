@@ -6,14 +6,19 @@ extends StaticBody3D
 ## for it or senses it but a shot's second test, so movement, the camera and trigger areas never
 ## meet a zone.
 ##
-## A shot finds a zone in two steps. It flies against the character's capsule as it does against
-## anything (cheap: one shape); when it touches the capsule it asks this node (`shot()`), which
+## A shot finds a zone in two steps. It flies against the character's shot hull (`hull`, a
+## capsule a little wider and taller than the moving one, that only shots meet) or its capsule as
+## it does against anything (cheap: one shape); when it touches either it asks this node (`shot()`),
+## which
 ## puts every zone on its bone of the animated skeleton (`follow_bones()`) and casts a short ray
-## along the shot through the capsule against the zones alone. The zone the ray meets first is
+## along the shot through the capsule against the zones alone, from `look_back` before the touch
+## (a part the pose puts in front of the capsule is met too). The zone the ray meets first is
 ## hit; a ray that meets none passed between the parts (beside the waist, between the legs) and
 ## the shot flies on. So the zones cost nothing while nobody shoots: they are moved only for a
-## shot that reached the capsule, never every frame. A part held outside the capsule (an arm
-## stretched out to aim) is not hit: the capsule is the first test.
+## shot that reached the capsule, never every frame. A part held outside the hull (an arm
+## stretched far out to aim) is not hit: the hull is the first test. A character whose animation
+## is throttled (`CharacterAnimationThrottle`) is caught up first (`posing`), so the zones are put
+## on the pose it has now, not on one frozen off screen (gdstudio #1431).
 ##
 ## A lying body (the character's ragdoll, limp) is hit on its bones: a shot that meets a
 ## `PhysicalBone3D` of this character's ragdoll makes a record of that bone.
@@ -21,6 +26,10 @@ extends StaticBody3D
 ## The character (`receiver`) takes the record (`Character.take_hit()`, which gives it to its
 ## `Health`); a receiver that is not a `Character` gives it to its own `Health` child. The record
 ## is all a game's networking needs to send.
+
+## Said just before the zones are put on the bones for a shot: whoever moves the skeleton less
+## often than every frame (the animation throttle) brings the pose up to now.
+signal posing
 
 ## The character that takes the hits (`Character.take_hit()`, or the `Health` child of another
 ## body). Its capsule is what a shot meets
@@ -54,6 +63,19 @@ extends StaticBody3D
 ## How far past the capsule's surface the second test looks along the shot, metres: the
 ## capsule's width is enough for a level shot, more for a steep one.
 @export_range(0.2, 4.0, 0.05, "suffix:m") var ray_length := 1.2
+## How far before the capsule's surface the second test starts along the shot, metres: a part the
+## pose puts in front of the capsule (the hips of a crouch, behind the body's middle) is met on the
+## shot's way in, not passed over (gdstudio #1412).
+@export_range(0.05, 1.0, 0.05, "suffix:m") var look_back := 0.5
+
+## The shot-only capsule around the character (`ShotHull`): a shot that meets it asks this node
+## as one that meets the capsule does, so a part the pose holds outside the capsule is reached. It
+## is tagged as the capsule is. Empty: shots meet the capsule alone.
+@export var hull: ShotHull:
+	set(value):
+		_untag(hull)
+		hull = value
+		_tag(hull)
 
 var _bones_found := false
 
@@ -62,6 +84,7 @@ func _ready() -> void:
 	if model != null and not model.rig_changed.is_connected(_on_rig_changed):
 		model.rig_changed.connect(_on_rig_changed)
 	_tag(receiver)
+	_tag(hull)
 	if Engine.is_editor_hint():
 		follow_bones.call_deferred()
 		return
@@ -79,6 +102,22 @@ static func of(collider: Object) -> HitZones:
 		return null
 	var found: Variant = collider.get_meta(&"hit_zones")
 	return found as HitZones if is_instance_valid(found) else null
+
+
+## The body a shot that met `collider` counts as having met: the character (`receiver`) for its
+## shot hull, `collider` itself for anything else. Marks, effects and the hit's `collider` use it.
+func body_met(collider: Object) -> Object:
+	return receiver if hull != null and collider == hull else collider
+
+
+## The bodies a shot that passed between the parts leaves out to fly on: the capsule and the hull.
+func shot_bodies() -> Array[CollisionObject3D]:
+	var bodies: Array[CollisionObject3D] = []
+	if receiver != null and is_instance_valid(receiver):
+		bodies.append(receiver)
+	if hull != null and is_instance_valid(hull):
+		bodies.append(hull)
+	return bodies
 
 
 ## Every zone under this body.
@@ -121,7 +160,7 @@ func shot(
 	if not enabled or zones().is_empty():
 		return HitRecord.shot(damage, &"", &"", point, along, strength, source)
 	var start := centre if centre.is_finite() else point
-	var found := find(start - along * 0.05, point + along * ray_length)
+	var found := find(start - along * look_back, point + along * ray_length)
 	if found.is_empty():
 		return null
 	var part: HitZone = found.zone
@@ -138,7 +177,7 @@ func aimed_point(point: Vector3, along: Vector3) -> Vector3:
 	if not enabled or zones().is_empty():
 		return point
 	var way := along.normalized()
-	var found := find(point - way * 0.05, point + way * ray_length)
+	var found := find(point - way * look_back, point + way * ray_length)
 	return found.point if not found.is_empty() else Vector3.INF
 
 
@@ -165,6 +204,7 @@ func deliver(record: HitRecord) -> void:
 func find(from: Vector3, to: Vector3) -> Dictionary:
 	if not is_inside_tree():
 		return {}
+	posing.emit()
 	follow_bones()
 	var query := PhysicsRayQueryParameters3D.create(from, to, PhysicsLayers.HIT_ZONE_MASK)
 	var skipped: Array[RID] = []

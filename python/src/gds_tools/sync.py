@@ -18,6 +18,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from gds_tools import integrations
+
 LOCK = Path(".claude") / "gds-sync.json"
 
 #: The kit files that are copied whole, besides the agent definitions and `templates/game/`.
@@ -251,6 +253,22 @@ def drift(kit: Path, game: Path) -> list[str]:
     return problems
 
 
+def enable_addon_plugins(game: Path, log=print) -> int:
+    """Turn on the editor plugin of each kit addon a game holds, in its `project.godot`'s `[editor_plugins]` list; the
+    number of plugins turned on. A game made before an addon had a plugin (`gds_game`'s export steps, kit #1183 and
+    #1428) got its files from `gds sync` but never the line (kit #1472). A project with no list is left alone, as
+    `integrations.enable_plugin` leaves it, and the layout check still names the plugin."""
+    project_file = game / GAME_PROJECT / "project.godot"
+    turned_on = 0
+    for addon in KIT_ADDONS:
+        if not (game / GAME_PROJECT / "addons" / addon / "plugin.cfg").is_file():
+            continue
+        if integrations.enable_plugin(project_file, f"res://addons/{addon}/plugin.cfg"):
+            log(f"enabled {GAME_PROJECT}/addons/{addon}/plugin.cfg in {GAME_PROJECT}/project.godot")
+            turned_on += 1
+    return turned_on
+
+
 def sync(kit: Path, game: Path, log=print) -> int:
     """Write the kit's files into a game and its lock; returns how many files changed."""
     changed = 0
@@ -288,6 +306,7 @@ def sync(kit: Path, game: Path, log=print) -> int:
         log(f"removed {target}")
         changed += 1
     changed += move_into_addons(game, log)
+    changed += enable_addon_plugins(game, log)
     if config_text is not None:
         have = blocks(config_text)
         new_text = config_text

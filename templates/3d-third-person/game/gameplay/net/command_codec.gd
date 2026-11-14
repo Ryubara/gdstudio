@@ -39,13 +39,20 @@ const F_PRONE := 1 << 15
 ## Bits no build of this version sets: a command with one of them is refused (none are left).
 const F_UNUSED := 0xFFFF & ~((F_UNARMED_PRESSED << 1) - 1) & ~F_PRONE
 # The bits of the second flag byte (gdstudio #1254: the u16 above was full). It is byte 13, which
-# the 15-byte layout always carried as zero; byte 14 is still spare.
+# the 15-byte layout always carried as zero; byte 14 is the hotbar place (`USE_AT`).
 ## The melee button.
 const G_MELEE_PRESSED := 1 << 0
+## The peek lean, held (gdstudio #1400).
+const G_LEAN_LEFT := 1 << 1
+const G_LEAN_RIGHT := 1 << 2
 ## Bits of the second byte no build of this version sets: a command with one is refused.
-const G_UNUSED := 0xFF & ~((G_MELEE_PRESSED << 1) - 1)
+const G_UNUSED := 0xFF & ~((G_LEAN_RIGHT << 1) - 1)
 ## Where the second flag byte and the shot block start.
 const MORE_FLAGS_AT := 13
+## Byte 14 (gdstudio #1386): the hotbar place pressed + 1, 0 for none (`PlayerCommand.use_place`).
+const USE_AT := 14
+## The most places byte 14 names (a larger number is refused).
+const MAX_USE_PLACES := 32
 const SHOT_AT := 15
 
 # --- The command ---
@@ -68,6 +75,8 @@ static func encode(command: PlayerCommand, drops: NetDrops = null) -> PackedByte
 	out.encode_s16(9, look_step(command.pitch))
 	out.encode_u16(11, _flags(command))
 	out[MORE_FLAGS_AT] = _more_flags(command)
+	var place := command.use_place
+	out[USE_AT] = place + 1 if place >= 0 and place < MAX_USE_PLACES else 0
 	if command.has_shot:
 		out.encode_s16(SHOT_AT, point_step(command.origin.x))
 		out.encode_s16(SHOT_AT + 2, point_step(command.origin.y))
@@ -97,7 +106,7 @@ static func decode(data: PackedByteArray, drops: NetDrops = null) -> PlayerComma
 		return null
 	var flags := data.decode_u16(11)
 	var more := data[MORE_FLAGS_AT]
-	if flags & F_UNUSED != 0 or more & G_UNUSED != 0:
+	if flags & F_UNUSED != 0 or more & G_UNUSED != 0 or data[USE_AT] > MAX_USE_PLACES:
 		NetDrops.note(drops, NetDrops.BAD_VALUE)
 		return null
 	var shot := flags & F_SHOT != 0
@@ -125,6 +134,9 @@ static func decode(data: PackedByteArray, drops: NetDrops = null) -> PlayerComma
 	result.previous_weapon_pressed = flags & F_PREVIOUS_WEAPON_PRESSED != 0
 	result.unarmed_pressed = flags & F_UNARMED_PRESSED != 0
 	result.melee_pressed = more & G_MELEE_PRESSED != 0
+	result.lean_left = more & G_LEAN_LEFT != 0
+	result.lean_right = more & G_LEAN_RIGHT != 0
+	result.use_place = data[USE_AT] - 1
 	result.has_shot = shot
 	if shot:
 		result.origin = Vector3(
@@ -166,7 +178,10 @@ static func _flags(command: PlayerCommand) -> int:
 
 
 static func _more_flags(command: PlayerCommand) -> int:
-	return G_MELEE_PRESSED if command.melee_pressed else 0
+	var more := G_MELEE_PRESSED if command.melee_pressed else 0
+	more |= G_LEAN_LEFT if command.lean_left else 0
+	more |= G_LEAN_RIGHT if command.lean_right else 0
+	return more
 
 
 # --- Move ---

@@ -18,7 +18,12 @@ at once), with the grid, limits and finger search of `solve_pistol_hold.py`:
 - the left hand under the hand guard at `Support`: the palm under it, the fingers up its right side and the thumb
   up its left (`support`), and the same hand opened (`open`);
 - the left hand round the magazine for the reload (`magazine`): the palm on its left face, the fingers round
-  its front, the thumb behind it.
+  its front, the thumb behind it;
+- the left hand on the charging handle for the reload's pull (`charge`, kit #1266): left of the stock with the palm
+  toward the shooter, the index finger hooked round the front of the latch's bar and the middle finger round its
+  tab, the ring and little fingers curled clear, the thumb up. It is solved against the `Bolt` part for the touch
+  and against the rest of the rifle where the pull takes the hand (`CHARGE_STEPS` of `CHARGE_TRAVEL`), so the hand
+  that pulls the handle back passes over the stock's side clear of it.
 
 A place also costs what it bends the wrist: the forearm's line is worked out from where the shoulder is in the
 rifle's space at the shoulder and at the low ready (`SHOULDERS`, read from the game), and a wrist bent more than
@@ -48,7 +53,7 @@ TOL = 0.0012  # how deep the solver lets skin go (the test allows 2 mm)
 # Where the nearer palm sits off the surface. Measuring two bodies at once (`--body=both`), the Quaternius pair's
 # palms on the grip differed by 5.4 mm (the female's the hollower), so the male's was pressed 1.4 mm in and the
 # female's was then 4 mm off: both within the test's 2 mm in and 5 mm off. One body's palm sits at TARGET.
-PALM_TARGET = {"right": TARGET, "left": TARGET, "magazine": TARGET}
+PALM_TARGET = {"right": TARGET, "left": TARGET, "magazine": TARGET, "charge": TARGET}
 PALM_TARGET_BOTH = -0.0014
 PALM_TOL = 0.0018
 X, Y, Z = np.eye(3)
@@ -96,6 +101,10 @@ STARTS = {
     "left": ([[0, 1, 0], [-0.6, 0, -0.8], [-0.8, 0, 0.6]], [-0.246, 0.05, 0.0], Y),
     # The palm faces the magazine's left face; the fingers go round its front, the thumb's side is up.
     "magazine": ([[0, 0, -1], [-1, 0, 0], [0, 1, 0]], [-0.115, -0.07, 0.06], -Z),
+    # The palm faces back (+X), toward the shooter, left of the stock; the fingers point across the rifle to its
+    # right in front of the latch, the index finger at the bar's height; the thumb's side is up. Pushed back until
+    # the hooked fingers are on the latch's front face.
+    "charge": ([[1, 0, 0], [0, 0, -1], [0, 1, 0]], [0.04, 0.15, 0.12], X),
 }
 # The moves from the starts that the template ships, a body (metres along the rifle's axes, then degrees about
 # them). A prototype body's right hand (0.18 and 0.195 m from wrist to fingertip) sits 2 cm forward (the male's longer
@@ -111,19 +120,28 @@ MOVES = {
         "right": [-0.02, 0.03, 0.0, 0.0, 10.0, -30.0],
         "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "charge": [0.0, 0.0, 0.0, 25.0, 0.0, 0.0],
     },
     "male": {
         "right": [-0.015, 0.03, 0.0, 0.0, 10.0, -30.0],
         "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "charge": [0.0, 0.0, 0.0, 25.0, 0.0, 0.0],
     },
     "both": {
         "right": [0.04, 0.02, 0.0, 0.0, -20.0, 0.0],
         "left": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         "magazine": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "charge": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     },
 }
 ROUNDS = [(0.008, 4.0), (0.004, 2.0), (0.002, 1.0)]
+# The charging handle (kit #1266): how far the `Bolt` node runs back along the rifle's +X in a reload (the model's
+# README), and the shares of that pull at which the hand is kept out of the rest of the rifle as it rides the handle.
+CHARGE_TRAVEL = np.array([0.06, 0.0, 0.0])
+CHARGE_STEPS = (0.0, 0.5, 1.0)
+# The parts of the charge hand that seat it on the latch (the hooked fingers' last two bones).
+CHARGE_SEAT = ("index_mid", "index_tip", "middle_mid", "middle_tip")
 # How far the opened left hand's fingers are from their place under the hand guard to their rest (straight).
 OPEN_SHARE = 0.8
 # The grid is exact within this far of the rifle's surface; farther off a coarse grid's value stands.
@@ -136,7 +154,7 @@ class BandField(hold_field.PiecesField):
     about 90 microseconds a point on its million samples, so only the grid points within `BAND` of the surface
     (by a coarse grid built first) get the exact distance; a hand never measures from farther off."""
 
-    def __init__(self, tris, low, high, step, cache):
+    def __init__(self, tris, low, high, step, cache, rays=(2,)):
         self.low, self.step = np.array(low, float), step
         shape = np.ceil((np.array(high) - self.low) / step).astype(int) + 1
         try:
@@ -160,7 +178,7 @@ class BandField(hold_field.PiecesField):
         depth = np.zeros(shape)
         piece = hold_field.pieces(tris)
         for p in range(piece.max() + 1):
-            self._fill_piece(tris[piece == p], shape, depth, (2,))
+            self._fill_piece(tris[piece == p], shape, depth, rays)
         self.grid = np.where(depth > 0, -depth, dist).astype(np.float32)
         np.savez_compressed(cache, grid=self.grid, count=len(tris))
 
@@ -168,8 +186,11 @@ class BandField(hold_field.PiecesField):
 class Placed:
     """One hand put on the rifle: its place in the rifle's space and its fingers."""
 
-    def __init__(self, rig, side, gun, sockets, name):
+    def __init__(self, rig, side, gun, sockets, name, parts=None):
+        """`parts`: for the charge hand, the `Bolt`'s distance field and the rest of the rifle's
+        (`{"bolt": field, "rest": field}`)."""
         self.rig, self.side, self.gun, self.sockets, self.name = rig, side, gun, sockets, name
+        self.parts = parts
         self.hand = Hand(rig, side, rig.poses[BASE_POSE])
         axes, palm_at, self.push = STARTS[name]
         basis = np.array(axes, float).T
@@ -191,6 +212,9 @@ class Placed:
         shared = (rig.vweights[hand.ids] * (rig.vbones[hand.ids] == fore)).sum(axis=1)
         mine = (rig.main[hand.ids] == hand.hand) & (rig.share[hand.ids] >= 0.5)
         self.palm = np.where(mine & (shared < FOREARM_SHARE))[0]
+        if name == "charge":
+            # The charge hand is seated by its hooked fingers, not its palm.
+            self.palm = np.concatenate([hand.part[part] for part in CHARGE_SEAT])
 
     def put(self, in_gun):
         hand = self.hand
@@ -201,7 +225,18 @@ class Placed:
         self.in_gun = in_gun
 
     def field(self, points):
-        return self.gun(points)
+        """The signed distance to the rifle. For the charge hand, to the handle where it is held and to the rest
+        of the rifle at each of `CHARGE_STEPS` of the pull, the hand riding the handle: the nearest of them."""
+        if self.parts is None:
+            return self.gun(points)
+        near = self.parts["bolt"](points)
+        for share in CHARGE_STEPS:
+            near = np.minimum(near, self.parts["rest"](points + share * CHARGE_TRAVEL))
+        return near
+
+    def seat_field(self, points):
+        """What the hand is seated against: the handle for the charge hand, the rifle for the others."""
+        return self.parts["bolt"](points) if self.parts is not None else self.gun(points)
 
     def place(self, params):
         """Puts the hand at the start moved by `params` (the rifle's axes, turns about the palm's middle), then
@@ -216,7 +251,7 @@ class Placed:
             at = start.copy()
             at[:3, 3] += self.push * way
             self.put(at)
-            return self.field(self.hand.points(palm)).min() - PALM_TARGET[self.name]
+            return self.seat_field(self.hand.points(palm)).min() - PALM_TARGET[self.name]
 
         low = -0.08
         while low < 0.08 and gap(low + 0.002) > 0:
@@ -300,6 +335,20 @@ def finger_cost(placed, finger, angles, mode):
             # receiver's side, its tip 4 cm above the grip (kit #1187).
             cost += relu(tip_at[:, 1] - THUMB_TOP) + relu(mid_at[:, 1] - THUMB_TOP)
         cost += 2e-4 * relu(a[:, 5] - 45.0)
+    elif mode == "hook":
+        # Round the front of the charging handle's latch: the tip on it, the pad pulling back, the middle bone
+        # near it (the latch is 1.2 cm deep: a finger bent round it touches with its last bone and the joint).
+        on = placed.seat_field(pts)
+        cost += np.abs(on[:, tip].min(axis=1) - TARGET) + 0.5 * relu(on[:, mid].min(axis=1) - 0.004)
+        # Bent like a hook, not laid straight across the latch: a finger at 0 and 0 read as one poking it.
+        cost += 1e-4 * np.abs(a[:, 3] - 0.65 * a[:, 2]) + 1e-4 * (relu(45.0 - a[:, 2]) + relu(30.0 - a[:, 3]))
+    elif mode == "tuck":
+        # Curled toward the palm, clear of the rifle and the handle: a loose fist.
+        cost += 3e-5 * (np.abs(a[:, 1] - 60.0) + np.abs(a[:, 2] - 80.0) + np.abs(a[:, 3] - 50.0))
+        cost += 1e-4 * np.abs(a[:, 3] - 0.65 * a[:, 2])
+    elif mode == "thumb_rest":
+        # Relaxed and bent, clear of the rifle: a straight thumb stood out from the hand like a spike.
+        cost += 3e-5 * (np.abs(a[:, :4]).sum(axis=1) + np.abs(a[:, 4] - 35.0) + np.abs(a[:, 5] - 35.0))
     elif mode == "thumb_back":
         # Behind the magazine: on whatever it reaches, nearly straight, and on the near (left, +Z) half: a thumb
         # round the magazine's far side was dragged 12 mm through it as the hand left to the left (kit #1187).
@@ -336,6 +385,8 @@ def solve_finger(placed, finger, mode, quick=False, start=None):
 def modes_of(name, trigger=True):
     if name == "right":
         return {"index": "trigger" if trigger else "register", "thumb": "thumb"}
+    if name == "charge":
+        return {"index": "hook", "middle": "hook", "ring": "tuck", "pinky": "tuck", "thumb": "thumb_rest"}
     return {"thumb": "thumb" if name == "left" else "thumb_back"}
 
 
@@ -371,6 +422,8 @@ def score(placed, params, quick=True):
     elif placed.name == "left":
         # Under the hand guard at `Support`, not wherever along it the fingers fit best.
         table["at"] = 0.3 * abs(palm_at[0] - placed.sockets["Support"][0, 3])
+    elif placed.name == "charge":
+        pass
     else:
         # On the magazine's lower half, clear of the magazine well.
         table["at"] = 0.3 * relu(palm_at[1] + 0.05)
@@ -498,6 +551,13 @@ def main():
     gun = BandField(tris, GRID_LOW, GRID_HIGH, GRID_STEP, sys.argv[1] + ".rifle.npz")
     print("grid", gun.grid.shape, "in %.0f s" % (time.time() - started), flush=True)
     sockets = {name: R.xf(place) for name, place in rifle["sockets"].items()}
+    # The charging handle on its own and the rest of the rifle without it (kit #1266).
+    bolt = np.array(rifle["parts"]["Bolt"]).reshape(-1, 3, 3)
+    rest = np.array([v for name, part in rifle["parts"].items() if name != "Bolt" for v in part]).reshape(-1, 3, 3)
+    charge_parts = {
+        "bolt": hold_field.PiecesField(bolt, [0.0, 0.12, -0.04], [0.11, 0.21, 0.07], 0.001, sys.argv[1] + ".bolt.npz"),
+        "rest": BandField(rest, GRID_LOW, GRID_HIGH, GRID_STEP, sys.argv[1] + ".rest.npz"),
+    }
     out = {}
     hands = []
     if any(argument.startswith("--only=") for argument in sys.argv):
@@ -508,10 +568,10 @@ def main():
         except OSError:
             pass
     fast = "--fast" in sys.argv
-    for name, side in (("right", "r"), ("left", "l"), ("magazine", "l")):
+    for name, side in (("right", "r"), ("left", "l"), ("magazine", "l"), ("charge", "l")):
         if any(argument.startswith("--only=") and argument[7:] != name for argument in sys.argv):
             continue
-        placed = Placed(rig, side, gun, sockets, name)
+        placed = Placed(rig, side, gun, sockets, name, charge_parts if name == "charge" else None)
         params = np.array(option(name, MOVES[body][name]), float)
         if "--trigger-only" in sys.argv:
             # Only the finger on the trigger again, on the grip the output file has (its `right_angles`).
@@ -532,7 +592,7 @@ def main():
         report(placed, name)
         print(name, np.round(params, 4).tolist(), {k: round(v * 1000, 2) for k, v in table.items()})
         print(name, "in %.0f s" % (time.time() - started), flush=True)
-        key = {"right": "grip", "left": "support", "magazine": "magazine"}[name]
+        key = {"right": "grip", "left": "support", "magazine": "magazine", "charge": "charge"}[name]
         out[name + "_params"] = params.tolist()
         out[name + "_hand"] = placed.in_gun.tolist()
         out[key] = placed.hand.quaternions()

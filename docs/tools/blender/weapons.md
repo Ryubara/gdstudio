@@ -304,7 +304,10 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   target. A `BoneAttachment3D` moves in the same signal, maybe after your listener: copy the bone poses in the signal
   and read the attachment's transform afterwards (kit #1001). A skeleton with no modifier that dirties it (the
   mannequin carries an inactive `PhysicalBoneSimulator3D`)
-  never emits it, so a probe that awaits the signal there waits forever.
+  never emits it, so a probe that awaits the signal there waits forever. What the signal gives is the pose, not what
+  is drawn: a node placed in that update under a physics-interpolated body (the rifle's `Pivot` until PR #1475) read
+  0 mm from the hand there while it was drawn a frame behind; measure what is drawn as
+  [Measuring it](../../engines/godot/physics-interpolation.md#measuring-it) says (gdstudio #1473).
 - The study that measures five holds and renders them is the template's `tools/capture/rifle_hold_study.tscn`; the
   proposal and its numbers are in the rifle folder's README.
 - **The hold in the game (kit #889)** is not that study's: `TwoHandHold` places the gun from the chest bone, reaches
@@ -324,8 +327,10 @@ real 0.82 m on the same mannequin. The library has no rifle clip, so the rifle's
   the next frame), and free the character only after an `await process_frame` that leaves the signal. **Watch out
   for:** `get_bone_global_pose()` read in `_process` gave the clip's arm hanging at the hip, so a close-up camera
   placed from the hand framed the thigh (place it from the hand's IK target instead); and freeing the player right
-  after `await skeleton.skeleton_updated` freed the skeleton during its own signal and crashed Godot (signal 11).
-  **Seen:** gdstudio #889, 2026-11-10 (`rifle_tour.gd` and the rifle's contact probe).
+  after `await skeleton.skeleton_updated` freed the skeleton during its own signal and crashed Godot (signal 11). That
+  read is the pose only: where the gun and the hands are drawn is read after the frame
+  ([Measuring it](../../engines/godot/physics-interpolation.md#measuring-it)). **Seen:** gdstudio #889, 2026-11-10
+  (`rifle_tour.gd` and the rifle's contact probe); #1473, 2026-11-13 (0 mm in the signal, a frame apart drawn).
 
 - **Approach:** Measure a hold against the pose Godot plays: write the bones and the hand skinned on the CPU (weight
   times `get_bone_global_pose(bone) * skin.get_bind_pose(bind)` times the vertex) from Godot, read them into Blender

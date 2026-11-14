@@ -86,6 +86,8 @@ func _ready() -> void:
 	_label.add_theme_color_override(&"font_outline_color", Color.BLACK)
 	_label.add_theme_constant_override(&"outline_size", 5)
 	add_child(_label)
+	# The server's world draws from now on: its probes too, at once.
+	await _rig.settle(_rig.server_view)
 	var id := int(_guard.get_meta(NetHits.AI_META, -1))
 	while _ada.ai_replica.puppet_of(id) == null:
 		await get_tree().physics_frame

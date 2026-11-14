@@ -2,8 +2,9 @@
 
 Serves a web export of the bench (`gds template bench-web 3d-third-person parts_cost_bench` makes it: kit
 docs/engines/godot/web-probes.md#bench-web), waits for `window.__parts_cost_bench`, and prints the crowd's median frame
-(1 to 50 characters, idle and walking), each character part's microseconds a frame and each world part's. The optional
-second argument is a CPU throttle (4 is the weak-machine stand-in).
+(1 to 50 characters, idle and walking), each character part's microseconds a frame (the other processing nodes and
+the skeleton's modifiers apart) and each world part's. The optional second argument is a CPU throttle (4 is the
+weak-machine stand-in).
 
     uv run --project <kit>/python gds quiet -- \
         uv run --with playwright==1.64.1 python tools/bench/parts_cost_bench.py build/web 4
@@ -74,6 +75,11 @@ def main() -> int:
             f"{parts['characters']} walking, us a character a frame: "
             + ", ".join(f"{k[:-3]} {parts[k]:.1f}" for k in names)
         )
+        for group in ("others", "modifiers"):
+            print(
+                f"  {group}: "
+                + ", ".join(f"{k} {v:.1f}" for k, v in parts.get(group, {}).items())
+            )
         for key in ("death", "death_male"):
             death = result[key]
             print(

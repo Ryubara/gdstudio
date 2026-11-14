@@ -279,6 +279,7 @@ const _DROPPED_MAGAZINE := &"DroppedMagazine"
 ## is a fit's `body` gets that fit's seat, markers, way and poses; any other model the scene's own.
 @export var fits: Array[HoldFit] = []
 
+var rest := HoldRest.new()
 var _skeleton: Skeleton3D
 var _grip: HandPoseModifier
 var _arm: HoldArm
@@ -412,6 +413,9 @@ func refresh() -> void:
 	# 9 to 29 mm on the prototype bodies at the clip's start and end: kit #1187). The rack's clip
 	# holds it where the rack's hand was solved, so the arm stays in through it too (kit #1337).
 	_grip.swing_degrees = carry_arm_out * (1.0 - aim) * (1.0 - busy)
+	_place_slide()
+	if _arm != null and rest.holds(_grip, aim_weight, busy, free_weight):
+		return
 	if _stance != null:
 		_pose_stance()
 	_keep_hands_up()
@@ -419,7 +423,6 @@ func refresh() -> void:
 		return
 	_plan_left()
 	_place_magazines()
-	_place_slide()
 	_place_rack()
 	# The right thumb makes room while the left hand waits at the far end of its way, before it
 	# comes in, and lies on the weapon again once that hand is back out there.

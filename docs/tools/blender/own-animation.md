@@ -80,7 +80,8 @@ more, one knee lower, the weight more on one leg, the hips and shoulders tilted 
 other, the hands at different heights and doing different things. Start a held pose from how a person rests in it
 (the library's crouch idle has one heel up, the knees apart at different heights, one forearm on a knee), then
 write each side's numbers on their own. A mirrored clip for the other foot is the build's job, not a reason to make
-one clip symmetric about its own middle.
+one clip symmetric about its own middle. The build measures it (`mirror_numbers`, `MIRROR_LIMIT`:
+[solved clips](animation.md#solved-clips)).
 
 - **Approach:** Give every pose and loop its own numbers per side (stance, knee height, weight, hand place and
   task), check a capture from the front and from above for anything lined up, and compare it with the library clip
@@ -231,6 +232,10 @@ In Godot (`tests/gameplay/test_own_clips.gd`, on every body): every track finds 
 bone by bone, a planted foot stays put while the model moves along the clip's travel curve, and the tree plays the
 clip where the library's played. Then the capture from the game's camera.
 
+In the kit's CI the `clips` job builds `locomotion.glb` again with `--check --no-overlap` (numpy pinned to the
+version it was built with) and fails on any byte that differs, so a script change that moves a committed clip is
+caught before it lands (gdstudio #1472); the limb measure needs Blender and is checked by the report's SHA-256.
+
 Passing every check is where review starts, not where it ends: the crawl passed every check with its forearms
 wrong ([solved clips](animation.md#solved-clips)). Before keying a move, its motion is researched and written down
 with sources (how real limbs do it), and each fault a capture shows becomes a check when a number can say it.
@@ -243,7 +248,8 @@ Every clip type ships in at least three variants, each a vision with its emphasi
 **A, grounded** (a person's numbers: low bob, true cadence, small overlap), **B, loose** (the hips lead, long
 overlap on arms and head, more wind and lean, a later settle), **C, sharp** (stronger key poses, shorter eases,
 fewer in-betweens; reads at a distance and on a small low-polygon body). The agent may propose others; the three
-must differ in a number the sheet shows, not only in taste.
+must differ in a number the sheet shows, not only in taste. Those three are about tempo and overlap; the variants
+of a held pose (an idle, a crouch) differ in stance instead: where the weight sits, the feet and the hands.
 
 The pull request for a clip type carries one **review sheet** per type, made by the toolkit's `review_sheet.py`
 (no hand step), attached with `gh pr create --attach`:
@@ -254,14 +260,14 @@ The pull request for a clip type carries one **review sheet** per type, made by 
 2. **A clip (mp4):** the variants side by side in Godot from the game's camera, on the template's map: the loop for
    five seconds, then the moves that use it (start, turn, stop) driven by the same recorded input for each
    (`tools/capture/own_clips_review.tscn`; `OWN_ONLY=<clip>` films one variant, short enough for a GIF). Film it
-   in an imported game (`gds template test 3d-third-person --suite <one> --keep`, then `gds capture frames
+   in an imported game (`gds template game 3d-third-person`, then `gds capture frames
    --project game` there), never the worktree's own `game/`; a gait starts `OWN_AHEAD=6` metres into the map,
    since the spawn pad ends 4.6 m ahead and a body that walks off it plays its fall.
 3. **The numbers:** the audit's table with one column per variant and the library's, the limits beside them.
 4. **Notes:** two lines per variant: the vision, and what was tried and could not be done, with the number that
    shows it. A fault the agent can name in its own capture is fixed before review, not listed
    (learned on the vault clips, kit #1016).
-5. **Other bodies:** the same frame of each variant on every shipped body (male, female, chibi).
+5. **Other bodies:** the same frame of each variant on every shipped body (the two `form` bodies, male and female).
 
 The pull request carries `S-hold`; the maintainer answers with a letter per clip type, or with a change. The
 variants live in `own/review/<type>.glb` under their letters (`Walk_A`) and are not imported by the game; the
@@ -278,7 +284,8 @@ other style files stay in the repository, so a game picks another vision by rebu
   build check and, picked, put the held pistol 32 mm into the thigh its hand lay on in two clips
   (`test_pistol_clearance.gd`); the walk's A and C variants, tuned on idle A's carriage, put a forearm 50 to 70 mm
   into a thigh or the pelvis on idle B's, 22 checks at once. **Seen:** gdstudio #1160 (PR #1285), 2026-11-12 (fix:
-  the hand held 0.06 m higher, the walk's default carriage fitted to the shipped idle).
+  the hand held 0.06 m higher, the walk's default carriage fitted to the shipped idle); #1254 (PR #1315), #1155 (PR
+  #1275), 11-11 (a replaced gait and a change to the weapon arm's side failed only there).
 - **Approach:** When the pick changes, measure the newly picked variant with `fluidity.py` beside the library's
   clip before `ship`, and give it every fix the review asked of the old pick, with limits of its own. **Watch out
   for:** a fix made after review is written into the picked variant's style section only; the walk's pick moved
@@ -291,6 +298,10 @@ other style files stay in the repository, so a game picks another vision by rebu
   legs, `form_male`'s thighs 4.6 mm into each other in `Walk_Right` and 3.5 in `Jog_Left`; A, shipped until the
   pick, read 2.8 and 2.6. **Seen:** gdstudio #1159 (PR #1374), 2026-11-12 (fix: B's two strafes set their feet
   0.02 m off the middle line, `width`, 2.7 and 2.9 mm; the limit stays).
+- **Approach:** For every one-shot clip, not only a blow, tile the game-camera clip and read every frame, the fades
+  in and out included, before asking for review. **Watch out for:** the pistol whip leaned the head and trunk back
+  for a few frames around each blow, between the frames the agent had sampled, and the maintainer's review found it.
+  **Seen:** gdstudio #1254 (PR #1315), 2026-11-11 ([melee](../../engines/godot/third-person/melee.md#melee)).
 
 ## How a chosen clip replaces the library's {#replacing}
 
@@ -307,9 +318,15 @@ other style files stay in the repository, so a game picks another vision by rebu
    along their travel curve against what the controller really did. That is the Godot child issue, not a clip
    issue (done in #1158: `GaitClips` reads the records, and what a transition clip's record needs is on
    [the template's gait settings](../../engines/godot/third-person/clips.md#gait-settings)).
-4. **The web build drops what nothing plays.** Once a group is replaced, the libraries' unused clips leave the
-   exported game (an import script keeps the clips a list names; the full files stay in the repository for
-   stand-ins and study), and the size before and after goes in the pull request.
+4. **The web build drops what nothing plays.** Every export carries `ual1` and `ual2` with only the clips the game
+   names (`ClipExport` of `gds_game`, kit #1366): a clip is named when a shipped script, scene or resource holds its
+   name (a weapon's `.tres`, an inspector override) or a script names the `CharacterClips` constant that holds it;
+   `ALL` and `STAND_INS` count for nothing, so a stand-in ships only once a scene sets it. Nothing lists the clips by
+   hand: a clip a new tree state or weapon names is kept by the next export. The editor and the suites keep the full
+   files. 3D Third Person's pack went from 9,179,812 to 8,024,856 bytes (16 of the 86 clips kept);
+   `test_export_clips.gd` walks the tree, the clip settings and the definitions, and CI's
+   `tools/export_check/export_clips_check.gd` reads the exported pack. A clip reached only by a name built at run
+   time goes in the project setting `gds_game/clip_export/keep`, or the export leaves it out.
 5. **Docs.** The clip's row on `engines/godot/third-person/clips.md` and the template's inspector list change in
    the same pull request.
 
@@ -356,9 +373,9 @@ What carries a clip over to a body with other proportions, and what one clip fil
 | --- | --- | --- |
 | Tracks a gait clip keys | 22 body bones and the pelvis's position; fingers only where they move | fingers at rest come from one hand-pose clip under the gait; a clip names its bones and the export strips the rest |
 | Keys | under 40 % of the frames on a moving bone at half a degree | curves solved at 30 a second, reduced by the build, checked against the full curve on the skinned mesh (1 mm at the hands and feet) |
-| Imported size | 6 KB a second of clip, compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second; 6.6 with the starts and stops of kit #1156, 7.0 (7,126 bytes) with the jump of kit #1161 and the strafes and lean of kit #1159, which the test holds to 7 (7,168 bytes) until the maintainer decides) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
+| Imported size | 7 KB a second of clip (the maintainer's figure of 2026-11-13; it was 6), compressed import; the first wave under 250 KB | measured by importing in Godot in the build's test, per file, never per clip: a short fast loop alone is over both this and the key budget (the sprint keeps 51 % of its keys, declared as `keys_kept`; with the gaits, on the prototype rig with its `ik_` targets keyed, `locomotion.glb` is 5.6 KB a second; 6.6 with the starts and stops of kit #1156, 7.0 (7,126 bytes) with the jump of kit #1161 and the strafes and lean of kit #1159, inside the 7 (7,168 bytes) the test holds) (`Idle`: 3.9 KB a second, with the importer's optimizer off: [the libraries](../../engines/godot/third-person/clips.md#animation-libraries)) |
 | Clips blended at once | four on a character near the camera (two gaits, a transition or an action, one additive); one on a far one | the tree's layers are counted in the Godot issue's bench, in the browser |
-| Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)) |
+| Download | the web build's pack no larger after the first wave than before it | the libraries' unplayed clips leave the export ([replacing](#replacing)): 1.16 MB off 3D Third Person's pack (9.18 to 8.02 MB, kit #1366) |
 
 ## Waves and child issues {#waves}
 

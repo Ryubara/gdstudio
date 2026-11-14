@@ -31,6 +31,9 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
   `RACK_FINGERS=0` leaves the clip's own fingers. `tools/hold/write_slide_rack.gd` writes each body's `SlideRack`
   file from the clip build's data, and `tools/hold/hold_files.py` reads a body's hold out of the project's files
   for the rack's solver and build.
+- `tools/export_check/export_clips_check.gd` reads an exported pack (`-- ../build/web/index.pck`): each Universal
+  Animation Library in it holds exactly the clips the game names, and a player loaded from it finds every clip of
+  its tree (CI runs it after the web export; kit `docs/tools/blender/own-animation.md#replacing`).
 - `tools/bench/hold_cost.tscn` times 40 mannequins with no hold, the carried hold or the aimed one (the run is its
   user argument, one run a process).
 - `tools/capture/walkthrough.tscn` plays the character through the map by pressing the input actions, for a clip.
@@ -85,9 +88,10 @@ out of the export, so shipped code never refers to `res://tools/`: the other way
 - `tools/bench/player_step_bench.tscn` times a character's own physics tick for 1, 8 and 40 bodies, by the input and by
   commands; `tools/bench/player_step_bench.py` reads it from a web export in headless Chrome (run it under `gds quiet`).
 - `tools/bench/parts_cost_bench.tscn` prints what the parts cost a frame: 1 to 50 dressed characters idle and walking,
-  each character part timed apart, a first and a later death on each mannequin, and 100 of each world part
-  (`PARTS_COST_BENCH` line); `tools/bench/parts_cost_bench.py` reads it from a web export in headless Chrome (under
-  `gds quiet`).
+  each character part timed apart (the skeleton's deferred update and its modifiers, the physics tick and every other
+  node that processes among them), a first and a later death on each mannequin, and 100 of each world part
+  (`PARTS_COST_BENCH` line; `-- parts` runs one section on the desktop); `tools/bench/parts_cost_bench.py` reads it
+  from a web export in headless Chrome (under `gds quiet`).
 - `tools/web_smoke/touch_smoke.py` drives the web export in a phone-sized browser with real touches (run it under
   `gds quiet`; the command is in its header).
 - `tools/net/echo_server.gd` is a bare server for transport probes (echo, and a numbered stream on request); it prints

@@ -60,10 +60,15 @@ func decorate(
 	_attach_momentum(animation)
 
 
-## After the tree is set to `root`: the parameters set once.
+## After the tree is set to `root`: the parameters set once, and the helper bones' tracks
+## switched off or on (`HelperTracks`, by `GaitSettings.helper_tracks`).
 func after_build(animation: CharacterAnimation) -> void:
 	if animation.tree != null and animation.tree.tree_root != null:
 		transitions.hold(animation.tree, animation.animation_player)
+	if settings_of(animation).helper_tracks:
+		HelperTracks.unmute(animation.animation_player)
+	else:
+		HelperTracks.mute(animation.animation_player)
 
 
 ## One frame: the spaces' speed and paces, the transitions and the lean.

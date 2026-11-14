@@ -547,6 +547,18 @@ def _cmd_pr_hold(args: argparse.Namespace) -> int:
     return 0
 
 
+def _branch_issue_warning(repo: Path, body: str) -> str:
+    """`pr.branch_issue_warning` for the checkout `repo`, from the workspace's ledger; "" outside a workspace."""
+    root = workspace.find_workspace(repo)
+    if root is None:
+        return ""
+    kit = workspace.kit_checkout() or root / "repos" / workspace.KIT
+    ledger = root / issues.load_settings(kit, None).ledger
+    return pr.branch_issue_warning(
+        body, issues.checkout_repo(repo), pr.current_branch(repo), issues.load_ledger(ledger)
+    )
+
+
 def _cmd_pr_check_body(args: argparse.Namespace) -> int:
     """`gds pr check-body <file>`: the description rules of `pr-rules`, run here before `gh pr create|edit`."""
     here = Path(args.repo).resolve() if args.repo else Path.cwd()
@@ -574,6 +586,9 @@ def _cmd_pr_check_body(args: argparse.Namespace) -> int:
         )
     docs = pr.check_docs(repo, body, kit=kit)
     commits = pr.check_commits(repo, body, kit=kit)
+    warning = _branch_issue_warning(repo, body)
+    if warning:  # a warning, not a refusal: a pull request may close another issue on purpose
+        print(f"warning: {warning}", file=sys.stderr)
     if result.ok:
         print("description: ok")
     else:

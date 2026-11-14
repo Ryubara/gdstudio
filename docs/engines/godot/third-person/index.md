@@ -8,6 +8,8 @@ on the page of its subject, with an `{#anchor}`. A page is split at about 40 KB,
 
 - [The character and its model](character.md): the animation libraries, the mannequins, replacing the model, the
   controller, the ragdoll and touch controls.
+- [What the parts cost](parts-cost.md): what each part of a living character costs a frame, the node count
+  `NODES_ALIVE` pins, and how a part's cost is measured.
 - [Prone and sliding](moves.md): lying down, the crawl and the slide.
 - [Using things](interact.md): the `Interactable` component, the `Interactor` and the door's.
 - [The character's clips](clips.md): the animation libraries and the template's own vault clips, with their checks.
@@ -15,6 +17,7 @@ on the page of its subject, with an `{#anchor}`. A page is split at about 40 KB,
 - [One-handed shooting](one-handed.md): a weapon held in the right hand alone, its stance, its kick and its proof.
 - [Weapon pickups and the rifle](weapon-pickups.md): the floating pickup, `give()`, and the rifle in both hands.
 - [Melee blows](melee.md): the blow every weapon and the empty hands throw, its category and its `MELEE` event.
+- [The peek lean](peek.md): leaning around cover with Q and E, stepped, predicted and sent, its bend and its proof.
 - [The camera, the map and the screen](camera-and-ui.md): the follow camera, the map components, the minimap and the HUD.
 - [AI characters](ai.md): the `AiCharacter` base, its `AiProfile`, the `AiDirector`'s thinks, tiers and budget, and
   the situation machine.

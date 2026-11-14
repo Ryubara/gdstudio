@@ -44,7 +44,7 @@ What was measured on the Quaternius skins is measured again on the two `form` bo
 - **The rifle's hold is solved per body too** (kit #1040): `solve_rifle_hold.py --body=female|male`, the female's in
   `rifle_held.tscn` and the five `rifle_*_pose.tres`, the male's in `rifle_fit_male.tres`, listed in
   `TwoHandHold.fits`. The smaller hands also needed a place of their own on the grip
-  ([the rifle in both hands](weapon-pickups.md#rifle-hands)).
+  ([the rifle in both hands](rifle-hands.md#rifle-hands)).
 - **The hit zones** (`character_dressed.tscn`'s `HitZones`) are sized from `tools/mannequin/measure_segments.gd`: the
   arms are longer and thinner than the Quaternius female's (upper arm 0.26 to 0.28 m long and 0.047 to 0.057 m
   round, against 0.22 and 0.068) and the calves thinner, so the arm zones are longer and narrower, the thigh and pelvis
@@ -85,9 +85,9 @@ for the looks `form`, `joint` and `facet` and the bodies `male`, `female` and `c
 on them with no conversion ([Prototype mannequins](../../../tools/blender/prototype-mannequins.md),
 [the rig](../../../tools/blender/mannequin-rig.md)). Their import script (`mannequin_import.gd`) sets the skeleton's
 `motion_scale` (0.545 on the chibi, so the hips' keys fit its legs), adds the `MannequinTwist` modifier and shows the
-three levels of detail by distance. The Quaternius female stays the default until the maintainer has chosen a look:
-the pistol's solved hold, the ragdoll's joints and the hit zones are measured on the Quaternius skins and are solved
-again for the body that replaces them. `tests/assets/test_prototype_mannequins.gd` proves the bodies and
+three levels of detail by distance. The `form` look is the default (above); what was measured on the Quaternius
+skins (the pistol's hold, the ragdoll's joints, the hit zones) was measured again on the `form` bodies.
+`tests/assets/test_prototype_mannequins.gd` proves the bodies and
 `tools/capture/mannequin_parade.tscn` films them on a 0.25 m grid: `PARADE_LOOK` chooses the look, `PARADE_VIEW` the
 front, quarter, side or close view (the close one follows the hands through a hand roll, the pistol clips and a
 reach), `PARADE_CLIP` loops one clip for whole cycles and `PARADE_REFERENCE=1` adds the Quaternius male.
@@ -114,6 +114,11 @@ reach), `PARADE_CLIP` loops one clip for whole cycles and `PARADE_REFERENCE=1` a
   table missed (the swing now fades with the reload); and three numbers measured on the old body sat in suites that
   never name it: the node count, `Weapon.no_muzzle_offset` and the crawl's planted elbows (1.5 to 2.6 cm of slide on
   the longer upper arms, gdstudio #1286). **Seen:** gdstudio #1187, 2026-11-11.
+- **Approach:** When the body the template wears changes, grep the tests for numbers measured on one body and
+  measure each again on the new one: the shot's offset with no muzzle (`Weapon.no_muzzle_offset`, its copy in
+  `test_weapon.gd`, printed by `test_weapon_ray.gd`), the crawl's elbows, the vault's wrists
+  (`test_vault_contacts.gd`) and counts of the body's nodes. **Watch out for:** nothing lists them, so each surfaced
+  as a failure in another branch's run after the swap. **Seen:** gdstudio #1187 (PR #1299), 2026-11-11.
 
 ## Replacing the model {#replacing-the-model}
 
@@ -307,7 +312,9 @@ The enemies of [the AI section](ai-characters.md#parts) set the male body (`form
   snapshot out when it reached 1000. It is also at gdlint's twenty public methods (19 on 2026-11-11), so a new public
   function goes on a module, not on the body; and `test_ragdoll.gd`
   (`test_the_character_the_player_and_the_ragdoll_pin_their_exports`) pins every export of `Character` and `Player`,
-  so a new export adds its line there in the same change (#1011, #1013).
+  so a new export adds its line there in the same change (#1011, #1013). A new modifier or layer export moves two
+  more pins in the same commit: the layer's settings pin (`test_aim_layer.gd`) and the character's node count
+  (`test_parts_budget.gd`, 60 to 61 with the head modifier, #1353).
 
 ## A second kind of controller {#second-controller}
 
@@ -371,98 +378,24 @@ itself, and the sampler adds 3 to 9 µs a tick for each human.
 The desktop rows are the mean of two or three headless runs, the browser rows one run each of the web export in
 headless Chrome (`tools/bench/player_step_bench.py`, under `gds quiet`), on a machine other agents were using.
 
+## What the map and the character cost to draw {#draw-cost}
+
+<!-- new section: moved from the template page's "What is in it" when that page reached its size limit (gdstudio
+     #1400); it measures the map and this character -->
+
+Measured in Compatibility on the desktop (vsync off, 300 frames after 150 of warm-up): the map alone from the overview
+camera 0.34 ms CPU, 0.19 ms GPU, 145 draw calls, 84.4 MB of texture memory; with the character 0.38 / 0.21 ms, 149
+draw calls, the same texture memory (the mannequin has two flat materials and no texture) and 1.9 MB more video memory.
+The whole game from the third-person camera draws 64 calls. The trimmed 3D Blank (floor and walls) is 0.17 / 0.16 ms,
+10 draw calls and 64.2 MB. Forward+ is 0.21 / 0.68 ms and 348 MB for the character in the map. The web export is a
+0.92 MB `index.pck` for 3D Blank and 3.26 MB for 3D Third Person (the character and the two libraries are most of the
+difference), and both load in headless Chromium with no console error, page error or failed request (a SwiftShader
+frame is about 39 ms for 3D Blank and 67 ms for 3D Third Person, which only says it runs with no GPU).
+
 ## What the parts cost {#parts-cost}
 
-<!-- new section: the step bench timed the body alone; nothing said what a dressed character's other parts or the world
-     parts cost a frame, which an AI crowd and the web build multiply -->
-
-`tools/bench/parts_cost_bench.tscn` (gdstudio #926) prints what the parts cost a frame: a crowd of
-`character_dressed.tscn` with a walking stand-in controller (an AI's body), each character part timed apart with its own
-processing off and called by hand, a first death, and 100 of each world part against an empty arena. The web numbers
-come from its export in headless Chrome (`tools/bench/parts_cost_bench.py`, under `gds quiet`). A frame's "work" is from
-its first physics tick to its last node processed (the scripts, the animation and the physics step, not the drawing).
-`tests/gameplay/test_parts_budget.gd` holds the counts tight in CI and ten walking characters' frame loosely, as a
-multiple of a calibration loop.
-
-| Median frame work, ms | 1 | 10 | 25 | 50 walking |
-| --- | ---: | ---: | ---: | ---: |
-| Desktop, before #926 | 0.22 | 0.99 to 1.01 | 2.24 to 2.39 | 5.16 to 5.59 |
-| Desktop, after | 0.21 | 0.74 to 0.84 | 1.47 to 1.54 | 3.23 to 3.28 |
-| Chrome, before | 0.3 | 1.1 to 1.2 | 2.6 to 3.2 | 6.5 to 9.4 |
-| Chrome, after | 0.3 | 0.8 to 1.0 | 1.9 | 3.8 to 4.1 |
-
-| µs a character a frame (25 walking) | Step | Animation script | Tree | Footsteps | Ragdoll |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Desktop, before | 29 to 30 | 5.7 | 22.6 to 23.0 | 14 to 16 | 14.5 |
-| Desktop, after | 23 to 26 | 2.6 to 3.1 | 21.4 to 23.2 | 14 to 15 | 3.4 to 3.9 |
-| Chrome, before | 35 | 6.7 to 7.0 | 20 to 22 | 22 | 18 to 19 |
-| Chrome, after | 30 | 4.5 to 4.8 | 21 | 23 | 4.6 to 5.2 |
-
-What changed: the ragdoll's bones are made on the first death ([Ragdoll: cost](../ragdoll.md#cost)), so a living
-character is 29 nodes and one physics body instead of 62 and 17 (53 and 2 with the hit zones of #876, the weapons
-of #887, the pistol hold of #1001 and the `Health` of #925; the body's own step is cheaper with 16 fewer bodies in the
-space); the pose the death needs is sampled into arrays made once; the animation tree's parameter paths are constants
-and the blend spaces follow the tuning's `changed` (the four speeds say it) instead of comparing an array every frame. A
-first death costs 0.45 ms on the desktop and 1 ms in Chrome (bones from a pool, #1022). A standing `Target` is no longer
-processed (1 µs each before, 0 after); a `Door` keeps the characters in its range from its sensor's signals instead of a
-query a tick (1.9 to 2.1 µs each, 1.4 to 1.6 after); a `Pickup` finds its `Visual` once (2.2 to 2.4 µs, 1.8 to 2.0
-after); a lone `Weapon` costs 0.2 to 0.3 µs (a character's is ticked by its step). The level holds 11 pickups, 4 targets
-and 2 doors, under 40 µs together.
-
-What is left: the step and the tree. The footsteps' 14 µs was almost all starting a sound: a walking character starts
-about two steps a second, and `AudioStreamPlayer3D.play()` of an Ogg Vorbis step cost about 250 µs on the desktop (the
-decoder is set up for every play; with the step list emptied the part costs 1.6 µs). Since gdstudio #1023 the steps
-play decoded to PCM once (`DecodedSounds` of `gds_game`, [Audio: starting sounds](../audio.md#starting-sounds)), and a
-WAV starts in about 1 µs:
-
-| Footsteps, µs a character a frame (25 walking) | Before #1023 | After |
-| --- | ---: | ---: |
-| Desktop | 12.9 to 13.7 | 2.25 to 2.30 |
-| Chrome | 22.1 to 22.3 | 7.0 to 7.9 |
-
-The four steps decode once for every character (shared), when the first `Footsteps` is ready: about 2 ms on the
-desktop and 7 to 16 ms in Chrome, inside the first character's spawn (65 to 68 ms before, 72 to 84 after, in Chrome).
-The samples are the decoder's own (16-bit), so the steps sound as before: Movie Maker mixes before and after differ by
--65 dB (25 walkers) and -70 to -83 dB (the action tour's walking), 16-bit rounding; only the tour's shooting stretch
-differs, from run to run. What Chrome still pays is the WAV's own start.
-
-The desktop rows are three interleaved runs of each build (before, after, before, ...), the browser rows two, headless,
-on a machine other agents were using; a range is the lowest and the highest run.
-
-**What the gaits of 2026-11-11 to 13 added** (gdstudio #1360). The budget case's ten walkers went from 0.92 to 1.07
-times the calibration (db19fdc0) to 1.50 to 1.80 (main at dc9dc2fb, 1.79 to 2.99 ms median), eight interleaved runs
-each on a desktop at 97 to 100 % load. Read by the bench's parts, as a share of the body's step (which no change
-touched, so it cancels the load), the animation script and the tree rose at three commits, a game made at each:
-
-| Animation script and tree, share of the step (25 walking) | Script | Tree |
-| --- | ---: | ---: |
-| Before (db19fdc0) | 0.31 | 0.66 |
-| Our walk, jog and sprint (#1275) | 0.40 | 0.70 |
-| Gait speed matching, momentum and lean (#1368) | 0.90 | 0.87 |
-| The starts and stops exist (#1375), and main | 1.18 to 1.37 | 0.85 to 0.91 |
-| After #1360 | 0.99 | 0.80 |
-
-At the step's 72 µs that is a script of 22 µs before and 99 on main. Of main's, the gait's blend took 16 to 25 µs (the
-speed matching of both spaces), the lean 1, the momentum blend 6.5 in the skeleton's update, and the transitions 19 to
-33: once #1375 gave the player its starts and stops, every moving body looked up its main gait, its phase in the tree
-and its next foot each frame before asking whether it wanted a stop, a reversal or a pivot, and each look at a clip's
-record built its library's name and its contact list again. #1360 asks the controller's numbers first and keeps each
-record's lookup and contacts once (`GaitClips`): 7 to 9 µs, the same transitions picked. Our clips key the four `ik_`
-targets (8 of 61 tracks), which the tree blends too. What #1360 left is
-[gdstudio #1438](https://github.com/Ryubara/gdstudio/issues/1438). The lean's share of the tree went from 1.0 to 0.3
-of the step in gdstudio #1403 ([the lean's cost](clips.md#gait-settings)).
-
-- **Approach:** Empty the `RagdollPool` (`clear()`) before counting a living character's nodes, so it makes the pool's
-  sets whatever ran first; leave out the controller the test added and hold the count equal. The count includes the
-  empty `PhysicalBoneSimulator3D` every `Skeleton3D` adds as an internal child on entering the tree (4.7.2's
-  `setup_simulator`): `find_children` lists it. **Watch out for:** handing a set to the pool left its `RagdollDrawing`
-  on the skeleton that made it: 57 nodes alone, 56 in the full run, where earlier suites had filled the pool;
-  `_release` now drops it. **Seen:** gdstudio #1210, 2026-11-11.
-- **Approach:** When a change adds a node or a skeleton modifier to every character (a modifier the `AimLayer` makes,
-  however inactive), raise `NODES_ALIVE` in `test_parts_budget.gd` by as many, with a line on what it is, in the same
-  commit; grep the suites for `NODES_ALIVE` before the full run. **Watch out for:** the aim suites pass and only the
-  full run counts the body, so the extra node shows up as an off-by-one in a suite that looks unrelated. **Seen:**
-  gdstudio #1351, 2026-11-12 (`AimUprightModifier`, 65 to 66).
+What each part of a dressed character and each world part costs a frame (the parts bench, its web numbers, the walking
+crowd's tree and helper tracks, the CI budget) moved to [what the parts cost](parts-cost.md#parts-cost).
 
 ## Prone and the crawl {#prone}
 

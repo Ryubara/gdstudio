@@ -6,10 +6,11 @@
 ## the new magazine's way in (`magazine_approach`) and the shares of it over which the fingers let
 ## go of the magazine and close under it (`carry_release`, `carry_arrive`, kit #1052). The
 ## rifle's (kit #889,
-## `solve_rifle_hold.py`, asked for with `rifle`): five poses and `gameplay/weapon/rifle_held.tscn`
+## `solve_rifle_hold.py`, asked for with `rifle`): six poses and `gameplay/weapon/rifle_held.tscn`
 ## (where each hand's bone sits on the rifle: `RightHandTarget`, `LeftHandTarget`,
-## `MagazineHand`). No number of a hold is typed by hand: change the model or the solver, run both
-## again, then the hold's test (`tests/gameplay/test_pistol_hold.gd`, `test_rifle_hold.gd`).
+## `MagazineHand`, and `ChargeHand` on the charging handle, kit #1266). No number of a hold is
+## typed by hand: change the model or the solver, run both again, then the hold's test
+## (`tests/gameplay/test_pistol_hold.gd`, `test_rifle_hold.gd`).
 ##
 ## The pistol's finger poses set by hand (kit #1084, `tools/hold/pistol_authored.json`, read by
 ## `authored_pose.gd`) are laid over the solved ones here, on the body's own skeleton, so a new
@@ -62,6 +63,7 @@ const WEAPONS: Dictionary[String, Dictionary] = {
 			"support": "res://gameplay/weapon/hold/rifle_support_pose.tres",
 			"magazine": "res://gameplay/weapon/hold/rifle_magazine_pose.tres",
 			"open": "res://gameplay/weapon/hold/rifle_open_pose.tres",
+			"charge": "res://gameplay/weapon/hold/rifle_charge_pose.tres",
 		},
 		"held": "res://gameplay/weapon/rifle_held.tscn",
 		"places":
@@ -69,6 +71,7 @@ const WEAPONS: Dictionary[String, Dictionary] = {
 			"RightHandTarget": "right_hand",
 			"LeftHandTarget": "left_hand",
 			"MagazineHand": "magazine_hand",
+			"ChargeHand": "charge_hand",
 		},
 	},
 }
@@ -184,6 +187,8 @@ func _write_fit(solved: Dictionary, which: String, body: String) -> void:
 		fit.support_hand = _transform(solved.support_hand)
 	if solved.has("magazine_hand"):
 		fit.magazine_hand = _transform(solved.magazine_hand)
+	if solved.has("charge_hand"):
+		fit.charge_hand = _transform(solved.charge_hand)
 	if solved.has("way"):
 		fit.support_way = Vector3(
 			snappedf(solved.way[0], 1e-5),

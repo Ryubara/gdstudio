@@ -327,3 +327,24 @@ def test_sync_moves_a_game_made_before_the_move_onto_the_addon(tmp_path):
     assert sync.drift(KIT, game) == []
     # A second sync finds nothing left to move.
     assert sync.move_into_addons(game, lambda _: None) == 0
+
+
+# --- a kit addon's editor plugin in a game made before it had one (kit #1472) ---
+
+OLD_PROJECT = '[application]\n\n[editor_plugins]\n\nenabled=PackedStringArray("res://addons/gds_ui/plugin.cfg")\n'
+
+
+def test_sync_turns_on_the_plugin_of_an_addon_a_game_made_before_did_not_enable(tmp_path):
+    kit, game = make_kit(tmp_path), tmp_path / "game"
+    add_addon(kit)
+    (kit / "godot" / "addons" / "gds_game").mkdir()
+    (kit / "godot" / "addons" / "gds_game" / "plugin.cfg").write_text('[plugin]\nname="GDS Game"\n')
+    (game / "game").mkdir(parents=True)
+    (game / "game" / "project.godot").write_text(OLD_PROJECT)
+    logged = []
+    sync.sync(kit, game, logged.append)
+    enabled = (game / "game" / "project.godot").read_text()
+    assert '"res://addons/gds_ui/plugin.cfg", "res://addons/gds_game/plugin.cfg"' in enabled
+    assert enabled.count("gds_ui/plugin.cfg") == 1
+    assert any("enabled game/addons/gds_game/plugin.cfg" in line for line in logged)
+    assert sync.sync(kit, game, lambda _: None) == 0  # already on: nothing to do

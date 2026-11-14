@@ -83,8 +83,16 @@ const FREE_ARM_BONE := &"clavicle_l"
 ## on only while the button is held, so letting go ends it after the shot already leaving (a quick
 ## tap fires fewer than `burst_size`). Weapon data: a server fires by the same setting.
 @export var full_burst_per_press := true
-## The shot goes off the aim by up to this angle, picked from the weapon's seeded sequence.
+## The most a shot goes off the aim (an angle picked from the weapon's seeded sequence), reached
+## by shots fired in a row (`ShotSpread`): a first shot from rest has `first_shot_spread`.
 @export_range(0.0, 15.0, 0.1, "suffix:deg") var spread := 0.0
+## The spread of a first shot from rest; 0 puts it on the crosshair's point (gdstudio #1411).
+@export_range(0.0, 15.0, 0.05, "suffix:deg") var first_shot_spread := 0.0
+## The shots fired in a row that take the spread from `first_shot_spread` up to `spread`.
+@export_range(1, 30, 1) var spread_build_shots := 4
+## Seconds the spread takes to fall from `spread` back to `first_shot_spread`, on the ticks the
+## weapon is ready to fire and is not fired.
+@export_range(0.0, 3.0, 0.01, "suffix:s") var spread_recovery_time := 0.3
 ## How hard a shot kicks the player's view: a share of the camera's `shot_kick_amplitude` (1: as
 ## the camera has it, 2: twice, 0: no kick, as for the fists). The kick is cosmetic and never sent.
 @export_range(0.0, 4.0, 0.05) var recoil := 1.0
@@ -327,6 +335,13 @@ const FREE_ARM_BONE := &"clavicle_l"
 	set(value):
 		reload_clip = value
 		emit_changed()
+## The reload of an empty magazine, played in place of `reload_clip` when the magazine is empty as
+## the reload begins (the rifle's `rifle/Rifle_Reload_Empty`, kit #1508: the body's beat for the
+## charging handle's pull, which only an empty reload has). Empty: `reload_clip` for both.
+@export var empty_reload_clip: StringName = &"":
+	set(value):
+		empty_reload_clip = value
+		emit_changed()
 ## The reload of a lying body, played the same way in place of `reload_clip` while the body lies
 ## with a prone aim (the pistol's `prone_reload/Prone_Reload_Pistol`: from the prone aim's pose
 ## and back to it, with the left hand's times of `reload_clip`, which `WeaponHold` follows).
@@ -360,6 +375,10 @@ const FREE_ARM_BONE := &"clavicle_l"
 @export var reload_sounds: Array[AudioStream] = []
 ## When each reload sound plays, as shares of `reload_time` (0 at the start, 1 at the end).
 @export var reload_sound_at: PackedFloat32Array = PackedFloat32Array()
+## On: the reload's last sound (the rifle's bolt) plays only in a reload of an empty magazine,
+## which ends with the charging handle's pull (`ChargePull`, kit #1402); with rounds left the bolt
+## stays home and makes none. Cosmetic.
+@export var last_reload_sound_when_empty := false
 ## The weapon coming out.
 @export var draw_sound: AudioStream
 
@@ -380,6 +399,11 @@ var automatic: bool:
 
 ## How a shot of this weapon travels now: `MELEE` for a melee weapon, `HITSCAN` when `hitscan` is
 ## on or `kind` says so, else `PROJECTILE`. The weapon reads this, never `kind` alone.
+## The standing reload's clip for a magazine that is `empty` (or not) as the reload begins.
+func standing_reload_clip(empty: bool) -> StringName:
+	return empty_reload_clip if empty and empty_reload_clip != &"" else reload_clip
+
+
 func shot_kind() -> Kind:
 	if kind == Kind.MELEE:
 		return Kind.MELEE

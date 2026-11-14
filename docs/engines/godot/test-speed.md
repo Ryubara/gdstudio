@@ -81,14 +81,19 @@ a check that warns past 60 % and fails past 80 % of the job's time limit, so dri
 job with no failing test (Deadnight #1015, `tools/ci_test_shards.py` and `tools/ci_shard_time.py`;
 [CI and deploys](../../studio/ci.md#shards)).
 
-- **Approach:** Before adding a suite to a template's CI job, read that job's last green run on the base: the minutes it
-  took against its `timeout-minutes`, and its slowest suites by the gaps between `Run Test Suite:` lines. **Watch out
-  for:** a job past 80 % of its limit is cancelled with no failing test whenever a slow runner draws it; that is the
-  limit, not your change. Leave the limit alone in your pull request (raising it there collides with the sharding work
-  and hides the cost): open or name the issue that shards the job and report the cancel, so the coordinator reruns it.
-  **Seen:** gdstudio #1482, the 3d-third-person template job cancelled at its 40 minutes twice (264 suites in 2229 s,
-  then all 312 in 1913 s, against 1783 s on the base's green run; `test_jump_weapon_hold.gd` 877 and 646 s against
-  526 s), the base itself at 38; the sharding is #1492.
+The kit does the same for 3D Third Person: the `template-tests` job of `ci.yml` runs four shards of the made game's
+suite, dealt by `.github/scripts/ci_test_shards.py` from `.github/scripts/ci_test_times.json`, and its `check` command
+ends each shard (25-minute limit) and the `template` job (40). `build-ok` stays the one required check, so a new shard
+needs no ruleset change. To refresh the times, download the `template-tests` job logs of two or more green `main`
+runs (`gh api --allow-escape-sequences repos/<owner>/<repo>/actions/jobs/<id>/logs`) and run `ci_test_shards.py update`
+on them; `report --root <game>` shows each shard's expected seconds.
+
+- **Approach:** Split a job by seconds before its time reaches 60 % of its limit, and when an open pull request adds a
+  slow script, put its measured seconds in the times file ahead of time, so it lands in a shard of its own rather than
+  on top of a full one. **Watch out for:** a script with no time counts the small default; a 526 s suite dealt as 10 s
+  would have joined a shard already holding about 350 s. **Seen:** gdstudio #1492, 2026-11-13 (3D Third Person's one
+  job took 30 to 38 of its 40 minutes and #1482's run was cancelled at 40 with no failing test; #1369's
+  `test_jump_weapon_hold.gd` alone took 526 to 877 s; fix: four shards and the time check).
 
 ## Night suites: where the seconds go, and what may be cut {#night-suites-where-the-seconds-go-and-what-may-be-cut}
 

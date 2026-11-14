@@ -12,7 +12,7 @@
 - `assets/characters/mannequin/` is Quaternius's two mannequins (`mannequin_female.glb` and
   `mannequin_male.glb`, on the same rig) and `assets/animation/universal/` the Universal Animation
   Library 1 and 2 (CC0, each with a `LICENSE.md`): the clip checks' bodies and the character's 86 clips.
-- `assets/animation/rifle/` is GDStudio's own rifle clips (`Rifle_Idle`, three aims, `Rifle_Shoot`, `Rifle_Reload`;
+- `assets/animation/rifle/` is GDStudio's own rifle clips (`Rifle_Idle`, three aims, `Rifle_Shoot`, two reloads;
   MIT, keyed from scratch by `build_rifle_clips.py` round the two-handed hold; its `README.md` has the numbers).
 - `assets/animation/pistol/` is GDStudio's own pistol slide-rack clip (`Pistol_Rack`; MIT, keyed from scratch by
   `build_pistol_rack.py` on the player's body's rig, with a `LICENSE.md`), an `AnimationLibrary` like the two packs; its
@@ -27,6 +27,10 @@
 - `assets/animation/limb_overlap.py` measures, with the pinned Blender, how deep any limb is inside another on every
   frame of a clip, on both mannequins' skinned meshes; a build that keys clips runs it before it exports. From the
   command line it reads a clip file at the file's own frame rate (`test_limb_overlap.py` proves both ways agree).
+  Its `--brief` reports (`bodies_overlap.json`, `<file>_overlap.json`) carry the hash of the clip file, of the
+  script's code and of each body file (`measure_hash.py`), and `tests/fixtures/bodies_overlap.gd` fails a report
+  when one of them is no longer the one measured: measure every report again after a change to the script's code
+  or to a body.
 - `assets/weapons/pistol/` is GDStudio's own pistol (MIT, from Deadnight's build script, with a `LICENSE.md`), and
   `pistol_held.tscn` puts it in the mannequin's right hand for the pistol clips (the folder's README).
 - `assets/audio/coin/` (a coin pickup, four variants), `assets/audio/footsteps/` (four soft steps),
@@ -36,9 +40,10 @@
   reload and draw in `assets/audio/pistol/` are generated with ElevenLabs
   Sound Effects on the studio's paid plan, like the base's wind: commercial use in a game allowed, no attribution
   required, not to be shared on their own as sound files (each folder's `LICENSE.md`).
-- The five pistol shots in `assets/audio/pistol/` are synthesised by Deadnight's code (MIT, GDStudio's own; the
-  folder's `LICENSE.md`): no attribution and nothing to replace. `assets/shaders/impacts/` and
-  `assets/materials/impacts/` are the mark's shader and its default material (original).
+- The pistol's five shots and the rifle's four (`assets/audio/pistol/`, `assets/audio/rifle/`, kit #1414) are
+  generated with ElevenLabs Sound Effects on the paid plan too; the rifle's clicks, reload and draw are synthesised by
+  Deadnight's code (MIT, GDStudio's own; the folder's `LICENSE.md`): no attribution and nothing to replace.
+  `assets/shaders/impacts/` and `assets/materials/impacts/` are the mark's shader and its default material (original).
 - `assets/ui/minimap/` is the minimap's six icon shapes (dot, ring, square, diamond, arrow, triangle: white on
   clear, 64 px, GDStudio's own, drawn by `tools/minimap/make_icons.py`; a marker tints them). The scripts and scenes
   that use them are in `ui/minimap/` and `core/minimap/`.

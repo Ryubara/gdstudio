@@ -119,4 +119,6 @@ Each clip keeps 56 tracks (55 rotations and the pelvis's position): the importer
 positions that never change and ten rotation tracks that never leave the rest, and keeps a rotation track for every
 other bone, moving or not. The glb holds 195 channels a clip, sampled on every frame. The
 template ships both libraries, about 1.5 MB imported, and plays 27 of their 86 clips; of those 27, a clip moves 25
-bones on average and a linear reducer at half a degree keeps 30 % of the moving bones' rotation keys.
+bones on average and a linear reducer at half a degree keeps 30 % of the moving bones' rotation keys. Since
+kit #1366 the export carries only the library clips the game names (16 of the 86 then: the rest are ours or fixed),
+1.16 MB off the web pack ([replacing](own-animation.md#replacing)).

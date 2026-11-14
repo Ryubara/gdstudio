@@ -54,6 +54,12 @@ numbers, and the plan fits the clip to the obstacle measured:
   (`VaultAnimation.join()`), since both vaults end in the pose it starts from; a body that lands with no move asked
   for drops it.
 
+- **A weapon in the hands.** The pistol's layer is let go by `VaultAnimation.hands`; a hold that keeps both hands
+  on its weapon (the rifle's `TwoHandHold`) has its left hand let go for the crossing through its own `free_hand()`
+  ([FreeHand](interact.md#interact-held)): for the low vault the rifle goes down in the right hand, for the high one
+  it is hidden and both arms are the clip's, and the hands are back on it as the vault lands (gdstudio #1409; the
+  planted wrists within the empty hands' limits on both bodies, `tests/gameplay/test_vault_rifle.gd`).
+
 A vault with no `VaultClip` (the addon's default, or an obstacle with a clip of its own) is timed as before: the
 clip is played at the speed that makes it last the crossing, and `plant_at` and `clear_at` (shares of the clip) line
 its hand plant and its clear of the far edge up with the path's key points.

@@ -129,3 +129,14 @@ Parts. Cost, measured as above on the same machine (1920 x 1080, 150 frames): th
   at the rig's `Player`, and a part given its own `player` keeps it. **Watch out for:** a first version bound every part
   to `Hud.player` on `add_widget` and overwrote the stand-in subjects the HUD tests had set, 15 of 15 cases failed; bind
   only the parts with no player of their own. **Seen:** gdstudio #927, 2026-11-10.
+
+## A route for a clip {#walkthrough}
+
+<!-- new section: nothing said how a character is filmed through a map without a person -->
+
+- **Approach:** Film a character with an autopilot that presses the same input actions a player would and turns the
+  camera with the same `orbit()` the mouse uses, over a list of waypoints with a jump distance, and give each waypoint a
+  "stuck for 2 s" exit. **Watch out for:** the first route went through a 1 m wall (the low wall by the gate) and the
+  clip was 25 s of a character running into it; read a contact sheet of the clip before calling it done. The movie is
+  the same every run (the mp4 had the same size twice). **Seen:** gdstudio #821, 2026-11-08
+  (`tools/capture/walkthrough.tscn`: gate, four coins up the jump blocks, the props, the room's door).

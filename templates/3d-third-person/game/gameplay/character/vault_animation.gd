@@ -13,6 +13,8 @@ const LIBRARY := &"vault_joined"
 const SEEK := &"ActionSeek"
 const SEEK_REQUEST := &"parameters/ActionSeek/seek_request"
 const PACE := &"parameters/ActionScale/scale"
+## The least time a held weapon's hand is let go over for a vault, in seconds.
+const PLANT_RELEASE_MIN := 0.05
 
 ## How busy the hands are with the vault (0 free, 1 on the obstacle): the weapon's two-hand hold
 ## lets go by this much.
@@ -46,6 +48,7 @@ func start(animation: CharacterAnimation, plan: VaultPlan, clip: StringName) -> 
 		animation.play_clip(clip, plan.duration)
 		return
 	if plan.has_clip_timing():
+		_free_hands(animation, plan)
 		var skeleton := animation.model.skeleton() if is_instance_valid(animation.model) else null
 		_playing = _joined(player, skeleton, clip, animation.vault_land_clip)
 		animation.play_clip(_playing)
@@ -58,6 +61,31 @@ func start(animation: CharacterAnimation, plan: VaultPlan, clip: StringName) -> 
 	var paces := animation.traversal_speed_range
 	var pace := clampf(player.get_animation(clip).length / plan.duration, paces.x, paces.y)
 	animation.tree.set(PACE, pace)
+
+
+## Lets the held weapon's support hand go for a vault of `seconds` (gdstudio #1409): a hold that
+## keeps both hands on its weapon (`TwoHandHold`) would keep the left one on the hand guard, where
+## the clip plants it on the top. The weapon's own hold does it (`free_hand()`, `FreeHand`), so
+## the rule is the hold's and never a list of weapons: the gun goes down in the right hand for the
+## low vault, and with it put away for the high one (`puts_weapon_away`) the right arm is the
+## clip's too. The hand comes back onto the weapon as the crossing ends. The pistol's hold is let
+## go by `hands` instead (its layer).
+## The hand is off the weapon by the hand plant however close to it the clip starts (a press at
+## the wall starts the high vault 0.15 s before it, under the hold's own release time).
+static func _free_hands(animation: CharacterAnimation, plan: VaultPlan) -> void:
+	var held := animation.held_definition()
+	if held == null or held.view.is_empty() or not is_instance_valid(animation.model):
+		return
+	var hold := animation.model.get_node_or_null(held.view) as TwoHandHold
+	if hold == null:
+		return
+	var character := animation.character
+	var timing := character.vault_motion.clip(character.vault_settings)
+	var by := -1.0
+	if timing != null and plan.clip_rate > 0.0:
+		var to_plant := (timing.hand_plant - plan.clip_start) / plan.clip_rate
+		by = maxf(to_plant - 1.0 / Engine.physics_ticks_per_second, PLANT_RELEASE_MIN)
+	hold.free_hand(plan.duration, by)
 
 
 ## Follows `character`'s vault for a frame: holds the clip and the model to the crossing, keeps

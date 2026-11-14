@@ -10,16 +10,24 @@ message, hook output and reminders (`isMeta`) and tool results all fail that tes
 the coordinator's own words quoted back do not approve anything.
 
 What approves pull request N, read sentence by sentence (a sentence ends at `.`, `!`, `?` or `;` before a space, or
-at a line break; a clause after "but" is read on its own for a named number), in the maintainer's own words with no set
+at a line break; a clause after "but" is read on its own for a named number; an aside in parentheses is read on its
+own unless it carries a refusal word, which keeps it in its sentence), in the maintainer's own words with no set
 wording:
 - a sentence that names N (`#N`, `N`, `repo#N`, `.../pull/N`) and says to lift, remove, release, approve, land or
   merge it, or yes; or
-- a sentence with no digit in it that says yes, approve or go ahead ("I approve of all the PRs mentioned"), answering
-  the coordinator's last message before it, which named N and the hold or an approval. It covers every number that
-  message named, however long the maintainer's message is.
-A question, a negation or a condition (no, not, don't, wait, keep, if, once, after, until...) in that sentence does not
-approve, and a sentence that names N with one vetoes N for the whole message. Unsure is no: the guard then refuses as
-it always did.
+- a sentence that names N's topic and says yes: when the coordinator's last message lists N as an item (`1. #N jump
+  arms: ...`), the item's label (its words before the first colon, dash, comma, full stop or parenthesis, at most
+  three) names N wherever all of them stand in one sentence; or
+- a line after a list marker (`1.`, `1)`) with no other digit that says yes, answering that item of the coordinator's
+  numbered list when the item names N; or
+- a sentence with no digit and no listed topic in it that says yes, approve or go ahead ("I approve of all the PRs
+  mentioned"), answering the coordinator's last message before it, which named N and the hold or an approval. It
+  covers every number that message named, however long the maintainer's message is; a line after a list marker
+  answers only its own item.
+A list marker's digit is never a named number. A question, a negation or a condition (no, not, don't, wait, keep, if,
+once, after, until...) in that sentence does not approve, and a sentence that names N or its topic with one, or a
+marked line answering N's item with a refusal word, vetoes N for the whole message. Unsure is no: the guard then
+refuses as it always did.
 
 An approval counts for 24 hours and for one lift of that pull request: the lift log records the approving message's
 time, and a lift whose approval is already in the log is refused. Standard library only: the hooks load this file by
@@ -56,11 +64,26 @@ _YES = re.compile(
 # "hold off" refuses as a verb ("hold off on 7"), not as the label or the hold taken off ("S-hold off 7", "take the
 # hold off 7"): gdstudio #1332.
 _HOLD_OFF = r"(?<!s-)(?<!the )(?<!that )(?<!this )(?<!its )(?<!their )hold off"
-_NO = re.compile(
+_REFUSAL = (
     r"\b(no|not|nope|never|dont|cant|wont|wait|keep|stop|" + _HOLD_OFF + r"|later|cancel|instead"
-    r"|if|unless|until|once|after|before|when|whether)\b|n['’]t\b|\?",
-    re.IGNORECASE,
+    r"|if|unless|until|once|after|before|when|whether)\b|n['’]t\b"
 )
+_REFUSES = re.compile(_REFUSAL, re.IGNORECASE)  # a refusal word: it keeps an aside in its sentence
+_NO = re.compile(_REFUSAL + r"|\?", re.IGNORECASE)
+# An aside: "(can you check the hands?)" after an approval is a remark of its own (gdstudio #1467); an unclosed one
+# runs to the end of its sentence.
+_ASIDE = re.compile(r"\([^()\n]*(?:\)|$)")
+# A list marker at a line's start, "3." or "3)": its digit names no pull request, it points at an item of a list.
+_MARKER = re.compile(r"^[ \t]*(\d{1,2})[.)](?=\s)", re.MULTILINE)
+_ITEM = re.compile(r"^[ \t]*(?:(\d{1,2})[.)]|[-*+])[ \t]+")  # an item of the coordinator's list
+_POINTER = re.compile(r"\S*github\.com/\S+|[\w.-]*(?:/[\w.-]+)?#\d+")  # how an item points at a pull request
+_LABEL_ENDS = re.compile(r"[:;,.?!()–—]|\s-\s")
+_WORD = re.compile(r"[a-z]+")
+_FILLING = (
+    "a an and the of on in for to with new pr prs pull request requests s hold holds lift its it this that is are one"
+)
+_FILLER = frozenset(_FILLING.split())  # words an item's label leaves out
+_TOPIC_MOST = 3  # a topic is the first three words of an item's label
 _NUMBER = re.compile(r"\d")
 # "#1369 through #1378" names every number between, both ends included; a short run only.
 _RANGE = re.compile(r"(?<![\w.#/-])#?(\d+)\s*(?:through|thru|to|-|–|—)\s*#?(\d+)(?![\w])", re.IGNORECASE)
@@ -154,22 +177,103 @@ def names(text: str, number: int, repo: str | None) -> bool:
 
 
 def _sentences(text: str, pattern: re.Pattern[str] = _SENTENCES) -> list[str]:
-    return [part for part in pattern.split(text) if part and part.strip()]
+    """The text's sentences (or clauses), each aside without a refusal word taken out and read as one of its own."""
+    parts = []
+    for part in pattern.split(text):
+        if not part or not part.strip():
+            continue
+        asides = [aside.group() for aside in _ASIDE.finditer(part) if not _REFUSES.search(aside.group())]
+        for aside in asides:
+            part = part.replace(aside, " ", 1)
+        parts += [piece for piece in (part, *asides) if piece.strip()]
+    return parts
+
+
+def _stem(word: str) -> str:
+    return word[:-1] if len(word) > 3 and word.endswith("s") else word
+
+
+def _words(text: str) -> set[str]:
+    """A text's words, lower case, a plural's `s` dropped."""
+    return {_stem(word) for word in _WORD.findall(text.lower())}
+
+
+def items(reply: str) -> list[tuple[int | None, str]]:
+    """The items of the lists in the coordinator's message: (its number, or None for a bullet; its text, with the
+    indented lines under it)."""
+    found: list[tuple[int | None, str]] = []
+    open_item = False
+    for line in reply.splitlines():
+        start = _ITEM.match(line)
+        if start:
+            found.append((int(start.group(1)) if start.group(1) else None, line[start.end() :]))
+            open_item = True
+        elif open_item and line[:1] in (" ", "\t") and line.strip():
+            found[-1] = (found[-1][0], f"{found[-1][1]}\n{line}")
+        else:
+            open_item = False
+    return found
+
+
+def topic(item: str) -> set[str]:
+    """An item's topic: the first words of its label (the text before its first colon, dash, comma, full stop or
+    parenthesis, with its pointers and filler words left out); empty when it has none."""
+    plain = _POINTER.sub(" ", re.sub(r"[*`_]", " ", item))
+    for segment in _LABEL_ENDS.split(plain):
+        words = [_stem(word) for word in _WORD.findall(segment.lower()) if word not in _FILLER]
+        if words:
+            return set(words[:_TOPIC_MOST])
+    return set()
+
+
+def _points_at(item: str, number: int, repo: str | None) -> bool:
+    """Whether an item's first pointer (`#N`, `repo#N`, a URL) is pull request `number`: the item's topic is its."""
+    first = _POINTER.search(item)
+    return bool(first) and names(first.group(), number, repo)
+
+
+def _plain_yes(sentence: str) -> bool:
+    return bool(_YES.search(sentence)) and not _NO.search(sentence) and not _NUMBER.search(sentence)
 
 
 def approves(text: str, reply: str, number: int, repo: str | None) -> str:
     """How a maintainer's message (its own words) approves lifting the hold on `number`, '' when it does not."""
-    clauses = _sentences(text)
-    if any(names(c, number, repo) and _NO.search(c) for c in clauses):
-        return ""  # "don't lift 7" anywhere in the message vetoes 7, whatever else it says
+    listed = items(reply)
+    numbered = {mark: body for mark, body in listed if mark is not None}
+    marked, plain = [], []  # lines answering an item of the numbered list; every other line
+    for line in text.split("\n"):
+        mark = _MARKER.match(line)
+        if mark and numbered:
+            marked.append((int(mark.group(1)), line[mark.end() :]))
+        else:
+            plain.append(line[mark.end() :] if mark else line)
+    own = [body for mark, body in marked if mark in numbered and names(numbered[mark], number, repo)]
+    topics = [words for words in (topic(body) for _, body in listed if _points_at(body, number, repo)) if words]
+
+    def topical(clause: str) -> bool:
+        return any(words <= _words(clause) for words in topics)
+
+    clauses = _sentences("\n".join([*plain, *(body for _, body in marked)]))
+    if any((names(clause, number, repo) or topical(clause)) and _NO.search(clause) for clause in clauses):
+        return ""  # "don't lift 7" or "the jump arms are not right" anywhere in the message vetoes 7
+    for body in own:
+        if any(_REFUSES.search(clause) and not _NUMBER.search(clause) for clause in _sentences(body)):
+            return ""  # "2) not yet" vetoes item 2's pull request
     for clause in clauses:
         if names(clause, number, repo) and _YES.search(clause):
             return "named"
-    if not (_HOLD.search(reply) and names(reply, number, repo)):
+    for clause in clauses:
+        if topical(clause) and _YES.search(clause):
+            return "topic"
+    if not (_HOLD.search(reply) and names(_MARKER.sub(" ", reply), number, repo)):
         return ""
-    for sentence in _sentences(text, _WHOLE):
-        if _YES.search(sentence) and not _NO.search(sentence) and not _NUMBER.search(sentence):
+    for body in own:
+        if any(_plain_yes(sentence) for sentence in _sentences(body, _WHOLE)):
             return "answered"
+    every_topic = [words for words in (topic(body) for _, body in listed) if words]
+    for sentence in _sentences("\n".join(plain), _WHOLE):
+        if _plain_yes(sentence) and not any(words <= _words(sentence) for words in every_topic):
+            return "answered"  # a yes naming a listed topic answers that item alone
     return ""
 
 

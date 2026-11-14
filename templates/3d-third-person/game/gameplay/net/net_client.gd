@@ -250,6 +250,9 @@ func _predict(delta: float) -> void:
 	link.send(packet)
 	var stepped := CommandCodec.decode(packet)
 	player.step(stepped, delta)
+	var use := ItemUse.of(player)
+	if use != null:
+		use.step(delta)
 	silence_walk.remember(stepped)
 	reconciler.record(seq, player.global_position)
 	if _steps % _ping_every == 0:
@@ -288,10 +291,15 @@ func _take_player() -> void:
 	if player.weapon != null:
 		player.weapon.authoritative = false
 		player.weapon.fired.connect(combat.track)
-	# The bag is not on the wire yet: a hotbar use would change health the server owns.
+	# The server owns the bag and the health: a use starts here at the press and plays, and the
+	# item works when the server's USE says so (gdstudio #1386). It steps with the body.
 	var hotbar := Hotbar.of(player)
 	if hotbar != null:
 		hotbar.authoritative = false
+	var use := ItemUse.of(player)
+	if use != null:
+		use.role = ItemUse.Role.PREDICT
+		use.stepped_by_owner = true
 
 
 func _on_connected() -> void:

@@ -79,12 +79,12 @@ func test_every_tab_of_the_settings_has_no_dead_ends() -> void:
 		await get_tree().process_frame
 		(screen.get_node("%Tabs").get_child(tab) as Control).grab_focus()
 		_assert_no_dead_ends(screen, "settings tab %d" % tab)
-	# The controls tab holds the most: the four fixed rows (sensitivity, invert, camera shake, pause
-	# in the inventory), a row of two buttons for each action, the three tabs and the two footer
-	# buttons.
+	# The controls tab holds the most: the five fixed rows (sensitivity, invert, camera shake, pause
+	# in the inventory, toggle lean), a row of two buttons for each action, the three tabs and the
+	# two footer buttons.
 	var page: ControlsPage = screen.get_node("%ControlsPage")
 	assert_int(MenuFixture.focusables(screen).size()).is_equal(
-		4 + 2 * page.rebind_rows().size() + 3 + 2
+		5 + 2 * page.rebind_rows().size() + 3 + 2
 	)
 
 

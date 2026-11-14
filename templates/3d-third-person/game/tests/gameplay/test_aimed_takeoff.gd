@@ -1,12 +1,16 @@
 # A jump begun while a gait transition plays (gdstudio #1462): the pistol up, the body jogs, stops
 # and jumps before the stop clip ends. The transition hands the body to the jump state, so the
 # jump's clip plays, and at the takeoff the gun turns in the character's space no faster than it
-# turned in the stop it leaves or at the same body's aimed takeoff from a still stand. Before, the
+# turned in the stop it leaves, in the rest of that jump, or at the same body's aimed takeoff from
+# a still stand. Before, the
 # transition's own step sent the machine back to the ground state on the frame the jump was asked
 # for: the body flew the whole jump on the ground's pose, and the stop clip's held pose gave way to
 # the ground's in one tick, a step of the gun of 3 to 4 degrees (183 to 244 degrees a second).
 # Read at `skeleton_updated`, after every modifier, on both bodies.
 extends GdUnitTestSuite
+
+## The part of a run `_fastest` reads: before the jump, its takeoff, or the rest of the jump.
+enum Part { BEFORE, TAKEOFF, AIR }
 
 const PISTOL := "res://gameplay/weapon/pistol.tres"
 ## Ticks of the aim before the jog, of the jog, and of the stop clip before the jump.
@@ -18,8 +22,9 @@ const READ_TICKS := 24
 const TAKEOFF_UPDATES := 4
 ## How many updates into the jump the body machine may still name another state.
 const JUMP_STATE_BY := 2
-## How much faster than the stop it leaves, or a still stand's takeoff, the gun may turn at the
-## takeoff, and the least bound (degrees a second), as `test_jump_weapon_hold.gd` holds the jump.
+## How much faster than the stop it leaves, the rest of its jump, or a still stand's takeoff, the
+## gun may turn at the takeoff, and the least bound (degrees a second), as
+## `test_jump_weapon_hold.gd` holds the jump.
 const OVER_GROUND := 1.25
 const TURN_FLOOR := 5.0
 
@@ -55,15 +60,18 @@ func _takeoffs(body: String) -> void:
 	await _player_with(body)
 	var still := await _jump(false)
 	var from_stop := await _jump(true)
-	var still_turn := _fastest(still, true)
-	var stop_turn := _fastest(from_stop, true)
-	var in_stop := _fastest(from_stop, false)
-	var bound := maxf(maxf(still_turn.whole, in_stop.whole), TURN_FLOOR) * OVER_GROUND
+	var still_turn := _fastest(still, Part.TAKEOFF)
+	var stop_turn := _fastest(from_stop, Part.TAKEOFF)
+	var in_stop := _fastest(from_stop, Part.BEFORE)
+	var in_air := _fastest(from_stop, Part.AIR)
+	var bound := (
+		maxf(maxf(still_turn.whole, in_stop.whole), maxf(in_air.whole, TURN_FLOOR)) * OVER_GROUND
+	)
 	var message := (
 		(
 			"%s: at the takeoff from a stop the gun turns %.0f degrees a second in the character's"
 			+ " space (update %d of the jump; the muzzle's line %.0f), in the stop before it %.0f,"
-			+ " at the takeoff from a still stand %.0f (the line %.0f)"
+			+ " in the rest of that jump %.0f, at the takeoff from a still stand %.0f (the line %.0f)"
 		)
 		% [
 			body,
@@ -71,6 +79,7 @@ func _takeoffs(body: String) -> void:
 			stop_turn.at,
 			stop_turn.line,
 			in_stop.whole,
+			in_air.whole,
 			still_turn.whole,
 			still_turn.line,
 		]
@@ -186,17 +195,22 @@ func _read(way: String) -> void:
 
 # The fastest the gun turns in the character's space between updates a tick apart (degrees a
 # second), whole (`whole`, and the update of the jump it is on, `at`) and along the muzzle's line
-# (`line`): over the takeoff (the first `TAKEOFF_UPDATES` updates in the jump state), or before
-# the jump.
-func _fastest(run: Array[Dictionary], takeoff: bool) -> Dictionary:
+# (`line`): over the takeoff (the first `TAKEOFF_UPDATES` updates in the jump state), the rest of
+# the jump state, or before the jump.
+func _fastest(run: Array[Dictionary], part: Part) -> Dictionary:
 	var most := {"whole": 0.0, "line": 0.0, "at": -1}
 	var in_jump := 0
 	for index in range(1, run.size()):
 		var now := run[index]
 		var last := run[index - 1]
 		in_jump = in_jump + 1 if now.state == "JUMP" else 0
-		var counted := in_jump > 0 and in_jump <= TAKEOFF_UPDATES
-		if takeoff != counted or (not takeoff and now.state != "IDLE" and now.state != "WALK"):
+		var on := in_jump > 0 and in_jump <= TAKEOFF_UPDATES
+		match part:
+			Part.AIR:
+				on = in_jump > TAKEOFF_UPDATES
+			Part.BEFORE:
+				on = not on and (now.state == "IDLE" or now.state == "WALK")
+		if not on:
 			continue
 		var ticks: int = now.frame - last.frame
 		if ticks <= 0:

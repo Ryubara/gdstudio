@@ -105,6 +105,12 @@ issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.
   requests sat open: #1299's body swap sent some 15 hand and clip pull requests back to a re-solve, two stacks hung on
   one hard fit each, three pull requests had no owner and superseded ones stayed open. **Seen:** gdstudio, 2026-11-12
   (fix: the freeze, its cap in the conventions, and an idle check that honours it).
+- **Approach:** After each agent's report and each landing, run `gds issue list --window 40` and start every issue
+  under "May start now" (`gds issue start`, `gds brief`, one agent each), give an agent to any in-progress issue whose
+  agent is gone, and block only on a `Depends on:` line or named conflicting files. **Watch out for:** a coordinator
+  busy landing a queue and relaying reports let agents finish one by one without starting new ones, until one agent
+  was left while five issues were ready. **Seen:** gdstudio coordinator, 2026-11-13 (a maintainer correction; the
+  five issues and #1347 then started at once).
 
 - **Approach:** Before building the core of a system, run `gh pr list` and search the open and in-progress issues for
   its words; if another branch builds it, build only the part that sits on top, against its interface, or wait for it to
@@ -233,7 +239,8 @@ relative path with `git -C` resolves inside the repository.
 
 Work that builds on a branch not landed yet starts from that branch, and its pull request against `main` carries the
 base branch's commits as well as its own. Its `Model:` line names the model of every co-author trailer on those
-commits, and its `Read first:` line the sections the base's author read. `gds pr check-body` runs the CI `commits`
+commits, and its `Read first:` line the sections the base's author read that are on `main` (one the base adds waits
+for the base to land: [anchors](rules.md#anchors)). `gds pr check-body` runs the CI `commits`
 check on the branch's commits since `origin/main` and refuses a `Model:` line that misses one ([the body
 guard](pull-requests.md#pr-body)); run it before `gh pr create`. The base's commits stay on the list after the base
 lands (a squash merge makes a new commit on `main`), so the line keeps naming their models.
@@ -252,6 +259,24 @@ lands (a squash merge makes a new commit on `main`), so the line keeps naming th
   and folded its page into another section while the stacked branch was resolving `main` alone, so the fold made
   there (a section of its own) was redone into the base's section, and the clip that joins the base's would have
   been solved on the base's old files. **Seen:** gdstudio #1265 on #1191, 2026-11-12.
+- **Approach:** When merging an open base into a stacked branch conflicts in one hunk of a file, resolve that hunk
+  only (or take `main`'s file and re-apply the base's diff of it, `git diff origin/main...<base> -- <file>`), then
+  check `git diff origin/main -- <file>` shows nothing but the base's change. **Watch out for:** `git checkout --theirs`
+  takes the base's whole file, which is `main`'s file from before the base last merged it: it dropped #1444's cost
+  work in `gait_transitions.gd` (three other hunks, merged cleanly by git on its own) while keeping the base's one
+  line, and only the diff against `main` showed it. **Seen:** gdstudio #1431 on #1432, 2026-11-13.
+- **Approach:** Before reading the CI of a pull request stacked on a parked branch, merge `main` into it (`gds
+  merge-main`, and retarget it to `main` if it targets the base's branch); read a red check first as a fix `main` has
+  and the base was cut before. **Watch out for:** a stacked branch carries `main` only as of its base, so the fixes
+  `main` took after the base was cut are missing: #1455's fix of the parts budget flake was not in #1482, and
+  `test_parts_budget` failed there as if the branch had broken it. **Seen:** gdstudio PR #1482, 2026-11-14.
+- **Approach:** Another way to refresh a stacked branch after its base landed as a squash: rebuild the tree the base had
+  on the `main` it last merged (`git merge-tree --write-tree <base head> <that main>`), diff that tree against the
+  branch head (`git diff <tree> HEAD > own.patch`, the branch's own change alone), and apply it on a branch from
+  `origin/main` with `git apply -3 own.patch`; resolve only what conflicts there. **Watch out for:** a plain merge of
+  `main` meets every file the base touched, and a patch taken from the base's tip alone carries the `main` the base
+  merged, so either way the base's old side can come back. **Seen:** gdstudio PR #1456, 2026-11-14 (on #1437; `main`'s
+  side of each of #1437's files kept, only the branch's change on top).
 
 ### The worktree is removed when the work is finished {#sweep}
 
@@ -302,6 +327,12 @@ one, whose folder is the pull request's branch.
   that task woke the old agent, which read the queued message and began writing the same files as the new one
   (`mannequin_parade.gd`) until the new agent noticed and stood down. **Seen:** gdstudio #1149 (PR #1172),
   2026-11-11 (a coordinator mistake).
+- **Approach:** To restart an issue already started whose old branch `main` has overtaken (its work landed another way,
+  or merging `main` would cost more than starting again), run `gds issue start <ref> --agent <name> --fresh`: a new
+  `<slug>-<N>` branch and worktree from `origin/main`, recorded in the ledger; never call the start's worktree code or
+  `git worktree add` yourself. **Watch out for:** nothing said when to use `--fresh`, so the agent on #1473 made its new
+  worktree by calling the worktree code directly, around the start's checks and its ledger. **Seen:** gdstudio #1473
+  (found on #1511), 2026-11-14.
 
 ## Starting an agent {#starting-an-agent}
 
@@ -325,11 +356,14 @@ uv run --project <workspace>/repos/gdstudio/python gds brief <owner/repo>#N [--w
 
 It prints `Read: <page>.md#<anchor>` lines (the page under the kit's `docs/`), at most six, best first:
 
-1. every section the issue names as `page.md#anchor`;
+1. every section the issue names as `page.md#anchor`; a section a split left as a pointer gives the section it moved
+   to, here and in the steps below ([page size](rules.md#size), gdstudio #1471);
 2. for each path the issue names (and a pull request's changed files): a docs page gives its section closest to the
-   issue's words, any other path the closest section that mentions it (`.claude/hooks/guards/` finds the hooks
-   pages), when that section's words score at least a third of the best section's (a pull request's changed files
-   need no such closeness);
+   issue's words, any other path the two closest sections that mention it (`.claude/hooks/guards/` finds the hooks
+   pages), when their words score at least a third of the best section's (a pull request's changed files need no
+   such closeness). Two, because a file's lesson often sits beside its code and on the page of its cause: with one,
+   a new entry on `third-person/ai.md#proof` naming `test_ai_section.gd` took the place of
+   `ui-input-tests.md#leaks` (gdstudio #1474);
 3. the rest by the issue's words: its title, its area labels with their descriptions (`A-agents`, "Agents and their
    instructions"), then its body, which counts least.
 
@@ -389,6 +423,12 @@ they exist.
   exists from `gds issue start`, unless `gh pr list --search <N>` shows a pull request. **Watch out for:** a prompt
   said to find #1037's branch with `gh pr list`, but #1037 had no pull request yet, so the agent searched for one that
   did not exist. **Seen:** gdstudio #1221, 2026-11-11 (coordinator's mistake).
+- **Approach:** Name in a brief every open pull request the work builds on as its base (`builds on #N: stack on its
+  branch`, [stacked](#stacked)), with the classes or fields it takes from it, never as work going on nearby; check the
+  issue's words against `gh pr list` before writing the brief, and hand out no protocol number without the rule
+  ([netcode](../gamedev/netcode.md#parallel-branches)). **Watch out for:** #1453's brief named #1454 (the puppet's goal,
+  `CharacterGoal`) as parallel work, so its agent found the dependency alone, and the protocol numbers the coordinator
+  had assigned collided (14 twice). **Seen:** gdstudio PR #1503, 2026-11-14 (coordinator's mistake; #1503 took 17).
 
 ## The report {#the-report}
 

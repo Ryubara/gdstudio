@@ -19,6 +19,8 @@ extends RefCounted
 ##   in. REVIVED: it gets up where the server says (`Character.revive_at`), the pose blending there.
 ## - AI (gdstudio #970): played on the AI's puppet (`AiReplica.play_event`) when the puppets are
 ##   drawn at its TICK: a death's ragdoll, a shot's flash; a HIT on an AI flinches its puppet.
+## - USE (gdstudio #1386): an item use, played by `items` (`ClientItems`): a puppet's clip and
+##   sound, the server's heal and count, a cut.
 ## - REJECTED: counted and said (`shot_rejected`); the shooter's own cosmetic shot changed nothing.
 ## - ENTITY of a part drawn with the puppets (`NetEntity.with_puppets`: a target that falls or
 ##   stands): read when its TICK is drawn, after the hit it goes with.
@@ -50,6 +52,8 @@ const FLINCH_STRENGTH := 40.0
 const ZONE_REACH := 0.6
 
 var client: NetClient
+## Plays the USE events (gdstudio #1386).
+var items := ClientItems.new()
 ## Events played since the start, by kind.
 var shots := 0
 var melees := 0
@@ -80,7 +84,7 @@ func on_tick(tick: SnapshotCodec.Tick) -> void:
 		match event.kind:
 			NetEvent.Kind.SHOT, NetEvent.Kind.MELEE, NetEvent.Kind.HIT:
 				_play_or_wait(event, at)
-			NetEvent.Kind.DIED, NetEvent.Kind.REVIVED:
+			NetEvent.Kind.DIED, NetEvent.Kind.REVIVED, NetEvent.Kind.USE:
 				_play_or_wait(event, at)
 			NetEvent.Kind.REJECTED:
 				play(event)
@@ -166,6 +170,8 @@ func _play(event: NetEvent) -> void:
 		NetEvent.Kind.AI:
 			if client.ai_replica != null:
 				client.ai_replica.play_event(event)
+		NetEvent.Kind.USE:
+			items.play(event, self)
 
 
 ## The body of `slot` on this screen: the local player or its puppet, or null.
@@ -194,7 +200,7 @@ func _is_local(event: NetEvent) -> bool:
 	match event.kind:
 		NetEvent.Kind.HIT:
 			return NetHits.slot_of(event.id) == client.slot
-		NetEvent.Kind.DIED, NetEvent.Kind.REVIVED:
+		NetEvent.Kind.DIED, NetEvent.Kind.REVIVED, NetEvent.Kind.USE:
 			return event.slot == client.slot
 	return false
 

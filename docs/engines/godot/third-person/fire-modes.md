@@ -3,7 +3,7 @@
 <!-- new section: shooting.md was at its size limit; nothing held what one press of fire gives per weapon (single,
      burst, automatic) or what a tap from the hip does (gdstudio #1352) -->
 
-What one press of the fire button fires, weapon by weapon, and what a tap does. Part of
+What one press of the fire button fires, weapon by weapon, what a tap does and how the spread grows. Part of
 [the 3D Third Person template](../third-person-template.md); aiming, firing, ammunition and switching are on
 [Crouch, aim and shoot](shooting.md).
 
@@ -82,3 +82,36 @@ What a short press fires on burst is the weapon's choice, `WeaponDef.full_burst_
   so a `Weapon.set_trigger_down()` failed the commit hook on both; a test that pressed one tick and stopped never let
   go, so the burst went on and fired its second shot where the test expected a refused pull. **Seen:** gdstudio
   burst tap setting (follows #1394), 2026-11-13.
+
+## Spread over shots in a row {#spread}
+
+<!-- new section: the spread was one cone on every shot, the first one too, and nothing said where a first shot from
+     rest must land (gdstudio #1411) -->
+
+A first shot from rest lands on the crosshair's point; the spread grows only over shots fired in a row and falls back
+once firing stops. `ShotSpread` (`gameplay/weapon/shot_spread.gd`, owned by the `Weapon`) keeps a heat from 0 to 1. A
+shot's cone is `first_shot_spread` (0) at heat 0 and `spread` at heat 1, times the character's `spread_share` (lying
+0.5); each shot adds `1 / spread_build_shots` to the heat after it is drawn, and a weapon tick that starts with no
+cooldown left takes `delta / spread_recovery_time` off it, so the heat never falls between a held trigger's shots. The
+four numbers are in the `WeaponDef`'s Fire group and read on every shot: the rifle 0 to 1.2 degrees over 5 shots, back
+in 0.35 s; the pistol has no spread. `Weapon.spread_now` reads the next shot's cone (a crosshair that opens can show
+it). The heat is step state after the burst's count (`Weapon.BURST_AT` + 1), so a server and a predicting client draw
+the same cone, and the draw stays seeded by the slot and the command
+([online shots](online-shots.md)). `make_ready()` and a new definition put it at rest. The camera's kick (`recoil`) is
+cosmetic and taken out of the crosshair's ray (`PlayerInput._write_shot`), so it never moves a shot.
+
+Measured on the player's rig, a shot fired by a mouse click at a wall 5 to 60 m ahead, the aim held or a tap from the
+hip (the arm comes up and fires, [above](#tap)): on main the rifle's first shots landed 0.44 to 0.95 degrees off the
+crosshair's point (42 cm at 30 m), the pistol's 0; with the heat, every first shot is within 0.02 degrees, and the
+crosshair at the press and at the shot (75 ms later from the hip) are the same to 0.001 degrees. Tests:
+`test_first_shot.gd` (both guns, four ranges, aimed and from the hip), `test_shot_spread.gd` (the build, the hold, the
+recovery and the step state). Capture: `tools/capture/first_shot_tour.tscn` puts a dot where each shot met a wall, by a
+green cross at the crosshair's point.
+
+- **Approach:** Give a weapon's spread a state that grows by shots fired in a row and recovers on idle ticks, start it
+  at 0, and test a first shot from rest against the crosshair's point on the player's own rig at several ranges, aimed
+  and from the hip. **Watch out for:** a fixed cone on every shot turns the first one too, which a player reads as the
+  gun missing where it was aimed; the tests only checked that the spread kept its seeded order. A recovery on every
+  tick the cooldown is not running would also fall on the tick a held trigger's cooldown ends, one tick per shot.
+  **Seen:** gdstudio #1411, 2026-11-13 (the rifle 0.44 to 0.95 degrees off; `test_first_shot.gd` failed both cases on
+  main).

@@ -126,14 +126,26 @@ says where it was learned (Deadnight, the first game).
   presses' branch held bits 11 to 14, so the two were settled only at the merge; after them no flag bit is free.
   **Seen:** gdstudio #1012 (PR #1021) and #887, 2026-11-10
   ([the template's packets](../engines/godot/multiplayer.md#template-packets)); gdstudio #1254, 2026-11-11 (the
-  command's byte 13 was spare; it and #1277 both took version 7, so #1254, landing second, took 8).
+  command's byte 13 was spare; it and #1277 both took version 7, so #1254, landing second, took 8); #1420 (entry flag
+  bit 7 beside #1437's bit 6; version 13); #1453 (17).
 - **Approach:** When you raise the protocol version, search the tests for the old number pinned as a literal
   (`grep -rn "is_equal(<old>)" tests`, the join suite's refusal case) and change it with the bump, before the full
   suite. **Watch out for:** the codec and wire suites read `NetWire.VERSION` and stay green, so the net suites run
   while working passed and only the full template run failed, on `test_net_server_join.gd`'s pinned 6. **Seen:**
-  gdstudio #1277, 2026-11-11 (PR #1300).
+  gdstudio #1277, 2026-11-11 (PR #1300); gdstudio #1386, 2026-11-13 (a new command field and export: the field count
+  in `test_player_step.gd`, `body_items` in `test_net_args.gd` and the hostile suite's all-0x7F command broke).
 - **Approach:** A test that checks a packet's exact size sums the codec's own sizes per item
   (`SnapshotCodec.player_size(entry)`, `event_size(event)`), never a count times a fixed constant, so a layout change
   on main moves the expected number with it. **Watch out for:** the hitscan suite counted `PLAYER_SIZE` for every
   player; once main gave an aiming entry an aim byte, every TICK it checked was one byte over and both cases failed
   only after the branch merged main. **Seen:** gdstudio #1252, 2026-11-11 (PR #1269, after #1300).
+- **Approach:** Before taking a protocol version, ask the agents whose branches touch the net files which number
+  they hold (through the coordinator), not only the open pull requests. **Watch out for:** the search for a higher
+  number in open pull requests cannot see a branch not pushed yet, so #1300 and #1254's branch both raised
+  `NetWire.VERSION` from 6 to 7 without either seeing the other. **Seen:** gdstudio #1277 (PR #1300) and #1254,
+  2026-11-11 (#1254, landing second, took 8).
+- **Approach:** Take the protocol version by the rule, past the highest any open pull request names (and any a running
+  branch holds), even when a brief names a number, and say in the pull request which numbers you saw. **Watch out for:**
+  a brief's number is the coordinator's reading of `main`, and open pull requests may already hold it: #1437's brief
+  named one above `main`'s 9 while open #1454 and #1460 named 10, so it took 11 by the rule; #1453's brief named 14,
+  which #1460 held. **Seen:** gdstudio PR #1437 and PR #1503, 2026-11-14 (coordinator's briefs; #1503 took 17).

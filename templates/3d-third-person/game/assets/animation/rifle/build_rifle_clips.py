@@ -2,15 +2,20 @@
 
 GDStudio's own animation, made from nothing on the prototype mannequin rig (`form_female.glb`, the player's body:
 GDStudio's own, with the bone names and rest rotations of Quaternius's universal rig, CC0), because the Universal
-Animation Library has pistol clips and no rifle clip. Six clips, at the library's 30 frames a second:
+Animation Library has pistol clips and no rifle clip. Seven clips, at the library's 30 frames a second:
 
 - `Rifle_Idle` (a loop): the low ready, the head up and looking ahead, a slow breath;
 - `Rifle_Aim_Neutral`, `Rifle_Aim_Up` and `Rifle_Aim_Down` (loops of one length): the rifle at the shoulder with
   the view level and `AIM_PITCH` degrees up and down, the body leant into it, the right shoulder up behind the
   butt and the head the game gives an aimed rifle, canted to the stock with the right eye by the sights;
 - `Rifle_Shoot`: a shot's recoil taken by the body, from `Rifle_Aim_Neutral`'s first pose and back to it;
-- `Rifle_Reload`: the body through a magazine change and the charging handle, from `Rifle_Idle`'s first pose and
-  back to it, the beats at the shares of the reload the game's hold moves the left hand by.
+- `Rifle_Reload`: the body through a magazine change with rounds left (a tactical reload), from `Rifle_Idle`'s first
+  pose and back to it, the beats at the shares of the reload the game's hold moves the left hand by: the hand goes
+  straight back to the hand guard from the new magazine (`ChargePull.straight_return`) and the body has no beat
+  for the bolt;
+- `Rifle_Reload_Empty`: the same reload of an empty magazine, which ends with the charging handle's pull (the left
+  arm's way to the handle and its pull are the hold's `ChargePull`, kit #1266): the eyes lift to the handle and the
+  chest takes a jolt as the bolt is let go (kit #1508; the game picks it by `WeaponDef.empty_reload_clip`).
 
 Nothing is copied from another game's or pack's motion. The legs and the pelvis are the game's own standing idle
 (`gds/Idle`) on its steadiest frame, held: the game plays these clips on the upper body only, over its own
@@ -151,9 +156,10 @@ SHOT_KEYS = [(0, 0.0), (1, 1.0), (2, 0.72), (3, 0.36), (4, 0.08), (5, -0.14), (7
 
 # The reload's body, keyed at shares of the reload: (share, look down, look left, lean, roll left, left shoulder
 # drop), in degrees. The eyes go down to the magazine well as the hand leaves the hand guard, follow the hand to
-# the belt as the left shoulder drops with it, come back to the well for the new magazine, lift for the charging
-# handle and are level again at the end. The seat of the magazine and the bolt running home are small jolts
-# (`RELOAD_JOLTS`: share, degrees the chest pitches back for a frame or two).
+# the belt as the left shoulder drops with it and come back to the well for the new magazine; the seat of the
+# magazine is a small jolt (`RELOAD_JOLTS`: share, degrees the chest pitches back for a frame or two). Both reloads
+# share these keys and their ends are their own (kit #1508); the curves are one to 0.50, since a key's slope reads
+# the keys beside it.
 RELOAD_KEYS = [
     (0.00, 0.0, 0.0, 0.0, 0.0, 0.0),
     (0.14, 20.0, 4.0, 3.0, 0.0, 0.0),
@@ -161,11 +167,25 @@ RELOAD_KEYS = [
     (0.42, 26.0, 14.0, 4.5, 4.0, 5.0),
     (0.50, 25.0, 10.0, 4.0, 3.0, 3.0),
     (0.62, 20.0, 4.0, 3.0, 0.5, 0.0),
+]
+RELOAD_JOLTS = [(0.62, 0.9)]  # the seat
+# A tactical reload (`Rifle_Reload`): the eyes follow the hand forward under the hand guard (it is back on it by
+# `ChargePull.straight_return`'s end, 0.86), come up past level a little as the rifle settles and back; no beat for
+# the bolt, which stays home.
+RELOAD_TACTICAL_END = [
+    (0.75, 12.5, 1.0, 2.3, -0.2, 0.0),
+    (0.87, 3.5, -1.0, 0.9, -0.4, 0.0),
+    (0.94, -0.7, -0.4, 0.2, -0.1, 0.0),
+    (1.00, 0.0, 0.0, 0.0, 0.0, 0.0),
+]
+# An empty reload (`Rifle_Reload_Empty`): the eyes lift for the charging handle and are level again at the end; the
+# bolt running home is a jolt where the hand lets it go (`ChargePull.release`, the bolt's sound).
+RELOAD_EMPTY_END = [
     (0.72, 12.0, 2.0, 2.0, 0.0, 0.0),
     (0.86, 5.0, 0.0, 1.0, 0.0, 0.0),
     (1.00, 0.0, 0.0, 0.0, 0.0, 0.0),
 ]
-RELOAD_JOLTS = [(0.62, 0.9), (0.88, 1.2)]
+RELOAD_EMPTY_JOLTS = [(0.86, 1.2)]
 
 
 # ---- small maths --------------------------------------------------------------------------------------------------
@@ -294,15 +314,20 @@ def read_fit(path):
     found = re.finditer(r'\[sub_resource [^\]]*id="(\w+)"\](.*?)(?=\n\[|\Z)', head, re.S)
     blocks = {m.group(1): m.group(2) for m in found}
     fingers = {}
-    for name in ("grip", "trigger", "support", "open", "magazine"):
-        fingers[name] = quaternions_in(blocks[re.search(name + r'_pose = SubResource\("(\w+)"\)', main).group(1)])
-    return {
+    for name in ("grip", "trigger", "support", "open", "magazine", "charge"):
+        found = re.search(name + r'_pose = SubResource\("(\w+)"\)', main)
+        if found:
+            fingers[name] = quaternions_in(blocks[found.group(1)])
+    out = {
         "body": re.search(r'body = "([^"]*)"', main).group(1),
         "right": np.linalg.inv(transform_in(main, "seat")),
         "left": transform_in(main, "support_hand"),
         "on_magazine": transform_in(main, "magazine_hand"),
         "fingers": fingers,
     }
+    if "charge_hand = " in main:
+        out["on_handle"] = transform_in(main, "charge_hand")
+    return out
 
 
 def _value(text):
@@ -314,6 +339,14 @@ def _value(text):
         return float(text)
     except ValueError:
         return text
+
+
+def script_numbers(script):
+    """A script's exported and constant numbers by name, as it gives them."""
+    out = {}
+    for name, value in re.findall(r"^(?:@export\S*(?:\([^\n]*\))? var|const) (\w+)(?:: \w+)? :?= (.+)$", script, re.M):
+        out[name] = _value(value)
+    return out
 
 
 def read_numbers(script, scene, node):
@@ -480,6 +513,10 @@ class Hold:
         self.right = read_transform(held, "RightHandTarget")
         self.left = read_transform(held, "LeftHandTarget")
         self.on_magazine = read_transform(held, "MagazineHand")
+        # The charging handle's pull (kit #1266): `ChargePull`'s numbers (the scene keeps its defaults) and where
+        # the hand sits on the handle.
+        self.charge = script_numbers((weapon / "hold/charge_pull.gd").read_text(encoding="utf-8"))
+        self.on_handle = read_transform(held, "ChargeHand")
         global SIGHT_EYE, SIGHT_AHEAD
         sights = read_transform(held, "AimEye")
         SIGHT_EYE, SIGHT_AHEAD = sights[:3, 3], -sights[:3, 2]
@@ -490,19 +527,22 @@ class Hold:
         poses = weapon / "hold"
         self.fingers = {
             name: read_quaternions(poses / f"rifle_{name}_pose.tres")
-            for name in ("grip", "trigger", "support", "open", "magazine")
+            for name in ("grip", "trigger", "support", "open", "magazine", "charge")
         }
         self.fit = "the scene's own"
         for path in re.findall(r'path="res://([^"]*fit[^"]*\.tres)"', held.read_text(encoding="utf-8")):
             fit = read_fit(GAME / path)
             if fit["body"] == body_file:
                 self.right, self.left, self.on_magazine = fit["right"], fit["left"], fit["on_magazine"]
-                self.fingers, self.fit = fit["fingers"], path
+                self.on_handle = fit.get("on_handle", self.on_handle)
+                self.fingers, self.fit = {**self.fingers, **fit["fingers"]}, path
         self.spine = ["spine_01", "spine_02", "spine_03"]
         torso = re.search(r"torso_bones: Array\[StringName\] = \[(.*?)\]", script, re.S).group(1)
         self.torso = re.findall(r'&"(\w+)"', torso)
         self.clavicle = re.search(r'left_clavicle: StringName = &"(\w+)"', script).group(1)
-        region = re.search(r"_SKIN_REGION := AABB\((.*)\)", script).group(1)
+        # The torso's skin is its own class since kit #1336 (`hold/torso_skin.gd`): its region is read there.
+        skin_script = (weapon / "hold/torso_skin.gd").read_text(encoding="utf-8")
+        region = re.search(r"_SKIN_REGION := AABB\((.*)\)", script + skin_script).group(1)
         region = [float(v) for v in re.findall(r"-?\d+\.?\d*", region.replace("Vector3", ""))]
         self.region = (np.array(region[:3]), np.array(region[:3]) + np.array(region[3:]))
         self.skin = {}  # the torso's skin the butt meets, by bone, each point in the bone's rest space
@@ -677,10 +717,55 @@ class Hold:
             high = min(high, max(whole_ - math.acos(max(share, -1.0)), 0.0))
         rig.turn(pose, self.clavicle, axis_angle(axis, math.degrees(high)))
 
-    def to_magazine(self, progress):
+    def charge_way(self, progress):
+        """`ChargePull.to_magazine`: how far along the hold's own way to the magazine the hand counts as on the
+        pull's way, or below 0 before it."""
+        c, n = self.charge, self.n
+        if progress < c["leave"][0]:
+            return -1.0
+        if progress < c["release"][1]:
+            return 1.0
+        home, rest = n["reload_return"]
+        middle = c["release"][1] + (home - c["release"][1]) * c["home_beside"]
+        if progress < middle:
+            t = smoothstep(c["release"][1], middle, progress)
+            return n["_WAY_ON"] + (n["_WAY_BESIDE"] - n["_WAY_ON"]) * t
+        if progress < home:
+            return n["_WAY_BESIDE"] + (n["_WAY_DOWN"] - n["_WAY_BESIDE"]) * smoothstep(middle, home, progress)
+        return n["_WAY_DOWN"] * (1.0 - smoothstep(home, rest, progress))
+
+    def charge_place(self, progress, beside, below):
+        """`ChargePull.hand_place`: the left hand bone's place on the pull's way."""
+        c, home = self.charge, self.n["reload_return"][0]
+        handle = self.on_handle
+        pulled = moved(handle, c["travel"] * smoothstep(c["pull"][0], c["pull"][1], progress))
+        near = moved(handle, c["approach"])
+        if progress < c["reach"][0]:
+            return between(self.on_magazine, beside, smoothstep(c["leave"][0], c["leave"][1], progress))
+        if progress < c["grip"][0]:
+            return between(beside, near, smoothstep(c["reach"][0], c["reach"][1], progress))
+        if progress < c["pull"][0]:
+            return between(near, handle, smoothstep(c["grip"][0], c["grip"][1], progress))
+        if progress < c["release"][0]:
+            return pulled
+        off = moved(pulled, c["let_go"])
+        if progress < c["release"][1]:
+            return between(pulled, off, smoothstep(c["release"][0], c["release"][1], progress))
+        middle = c["release"][1] + (home - c["release"][1]) * c["home_beside"]
+        if progress < middle:
+            return between(off, beside, smoothstep(c["release"][1], middle, progress))
+        return between(beside, below, smoothstep(middle, home, progress))
+
+    def to_magazine(self, progress, pulls=True):
+        """`_to_magazine`: with no pull (a reload with rounds left) the hand goes straight back from the magazine
+        by `ChargePull.straight_return`."""
         if progress < 0.0:
             return 0.0
-        leave, back = self.n["reload_leave"], self.n["reload_return"]
+        way = self.charge_way(progress) if pulls else -1.0
+        if way >= 0.0:
+            return way
+        leave = self.n["reload_leave"]
+        back = self.n["reload_return"] if pulls else self.charge["straight_return"]
         return smoothstep(leave[0], leave[1], progress) * (1.0 - smoothstep(back[0], back[1], progress))
 
     def left_place(self, state, pivot, chest):
@@ -690,7 +775,8 @@ class Hold:
         if progress < 0.0:
             return self.left, np.zeros(3), True
         n = self.n
-        to_magazine = self.to_magazine(progress)
+        pulls = state.get("pulls", True)
+        to_magazine = self.to_magazine(progress, pulls)
         away = smoothstep(n["reload_out"][0], n["reload_out"][1], progress)
         away *= 1.0 - smoothstep(n["reload_in"][0], n["reload_in"][1], progress)
         below = moved(self.left, n["reload_clearance"])
@@ -699,6 +785,8 @@ class Hold:
         hand = between(hand, below, smoothstep(n["_WAY_OPEN"] * 0.5, n["_WAY_DOWN"], to_magazine))
         hand = between(hand, beside, smoothstep(n["_WAY_DOWN"], n["_WAY_BESIDE"], to_magazine))
         hand = between(hand, self.on_magazine, smoothstep(n["_WAY_BESIDE"], n["_WAY_ON"], to_magazine))
+        if pulls and self.charge["leave"][0] <= progress < n["reload_return"][0]:
+            hand = self.charge_place(progress, beside, below)
         out = -Y * n["magazine_well"] * min(away / n["_WELL_SHARE"], 1.0)
         to_belt = smoothstep(0.0, 1.0, (away - n["_WELL_SHARE"]) / (1.0 - n["_WELL_SHARE"]))
         gun = pivot @ self.rifle
@@ -774,11 +862,20 @@ class Hold:
             if bone in self.fingers["trigger"] and on_trigger > 0.0:
                 rotation = slerp(rotation, self.fingers["trigger"][bone], on_trigger)
             pose["local"][bone] = rotation
-        to_magazine = self.to_magazine(reload)
+        pulls = state.get("pulls", True)
+        to_magazine = self.to_magazine(reload, pulls)
         # The thumb goes to its place behind the magazine while the hand comes down off the hand guard.
         second = smoothstep(n["_WAY_THUMB"][0], n["_WAY_THUMB"][1], to_magazine)
         opened = smoothstep(0.0, n["_WAY_OPEN"], to_magazine) * (1.0 - smoothstep(n["_WAY_ON"], 1.0, to_magazine))
         together = to_magazine > n["_WAY_DOWN"]  # on the magazine the four fingers close as one
+        # The charging handle's pull (`ChargePull.set_fingers`): off the magazine the fingers open as one, then
+        # close on the latch (the `third` pose) and open again.
+        c, hooked = self.charge, 0.0
+        if pulls and c["leave"][0] <= reload < c["release"][1]:
+            second, together = 1.0, True
+            opened = smoothstep(c["leave"][0], c["leave"][1], reload)
+            hooked = smoothstep(c["grip"][0], c["grip"][1], reload)
+            hooked *= 1.0 - smoothstep(c["release"][0], c["release"][1], reload)
         for bone, rotation in self.fingers["support"].items():
             if second > 0.0 and bone in self.fingers["magazine"]:
                 rotation = slerp(rotation, self.fingers["magazine"][bone], second)
@@ -789,6 +886,8 @@ class Hold:
                 if not together:
                     share = min(opened / 0.5, 1.0) if "_01_" in bone else max((opened - 0.5) / 0.5, 0.0)
                 rotation = slerp(rotation, self.fingers["open"][bone], share)
+            if hooked > 0.0 and bone in self.fingers["charge"]:
+                rotation = slerp(rotation, self.fingers["charge"][bone], hooked)
             pose["local"][bone] = rotation
 
 
@@ -1126,10 +1225,10 @@ def make_clips(rig, base, hold, only, others=()):
         False,
     )
 
-    def reload_body(f):
+    def reload_body(f, end, jolts):
         share = f / RELOAD_FRAMES
-        down, left, lean, roll, drop = spline([(k[0], k[1:]) for k in RELOAD_KEYS], share)
-        jolt = sum(amount * max(1.0 - abs(share - at) * RELOAD_FRAMES / 2.0, 0.0) for at, amount in RELOAD_JOLTS)
+        down, left, lean, roll, drop = spline([(k[0], k[1:]) for k in RELOAD_KEYS + end], share)
+        jolt = sum(amount * max(1.0 - abs(share - at) * RELOAD_FRAMES / 2.0, 0.0) for at, amount in jolts)
         out = dict(idle_body, lean=IDLE_LEAN + lean, side=-roll, breath=jolt)
         up, forward = idle_body["clavicle_l"]
         out["clavicle_l"] = (up - drop, forward)
@@ -1139,13 +1238,23 @@ def make_clips(rig, base, hold, only, others=()):
         out["head"] = (pitch + down, yaw + left, roll_)
         return out
 
-    add(
-        "Rifle_Reload",
-        RELOAD_FRAMES,
-        reload_body,
-        lambda f: {"raised": 0.0, "reload": -1.0 if f in (0, RELOAD_FRAMES) else f / RELOAD_FRAMES},
-        False,
-    )
+    # One clip a reload (kit #1508): the hold pulls the charging handle only after an empty magazine (`pulls`,
+    # `ChargeBolt.pulls()`), and the body's beat for the bolt goes with it.
+    for name, end, jolts, pulls in (
+        ("Rifle_Reload", RELOAD_TACTICAL_END, RELOAD_JOLTS, False),
+        ("Rifle_Reload_Empty", RELOAD_EMPTY_END, RELOAD_JOLTS + RELOAD_EMPTY_JOLTS, True),
+    ):
+        add(
+            name,
+            RELOAD_FRAMES,
+            lambda f, end=end, jolts=jolts: reload_body(f, end, jolts),
+            lambda f, pulls=pulls: {
+                "raised": 0.0,
+                "reload": -1.0 if f in (0, RELOAD_FRAMES) else f / RELOAD_FRAMES,
+                "pulls": pulls,
+            },
+            False,
+        )
     return clips
 
 
@@ -1332,20 +1441,23 @@ def hold_alone(base, bodies, rigs, holds):
             set_pose(body.arm, rigs[body.name], posed)
             depths = [depth for depth, _place in body.overlaps().values()]
             out[(body.name, tag)] = round(max(depths, default=0.0) * 1000.0, 1)
-        # Through a reload the left hand goes the hold's own way past the right hand and the forearm.
-        deepest = 0.0
-        for f in range(1, RELOAD_FRAMES):
-            posed = copy_pose(base)
-            holds[body.name].apply(rigs[body.name], posed, {"raised": 0.0, "reload": f / RELOAD_FRAMES})
-            set_pose(body.arm, rigs[body.name], posed)
-            deepest = max([deepest] + [depth for depth, _place in body.overlaps().values()])
-        out[(body.name, "reload")] = round(deepest * 1000.0, 1)
+        # Through a reload the left hand goes the hold's own way past the right hand and the forearm: by the
+        # charging handle after an empty magazine, straight back with rounds left.
+        for tag, pulls in (("reload", True), ("reload_straight", False)):
+            deepest = 0.0
+            for f in range(1, RELOAD_FRAMES):
+                posed = copy_pose(base)
+                state = {"raised": 0.0, "reload": f / RELOAD_FRAMES, "pulls": pulls}
+                holds[body.name].apply(rigs[body.name], posed, state)
+                set_pose(body.arm, rigs[body.name], posed)
+                deepest = max([deepest] + [depth for depth, _place in body.overlaps().values()])
+            out[(body.name, tag)] = round(deepest * 1000.0, 1)
     return out
 
 
 def state_tag(state):
     if state.get("reload", -1.0) >= 0.0:
-        return "reload"
+        return "reload" if state.get("pulls", True) else "reload_straight"
     if state.get("raised", 0.0) < 0.5:
         return "low"
     pitch = state.get("pitch", 0.0)
@@ -1482,7 +1594,15 @@ def main():
     parser.add_argument("--preview")
     parser.add_argument("--only", nargs="*", default=[])
     parser.add_argument("--no-checks", action="store_true")
+    parser.add_argument("--check", action="store_true", help="compare with the files on disk, write nothing")
     args = parser.parse_args(argv)
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # clip_check.py
+    sys.dont_write_bytecode = True  # Blender ignores PYTHONDONTWRITEBYTECODE
+    import clip_check
+
+    checking = clip_check.Check(args.check)
+    args.out = checking.file(args.out)
+    args.data = checking.file(args.data)
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
@@ -1552,7 +1672,7 @@ def main():
             entry["loop_gap_deg"] = round(gap, 4)
             if gap > 0.01:
                 failures.append(f"{name}: the loop does not close ({gap:.3f} degrees)")
-    joins = {"Rifle_Shoot": "Rifle_Aim_Neutral", "Rifle_Reload": "Rifle_Idle"}
+    joins = {"Rifle_Shoot": "Rifle_Aim_Neutral", "Rifle_Reload": "Rifle_Idle", "Rifle_Reload_Empty": "Rifle_Idle"}
     for name, joined in joins.items():
         if name in clips and joined in clips:
             for end in (0, -1):
@@ -1598,6 +1718,7 @@ def main():
             key_clip(female.arm, rig, name + ("_Loop" if clip["loop"] else ""), clip["frames"])
         export(female.arm, args.out)
         print("exported", args.out, [f"{n} {len(c['frames']) - 1}" for n, c in clips.items()])
+    checking.finish()
 
 
 if __name__ == "__main__":

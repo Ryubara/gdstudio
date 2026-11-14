@@ -1,0 +1,163 @@
+# The `merge-result` check (docs/studio/ci.md#merge-result): the limit checks run on the merge of a pull request's head
+# into the newest `main`, so two pull requests that each pass a limit and break it together, or a head green on an
+# older `main`, show red before they land. It runs `.github/scripts/merge_result.py`: `mistakes.py check` (page sizes,
+# topic sections) and the pre-commit hooks (gdlint's max-file-lines, the large-file limit, the conventions render) on
+# the files the merge changes. A minute or two, not the full `ci` run, which is not restarted.
+#
+# What starts it:
+#   - a pull request event (opened, synchronize, reopened, ready_for_review): the head merged with `main` as it is
+#     when the job runs, not GitHub's merge ref of the event, which can be older by the time a queued job starts.
+#   - a push to `main` (each landing) or a dispatch (`gh workflow run merge-result.yml`): the sweep. `pending` sets
+#     `merge-result` in progress on every open, ready pull request from this repository at once, `sweep` checks each
+#     one with a read-only token (the trees are the pull requests' own code), and `report` writes the results through
+#     the Checks API, as main-green-sweep.yml does: no pull request is touched, no push, no event. A fork's pull
+#     request is left to its own events: its code is not run with this repository's checkout around it.
+# The check is not required by the ruleset yet (a maintainer decision); the landing queue reads it
+# (docs/studio/landing.md#landing). Actions are pinned to a full commit SHA; the tag is in the comment beside it.
+name: merge-result
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# cancels-on-main: a newer commit on `main` makes the sweep of the one before moot: the new sweep sets every pull
+# request back in progress and checks it against the newer `main`, so a cancelled sweep leaves no stale answer. `main`
+# itself is checked by `ci` and `docs` on every commit; this workflow checks pull requests only.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || 'sweep' }}
+  cancel-in-progress: true
+
+jobs:
+  merge-result:
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: pre-commit-
+      - name: Merge the head into the newest main and run the limit checks
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git fetch --no-tags origin "+refs/heads/$BASE:refs/remotes/origin/$BASE"
+          python3 .github/scripts/merge_result.py --base "origin/$BASE" --head HEAD --summary "$RUNNER_TEMP/summary.md"
+      - if: always()
+        run: cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+  pending:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: read
+    outputs:
+      prs: ${{ steps.list.outputs.prs }}
+    steps:
+      - id: list
+        name: Set merge-result in progress on every open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          prs=$(gh pr list --state open --base "$BASE" --limit 1000 \
+            --json number,headRefOid,isDraft,isCrossRepository \
+            --jq '[.[] | select(.isDraft | not) | select(.isCrossRepository | not) | {number, sha: .headRefOid}]')
+          echo "prs=$prs" >> "$GITHUB_OUTPUT"
+          jq -r '.[] | "\(.number)\t\(.sha)"' <<< "$prs" | while IFS=$'\t' read -r number sha; do
+            [[ "$number" =~ ^[0-9]+$ && "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "unexpected row" >&2; exit 1; }
+            gh api --method POST "repos/$GH_REPO/check-runs" -f name=merge-result -f "head_sha=$sha" \
+              -f status=in_progress -f 'output[title]=merge-result sweep' \
+              -f "output[summary]=Checking the merge with $BASE at ${GITHUB_SHA:0:12}." --silent
+            echo "#$number: merge-result in progress"
+          done
+
+  sweep:
+    needs: pending
+    if: needs.pending.outputs.prs != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      results: ${{ steps.check.outputs.results }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: pre-commit-
+      # The script is main's copy, run on each merged tree; what it runs inside a tree is that tree's own. The loop is
+      # the script's (`--sweep`), so one pull request's conflict or failed check is that pull request's answer and the
+      # rest are still checked: a `run:` step is `bash -e`, and the loop in bash stopped at the first exit 1 (#1512).
+      - id: check
+        name: Merge each head into main and run the limit checks
+        env:
+          PRS: ${{ needs.pending.outputs.prs }}
+        run: |
+          set -euo pipefail
+          script="$RUNNER_TEMP/merge_result.py"
+          cp .github/scripts/merge_result.py "$script"
+          printf '%s' "$PRS" > "$RUNNER_TEMP/prs.json"
+          python3 "$script" --base "$GITHUB_SHA" --sweep "$RUNNER_TEMP/prs.json" --results "$RUNNER_TEMP/results.json"
+          echo "results=$(jq -c . "$RUNNER_TEMP/results.json")" >> "$GITHUB_OUTPUT"
+
+  report:
+    needs: [pending, sweep]
+    if: always() && needs.pending.result == 'success' && needs.pending.outputs.prs != '[]' && needs.sweep.result != 'cancelled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      checks: write
+      contents: read
+    steps:
+      - name: Write merge-result on every swept pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PRS: ${{ needs.pending.outputs.prs }}
+          RESULTS: ${{ needs.sweep.outputs.results }}
+          SWEEP: ${{ needs.sweep.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # A sweep that failed itself (not a check, not a conflict: those are each pull request's own answer)
+          # answers every pull request with a failure that says so.
+          if [ "$SWEEP" != success ] || [ -z "$RESULTS" ]; then
+            RESULTS=$(jq -c --arg u "$RUN_URL" '[.[] | . + {conclusion: "failure",
+              summary: "The merge-result sweep itself failed (\($u)); rerun it: `gh workflow run merge-result.yml`."}]' \
+              <<< "$PRS")
+          fi
+          jq -c '.[]' <<< "$RESULTS" | while IFS= read -r row; do
+            number=$(jq -r .number <<< "$row")
+            sha=$(jq -r .sha <<< "$row")
+            conclusion=$(jq -r .conclusion <<< "$row")
+            [[ "$number" =~ ^[0-9]+$ && "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "unexpected row" >&2; exit 1; }
+            case $conclusion in success | failure) ;; *) echo "#$number: left to its own run"; continue ;; esac
+            jq -n --arg sha "$sha" --arg c "$conclusion" --arg base "${GITHUB_SHA:0:12}" --arg s "$(jq -r .summary <<< "$row")" \
+              '{name: "merge-result", head_sha: $sha, status: "completed", conclusion: $c,
+                output: {title: "merge-result: merged with main at \($base)", summary: $s}}' |
+              gh api --method POST "repos/$GH_REPO/check-runs" --input - --silent
+            echo "#$number: merge-result $conclusion"
+          done

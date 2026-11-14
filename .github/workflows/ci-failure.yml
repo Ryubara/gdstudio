@@ -3,6 +3,9 @@
 # List the workflows to watch under `workflows:`; they must be the `name:` of each workflow file.
 # A new issue dispatches main-green-sweep.yml, which turns every open pull request's `main-green` check red but the fix
 # forward's (docs/studio/ci.md#main-runs): an issue filed with this GITHUB_TOKEN starts no `issues` workflow.
+# A green run of the same workflow on the default branch's head closes that issue again (`clear`) and dispatches the
+# sweep the same way, so a main fixed by a push that named no issue does not keep every pull request held (kit #1472).
+# A green run of an older commit closes nothing: a newer commit may be the red one.
 name: ci-failure
 
 on:
@@ -43,3 +46,35 @@ jobs:
               --body "$text. Fix it forward before anything else merges; close this issue when the workflow is green."
             gh workflow run main-green-sweep.yml --ref "$BASE"
           fi
+  clear:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == github.event.repository.default_branch &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Close the issue when the default branch's head is green
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          WORKFLOW: ${{ github.event.workflow_run.name }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          title="CI failing on the default branch: $WORKFLOW"
+          number=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
+            --jq "map(select(.title == \"$title\")) | .[0].number // empty")
+          if [ -z "$number" ]; then
+            echo "no open issue for $WORKFLOW"
+            exit 0
+          fi
+          head=$(gh api "repos/$GH_REPO/commits/$BASE" --jq .sha)
+          if [ "$head" != "$SHA" ]; then
+            echo "$BASE moved on to ${head:0:10}: its own run of $WORKFLOW decides #$number"
+            exit 0
+          fi
+          gh issue close "$number" --reason completed \
+            --comment "The \`$WORKFLOW\` workflow is green again on ${SHA:0:10}, the head of $BASE: $RUN_URL"
+          gh workflow run main-green-sweep.yml --ref "$BASE"

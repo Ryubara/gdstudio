@@ -70,6 +70,8 @@ var prone: Array = []
 ## The step state of the character's slide (`CharacterSlide.save_step_state()`: whether it slides,
 ## for how long, how low, its cooldowns and the speed a slide jump carries).
 var slide: Array = []
+## The peek lean (`CharacterPeek.save_step_state()`: how far it leans, and to which side).
+var peek: Array = []
 
 
 ## Copies `body`'s step state into this one (what `Character.state_snapshot()` returns).
@@ -90,6 +92,7 @@ func take(body: Character) -> void:
 		loadout.clear()
 	body._prone.save_step_state(prone)
 	body._slide.save_step_state(slide)
+	body.peek_motion.save_step_state(peek)
 
 
 ## Puts this step state back into `body` (`Character.restore()`, which then fits the capsule and
@@ -106,3 +109,4 @@ func put_back(body: Character) -> void:
 	body.vault_motion.load_step_state(vault)
 	body._prone.load_step_state(prone)
 	body._slide.load_step_state(slide)
+	body.peek_motion.load_step_state(peek)

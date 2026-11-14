@@ -19,14 +19,20 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   `_set`); gdstudio #1073, 2026-11-11 (a capture tour's `_set(move)` helper: the tour did not load and the first
   capture was 180 black frames; renamed `_walk`).
 
-- **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not
-  `scale`; `earlier`, not `before`, in a GdUnit suite), no global function (`hash`, `snapped`) and no function of its
-  own class, and set `shadowed_variable`, `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in
-  `[debug]` of `project.godot`, as the templates do. **Watch out for:** the editor warned on
-  opening 3D Third Person ("local variable "scale" is shadowing..."), which a headless run never shows; as errors,
-  `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a lambda's `_body`); #857 and #877 (`for
-  name in`, exit 105); #902 (`hash`, `snapped`, `world_hash` beside such a function); #903 (`url` and `url()`); #901
-  (`before`); #966 (`mesh`); #970 (`rows`); #1186 (`show`: a bench's web export failed).
+- **Approach:** Name a local or parameter so that it matches no member of its node class (`gravity_scale`, not `scale`;
+  `earlier`, not `before`, in a GdUnit suite) and no global function (`hash`, `snapped`), and set `shadowed_variable`,
+  `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in `[debug]` of `project.godot`, as templates
+  do. **Watch out for:** the editor warned on opening 3D Third Person ("local variable "scale" is shadowing..."), which
+  a headless run never shows; as errors, `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a
+  lambda's `_body`); #857, #877 (`name`); #902 (`hash`, `snapped`); #901 (`before`); #966 (`mesh`); #970 (`rows`); #1186
+  (`show`: a bench's web export failed).
+- **Approach:** Name a local or parameter after no function or member of its own script and its base classes either, and
+  before giving a class a new member (one moved in from a long script too), grep the class and every script that extends
+  it for locals and parameters of that name. **Watch out for:** the same errors fire for a script's own names, and a
+  member added later makes old locals of that name errors in scripts the change never touched. **Seen:** gdstudio #902
+  (`world_hash` beside such a function); #903 (`url` and `url()`); #1386 (`left` beside `NetEvent.left()`); #1420
+  (`newest`, `goal`); PR #1454, 2026-11-14 (a member `goal` moved out of `character.gd`, now `move_goal`:
+  [Rules](project-conventions.md#rules)).
 
 - **Approach:** Prune a typed array in place (`remove_at` from the end) or with `typed.assign(typed.filter(...))`, never
   `typed = typed.filter(...)`. **Watch out for:** `Array.filter()` returns an untyped `Array`, and assigning it to an
@@ -107,7 +113,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   freed) is not a subclass of the expected argument class`), before the function's own `is_instance_valid()` check
   runs, and only one test of the whole run met it. A deferred call (`Class.f.call_deferred(node)`) meets it on the
   idle frame as `Cannot convert argument 1 from Object to Object`. **Seen:** gdstudio #1126, 2026-11-11
-  (`RagdollDrawing.place`); PR #1397's merge, 2026-11-13 (`keep_last`, 174 errors a run; coordinator's mistake).
+  (`RagdollDrawing.place`); PR #1397's merge, 2026-11-13 (`keep_last`, 174 errors a run; coordinator's mistake);
+  gdstudio #1478, 2026-11-13 (`AimLayer`'s rest check: 122 errors, in the full run only).
 
 ## Lambdas {#lambdas}
 
@@ -119,6 +126,12 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   outer variable inside the lambda is the same trap. **Seen:** Deadnight #226, 2026-11-02 (bot counts, a
   mesh); gdstudio #836, 2026-11-08 (`hits += 1` read 0); gdstudio #1251, 2026-11-11 (`met = {...}` left the
   dict empty); gdstudio #1206, 2026-11-11 (a `maxf` into a captured float read 0 mm); #1158, 2026-11-12 (the same).
+- **Approach:** Defer a bound method (`_method.call_deferred()`) or a static callable (`Class.f.call_deferred(arg)`)
+  whose function checks `is_instance_valid()` on an untyped argument; never defer a lambda that captures `self` on a
+  node a test may free. **Watch out for:** a deferred bound method on a freed object is dropped quietly, but a
+  deferred lambda raises `Error calling deferred method: '<anonymous lambda>': Instance is null` when its node was
+  freed before the idle frame. **Seen:** PR #1397's merge, 2026-11-13 (`WeaponHold._build` deferred
+  `(func() -> void: X.f(_skeleton))`; the AI, senses and shot-rewind suites failed in CI).
 
 ## What a line costs in the web build {#web-cost}
 
@@ -147,6 +160,13 @@ reading its components in script.
   **Watch out for:** a long, thin sweep turned into each bone's rest space became a box over most of the torso, so the
   rifle's low ready went through 143 to 170 points a frame of which 23 to 32 counted, and cost 20 to 36 microseconds
   more than the ready. **Seen:** gdstudio #1433, 2026-11-13 (`TorsoSkin._push_along()`).
+- **Approach:** Before an exact rework of a per-frame part (one that must leave every result as it was), measure its
+  floor: the part turned off for the most there is to gain, and what one turn of each of its loops costs, then check
+  that what an exact rework can remove is near what the goal needs. **Watch out for:** in the rifle hold's push a group
+  box test, a point test and a run line cost 0.02 to 0.04 microseconds each hot on the desktop (a call with seven
+  arguments 0.12), spread evenly over the loops, so a larger or smaller group changed nothing, and a push started from
+  the groups that decided the last one, then checked with one box, went through 19 to 25 runs against 27 to 43 and
+  measured the same in place; the goal needed the push nearly free. **Seen:** gdstudio #1490, 2026-11-14.
 
 ## Project and scene files {#project-and-scene-files}
 

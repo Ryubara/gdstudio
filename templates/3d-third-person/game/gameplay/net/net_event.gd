@@ -20,6 +20,10 @@ extends RefCounted
 ##           (cm: where a shot left; cm/s: a death's velocity), u16 yaw, s16
 ##           pitch (a shot's way, a blow's)                                     14
 ## MELEE     u8 slot, u16 seq (its low 16 bits): a player threw a melee blow    4
+## USE       u8 slot, u8 code (`UseCode`), u8 hotbar place, u16 seq (the low 16
+##           bits of the command that started the use, or that was refused),
+##           u8 detail (APPLIED: the count left; CANCELLED: the reason,
+##           `ItemUse.CUT_REASONS`), u8 health left (APPLIED; else `NO_HEALTH`) 8
 ##
 ## Cosmetics (a ragdoll, an impact, a sound) are never events of their own: each peer makes them
 ## from these.
@@ -36,6 +40,16 @@ enum Kind {
 	REJECTED = 9,
 	AI = 10,
 	MELEE = 11,
+	USE = 12,
+}
+
+## What a USE event says (gdstudio #1386): each screen plays the item's clip, its sound and the
+## sign itself from it; the server alone applies the item.
+enum UseCode {
+	STARTED = 1,  ## A use began (to the other players: the user's own screen began it at the press).
+	APPLIED = 2,  ## The item worked: the user's health and the count left at the place.
+	CANCELLED = 3,  ## The use was cut short, nothing used (to every player).
+	REFUSED = 4,  ## The server refused the press (to the user alone).
 }
 
 ## What happened to an AI character (an AI event's code): each client plays its own cosmetics
@@ -71,6 +85,8 @@ var id := 0
 ## The weapon a SHOT left (the loadout slot + 1, 0 the empty hands); the health a HIT left
 ## (`Health.wire_value()`, `NO_HEALTH` for none).
 var amount := 0
+## A USE's detail: the count left at the place (APPLIED), the reason a use was cut (CANCELLED).
+var detail := 0
 ## The server tick an entity's new state starts at.
 var tick := 0
 var player_name := ""
@@ -104,6 +120,26 @@ static func shot(
 static func melee(player_slot: int, command_seq: int) -> NetEvent:
 	var event := _of(Kind.MELEE, player_slot)
 	event.seq = command_seq
+	return event
+
+
+## Player `player_slot`'s item use at hotbar `place` (`UseCode`), started (or refused) on command
+## `command_seq`. `use_detail`: the count left (APPLIED) or the reason (CANCELLED); `health_left`
+## the user's health after it (APPLIED).
+static func use(
+	player_slot: int,
+	what: UseCode,
+	place: int,
+	command_seq: int,
+	use_detail := 0,
+	health_left := NO_HEALTH
+) -> NetEvent:
+	var event := _of(Kind.USE, player_slot)
+	event.code = what
+	event.id = place
+	event.seq = command_seq
+	event.detail = use_detail
+	event.amount = health_left
 	return event
 
 

@@ -13,7 +13,7 @@ the clips were solved for. The character scene holds `vault.glb` and gives anoth
 | `vault_male.glb` | The same clips solved on `form_male` |
 | `vault_quaternius.glb` | The same clips solved on the Quaternius female mannequin; the Quaternius male plays it too |
 | `vault_clips.json`, `vault_male_clips.json`, `vault_quaternius_clips.json` | Each file's numbers: every clip's reference obstacle, the speed the body is moved at, the contact times (the same in all three), and what the build measured on that body |
-| `bodies_overlap.json` | Limbs inside limbs on the two bodies that share `vault_quaternius.glb` (`../limb_overlap.py --brief`) |
+| `bodies_overlap.json` | Limbs inside limbs on the two bodies that share `vault_quaternius.glb` (`../limb_overlap.py --brief`), with the hash of that file, of the measure's code and of each body; measure it again when any of them changes |
 | `build_vault.py` | Rebuilds a body's file and numbers with the pinned Blender (`blender -b --factory-startup --python-exit-code 1 -P build_vault.py -- --body form_female`, then `form_male` and `quaternius_female`; the default body first, the others are held to its numbers) |
 | `render_vault.py` | The contact sheets (`build_vault.py -- --render <folder>`), the poses between the keys among them |
 | `../limb_overlap.py` | Measures limbs passing through each other, for this build and any other clips |
@@ -97,7 +97,8 @@ the plant and at the push) and keys the pelvis under it, and the build keys each
 reference obstacle; the legs in the air are keyed in the hips' own axes (`hips()`), the left foot left of the hips and
 the right foot right of them, so they cannot cross. A free arm is keyed from its own shoulder in the world's axes
 (`shoulder()`), so its height over the shoulder is a number in the table whatever the body's roll. The export is the
-same bytes on every run, and `vault_clips.json` carries its sha256 with the measured numbers. After a rebuild, run
+same bytes on every run, and `vault_clips.json` carries its sha256 with the measured numbers, and the hashes of the
+measure's code and of the body file it was solved on (kit #1491). After a rebuild, run
 `tests/assets/test_vault_clips.gd` and look at the sheets (`_over` and `_close` show the legs over the top, `_arm` the
 planted arm from the plant to the push, `_side` every frame of the whole move, `_edge` the legs at the front edge
 between the keys, five poses a frame).

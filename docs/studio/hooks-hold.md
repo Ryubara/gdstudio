@@ -24,7 +24,11 @@ stays out of `merge.required_checks`, so `pr-status` does not label it `S-ci-fai
   yes in the same sentence, or any sentence with no digit that approves or says yes, in any words and in a message of
   any length, answering the coordinator's last message when that message named N and the hold or an approval; a sentence
   naming N with a negation vetoes N for the whole message. A run ("#A through #B", "A-B", at most 30 apart) names every
-  number in it, and "looks good", "is good" or "is great" says yes. There is no set wording to ask for. Only a `user`
+  number in it, and "looks good", "is good" or "is great" says yes. When that message lists N as an item
+  (`1. #N jump arms: ...`), a yes naming the item's label (up to three words before its first colon, dash, comma or
+  full stop) approves N alone, and a line after a list marker (`1.`, `1)`) answers that item alone: the marker's digit
+  names no number. An aside in parentheses with no refusal word is read on its own, so a question there does not refuse
+  the approval before it. There is no set wording to ask for. Only a `user`
   entry whose `origin` kind is `human`, not `isMeta`, not a sidechain and not a tool result counts: a prompt tether
   submits (origin kind `plugin`), agent reports and monitor events (`task-notification`), peers, hook output and tool
   results do not. Pasted blocks (`<pasted_content>`), `>` lines, fenced code and quoted text are dropped first; a
@@ -72,3 +76,9 @@ name would let any other label replace a failed run. `python/tests/test_hold.py`
   the run's two ends, so the guard lifted the last one and refused the three between; a "not a fan" of one number in
   the same message still vetoes that one. **Seen:** gdstudio #1369-#1378 holds, 2026-11-12 (fix: `_RANGE` and the
   plain-good words in `hold_approval.py`; `test_hook_hold_approval.py` has both sides).
+- **Approach:** Read an answer to the coordinator's list as the list it answers: an aside in parentheses is a remark
+  of its own unless it holds a refusal word, a marker (`3.`, `3)`) points at item 3 and names no number, and an
+  item's label (`1. #N jump arms: ...`) names N wherever its words stand. **Watch out for:** a question in
+  parentheses after an approval read as refusing it, and an approval of the "jump arms" by name was refused for
+  naming no number; a topic or marked line saying no or wait still vetoes its pull request. **Seen:** gdstudio #1467
+  on #1171, #1191 and #1369, 2026-11-12 and 2026-11-13 (fix: `_ASIDE`, `_MARKER` and `topic` in `hold_approval.py`).

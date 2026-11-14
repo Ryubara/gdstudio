@@ -48,7 +48,9 @@ category's blow.
   `Melee_Unarmed_Jab`, `_Cross` and `_Hook`, and `Melee_Pistol_Whip`, `_Backhand` and `_Jab`, made by script with
   their checks, keyed on the prototype female and measured on both `form` bodies, the male with his own hold (kit
   #1319), and the rifle's `Melee_Rifle_Butt_Stroke`, `_Butt_Jab` and `_Smash` (kit #1288), keyed with both hands
-  on the rifle, each in three variants for review (`review/melee_rifle.glb`, which Godot does not import).
+  on the rifle, each in three variants for review (`review/melee_rifle.glb`, which Godot does not import). The
+  fists' clips start and end on the library's `Idle_Loop` pose while a standing body plays `gds/Idle`; the layer's
+  fades cover the difference (kit #1363).
 - **The rifle's two-hand hold under a blow.** `HoldBlow` (`gameplay/weapon/hold/hold_blow.gd`) reads
   `MeleeLayer.share` each frame; by that much `TwoHandHold` carries the rifle on the clip's right hand (the body's own
   seat, `RightHandTarget`, in place of the shoulder's pocket), eases off the chest's turn and the left collarbone's

@@ -72,6 +72,8 @@ func _ready() -> void:
 	_label.add_theme_color_override(&"font_outline_color", Color.BLACK)
 	_label.add_theme_constant_override(&"outline_size", 4)
 	add_child(_label)
+	# The server's world draws from now on: its probes too, at once.
+	await _rig.settle(_rig.server_view)
 	await _rig.wait(roundi(SHOOT_AFTER * NetLimits.TICK_RATE))
 	var target := _nearest_guard()
 	if target != null:

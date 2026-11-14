@@ -8,7 +8,8 @@
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
 ## `gds capture frames --project game --scene res://tools/capture/vault_tour.tscn --seconds 42
 ## --fps 30`. `WALLS=Vault09` films only that wall (a comma list of the course's node names),
-## `VIEWS=player,close` only those views, `MODEL=male` the template's male body.
+## `VIEWS=player,close` only those views, `MODEL=male` the template's male body, `WEAPON=rifle`
+## that weapon of `gameplay/weapon/` in the hands (the rifle's vault: gdstudio #1409).
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -67,6 +68,9 @@ func _ready() -> void:
 		_player.model.remove_child(old)
 		old.queue_free()
 		_player.model.add_child((load(MALE) as PackedScene).instantiate())
+	var weapon := OS.get_environment("WEAPON")
+	if weapon != "":
+		_arm.call_deferred(load("res://gameplay/weapon/%s.tres" % weapon) as WeaponDef)
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	_label = Label.new()
@@ -89,7 +93,7 @@ func _physics_process(delta: float) -> void:
 	_rig.orbit(Vector2(-clampf(wrapf(float(view["yaw"]) - _rig.yaw, -180.0, 180.0), -9.0, 9.0), 0))
 	_rig.orbit(Vector2(0.0, clampf(float(view["pitch"]) - _rig.pitch, -3.0, 3.0)))
 	_tick += 1
-	if _tick <= SETTLE_TICKS:
+	if _tick <= SETTLE_TICKS or _player.loadout.is_switching():
 		return
 	Engine.time_scale = view["speed"]
 	_clock += delta
@@ -112,6 +116,17 @@ func _physics_process(delta: float) -> void:
 		Input.action_press(&"jump")
 	else:
 		Input.action_release(&"jump")
+
+
+# Puts `definition` in the hands: its slot, or given with a magazine's worth.
+func _arm(definition: WeaponDef) -> void:
+	var loadout := _player.loadout
+	for index in loadout.slots.size():
+		var slot := loadout.slots[index] as WeaponDef
+		if slot != null and slot.resource_path == definition.resource_path:
+			loadout.select(index)
+			return
+	loadout.give(definition, 60)
 
 
 # The names an environment variable lists (comma separated), or none.

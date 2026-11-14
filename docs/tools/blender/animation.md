@@ -223,10 +223,14 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   pair; since kit #1286 each poses `CharacterBodies.FEMALE` and `MALE` (the prototype `form` bodies) as well, and
   `limb_overlap.py --brief --json <clips>/bodies_overlap.json` writes each clip's deepest crossing a body with the
   clip file's SHA-256, which the Godot suites read (`tests/fixtures/bodies_overlap.gd`), so a rebuilt file that was not
-  measured again fails. A folder with one clip file a body has one report a file, `<file>_overlap.json`, measured on
-  the body that plays it (the prone clips, kit #1293). `test_limb_overlap.py` runs on the `form` bodies by
-  default (`--model` for others). The
-  prototype male's thighs meet by 1.9 mm at rest, which the self-test allows (`REST_MM`, 2.5).
+  measured again fails. The report also names what made its numbers (kit #1479, `measure_hash.py` beside the
+  script): `measure_sha256`, the hash of `limb_overlap.py`'s code with its comments, docstrings and layout taken
+  out, and `bodies_sha256`, each measured body file's hash; `BodiesOverlap.problems` fails on either, so a change to
+  the measure's code or a rebuilt body means every report is measured again in the same pull request
+  ([Rebuilding](build-scripts.md#rebuilding)). A folder with one clip file a body has one report a file,
+  `<file>_overlap.json`, measured on the body that plays it (the prone clips, kit #1293). `test_limb_overlap.py`
+  runs on the `form` bodies by default (`--model` for others). The prototype male's thighs meet by
+  1.9 mm at rest, which the self-test allows (`REST_MM`, 2.5).
 - **A check that reads a clip file measures every key at the file's own rate.** A glb has key times in seconds and
   no frame rate. `limb_overlap.py`'s command line reads the rate from the key times (`clip_rate()`: the lowest of 24,
   25, 30, 48, 50, 60 and 120 at which every key is a whole frame; `--fps` for a file that fits none), sets the scene

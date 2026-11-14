@@ -226,3 +226,65 @@ def test_the_sweep_holds_every_pull_request_but_the_fix_then_frees_them(tmp_path
     assert done.returncode == 0, done.stdout + done.stderr
     posted = (tmp_path / "posted").read_text(encoding="utf-8").splitlines()
     assert len(posted) == 2 and all("conclusion=success" in line for line in posted)
+
+
+# --- ci-failure's clear: a green run on main's head closes its red issue (kit #1472) ---
+
+CLEAR = FAILURE["jobs"]["clear"]
+CLEAR_STEP = CLEAR["steps"][0]
+
+
+def test_clear_runs_on_a_green_push_run_of_the_default_branch_only():
+    condition = " ".join(CLEAR["if"].split())
+    assert "conclusion == 'success'" in condition and "event == 'push'" in condition
+    assert "head_branch == github.event.repository.default_branch" in condition
+    assert f'title="{red_default.RED_TITLE}: $WORKFLOW"' in CLEAR_STEP["run"]
+
+
+def test_clear_closes_then_dispatches_the_sweep():
+    """A close made with the workflow's GITHUB_TOKEN starts no `issues` workflow either."""
+    script = CLEAR_STEP["run"]
+    assert script.index("gh issue close") < script.index("gh workflow run main-green-sweep.yml")
+
+
+def fake_clear_gh(tmp_path: Path, issue: str, head: str) -> dict[str, str]:
+    """A `gh` that knows one open red issue (or none) and the default branch's head; calls go to `calls`."""
+    script = f"""#!/bin/bash
+here={tmp_path.as_posix()!r}
+echo "$*" >> "$here/calls"
+case "$1 $2" in
+  "issue list") echo {issue!r} ;;
+  "api repos/"*) echo {head!r} ;;
+  "issue close"|"workflow run") ;;
+  *) echo "unexpected gh $*" >&2; exit 2 ;;
+esac
+"""
+    gh = tmp_path / "gh"
+    gh.write_bytes(script.encode("utf-8"))
+    gh.chmod(0o755)
+    return {
+        "PATH": f"{tmp_path}{os.pathsep}{os.environ['PATH']}",
+        "GH_REPO": "Ryubara/gdstudio",
+        "WORKFLOW": "ci",
+        "RUN_URL": "https://example.invalid/run/1",
+        "SHA": "a" * 40,
+        "BASE": "main",
+    }
+
+
+@needs_bash
+@pytest.mark.parametrize(
+    ("issue", "head", "closed"),
+    [
+        ("1279", "a" * 40, True),  # the head is green: the issue closes and the sweep runs
+        ("1279", "b" * 40, False),  # main moved on: the newer commit's own run decides
+        ("", "a" * 40, False),  # no red issue for this workflow
+    ],
+)
+def test_the_clear_step(tmp_path, issue, head, closed):
+    env = fake_clear_gh(tmp_path, issue, head)
+    done = subprocess.run([BASH, "-c", CLEAR_STEP["run"]], env=env, capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0, done.stdout + done.stderr
+    calls = (tmp_path / "calls").read_text(encoding="utf-8")
+    assert ("issue close 1279 --reason completed" in calls) is closed
+    assert ("workflow run main-green-sweep.yml --ref main" in calls) is closed

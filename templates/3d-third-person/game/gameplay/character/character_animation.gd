@@ -451,9 +451,10 @@ func body_state() -> StringName:
 	return _playback.get_current_node() if _playback != null else &""
 
 
-## True while an action clip plays over the body.
-func is_acting() -> bool:
-	return tree != null and tree.get(_P_ACTION_ACTIVE)
+## True while an action clip plays over the body; with `whole_body`, over all of it (a vault, a
+## push), not over the upper body alone.
+func is_acting(whole_body := false) -> bool:
+	return tree != null and tree.get(_P_ACTION_ACTIVE) and not (whole_body and _upper_only)
 
 
 ## The action clip that played last.
@@ -666,7 +667,8 @@ func _drive_pistol(delta: float) -> void:
 	var stow := maxf(stowed, _vault_look.hands)
 	var hidden := stowed > 0.5 or _vault_look.away
 	_prone_look.stow_view(model if is_instance_valid(model) else null, hold, hidden)
-	var armed := up_share * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
+	var grip := up_share * CharacterSlide.grip_share(character, hold)
+	var armed := grip * (1.0 - stow) if hold != null and hold.grip_clip != &"" else 0.0
 	var aims := up_share if hold != null and hold.aim_clip != &"" else 0.0
 	var arm := _brace.arm(self, delta)
 	# Lying with a prone aim, its clips (in the prone state) stand in for the standing layers.

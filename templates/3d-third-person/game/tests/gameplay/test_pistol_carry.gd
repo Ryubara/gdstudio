@@ -5,6 +5,8 @@
 extends GdUnitTestSuite
 
 const SKELETON := "Armature/Skeleton3D"
+## Ticks a start from standing may still play after the first 40 (two seconds at most).
+const START_TICKS := 120
 ## Bones that must follow the locomotion clip while the pistol only sits in the hand.
 const FREE_BONES: Array[StringName] = [
 	&"pelvis",
@@ -111,8 +113,15 @@ func test_walking_jogging_and_sprinting_with_the_pistol_follow_the_clip() -> voi
 		for code: Key in gaits[gait]:
 			InputSim.key(code, true)
 		await InputSim.ticks(get_tree(), 40)
+		# A start from standing plays first; the steady gait follows it.
+		for _tick in START_TICKS:
+			if String(_animation.body_state()) == "ground":
+				break
+			await InputSim.ticks(get_tree(), 1)
 		assert_float(_player.ground_speed()).override_failure_message(gait).is_greater(1.0)
-		assert_str(String(_animation.body_state())).is_equal("ground")
+		assert_str(String(_animation.body_state())).override_failure_message(gait).is_equal(
+			"ground"
+		)
 		_assert_follows_the_clip(gait)
 		_assert_grip_only(gait)
 		InputSim.release_all()

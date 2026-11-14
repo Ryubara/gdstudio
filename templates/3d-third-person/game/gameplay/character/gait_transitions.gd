@@ -33,6 +33,12 @@ const _P_SEEK := &"parameters/Locomotion/gait_transition/Seek/seek_request"
 const _P_HOLD := &"parameters/Locomotion/gait_transition/Hold/scale"
 ## Degrees of turn left before a turning body counts as done with its part.
 const TURN_DONE := 5.0
+## Frames after the body last stood in which a start is still picked: the controller's
+## acceleration carries the body past `standing_speed` on the tick it is asked to move, so a start
+## read only from the speed now never played (gdstudio #1416).
+const START_GRACE := 4
+## Below this ground speed a stopping body is at rest and its clip plays on at its own pace (m/s).
+const STOP_DONE := 0.02
 
 var settings: GaitSettings
 ## What plays now, and its clip.
@@ -50,9 +56,10 @@ var _along := Vector3.FORWARD
 var _facing := 0.0
 var _turn_to := 0.0
 var _pending := false
-# The state `route()` handed the body to when it ended a transition, until the machine has left
-# the transition's state for it.
-var _left_for: StringName = &""
+var _since_standing := 0
+# The state the body machine was last asked for (`route()`): where it goes from this state when
+# it finds itself left there.
+var _asked: StringName = CharacterAnimation.GROUND
 
 
 ## The state's node: the clip behind a seek and a time scale of 0.
@@ -96,12 +103,12 @@ func is_playing() -> bool:
 ## plays keeps the body while the ground is asked for (it hands over by itself); anything else
 ## ends it.
 func route(state: StringName) -> StringName:
+	_asked = state
 	if not is_playing():
 		return state
 	if state == CharacterAnimation.GROUND:
 		return STATE
 	_end()
-	_left_for = state
 	return state
 
 
@@ -112,19 +119,17 @@ func step(
 	playback: AnimationNodeStateMachinePlayback,
 	delta: float
 ) -> void:
+	_count_standing(animation.character)
 	if is_playing():
 		_go_on(animation, blend, playback, delta)
 		return
 	var current := playback.get_current_node()
 	if current == STATE:
-		# Left there by a rebuild of the tree. Not when `route()` has just sent the body on: the
-		# machine names the transition's state until its next update, and this travel took the
-		# jump's place, so the body flew through the whole jump on the ground's pose and the
-		# stop clip's held pose gave way to it in one tick (gdstudio #1462).
-		if _left_for == &"":
-			playback.travel(CharacterAnimation.GROUND)
+		# Left there by a rebuild of the tree, or by a state asked as a clip ended that the machine
+		# has not reached yet (a crouch asked during a stop): on to the state last asked, never back
+		# to the ground over it (gdstudio #1412: the body stood drawn over its crouched capsule).
+		playback.travel(_asked)
 		return
-	_left_for = &""
 	if (
 		not _any
 		or settings == null
@@ -156,9 +161,21 @@ static func on_foot(body: Character) -> bool:
 ## The transition the body calls for now, as `{kind, clip}`, or empty: what `step()` would start.
 func pick(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary:
 	var body := animation.character
-	if body.ground_speed() < settings.standing_speed:
+	var standing := settings.standing_speed
+	if (
+		body.ground_speed() < standing
+		or (_since_standing <= START_GRACE and body.goal_speed > standing)
+	):
 		return _pick_standing(animation, blend)
 	return _pick_moving(animation, blend)
+
+
+# Frames since the body's ground speed was last under `standing_speed` (0 while it stands).
+func _count_standing(body: Character) -> void:
+	if settings != null and body.ground_speed() < settings.standing_speed:
+		_since_standing = 0
+	else:
+		_since_standing += 1
 
 
 # A start, or aiming away while standing, a turn on the spot.
@@ -168,8 +185,9 @@ func _pick_standing(animation: CharacterAnimation, blend: GaitBlend) -> Dictiona
 	var player := animation.animation_player
 	var goal := body.goal_speed
 	var picked := {}
-	if goal > settings.standing_speed:
-		var wish := body.last_command.world_move()
+	# An aimed walk faces the view and strafes; a start faces the way it moves, so none plays.
+	if goal > settings.standing_speed and not body.aiming:
+		var wish := body.move_goal.direction(body)
 		var forward := Vector3.BACK.rotated(Vector3.UP, body.facing)
 		var gait := blend.main_point(CharacterAnimation.GROUND, goal)
 		var side := "r" if forward.cross(wish).y < 0.0 else "l"
@@ -197,7 +215,7 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 		return _found(
 			Kind.STOP, GaitTransitionSet.pick_in(player, clips.stops, stop_point, stop_foot)
 		)
-	var wish := body.last_command.world_move()
+	var wish := body.move_goal.direction(body)
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z).normalized()
 	var angle := rad_to_deg(moving.angle_to(wish))
 	if angle < settings.reversal_angle and angle < settings.pivot_angle:
@@ -252,9 +270,15 @@ func _begin(
 	_length = animation.animation_player.get_animation(clip).length
 	_time = 0.0
 	_from = body.global_position
+	if kind == Kind.STOP:
+		# The stick was let go a tick before the tree saw it: the stop's ground counts from there.
+		# From the velocity, not `get_position_delta()`: a puppet is placed, never stepped, and
+		# its delta is from wherever it was last stepped, so its stop seeked to the end at once.
+		var tick := 1.0 / Engine.physics_ticks_per_second
+		_from -= Vector3(body.velocity.x, 0.0, body.velocity.z) * tick
 	_facing = body.facing
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z)
-	var wish := body.last_command.world_move()
+	var wish := body.move_goal.direction(body)
 	_along = moving.normalized() if kind == Kind.STOP else wish.normalized()
 	if _along.is_zero_approx():
 		_along = Vector3.BACK.rotated(Vector3.UP, body.facing)
@@ -311,7 +335,10 @@ func _progress(body: Character, leg: float) -> float:
 func _body_done(body: Character) -> bool:
 	match kind:
 		Kind.STOP:
-			return body.ground_speed() < settings.standing_speed
+			# At rest: the clip is played by the ground the body covers until the body stands
+			# (the stop decelerations of `CharacterTuning` cover the clip's travel), never on by
+			# itself under a body that still slides.
+			return body.ground_speed() < STOP_DONE
 		Kind.START:
 			return body.ground_speed() >= body.goal_speed * 0.95
 		_:
@@ -324,7 +351,7 @@ func _body_done(body: Character) -> bool:
 func _turn_asked(body: Character) -> float:
 	if kind == Kind.TURN:
 		return rad_to_deg(wrapf(body.view_yaw + PI - body.facing, -PI, PI))
-	var wish := body.last_command.world_move()
+	var wish := body.move_goal.direction(body)
 	if wish.is_zero_approx():
 		return 0.0
 	return rad_to_deg(wrapf(atan2(wish.x, wish.z) - body.facing, -PI, PI))
@@ -348,6 +375,7 @@ func _hand_over(
 				"r":
 					phase = 0.5
 	_end()
+	_asked = CharacterAnimation.GROUND
 	playback.travel(CharacterAnimation.GROUND)
 	if phase >= 0.0:
 		blend.seek_phase(animation.tree, CharacterAnimation.GROUND, phase)
@@ -356,7 +384,6 @@ func _hand_over(
 ## Ends what plays, without a hand-over (the tree is built again, the body died).
 func stop() -> void:
 	_end()
-	_left_for = &""
 
 
 func _end() -> void:

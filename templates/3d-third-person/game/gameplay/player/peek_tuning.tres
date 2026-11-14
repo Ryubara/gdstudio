@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="PeekTuning" format=3]
+
+[ext_resource type="Script" path="res://gameplay/character/peek/peek_tuning.gd" id="1_peek"]
+
+[resource]
+script = ExtResource("1_peek")

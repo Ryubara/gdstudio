@@ -17,7 +17,7 @@ const LEFT_FINGERS := 4
 var _kinds := PackedByteArray()
 var _influences := PackedFloat64Array()
 var _actives := PackedByteArray()
-var _hands := PackedFloat64Array([NAN, NAN, NAN, NAN])
+var _hands := PackedFloat64Array([NAN, NAN, NAN, NAN, NAN])
 var _elbow := NAN
 
 
@@ -33,21 +33,23 @@ func clear() -> void:
 	_kinds.clear()
 	_influences.clear()
 	_actives.clear()
-	_hands = PackedFloat64Array([NAN, NAN, NAN, NAN])
+	_hands = PackedFloat64Array([NAN, NAN, NAN, NAN, NAN])
 	_elbow = NAN
 
 
 ## Weighs each of `modifiers` (in the order they were added): the arms and the stance by `reach`,
 ## the hands by `fingers`, none when not `alive`; the left arm and fingers less as an action's
 ## clip takes the left hand (`freed`, `FreeHand`); each arm keeps its clip's elbow by
-## `keep_elbow` (`HoldArm.keep_elbow`: a melee blow's clip has the elbows, `HoldBlow`).
+## `keep_elbow` (`HoldArm.keep_elbow`: a melee blow's clip has the elbows, `HoldBlow`); with
+## `put_away` (the gun hidden for the action, a high vault: gdstudio #1409) both arms go to it.
 func weigh(
 	modifiers: Array[SkeletonModifier3D],
 	alive: bool,
 	reach: float,
 	fingers: float,
 	freed: float,
-	keep_elbow := 0.0
+	keep_elbow := 0.0,
+	put_away := false
 ) -> void:
 	var elbow := keep_elbow != _elbow
 	_elbow = keep_elbow
@@ -61,8 +63,9 @@ func weigh(
 		var share := fingers if kind >= FINGERS else reach
 		if not alive:
 			share = 0.0
-		elif kind == LEFT_ARM and freed > 0.0:
-			# The clip's own arm has the left hand while an action reaches with it.
+		elif (kind == LEFT_ARM or put_away and kind == ARM) and freed > 0.0:
+			# The clip's own arm has the left hand while an action reaches with it, and both
+			# while the gun is put away for it.
 			share *= 1.0 - FreeHand.gone(freed)
 		elif kind == LEFT_FINGERS and freed > 0.0:
 			share *= 1.0 - FreeHand.relaxed(freed)
@@ -75,14 +78,16 @@ func weigh(
 
 
 ## Gives the right hand its trigger finger's way and the left hand its thumb's way, its opening
-## and whether its fingers open together.
+## whether its fingers open together and its hook on the charging handle (`charge`, the left
+## hand's third pose: `ChargePull`).
 func hands(
 	right: HandPoseModifier,
 	left: HandPoseModifier,
 	trigger: float,
 	thumb: float,
 	opened: float,
-	together: bool
+	together: bool,
+	charge := 0.0
 ) -> void:
 	if trigger != _hands[0]:
 		right.second_weight = trigger
@@ -96,3 +101,6 @@ func hands(
 	if int(together) != int(_hands[3]):
 		left.open_together = together
 		_hands[3] = float(together)
+	if charge != _hands[4]:
+		left.third_weight = charge
+		_hands[4] = charge

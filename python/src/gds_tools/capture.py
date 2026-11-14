@@ -24,6 +24,8 @@ from PIL import Image, ImageDraw, ImageFont
 from gds_tools.quiet_run import run_quiet
 
 META_FILE = "capture.json"
+#: The game's whole output of the last capture, beside its frames (kit #1472: print lines and errors were hidden).
+LOG_FILE = "godot.log"
 SHEET_FILE = "sheet.png"
 # Movie Maker writes <name><8 digits>.png; the number takes at most 8 digits so a name ending in a digit stays the
 # prefix (`run2` gives run200000000.png, not run + 200000000)
@@ -215,7 +217,7 @@ def capture_frames(
         raise CaptureError(f"{project} has no project.godot")
     name = out.name
     if out.exists():
-        for old in (*out.glob("*.png"), *out.glob("*.wav"), out / META_FILE):
+        for old in (*out.glob("*.png"), *out.glob("*.wav"), out / META_FILE, out / LOG_FILE):
             old.unlink(missing_ok=True)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -230,9 +232,11 @@ def capture_frames(
     cmd = tell_movie_end(cmd)
     log(f"capturing {count} frames at {fps} fps into {out}")
     result = run(cmd, project)
-    errors = [line for line in result.output.splitlines() if "ERROR" in line]
-    for line in errors[:10]:
-        log(f"  godot: {line.strip()}")
+    (out / LOG_FILE).write_text(result.output, encoding="utf-8", newline="\n")
+    lines = [line.rstrip() for line in result.output.splitlines() if line.strip()]
+    for line in lines:  # the game's own print lines and errors, as a plain run shows them
+        log(f"  godot: {line}")
+    errors = [line for line in lines if "ERROR" in line]
     frames = frame_files(out)
     if result.returncode != 0 or not frames:
         tail = "\n".join(result.output.strip().splitlines()[-8:])

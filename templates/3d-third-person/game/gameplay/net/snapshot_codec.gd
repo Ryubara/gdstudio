@@ -3,7 +3,8 @@ extends RefCounted
 ## The server's messages that carry state: a TICK (the events since the last one, every player,
 ## then the moving props: `NetWorld.stream_rows`) and a WELCOME (the world table and every
 ## player, for a client that joins at any time). The layouts are in `NetWire` and `NetEvent`.
-## Snapshots are full: eight players are 96 bytes a tick (104 with all of them aiming), and a full
+## Snapshots are full: eight players are 96 bytes a tick (112 with all of them aiming and leaning),
+## and a full
 ## snapshot repairs whatever a stall delayed.
 ##
 ## A decoder checks a count against the bytes left before it reads a single entry (never
@@ -11,15 +12,25 @@ extends RefCounted
 ## that is not exactly one message.
 
 ## A player entry's bytes; an aiming player's carries `AIM_YAW_SIZE` more (the aim's heading off
-## the body, kit #1277).
+## the body, kit #1277), a leaning one's `PEEK_SIZE` more (the lean, gdstudio #1400).
 const PLAYER_SIZE := 12
 const AIM_YAW_SIZE := 1
-const MAX_PLAYER_SIZE := PLAYER_SIZE + AIM_YAW_SIZE
+const PEEK_SIZE := 1
+const MAX_PLAYER_SIZE := PLAYER_SIZE + AIM_YAW_SIZE + PEEK_SIZE
 ## A player's aim pitch is a signed byte over a quarter turn either way.
 const PITCH_STEPS := 127
 const PITCH_STEP := (PI / 2.0) / PITCH_STEPS
 ## The aim's heading off the body is a signed byte over a half turn either way.
 const AIM_YAW_STEP := PI / PITCH_STEPS
+## The lean is a signed byte, -127 (all the way left) to 127.
+const PEEK_STEPS := 127
+
+## A player's state is the state byte's low four bits (`Character.State` has 15); the top four
+## carry the goal speed in fifteenths of the body's sprint speed (`PlayerEntry.goal_step`,
+## gdstudio #1453), so the gait a start plays costs no byte.
+const STATE_MASK := 0x0F
+const GOAL_SHIFT := 4
+const GOAL_STEPS := 15
 
 const F_CROUCH := 1 << 0
 const F_AIM := 1 << 1
@@ -27,6 +38,10 @@ const F_SPRINT := 1 << 2
 const F_AIR := 1 << 3
 const F_RISING := 1 << 4
 const F_DEAD := 1 << 5
+## The player leans (a byte of the lean follows the aim's).
+const F_PEEK := 1 << 6
+## Asked for no move (`PlayerEntry.halt`).
+const F_HALT := 1 << 7
 
 ## The shortest event (a kind and one byte) and the longest: an ENTITY with the longest state (20
 ## bytes), one longer than a JOINED with the longest name (19).
@@ -319,8 +334,8 @@ static func read_welcome(data: PackedByteArray, drops: NetDrops = null) -> Welco
 # --- Players ---
 
 
-## Writes one player entry (12 bytes, 13 while aiming); answers the reason it cannot (`&""` when
-## written).
+## Writes one player entry (12 bytes, one more while aiming, one more while leaning); answers the
+## reason it cannot (`&""` when written).
 static func write_player(out: StreamPeerBuffer, player: PlayerEntry) -> StringName:
 	if not player.all_finite():
 		return NetDrops.NOT_FINITE
@@ -331,16 +346,20 @@ static func write_player(out: StreamPeerBuffer, player: PlayerEntry) -> StringNa
 	out.put_16(CommandCodec.point_step(player.position.y))
 	out.put_16(CommandCodec.point_step(player.position.z))
 	out.put_u16(CommandCodec.yaw_step(player.yaw))
-	out.put_u8(clampi(player.state, 0, 0xFF))
+	out.put_u8(
+		clampi(player.state, 0, STATE_MASK) | clampi(player.goal_step, 0, GOAL_STEPS) << GOAL_SHIFT
+	)
 	out.put_u8(_player_flags(player))
 	out.put_8(pitch_step(player.pitch))
 	if player.aim:
 		out.put_8(aim_yaw_step(player.aim_yaw))
+	if peek_step(player.peek) != 0:
+		out.put_8(peek_step(player.peek))
 	return &""
 
 
-## Reads one player entry (the caller checked that 12 bytes are left; an aiming player's 13th is
-## checked by the reader: the caller looks at `reader.ok`).
+## Reads one player entry (the caller checked that 12 bytes are left; an aiming or leaning
+## player's more are checked by the reader: the caller looks at `reader.ok`).
 static func read_player(reader: WireReader) -> PlayerEntry:
 	var player := PlayerEntry.new()
 	player.slot = reader.u8()
@@ -349,7 +368,9 @@ static func read_player(reader: WireReader) -> PlayerEntry:
 	var z := CommandCodec.point_from_step(reader.s16())
 	player.position = Vector3(x, y, z)
 	player.yaw = CommandCodec.yaw_from_step(reader.u16())
-	player.state = reader.u8()
+	var state := reader.u8()
+	player.state = state & STATE_MASK
+	player.goal_step = state >> GOAL_SHIFT
 	var flags := reader.u8()
 	player.crouch = flags & F_CROUCH != 0
 	player.aim = flags & F_AIM != 0
@@ -357,15 +378,19 @@ static func read_player(reader: WireReader) -> PlayerEntry:
 	player.air = flags & F_AIR != 0
 	player.rising = flags & F_RISING != 0
 	player.dead = flags & F_DEAD != 0
+	player.halt = flags & F_HALT != 0
 	player.pitch = pitch_from_step(reader.s8())
 	if player.aim:
 		player.aim_yaw = aim_yaw_from_step(reader.s8())
+	if flags & F_PEEK != 0:
+		player.peek = peek_from_step(reader.s8())
 	return player
 
 
 ## The bytes `player`'s entry takes on the wire.
 static func player_size(player: PlayerEntry) -> int:
-	return MAX_PLAYER_SIZE if player.aim else PLAYER_SIZE
+	var size := PLAYER_SIZE + (AIM_YAW_SIZE if player.aim else 0)
+	return size + (PEEK_SIZE if peek_step(player.peek) != 0 else 0)
 
 
 ## The entry as a client reads it (the decode of the encode), or null when it cannot travel.
@@ -388,6 +413,19 @@ static func pitch_from_step(step: int) -> float:
 	return clampi(step, -PITCH_STEPS, PITCH_STEPS) * PITCH_STEP
 
 
+## A goal speed (m/s) as a step of `GOAL_STEPS` over `full` (the body's sprint speed): 0 for no
+## move, at least 1 for any (a slow push still asks for a start).
+static func goal_step(goal: float, full: float) -> int:
+	if not is_finite(goal) or goal <= 0.0 or full <= 0.0:
+		return 0
+	return clampi(roundi(goal / full * GOAL_STEPS), 1, GOAL_STEPS)
+
+
+## The goal speed (m/s) a step means over `full`.
+static func goal_from_step(step: int, full: float) -> float:
+	return clampi(step, 0, GOAL_STEPS) * full / GOAL_STEPS
+
+
 static func aim_yaw_step(aim_yaw: float) -> int:
 	if not is_finite(aim_yaw):
 		return 0
@@ -398,6 +436,17 @@ static func aim_yaw_from_step(step: int) -> float:
 	return clampi(step, -PITCH_STEPS, PITCH_STEPS) * AIM_YAW_STEP
 
 
+## The lean (-1 to 1) as a signed step; 0 is no lean (nothing sent).
+static func peek_step(peek: float) -> int:
+	if not is_finite(peek):
+		return 0
+	return roundi(clampf(peek, -1.0, 1.0) * PEEK_STEPS)
+
+
+static func peek_from_step(step: int) -> float:
+	return float(clampi(step, -PEEK_STEPS, PEEK_STEPS)) / PEEK_STEPS
+
+
 static func _player_flags(player: PlayerEntry) -> int:
 	var flags := 0
 	flags |= F_CROUCH if player.crouch else 0
@@ -406,6 +455,8 @@ static func _player_flags(player: PlayerEntry) -> int:
 	flags |= F_AIR if player.air else 0
 	flags |= F_RISING if player.rising else 0
 	flags |= F_DEAD if player.dead else 0
+	flags |= F_PEEK if peek_step(player.peek) != 0 else 0
+	flags |= F_HALT if player.halt else 0
 	return flags
 
 
@@ -498,6 +549,15 @@ static func write_event(out: StreamPeerBuffer, event: NetEvent) -> StringName:
 		NetEvent.Kind.MELEE:
 			out.put_u8(event.slot)
 			out.put_u16(event.seq & 0xFFFF)
+		NetEvent.Kind.USE:
+			if event.id > 0xFF or event.detail < 0 or event.detail > 0xFF:
+				return NetDrops.BAD_VALUE
+			out.put_u8(event.slot)
+			out.put_u8(event.code)
+			out.put_u8(event.id)
+			out.put_u16(event.seq & 0xFFFF)
+			out.put_u8(event.detail)
+			out.put_u8(event.amount)
 		_:
 			return NetDrops.BAD_VALUE
 	return &""
@@ -562,6 +622,16 @@ static func read_event(reader: WireReader, drops: NetDrops = null) -> NetEvent:
 		NetEvent.Kind.MELEE:
 			event.slot = reader.u8()
 			event.seq = reader.u16()
+		NetEvent.Kind.USE:
+			event.slot = reader.u8()
+			event.code = reader.u8()
+			event.id = reader.u8()
+			event.seq = reader.u16()
+			event.detail = reader.u8()
+			event.amount = reader.u8()
+			var known := event.code >= NetEvent.UseCode.STARTED
+			if reader.ok and not (known and event.code <= NetEvent.UseCode.REFUSED):
+				return _drop(drops, NetDrops.BAD_VALUE)
 		_:
 			return _drop(drops, NetDrops.BAD_VALUE)
 	if not reader.ok:

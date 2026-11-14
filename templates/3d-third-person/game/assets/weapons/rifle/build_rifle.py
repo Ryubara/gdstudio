@@ -295,15 +295,26 @@ def magazine(b):
     b.box((-0.101, 0, -0.2), (0.078, 0.04, 0.012), K, bevel=0, rot=(0, -0.14, 0))  # floor plate
 
 
+# How high the charging handle runs: its latch's underside 1 mm over the stock's top (z 0.08), so that it slides back
+# over the stock in a reload (kit #1266; at Deadnight's 0.083 the latch's rear face was on the stock's front face and
+# its lower 4 mm ran into the stock).
+BOLT_Z = 0.088
+
+
 def bolt(b):
-    """The charging handle under the carry handle's rear: a T, slides back (+X) 0.06."""
-    b.box((0.08, 0, 0.083), (0.03, 0.016, 0.012), D, bevel=0)
-    b.box((0.094, 0, 0.083), (0.012, 0.05, 0.014), K, bevel=0)  # the latch bar
+    """The charging handle behind the carry handle's rear: a T, slides back (+X) 0.06 over the stock's top. Its latch
+    is an extended one on the left (-Y), the support hand's side: the bar runs on 2.2 cm past the stock's side and a
+    tab drops from its end beside the stock, 3.2 cm tall in all, so the left hand's index and middle fingers hook its
+    front face from the left (kit #1266: the plain bar was 1.4 cm tall, all of it within the stock's width)."""
+    b.box((0.08, 0, BOLT_Z), (0.03, 0.016, 0.012), D, bevel=0)
+    b.box((0.094, 0, BOLT_Z), (0.012, 0.05, 0.014), K, bevel=0)  # the latch bar
+    b.box((0.094, -0.036, BOLT_Z), (0.012, 0.022, 0.014), K, bevel=0)  # the bar on past the stock's left side
+    b.box((0.094, -0.039, BOLT_Z - 0.016), (0.012, 0.016, 0.018), K, bevel=0)  # the tab, 3 mm clear of the stock
 
 
 NODES = {
     "Magazine": (magazine, (-0.085, 0.0, -0.03)),  # the well's mouth: it drops down out of the well
-    "Bolt": (bolt, (0.07, 0.0, 0.083)),  # the handle's root at the receiver's rear
+    "Bolt": (bolt, (0.07, 0.0, BOLT_Z)),  # the handle's root at the receiver's rear
 }
 MUZZLE = (-0.47, 0.0, BORE)
 EJECT = (-0.03, 0.036, 0.05)  # the dust cover

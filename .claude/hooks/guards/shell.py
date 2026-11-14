@@ -68,8 +68,10 @@ def split_commands(command: str) -> list[str]:
 _ASSIGNMENT = re.compile(r"[A-Za-z_]\w*=")
 
 
-def segments(command: str) -> list[list[str]]:
-    """The simple commands of a shell line, each as words (quotes removed; a word that will not split stays whole)."""
+def segments(command: str, assigned: dict[str, str] | None = None) -> list[list[str]]:
+    """The simple commands of a shell line, each as words (quotes removed; a word that will not split stays whole).
+    `assigned`, when given, gets the line's shell variables (`NAME=value`, `export NAME=value`), so a later
+    `cd "$NAME"` can be followed (`change_dir`); the whole line is read first, so it holds every assignment in it."""
     out: list[list[str]] = []
     for part in split_commands(strip_heredocs(command)):
         part = part.strip()
@@ -79,7 +81,12 @@ def segments(command: str) -> list[list[str]]:
             words = shlex.split(part.replace("\\", "/"), posix=True)
         except ValueError:
             words = part.split()
+        if assigned is not None and words[:1] == ["export"]:
+            words = words[1:]
         while words:
+            if _ASSIGNMENT.match(words[0]) and assigned is not None:
+                name, _, value = words[0].partition("=")
+                assigned[name] = expand(value, assigned)
             if words[0] in ("&", ".", "call", "exec", "time", "sudo") or _ASSIGNMENT.match(words[0]):
                 words = words[1:]
             elif inner := _launched(words):  # a bare `env` is no launch: it prints the environment
@@ -158,18 +165,28 @@ def flag_values(words: list[str], flags: tuple[str, ...]) -> list[str]:
     return found
 
 
+_VARIABLE = re.compile(r"\$(?:\{([A-Za-z_]\w*)\}|([A-Za-z_]\w*))")
+
+
+def expand(word: str, assigned: dict[str, str]) -> str:
+    """`word` with `$NAME` and `${NAME}` replaced by the values the line assigned them; others are left as they are."""
+    return _VARIABLE.sub(lambda m: assigned.get(m.group(1) or m.group(2), m.group(0)), word)
+
+
 _CD_PROGRAMS = ("cd", "chdir", "pushd", "set-location", "sl")
 _CD_FLAGS = ("/d", "-p", "-l", "--", "-path", "-literalpath")
 _MSYS_DRIVE = re.compile(r"^/([A-Za-z])(?=/|$)")
 
 
-def change_dir(words: list[str], cwd: Path) -> tuple[bool, Path | None]:
+def change_dir(words: list[str], cwd: Path, assigned: dict[str, str] | None = None) -> tuple[bool, Path | None]:
     """(True, folder) for a plain `cd <dir>` (also `cd /d`, `pushd`, `Set-Location [-Path]`) as it moves `cwd`; (True,
-    None) for a `cd` this cannot follow (`cd`, `cd -`, `cd $DIR`, a glob, more than one folder); (False, None) when the
-    command is not a `cd`. The target is joined to `cwd` when relative, as the shell does."""
+    None) for a `cd` this cannot follow (`cd`, `cd -`, a `$DIR` the line did not assign, a glob, more than one folder);
+    (False, None) when the command is not a `cd`. The target is joined to `cwd` when relative, as the shell does; a
+    variable the line assigned earlier (`assigned`, from `segments`) is replaced by its value (kit #1472: a
+    `WT=<worktree>; cd "$WT" && git commit` was judged from the session's folder)."""
     if words[0].lower() not in _CD_PROGRAMS:
         return False, None
-    args = [w for w in words[1:] if w.lower() not in _CD_FLAGS]
+    args = [expand(w, assigned or {}) for w in words[1:] if w.lower() not in _CD_FLAGS]
     if len(args) != 1 or args[0] == "-" or any(ch in args[0] for ch in "$`*?%(){}"):
         return True, None
     target = args[0]

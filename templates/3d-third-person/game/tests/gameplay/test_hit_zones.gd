@@ -143,6 +143,26 @@ func test_a_shot_between_the_parts_flies_on_to_the_wall() -> void:
 	assert_array(met).is_equal([wall])
 
 
+# gdstudio #1412: a crouch holds the hips behind the body's middle, out past the capsule's surface;
+# a shot from behind met the capsule after it had crossed them, the second test looked on from
+# there and found nothing, and the shot flew on through the drawn hips. The test now starts
+# `look_back` before the touch.
+func test_a_part_in_front_of_the_capsule_is_hit_on_the_way_in() -> void:
+	var part := _zones.zone(&"pelvis")
+	var skeleton := _target.model.skeleton()
+	_zones.follow_bones()
+	# The pelvis moved 0.5 m toward the shooter, past the capsule's front (0.34 m).
+	var wanted := _target.global_position + Vector3(0.0, 0.9, 0.5)
+	var basis := skeleton.global_basis * skeleton.get_bone_global_pose(part.bone_index).basis
+	part.offset += basis.inverse() * (wanted - part.global_position)
+	_zones.follow_bones()
+	assert_float(part.global_position.distance_to(wanted)).is_less(0.01)
+	await ImpactShots.shoot(get_tree(), _arena, wanted + Vector3(0.0, 0.0, 3.0), wanted)
+	assert_int(_records.size()).override_failure_message("the shot flew on").is_equal(1)
+	if not _records.is_empty():
+		assert_str(String(_records[0].zone)).is_equal("pelvis")
+
+
 # A point inside the capsule's width, seen from the front, on no part's line.
 func _gap() -> Vector3:
 	for height: float in [0.3, 0.45, 0.6]:
@@ -199,8 +219,8 @@ func test_movement_the_camera_and_areas_never_meet_a_zone() -> void:
 		assert_int(masks[what] & PhysicsLayers.HIT_ZONES).override_failure_message(what).is_equal(0)
 	assert_int(_target.collision_mask & PhysicsLayers.HIT_ZONES).is_equal(0)
 	assert_int(_target.ragdoll_body.collision_mask & PhysicsLayers.HIT_ZONES).is_equal(0)
-	# In the world: a ray of every other mask through the head finds nothing (the capsule is
-	# excluded), a ray of the zones' own mask finds the head.
+	# In the world: a ray of every other mask through the head finds nothing (the capsule and its
+	# shot hull are excluded), a ray of the zones' own mask finds the head.
 	_zones.follow_bones()
 	var centre := _zones.zone(&"head").global_position
 	var space := _arena.get_world_3d().direct_space_state
@@ -211,7 +231,7 @@ func test_movement_the_camera_and_areas_never_meet_a_zone() -> void:
 		| PhysicsLayers.SHOT_MASK
 	)
 	var query := PhysicsRayQueryParameters3D.create(
-		centre + Vector3(0.0, 0.0, 2.0), centre, others, [_target.get_rid()]
+		centre + Vector3(0.0, 0.0, 2.0), centre, others, ShotHull.rids_of(_target)
 	)
 	query.collide_with_areas = true
 	var met := space.intersect_ray(query)
@@ -262,6 +282,8 @@ func test_the_hit_zones_pin_their_exports() -> void:
 		&"ragdoll": null,
 		&"enabled": true,
 		&"ray_length": 1.2,
+		&"look_back": 0.5,
+		&"hull": null,
 	}
 	var holder := auto_free(HitZones.new()) as HitZones
 	assert_array(ExportPins.differences(holder, zones_pins)).is_empty()

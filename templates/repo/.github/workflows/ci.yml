@@ -155,6 +155,17 @@ jobs:
           pck=repos/{GAME_SLUG}/build/web/index.pck
           grep -aq "res://world/prototype/prototype_level.tscn" "$pck"
           if grep -aq -e "res://tests/" -e "res://tools/" "$pck"; then exit 1; fi
+      - name: The export carries the clips the game plays
+        # A game from 3D Third Person ships only the Universal Animation Library clips it names (ClipExport of
+        # gds_game): the check reads the pack and fails on a named clip that is missing or an unnamed one still there
+        # (the kit's docs/tools/blender/own-animation.md#replacing). A game without the script has nothing to check.
+        run: |
+          set -o pipefail
+          check=repos/{GAME_SLUG}/game/tools/export_check/export_clips_check.gd
+          if [ ! -f "$check" ]; then echo "no $check: nothing to check"; exit 0; fi
+          godot=$(uv run --project repos/gdstudio/python gds tool path godot)
+          "$godot" --headless --path repos/{GAME_SLUG}/game -s res://tools/export_check/export_clips_check.gd -- ../build/web/index.pck 2>&1 | tee clips.log
+          grep -q "export clips: ok" clips.log
       - name: The browser for the boot check
         # Playwright's own headless Chromium, the one the local probes use (the kit's docs/engines/godot/web-probes.md#running).
         # The runner image already has the shared libraries Chromium needs; --with-deps adds fonts from the Ubuntu

@@ -16,9 +16,9 @@ what a window on a runner can judge in [Windowed GdUnit on a Linux runner](windo
   --import` to the end, logged to a file with its exit code read; a worktree from `gds issue start` has them already.
   **Watch out for:** the addons are git-excluded, so a hand-made worktree has none: `GdUnitCmdTool.gd` is "File not
   found", a windowed run exits 1 with no test result and reads as a failing suite, and an import cut short by `| tail`
-  looked done. **Seen:** Deadnight, 2026-11-01, 2026-11-03 (twice), 2026-11-05 ("exit 1 and no `Overall Summary`" is
-  a run that never started); gdstudio #952, 2026-11-10 (a kit worktree had no `godot/addons/gdUnit4`; #1128 made
-  `gds issue start` install it).
+  looked done. **Seen:** Deadnight, 11-01 to 11-05 ("exit 1 and no `Overall Summary`" is a run that never started);
+  gdstudio #952, 11-10 (no `godot/addons/gdUnit4`; #1128: `gds issue start` installs it); #1274, 11-12 (the kit's
+  `godot/`: `GdUnitTestCIRunner` not found until `--path godot --import`).
 - **Approach:** After every merge of main or checkout that adds a `class_name` script, run `godot --headless --path
   game --import` before any test, capture or soak, give each windowed run a `--timeout` (or a `quit()` watchdog timer)
   and read the first minute of its log for `Parse Error`. **Watch out for:** the global class cache is rebuilt only by
@@ -60,13 +60,13 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   code was fine. **Seen:** gdstudio #1183 (PR #1214), 2026-11-11.
 
 - **Approach:** Never name a local variable or parameter of a test `before` or `after` (nor any other function of
-  `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`); grep a new suite for them, and for a local named like one of
-  the script's exports, before its first run. **Watch out for:** the project turns a shadowed name into a parse error,
-  so four suites did not load; `gds check scripts` and `gds template test` name them at parse. **Seen:** gdstudio #881
-  (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965 (`next_up`), #1047, all 2026-11-10; #906, #907,
-  #909, #1127 (`before`), #970 (a loop's `var before`), 2026-11-11; #1013, #1047, #909, #970 and #1337 (`after`)
-  after reading this. A game script meets the same rule: gdstudio #1336, 2026-11-12 (a static function's parameter
-  `amount` in a class with an `amount()`, and a test's local `free`, `Object.free`).
+  `GdUnitTestSuite`: `assert_*`, `auto_free`, `await_*`, nor a global function: `snapped`, `free`); grep a new suite for
+  them, and for a local named like one of the script's exports, before its first run. **Watch out for:** the project
+  turns a shadowed name into a parse error, so four suites did not load; `gds check scripts` and `gds template test`
+  name them at parse. **Seen:** gdstudio #881 (`was`), #924, #887, #1013, #904 (`ticks_before`, `later`), #965
+  (`next_up`), #1047, 2026-11-10; #906, #907, #909, #1127, #970 (`before`), #1337 (`after`), 2026-11-11; a game
+  script too: #1336, 2026-11-12 (a parameter `amount` beside an `amount()`, a local `free`); #1400, 2026-11-13 (a
+  test's local `snapped`); #1435, 2026-11-13 (`side`, `roll`; a helper moved into a class with a `top` field).
 
 - **Approach:** Wrap the call that makes a script error on purpose (a watchdog test) in
   `await assert_error(func() -> void: <the call>).is_runtime_error("<Godot's exact message>")`, then assert what the
@@ -83,8 +83,9 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
 - **Approach:** Select a suite by its file (`-a res://tests/x.gd`), and read the summary's count of test cases (and
   `grep -c STARTED`) as well as the exit code. **Watch out for:** `-a res://tests/x.gd::test_y` is not GdUnit's form
   of a filter here, nor is `x.gd:test_y`: nothing ran and the exit code was 0 in 2 s, and no failure reads as a
-  pass; `-i` (ignore) ran the whole suite. To run one case of a long suite, copy the suite in the game under a new
-  name with every other `func test_` renamed to a plain function, and run that file. **Seen:** Deadnight, 2026-11-04
+  pass; `-i <suite>:<case>` skips that case (`GdUnitTestCIRunner.is_skipped`), so it ran the rest. To run one case,
+  give `-a res://tests/x.gd` and an `-i res://tests/x.gd:test_other` for each other case. **Seen:** Deadnight,
+  2026-11-04
   (fix: run the suite and read the count); gdstudio #1252, 2026-11-11 (`:` and `-i`); gdstudio #1213, 2026-11-11 (one
   case of the 9-minute pistol hold suite).
 
@@ -96,11 +97,15 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   the two; converted to LF); gdstudio #1203, 2026-11-11 (gdformat on Windows rewrote a new suite it reformatted with
   CRLF ends; git's warning at commit named it; converted to LF before the full run); #1037, 11-11 (five files).
 
-- **Approach:** Measure a drawn pose on `Skeleton3D.skeleton_updated` (after the tree and the modifiers), and read the
-  clip's time there from the tree (`parameters/<node>/current_position`), not from the body or a clock. **Watch out
-  for:** bones read before that signal, or set from a node that runs after the tree, show the frame before: a planted
-  wrist read 67 mm off for each frame of lag at 4 m/s. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11
-  (`test_vault_contacts.gd`).
+- **Approach:** Measure a frame's pose on `Skeleton3D.skeleton_updated` (after the tree and the modifiers), and read
+  the clip's time there from the tree (`parameters/<node>/current_position`), not from the body or a clock; measure
+  where a node is drawn against that pose after the frame
+  ([Measuring it](physics-interpolation.md#measuring-it)). **Watch out for:** bones read before that signal, or set
+  from a node that runs after the tree, show the frame before: a planted wrist read 67 mm off for each frame of lag at
+  4 m/s; and a physics-interpolated node placed in that update reads in step there while it is drawn a frame behind
+  the skin (the rifle at 0 mm in the signal, 0.7 m apart drawn). **Seen:** gdstudio #1037 (PR #1239), 2026-11-11
+  (`test_vault_contacts.gd`); #1347, 2026-11-13 (bones read after awaiting the update predated the modifiers);
+  #1473, 2026-11-13 (`test_held_weapon_drawn.gd`).
 
 - **Approach:** To iterate on one suite, keep a game (`gds template test <t> --keep`), copy the files you change into
   its `game/` and rerun that suite there with the command line above; make a fresh game for the full run before the
@@ -176,6 +181,13 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   for:** `gds template test` says only that leak lines exist; a list of scripts alone (GdUnit4's, the autoloads') with
   a few bare `RefCounted` and `RegEx` is that engine pattern, not a node a test forgot. **Seen:** gdstudio #1236,
   2026-11-11.
+- **Approach:** To read what a suite prints (measured numbers) or leaves at exit (`Leaked instance:`, `Resource still in
+  use:`), keep the game (`gds template test <t> --keep --suite <s>`) and run GdUnit's command line on its `game/`
+  directly, with `--verbose` for the leak lines; for one case alone, add an `-i <suite>:<case>` for each other case
+  ([the command line](#command-line)). **Watch out for:** `gds template test` prints one line a suite that passes and
+  the last 30 lines of GdUnit's output for one that fails, `--godot-args=--verbose` included, so a suite's `print` lines
+  and the leak list never reach you. **Seen:** gdstudio PR #1470 (the numbers) and PR #1501 (the leak lines),
+  2026-11-14.
 
 ## Before the push {#before-the-push}
 
@@ -200,7 +212,8 @@ game](new-game.md#proof), gdstudio #830 and #917).
 - **Approach:** When a change renames a method or changes its signature, search the tests for its callers (`git grep
   -n "<name>(" -- '*.gd'`) and run the full suite once, not only `--suite` on the files you changed. **Watch out
   for:** GDScript finds a wrong call only when the calling script loads, so the changed suites passed and the callers
-  in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10.
+  in other suites failed in the full run. **Seen:** gdstudio #901 part 2 (PR #997), 2026-11-10; PR #1427, 2026-11-13
+  (a blend fix pushed with the full run still going: seven suites outside the changed files had passed on the snap).
 - **Approach:** Read the run's exit code, not only its summary: free every node a suite keeps out of the tree (a pool's
   parked characters, a node removed with `remove_child`) inside the case, or keep it in the tree. **Watch out for:**
   GdUnit counts a node outside the tree as an orphan and exits 101 with every case green; CI pipes the run with
@@ -208,7 +221,7 @@ game](new-game.md#proof), gdstudio #830 and #917).
   1710 cases passed and the exit was 101 from the spawner's parked pools in the net suites, which load the map ([the
   spawner](third-person/ai-characters.md#spawner): it now makes its pool on the approach). **Seen:** kit #969,
   2026-11-11; PR #1233, 11-11 (`after_test` too late); PR #1248, 11-11 (a member `Late.new()` added in `_ready`:
-  freed at `NOTIFICATION_PREDELETE`).
+  freed at `NOTIFICATION_PREDELETE`); PR #1422, 11-14 (rig in `before_test`, join in the case: 1548).
 - **Approach:** Judge a `leaked at exit` line against `main` only from a full run of both; a run of a few `--suite`s
   that ends with one is run on `main` with the same suites before it counts against the change. **Watch out for:** a
   subset run can end with "leaked at exit" on `main` too (which scripts load, and in what order, depends on what ran:
@@ -259,7 +272,15 @@ jobs, and on a desktop other agents load. Read its number as the runner's as muc
   change 50 times before trusting it. **Watch out for:** the AI cost gate's ruler (a GDScript loop) was chosen on the
   desktop and followed the step on the runners at a slope of 0.6, so the step ratio read 3.9 to 8.1 and failed main at
   8.06 against 8.0; a physics ruler spread 1.55 times over 150 runs where the GDScript one spread 1.73. **Seen:**
-  gdstudio #1405, 2026-11-13 (fix: `PhysicsRuler`, limits by system, the teeth case `SlowAiDirector`).
+  gdstudio #1405, 2026-11-13 (fix: `PhysicsRuler`, limits by system, the teeth case `SlowAiDirector`); before it,
+  8.52 and 8.349 on #1364 and #1399, 11-12.
+- **Approach:** When one timing gate is found reading the runner, list every other gate on time in the suites (`grep
+  -rln "calibration\|ruler" tests/`) and treat each the same way in the same week; print the processor beside each
+  row and read the spread model by model. **Watch out for:** the walking crowd's frame budget, set on the desktop,
+  read 2.40 against 1.70 on CI the day the AI gate was fixed; one processor model's runs agreed within a few percent
+  while the models stood 1.5 times apart over every ruler tried, so the limit, not the ruler, was wrong; in the full
+  template run the gate read 5 to 17 % over the same gate run alone. **Seen:** gdstudio #1451, 2026-11-13 (limits
+  2.2 Linux, 2.4 Windows, the best of three windows, a twice-as-slow case).
 
 ## Running more than one {#parallel}
 

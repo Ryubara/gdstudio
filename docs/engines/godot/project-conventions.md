@@ -46,23 +46,30 @@ game/
   tables and nothing said which scene was which, while the maintainer meant to tune the game in the editor. **Seen:**
   Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export); gdstudio #904,
   2026-11-10 (`MenuScene.server_scene` added without its pin; `grep -rl <Class> tests` finds the pin suite);
-  gdstudio #1255, 2026-11-11 (new `WeaponDef` fields unpinned: grep the tests for `pistol.tres` too).
+  gdstudio #1255, 2026-11-11 (new `WeaponDef` fields unpinned: grep the tests for `pistol.tres` too); #1438, 11-13
+  (`GaitSettings`, `test_gait_parts.gd`).
 - **Approach:** Before adding more than a few lines to a script within about 100 lines of gdlint's 1000-line limit
   (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
   the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
   script 18 lines under the limit went red when main added 32 lines to it, since CI lints the merged head. **Seen:**
-  Deadnight #687, 2026-11-03; Deadnight #1359, 2026-11-06 (fix: the perk and route rules moved into classes of their
-  own); gdstudio #1041, 2026-11-10 (3D Third Person's `character.gd` at 1000 lines failed three pull requests that each
-  passed alone; four parts moved into modules: [the body's modules](third-person/character.md#controller)).
+  Deadnight #687, 11-03; Deadnight #1359, 11-06 (perk and route rules moved into classes); gdstudio #1041, 11-10
+  (`character.gd` at 1000 failed three pull requests that passed alone; four parts moved to
+  [the body's modules](third-person/character.md#controller)); #1187, 11-11 (`main` over it: pre-push refused every
+  push); #1393, 11-13 (`two_hand_hold.gd` at 1042: `HoldCarry`); #1420, 11-13 (994-line `character.gd`:
+  `CharacterGoal`).
+- **Approach:** When code leaves a script near the 1000-line limit, give whatever it adds to the old script or its base
+  class (a member holding the new class) a name no local or parameter in the scripts that see it uses: grep them for the
+  name before the first run ([names](gdscript.md#names-and-types)). **Watch out for:** a member is in scope in every
+  method of its class and the classes that extend it, and the templates make a shadowed name a parse error, so the
+  member that held `CharacterGoal`, first named `goal`, met `goal` locals in `ai_animation_throttle.gd` and broke
+  loading. **Seen:** gdstudio PR #1454, 2026-11-14 (renamed `move_goal`).
 - **Approach:** After writing a new script or shader in a template, run `gds template uids <template>` and commit
   the `.uid` files it writes (Godot's form; a valid file is never changed, an invalid one exits 1 until
   `--replace-invalid`). Never write a uid by hand. **Watch out for:** uids copied from a kept game were left behind
   and failed the `uid` rule in CI, and hand-made ones held a `z`, a `9`, a word or over 63 bits, which Godot imports
-  silently. **Seen:** gdstudio #845, #868, #872, #925 (2026-11-08 to 11-10); #910, #1074, #1091, #968 (36 at
-  once; 2026-11-11); #1186 (a
-  bench built with `bench-web`, which never checks layout); seven hand-made uids replaced, kit #1129, 2026-11-11; a
-  suite added after the first `gds template uids` run failed the full run's layout step, gdstudio #1187, #1052, 11-11
-  (run it again after the last new script); PR #1171, 11-12 (two `-s` tool scripts).
+  silently. **Seen:** gdstudio #845, #868, #872, #925, #910, #1074, #1091, #968, #1186 (2026-11-08 to 11-11); kit
+  #1129 (seven hand-made uids); #1187, #1052 (a suite added after the run); PR #1171 (`-s` tools); #1438, 11-13;
+  #1506, 11-14 (tried in a kept game, where Godot writes its own uids; the full run stopped at layout).
 
 - **Approach:** Run a Python tool that writes a cache (`ruff`) on a template's script with `--no-cache`, import or load
   a template's module with bytecode off (`PYTHONDONTWRITEBYTECODE=1`, or `sys.dont_write_bytecode` in a kit test), and
@@ -70,9 +77,8 @@ game/
   `__pycache__/` failed the layout check (`snake-case`) and `test_new_game.py`, like a fault of the change.
   From the kit's root ruff reads no config and wraps a template's Python at 88: pass `--line-length 120` (to undo an
   88 run, first `--config "format.skip-magic-trailing-comma=true"`). **Seen:**
-  gdstudio #884, 2026-11-10; gdstudio #908, 2026-11-11 (`tools/net/__pycache__`); gdstudio #1110, 2026-11-11 (a kit
-  test loading `bad_network.py` failed CI's `test_layout.py`); gdstudio #1106, #1105, 2026-11-11 (gate files rewrapped);
-  gdstudio #1040 (a sweep).
+  gdstudio #884, 11-10; #908 (`tools/net/__pycache__`), #1110 (a kit test loading `bad_network.py` failed CI's
+  `test_layout.py`), #1106, #1105 (gate files rewrapped), 11-11; #1040 (a sweep); #1293, 11-12 (Blender's).
 
 - **Approach:** Give each screen a router hosts a dev entry scene that builds the same parts and starts its work
   itself (Deadnight: `game/dev/play_night.tscn`, options in the inspector), and say in the tuning guide to use it or

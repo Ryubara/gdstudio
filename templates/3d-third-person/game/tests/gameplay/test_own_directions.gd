@@ -496,6 +496,9 @@ func test_the_player_s_tree_leans_with_these_poses_and_its_targets_follow_its_li
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_bool(animation.gait.lean.is_built()).is_true()
+	# The game switches the targets' tracks off (`HelperTracks`, kit #1438); a game that turns
+	# them on gets these.
+	HelperTracks.unmute(animation.animation_player)
 	var names := {
 		&"left": "Lean_Left", &"right": "Lean_Right", &"forward": "Lean_Fwd", &"back": "Lean_Back"
 	}
@@ -537,6 +540,7 @@ func test_the_player_s_tree_leans_with_these_poses_and_its_targets_follow_its_li
 		assert_float(feet).override_failure_message(message).is_less(0.005)
 		assert_float(targets).override_failure_message(message).is_less(0.01)
 	_leaned(tree, lean, &"")
+	HelperTracks.mute(animation.animation_player)
 
 
 # The player's pose with the lean of one way (`GaitLean.WAYS`) at full weight and the others at

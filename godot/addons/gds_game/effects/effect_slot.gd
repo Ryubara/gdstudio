@@ -218,6 +218,7 @@ func _start_sound(def: EffectDef, with_sound: bool) -> void:
 	_sound.volume_db = def.sound_volume_db
 	_sound.bus = def.sound_bus
 	_sound.max_distance = def.sound_max_distance
+	_sound.attenuation_filter_db = def.sound_filter_db
 	_sound.play()
 
 

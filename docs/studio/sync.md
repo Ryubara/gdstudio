@@ -64,11 +64,11 @@ beside it), the suites' `ExportPins` and `InputSim` (gdstudio #952 moved the sec
 `HitRecord` (`hits/`) and
 `Interactable` (`interact/`; gdstudio #925, with `HitRecord` moved from 3D Third Person's `gameplay/hit_zones/`). It is
 scripts, no autoload and no scene, with one editor part: `plugin.cfg` adds `ShaderPrelinkExport`, which has a web
-export start its program list from the page (gdstudio #1183); the templates turn it on, and a game made before turns it
-on under `[editor_plugins]` to get that, the rest working without it. A `class_name` under `addons/` is a global class
-without a plugin, so a game needs no other `project.godot` line, and `gds sync` alone brings it to a game made before it
-existed. Its
-suites are `godot/tests/gds_game/`, run by the kit's `godot` CI job with `gds_ui`'s. The kit's project sets no
+export start its program list from the page (gdstudio #1183); the templates turn it on, and `gds sync` adds it to the
+`[editor_plugins]` list of a game made before (gdstudio #1472), the rest working without it. A `class_name` under
+`addons/` is a global class without a plugin, so a game needs no other `project.godot` line, and `gds sync` alone
+brings it to a game made before it existed. Its suites are `godot/tests/gds_game/`, run by the kit's `godot` CI job
+with `gds_ui`'s. The kit's project sets no
 physics engine, so those suites run on Godot Physics while 3D Third Person runs Jolt: a part whose suite moves bodies or
 reads contacts passes on both, and a branch runs its `gds_game` suites in `godot/` as well as the template's
 (gdstudio #1013).
