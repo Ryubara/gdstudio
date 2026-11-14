@@ -398,3 +398,9 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   faces the view and strafes), and in a test that reads the steady gait after a press from standing, wait until the
   machine is back in `ground`: once starts played, four suites read the start instead. **Seen:** gdstudio #1416,
   2026-11-13 (PR #1427: pistol carry, aim release, rifle run state, a ragdoll that died mid-start).
+- **Approach:** Never send a state machine somewhere because `get_current_node()` reads a state: `travel()` is only a
+  request until the tree advances. Keep the state last asked (`GaitTransitions._asked`, set in `route()`) and travel
+  there. **Watch out for:** a crouch asked during a stop clip asked for `crouch`; the same frame's `step()` still read
+  `gait_transition` and sent the machine to `ground`, the last request won, and the body stood drawn over its
+  crouched capsule for as long as it crouched (an AI in cover looked stuck, shots at its chest flew over the capsule).
+  **Seen:** gdstudio #1412, 2026-11-13 (`test_a_crouch_asked_during_a_stop_takes_the_body_to_the_crouch`).
