@@ -11,8 +11,9 @@ is under [Solving a held pose](#solved-holds).
 ## The body under the hold {#body-under-the-hold}
 
 The 3D Third Person rifle is not on a bone: `TwoHandHold` places it from the chest bone after the clip, turns the
-chest, reaches the arms and closes the fingers. Its six clips
-(`templates/3d-third-person/game/assets/animation/rifle/build_rifle_clips.py`: idle, three aims, a shot, a reload)
+chest, reaches the arms and closes the fingers. Its seven clips
+(`templates/3d-third-person/game/assets/animation/rifle/build_rifle_clips.py`: idle, three aims, a shot, a reload
+with rounds left and one of an empty magazine, kit #1508)
 are the body under that.
 
 - **Work the game's hold out in the build, from the game's own files.** The build reads the hold's exported numbers
