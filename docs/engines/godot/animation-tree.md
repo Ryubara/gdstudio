@@ -442,7 +442,8 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   (0.19 m of the jog stop's 1.96 before, 1.965 after); PR #1422, 11-14 (an AI puppet).
 - **Approach:** Play a clip by the ground only while its travel curve still moves: from the frame its curve is within
   its rounding of the end (`GaitClips.travel_end`) let it play on at its own pace, and hold its pace to a share of
-  its own (`GaitTransitions.STOP_PACE_MOST`, 2), since the body's last braking need not be the clip's ease to rest.
+  its own once the body is slower than `standing_speed` (`GaitTransitions.STOP_PACE_MOST`, 2, never more than 0.1 s
+  behind its ground), since the body's last braking need not be the clip's ease to rest.
   **Watch out for:** a stop's curve creeps its last 0.1 mm over its settle (frames 30 to 48 of the jog's), so the
   body crossing it seeked 18 frames in a tick, a hand 31 cm; and the controller's harder end of braking played a
   jog stop's last step at four times its pace, 16 cm. Both waited for a stop whose last steps fell in those frames
