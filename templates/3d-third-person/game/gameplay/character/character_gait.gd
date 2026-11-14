@@ -103,6 +103,12 @@ func pose_key(animation: CharacterAnimation) -> Vector2i:
 	return Vector2i(hash(state), transitions.serial)
 
 
+## Whether the momentum blend carries the drawn pose's speed into the state it starts for (false
+## for a take-off: `JumpAnimation.carries_speed()`).
+func carries_speed(animation: CharacterAnimation) -> bool:
+	return jump.carries_speed(animation.body_state())
+
+
 func _take(animation: CharacterAnimation) -> void:
 	var settings := settings_of(animation)
 	blend.settings = settings

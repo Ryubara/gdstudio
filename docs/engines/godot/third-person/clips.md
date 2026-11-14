@@ -151,9 +151,10 @@ mass keeps its place against the capsule: it flies the arc the controller flies.
 **How the tree picks them** (`JumpAnimation`, kit #1371). A jump from the ground state at
 `run_takeoff_speed` (2.5 m/s) or more takes off from the foot that pushes: the one down at the gait's phase
 (`clips.json` contacts: the jog's left from 0 to 0.3 of its cycle, its right from 0.5 to 0.8), else the one that
-lands next; a gait with no record picks the take-off whose `joins.first_frame` is nearest the phase. The take-off
-plays to its end while the body is in the air, then the air plays at the body's vertical speed. A landing is
-picked by the fall speed (`Character.landed`'s on a stepped body, the fastest fall it was drawn with on a puppet)
+lands next; a gait with no record picks the take-off whose `joins.first_frame` is nearest the phase. The momentum
+blend carries no pose speed into the standing take-off (`carries_speed()`; PR #1530). The take-off plays to its end
+while the body is in the air, then the air plays at the body's vertical speed. A landing is picked by the fall speed
+(`Character.landed`'s on a stepped body, the fastest fall it was drawn with on a puppet)
 against each clip's `fall_speed` range. While the body stands it plays through its settle (the tree stays in
 `land` after the body's `LAND` state ends); asked to move it gives the body back at its `control` frame, or at once
 when the body already moves; `Land_To_Jog` hands over to the jog at the phase of its `joins.last_frame` (0.5). A

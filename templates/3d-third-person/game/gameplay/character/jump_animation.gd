@@ -7,7 +7,8 @@ extends RefCounted
 ##   the run take-off of the foot that pushes off: the one down at the gait's phase now, else the
 ##   one that lands next (`Jump_Start_Run_L` begins on the jog's left foot strike, `_R` on its
 ##   right one: `joins.first_frame` in `clips.json`); else `CharacterAnimation.jump_clip`. It
-##   plays to its end while the body is in the air, then the air follows.
+##   plays to its end while the body is in the air, then the air follows. The momentum blend
+##   carries no speed of the pose before into the standing one (`carries_speed()`).
 ## - **The air** (`fall`): `GaitSettings.rise_clip`, `apex_clip` and `CharacterAnimation.air_clip`
 ##   (the fall) in a blend space on the body's vertical speed: the rise alone from `air_rise_speed`
 ##   up, the top at 0, the fall alone from `air_fall_speed` down.
@@ -126,6 +127,18 @@ func lets_go(at: float, length: float, body: Character) -> bool:
 	if at < _control and body.ground_speed() <= settings.standing_speed:
 		return false
 	return body.goal_speed > settings.standing_speed or body.aiming
+
+
+## Whether the momentum blend (`MomentumBlend`) carries the speed of the pose shown before into
+## `state`, the body state it starts for: not into the standing take-off, whose push-off starts
+## from its own crouch. From a stop clip, the stop's sway carried into it turned the raised
+## pistol at 41 to 43 degrees a second on the third and fourth update (24 from a still stand),
+## by which foot the stop began on (gdstudio #1530); the run take-offs join the gait's own
+## motion and carry it.
+func carries_speed(state: StringName) -> bool:
+	if not _choosing() or phase != Phase.TAKEOFF or state != CharacterAnimation.JUMP:
+		return true
+	return takeoff != _animation.jump_clip
 
 
 ## The clip a jump of `body` would take off with now: `gait` is the ground gait that weighs most,
