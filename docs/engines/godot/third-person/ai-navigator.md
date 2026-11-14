@@ -61,7 +61,10 @@ far character stepped every 4th tick walks the same path.
   follow's band, or to a link it waits at) is the ground the body's stop covers (`CharacterTuning.stop_distance`), and
   keeps letting go until the body is at rest short of it or the goal moves on; it steers at every step within that
   reach and 0.25 m more. Every stock task's walk is a `go_to`: a jog ends 9 mm past its point, a sprint 3 mm (1.48 and
-  4.34 m past it with the stops and no braking; 0.30 m short and 0.06 m past before the stops).
+  4.34 m past it with the stops and no braking; 0.30 m short and 0.06 m past before the stops). A follower measures
+  what is left to its leader as it stands now (the path's end and on to the leader) and aims half a metre inside its
+  band (`arrive_distance`, or half a band narrower than a metre), since a follow arrives only inside the band; at rest
+  outside it, it walks on (#1529).
 
 The backend is SERVER: the research measured both the same once the target is set on a timer, and SERVER needs no
 node, answers the same on every machine and is what a test can hash; AGENT is there for its RVO in a crowd.
@@ -93,6 +96,12 @@ node, answers the same on every machine and is what a test can hash; AGENT is th
   stretch began 1.5 m out (the path's last two points were close) and the sprint still ran 3.3 m past; a hold set
   up to the next point carried the body 0.8 m past a link it had to wait at. **Seen:** gdstudio #1415, 2026-11-13
   (`AiNavBrake`, `test_ai_nav_stops.gd`, `test_ai_nav_recovery.gd`'s waiting link).
+- **Approach:** Let a follow's brake aim inside the band, measured to the leader as it is now, and walk on from a rest
+  outside it: a follow arrives only inside its band. Test a leader that walks off and stands, not only a still one.
+  **Watch out for:** the brake stopped on the band's edge by a path asked before the leader stopped; at rest just
+  outside, it stayed let go, not arrived, its stuck watch unsampled, standing "walking" until the leader moved: 6 of 8
+  sprint follows ended 2.50 to 2.96 m from a still leader (band 2.5) and the soak's allies doubled its stuck share.
+  **Seen:** gdstudio #1529, 2026-11-14 (`AiNavBrake.wants`, `test_ai_nav_stops.gd`).
 
 ## What it costs {#cost}
 
