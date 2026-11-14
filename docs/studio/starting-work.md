@@ -83,9 +83,17 @@ the third needs nothing. Each sets `S-blocked` and writes `Blocked (coordinator,
 issue body (with `(conflict in: <files>)` after the reason for the second). `gds issue list` prints the reason class
 beside each block: `[dependency]`, `[conflict]`, `[maintainer]`, or `[none named]` for a block written by hand that
 its issue body does not back, so a chain of blocks on one running issue shows at a glance. A blocked issue leaves
-the line, so it stops holding a slot of the window; when what it waits on closes, `gds issue list` shows it under
-"Unblocked: label to remove" and `gds issue unblock <ref>` puts it back. The coordinator's `Stop` is refused while an
-issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.md#idle)).
+the line, so it stops holding a slot of the window; when everything it waits on has closed (an issue closed, or a pull
+request merged or closed), the next `gds issue list` lifts the block itself, as `gds issue unblock <ref>` does (label
+and line gone, `S-ready-to-start` back), lists it under "Blocks lifted by this run" and counts it in "May start now" on
+that run. Only a lift `gh` refuses stays under "Unblocked: label to remove", with the error, for `gds issue unblock`. A
+block on the maintainer or on another repository's issue is never lifted this way. The coordinator's `Stop` is refused
+while an issue in "May start now" has no agent and no reason ([Hooks: idle issues](hooks.md#idle)).
+
+- **Approach:** Let the tool that sees a block has outlived its cause lift it on the same run. **Watch out for:**
+  `gds issue list` once only listed such blocks under "Unblocked: label to remove", so blocks on a merged pull request
+  and on the issue it closed kept both issues out of the window until someone ran `gds issue unblock`. **Seen:**
+  gdstudio #1490 and #1379 on PR #1486 and #1347, 2026-11-14 (fix: #1541).
 
 - **Approach:** Start every issue in each window that nothing blocks, check each running agent's newest file time on
   every monitor expiry (an hour unchanged is a stall), and report what each agent is on; a rule that says always gets a
@@ -346,13 +354,13 @@ closes an issue names the same sections on its `Read first:` line.
 gds issue list [owner/repo]
 ```
 
-prints the window (what may start now, and how many issues wait behind it), the issues in progress with their owner
-(the agent from the ledger, else the assignee) and the pull request that carries each, the blocked issues with the
-reason each gives (one blocked with no `Blocked (...)` line says so), the **unblocked** ones (blocked, but every issue
-they waited on has closed: lift them with `gds issue unblock`), and the issues waiting for information. An issue in
+prints the window (what may start now, and how many issues wait behind it), the issues in progress with their owner (the
+agent from the ledger, else the assignee) and the pull request that carries each, the blocked issues with the reason
+each gives (one blocked with no `Blocked (...)` line says so), the blocks it **lifted** on this run (every issue or pull
+request they waited on has closed: see [parallel work](#parallel)), and the issues waiting for information. An issue in
 progress with **no owner** (no ledger entry, no assignee, no pull request) is called out: someone set the label by hand
-or the agent was moved off it; give it an owner or release it. Any open
-pull request carrying `S-in-progress` is listed too, so the label can be taken off.
+or the agent was moved off it; give it an owner or release it. Any open pull request carrying `S-in-progress` is listed
+too, so the label can be taken off.
 
 ## Stopping and finishing {#stopping-and-finishing}
 
