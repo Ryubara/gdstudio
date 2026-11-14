@@ -301,6 +301,6 @@ environment) nor rewrites the file.
 `godot/` in this repository is a small Godot project of its own, not a game: it holds the Godot addons the kit owns
 (`godot/addons/gds_ui/`) and the GdUnit4 suites that prove them (`godot/tests/`). `gds workspace init` installs the
 pinned GdUnit4 into it, in the checkout and in every kit worktree that exists then, like into a game, and `gds issue
-start` into the worktree it makes ([The branch and worktree](starting-work.md#worktree)), so a new kit worktree runs
+start` into the worktree it makes ([The branch and worktree](worktrees.md#worktree)), so a new kit worktree runs
 the `gds_ui` suites at once. The addon is edited only here and
 `gds sync` writes it into each game ([where `gds_ui` is edited](../engines/godot/ui-controls.md#where), [Sync](sync.md#addons)).

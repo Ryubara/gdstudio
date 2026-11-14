@@ -128,6 +128,11 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   compressed library (`gds`) is refused ("Compressed tracks can't be manually removed"), and the switch holds for
   every player in the process, tests included: a suite that reads the switched-off bones switches them on for itself.
   **Seen:** gdstudio #1438, 2026-11-13 (the `ik_` targets, 286 tracks; `test_own_directions.gd` reads them).
+- **Approach:** Compare the rifle's clips (`rifle/rifle_clips.glb`) in Godot within the importer's error, never key for
+  key: they import at Godot's defaults, the lossy optimizer on, unlike our locomotion clips (optimizer off, compression
+  on: above). **Watch out for:** keys equal in the file came in up to 0.35 degrees apart, so a test that held two
+  reloads equal up to their shared seat failed though the build's keys matched. **Seen:** gdstudio #1508 (PR #1515),
+  2026-11-14 ([the rifle charge](rifle-charge.md#rifle-charge)).
 
 ## The jump's clips {#jump-clips}
 
@@ -142,17 +147,41 @@ mass keeps its place against the capsule: it flies the arc the controller flies.
 | State | Export of `CharacterAnimation` | Clip | Stand-in (`CharacterClips.STAND_INS`) |
 | --- | --- | --- | --- |
 | `JUMP` (rising) | `jump_clip` | `gds/Jump_Start`: the whole 0.4 s rise from the idle's first pose to the rise's, the arms floating up over all of it | `ual1/Jump_Start` |
-| `FALL` | `air_clip` | `gds/Jump_Fall`: a 1.2 s loop, the soles at the capsule's bottom | `ual1/Jump` |
-| `LAND` (a fall of `land_clip_speed` or more, for `land_time`) | `land_clip` | `gds/Land_Soft`: control back at frame 9 (0.3 s), the settle after | `fixed/Jump_Land` |
+| `JUMP` from a run | `GaitSettings.run_takeoff_left`, `_right` | `gds/Jump_Start_Run_L` and `_R`: from the jog's left and right foot strikes (its frames 0 and 10), at its speed | the standing take-off |
+| `FALL` | `air_clip` (with `rise_clip`, `apex_clip`) | `gds/Jump_Fall`, `Jump_Rise`, `Jump_Apex`: 1.2 s loops in a blend space on the vertical speed, the soles at the capsule's bottom | `ual1/Jump` |
+| `LAND` (a fall of `land_clip_speed` or more) | `land_clip` | `gds/Land_Soft`: control back at frame 9 (0.3 s), the settle after | `fixed/Jump_Land` |
+| `LAND` from 9 m/s | `GaitSettings.hard_land_clip` | `gds/Land_Hard`: control back at frame 20 (0.67 s), 1.27 s with its settle | `land_clip` |
+| `LAND` asked to run | `GaitSettings.run_land_clip` | `gds/Land_To_Jog`: 0.27 s, ends on the jog's right foot strike (frame 10) | `land_clip` |
 
-Six more are in the library and in `CharacterClips` for the tree that picks them (kit #1371), and no state
-plays them yet: `Jump_Start_Run_L` and `_R` (from the jog's left and right foot strikes, at its speed),
-`Jump_Rise` and `Jump_Apex` (with `Jump_Fall`, three poses to blend by vertical speed), `Land_Hard` (falls
-from 9 m/s) and `Land_To_Jog` (0.27 s, ends on the jog's right foot strike). `locomotion.json` says of each
-what the tree needs: `carried` (the capsule carries it), `made_for` (the tuning numbers it was built to,
-which `tests/gameplay/test_own_jump_clips.gd` holds to `CharacterTuning`'s defaults), `fall_speed` (`from`,
-`to`), `control` (the frame control is back at), `joins` (the clip each end is, and `first_frame` or
-`last_frame`, the frame of it).
+**How the tree picks them** (`JumpAnimation`, kit #1371). A jump from the ground state at `run_takeoff_speed` (2.5 m/s)
+or more takes off from the foot that pushes: the one down at the gait's phase (`clips.json` contacts: the jog's left
+from 0 to 0.3 of its cycle, its right from 0.5 to 0.8), else the one that lands next; a gait with no record picks the
+take-off whose `joins.first_frame` is nearest the phase. The momentum blend carries no pose speed into the standing
+take-off and starts again on one frame more (PR #1530). The take-off plays to its end while the body is in the air, then
+the air plays at the body's vertical speed. A landing is picked by the fall speed (`Character.landed`'s on a stepped
+body, the fastest fall it was drawn with on a puppet) against each clip's `fall_speed` range. While the body stands it
+plays through its settle (the tree stays in `land` after the body's `LAND` state ends); asked to move it gives the body
+back at its `control` frame, or at once when the body already moves; `Land_To_Jog` hands over to the jog at the phase of
+its `joins.last_frame` (0.5). A clip missing from the libraries leaves its choice to `CharacterAnimation`'s clip, so the
+library's play as stand-ins. Cosmetic, never sent: a puppet picks from the state, velocity and goal it is drawn with.
+`tests/gameplay/test_jump_tree.gd` holds each case; `tools/capture/jump_tour.tscn` films them on a player's own screen
+beside the puppet of it on another's.
+
+`locomotion.json` says of each clip what the tree reads: `carried` (the capsule carries it), `made_for` (the
+tuning numbers it was built to, which `tests/gameplay/test_own_jump_clips.gd` holds to `CharacterTuning`'s
+defaults), `fall_speed` (`from`, `to`), `control` (the frame control is back at), `joins` (the clip each end is,
+and `first_frame` or `last_frame`, the frame of it).
+
+- **Approach:** Pick a take-off (or any clip that starts from a gait) by the foot that is on the floor at the gait's
+  phase, from the record's contacts, and test the pick at phases between the strikes too, against the gait's pose
+  bone by bone. **Watch out for:** the first pick took the take-off whose join frame was nearest the phase; at 0.2 of
+  the jog the drawn pose was 593 mm (a hand) from the left strike's frame and 401 mm from the right's, so neither
+  nearness by phase nor by pose says which foot pushes; on a strike the joined take-off is 46 to 51 mm from the jog.
+  **Seen:** gdstudio #1371, 2026-11-14 (`test_jump_tree.gd`).
+- **Approach:** Read what a seek on the ground state set (`GaitBlend.seek_phase`, a hand-over) one update after the
+  `travel()` that goes there. **Watch out for:** in the update of the travel the walk point's `current_position`
+  still read the phase the ground state was left at (0.22 before a jump; 0.50 the update after), the same frame of
+  lag as the drawn pose ([gait fitting](../animation-tree.md#gait-fitting)). **Seen:** gdstudio #1371, 2026-11-14.
 
 ## The fixed clips {#fixed-clips}
 
@@ -177,181 +206,7 @@ camera, and with `LIBRARY_CLIPS=1` the library's.
 
 ## The vault clips {#vault-clips}
 
-<!-- new section: the Universal Animation Library has a climb (`ClimbUp_1m`) and no vault; kit #1010 made the template's
-own, and the vault code (#1013) reads their contact times from here -->
-
-`assets/animation/vault/vault.glb` holds GDStudio's own vault clips, keyed from scratch on the universal rig by
-`build_vault.py` (the pinned Blender) and imported as an `AnimationLibrary` like the two packs. They are in place like
-the library's: the game moves the body. `vault_clips.json` beside the file gives, for each clip, what a warp needs: the
-reference obstacle, the constant speed the body was moved at when the clip was keyed, where the root starts, and the
-contact times. Forward 0 is the obstacle's front face.
-
-| Clip | Length | Reference obstacle | Body moved at | Root from, to | Contacts (seconds from the clip's start) |
-| --- | --- | --- | --- | --- | --- |
-| `Vault_Low` | 0.792 s (19 frames at 24) | 0.8 m high, 0.4 m deep | 4.0 m/s (3.17 m) | -1.30 m, +1.87 m | left foot off 0.167, left hand on 0.250, hips over the middle 0.375, wrist off 0.375, fingers off (the push) 0.417, right foot down 0.792 |
-| `Vault_High` | 1.250 s (30 frames) | 1.2 m high, 0.4 m deep | 3.0 m/s (3.75 m) | -1.86 m, +1.89 m | right foot off 0.458, both hands on 0.458, right hand off 0.500, hips over 0.667, left wrist off 0.667, fingers off (the push) 0.708, right foot down 1.250 |
-| `Vault_Land` | 0.417 s (10 frames) | none | 4.0 m/s (1.67 m) | | right foot down 0, hips lowest 0.125, off 0.208, left foot down 0.417 |
-
-- **`Vault_Low`** is a speed vault: off the left foot, the left hand flat on the top 0.12 m in from the front edge and
-  0.27 m left of the body's line, both legs over to the right and stacked (the right leg leads above like a
-  hurdler's, the left tucks under it; they never cross), down on the right foot. The right hand never
-  comes nearer the obstacle than 0.6 m and keeps the sprint's fist, so it can hold the pistol; the clip does not seat
-  the fingers on a weapon ([Weapons](../../../tools/blender/weapons.md#hands-on-the-weapon) does that per weapon).
-- **`Vault_High`** is a two-handed side vault for what the low one cannot do: a short step, off the right foot with
-  both hands on the top (0.10 m in, 0.24 m each side), the hips up over the hands, the right hand off first to let the
-  legs by. Both hands are open on the obstacle, so it holds no weapon: the vault code holsters or hides one.
-- **The legs go over together, to the right.** In `Vault_High` the hips roll onto the left arm (72 degrees at the
-  push) until the body lies on its side over the top, and both legs trail beside the hips, parallel to the obstacle, a
-  hip width apart (the knees 1.6 hip widths at most while the hips are over the box, 3.8 before the fourth review)
-  with the knees near a right angle (65 degrees at the tightest, 14 before), the right leg on top. The hips cross the
-  front edge 0.26 m over the top and are 0.34 to 0.42 m over it across the box (0.16 and 0.29 to 0.33 before: the lean
-  puts the pelvis nearer the centre of mass, whose arc is unchanged). The feet cross the front edge two frames after
-  the hips; past the far edge the legs swing forward and down in one move (no ankle slower than 2 m/s against the
-  hips; five frames under 0.7 before). The build and the Godot suite hold it (`LEGS_*`).
-- **The arm that lets go follows the body.** `Vault_High`'s right hand leaves the top with its elbow still bent (84
-  degrees), lifts ahead of the right knee as that leg swings over, and from four frames after the release rides out
-  to the right a little under shoulder height, a balance arm, until it comes down and back into the sprint's swing
-  with the landing. Its wrist is never over its shoulder (0.01 m under at the highest, 0.30 m over before the third
-  review), it gains speed over four frames (2.6, 4.6, 5.3, 5.1 m/s in the world, where the body itself moves at
-  3.6) and never moves faster than 4.1 m/s against the shoulder (9.4 before). `Vault_Low`'s free right arm is keyed
-  the same way: it lies back along the upper side of the rolled body, the wrist at shoulder height (0.01 m over;
-  0.37 m before), and opens out to the right as the body comes upright. The build and the Godot suite hold both
-  (`FREE_*`; the male's longer arms read up to 0.03 m over the shoulder and 6.9 m/s).
-- **`Vault_Land`** is the step after either: both vaults end in the sprint's right foot strike (0.333 s into
-  `Sprint`), where `Vault_Land` starts, and it ends in the left foot strike (`Sprint` at 0 s), where both vaults start.
-  The body arrives still falling (2.8 m/s after the low vault, 3.9 m/s after the high one), so the clip's first three
-  frames are the landing: the knee gives from 162 to 94 degrees and the hips drop 0.14 m, the chest comes forward,
-  then the leg drives off. A game that goes from a vault straight to `Sprint` at 0.333 s loses that.
-- **The planted arm carries the body, and its push is the time in the air.** In `Vault_Low` the left hand is on the
-  top for 0.167 s (four frames; the wrist is still for three, then the heel of the hand lifts and the fingers leave
-  last). The elbow is at 148 degrees when the hand lands, gives to 121 as the shoulder comes over the hand, and is
-  straight (176) when the hand leaves, behind the body; the chest turns toward the hand as the body goes by and the
-  right arm lies back along the upper side of the body, no higher than its shoulder. Through the contact the arm
-  carries the whole body (1.04 of its weight on average: the body comes onto the hand rising at 0.82 m/s and leaves it
-  at 0.89 m/s, where gravity alone would have taken 1.6 m/s off). In `Vault_High` the hands land with the arms folded
-  under the body (78 degrees), the arms straighten as the hips rise over them (to 176 when the left hand leaves, 0.25
-  s after the plant) and carry 0.4 of the body's weight while the jump does the rest.
-- **In the air the body is on the arc of a free fall**, measured at its centre of mass (the usual table of body
-  segment masses on the bones), not at the pelvis. `Vault_Low`: 0.375 s from the hand's push to the landing, up
-  0.04 m more for 0.09 s, then 0.40 m of fall in 0.28 s; `Vault_High`: 0.542 s, up 0.095 m for 0.14 s (the top is
-  past the far edge), then 0.80 m of fall in 0.40 s. Both are within 0.3 mm of the arc on every frame. The landing
-  leg opens a little more each frame on the way down (in `Vault_Low` the knee from 89 to 139 degrees over six
-  frames, the foot lower on every frame) and lands at 162.
-- **Why two vaults.** A one-handed vault carries the hips past a hand that is under the shoulder: at 0.8 m the hips
-  rise 0.2 m over a running stride, at 1.3 m they would rise 0.7 m off one foot with the hand at shoulder height
-  (1.44 m on the mannequin), which no body does. Parkour coaching puts most vaults between knee and hip height and
-  shipped systems switch clips by height (the research is in the pull request of #1010), so the low clip covers about
-  0.5 to 1.0 m and the high one about 1.0 to 1.3 m; above that is a climb (`ClimbUp_1m` and a mantle).
-- **Warping one clip to another obstacle** (for #1013 to confirm in play): the pose over the obstacle is a rigid body
-  on a hand, so another height is the body lifted by the difference while a hand is on the top (none at the last
-  ground contact, all of it from the hand plant to the hand's release, none at the landing), and the wrist stays its
-  own height over the top (`wrist_above_top`, 22 to 36 mm by body) at any height. Another depth is more travel between
-  the hand's release and the landing; another speed is the clip's rate. `tools/capture/vault_study.tscn` does the
-  height warp (`LOW_HEIGHT`, `HIGH_HEIGHT`) and plays the clips over their boxes from four views; headless, it prints
-  the contact numbers.
-- **A file a body** (kit #1294). A planted hand is on its place only on the arms the clip was solved for, and the
-  legs go over clear of each other only on the thighs they were keyed around, so `build_vault.py --body <name>`
-  solves the same keys on each body and writes a file for it: `vault.glb` and `vault_clips.json` on `form_female`
-  (the template's default body, `CharacterBodies.FEMALE`), `vault_male.glb` on `form_male`, and
-  `vault_quaternius.glb` on the Quaternius female, the bytes the one file had before, which the Quaternius male plays
-  too. The character's `vault` library follows its model (`CharacterAnimation.vault_libraries` in
-  `character_dressed.tscn`, the model's scene file to its library, as `prone_libraries`). Every file has the clips at
-  the same lengths, speeds, contact times, root places and hand places (the build fails a body whose numbers differ
-  from the default's, and a Godot test holds it), so the `VaultClip` resources are one set; only the wrist's height
-  over the top is the body's own (22 mm on `form_female`, 28 mm on `form_male`, 36 mm on the Quaternius female: the
-  thickness of the palm).
-
-  | Body, in its own file | Planted wrist moves, low / high | Off its height | Deepest limb in limb | Before, in the one file |
-  | --- | --- | --- | --- | --- |
-  | `form_female` | 0.0 / 0.0 mm | 0.0 / 0.0 mm | 4.5 mm (thighs, `Vault_High` frame 14) | 18.7 / 72.3 mm, 15.5 / 31.2 mm, 34.0 mm |
-  | `form_male` | 0.0 / 0.0 mm | 0.0 / 0.0 mm | 4.6 mm (thighs, `Vault_High` frame 16) | 35.2 / 82.2 mm, 59.0 / 48.2 mm, 23.6 mm |
-  | Quaternius female | 0 / 0 mm | 0 / 0 mm | 0.0 mm | the same file |
-  | Quaternius male (her file) | 34 / 79 mm | 49 / 41 mm | 3.1 mm (feet) | the same file |
-
-  What a body's arms and thighs move is a short list of numbers in the build's `BODIES` table, each explained where
-  the clip reads it: the wrist's height over the top and the heights of the centre of mass at the joins (measured);
-  how far the wrist lifts on the frame it pushes off and how far the fingers tip (a longer arm is still bent when the
-  body has passed: 141 degrees on `form_female` with the first keys, 176 now); the collarbone's lift on the male; and
-  in `Vault_High` the lower leg's foot further out from the hips past the front edge (75 and 100 mm), the knees a
-  little further out, and the lower foot further back and down on the frame at the edge.
-- **No limb passes through another**: each build measures every frame of every clip on the skinned mesh of the body
-  its file is for (`assets/animation/limb_overlap.py`, the approach under
-  [Keyframes](../../../tools/blender/animation.md#keyframes)), with the body's twist bones turned as the game turns
-  them, and fails over 5 mm (the table above). Each file's sidecar carries the numbers and the hash of the file they
-  were measured on, and `tests/assets/test_vault_clips.gd` fails when either is off. `vault/bodies_overlap.json`
-  (`limb_overlap.py --brief`, [Limbs inside limbs](../../../tools/blender/body-crossings.md#library-clips)) holds the
-  two bodies that share `vault_quaternius.glb`, read by the same suite.
-- **The legs clear the box between the keys too.** A game draws the clip 60 times a second and more, with the 24
-  keys a second joined by straight lines, so the build reads the pose 240 times a second, joined the same way, with
-  the root moved at the clip's speed: no leg joint of the file's body more than 5 mm inside the box (0.0 in both
-  vaults), no skin more than 12 mm (0.0 in `Vault_Low`, 4.4 mm of a forearm in `Vault_High`). In `Vault_Low` the left
-  knee swings out to the right with the rolled body on frame 7, before the front face, and is 0.065 m over the top
-  where it crosses the edge (0.285 s); the lead foot is lifted with the toes up on frame 5 and its ball is 0.07 m over
-  the top at the edge. A planted palm presses up to 16.3 mm into the top between two keys and the sole of the sprint's
-  foot strike 20.8 mm into the floor, under the contact, which the build allows (20 and 25 mm).
-  `tests/assets/test_vault_clips.gd` reads the leg joints at the same rate in Godot, and the `_edge` sheet draws the
-  poses between the keys at the front edge.
-- **How the vault plays them** (kit #1037): the `VaultClip` resources `gameplay/character/vault_low.tres` and
-  `vault_high.tres` carry the numbers of `vault_clips.json` (a test holds them equal), and the vault is
-  [timed by the clip](traversal.md#clip-timing): it starts at the frame that fits the distance, the root moves level
-  and forward through the clip's contact places, lifted by the difference to another height while a hand is on the
-  top, and `Vault_Land` follows in the same action. The capsule still goes over the top; only the model is held on
-  the clip's root.
-
-- **Approach:** Check a contact clip at the game's frame rate as well as on its own keys: sample every joint that
-  passes an edge at 60 a second (or finer) between the keys. **Watch out for:** `Vault_Low` moves the left knee 0.5 m
-  in one of its 24 frames a second, from before the front edge to over the top; both keys are clear of the box and
-  the build's checks pass, and the frames Godot draws between them cut the corner by up to 68 mm. A limit for a
-  peak between keys is set over its worst instant, measured at several draw rates (59, 61, 121, 179 and 240 frames
-  a second sweep the instant a frame lands on); one run's frames read anything from 0 to the peak. **Seen:** gdstudio
-  #1037, 2026-11-11 (`test_vault_contacts.gd` allowed 55 mm from runs that read 48 mm, and failed in CI at 66 to
-  68 mm once main's other suites shifted the frames; it allows 75 mm now; the clip's fix is gdstudio #1221).
-- **Approach:** Turn the importer's animation optimizer off for a clip with a contact (`_subresources` in the
-  `.import`: `"nodes": {"PATH:AnimationPlayer": {"optimizer/enabled": false}}`), and test the contact in Godot, on
-  every planted frame, with the body moved as the game moves it. **Watch out for:** the optimizer dropped the
-  forearm's key on the middle frame of the hand plant (the elbow was straight, bent 43 degrees and straight again on
-  three frames), so Godot played the wrist 107 mm off the box on that frame while the build's checks in Blender read 0.
-  **Seen:** gdstudio #1010, 2026-11-10 (fix: the optimizer off, the arm kept bent through the plant, and
-  `tests/assets/test_vault_clips.gd`).
-- **Approach:** Check a clip against the obstacle between its keys as well, 240 times a second with the keys joined
-  as the player joins them, and key a limb that swings past an edge over the edge's height a frame before it gets
-  there. **Watch out for:** `Vault_Low`'s left knee was before the front face and under the top on frame 7 and past
-  it and over the top on frame 8, both keys clear; on the frames a game draws between them it was 60 mm inside the
-  wall (the skin 76 mm), and the lead foot's toes 40 mm between frames 5 and 6. The knee's pole pointed forward
-  while the ankle passed behind the hip, so the knee hung down and whipped forward in one frame. **Seen:** gdstudio
-  #1221, 2026-11-11 (found by #1037's test in the game; fix: `check_between` in `build_vault.py`, the knee keyed out
-  beside the rolled body on frame 7, the lead foot lifted on frame 5).
-- **Approach:** Animate a vault from the planted arm. Decide where the body's centre of mass is on every frame (a
-  free fall's arc in the air; on the hand, a rise that ends faster than gravity alone would leave it) and key the
-  pelvis from that. Let the arm show it: the elbow bent with the shoulder low over the hand, the arm straight and
-  behind the body when the fingers leave, the chest turned to the hand, the other arm out. The speed off the hand is
-  the time in the air. **Watch out for:** a pelvis keyed by eye: the hand was on for 0.083 s with a straight arm, the
-  path topped out as the hand left, and `Vault_High` stopped a 3.2 m/s rise in two frames (more than twice
-  gravity), which read as a body pulled down. **Seen:** gdstudio #1016, 2026-11-11 (the maintainer's review; fix:
-  `Clip.drive` and `check_motion` in `build_vault.py`, three cases in `tests/assets/test_vault_clips.gd`).
-- **Approach:** When a rise cannot be stopped by gravity before the top you want, slow the rise or move the top later
-  and higher, and check the path the game moves the body on against a free fall as well as the clip. **Watch out
-  for:** lifting the shoulder to straighten the planted arm drops the hips by as much, since the centre of mass is
-  given: the feet went 47 mm into the box until the roll was put back. The `Vaultable`'s own path drops the body
-  three times faster than a fall, whatever the clip does. **Seen:** gdstudio #1016, 2026-11-11 (`Vault_High` tops
-  out 0.14 s after the hand leaves; the path is kit #1037's).
-- **Approach:** Solve a clip with a planted hand once for each body that plays it, from one set of keys, into a
-  file a body, and hold every file to the default body's numbers in the build. Give a body its own number only where
-  its arms or thighs force one, and name each in one table. **Watch out for:** one file keyed on the Quaternius
-  female slid the planted wrists of the bodies the template wears 18 to 82 mm over the top and put their thighs 24 to
-  34 mm into each other; solved on `form_female`, the same file put the Quaternius female's free hand 41.5 mm into
-  her thigh, so no one body's file serves the others. The thighs crossed at the crotch, where the lower leg lay
-  across under the upper one: moving the knees apart did little (the knees were 1.9 hip widths apart with 8 mm still
-  crossing), moving the lower leg's foot out from the hips cleared it. **Seen:** gdstudio #1294, 2026-11-11.
-- **Approach:** Pick a mannequin's skinned mesh by its parent (the armature) or its armature modifier. **Watch out
-  for:** `mannequin_female.glb` holds a stray 42-vertex `Icosphere` beside `Mannequin_F`, and it comes first, so a
-  build that took the first mesh measured nothing and failed on an empty list. **Seen:** gdstudio #1010, 2026-11-10.
-- **Approach:** Keep the capsule out of geometry through a vault: it goes up and over the top as a body's would, and the
-  model, not the capsule, follows the clip's level root through the crossing (held in the world for the move, with the
-  camera's target moved by the same difference so the view stays level). **Watch out for:** this section said the clip's
-  root goes level through the wall and nothing about the capsule, so it read as moving the body through the wall; the
-  capsule has to stay where the physics world (and a server, stepping the same plan) can move it, so the model leaves it
-  for the crossing. **Seen:** gdstudio #1037 (PR #1239), 2026-11-11 (`VaultAnimation` holds the model).
+Moved to [Vaulting's clips](vault-clips.md#vault-clips).
 
 ## The gait settings {#gait-settings}
 
@@ -372,6 +227,7 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the controller's numbers that pick them |
 | `momentum_blend`, `momentum_half_life`, `momentum_speed_limit` | on, 0.05 s, 720 degrees a second | a change of body state shows at once and the difference from the drawn pose dies away (`MomentumBlend`), in place of the cross-fade over `blend_time` |
 | `lean`, `lean_clips`, `lean_full_at`, `lean_time` | on, `gds/Lean_Left` and the rest, 20 m/s², 0.12 s | the lean into the acceleration, built only when the four lean clips exist |
+| `jump_choices` and the Jump group | on; `gds/Jump_Start_Run_L` and `_R` from 2.5 m/s, `gds/Jump_Rise` and `gds/Jump_Apex` at 3 m/s up and 4 down, `gds/Land_Hard` from 9 m/s of fall, `gds/Land_To_Jog` asked to run at 2.5 m/s | the jump's clips picked by the body's numbers ([the jump's clips](#jump-clips), `JumpAnimation`); off, `jump_clip`, `air_clip` and `land_clip` alone |
 | `helper_tracks` | off | the clips' `ik_` target tracks blended; off, switched off in the game (`HelperTracks`, gdstudio #1438): nothing drawn follows them, the pose is the same and the tree 4 to 5 µs a character cheaper |
 
 **What a transition clip needs** (gdstudio #1156, #1157). A name in `GaitTransitionSet` is a base: the tree plays
@@ -435,6 +291,12 @@ of the old build (`test_gait_lean.gd`). Nothing depends on distance or sight. In
 | --- | ---: | ---: |
 | Before | 32 to 37 µs (frame 1.82 to 1.92 ms) | 35 to 51 µs (7.9 to 8.9 ms) |
 | After | 14 to 26 µs (1.74 ms) | 12 to 15 µs (6.2 to 6.7 ms) |
+
+- **Approach:** Add every new `GaitSettings` export to `test_gait_parts.gd`'s pinned defaults in the same commit, and
+  grep the tests for a state read as one clip (`get_node(state) as AnimationNodeAnimation`) when a state becomes a
+  blend space. **Watch out for:** `ExportPins.differences` fails on an export the table lacks, and
+  `test_player_animation_live.gd` read the air as a clip; both passed the jump's own suite and failed only in the full
+  run. **Seen:** gdstudio #1371, 2026-11-14.
 
 ### Filmed online and on the local body {#gait-online}
 

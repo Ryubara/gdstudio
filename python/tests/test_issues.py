@@ -352,10 +352,66 @@ def test_list_shows_the_reasons_and_the_unblocked_ones(tmp_path):
     ]
     gh = FakeGh(issues_json=json.dumps(rows), prs_json="[]")
     text = "\n".join(issues.list_issues(REPO, gh=gh, ledger=tmp_path / "l.json"))
-    blocked_part, _, unblocked_part = text.partition("Unblocked: label to remove")
+    blocked_part, _, lifted_part = text.partition("Blocks lifted by this run")
     assert "#1" in blocked_part and "waits on #227 (the bot issues" in blocked_part
     assert "#3" in blocked_part and "no reason recorded" in blocked_part and "gds issue block" in blocked_part
-    assert "#2" in unblocked_part and "gds issue unblock" in unblocked_part and "#2 " not in blocked_part
+    assert "#2" in lifted_part and "#9 closed" in lifted_part and "Unblocked: label to remove" not in text
+
+
+def test_list_lifts_blocks_on_a_merged_pull_request_and_the_issue_it_closed(tmp_path):
+    """#1541: #1490 waited on PR #1486 and #1379 on #1347, which that merge closed; the next `gds issue list` left both
+    blocked until someone ran `gds issue unblock`. Now the list lifts them as `unblock` does, and they may start."""
+    cache = tmp_path / issues.IDLE_CACHE
+    cache.write_text("{}", encoding="utf-8")
+    rows = [
+        {
+            "number": 1379,
+            "title": "waits on an issue",
+            "labels": [{"name": "S-blocked"}],
+            "body": "Depends on: #1347\n\nBlocked (coordinator, 2026-11-14): waits on #1347: the push code",
+        },
+        {
+            "number": 1490,
+            "title": "waits on a pull request",
+            "labels": [{"name": "S-blocked"}],
+            "body": "Text\nBlocked (coordinator, 2026-11-14): waits on #1486: same code (conflict in: a.gd, b.gd)",
+        },
+        {
+            "number": 1500,
+            "title": "waits on an open pull request",
+            "labels": [{"name": "S-blocked"}],
+            "body": "Blocked (coordinator, 2026-11-14): waits on #1501: same code (conflict in: a.gd)",
+        },
+    ]
+    prs = [{"number": 1501, "title": "open", "body": "", "labels": [], "closingIssuesReferences": []}]
+    gh = FakeGh(issues_json=json.dumps(rows), prs_json=json.dumps(prs))  # #1486 merged and #1347 closed: not listed
+    text = "\n".join(issues.list_issues(REPO, gh=gh, ledger=tmp_path / "issues-started.json"))
+    edits = {int(call[2]): call for call in gh.calls if call[:2] == ["issue", "edit"]}
+    assert set(edits) == {1379, 1490}  # the block on the open pull request stays
+    for number, body in ((1379, "Depends on: #1347"), (1490, "Text")):
+        assert edits[number][edits[number].index("--remove-label") + 1] == "S-blocked"
+        assert edits[number][edits[number].index("--add-label") + 1] == "S-ready-to-start"
+        assert edits[number][edits[number].index("--body") + 1] == body
+    assert not any(issues.posts_a_comment(call) for call in gh.calls) and not cache.exists()
+    may_start = text.split("May start now:")[1].split("\n\n")[0]
+    assert "#1379" in may_start and "#1490" in may_start and "#1500" not in may_start
+    lifted = text.split("Blocks lifted by this run")[1].split("\n\n")[0]
+    assert "#1347 closed" in lifted and "#1486 closed" in lifted
+    assert "#1500" in text.split("Blocked:")[1] and "Unblocked: label to remove" not in text
+
+
+def test_a_lift_gh_refuses_stays_listed_as_unblocked(tmp_path):
+    class Refusing(FakeGh):
+        def __call__(self, args: list[str]) -> str:
+            if args[:2] == ["issue", "edit"]:
+                raise IssueError("gh issue edit 2 failed: no permission")
+            return super().__call__(args)
+
+    rows = [{"number": 2, "title": "closed blocker", "labels": [{"name": "S-blocked"}], "body": BY_HAND}]
+    text = "\n".join(issues.list_issues(REPO, gh=Refusing(json.dumps(rows), "[]"), ledger=tmp_path / "l.json"))
+    assert "not lifted: gh issue edit 2 failed" in text
+    assert "#2" in text.split("Unblocked: label to remove")[1]
+    assert "#2" not in text.split("May start now:")[1].split("\n\n")[0]
 
 
 def test_fetch_asks_for_the_body():

@@ -94,17 +94,17 @@ const _P_PLAYBACK := StringName("parameters/%s/playback" % _MACHINE)
 	set(value):
 		sprint_clip = value
 		_rebuild()
-## The push off the ground.
+## The push off the ground standing (from a run: `GaitSettings.run_takeoff_left`, `_right`).
 @export var jump_clip: StringName = CharacterClips.JUMP_START:
 	set(value):
 		jump_clip = value
 		_rebuild()
-## In the air, rising or falling.
+## In the air, falling (with the rise and the top on the vertical speed: `GaitSettings`).
 @export var air_clip: StringName = CharacterClips.AIR:
 	set(value):
 		air_clip = value
 		_rebuild()
-## Touching down.
+## Touching down (a hard landing and one into a run: `GaitSettings`, `JumpAnimation`).
 @export var land_clip: StringName = CharacterClips.LAND:
 	set(value):
 		land_clip = value

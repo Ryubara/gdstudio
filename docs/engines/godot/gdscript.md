@@ -88,6 +88,10 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   `Object.set("markers", [node])` with a plain `Array` leaves an `Array[Node3D]` export as it was, with no error, so a
   spawner in a test spawned at its own place instead of the markers. **Seen:** kit #969, 2026-11-11
   (`test_ai_spawner.gd`).
+- **Approach:** Compare a set of `StringName`s in a test without its order (`contains_exactly_in_any_order()`), or
+  sort them as `String`s. **Watch out for:** `sort()` on an `Array[StringName]` does not order them by their text, so
+  a sorted list matched a constant list in one run and not in the next. **Seen:** PR #1530, 2026-11-14
+  (`test_aimed_takeoff.gd`'s stops on each foot, red in the full suite).
 
 ## Script errors at run time {#runtime-errors}
 
