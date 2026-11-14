@@ -97,7 +97,8 @@ the plant and at the push) and keys the pelvis under it, and the build keys each
 reference obstacle; the legs in the air are keyed in the hips' own axes (`hips()`), the left foot left of the hips and
 the right foot right of them, so they cannot cross. A free arm is keyed from its own shoulder in the world's axes
 (`shoulder()`), so its height over the shoulder is a number in the table whatever the body's roll. The export is the
-same bytes on every run, and `vault_clips.json` carries its sha256 with the measured numbers. After a rebuild, run
+same bytes on every run, and `vault_clips.json` carries its sha256 with the measured numbers, and the hashes of the
+measure's code and of the body file it was solved on (kit #1491). After a rebuild, run
 `tests/assets/test_vault_clips.gd` and look at the sheets (`_over` and `_close` show the legs over the top, `_arm` the
 planted arm from the plant to the push, `_side` every frame of the whole move, `_edge` the legs at the front edge
 between the keys, five poses a frame).
