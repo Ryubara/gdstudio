@@ -327,8 +327,8 @@ other style files stay in the repository, so a game picks another vision by rebu
    `test_export_clips.gd` walks the tree, the clip settings and the definitions, and CI's
    `tools/export_check/export_clips_check.gd` reads the exported pack. A clip reached only by a name built at run
    time goes in the project setting `gds_game/clip_export/keep`, or the export leaves it out.
-5. **Docs.** The clip's row on `engines/godot/third-person/clips.md` and the template's inspector list change in
-   the same pull request.
+5. **Docs.** The clip's row on `engines/godot/third-person/clips.md` and the template's inspector list (the Animation
+   part, `engines/godot/third-person/body-parts.md#animation-part`) change in the same pull request.
 
 - **Approach:** List every clip a build adds to the shipped file in `CharacterClips.ALL` (and its count in
   `test_character_clips.gd`), new clips that replace nothing as well, and run that suite with the clip's own before
