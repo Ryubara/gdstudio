@@ -104,7 +104,8 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   worktree. **Seen:** gdstudio #1221 (PR #1225), 2026-11-11; gdstudio #1178, 2026-11-11 (a line that set a variable
   before its `cd <worktree> &&` was refused; the same commit with the `cd` first passed, and `git -C` passes always);
   #1293, 2026-11-11 (the same from a worktree's own agent: a command that sourced a helper file first and changed
-  folder after it was refused as a commit on `main`).
+  folder after it was refused as a commit on `main`); fix: gdstudio #1472 follows `cd "$WT"` when the line set
+  `WT`, not a variable from a sourced file.
 
 ## Background commands and processes {#background}
 
