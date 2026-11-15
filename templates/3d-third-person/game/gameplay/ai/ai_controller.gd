@@ -59,6 +59,8 @@ var _strength_was := 1.0
 func _init() -> void:
 	# An AI walks far more ticks than it does anything else: its body takes the lean tick then.
 	lean_step = true
+	# Its body keeps to the navigator's path: no turn moved by a clip's root (#1442).
+	turn_clips = false
 
 
 func sample() -> PlayerCommand:

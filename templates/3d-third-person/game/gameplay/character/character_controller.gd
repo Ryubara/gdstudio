@@ -17,6 +17,11 @@ extends Node
 ## same result with fewer modules run. An AI's controller turns it on; a human's, a network's and a
 ## test's leave it off, so the body they drive steps exactly the full tick.
 var lean_step := false
+## On: a body this drives that reverses or cuts off at a run is moved by the clip's own root
+## (`CharacterTurnMotion`), committed to it until its turn is made. An AI's controller turns it
+## off, so its body keeps to the navigator's path (a reversal carries a body 3.7 m past the point
+## it turned at from a jog and 6.3 m from a sprint, and a pivot cuts its corner by 0.58 m).
+var turn_clips := true
 
 var _command := PlayerCommand.new()
 

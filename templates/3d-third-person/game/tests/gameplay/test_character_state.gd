@@ -37,6 +37,7 @@ const NOT_STATE := {
 	&"_stand_probe": "a shape made for a query",
 	&"vault_settings": "an export",
 	&"vault_motion": "its step state is CharacterState.vault (CharacterVault.save_step_state)",
+	&"turn_motion": "its step state is CharacterState.turn (CharacterTurnMotion.save_step_state)",
 	&"peek_tuning": "an export",
 	&"peek_motion": "its step state is CharacterState.peek (CharacterPeek.save_step_state)",
 	&"_prone": "the prone stance; its step state is CharacterState.prone",
