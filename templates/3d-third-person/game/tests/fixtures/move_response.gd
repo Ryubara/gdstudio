@@ -38,6 +38,12 @@ const POSE_JUMP_SHARE := 1.6
 const POSE_JUMP_PLUS := 0.04
 const POSE_TICKS := 20
 const PER_FRAME := 6
+## The action whose hand-off from the steady gait bounds another's (gdstudio #1568): lying down and
+## getting up move no drawn bone further in a tick than crouching does.
+const BOUND_OF := {"prone": "crouch"}
+## Ticks from the press in which a clip that starts on the drawn pose (lying down from a crouch at
+## rest) moves no bone more than `POSE_JUMP_PLUS`: a cross-fade from the state under it shows there.
+const CLIP_START_TICKS := 3
 ## Seed of the spam cases' random keys.
 const SEED := 1565
 const DIRECTIONS := ["W", "WD", "D", "SD", "S", "AS", "A", "WA"]
@@ -231,10 +237,45 @@ static func peak_move(samples: Array, step: int) -> float:
 	return peak
 
 
+## The largest move of a drawn bone in each tick over `POSE_TICKS` ticks from `step` on.
+static func moves_from(samples: Array, step: int) -> PackedFloat32Array:
+	var moves := PackedFloat32Array()
+	for sample: Dictionary in samples:
+		if sample.step >= step and moves.size() < POSE_TICKS:
+			moves.append(sample.jump)
+	return moves
+
+
+## Checks that the clip whose moves a tick are `moves` (`moves_from()`, played where it starts on
+## the drawn pose) starts on that pose: no move over `POSE_JUMP_PLUS` in its first
+## `CLIP_START_TICKS` ticks. Its moves can then stand for the clip alone (`check_action()`'s `own`).
+func check_clip_start(name: String, gait: String, moves: PackedFloat32Array) -> void:
+	var why: PackedStringArray = []
+	var first := moves.slice(0, CLIP_START_TICKS)
+	var largest := 0.0
+	for move in first:
+		largest = maxf(largest, move)
+	if largest > POSE_JUMP_PLUS:
+		why.append("a bone moved %.3f m in a tick as the clip began" % largest)
+	_note(name, gait, 0.0, ["first ticks %s m" % str(Array(first))], why)
+
+
 ## Checks an action pressed at `step` during a transition clip: the clip ends within
 ## `ACTION_CLIP_MOST` ticks and no drawn bone jumps further in a tick than the ticks before allow,
 ## or than the same action taken from the steady gait (`plain`, its `peak_move()`) by a share.
-func check_action(name: String, gait: String, samples: Array, step: int, plain := 0.0) -> void:
+## Without `in_clip` no transition clip need be drawn (an action from the steady gait or a stance).
+## `own` is what the action's own clip moves a tick from the press on (`moves_from()` of it played
+## where it starts on the drawn pose), added to the allowance tick by tick (lying down: gdstudio
+## #1568); the line then gives the largest move over it.
+func check_action(
+	name: String,
+	gait: String,
+	samples: Array,
+	step: int,
+	plain := 0.0,
+	in_clip := true,
+	own := PackedFloat32Array()
+) -> void:
 	var why: PackedStringArray = []
 	var at := -1
 	for index in samples.size():
@@ -248,14 +289,19 @@ func check_action(name: String, gait: String, samples: Array, step: int, plain :
 		steady = maxf(steady, samples[index].jump)
 	var peak := 0.0
 	var peak_bone := ""
+	var over := 0.0
 	for index in range(at, mini(at + POSE_TICKS, samples.size())):
 		var sample: Dictionary = samples[index]
-		if sample.jump > peak:
+		var clip_move: float = own[index - at] if index - at < own.size() else 0.0
+		if sample.jump - clip_move > over or peak_bone == "":
+			over = sample.jump - clip_move
 			peak = sample.jump
 			peak_bone = "%s t+%d" % [sample.jump_bone, index - at]
 		if ended < 0 and (not sample.playing or sample.serial != prior.serial):
 			ended = index - at + 1
 	var allowed := maxf(steady, plain) * POSE_JUMP_SHARE + POSE_JUMP_PLUS
+	if not own.is_empty():
+		peak_bone += ", its clip alone %.3f" % (peak - over)
 	var part := (
 		"%s in %s %s: clip ended %d, bone move a tick %.3f m (%s; before %.3f, allowed %.3f)"
 		% [
@@ -269,12 +315,17 @@ func check_action(name: String, gait: String, samples: Array, step: int, plain :
 			allowed
 		]
 	)
-	if not prior.playing:
+	if in_clip and not prior.playing:
 		why.append("no transition clip was drawn when %s was pressed" % samples[at].press)
-	elif ended < 0 or ended > ACTION_CLIP_MOST:
+	elif in_clip and (ended < 0 or ended > ACTION_CLIP_MOST):
 		why.append("the clip ended %d ticks after %s" % [ended, samples[at].press])
-	if peak > allowed:
+	if over > allowed:
 		why.append("a bone moved %.3f m in a tick after %s" % [peak, samples[at].press])
+	if OS.get_environment("GDS_POSE_TRACE") != "":
+		var trace: PackedStringArray = []
+		for index in range(maxi(at - 2, 0), mini(at + POSE_TICKS, samples.size())):
+			trace.append("%.3f %s" % [samples[index].jump, samples[index].jump_bone])
+		part += " | trace from t-2: " + ", ".join(trace)
 	_note(name, gait, 0.0, [part], why)
 
 
