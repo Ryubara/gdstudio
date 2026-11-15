@@ -439,3 +439,8 @@ stock test's 10 mm.
   had this frame's bones, 145 mm off both hands at each landing (the land clip drops the chest fast), and every pose
   test passed ([physics interpolation](../physics-interpolation.md#using-it)). **Seen:** gdstudio #1464, 2026-11-13
   (found by the jump captures of #1369).
+- **Approach:** Before a change to the two-hand stance, run `test_jump_weapon_hold.gd` and read the female aimed
+  jump's butt-to-shoulder distance against its 20 mm limit, and put the reading before and after in the pull request.
+  **Watch out for:** on main it reads 19.9 mm (19.7 after #1557), so almost any stance change meets the limit; a draft
+  of #1557 that dropped the clip's spine spread read 20.1 and failed, which is why `SPINE_SPREAD` keeps a bounded
+  share of it. **Seen:** gdstudio #1379 (PR #1557), 2026-11-14.

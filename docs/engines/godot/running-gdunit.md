@@ -85,9 +85,9 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   of a filter here, nor is `x.gd:test_y`: nothing ran and the exit code was 0 in 2 s, and no failure reads as a
   pass; `-i <suite>:<case>` skips that case (`GdUnitTestCIRunner.is_skipped`), so it ran the rest. To run one case,
   give `-a res://tests/x.gd` and an `-i res://tests/x.gd:test_other` for each other case. **Seen:** Deadnight,
-  2026-11-04
-  (fix: run the suite and read the count); gdstudio #1252, 2026-11-11 (`:` and `-i`); gdstudio #1213, 2026-11-11 (one
-  case of the 9-minute pistol hold suite).
+  2026-11-04 (fix: run the suite and read the count); gdstudio #1252, 2026-11-11 (`:` and `-i`); gdstudio #1213,
+  2026-11-11 (one case of the 9-minute pistol hold suite); #1554 (PR #1555), #1379 (PR #1557), 11-14 (`suite.gd:test`
+  ran nothing).
 
 - **Approach:** After a full run, find each new suite by name in its list (`gds template test` prints one line a
   suite), and write a new test file with LF line ends. **Watch out for:** two new suites written with CRLF ends ran and
@@ -113,6 +113,10 @@ GdUnit4's scene runner sets the project's physics tick rate when it is made: a t
   loop of fresh games for one suite spent minutes a turn; a kept game holds the code of when it was made, so the last
   run starts from the working tree again. **Seen:** gdstudio #1252 (PR #1269), #1085 (PR #1274), #1100 (PR #1261),
   2026-11-11.
+- **Approach:** To read a suite's own `print` lines (a probe's numbers, a measured margin), run it in a kept game with
+  the command line above and read its log. **Watch out for:** `gds template test` prints one line a suite and none
+  of what the suite prints, so a number the suite logged is not in its output even with `--suite`. **Seen:** gdstudio
+  #1554 (PR #1555), #1379 (PR #1557), 2026-11-14.
 
 - **Approach:** To score a change on a few suites in a kept game, give each suite its own `-a` on the one command
   line, remove `reports/` first, and read the failures from the `<failure>` entries of
@@ -293,6 +297,12 @@ jobs, and on a desktop other agents load. Read its number as the runner's as muc
   while the models stood 1.5 times apart over every ruler tried, so the limit, not the ruler, was wrong; in the full
   template run the gate read 5 to 17 % over the same gate run alone. **Seen:** gdstudio #1451, 2026-11-13 (limits
   2.2 Linux, 2.4 Windows, the best of three windows, a twice-as-slow case).
+- **Approach:** Print the process id (`OS.get_process_id()`) in every row a bench or a timing gate prints, so a soak's
+  rows group by process and one runner's processes compare with each other, apart from the spread between runners.
+  **Watch out for:** the same runner reads the same code 1.3 times apart from one process to the next; rows with no
+  process id cannot tell that spread from a candidate ruler's, and pooling them hides which one moved. **Seen:**
+  gdstudio #1534 (PR #1538), 2026-11-14 (`ai_cost_bench.gd` keeps a `pid` field; no candidate ruler beat the physics
+  ruler over 100 runs).
 
 ## Running more than one {#parallel}
 

@@ -103,6 +103,12 @@ seconds, its share of the limit on a slow runner, and whether another shard is d
   would have joined a shard already holding about 350 s. **Seen:** gdstudio #1492, 2026-11-13 (3D Third Person's one
   job took 30 to 38 of its 40 minutes and #1482's run was cancelled at 40 with no failing test; #1369's
   `test_jump_weapon_hold.gd` alone took 526 to 877 s; fix: four shards and the time check).
+- **Approach:** When a pull request adds or splits a slow script, give it a time in `ci_test_times.json` before CI
+  has measured it: its local time times the old suite's CI-to-local ratio (about 2.0 for 3D Third Person), or the
+  CI times of its cases on green `main` runs when they moved from another script; then run `report --root <game>`.
+  **Watch out for:** a script with no time counts the small default, so the planner deals it onto a full shard and
+  the first run after the merge is over budget. **Seen:** gdstudio #1558 (PR #1560), 2026-11-14 (the live script
+  255 s from 125 s locally, the clip script 210 s from CI; four shards of 531 s).
 
 ## Night suites: where the seconds go, and what may be cut {#night-suites-where-the-seconds-go-and-what-may-be-cut}
 

@@ -121,6 +121,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   variable set before `cd <worktree> &&`), #1293 (a worktree's own agent: a sourced helper), 2026-11-11; PR #1424,
   11-13 (a push after `cd <worktree> &&`); #1474, 11-14 (`cd <worktree>; ...; git push`); fix: #1472 (`cd "$WT"`),
   #1520, 2026-11-14 (PowerShell assignments; an unfollowed `cd` refused with the `git -C` hint).
+- **Approach:** In Git Bash, prefix a command whose argument holds `<rev>:<path>` or starts with a slash with
+  `MSYS_NO_PATHCONV=1` (`MSYS_NO_PATHCONV=1 git show origin/main:<path> > <out>`), or run it from PowerShell, and
+  check the output's size before using it. **Watch out for:** Git Bash rewrites an argument that looks like a POSIX
+  path or a path list before a Windows program sees it, so `git show` failed and the redirect left an empty file in
+  its place ([Railway](railway.md) has the same for a variable set to `/server`). **Seen:** gdstudio PR #1560,
+  2026-11-14 (a file emptied; taken again with the prefix).
 
 ## Background commands and processes {#background}
 

@@ -138,6 +138,12 @@ glb back](export.md#reimport)).
   `build_rifle_clips.py` stopped before it built anything (`_SKIN_REGION` no longer in `two_hand_hold.gd`); no
   check runs the build, so `main` carried it broken until the next clip change. **Seen:** gdstudio #1266,
   2026-11-12 (fix: the build reads `torso_skin.gd` too).
+- **Approach:** After a change to a stance step the build ports (the chest turn, the spine's share), rebuild and
+  compare every clip's keys, the aims and the shot included, even when the keyed body's spine did not move. **Watch
+  out for:** the build fits each aim on the male body's hold too, and that hold sees the female clip's uneven spine,
+  so a change to how the stance spreads the turn moved the aims and the shot by up to 0.6 degrees while the female's
+  own pose was the same. **Seen:** gdstudio #1379 (PR #1557), 2026-11-14 (`Hold.turn_chest` reads `SPINE_SPREAD`
+  from the stance script; `rifle_clips.glb` rebuilt).
 
 ## Solving a held pose {#solved-holds}
 

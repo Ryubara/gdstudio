@@ -207,10 +207,13 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   fully aware belief in a wall. `test_ai_soak.gd` runs them in one 60 s run at scale 2 and checks each gate names its
   target.
 - **Replay:** the same seed in a fresh process gives the same `command_hash`; another seed does not. In one process the
-  second run differs: the navigators take their phase and seed from a static counter of navigators made. A run also
-  depends on every object made before the AI: a noise maker takes its check phase from its instance id, so one more
-  `RefCounted.new()` in the soak changed seed 11's commands at 120 s (not at 60 s), and so does any edit of a script the
-  soak loads (the watch's new exports and lines moved seed 40 off main's hash, the same once the phase was fixed), so a
+  second run differs: the navigators take their phase and seed from a static counter of navigators made. Objects made
+  before the AI leave a run as it was: a noise maker takes its check phase from a hash of its character's node path
+  (`AiNoiseMaker.check_phase`, #1550; from its instance id before, one more `RefCounted.new()` changed seed 11 at
+  120 s). `tests/fixtures/soak_after_objects.gd` runs the soak after `--objects N` objects (`godot --headless --path .
+  --fixed-fps 60 -s res://tests/fixtures/soak_after_objects.gd -- --seed 11 --objects 1`), and
+  `test_ai_soak_objects.gd` compares its hash with the plain run's. Any edit of a script the soak loads still moves a
+  run (the watch's new exports and lines moved seed 40 off main's hash, the same once the phase was fixed), so a
   soak-script change can make a nightly seed meet a fault main has on other seeds (#1547).
 - **Probe:** `--probe` (every kind), `--probe Civilian,Grunt` (those kinds, by profile name) or the environment variable
   `SOAK_PROBE` (same values; the watch's `probe_episodes` in the inspector) keeps a row a tick of each probed character
@@ -317,3 +320,10 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   its hash is not main's (the scripts changed), and the pull request's soak broke seed 40 on Linux at `stuck_share`
   1.69 %, Civilian1 6.1 s: main's refused flee points (#1532), met on a course the id shift opened. **Seen:**
   gdstudio #1543, 2026-11-14 (`AiSoakProbe`, `test_the_probe_leaves_the_run_as_it_was`).
+- **Approach:** Measure a change's soak numbers locally in one kept game: `gds template game 3d-third-person` (it
+  prints the game's path), run each seed from its `game/` as the nightly does (`godot --headless --path . --fixed-fps
+  60 res://tools/soak/ai_soak.tscn -- --seconds 120 --seed <n> --lines`), copy in the one changed script, run the
+  same seeds again, then `gds template clean <path>`. **Watch out for:** a fresh game for each arm re-imports and
+  parses everything, and two games made from different trees differ in more than the change; a change to the watch
+  alone is proved by equal `command_hash` lines before and after. **Seen:** gdstudio #1548 (PR #1551), #1552,
+  2026-11-14 (seeds 1 to 8 and 11, the old and the new watch in one game).
