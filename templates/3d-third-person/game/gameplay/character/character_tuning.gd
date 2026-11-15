@@ -31,6 +31,12 @@ extends Resource
 @export_range(1.0, 80.0, 0.5, "suffix:m/s²") var acceleration := 28.0
 ## How fast the character stops when the stick is let go.
 @export_range(1.0, 80.0, 0.5, "suffix:m/s²") var deceleration := 36.0
+## How fast a body on its feet with the stick pushed sheds the part of its velocity that is not the
+## way it is asked to go (gdstudio #1565): the brake of a reversal (the part going back) and the
+## side slip of a cut (the part across), while the part along the wish speeds up by `acceleration`.
+## A sprint reversal (6.5 m/s) brakes to a stand in 0.16 s and 0.53 m and runs the new way at once.
+## 0: the whole velocity moves toward the goal by `acceleration` (as before #1565).
+@export_range(0.0, 120.0, 0.5, "suffix:m/s²") var brake_deceleration := 40.0
 ## How fast the body turns to face where it goes.
 @export_range(1.0, 40.0, 0.5, "suffix:rad/s") var turn_speed := 12.0
 ## A move stick pushed less than this share of the way walks instead of running.
@@ -173,7 +179,9 @@ extends Resource
 @export_range(0.0, 2.0, 0.05, "suffix:s") var land_time := 0.3
 ## A landing from this fall speed or faster is a hard one (gdstudio #1535): the body is held for
 ## `hard_land_time`, as an action holds it (it neither moves, turns, jumps nor aims), in its landing
-## state all that time (`CharacterLanding`). The hard landing clip's `fall_speed.from`.
+## state all that time (`CharacterLanding`), until the stick is pushed: a push ends the hold on
+## that tick and the body moves at once (gdstudio #1565). The hard landing clip's
+## `fall_speed.from`.
 @export_range(0.0, 30.0, 0.1, "suffix:m/s") var hard_land_speed := 9.0
 ## How long a hard landing holds the body: the hard landing clip's `control` frame (`gds/Land_Hard`
 ## gives control back at its frame 20 of 30 a second). 0: a hard landing holds nothing.
@@ -188,9 +196,11 @@ extends Resource
 @export_group("Turns")
 ## Moves a body that reverses or cuts off at a run by its clip's own root (`CharacterTurnMotion`,
 ## gdstudio #1442): it keeps going the old way while it brakes over the planted foot, turns, and
-## speeds up the new way, committed to the clip until its turn is made. Off: the body turns at
-## `turn_speed` under the gait, and the clip plays over it.
-@export var turn_root_motion := true
+## speeds up the new way. The body's path is the clip's until its turn is made or the stick asks for
+## another way (gdstudio #1565), so it answers the stick late (1.5 to 2.2 s at a jog and a sprint):
+## off by default. Off: the body steers by `brake_deceleration` and `acceleration` and turns at
+## `turn_speed`, and the clip is drawn over it as a short look (`GaitSettings.turn_look_time`).
+@export var turn_root_motion := false
 ## Degrees between where a running body moves and where the stick asks it to go from which it
 ## cuts off (a pivot clip), and from `reversal_angle` reverses.
 @export_range(10.0, 180.0, 1.0, "suffix:deg") var pivot_angle := 60.0
@@ -260,6 +270,23 @@ func steer_rate(strength: float, speed: float, on_feet: bool) -> float:
 	if strength > 0.0:
 		return acceleration
 	return stop_deceleration(speed) if on_feet else deceleration
+
+
+## The ground velocity `flat` moved toward `goal` over `delta` at `rate`. With `braking` (a body on
+## its feet) and the stick pushed, the part of `flat` across the goal and any part going back from
+## it are shed by `brake_deceleration` while the part along it moves to the goal's speed by `rate`
+## (gdstudio #1565): a straight run is the same as `move_toward`, a turn brakes and goes at once.
+func steer_toward(
+	flat: Vector3, goal: Vector3, rate: float, delta: float, braking: bool
+) -> Vector3:
+	if not braking or brake_deceleration <= 0.0 or goal.is_zero_approx():
+		return flat.move_toward(goal, rate * delta)
+	var way := goal.normalized()
+	var along := flat.dot(way)
+	var across := flat - way * along
+	var brake := maxf(brake_deceleration, rate)
+	along = move_toward(along, goal.length(), (brake if along < 0.0 else rate) * delta)
+	return way * along + across.move_toward(Vector3.ZERO, brake * delta)
 
 
 ## How fast a body on its feet with the stick let go slows at ground speed `speed`: the stop

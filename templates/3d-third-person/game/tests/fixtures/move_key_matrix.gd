@@ -136,11 +136,13 @@ static func cases(gait: String, subset := false) -> Array:
 			]
 		)
 	for tap: int in [2, 4, 8]:
+		# A tap of the other way is answered (gdstudio #1565): the clip it starts gives way to W
+		# again at once, so it may be cut; no stop plays under a held key.
 		found.append(
 			[
 				"W, S tapped %d ticks" % tap,
 				[["W", run_up], ["WS", tap], ["W", 120], ["", TAIL]],
-				{"stops": stop, "clean": true}
+				{"stops": stop}
 			]
 		)
 	found.append(

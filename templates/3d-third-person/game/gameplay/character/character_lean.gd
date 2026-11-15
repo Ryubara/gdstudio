@@ -176,7 +176,7 @@ static func _steer(body: Character, wish: Vector3, delta: float) -> void:
 			speed = minf(speed, body._push_cap)
 		goal = wish.normalized() * speed
 		rate = tuning.acceleration
-	flat = flat.move_toward(goal, rate * delta)
+	flat = tuning.steer_toward(flat, goal, rate, delta, true)
 	body.velocity.x = flat.x
 	body.velocity.z = flat.z
 	if body.aiming:

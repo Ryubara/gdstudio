@@ -4,23 +4,29 @@ extends RefCounted
 ## #1158), chosen by code from the controller's own numbers and played along their travel.
 ##
 ## Every frame on the ground it reads the body: its ground speed, the speed its last command heads
-## for (`Character.goal_speed`), the angle between where it moves and where it is asked to go,
-## and, aiming while standing, how far its facing is asked to turn. A body that stands and is
-## asked to move starts; one that moves and is asked to stop for `STOP_GRACE` stops (a stop is
-## the move asked for going to zero, never a change of keys); one asked to go back the way
-## it came reverses, or pivots at a smaller angle; one that stands and aims away turns on the
-## spot. The clip is the `GaitTransitionSet`'s for the gait (the ground blend space's point the
-## body is in, or heads for) and the side: the foot that lands next in the gait's phase for a stop,
-## the foot on the side it turns to for a reversal, the way the body turns for a pivot and a turn.
-## With no such clip in the libraries nothing happens and the states blend as before.
+## for (`Character.goal_speed`), the angle between where it moves and where it is asked to go, and,
+## aiming while standing, how far its facing is asked to turn. A body that stands and is asked to
+## move starts; one that moves and is asked to stop for `STOP_GRACE` stops (a stop is the move asked
+## for going to zero, never a change of keys); one asked to go back the way it came reverses, or
+## pivots at a smaller angle; one that stands and aims away turns on the spot. Since gdstudio #1565
+## every clip gives way to the stick at once: a start, a reversal or a pivot whose wish moves
+## `WISH_CHANGE` or more from the way it was drawn for, and any clip of a body that aims, crouches,
+## lies down, jumps or acts, is left on that frame (the momentum blend and `TurnLook` ease the cut),
+## and a new one may be picked. The clip is the `GaitTransitionSet`'s for the gait (the ground blend
+## space's point the body is in, or heads for) and the side: the foot that lands next in the gait's
+## phase for a stop, the foot on the side it turns to for a reversal, the way the body turns for a
+## pivot and a turn. With no such clip in the libraries nothing happens and the states blend as
+## before.
 ##
 ## A clip plays in the machine's `gait_transition` state behind a seek and a time scale of 0, so
 ## only the seek moves it: to the time at which its travel curve (`GaitClips`) has covered the
 ## ground the body really covered since it began, and for a turn on the spot the time at which its
-## turn curve has turned as far as the body. A reversal or a pivot of a body that steps is the
-## body's own (`CharacterTurnMotion`, gdstudio #1442): the step starts it and moves the body by the
-## clip's root, and the clip is shown at the step's time into it; one picked here (a body drawn
-## from the network, or `CharacterTuning.turn_root_motion` off) plays at its own pace. The
+## turn curve has turned as far as the body. A reversal or a pivot picked here (the default: the
+## body steers itself) is a look (gdstudio #1565): the clip from `TURN_LEAD` before its turn begins
+## to its turn's end, sped up to last `GaitSettings.turn_look_time`, the drawn body turned by the
+## clip's turn (`TurnLook`). With `CharacterTuning.turn_root_motion` on, the step starts it and
+## moves the body by the clip's root (`CharacterTurnMotion`, gdstudio #1442), and the clip is shown
+## at the step's time into it. The
 ## controller stays the authority: a body that is asked to go on, or to do something else, leaves
 ## the clip at once (the momentum blend smooths the cut), and a clip whose body has finished its
 ## part plays on to its end at its own pace. Ending,
@@ -54,8 +60,16 @@ const STOP_LAG_MOST := 0.1
 ## gait and the foot of that moment, the ground covered since then, so it shows the frame an
 ## immediate stop would show by now.
 const STOP_GRACE := 0.1
+## Degrees the way the body is asked to go may move from the way a start, a reversal or a pivot was
+## drawn for before the clip is left (gdstudio #1565).
+const WISH_CHANGE := 40.0
+## Seconds of a reversal's or a pivot's own time before its turn begins at which its look starts:
+## the plant (gdstudio #1565).
+const TURN_LEAD := 0.2
 
 var settings: GaitSettings
+## The drawn turn of a reversal or a pivot played as a look (`TurnLook`).
+var look := TurnLook.new()
 ## What plays now, and its clip.
 var kind := Kind.NONE
 var clip: StringName = &""
@@ -71,6 +85,14 @@ var _along := Vector3.FORWARD
 var _facing := 0.0
 var _turn_to := 0.0
 var _pending := false
+# A reversal or a pivot drawn as a look (`TurnLook`): where its time ends, its pace, its curves.
+var _look_end := -1.0
+var _look_pace := 1.0
+var _look_curves: CharacterTurnMotion.Curves
+# The ground speed of the frame before this one and of this one: a reversal's gait is the faster,
+# since the body's brake has slowed it by the frame the tree sees the new wish (gdstudio #1565).
+var _speed_before := 0.0
+var _speed_now := 0.0
 var _motion_serial := 0
 var _since_standing := 0
 # Seconds since the move asked for went to zero (-1 while a move is asked for), and the body at
@@ -145,10 +167,14 @@ func step(
 	delta: float
 ) -> void:
 	_goal = animation.character.goal_speed
+	_speed_before = _speed_now
+	_speed_now = animation.character.ground_speed()
 	_count_standing(animation.character)
 	_count_let_go(animation, blend, delta)
 	if _began_by_step(animation, playback) or _went_on(animation, blend, playback, delta):
+		_draw_turn(animation, delta)
 		return
+	_draw_turn(animation, delta)
 	var current := playback.get_current_node()
 	if current == STATE:
 		# Left there by a rebuild of the tree, or by a state asked as a clip ended that the machine
@@ -172,6 +198,7 @@ func step(
 	if picked.is_empty():
 		return
 	_begin(animation, picked, playback)
+	_start_look(animation)
 	if kind == Kind.STOP:
 		# Picked `STOP_GRACE` after the let-go: at the time the ground covered since then reads.
 		_time = clampf(_progress(animation.character, blend.leg), 0.0, _length)
@@ -283,7 +310,7 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	var angle := rad_to_deg(moving.angle_to(wish))
 	if angle < settings.reversal_angle and angle < settings.pivot_angle:
 		return {}
-	var point := blend.main_point(CharacterAnimation.GROUND, speed)
+	var point := blend.main_point(CharacterAnimation.GROUND, maxf(speed, _speed_before))
 	if angle >= settings.reversal_angle:
 		# A reversal turns over the foot it plants (#1157: planting the left foot it turns to the
 		# left), so the clip that turns the body's way is the one for the foot on that side.
@@ -371,7 +398,16 @@ func _go_on(
 		or (kind == Kind.STOP and goal > standing)
 		or (kind == Kind.TURN and goal > standing)
 		or ((kind == Kind.REVERSAL or kind == Kind.PIVOT) and goal <= standing)
+		or (kind != Kind.STOP and kind != Kind.TURN and _wish_moved(body))
+		or _acted(animation)
 	)
+	if _look_end >= 0.0:
+		# A look: on from its plant at its pace, to its turn's end (gdstudio #1565).
+		_time = minf(_time + delta * _look_pace, _look_end)
+		animation.tree.set(_P_SEEK, _time)
+		if cancelled or _time >= _look_end:
+			_hand_over(animation, blend, playback, true)
+		return
 	if kind == Kind.REVERSAL or kind == Kind.PIVOT:
 		# At the step's time into the clip while the step follows it, then at its own pace: the
 		# body moves by the clip's root, so its feet hold the floor (gdstudio #1442).
@@ -396,6 +432,60 @@ func _go_on(
 	animation.tree.set(_P_SEEK, _time)
 	if cancelled or _time >= _length:
 		_hand_over(animation, blend, playback, cancelled)
+
+
+# True when the way the body is asked to go has moved `WISH_CHANGE` or more from the way the clip
+# was drawn for (a new direction: the clip gives way).
+func _wish_moved(body: Character) -> bool:
+	var wish := body.move_goal.direction(body)
+	if wish.is_zero_approx():
+		return false
+	return rad_to_deg(wish.angle_to(_along)) >= WISH_CHANGE
+
+
+# True when the body does something the clip must give way to on this frame: it aims (a turn on
+# the spot is the aim's own), crouches, lies down, slides, leaves the floor, or an action plays.
+func _acted(animation: CharacterAnimation) -> bool:
+	var body := animation.character
+	return (
+		(body.aiming and kind != Kind.TURN)
+		or body.crouching
+		or body._wants_crouch
+		or body._prone.is_prone()
+		or body._slide.active
+		or body.velocity.y > 0.0
+		or animation.is_acting()
+	)
+
+
+# Makes the reversal or the pivot just begun a look when the step does not move the body by it:
+# from `TURN_LEAD` before its turn begins to its turn's end, at the pace that takes
+# `GaitSettings.turn_look_time` (gdstudio #1565).
+func _start_look(animation: CharacterAnimation) -> void:
+	_look_end = -1.0
+	if kind != Kind.REVERSAL and kind != Kind.PIVOT:
+		return
+	if animation.character.turn_motion.follows(animation.character):
+		return
+	var curves := CharacterTurnMotion.curves_of(clip)
+	if curves == null:
+		return
+	_look_curves = curves
+	var entry := maxf(curves.turn_from - TURN_LEAD, 0.0)
+	_look_end = minf(curves.release, _length)
+	_look_pace = maxf(_look_end - entry, 0.01) / maxf(settings.turn_look_time, 0.01)
+	_time = entry
+	animation.tree.set(_P_SEEK, _time)
+
+
+# The rig turned by the look's clip turn against the body's (`TurnLook`), or eased back.
+func _draw_turn(animation: CharacterAnimation, delta: float) -> void:
+	var rig := animation.model.rig() if is_instance_valid(animation.model) else null
+	var wanted := NAN
+	if _look_end >= 0.0 and is_playing() and _look_curves != null:
+		var turned := deg_to_rad(CharacterTurnMotion.yaw_at(_look_curves, _time))
+		wanted = wrapf(_facing + turned - animation.character.facing, -PI, PI)
+	look.follow(rig, wanted, delta)
 
 
 # The clip's time for what the body has done since it began: the ground covered along the way it
@@ -511,6 +601,7 @@ func stop() -> void:
 
 
 func _end() -> void:
+	_look_end = -1.0
 	if kind == Kind.NONE:
 		return
 	kind = Kind.NONE
