@@ -262,7 +262,7 @@ only *named* `WeaponDef` (the call compiled, never run) was clean. So read every
   export does; an array that tests or scenes assign typed breaks as `Array[Resource]`, so change only the one the cut
   names. **Seen:** gdstudio #1081 (PR #1103), 2026-11-11 (`SlideRack.fits`); gdstudio #1236, 2026-11-11
   (`EffectEmitter.warm_up`; `Hotbar` and `AiRelations` have the shape
-  and did not leak in any order tried).
+  and did not leak then; see #1554 below).
 - **Approach:** When a suite leaks alone and not in the whole run, cut it to the smallest set of its cases that still
   leaks (each case in a file of its own with the suite's head, then one body a line at a time; a case turned off by a
   rename still compiles, so cut bodies out), then put the exported `Array[Other]` the last line reaches to
@@ -271,6 +271,15 @@ only *named* `WeaponDef` (the call compiled, never run) was clean. So read every
   `held_definition()`) were both `WeaponLoadout.slots`, which has no self-cast. **Seen:** gdstudio #1236, 2026-11-11
   (four other suites of #1138 already clean alone at 9ebaa690); gdstudio #1249, 2026-11-11 (fix: `slots` as
   `Array[Resource]`: prone 188 objects and 117 resources to none, player step 191 and 120 to none).
+
+- **Approach:** When a shard leaks with green cases and `main`'s passes, run its list on `main` in one Godot, halve
+  it, then drop one suite at a time and cut cases; then a `-s` probe that `load()`s paths in order and quits (2 s a
+  try) sweeps game scripts and tiny `.tscn` cuts. Keep the order as a child-Godot test. **Watch out for:** an order,
+  not a suite: a `MinimapMarker` (`test_minimap_heading.gd`) loaded before `NetServer`, whose `body_items.tscn` holds a
+  `Hotbar` with `start_items: Array[ItemDef]`, left 3,313 objects and 5 Jolt shapes with 692 green cases, once a new
+  suite dealt the two into one shard. Dropping the minimap self-casts changed nothing; `start_items` as
+  `Array[Resource]` cured it. **Seen:** gdstudio #1554, 2026-11-14 (PRs #1551, #1553;
+  `tests/gameplay/test_load_order_leaks.gd`).
 
 ## A subclass that keeps a static variable {#a-subclass-with-statics}
 
