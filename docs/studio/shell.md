@@ -56,7 +56,7 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   it; the Write tool and `gdformat` write CRLF too, and a later exact-text replace then finds nothing. A bare `open()`
   or `write_text` uses cp1252: one `m²` broke the docs, another a GDScript file. **Seen:** Deadnight #415, #429, #442,
   11-01 to 11-05; gdstudio #830, #875, #903, #1011, tether #31, 11-02 to 11-10; #1130, #1123, #1127 (16 pages),
-  #1138, #1190, #1218, #1154, #1260, #1270, 11-11; #1356, #1266, #1360, #1415, 11-13; #1287, 11-14.
+  #1138, #1190, #1218, #1154, #1260, #1270, 11-11; #1356, #1266, #1360, #1415, 11-13; #1287, #1561, 11-14.
 
 ## Scripted edits {#scripted-edits}
 
@@ -121,6 +121,12 @@ A commit, a merge and a lint run are read whole, on their own, and the next step
   variable set before `cd <worktree> &&`), #1293 (a worktree's own agent: a sourced helper), 2026-11-11; PR #1424,
   11-13 (a push after `cd <worktree> &&`); #1474, 11-14 (`cd <worktree>; ...; git push`); fix: #1472 (`cd "$WT"`),
   #1520, 2026-11-14 (PowerShell assignments; an unfollowed `cd` refused with the `git -C` hint).
+- **Approach:** In Git Bash, prefix a command whose argument holds `<rev>:<path>` or starts with a slash with
+  `MSYS_NO_PATHCONV=1` (`MSYS_NO_PATHCONV=1 git show origin/main:<path> > <out>`), or run it from PowerShell, and
+  check the output's size before using it. **Watch out for:** Git Bash rewrites an argument that looks like a POSIX
+  path or a path list before a Windows program sees it, so `git show` failed and the redirect left an empty file in
+  its place ([Railway](railway.md) has the same for a variable set to `/server`). **Seen:** gdstudio PR #1560,
+  2026-11-14 (a file emptied; taken again with the prefix).
 
 ## Background commands and processes {#background}
 
