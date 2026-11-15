@@ -1,11 +1,11 @@
 ## Films how fast the body answers its movement keys (gdstudio #1565), driven by the actions a
 ## player presses: a sprint reversal (W then S), W+A to W+D through W alone for 0.05 s at a sprint,
 ## the keys spammed through a sprint reversal, and crouch and aim pressed in a jog's stop; the
-## reversal and the spam again from the side. A label names the sequence and shows the keys held,
-## the ground speed, the ticks since the last change of keys and the clip the tree plays; every
-## drawn frame prints a line starting `RESPONSETOUR` with the sequence, so a recording can be cut
-## into one clip a sequence. Before #1565 a reversal held the body on its clip's path for 1.8 to
-## 2.2 s and every key pressed meanwhile was ignored.
+## reversal and the spam again from the side, and lying down from a jog. A label names the sequence
+## and shows the keys held, the ground speed, the ticks since the last change of keys and the clip
+## the tree plays; every drawn frame prints a line starting `RESPONSETOUR` with the sequence, so a
+## recording can be cut into one clip a sequence. Before #1565 a reversal held the body on its
+## clip's path for 1.8 to 2.2 s and every key pressed meanwhile was ignored.
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
 ## `gds capture frames --project game --seconds 40 --fps 30 --name response`
@@ -25,6 +25,7 @@ const NAMES := {
 	"sprint": "Shift",
 	"crouch": "C",
 	"aim": "Aim",
+	"prone": "Z",
 }
 const SPAM := [
 	["move_right"],
@@ -81,6 +82,11 @@ var sequences: Array[Array] = [
 		]
 	],
 	["Sprint: W, S, then the keys spammed (side view)", true, _spam_steps()],
+	[
+		"Jog: W, then lying down from the run (side view)",
+		true,
+		[[1.4, ["move_forward"]], [0.1, ["move_forward", "prone"]], [1.6, ["move_forward"]]]
+	],
 ]
 
 var _sequence := -1
@@ -113,9 +119,9 @@ func _process(_delta: float) -> void:
 	if _sequence >= sequences.size():
 		return
 	if _side.current:
-		# Beside the lane the body runs along (+Z and back), level with the hips, following it.
+		# Beside the lane the body runs along (+X and back from the start), level with the hips.
 		var at := _player.global_position
-		_side.global_position = Vector3(at.x - 7.0, at.y + 1.1, at.z)
+		_side.global_position = Vector3(at.x, at.y + 1.1, at.z - 7.0)
 		_side.look_at(at + Vector3(0.0, 0.9, 0.0), Vector3.UP)
 	print("RESPONSETOUR ", _sequence, " ", Engine.get_frames_drawn())
 

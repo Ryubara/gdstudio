@@ -484,6 +484,8 @@ func _start_look(animation: CharacterAnimation) -> void:
 
 # The rig turned by the look's clip turn against the body's (`TurnLook`), or eased back.
 func _draw_turn(animation: CharacterAnimation, delta: float) -> void:
+	if _look_end < 0.0 and look.offset == 0.0:
+		return  # Most frames of most characters: no look and nothing to ease back.
 	var rig := animation.model.rig() if is_instance_valid(animation.model) else null
 	var wanted := NAN
 	if _look_end >= 0.0 and is_playing() and _look_curves != null:

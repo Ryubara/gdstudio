@@ -167,7 +167,9 @@ library's play as stand-ins. Cosmetic, never sent: a puppet picks from the state
 `tests/gameplay/test_jump_tree.gd` holds each case; `tools/capture/jump_tour.tscn` films them on a player's own screen
 beside the puppet of it on another's.
 
-**How the controller holds a hard landing** (kit #1535). A fall of `CharacterTuning.hard_land_speed` (9 m/s, the hard
+**How the controller holds a hard landing** (kit #1535; since gdstudio #1565 a push of the stick ends the hold on
+that tick, `CharacterLanding.give_way()`, and the tree gives the legs back at once: what follows holds a still
+body). A fall of `CharacterTuning.hard_land_speed` (9 m/s, the hard
 landing's `fall_speed.from`) or more, and at least `land_clip_speed`, puts the body in `LAND` for `hard_land_time`
 (0.67 s, its `control` frame over 30) and holds it all that time as an action does (`CharacterLanding`,
 `_action_lock`): the push is ignored, the body keeps `hard_land_keep` (0) of its ground speed and loses the rest by
@@ -252,8 +254,9 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `stretch` | 0.8 to 1.3 | how far a gait is slowed and sped up alone before the next blends in: the walk alone to 2.21 m/s, the walk and the jog blended to 3.2, the jog alone to 5.2 |
 | `slowest_pace` | 0.5 | the walk alone down to half its pace (0.85 m/s), fading into the idle below |
 | `transitions`, `transition_clips` | on, `GaitTransitionSet` | a start, a stop, a reversal, a pivot or a turn on the spot when the controller does one and its clip exists |
-| `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the numbers that pick them; a reversal or a pivot of a body that steps with `CharacterTuning.turn_root_motion` on is picked by the step instead ([turns moved by their clip](#turn-root-motion)) |
-| `transition_pace` | 2 | the fastest a turn on the spot runs to catch the body's turn up, against its own pace (kit #1157); a reversal and a pivot no longer race the body: they move it ([turns moved by their clip](#turn-root-motion)) |
+| `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 100, 135, 50 degrees, 0.3 m/s | the numbers that pick them (a quarter turn of the keys is a steer, gdstudio #1565); with `CharacterTuning.turn_root_motion` on the step picks a reversal or a pivot instead ([turns moved by their clip](turn-root-motion.md#turn-root-motion)) |
+| `transition_pace` | 4 | the fastest a turn on the spot runs to catch the body's turn up, against its own pace (kit #1157; 2 before #1565) |
+| `turn_look_time` | 0.3 s | how long a reversal or a pivot is drawn over a body that steers itself: the clip from its plant to its turn's end, sped up, the rig turned by its turn curve ([the look](turn-root-motion.md#turn-look)) |
 | `momentum_blend`, `momentum_half_life`, `momentum_speed_limit` | on, 0.05 s, 720 degrees a second | a change of body state shows at once and the difference from the drawn pose dies away (`MomentumBlend`), in place of the cross-fade over `blend_time` |
 | `lean`, `lean_clips`, `lean_full_at`, `lean_time` | on, `gds/Lean_Left` and the rest, 20 m/s², 0.12 s | the lean into the acceleration, built only when the four lean clips exist |
 | `jump_choices` and the Jump group | on; `gds/Jump_Start_Run_L` and `_R` from 2.5 m/s, `gds/Jump_Rise` and `gds/Jump_Apex` at 3 m/s up and 4 down, `gds/Land_Hard` from 9 m/s of fall, `gds/Land_To_Jog` asked to run at 2.5 m/s | the jump's clips picked by the body's numbers ([the jump's clips](#jump-clips), `JumpAnimation`); off, `jump_clip`, `air_clip` and `land_clip` alone |
@@ -281,7 +284,10 @@ ground of that moment), so it shows the frame an immediate stop would show by th
 move keys held at once the one pressed last wins (`MoveKeys` in `PlayerInput`), so W then S held is a reversal; two
 pressed on the same tick cancel out and the body stands (`tools/capture/opposing_keys_tour.tscn` films W then S,
 W then W+S then S, and W then D then a let-go). A state asked for while a clip plays (a crouch in a
-stop) is the one the machine goes on to. `tools/capture/own_blend_tour.tscn` films each start, stop and crouch from
+stop) is the one the machine goes on to. Since gdstudio #1565 no clip holds the body: a start, a reversal or a pivot
+whose wish moves 40 degrees (`GaitTransitions.WISH_CHANGE`) is left that frame, and an aim taken, a crouch, lying down,
+a slide or an action ends any clip that frame (a stop begun aimed plays on).
+`tools/capture/own_blend_tour.tscn` films each start, stop and crouch from
 the game camera, printing the largest move of a bone each frame. Until the clips exist nothing
 plays and the states change as before.
 The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
@@ -295,6 +301,10 @@ kit #1157 (each moving one ends as a foot strikes; a turn on the spot ends on th
   was cut when one went up, and a one-tick let-go between two keys started a stop the next key cut 2 to 5 ticks later;
   the stop and reversal suites drove one let-go or one turn by commands. **Seen:** gdstudio #1563, 2026-11-14, found
   by the maintainer playing 3D Third Person (102 of 276 matrix cases failed on main).
+- **Approach:** Make a rule that ends a transition clip on a body state (an aim, a crouch) end it only when the state
+  came during the clip, or block the pick under the same state. **Watch out for:** ending every clip of an aiming
+  body made an aimed walk's stop begin and end on alternate frames, which only `test_aimed_takeoff.gd`'s gun speed
+  caught. **Seen:** gdstudio #1565, 2026-11-15 (`GaitTransitions._acted`, a clip begun aimed keeps its aim).
 
 ### Turns moved by their clip {#turn-root-motion}
 
