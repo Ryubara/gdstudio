@@ -142,8 +142,10 @@ its 0, until it is assigned again or cleared. An item sits in one place: assigni
   and a puppet plays it from the event ([Item uses online](third-person/online-items.md#item-uses)). The weapon places
   switch by ordinary weapon presses (`request_weapon`).
 
-In the inspector: `Hotbar` Places (`place_count` 4, `start_items`), Nodes (`inventory`, empty: the first `Inventory`
-beside it; `user`, empty: the parent), Network (`authoritative` on, off on an online client); `ItemDef` Use
+In the inspector: `Hotbar` Places (`place_count` 4, `start_items`: `ItemDef`s in an `Array[Resource]`, since a typed
+`Array[ItemDef]` left scripts in use at exit,
+[test-exit-leaks.md](test-exit-leaks.md#typed-array-export-and-self-cast)), Nodes (`inventory`, empty: the first
+`Inventory` beside it; `user`, empty: the parent), Network (`authoritative` on, off on an online client); `ItemDef` Use
 (`use_effect`, `consumed_on_use` on, `use_time` 0, `use_apply_share` 0.75, `use_clip`, `use_sound`; the bandage 1.6 s, `ual2/Consume`,
 `gameplay/inventory/bandage_use.tres`); `ItemUse` Nodes (`character`, `hotbar`, `sound`: its `Sound` child at -14 dB
 on `SFX`) and Cut short by (`cancel_on_sprint`, `cancel_on_fire`, `cancel_on_aim`, `cancel_on_jump`,

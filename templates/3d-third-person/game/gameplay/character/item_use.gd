@@ -107,7 +107,7 @@ func _ready() -> void:
 		character.died.connect(_on_died)
 	# Warm the hotbar's sounds now, so the first use does not decode in its frame.
 	if hotbar != null and sound != null:
-		for start in hotbar.start_items:
+		for start: ItemDef in hotbar.start_items:
 			if start != null and start.use_sound != null:
 				DecodedSounds.decoded(start.use_sound)
 

@@ -294,6 +294,7 @@ The enemies of [the AI section](ai-characters.md#parts) set the male body (`form
   | Sliding ([its page](moves.md#slide)) | `CharacterSlide` (`character_slide.gd`), an instance `_slide` | `CharacterState.slide` |
   | Vaulting and mantling ([its page](traversal.md#how)) | `CharacterVault` (`character_vault.gd`), the instance `vault_motion` | `CharacterState.vault` |
   | Pushing a prop | `CharacterPush.push_props(body, before, delta)` (`character_push.gd`), static | the body's `_push_cap`, `_push_hold` |
+  | Landing ([the hard landing's hold](clips.md#jump-clips), #1535) | `CharacterLanding` (`character_landing.gd`), static: `touch_down`, `forget` (a teleport) | the body's `_land_timer`, `_action_lock` |
   | Dying and getting up | `CharacterDeath` (`character_death.gd`), static: `die`, `revive`, the dead tick | none (death is an event) |
   | The capsule and the eye point | `CharacterCapsule` (`character_capsule.gd`), static: `height`, `fit`, the room to stand | none |
   | An AI's lean tick (#1059; the aim and the trigger since #1104) | `CharacterLean` (`character_lean.gd`), static, when `lean_step` is on | none |
