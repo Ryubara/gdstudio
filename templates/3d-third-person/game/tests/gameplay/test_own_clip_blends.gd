@@ -149,7 +149,8 @@ func test_a_crouch_during_a_stop_is_kept() -> void:
 	# ground state the transition would have handed over to.
 	await _largest(_command(0.0), 40)
 	await _largest(_command(1.0), 60)
-	await _largest(_command(0.0), 3)
+	# The stop begins `GaitTransitions.STOP_GRACE` (6 ticks) after the let-go (gdstudio #1563).
+	await _largest(_command(0.0), 10)
 	assert_bool(_animation.gait.transitions.is_playing()).is_true()
 	await _largest(_command(0.0, false, false, true), 30)
 	assert_str(String(_animation.body_state())).is_equal(String(CharacterAnimation.CROUCH))

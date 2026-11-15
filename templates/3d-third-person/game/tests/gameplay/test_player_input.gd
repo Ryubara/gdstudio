@@ -75,6 +75,32 @@ func test_the_stick_is_in_the_views_axes_with_forward_up() -> void:
 	assert_float(_stepped().move.x).is_equal(0.0)
 
 
+# Two opposing move keys: the one pressed last moves (gdstudio #1563); before, they cancelled out
+# and the body stopped with both held. Pressed on the same tick they still cancel.
+func test_of_two_opposing_keys_the_one_pressed_last_moves() -> void:
+	InputSim.key(KEY_W, true)
+	await InputSim.ticks(get_tree(), 3)
+	InputSim.key(KEY_S, true)
+	await InputSim.ticks(get_tree(), 3)
+	assert_vector(_stepped().move).is_equal(Vector2(0.0, -1.0))
+	InputSim.key(KEY_S, false)
+	await InputSim.ticks(get_tree(), 3)
+	assert_vector(_stepped().move).is_equal(Vector2(0.0, 1.0))
+	InputSim.key(KEY_D, true)
+	await InputSim.ticks(get_tree(), 3)
+	InputSim.key(KEY_A, true)
+	await InputSim.ticks(get_tree(), 3)
+	assert_vector(_stepped().move).is_equal_approx(
+		Vector2(-1.0, 1.0).normalized(), Vector2(0.001, 0.001)
+	)
+	InputSim.release_all()
+	await InputSim.ticks(get_tree(), 3)
+	InputSim.key(KEY_A, true)
+	InputSim.key(KEY_D, true)
+	await InputSim.ticks(get_tree(), 3)
+	assert_vector(_stepped().move).is_equal(Vector2.ZERO)
+
+
 func test_each_held_button_is_its_bit() -> void:
 	var held := {
 		&"sprint": KEY_SHIFT,

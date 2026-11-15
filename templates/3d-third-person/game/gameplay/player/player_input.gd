@@ -5,7 +5,8 @@ extends CharacterController
 ## the only part of the character that reads `Input` or a camera; the body moves by the command
 ## alone, so the same body is driven by a server, a recording or an AI with another controller.
 ##
-## It reads these actions (all devices): `move_left`, `move_right`, `move_forward`, `move_back`,
+## It reads these actions (all devices): `move_left`, `move_right`, `move_forward`, `move_back`
+## (of two opposing move keys held at once, the one pressed last: `MoveKeys`),
 ## `jump`, `sprint`, `walk`, `interact`, `crouch`, `prone`, `aim`, `fire`, the weapon presses
 ## `reload`, `next_weapon`, `previous_weapon` and `toggle_unarmed`, the melee button `melee`, the
 ## peek lean `lean_left` and `lean_right` (and on a pad `lean_left_pad` and `lean_right_pad`, the
@@ -62,6 +63,8 @@ var _wanted_slot := NO_REQUEST
 var _request_ticks := 0
 var _quick_keys := QuickKeys.new()
 var _peek := PeekInput.new()
+# The move stick, the key pressed last winning between two opposing ones (gdstudio #1563).
+var _move_keys := MoveKeys.new()
 
 
 func _ready() -> void:
@@ -126,9 +129,10 @@ func sample() -> PlayerCommand:
 	command.clear()
 	var enabled := player == null or player.input_enabled
 	var camera := get_viewport().get_camera_3d()
-	var stick := Vector2.ZERO
-	if enabled:
-		stick = Input.get_vector(&"move_left", &"move_right", &"move_forward", &"move_back")
+	# Read every tick, so the order the move keys went down in is known when the input comes back.
+	var stick := _move_keys.read()
+	if not enabled:
+		stick = Vector2.ZERO
 	_write_view(command, camera, stick)
 	_step_crouch(enabled)
 	command.crouch = _crouch_latch

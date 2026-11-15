@@ -275,13 +275,26 @@ gait's cycle it ends on), or else `end_foot` (`l`: the gait goes on from 0, `r` 
 body has finished its part plays on at its own pace; a body asked for something else leaves it at once. A start is
 picked while the body
 stood at most `GaitTransitions.START_GRACE` (4) frames ago, since the controller's acceleration has it past
-`standing_speed` on the tick it is asked to move (gdstudio #1416); a state asked for while a clip plays (a crouch in a
+`standing_speed` on the tick it is asked to move (gdstudio #1416). A stop is picked only once the move asked for has
+been zero for `GaitTransitions.STOP_GRACE` (0.1 s), and is then played from the let-go (the gait, the foot and the
+ground of that moment), so it shows the frame an immediate stop would show by then (gdstudio #1563). Of two opposing
+move keys held at once the one pressed last wins (`MoveKeys` in `PlayerInput`), so W then S held is a reversal; two
+pressed on the same tick cancel out and the body stands (`tools/capture/opposing_keys_tour.tscn` films W then S,
+W then W+S then S, and W then D then a let-go). A state asked for while a clip plays (a crouch in a
 stop) is the one the machine goes on to. `tools/capture/own_blend_tour.tscn` films each start, stop and crouch from
 the game camera, printing the largest move of a bone each frame. Until the clips exist nothing
 plays and the states change as before.
 The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
 so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are GDStudio's own since
 kit #1157 (each moving one ends as a foot strikes; a turn on the spot ends on the idle's first pose).
+
+- **Approach:** Trigger a stop on the move input staying at zero, never on a change of keys: resolve two opposing keys
+  to the one pressed last, wait a short grace before picking the stop and play it from the let-go; test the key
+  combinations on the real player's input actions at every gait (`test_move_key_matrix.gd`), not single let-gos.
+  **Watch out for:** `Input.get_vector` makes W and S held together no input, so the stop played under held keys and
+  was cut when one went up, and a one-tick let-go between two keys started a stop the next key cut 2 to 5 ticks later;
+  the stop and reversal suites drove one let-go or one turn by commands. **Seen:** gdstudio #1563, 2026-11-14, found
+  by the maintainer playing 3D Third Person (102 of 276 matrix cases failed on main).
 
 ### Turns moved by their clip {#turn-root-motion}
 
