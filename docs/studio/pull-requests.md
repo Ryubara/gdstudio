@@ -12,12 +12,12 @@ a branch fresh are in [Landing a pull request](landing.md#landing).
 
 - **Approach:** Write the title into a file at the start, count it (`wc -c`, at most 72), check it against the verb list
   with `gds pr check-body <body> --title <title file>` before the commit, and make a merge commit only with `gds
-  merge-main`. **Watch out for:** an issue's title is not checked, so `art: Keep the hand IK...` was refused by the
-  commit hook twice for a verb off the list; a 74-character title was refused and the push that followed carried the
-  older commit; `ui: Merge main into x` is not a title the convention knows (only git's own `Merge remote-tracking
-  branch ...` is exempt), so the merge stayed uncommitted. **Seen:** Deadnight #987, 2026-11-04; Deadnight #1280,
-  2026-11-05; Deadnight, 2026-11-02 (fix: the title checked as a file before the commit).
-  gdstudio #1323, #1480, #1520 (inline titles of 74, 73 and 73 characters, refused by the hook).
+  merge-main`. **Watch out for:** an issue's title is not checked (nor its length), so `art: Keep the hand IK...` was
+  refused by the commit hook twice for a verb off the list; a 74-character title was refused and the push that followed
+  carried the older commit; `ui: Merge main into x` is not a title the convention knows (only git's own `Merge
+  remote-tracking branch ...` is exempt), so the merge stayed uncommitted. **Seen:** Deadnight #987, 2026-11-04;
+  Deadnight #1280, 2026-11-05; Deadnight, 2026-11-02 (fix: the title checked as a file before the commit). gdstudio
+  #1323, #1480, #1520, #1371 (inline titles of 74, 73, 73 and 73; #1371's was the issue's own title).
 
 ## The description {#body}
 
@@ -147,7 +147,7 @@ still reads the branch (kit #1131). The `commits` job reads the pull request's c
 guard run the same `groundwork.py check-commits --body` on `git log origin/main..HEAD` of the checkout (the commits
 GitHub lists for a pull request against `main`; those a merge of `main` brings are not among them), so a commit's bad
 trailer, or a co-author model the `Model:` line does not name, is refused before the push. A stacked branch carries its
-base's commits, so its `Model:` line names their models too ([stacked](starting-work.md#stacked)). With no branch to
+base's commits, so its `Model:` line names their models too ([stacked](worktrees.md#stacked)). With no branch to
 read it prints `commits: cannot tell`, as the docs rule does (kit #1303). The guard is a hand-merge path
 (`.claude/hooks/`): a maintainer merges changes to it.
 
@@ -193,6 +193,11 @@ read it prints `commits: cannot tell`, as the docs rule does (kit #1303). The gu
   one; do not rerun the failed run. **Watch out for:** `pr` runs on `pull_request_target`, and a rerun reads the
   body from the event that started it, so the old body fails again however it was fixed. **Seen:** gdstudio #1016,
   2026-11-11 (coordinator's finding).
+- **Approach:** Run `gds pr check-body <file>` from the pull request's worktree, or give `--repo <worktree>` when you
+  stand in a scratch folder beside the body file. **Watch out for:** the check reads the conventions of the checkout
+  round the current folder; from `scratch/` there is none, so it exits 2 ("not in a git checkout; pass --repo") and
+  judges nothing. **Seen:** gdstudio PR #1440 and PR #1523 refreshes, 2026-11-14 (the coordinator's refresh brief now
+  passes `--repo`).
 
 ## Which paths the image guard covers {#attach-paths}
 

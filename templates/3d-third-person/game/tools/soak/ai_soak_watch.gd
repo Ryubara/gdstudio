@@ -12,7 +12,8 @@ extends Node
 ## - `stuck_episode`: a living character that keeps asking its navigator for a goal and moves less
 ##   than `stuck_metres` for longer than `stuck_episode_seconds`;
 ## - `stuck_share`: the stuck seconds of every character over `stuck_share` of their walking
-##   seconds (an episode counts once it is longer than `stuck_grace_seconds`);
+##   seconds (an episode counts once it is longer than `stuck_grace_seconds`; a character that dies
+##   or leaves the tree ends its episode at its last watched tick);
 ## - `idle_with_threat`: a hostile in view of its brain while its controller asks for nothing (no
 ##   reload, no weapon switch) for longer than `idle_seconds`;
 ## - `task_overdue`: the runner's active task active without a break for longer than its hard
@@ -27,7 +28,9 @@ extends Node
 ## - anything the scenario adds with `fail()` (the soak's `round`).
 ##
 ## For every gate it breaks it keeps a sample of what the character held, did and decided (its
-## beliefs, its layer stack, its last 20 decisions, its path's end, its tier): `failures`.
+## beliefs, its layer stack, its last 20 decisions, its path's end, its tier): `failures`. With
+## `probe_episodes` on it also keeps a row a tick of each probed character and makes a block of
+## each stuck episode that counts toward `stuck_share` when it ends (`AiSoakProbe`): `probe_blocks`.
 
 ## A gate broke (once per character and gate).
 signal gate_failed(gate: StringName, sample: Dictionary)
@@ -86,6 +89,14 @@ const GOAL_GAP_SECONDS := 1.0
 ## Thinks the percentile needs before it is judged.
 @export_range(1, 100000) var think_min_count := 200
 
+@export_group("Episode probe")
+## Prints a block of every tick of each counted stuck episode when it ends (`AiSoakProbe`).
+@export var probe_episodes := false
+## The kinds probed (a profile's display name, such as Civilian); empty: every kind.
+@export var probe_kinds := PackedStringArray()
+## Ticks before an episode's end a block may hold.
+@export_range(60, 36000, 60) var probe_ticks := 600
+
 @export_group("Run")
 ## Off: it keeps counting but judges nothing (a bench reads its numbers).
 @export var judging := true
@@ -100,6 +111,8 @@ var errors: Array[String] = []
 var calibrations := PackedFloat64Array()
 ## Every think's time, microseconds.
 var think_us := PackedFloat64Array()
+## The probe's block of every counted stuck episode, in the order they ended.
+var probe_blocks: Array[Dictionary] = []
 
 var _logger := ErrorCount.new()
 var _watches: Dictionary[int, Watch] = {}
@@ -134,6 +147,9 @@ class Watch:
 	var failed_by_reason: Dictionary[String, int] = {}
 	var alive := 0.0
 	var seen_tick := -1
+	var seen_at := 0.0
+	var probed := false
+	var ring: Array = []
 
 
 ## Keeps the engine's errors while it watches.
@@ -182,6 +198,7 @@ func _physics_process(delta: float) -> void:
 		var character := node as AiCharacter
 		if character != null and character.is_inside_tree() and not character.is_dead():
 			_check(_watch_of(character), delta)
+	_close_unseen()
 	_take_errors()
 
 
@@ -198,6 +215,7 @@ func _watch_of(character: AiCharacter) -> Watch:
 	watch.thinks = character.think_count
 	var navigator := character.navigator as AiNavigator
 	watch.queries = navigator.path_queries if navigator != null else 0
+	watch.probed = probe_episodes and (probe_kinds.is_empty() or probe_kinds.has(watch.kind))
 	var tasks := character.task_runner as AiTasks
 	if tasks != null:
 		tasks.runner.task_failed.connect(_on_task_failed.bind(watch))
@@ -210,6 +228,7 @@ func _check(watch: Watch, delta: float) -> void:
 	if watch.seen_tick != _tick - 1:
 		_begin_life(watch)
 	watch.seen_tick = _tick
+	watch.seen_at = clock
 	watch.alive += delta
 	_check_stuck(watch, delta)
 	_check_idle(watch, delta)
@@ -224,6 +243,15 @@ func _check(watch: Watch, delta: float) -> void:
 		_check_beliefs(watch)
 
 
+# A character watched last tick and not this one (shot dead, back in the pool, out of the tree)
+# ends its episode at its last watched tick (kit #1548): a death a moment into an episode is no
+# stuck time, and the run's end, seconds later, is not when the episode ended.
+func _close_unseen() -> void:
+	for watch: Watch in _watches.values():
+		if watch.seen_tick == _tick - 1:
+			_end_episode(watch, watch.seen_at)
+
+
 # A character seen again after a tick out of sight (dead, back in the pool, a new spawn) starts
 # its episodes again: nothing it did before counts toward them.
 func _begin_life(watch: Watch) -> void:
@@ -234,6 +262,7 @@ func _begin_life(watch: Watch) -> void:
 	watch.idle = 0.0
 	watch.task = null
 	watch.thinks = watch.character.think_count
+	watch.ring = []
 
 
 func _check_stuck(watch: Watch, delta: float) -> void:
@@ -244,9 +273,13 @@ func _check_stuck(watch: Watch, delta: float) -> void:
 		watch.goal_at = clock
 		watch.walking += delta
 		watch.episode_walking += delta
+	if watch.probed:
+		watch.ring = AiSoakProbe.push(
+			watch.ring, AiSoakProbe.row_of(character, clock, going), probe_ticks
+		)
 	var moved := character.global_position.distance_to(watch.anchor) > stuck_metres
 	if moved or clock - watch.goal_at > GOAL_GAP_SECONDS:
-		_end_episode(watch)
+		_end_episode(watch, clock)
 		watch.anchor = character.global_position
 		return
 	var episode := clock - watch.anchor_at
@@ -259,12 +292,30 @@ func _check_stuck(watch: Watch, delta: float) -> void:
 		)
 
 
-# Ends the episode under way: its walking seconds count as stuck when it lasted past the grace.
-func _end_episode(watch: Watch) -> void:
-	if clock - watch.anchor_at > stuck_grace_seconds:
+# Ends the episode under way at `until` (now, or the last tick its character was watched): its
+# walking seconds count as stuck when it lasted past the grace.
+func _end_episode(watch: Watch, until: float) -> void:
+	if until - watch.anchor_at > stuck_grace_seconds:
 		watch.stuck += watch.episode_walking
-	watch.anchor_at = clock
+		if watch.probed and watch.episode_walking > 0.0 and is_instance_valid(watch.character):
+			_print_block(watch, until)
+	watch.anchor_at = until
 	watch.episode_walking = 0.0
+
+
+func _print_block(watch: Watch, until: float) -> void:
+	var block := AiSoakProbe.block_of(
+		watch.character,
+		watch.kind,
+		watch.anchor_at,
+		until,
+		watch.episode_walking,
+		watch.seen_tick == _tick,
+		watch.ring,
+		probe_ticks
+	)
+	probe_blocks.append(block)
+	print(AiSoakProbe.PREFIX + JSON.stringify(block))
 
 
 func _check_idle(watch: Watch, delta: float) -> void:
@@ -378,8 +429,11 @@ func _take_errors() -> void:
 ## The gates the run broke at its end (the whole-run ones judged now), each with its count.
 func finish() -> Dictionary[StringName, int]:
 	_take_errors()
+	# Only the characters watched on the last tick have an episode under way: the others' ended
+	# when they left (`_close_unseen`).
 	for watch: Watch in _watches.values():
-		_end_episode(watch)
+		if watch.seen_tick == _tick:
+			_end_episode(watch, clock)
 	var walking := 0.0
 	var stuck := 0.0
 	for watch: Watch in _watches.values():

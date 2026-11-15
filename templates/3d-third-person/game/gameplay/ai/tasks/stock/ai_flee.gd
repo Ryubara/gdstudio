@@ -4,7 +4,12 @@ extends AiStockTask
 ## Runs from its subject (where it is believed to be, or `goal`): of `directions` points
 ## `step_distance` away around it, the one farthest from the threat that the navigator can reach,
 ## again and again until it is `safe_distance` away; then it ends and the situation calms to Alert.
-## With nowhere to run it fails `NO_PATH` (a row's fallback, a cower, runs).
+## With nowhere to run it fails `NO_PATH` (a row's fallback, a cower, runs), and so it does when
+## the navigator gives up `MOST_FAILED_LEGS` legs in a row (a point whose walk the shared budget
+## left unmeasured, on a piece of the mesh it cannot reach).
+
+## Legs in a row the navigator may give up before the flight fails `NO_PATH` (gdstudio #1532).
+const MOST_FAILED_LEGS := 2
 
 ## How far from the threat it is safe.
 @export_range(1.0, 200.0, 1.0, "suffix:m") var safe_distance := 25.0
@@ -16,6 +21,7 @@ extends AiStockTask
 @export var speed := Speed.SPRINT
 
 var _legs := 0
+var _failed_legs := 0
 
 
 func _init() -> void:
@@ -29,6 +35,7 @@ func _init() -> void:
 
 func start() -> void:
 	_legs = 0
+	_failed_legs = 0
 	last_known = _threat_at()
 	if not _leg():
 		_legs = -1
@@ -43,9 +50,12 @@ func update(_delta: float) -> Status:
 		stop_walk()
 		_calm()
 		return Status.SUCCEEDED
-	if walk_state() != Walk.GOING and not _leg():
-		reason = Reason.NO_PATH
-		return Status.FAILED
+	var walk := walk_state()
+	if walk != Walk.GOING:
+		_failed_legs = _failed_legs + 1 if walk == Walk.FAILED else 0
+		if _failed_legs >= MOST_FAILED_LEGS or not _leg():
+			reason = Reason.NO_PATH
+			return Status.FAILED
 	return Status.RUNNING
 
 
@@ -62,10 +72,21 @@ func _threat_at() -> Vector3:
 	return belief.last_position if belief != null else goal
 
 
-# The next leg: the reachable point farthest from the threat.
+# The next leg: the reachable point farthest from the threat. Each point is judged as the navigator
+# will walk it: snapped to open ground as `AiRouteRules.snap_goal` does (a point off the mesh past
+# its reach is no leg), not one it refuses at once, and with a path that ends within its
+# `END_SLACK` of it. A path to the mesh's edge once made a point far off the mesh look near
+# enough, and a cornered civilian asked for it again and again while the navigator refused it as
+# off open ground (gdstudio #1532).
 func _leg() -> bool:
 	var at := (character as Node3D).global_position
+	var walker := nav()
 	var map := (character as Node3D).get_world_3d().navigation_map
+	var layers := 1
+	if walker != null:
+		map = walker.navigation_map()
+		layers = walker.navigation_layers
+	var ready := map.is_valid() and NavigationServer3D.map_get_iteration_id(map) != 0
 	var away := at - last_known
 	away.y = 0.0
 	var base := atan2(away.x, away.z) if away.length_squared() > 0.01 else 0.0
@@ -74,7 +95,13 @@ func _leg() -> bool:
 	for index in directions:
 		var angle := base + TAU * float(index) / float(directions)
 		var point := at + Vector3(sin(angle), 0.0, cos(angle)) * step_distance
-		var cost := AiChoice.walk_cost(map, at, point, body().budget if body() else null)
+		if ready:
+			point = AiRouteRules.snap_goal(map, point, at, layers)
+			if not point.is_finite() or (walker != null and walker.refuses(point)):
+				continue
+		var cost := AiChoice.walk_cost(
+			map, at, point, body().budget if body() else null, AiNavigator.END_SLACK
+		)
 		if cost == INF or cost > step_distance * 2.5:
 			continue
 		var score := point.distance_to(last_known) - cost * 0.3

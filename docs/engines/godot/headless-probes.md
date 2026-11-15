@@ -91,7 +91,8 @@ minutes). How it is started decides what it can build.
   compile, and the capture ran a game in which the use never started; the grep for the probe's own lines showed none
   of it. **Seen:** gdstudio #1342, 2026-11-12; gdstudio #1484, 2026-11-14 (a capture tool rewritten by a script lost
   two constants: eight close-up runs each sat on an empty scene until their timeout, unread, before the template
-  suite's parse named the file; grep each run's log for `SCRIPT ERROR` as it ends, not after the batch).
+  suite's parse named the file; grep each run's log for `SCRIPT ERROR` as it ends, not after the batch); PR #1537,
+  2026-11-14 (two `AiFlee` variants on the cost bench did not compile and read as a cheaper fix).
 
 ## An engine error from a player's own file {#engine-errors-from-input}
 

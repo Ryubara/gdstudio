@@ -98,7 +98,7 @@ checks what the body does between its contacts: its centre of mass
 on the arc of a free fall while nothing touches it, the planted arm giving and then straight, the landing leg reaching,
 an arm that has let go staying under its shoulder's height and gaining speed without a snap, the legs going over
 together with no leg astride, folded shut, snapped or held
-([the vault clips](../../engines/godot/third-person/clips.md#vault-clips)).
+([the vault clips](../../engines/godot/third-person/vault-clips.md#vault-clips)).
 
 - **Approach:** Where a body leaves the ground, key the pelvis from the centre of mass, not by eye: write its
   height for every frame (free fall between contacts, a curve with a height and speed at each end while a limb

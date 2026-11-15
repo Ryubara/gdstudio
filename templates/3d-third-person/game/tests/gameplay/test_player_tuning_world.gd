@@ -133,6 +133,7 @@ func test_land_clip_speed_and_land_time_set_the_landing() -> void:
 	assert_bool(landed).is_false()
 	_tuning.land_clip_speed = 0.0
 	_tuning.land_time = 0.1
+	_tuning.hard_land_speed = 100.0  # The hard landing's hold is test_hard_landing.gd's.
 	_player.teleport(Vector3(0.0, 4.0, 0.0))
 	var landing_ticks := 0
 	for _tick in TICKS:

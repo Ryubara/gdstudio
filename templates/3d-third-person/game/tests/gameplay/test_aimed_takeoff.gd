@@ -6,7 +6,11 @@
 # transition's own step sent the machine back to the ground state on the frame the jump was asked
 # for: the body flew the whole jump on the ground's pose, and the stop clip's held pose gave way to
 # the ground's in one tick, a step of the gun of 3 to 4 degrees (183 to 244 degrees a second).
-# Read at `skeleton_updated`, after every modifier, on both bodies.
+# Read at `skeleton_updated`, after every modifier, on both bodies. The stop clip begins on the
+# foot the jog's phase gives, and the turn at the takeoff hung on it (gdstudio #1530): the
+# momentum blend carried the stop's sway into the standing take-off, and from the right foot's
+# stop the gun turned 41 to 43 degrees a second on the third and fourth update. The last cases
+# jump from a stop on each foot.
 extends GdUnitTestSuite
 
 ## The part of a run `_fastest` reads: before the jump, its takeoff, or the rest of the jump.
@@ -20,6 +24,10 @@ const STOP_TICKS := 8
 ## Ticks read from the jump press, and the updates in the jump state that are its takeoff.
 const READ_TICKS := 24
 const TAKEOFF_UPDATES := 4
+## The stop clips of each foot, and the ticks of jog that move the jog's phase at the stop until
+## both have played (a walk cycle is about a second).
+const STOPS: Array[StringName] = [&"gds/Walk_Stop_L", &"gds/Walk_Stop_R"]
+const JOGS: Array[int] = [45, 52, 59, 66, 73, 80, 87, 94]
 ## How many updates into the jump the body machine may still name another state.
 const JUMP_STATE_BY := 2
 ## How much faster than the stop it leaves, the rest of its jump, or a still stand's takeoff, the
@@ -35,6 +43,7 @@ var _skeleton: Skeleton3D
 var _hand := -1
 var _muzzle_in_hand := Transform3D.IDENTITY
 var _updates: Array[Dictionary] = []
+var _stop_clip: StringName = &""
 
 
 func before_test() -> void:
@@ -54,6 +63,48 @@ func test_the_female_body_jumps_from_an_aimed_stop() -> void:
 
 func test_the_male_body_jumps_from_an_aimed_stop() -> void:
 	await _takeoffs("male")
+
+
+func test_the_female_body_jumps_from_a_stop_on_either_foot() -> void:
+	await _either_foot("female")
+
+
+func test_the_male_body_jumps_from_a_stop_on_either_foot() -> void:
+	await _either_foot("male")
+
+
+# Jumps from stops begun on each foot, each held to the bound `_takeoffs` holds.
+func _either_foot(body: String) -> void:
+	await _player_with(body)
+	var still := _fastest(await _jump(false), Part.TAKEOFF)
+	var seen: Array[StringName] = []
+	for jog in JOGS:
+		if seen.size() == STOPS.size():
+			break
+		var run := await _jump(true, jog)
+		if _stop_clip in seen:
+			continue
+		seen.append(_stop_clip)
+		var turn := _fastest(run, Part.TAKEOFF)
+		var in_stop := _fastest(run, Part.BEFORE)
+		var air := _fastest(run, Part.AIR)
+		var bound := (
+			maxf(maxf(still.whole, in_stop.whole), maxf(air.whole, TURN_FLOOR)) * OVER_GROUND
+		)
+		var message := (
+			(
+				"%s, from %s: at the takeoff the gun turns %.0f degrees a second (update %d), the stop"
+				+ " before it %.0f, the rest of the jump %.0f, a still stand's takeoff %.0f"
+			)
+			% [body, _stop_clip, turn.whole, turn.at, in_stop.whole, air.whole, still.whole]
+		)
+		prints("AIMED_TAKEOFF " + message)
+		assert_float(turn.whole).override_failure_message(message).is_less_equal(bound)
+	(
+		assert_array(seen)
+		. override_failure_message("stops played: %s" % [seen])
+		. contains_exactly_in_any_order(STOPS)
+	)
 
 
 func _takeoffs(body: String) -> void:
@@ -134,10 +185,10 @@ func _player_with(body: String) -> void:
 	_muzzle_in_hand = _bone(_hand).affine_inverse() * muzzle.global_transform
 
 
-# One aimed jump from the middle of the arena, read on every update: from a stop (the aim up, a
-# jog, the stick let go, read from there, and the jump pressed while the stop clip plays) or from
-# a still stand with the aim up (read from the press).
-func _jump(from_stop: bool) -> Array[Dictionary]:
+# One aimed jump from the middle of the arena, read on every update: from a stop (the aim up,
+# `jog` ticks of jog, the stick let go, read from there, and the jump pressed while the stop clip
+# plays) or from a still stand with the aim up (read from the press).
+func _jump(from_stop: bool, jog := JOG_TICKS) -> Array[Dictionary]:
 	_player.teleport(Vector3.ZERO, PI)
 	await InputSim.ticks(get_tree(), 20)
 	_updates.clear()
@@ -146,10 +197,11 @@ func _jump(from_stop: bool) -> Array[Dictionary]:
 	if from_stop:
 		await InputSim.ticks(get_tree(), AIM_TICKS)
 		InputSim.key(KEY_W, true)
-		await InputSim.ticks(get_tree(), JOG_TICKS)
+		await InputSim.ticks(get_tree(), jog)
 		InputSim.key(KEY_W, false)
 		_skeleton.skeleton_updated.connect(reader)
 		await InputSim.ticks(get_tree(), STOP_TICKS)
+		_stop_clip = _animation.gait.transitions.clip
 		(
 			assert_bool(_animation.gait.transitions.is_playing())
 			. override_failure_message("no stop clip plays when the jump is pressed")

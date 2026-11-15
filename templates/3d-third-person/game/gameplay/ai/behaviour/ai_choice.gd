@@ -23,7 +23,11 @@ static func best(ids: Array, scores: PackedFloat32Array, kept: Variant, bonus: f
 
 ## The length of the walk from `from` to `to` on `map` (one path query, taken from `budget` when
 ## there is one), or the straight distance when the map has no answer or the budget is spent.
-static func walk_cost(map: RID, from: Vector3, to: Vector3, budget: AiBudget = null) -> float:
+## INF when the path ends more than `max_gap` metres short of `to` (a navigator gives such a goal
+## up as unreachable: `AiNavigator.END_SLACK`).
+static func walk_cost(
+	map: RID, from: Vector3, to: Vector3, budget: AiBudget = null, max_gap := INF
+) -> float:
 	var straight := from.distance_to(to)
 	if not map.is_valid() or NavigationServer3D.map_get_iteration_id(map) == 0:
 		return straight
@@ -35,5 +39,8 @@ static func walk_cost(map: RID, from: Vector3, to: Vector3, budget: AiBudget = n
 	var length := 0.0
 	for index in range(1, points.size()):
 		length += points[index - 1].distance_to(points[index])
+	var gap := points[points.size() - 1].distance_to(to)
+	if gap > max_gap:
+		return INF
 	# A path that ends short of the goal is as far again from it.
-	return length + points[points.size() - 1].distance_to(to) * 2.0
+	return length + gap * 2.0

@@ -12,7 +12,7 @@ part's section here.
 
 ## Character {#character-part}
 
-**Where:** `gameplay/character/` (`character.gd` + `character.tscn`, `character_dressed.tscn`,
+**Where:** `gameplay/character/` (`character.gd` + `character.tscn`, `character_dressed.tscn`, `character_landing.gd`,
 `character_controller.gd`, `character_state.gd`, `character_tuning.gd`, `step_climber.gd`, `interactor.gd`,
 `character_slide.gd`, `character_push.gd`, `character_death.gd`, `character_capsule.gd`; [the body's
 modules](character.md#controller))
@@ -24,6 +24,11 @@ second kind of controller](character.md#second-controller)). One resource (`Char
 Signals: `jumped`, `landed`, `took_hit`, `health_changed`, `hit_received`, `interacted`, `item_collected`,
 `state_changed`, `teleported`, `aim_changed`, `crouch_changed`, `prone_changed`, `died`, `revived`, `fell`. Health and
 hits: [Hit zones](../third-person-hits.md). Crouch, aim and shoot: [below](shooting.md#crouch-aim-shoot).
+
+The landing's inspector (`Character` > `tuning` > Actions): `land_clip_speed` 4.5 m/s (a landing from it plays the
+landing clip and is in `LAND`), `land_time` 0.3 s, `hard_land_speed` 9 m/s, `hard_land_time` 0.67 s and
+`hard_land_keep` 0 (a hard landing holds the body to its clip's control frame, keeping that share of its ground speed:
+[the jump's clips](clips.md#jump-clips), kit #1535).
 
 ## Player {#player-part}
 

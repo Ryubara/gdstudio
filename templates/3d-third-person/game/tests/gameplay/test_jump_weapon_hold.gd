@@ -43,12 +43,10 @@ const PAD_TO_SKIN := 0.02
 const OVER_GROUND := 1.25
 const TURN_FLOOR := 5.0
 ## How much faster than the ground's moves the lowered weapon may turn as a running jump leaves
-## the jog: the standing take-off (`Jump_Start`) is played from the jog until the tree plays the
-## run take-offs (gdstudio #1371), and the momentum blend (`MomentumBlend.SETTLE_FRAMES`, kit
-## #1427) eases the jog's swing into its arms in a tenth of a second: 898 degrees a second at the
-## most on both bodies against the ground's 635 (a crouch), one smooth rise and fall over six
-## updates, never a step. The rest of the jump is held to `OVER_GROUND`.
-const OVER_GROUND_RUN_TAKEOFF := 1.5
+## the jog, printed apart: the same as the rest of the jump since the tree plays the run take-offs
+## from the jog's own pose (gdstudio #1371). With the standing take-off played from the jog it
+## reached 898 degrees a second against the ground's 635, and #1369 held it to 1.5 until then.
+const OVER_GROUND_RUN_TAKEOFF := OVER_GROUND
 ## The updates from the leaving of the floor that are the takeoff (gdstudio #1462).
 const TAKEOFF_UPDATES := 3
 ## The skin is measured on every this many updates of the live player (the hands on all).

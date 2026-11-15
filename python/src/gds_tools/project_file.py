@@ -1,6 +1,6 @@
 """Merge Godot `project.godot` files: a template that extends another holds only what it adds.
 
-`gds new game` reads the chain base first and merges by section and key (new-game.md#adding-a-template):
+`gds new game` reads the chain base first and merges by section and key (template-checklist.md#adding-a-template):
 a later file's key wins, the list of enabled plugins is joined, and the result is written in Godot's own order
 (the top keys, then the sections by name). A value is kept as the text it has, so a multi-line one (the input map) is
 never re-written and the merge cannot change what the editor would save.
