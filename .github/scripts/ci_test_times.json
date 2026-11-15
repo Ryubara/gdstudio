@@ -1,5 +1,5 @@
 {
-  "about": "Seconds per GdUnit4 script of a game made from 3d-third-person, the median of green kit CI runs (ci_test_shards.py update); default_seconds counts a script with no time yet. gameplay/test_jump_weapon_hold.gd (#1369, not on main yet) is the 526 s its first green run took (kit #1492). gameplay/test_ai_cost_gate.gd is the 260 s its first run in fresh processes took (kit #1526).",
+  "about": "Seconds per GdUnit4 script of a game made from 3d-third-person, the median of green kit CI runs (ci_test_shards.py update); default_seconds counts a script with no time yet. gameplay/test_jump_clip_weapon_hold.gd is the 210 s its two cases took inside test_jump_weapon_hold.gd on green main runs, and gameplay/test_jump_weapon_hold.gd the 255 s its 125 s locally scales to at the 2.0 the whole suite took on CI against locally (kit #1558). gameplay/test_ai_cost_gate.gd is the 260 s its first run in fresh processes took (kit #1526).",
   "default_seconds": 10,
   "seconds": {
     "assets/test_fixed_clips.gd": 1.0,
@@ -118,7 +118,8 @@
     "gameplay/test_interact_held.gd": 78.2,
     "gameplay/test_item_use.gd": 8.1,
     "gameplay/test_join_wait.gd": 0.0,
-    "gameplay/test_jump_weapon_hold.gd": 526.0,
+    "gameplay/test_jump_clip_weapon_hold.gd": 210.0,
+    "gameplay/test_jump_weapon_hold.gd": 255.0,
     "gameplay/test_map_components.gd": 0.1,
     "gameplay/test_melee.gd": 3.2,
     "gameplay/test_menus_in_the_game.gd": 8.3,
