@@ -7,9 +7,13 @@
 <!-- new section: the reversals and pivots stopped being drawn over a body the controller turned in 0.26 s and became
 the body's own motion (gdstudio #1442); control, AI paths and the network change with it -->
 
-A body on its feet at a jog or a sprint that is asked to go back the way it came (`CharacterTuning.reversal_angle`,
-135 degrees between where it moves and where the stick points) or to cut off (`pivot_angle`, 60) is moved by the
-clip's own root (`CharacterTurnMotion`, in the step): each tick its velocity is the change of the record's `travel`
+**Off by default since gdstudio #1565** (`CharacterTuning.turn_root_motion` false): a body on its clip's path
+answered the stick 1.5 to 2.2 s late, and movement input is never held by a look. By default the body steers itself
+every tick and the clip is drawn over it as a short look ([the look](#turn-look)); what follows is the opt-in mode.
+With it on, a body on its feet at a jog or a sprint that is asked to go back the way it came
+(`CharacterTuning.reversal_angle`, 135 degrees between where it moves and where the stick points) or to cut off
+(`pivot_angle`, 60) is moved by the clip's own root (`CharacterTurnMotion`, in the step): each tick its velocity is
+the change of the record's `travel`
 over the tick, turned into the frame it ran in as the clip began and scaled by the tuning's gait speed over the
 clip's at its first frame, and its facing is where it began plus `turn`. Travel and facing are read apart, so the body
 brakes the old way while it already faces round and only then speeds up the new way. `GaitTransitions` plays the clip
@@ -18,9 +22,10 @@ drawn are the ones the body moves by: on open floor the body is on the travel cu
 0.01 degrees every committed tick (`test_turn_root_motion.gd`). Inspector: `CharacterTuning` > Turns (`turn_root_motion`,
 `pivot_angle`, `reversal_angle`, `turn_hand_back`, `reversal_clips`, `pivot_clips`), and `CharacterController.turn_clips`.
 
-- **Control.** The clip is picked on the tick the stick asks for the turn (no added latency: the body brakes from
-  that tick), its side by the way the stick asks the body to turn. The body is then committed: the stick's direction
-  is not read until the turn is made: the frame the record's `turn` reaches its last yaw, or its `free` event if
+- **Control.** The clip is picked on the tick the stick asks for the turn, its side by the way the stick asks the
+  body to turn. The body then follows the clip until the turn is made or the stick turns
+  `CharacterTurnMotion.WISH_CHANGE` (40 degrees) or more from the way it asked for (since gdstudio #1565; before, the
+  stick's direction was not read at all): the frame the record's `turn` reaches its last yaw, or its `free` event if
   that comes first (from the shipped clips: 1.83 s of the jog reversal, 2.23 s of the sprint's, 1.53 s of the
   pivot; the rest of each clip is the gait's run-out). Then the body's own steering takes over, its velocity blended
   from the clip's into the steering's over `turn_hand_back` (0.25 s): the jog reversal hands back at 2.8 m/s and the
@@ -56,6 +61,61 @@ drawn are the ones the body moves by: on open floor the body is on the travel cu
   carry the body on (#1422), a walk back 0.3 s after letting go is a jog reversal that goes 3.7 m on before turning;
   the pickup was never walked over again, and a stalled client with the walk taken out was lost once. **Seen:**
   gdstudio #1442 merging #1422, 2026-11-14 (`test_weapon_pickup.gd`, `test_net_client_prediction.gd`).
+
+- **Approach:** Let the step follow the input every tick and draw a turn, start, stop or landing recovery as a look
+  over the body's own motion, cut the tick the wish moves or an action comes; give the brake to the controller
+  (`brake_deceleration`) and measure ticks per key change on the real input (`test_move_key_matrix.gd`).
+  **Watch out for:** a clip that owns velocity and facing until its turn is made ignores every key meanwhile: a
+  sprint reversal ran 6.3 m on, W+A to W+D started a committed pivot that read as a stop, and #1564 routed an opposing
+  press into the same reversal; the tests asked which clip played, not how fast the body answered. **Seen:** gdstudio
+  #1565, 2026-11-15, found by the maintainer playing 3D Third Person (a jog's velocity turned after 21 to 23 ticks;
+  now 1).
+
+### The look over a body that steers {#turn-look}
+
+<!-- new section: the default reversal and pivot became a short look drawn over the body's own steering (gdstudio
+#1565); how it is timed, drawn and cut had no place -->
+
+The body brakes and turns by the controller: the part of its velocity across or against the wish goes at
+`CharacterTuning.brake_deceleration` (40 m/s²) while the part along it speeds up at `acceleration` (28), so a straight
+run is as before (`CharacterTuning.steer_toward`, shared by the AI's lean tick). A sprint reversal brakes in 0.16 s
+over 0.53 m and runs the new way at full speed about 0.4 s after the press (on the clip's root: 6.3 m on, the turn
+made at 2.23 s); a quarter turn of the keys is within 30 degrees in 5 to 7 ticks. `GaitTransitions` picks the
+reversal (from `GaitSettings.reversal_angle`, 135) or the pivot (`pivot_angle`, 100: a quarter turn of the keys is a
+steer) on the frame the wish turns, the gait from the speed of the frame before (the brake has slowed it by then), and
+plays the clip from `GaitTransitions.TURN_LEAD` (0.2 s) before its turn begins to its turn's end, sped up to last
+`GaitSettings.turn_look_time` (0.3 s); `TurnLook` turns the rig under the model by the clip's own turn curve less the
+body's turn since it began, so the hips swing round over the planted foot while the capsule already goes the new way,
+and eases any difference left by an end or a cut out over 0.04 s. A wish that moves 40 degrees or more from the one it
+was drawn for, or an aim taken, a crouch, lying down, a slide or an action ends it that frame; the momentum blend
+smooths the cut. Cosmetic: never sent; a puppet draws it from its own velocity and goal.
+
+| Clip | Length | Its turn (from the plant) | On the clip's root (opt-in) | The look (default) |
+| --- | ---: | ---: | ---: | ---: |
+| `gds/Jog_Turn_180_*` | 2.90 s | 0.70 to 1.83 s | committed 1.83 s | 1.33 s of clip in 0.3 s (4.4 times) |
+| `gds/Sprint_Turn_180_*` | 3.53 s | 0.97 to 2.23 s | committed 2.23 s | 1.47 s in 0.3 s (4.9 times) |
+| `gds/Jog_Turn_90_*` | 2.73 s | 0.60 to 1.53 s | committed 1.53 s | 1.13 s in 0.3 s (3.8 times) |
+
+The gait cycles they leave are 0.67 s (jog) and 0.60 s (sprint): each clip was four to six cycles long. A turn on the
+spot (aiming while standing) is seeked by the body's turn, at most `transition_pace` (4 since #1565, 2 before) times
+its pace. Starts are played by the ground the body covers (0.67 s from a walk, 0.83 from a jog, 1.1 from a sprint in
+the matrix) and now end when the wish moves. The stops are not sped up: each stop deceleration covers its clip's
+travel so the planted feet hold the floor (`test_gait_stops.gd`), and a faster stop would need shorter stop clips
+(the sprint's 1.67 s to rest is a follow-up for the clip toolkit); any key ends a stop the next tick. Epic's Game
+Animation Sample follows the capsule's own movement with its start, stop and turn clips, and its characters change
+direction by about 85 degrees at once ([a thread on the sample's root motion and trajectory](https://forums.unrealengine.com/t/how-to-perfectly-align-animation-root-motion-with-the-movercomponents-trajectory/2746566),
+[its 5.7 notes on responsiveness](https://www.unrealengine.com/en-US/tech-blog/explore-the-updates-to-the-game-animation-sample-project-in-ue-5-7));
+Lyra warps the lower body's orientation to the movement rather than waiting for a clip
+([adapting Lyra's animation](https://www.unrealengine.com/tech-blog/adapting-lyra-animation-to-your-ue5-game)).
+
+- **Approach:** Measure a drawn pose's jump between ticks in `skeleton_updated`, with each tick its own engine frame,
+  and hold an action's hand-off from a clip against the same action from the steady gait. **Watch out for:** read
+  after `advance()`, `get_bone_global_pose` gives the tree's pose without the modifiers (the momentum blend among
+  them), and a hand-stepped skeleton draws once a frame, so six ticks a frame read a prone hand-off as 1.3 m in one
+  tick and a crouch as 1 m; the drawn crouch from a stop still moved a toe 0.25 m a frame on main. Two more settle
+  frames into the crouch alone fixed it (`CharacterGait.CROUCH_SETTLE`); five for every state moved the aimed
+  take-off's blend past `test_aimed_takeoff.gd`'s bound. **Seen:** gdstudio #1565, 2026-11-15
+  (`tests/fixtures/move_response.gd`).
 
 **How a stop moves the body** (gdstudio #1415). A body on its feet with the stick let go slows by the stop deceleration
 of the gait whose speed band it is in (`CharacterTuning` > Ground > Stops): `walk_stop_deceleration` 2.84 m/s² up to

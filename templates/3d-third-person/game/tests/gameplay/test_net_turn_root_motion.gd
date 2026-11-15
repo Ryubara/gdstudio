@@ -1,6 +1,9 @@
 # A sprint reversal online (gdstudio #1442): the predicting client and the game server both move
 # the body by the reversal clip's root (`CharacterTurnMotion`), from the same commands and the same
-# record, so the client's body ends where the server's does with no correction.
+# record, so the client's body ends where the server's does with no correction. Off by default
+# since gdstudio #1565 (`CharacterTuning.turn_root_motion`): the suite turns it on in both bodies'
+# tunings (and back after), and the default reversal (the body's own braking steering) is held to
+# the same gap.
 extends GdUnitTestSuite
 
 ## Where the run goes in `world/prototype/prototype_level.tscn`: off the dais to the first point,
@@ -17,6 +20,8 @@ var _rig: OnlineRig
 var _client: NetClient
 var _phase := 0
 var _sprinted := 0
+# The tunings turned on, each with what it was.
+var _turned_on: Array = []
 
 
 func before_test() -> void:
@@ -25,11 +30,31 @@ func before_test() -> void:
 	assert_bool(_rig.start()).is_true()
 	_phase = 0
 	_sprinted = 0
+	_turned_on.clear()
+
+
+func after_test() -> void:
+	for kept: Array in _turned_on:
+		(kept[0] as CharacterTuning).turn_root_motion = kept[1]
+
+
+func test_the_default_sprint_reversal_ends_where_the_server_body_ends() -> void:
+	_client = await _rig.join("Ada")
+	assert_object(_client).is_not_null()
+	_rig.controllers[0].plan = _run
+	await _rig.wait(TICKS + 90)
+	var gap := _client.player.global_position.distance_to(_rig.server_body(_client).global_position)
+	prints("reversal online: gap %.6f m," % gap, "corrections", _client.reconciler.corrections)
+	assert_float(gap).is_less(0.0002)
+	assert_int(_client.reconciler.lost).is_equal(0)
 
 
 func test_a_sprint_reversal_ends_where_the_server_body_ends() -> void:
 	_client = await _rig.join("Ada")
 	assert_object(_client).is_not_null()
+	for tuning: CharacterTuning in [_client.player.tuning, _rig.server_body(_client).tuning]:
+		_turned_on.append([tuning, tuning.turn_root_motion])
+		tuning.turn_root_motion = true
 	_rig.controllers[0].plan = _run
 	await _rig.wait(TICKS + 90)
 	var body := _client.player

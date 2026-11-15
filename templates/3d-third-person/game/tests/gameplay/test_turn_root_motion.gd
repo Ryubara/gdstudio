@@ -2,7 +2,9 @@
 # its clip's own root. Through a reversal it keeps going the old way while it brakes, then comes
 # back, with its place on the clip's travel curve and its facing on the clip's turn curve every
 # committed tick; once the turn is made its steering takes over without a jump in its velocity
-# and it runs on at its gait's speed. A body put back mid-turn turns on the same path.
+# and it runs on at its gait's speed. A body put back mid-turn turns on the same path. Off by
+# default since gdstudio #1565 (`CharacterTuning.turn_root_motion`): the suite turns it on, and a
+# new direction ends the turn at once.
 extends GdUnitTestSuite
 
 ## Metres the body's place may be off the clip's travel (turned into the frame it ran in).
@@ -24,6 +26,7 @@ func before_test() -> void:
 	add_child(_arena)
 	_player = _arena.add_player(Vector3(0.0, 0.0, -20.0))
 	_player.tuning = _player.tuning.duplicate()
+	_player.tuning.turn_root_motion = true
 	CommandDriver.take(_player)
 	_players = [_player]
 	await InputSim.ticks(get_tree(), 4)
@@ -204,6 +207,18 @@ func test_letting_go_of_the_stick_ends_the_reversal_at_once() -> void:
 	assert_bool(_player.turn_motion.is_active()).is_true()
 	await CommandDriver.run(get_tree(), _players, PlayerCommand.new(), 1)
 	assert_bool(_player.turn_motion.is_active()).is_false()
+
+
+func test_a_new_direction_ends_the_reversal_at_once() -> void:
+	# Movement input is never held by a turn (gdstudio #1565): asked another way mid-reversal, the
+	# body steers itself from that tick.
+	await CommandDriver.run(get_tree(), _players, _command(Vector3.BACK, false), 60)
+	await CommandDriver.run(get_tree(), _players, _command(Vector3.FORWARD, false), 6)
+	assert_bool(_player.turn_motion.is_committed()).is_true()
+	var before_x := _player.velocity.x
+	await CommandDriver.run(get_tree(), _players, _command(Vector3.RIGHT, false), 1)
+	assert_bool(_player.turn_motion.is_active()).is_false()
+	assert_float(_player.velocity.x).is_greater(before_x)
 
 
 func test_off_the_body_turns_by_its_steering_as_before() -> void:

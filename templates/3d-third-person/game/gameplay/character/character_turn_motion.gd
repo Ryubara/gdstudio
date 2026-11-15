@@ -10,15 +10,17 @@ extends RefCounted
 ## it speed up the new way, as the clip's feet carry it; facing and travel are read separately (a
 ## braking body faces one way and still moves the other).
 ##
-## The command picks the clip as it begins (the side by the way the stick asks the body to turn)
-## and the body is committed to it until its turn is made (`release`: the frame its turn curve
-## reaches its last yaw, or the record's `free` event if that comes first); the stick's direction
-## is not read in between. Then the body's own steering takes over, blended in from the clip's
-## velocity over `CharacterTuning.turn_hand_back` (the rest of the clip is the gait's run-out). The
-## stick let go, a jump, a crouch, the aim, a hit, lying down, a slide or leaving the ground end it
-## at once, and the body's own steering takes over from the velocity it has. With the curve's
-## speed scaled to the tuning's gait speed (`run_speed` or `sprint_speed` over the clip's own at its
-## first frame), the body leaves at the speed it came in at.
+## Off by default since gdstudio #1565 (`CharacterTuning.turn_root_motion`): a body on the clip's
+## path answers the stick late, and movement input is never held by a look. On, the command picks
+## the clip as it begins (the side by the way the stick asks the body to turn) and the body follows
+## it until its turn is made (`release`: the frame its turn curve reaches its last yaw, or the
+## record's `free` event if that comes first). Then the body's own steering takes over, blended in
+## from the clip's velocity over `CharacterTuning.turn_hand_back` (the rest of the clip is the
+## gait's run-out). The stick turned `WISH_CHANGE` or more from the way it asked for as the clip
+## began, the stick let go, a jump, a crouch, the aim, a hit, lying down, a slide or leaving the
+## ground end it at once, and the body's own steering takes over from the velocity it has. With the
+## curve's speed scaled to the tuning's gait speed (`run_speed` or `sprint_speed` over the clip's
+## own at its first frame), the body leaves at the speed it came in at.
 ##
 ## Simulation, not cosmetics: the server and a predicting client step it from the same command and
 ## the same record, and `save_step_state()` keeps it in `CharacterState`, so a body put back with
@@ -28,6 +30,9 @@ extends RefCounted
 
 ## No clip.
 const _NO_CLIP := &""
+## Degrees the stick may turn from the way it asked for as the clip began before the clip ends and
+## the body steers itself (gdstudio #1565: a reversal never holds the body against a new wish).
+const WISH_CHANGE := 40.0
 
 ## The curves of each clip, worked out once and shared: `{clip: Curves}`.
 static var _curves: Dictionary = {}
@@ -50,6 +55,8 @@ var _scale := 1.0
 # Seconds into the clip at which the body is handed back to its own steering.
 var _release := 0.0
 var _active := false
+# The heading the stick asked for as the clip began.
+var _asked := 0.0
 
 
 ## The curves of one clip, as arrays a tick reads without making anything.
@@ -68,6 +75,8 @@ class Curves:
 	var release := 0.0
 	## Seconds into the clip of its `free` event (the game may cut to new input), or its length.
 	var free := 0.0
+	## Seconds into the clip at which its turn begins (the first degree turned): the plant.
+	var turn_from := 0.0
 
 
 ## True while a clip moves the body, its hand-back included.
@@ -123,6 +132,10 @@ static func curves_of(name: StringName) -> Curves:
 			if event.get("name", "") == "free":
 				made.free = minf(made.free, float(event.get("frame", 0.0)) / GaitClips.FPS)
 		made.release = _release_of(made)
+		for index in made.turn_frames.size():
+			if absf(made.yaw[index]) >= 1.0:
+				made.turn_from = made.turn_frames[index] / GaitClips.FPS
+				break
 	_curves[name] = made
 	return made
 
@@ -153,6 +166,11 @@ static func _place(c: Curves, time: float) -> Vector2:
 		lerpf(c.forward[index], c.forward[index + 1], share),
 		lerpf(c.left[index], c.left[index + 1], share)
 	)
+
+
+## The turn curve of `c` at `time` seconds, degrees to the left (`TurnLook` draws it).
+static func yaw_at(c: Curves, time: float) -> float:
+	return _yaw(c, time)
 
 
 # The turn curve at `time` seconds, degrees to the left.
@@ -187,6 +205,7 @@ func drive(body: Character, wish: Vector3, delta: float) -> bool:
 	if picked == _NO_CLIP:
 		return false
 	_begin(body, picked)
+	_asked = atan2(wish.x, wish.z)
 	_tick(body, delta)
 	return true
 
@@ -218,6 +237,7 @@ func save_step_state(into: Array) -> void:
 	into.append(_origin)
 	into.append(_scale)
 	into.append(serial)
+	into.append(_asked)
 
 
 ## Puts back what `save_step_state()` kept; an empty array is no clip.
@@ -231,6 +251,7 @@ func load_step_state(kept: Array) -> void:
 	_origin = kept[3]
 	_scale = kept[4]
 	serial = kept[5]
+	_asked = kept[6] if kept.size() > 6 else 0.0
 	var c := curves_of(clip)
 	_release = c.release if c != null else 0.0
 	_active = _active and c != null
@@ -286,6 +307,7 @@ func _must_end(body: Character, wish: Vector3) -> bool:
 		elapsed >= _release + body.tuning.turn_hand_back
 		or elapsed >= (_curves[clip] as Curves).length
 		or wish.is_zero_approx()
+		or absf(rad_to_deg(angle_difference(_asked, atan2(wish.x, wish.z)))) >= WISH_CHANGE
 		or not body._grounded
 		or body._jump_buffer > 0.0
 		or body._action_lock > 0.0

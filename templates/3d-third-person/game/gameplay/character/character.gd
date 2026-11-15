@@ -377,6 +377,7 @@ func _move(delta: float) -> void:
 		CharacterLean.move(self, delta)
 		return
 	_tick_timers(delta)
+	CharacterLanding.give_way(self)
 	_update_prone(delta)
 	if vault_motion.drive(self, delta):
 		return
@@ -799,7 +800,7 @@ func _steer(wish: Vector3, delta: float) -> void:
 		goal = _slide.air_goal(self, wish, goal, delta)
 	if _action_lock > 0.0 and state == State.HIT:
 		rate = 0.0
-	flat = flat.move_toward(goal, rate * delta)
+	flat = tuning.steer_toward(flat, goal, rate, delta, on_feet and not _prone.is_prone())
 	velocity.x = flat.x
 	velocity.z = flat.z
 	if (aiming or peek_motion.leaning()) and _action_lock <= 0.0:

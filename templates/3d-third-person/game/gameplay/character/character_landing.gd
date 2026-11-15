@@ -5,9 +5,10 @@ extends RefCounted
 ## `hard_land_speed`, for `hard_land_time` (the hard landing clip's `control` frame), and it holds
 ## the body all that time as an action does (gdstudio #1535): the push is ignored, the body keeps
 ## `hard_land_keep` of its ground speed and slows by `deceleration`, and it neither turns, jumps nor
-## aims. All of it is step state already there (`_land_timer`, `_action_lock`), so a predicting
-## client and the server hold a body the same. Its functions are static and keep nothing, like the
-## body's other modules.
+## aims, until the stick is pushed: a push ends the hold on that tick (`give_way()`, gdstudio #1565:
+## a landing recovery is a look that gives way to movement). All of it is step state already there
+## (`_land_timer`, `_action_lock`), so a predicting client and the server hold a body the same. Its
+## functions are static and keep nothing, like the body's other modules.
 
 
 ## The landing of `body` on the tick it touched down.
@@ -21,6 +22,18 @@ static func touch_down(body: Character) -> void:
 	body._action_lock = maxf(body._action_lock, hold)
 	body.velocity.x *= tuning.hard_land_keep
 	body.velocity.z *= tuning.hard_land_keep
+
+
+## Ends the hold of a hard landing the tick `body`'s stick is pushed: the body steers from that
+## tick, and its landing state ends with the hold so the tree hands the legs back at once. A hit's
+## or a use's hold is left as it is (their state is not `LAND`).
+static func give_way(body: Character) -> void:
+	if body._action_lock <= 0.0 or body.state != Character.State.LAND:
+		return
+	if body.last_command.move.is_zero_approx():
+		return
+	body._action_lock = 0.0
+	body._land_timer = 0.0
 
 
 ## Forgets the fall and the landing of `body` (`Character.teleport()`: a body put somewhere stands

@@ -10,6 +10,9 @@ extends RefCounted
 ## The defaults, for a node with no settings.
 const DEFAULTS := preload("res://gameplay/character/gait_settings.tres")
 
+## Frames more the momentum blend starts again on into the crouch (`extra_settle()`).
+const CROUCH_SETTLE := 2
+
 var blend := GaitBlend.new()
 var transitions := GaitTransitions.new()
 var jump := JumpAnimation.new()  # the take-off, the air and the landing (gdstudio #1371)
@@ -110,9 +113,12 @@ func carries_speed(animation: CharacterAnimation) -> bool:
 
 
 ## Frames more than `MomentumBlend.SETTLE_FRAMES` the momentum blend starts again after a change
-## (`JumpAnimation.extra_settle()`).
+## (`JumpAnimation.extra_settle()`), and `CROUCH_SETTLE` more into the crouch: its pose reaches the
+## skeleton a frame or two later than the blend's own frames, and a stop cut by a crouch moved a
+## toe 0.25 m in one frame (gdstudio #1565).
 func extra_settle(animation: CharacterAnimation) -> int:
-	return jump.extra_settle(animation.body_state())
+	var state := animation.body_state()
+	return jump.extra_settle(state) + (CROUCH_SETTLE if state == CharacterAnimation.CROUCH else 0)
 
 
 func _take(animation: CharacterAnimation) -> void:

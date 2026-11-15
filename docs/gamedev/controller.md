@@ -101,6 +101,15 @@ each one, rather than finding them one by one in play.
   zero, so the 10-a-second rifle fired 9. **Seen:** gdstudio #1335, 2026-11-12 (`Character._use_weapon`,
   `Weapon._next_cooldown`).
 
+- **Approach:** Let no cosmetic clip own the body's velocity, facing or input: the controller follows every tick's
+  input, and a start, stop, reversal, pivot, turn or landing recovery is a look drawn over that motion and cut the
+  tick the input asks for something else; a sharp reversal gets its punch from the controller's brake, not from a
+  clip. Test it as ticks per key change on the real input, with random keys spammed through each clip. **Watch out
+  for:** a reversal and a pivot moved by their clip's root committed the body for 1.5 to 2.2 s, a hard landing held it
+  0.67 s, and every key pressed meanwhile was ignored; the tests asked which clip played, not how fast the body
+  answered. **Seen:** gdstudio #1565, 2026-11-15, found by the maintainer playing 3D Third Person
+  ([turns moved by their clip](../engines/godot/third-person/turn-root-motion.md#turn-root-motion)).
+
 ## Feel {#feel}
 
 <!-- new section: feel (shake, kick, flash, hit feedback) as a planned pass had no engine-neutral home -->

@@ -254,7 +254,7 @@ func test_a_long_fall_lands_hard_and_holds_the_body_until_it_has_settled() -> vo
 	_check("the hard landing's settle into the idle", still, 0.0)
 
 
-func test_a_landing_asked_to_move_gives_the_body_back_at_its_control_frame() -> void:
+func test_a_hard_landing_asked_to_move_gives_the_body_back_at_once() -> void:
 	await _largest(_command(0.0), 20)
 	_player.global_position = Vector3(0.0, 3.0, 0.0)
 	await _until_state(_command(0.0), CharacterAnimation.LAND, 120)
@@ -264,8 +264,9 @@ func test_a_landing_asked_to_move_gives_the_body_back_at_its_control_frame() -> 
 	var ticks := await _until_state(walk, CharacterAnimation.GROUND, 120)
 	var left_at := ticks * CommandDriver.tick_seconds()
 	prints("JUMP_LAND hard, asked to walk: left at %.2f s (control %.2f s)" % [left_at, control])
-	# The controller holds the body to the control frame (gdstudio #1535): the clip is not cut.
-	assert_float(left_at).is_between(control - 0.02, control + 0.05)
+	# A push ends the controller's hold (gdstudio #1565; it held to the control frame since
+	# #1535): the legs are given back within a few ticks of the push.
+	assert_float(left_at).is_less(0.1)
 
 
 func test_a_landing_into_a_run_hands_over_to_the_jog_on_its_right_foot() -> void:
