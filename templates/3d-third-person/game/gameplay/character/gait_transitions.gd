@@ -93,6 +93,9 @@ var _look_curves: CharacterTurnMotion.Curves
 # since the body's brake has slowed it by the frame the tree sees the new wish (gdstudio #1565).
 var _speed_before := 0.0
 var _speed_now := 0.0
+# Whether the body aimed as the clip began: an aim taken during a clip ends it, a stop begun aimed
+# (an aimed walk let go, gdstudio #1462) plays on.
+var _aimed_at_begin := false
 var _motion_serial := 0
 var _since_standing := 0
 # Seconds since the move asked for went to zero (-1 while a move is asked for), and the body at
@@ -364,6 +367,7 @@ func _begin(
 	_time = 0.0
 	_from = _let_go_from if kind == Kind.STOP else body.global_position
 	_facing = body.facing
+	_aimed_at_begin = body.aiming
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z)
 	var wish := body.move_goal.direction(body)
 	_along = moving.normalized() if kind == Kind.STOP else wish.normalized()
@@ -443,17 +447,17 @@ func _wish_moved(body: Character) -> bool:
 	return rad_to_deg(wish.angle_to(_along)) >= WISH_CHANGE
 
 
-# True when the body does something the clip must give way to on this frame: it aims (a turn on
-# the spot is the aim's own), crouches, lies down, slides, leaves the floor, or an action plays.
+# True when the body does something the clip must give way to on this frame: it takes the aim (a
+# turn on the spot is the aim's own; a clip begun aimed keeps it), crouches, lies down, slides, or
+# an action plays (a jump leaves the feet: `on_foot()` hands over).
 func _acted(animation: CharacterAnimation) -> bool:
 	var body := animation.character
 	return (
-		(body.aiming and kind != Kind.TURN)
+		(body.aiming and not _aimed_at_begin and kind != Kind.TURN)
 		or body.crouching
 		or body._wants_crouch
 		or body._prone.is_prone()
 		or body._slide.active
-		or body.velocity.y > 0.0
 		or animation.is_acting()
 	)
 

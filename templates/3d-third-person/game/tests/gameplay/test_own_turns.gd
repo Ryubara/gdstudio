@@ -215,7 +215,9 @@ func test_the_player_plays_our_reversals_and_pivot() -> void:
 	var cases := [
 		[[_command(Vector2(0, 1)), 1.2], [_command(Vector2(0, -1)), 1.5]],
 		[[_command(Vector2(0, 1), true), 1.5], [_command(Vector2(0, -1), true), 1.8]],
-		[[_command(Vector2(0, 1)), 1.2], [_command(Vector2(1, 0)), 1.5]],
+		# A quarter turn is a steer since gdstudio #1565 (`GaitSettings.pivot_angle` 100): the
+		# pivot is asked for at 115 degrees.
+		[[_command(Vector2(0, 1)), 1.2], [_command(Vector2(0.906, -0.423)), 1.5]],
 	]
 	var wanted: Array[String] = ["gds/Jog_Turn_180_", "gds/Sprint_Turn_180_", "gds/Jog_Turn_90_"]
 	for index in cases.size():

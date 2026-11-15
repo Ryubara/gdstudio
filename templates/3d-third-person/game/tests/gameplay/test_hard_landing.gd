@@ -1,9 +1,10 @@
-# A hard landing holds the body until its clip gives control back (gdstudio #1535): a fall of
+# A hard landing holds a still body until its clip gives control back (gdstudio #1535): a fall of
 # `CharacterTuning.hard_land_speed` or more holds the body for `hard_land_time` (the hard landing
-# clip's `control` frame) as an action holds it, so with the stick pushed from the touch-down the
-# tree plays `Land_Hard` to that frame with its planted feet still, and the body goes on at it. A
-# soft landing holds nothing, as before. The hold is the body's step state (`_action_lock`), so a
-# body put back mid-hold (a predicting client, the server) steps the same.
+# clip's `control` frame) as an action holds it, so the tree plays `Land_Hard` to that frame with
+# its planted feet still. A push of the stick ends the hold on that tick (gdstudio #1565: a landing
+# recovery never holds movement input) and the tree gives the legs back at once. A soft landing
+# holds nothing, as before. The hold is the body's step state (`_action_lock`), so a body put back
+# mid-hold (a predicting client, the server) steps the same.
 extends GdUnitTestSuite
 
 ## How far a planted foot of the hard landing may slide before its control frame (m).
@@ -124,50 +125,33 @@ func test_the_hold_is_the_hard_landing_clip_s_numbers() -> void:
 	assert_float(tuning.land_time_after(1.0, 0.125)).is_equal(0.125)
 
 
-func test_a_hard_landing_holds_the_pushed_body_to_the_clip_s_control_frame() -> void:
+func test_a_hard_landing_holds_a_still_body_and_a_push_frees_it_at_once() -> void:
 	await _drop(3.0)
 	assert_str(String(_animation.gait.jump.landing)).is_equal(String(CharacterClips.LAND_HARD))
 	var landed_at := _player.global_position
-	var walk := _command(1.0)
-	var hold := _player.tuning.hard_land_time
-	var held_ticks := int(roundf(hold / CommandDriver.tick_seconds())) - 1
-	await _ticks(walk, held_ticks)
+	await _ticks(_command(0.0), 10)
+	assert_int(_player.state).is_equal(Character.State.LAND)
+	assert_float(_player._action_lock).is_greater(0.0)
 	var moved := Vector2(
 		_player.global_position.x - landed_at.x, _player.global_position.z - landed_at.z
 	)
 	assert_float(moved.length()).is_less(0.0005)
-	assert_int(_player.state).is_equal(Character.State.LAND)
-	assert_str(String(_animation.body_state())).is_equal(String(CharacterAnimation.LAND))
-	# The body goes on at the control frame, and the tree with it.
-	await _ticks(walk, 6)
-	assert_float(_player.ground_speed()).is_greater(1.0)
+	# Pushed, the body moves from that tick and leaves its landing state with the hold.
+	var walk := _command(1.0)
+	await _tick(walk)
+	assert_float(_player._action_lock).is_equal(0.0)
+	assert_float(_player.ground_speed()).is_greater(0.3)
+	assert_int(_player.state).is_not_equal(Character.State.LAND)
+	await _ticks(walk, 3)
 	assert_str(String(_animation.body_state())).is_not_equal(String(CharacterAnimation.LAND))
-	var played := 0.0
-	for frame: Array in _frames:
-		played = maxf(played, frame[0])
-	var control := float(GaitClips.record(CharacterClips.LAND_HARD).control) / GaitClips.FPS
-	prints("HARD_LANDING pushed: the clip played to %.3f s (control %.3f s)" % [played, control])
-	assert_float(played).is_between(control - 0.04, control + 0.06)
 
 
 func test_a_hard_landing_s_planted_feet_hold_the_floor_to_its_control_frame() -> void:
-	# Standing, the clip's feet are what the clip makes them; pushed from the touch-down, or all
-	# through the fall (landing with the air's ground speed), the held body leaves them as still.
+	# Standing, the held body leaves the clip's planted feet still to its control frame.
 	var standing := await _feet_after_drop(0.0, 0.0)
-	var pushed := await _feet_after_drop(1.0, 0.0)
-	var through := await _feet_after_drop(1.0, 1.0)
 	for window: String in standing:
-		prints(
-			(
-				"HARD_LANDING %s: slid %.2f mm pushed, %.2f through the fall, %.2f standing"
-				% [window, pushed[window] * 1e3, through[window] * 1e3, standing[window] * 1e3]
-			)
-		)
-		assert_float(pushed[window]).is_less(PLANTED_SLIDE)
-		assert_float(through[window]).is_less(PLANTED_SLIDE)
-		# Pushed from the touch-down, the landing is the standing one; through the fall it lands
-		# in another air pose (turned and leaning with the push), so only the limit holds there.
-		assert_float(absf(pushed[window] - standing[window])).is_less(0.0002)
+		prints("HARD_LANDING %s: slid %.2f mm standing" % [window, standing[window] * 1e3])
+		assert_float(standing[window]).is_less(PLANTED_SLIDE)
 	assert_int(standing.size()).is_equal(2)
 
 
@@ -207,17 +191,16 @@ func _feet_after_drop(push: float, fall_push: float) -> Dictionary:
 	return out
 
 
-func test_a_hard_landing_holds_the_jump_and_the_turn_too() -> void:
+func test_a_hard_landing_holds_the_jump_of_a_still_body_and_a_push_turns_it() -> void:
 	await _drop(3.0)
 	var facing := _player.facing
-	var jump := _command(-1.0, true)
+	var jump := _command(0.0, true)
 	await _tick(jump)
-	await _ticks(_command(-1.0), 10)
+	await _ticks(_command(0.0), 10)
 	assert_bool(_player.is_on_floor()).is_true()
 	assert_float(_player.velocity.y).is_less_equal(0.0)
-	assert_float(absf(angle_difference(facing, _player.facing))).is_less(0.0001)
-	# Once it is given back, the body turns to the stick.
-	await _ticks(_command(-1.0), int(_player.tuning.hard_land_time * 60.0))
+	# A push frees it at once and the body turns to the stick (gdstudio #1565).
+	await _ticks(_command(-1.0), 10)
 	assert_float(absf(angle_difference(facing, _player.facing))).is_greater(0.5)
 
 
@@ -240,8 +223,8 @@ func test_a_soft_landing_holds_nothing() -> void:
 
 func test_a_body_put_back_mid_hold_steps_the_same() -> void:
 	await _drop(3.0)
+	await _ticks(_command(0.0), 5)
 	var walk := _command(1.0)
-	await _ticks(walk, 5)
 	var kept := _player.state_snapshot()
 	var first: Array[Vector3] = []
 	for tick in 60:
@@ -271,10 +254,10 @@ func test_hard_land_time_and_speed_are_live() -> void:
 	_player.tuning.hard_land_speed = 9.0
 	await _ticks(_command(0.0), 60)
 	await _drop(3.0)
-	await _ticks(_command(1.0), 50)
-	assert_float(_player.ground_speed()).is_less(0.01)
-	await _ticks(_command(1.0), 14)
-	assert_float(_player.ground_speed()).is_greater(0.5)
+	await _ticks(_command(0.0), 50)
+	assert_int(_player.state).is_equal(Character.State.LAND)
+	await _ticks(_command(0.0), 14)
+	assert_int(_player.state).is_not_equal(Character.State.LAND)
 
 
 func test_hard_land_keep_is_live() -> void:
@@ -286,8 +269,8 @@ func test_hard_land_keep_is_live() -> void:
 	await _drop(3.0, 1.0)
 	var kept := _player.ground_speed()
 	assert_float(kept).is_greater(1.0)
-	await _tick(_command(1.0))
-	# Held, it slows by `deceleration` with the stick still pushed.
+	await _tick(_command(0.0))
+	# Held, it slows by `deceleration` with the stick let go.
 	assert_float(_player.ground_speed()).is_equal_approx(
 		kept - _player.tuning.deceleration * CommandDriver.tick_seconds(), 0.01
 	)
