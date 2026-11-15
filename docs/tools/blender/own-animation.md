@@ -330,8 +330,8 @@ other style files stay in the repository, so a game picks another vision by rebu
    `test_export_clips.gd` walks the tree, the clip settings and the definitions, and CI's
    `tools/export_check/export_clips_check.gd` reads the exported pack. A clip reached only by a name built at run
    time goes in the project setting `gds_game/clip_export/keep`, or the export leaves it out.
-5. **Docs.** The clip's row on `engines/godot/third-person/clips.md` and the template's inspector list change in
-   the same pull request.
+5. **Docs.** The clip's row on `engines/godot/third-person/clips.md` and the template's inspector list (the Animation
+   part, `engines/godot/third-person/body-parts.md#animation-part`) change in the same pull request.
 
 - **Approach:** List every clip a build adds to the shipped file in `CharacterClips.ALL` (and its count in
   `test_character_clips.gd`), new clips that replace nothing as well, and run that suite with the clip's own before
@@ -405,7 +405,7 @@ every clip pull request carries `S-hold` for the maintainer's choice of variant)
 | #1158 the tree (Godot) (done) | speed matching, transitions by code from `clips.json`, the momentum blend, the lean layer, the browser cost ([gaits fitted to the body](../../engines/godot/animation-tree.md#gait-fitting)) |
 | #1159 directions and lean (done; the strafes and backpedals B, the leans A) | `Walk_Back`, `Walk_Left`, `Walk_Right`, `Jog_Back`, `Jog_Left`, `Jog_Right`, in step with `Walk` and `Jog` at their own speeds (1.3, 1.2 and 3.0 m/s); `Lean_Left`, `Lean_Right`, `Lean_Fwd`, `Lean_Back` as poses with their reference `Lean_Ref`; one description each, `clips/directed.py` and `clips/lean.py` ([the toolkit's rows](clip-toolkit.md#toolkit)) |
 | #1160 crouch (done) | `Crouch_Idle`, `Crouch_Walk`, `Stand_To_Crouch` (B, chosen), `Crouch_To_Stand` (A, chosen), solved on `form_female`; the prone transitions rebuilt on the new crouch |
-| #1161 jumps (built, A shipped for review) | `Jump_Start`, `Jump_Start_Run_L` and `_R` (the jog's two foot strikes), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog`, three variants each; `clips/jump.py` ([the jump clips](clip-toolkit.md#jump-rows)); the tree that picks the six no state plays is #1371 |
+| #1161 jumps (built, A shipped for review) | `Jump_Start`, `Jump_Start_Run_L` and `_R` (the jog's two foot strikes), `Jump_Rise`, `Jump_Apex`, `Jump_Fall`, `Land_Soft`, `Land_Hard`, `Land_To_Jog`, three variants each; `clips/jump.py` ([the jump clips](clip-toolkit.md#jump-rows)); the tree that picks the six is #1371 (done) |
 
 Later waves, filed when the first has landed and its toolkit has settled: the slide and the curved runs; combat
 and weapons (per weapon class, with the hold solver); traversal (the second mantle, the push, the crawl's other

@@ -14,6 +14,7 @@ templates, the docs site). **Not here:** making a game (`gamedev/`, `engines/`, 
 | [Agents](agents.md) | The roster, their models, and the loop from issue to merged pull request. |
 | [Agent evals](agent-evals.md) | Small tasks with numbers to meet that measure a change to an agent's page, and the baseline. |
 | [Starting work](starting-work.md) | Issues start oldest first, through `gds issue start`; how the window works. |
+| [Branches and worktrees](worktrees.md) | The issue's branch and worktree, a branch stacked on another, the sweep and a takeover. |
 | [Landing a pull request](landing.md) | The landing order, the refresh before a merge, auto-merge and hand merges, merging `main` into a branch. |
 | [Hooks](hooks.md) | What the hook dispatcher refuses while agents work, and the proof gate. |
 | [The hold](hooks-hold.md) | How `S-hold` stops a merge and the maintainer's switch for lifting it. |

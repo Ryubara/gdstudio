@@ -1,5 +1,5 @@
 """The branch and worktree of a started issue, made before the agent gets the work
-(docs/studio/starting-work.md#worktree).
+(docs/studio/worktrees.md#worktree).
 
 Agents used to make their own branches and merge commits, and a mistake in one (a merge message that `pr-rules`
 refuses) was only found after the push, where fixing it takes a force push. `gds issue start` now creates the branch

@@ -44,7 +44,7 @@ drop_origin = NodePath("../Model")
 
 [node name="Hotbar" type="Node" parent="." node_paths=PackedStringArray("inventory")]
 script = ExtResource("12_hotbar")
-start_items = Array[ExtResource("11_def")]([ExtResource("10_bandage")])
+start_items = Array[Resource]([ExtResource("10_bandage")])
 inventory = NodePath("../Inventory")
 
 [node name="ItemUse" type="Node" parent="." node_paths=PackedStringArray("character", "hotbar", "sound")]

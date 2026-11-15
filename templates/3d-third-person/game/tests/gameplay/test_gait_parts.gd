@@ -98,6 +98,18 @@ func test_the_gait_settings_defaults_are_pinned() -> void:
 		&"lean_clips": fresh.lean_clips,
 		&"lean_full_at": 20.0,
 		&"lean_time": 0.12,
+		&"jump_choices": true,
+		&"run_takeoff_left": CharacterClips.JUMP_START_RUN_L,
+		&"run_takeoff_right": CharacterClips.JUMP_START_RUN_R,
+		&"run_takeoff_speed": 2.5,
+		&"rise_clip": CharacterClips.JUMP_RISE,
+		&"apex_clip": CharacterClips.JUMP_APEX,
+		&"air_rise_speed": 3.0,
+		&"air_fall_speed": 4.0,
+		&"hard_land_clip": CharacterClips.LAND_HARD,
+		&"hard_land_speed": 9.0,
+		&"run_land_clip": CharacterClips.LAND_TO_JOG,
+		&"run_land_speed": 2.5,
 		&"helper_tracks": false,
 	}
 	assert_array(ExportPins.differences(fresh, pins)).is_empty()

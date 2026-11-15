@@ -65,7 +65,7 @@ rewrites, and the read-back after the command.
 ## Commit messages before they leave the machine {#pre-push}
 
 The `pre-commit` framework installs three git hooks (`default_install_hook_types` in `.pre-commit-config.yaml`), and
-`gds issue start` checks them ([Starting work](starting-work.md#worktree)):
+`gds issue start` checks them ([Starting work](worktrees.md#worktree)):
 
 | Git hook | Runs | Judges |
 | --- | --- | --- |
@@ -205,8 +205,8 @@ maintainer were not labelled `S-blocked` and held every slot). `Stop` (the main 
    (`(conflict in: ...)` after the reason), or it waits on the maintainer (on 2026-11-02 four bot issues were chained
    behind one running issue as "the same bot brain, in order", none needing what it made, and five issues sat still).
    `gds issue list` shows the reason and its class (`[dependency]`, `[conflict]`, `[maintainer]`, or `[none named]` for
-   a hand-written block its issue body does not back) of each blocked issue, and lists under "Unblocked: label to
-   remove" those whose blockers all closed, so a block cannot outlive its cause. A block on the maintainer, on an issue
+   a hand-written block its issue body does not back) of each blocked issue, and lifts those whose blockers all closed
+   (a pull request merged or closed counts), so a block cannot outlive its cause. A block on the maintainer, on an issue
    of another repository, or with no recognisable issue is never lifted by itself.
 4. **It cannot hold the coordinator forever.** It counts its own refusals per session (`session_id`) in
    `<workspace>/cache/idle-check-refusals.json` and allows the end after `max_refusals` (2) in a row, like the

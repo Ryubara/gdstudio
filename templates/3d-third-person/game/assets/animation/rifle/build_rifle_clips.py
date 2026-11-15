@@ -191,6 +191,11 @@ RELOAD_EMPTY_JOLTS = [(0.86, 1.2)]
 # ---- small maths --------------------------------------------------------------------------------------------------
 
 
+def wrap_degrees(degrees):
+    """An angle in degrees brought into -180 to 180, as Godot's `wrapf`."""
+    return (degrees + 180.0) % 360.0 - 180.0
+
+
 def smoothstep(a, b, x):
     t = min(max((x - a) / (b - a), 0.0), 1.0)
     return t * t * (3.0 - 2.0 * t)
@@ -517,6 +522,8 @@ class Hold:
         # the hand sits on the handle.
         self.charge = script_numbers((weapon / "hold/charge_pull.gd").read_text(encoding="utf-8"))
         self.on_handle = read_transform(held, "ChargeHand")
+        # The stance's numbers (`TwoHandStance`: how far a spine bone may stand off its share of the turn).
+        self.stance = script_numbers((weapon / "two_hand_stance.gd").read_text(encoding="utf-8"))
         global SIGHT_EYE, SIGHT_AHEAD
         sights = read_transform(held, "AimEye")
         SIGHT_EYE, SIGHT_AHEAD = sights[:3, 3], -sights[:3, 2]
@@ -594,16 +601,27 @@ class Hold:
         """A turn of the gun from straight ahead: the muzzle `pitch` degrees down and `yaw` across."""
         return axis_angle(X, pitch) @ axis_angle(Y, yaw)
 
-    def chest_yaw(self, rig, pose):
-        posed = rig.chain(pose, self.spine[-1])[:3, :3]
-        ahead = posed @ rig.rest_world[self.spine[-1]][:3, :3].T @ Z
+    def chest_yaw(self, rig, pose, bone=None):
+        """How far a spine bone (the chest by default) stands turned from the front, in degrees."""
+        bone = bone or self.spine[-1]
+        posed = rig.chain(pose, bone)[:3, :3]
+        ahead = posed @ rig.rest_world[bone][:3, :3].T @ Z
         return math.degrees(math.atan2(ahead[0], ahead[2]))
 
     def turn_chest(self, rig, pose):
-        """The stance's chest turn: the chest stands at `chest_turn` from the front whatever the pose had."""
-        degrees = self.n["chest_turn"] - self.chest_yaw(rig, pose)
-        for bone in self.spine:
-            rig.turn(pose, bone, axis_angle(Y, degrees / len(self.spine)))
+        """The stance's chest turn (`_share_turn`): the chest stands at `chest_turn` from the front whatever the
+        pose had, and each spine bone under it at its share (a third, two thirds) plus the pose's own spread
+        about an even twist, eased to at most `SPINE_SPREAD`, not the pose's turn plus a share of the gap, which
+        twisted the lower spine past the chest under a wide clip (kit #1379)."""
+        count = len(self.spine)
+        clip = [self.chest_yaw(rig, pose, bone) for bone in self.spine]
+        for i, bone in enumerate(self.spine):
+            share = (i + 1) / count
+            spread = wrap_degrees(clip[i] - clip[-1] * share)
+            limit = self.stance["SPINE_SPREAD"]
+            spread = limit * math.tanh(spread / limit)
+            wanted = self.n["chest_turn"] * share + spread
+            rig.turn(pose, bone, axis_angle(Y, wrap_degrees(wanted - self.chest_yaw(rig, pose, bone))))
 
     def straighten(self, rig, pose, raised):
         """The stance's `_straighten_chest`: a chest that leans more than `aim_lean_limit` is raised toward it

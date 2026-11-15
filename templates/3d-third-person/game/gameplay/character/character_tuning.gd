@@ -171,6 +171,17 @@ extends Resource
 @export_range(0.0, 30.0, 0.1, "suffix:m/s") var land_clip_speed := 4.5
 ## How long the landing holds the body in its landing state.
 @export_range(0.0, 2.0, 0.05, "suffix:s") var land_time := 0.3
+## A landing from this fall speed or faster is a hard one (gdstudio #1535): the body is held for
+## `hard_land_time`, as an action holds it (it neither moves, turns, jumps nor aims), in its landing
+## state all that time (`CharacterLanding`). The hard landing clip's `fall_speed.from`.
+@export_range(0.0, 30.0, 0.1, "suffix:m/s") var hard_land_speed := 9.0
+## How long a hard landing holds the body: the hard landing clip's `control` frame (`gds/Land_Hard`
+## gives control back at its frame 20 of 30 a second). 0: a hard landing holds nothing.
+@export_range(0.0, 2.0, 0.01, "suffix:s") var hard_land_time := 20.0 / 30.0
+## The share of its ground speed a body keeps on a hard landing, which it then loses by
+## `deceleration`: 0 stops it where it lands, as the hard landing clip stands in place (its feet
+## would slide under a body still moving).
+@export_range(0.0, 1.0, 0.01) var hard_land_keep := 0.0
 ## A body slower than this on the ground counts as standing still.
 @export_range(0.0, 1.0, 0.01, "suffix:m/s") var stand_speed := 0.15
 
@@ -224,6 +235,21 @@ func gravity() -> float:
 ## Speed at the moment of take-off for the jump above.
 func jump_speed() -> float:
 	return 2.0 * jump_height / jump_rise_time
+
+
+## How long a body is in its landing state after a fall of `fall` m/s: below `land_clip_speed`
+## `now`, what is left of the last landing's; else `land_time`, or `hard_land_time` when longer
+## from `hard_land_speed`.
+func land_time_after(fall: float, now: float) -> float:
+	if fall < land_clip_speed:
+		return now
+	return maxf(land_time, land_hold_after(fall))
+
+
+## How long a landing from a fall of `fall` m/s holds the body: `hard_land_time` from
+## `hard_land_speed` (and `land_clip_speed`), else 0.
+func land_hold_after(fall: float) -> float:
+	return hard_land_time if fall >= maxf(hard_land_speed, land_clip_speed) else 0.0
 
 
 ## How fast a body's ground speed `speed` moves toward its goal, the stick pushed by `strength`

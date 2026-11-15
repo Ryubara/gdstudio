@@ -484,6 +484,7 @@ func teleport(spot: Vector3, heading: float = NAN) -> void:
 	_rider.platform = null
 	_fallen = false
 	_slide.reset()
+	CharacterLanding.forget(self)
 	peek_motion.reset()
 	_fit_body()
 	if not is_nan(heading):
@@ -857,8 +858,7 @@ func _after_move(wish: Vector3, _delta: float) -> void:
 	_slide.after_move(self, grounded and _was_airborne)
 	if grounded and _was_airborne:
 		landed.emit(_fall_speed)
-		if _fall_speed >= tuning.land_clip_speed:
-			_land_timer = tuning.land_time
+		CharacterLanding.touch_down(self)
 		_fall_speed = 0.0
 	_was_airborne = not grounded
 	_sprinting = (

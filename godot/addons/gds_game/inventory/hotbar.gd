@@ -31,8 +31,11 @@ signal use_refused(place: int, item: ItemDef)
 		_items.resize(place_count)
 		if is_node_ready():
 			changed.emit()
-## What the places hold at the start, in order (an empty entry leaves its place empty).
-@export var start_items: Array[ItemDef] = []
+## What the places hold at the start, in order (an empty entry leaves its place empty). Each is an
+## `ItemDef` (the inspector offers only those); the array is typed `Resource` because a typed
+## `Array[ItemDef]` export with `of()`'s cast to `Hotbar` left scripts in use at exit in a test run
+## (Godot 4.7.2, kit #1554; docs/engines/godot/test-exit-leaks.md#typed-array-export-and-self-cast).
+@export_custom(PROPERTY_HINT_TYPE_STRING, "24/17:ItemDef") var start_items: Array[Resource] = []
 
 @export_group("Nodes")
 ## The bag the places count from and take out of. Empty: the first `Inventory` beside this node.
@@ -60,7 +63,7 @@ func _ready() -> void:
 	if user == null:
 		user = get_parent()
 	for place in mini(start_items.size(), place_count):
-		_items[place] = start_items[place]
+		_items[place] = start_items[place] as ItemDef
 	if inventory != null and not Engine.is_editor_hint():
 		inventory.changed.connect(changed.emit)
 

@@ -9,6 +9,15 @@ The job log has a timestamp per line. A suite's time is the gap between its `Run
 (its `before()` and `after()` included). Sort the gaps; the top twenty are the work. Run the whole suite locally the
 same way only when nothing else is loading the machine: a loaded machine doubles unrelated suites.
 
+- **Approach:** In a slow case, find the costly measure (a skin posed in GDScript, a raycast sweep) and check which of
+  its readings an assertion reads; measure only those, keeping any counter that picks which updates are measured
+  running through the skipped ones, so the asserted updates stay the same. Then split cases that share no helpers into
+  their own script, so the planner deals them to different shards. **Watch out for:** a recorder shared by two phases
+  measures in both: the ground's moves were read only for speeds, yet the rifle went through the skin on every third of
+  their 525 updates, two thirds of the live cases' time. **Seen:** gdstudio #1558, 2026-11-14
+  (`test_jump_weapon_hold.gd`, 421 s locally and 841 s on CI, became 103 s and 125 s in two scripts with the same
+  assertions).
+
 ## What makes a suite run at the clock's speed {#what-makes-a-suite-run-at-the-clocks-speed}
 
 | Cause | What to do |
@@ -84,9 +93,9 @@ job with no failing test (Deadnight #1015, `tools/ci_test_shards.py` and `tools/
 The kit does the same for 3D Third Person: the `template-tests` job of `ci.yml` runs four shards of the made game's
 suite, dealt by `.github/scripts/ci_test_shards.py` from `.github/scripts/ci_test_times.json`, and its `check` command
 ends each shard (25-minute limit) and the `template` job (40). `build-ok` stays the one required check, so a new shard
-needs no ruleset change. To refresh the times, download the `template-tests` job logs of two or more green `main`
-runs (`gh api --allow-escape-sequences repos/<owner>/<repo>/actions/jobs/<id>/logs`) and run `ci_test_shards.py update`
-on them; `report --root <game>` shows each shard's expected seconds.
+needs no ruleset change. To refresh the times, run `ci_test_shards.py update` on the `template-tests` job logs of the
+latest green `main` runs ([the commands](../../studio/ci.md#shards)); `report --root <game>` shows each shard's expected
+seconds, its share of the limit on a slow runner, and whether another shard is due.
 
 - **Approach:** Split a job by seconds before its time reaches 60 % of its limit, and when an open pull request adds a
   slow script, put its measured seconds in the times file ahead of time, so it lands in a shard of its own rather than

@@ -290,3 +290,20 @@ force push, which is the maintainer's decision: open the same change from a new 
   the binary files the branch ships and compare them key by key with the commit that last built them before the push.
   **Watch out for:** every check passed while the merged build code had changed the gaits' feet. **Seen:** gdstudio
   #1285, 2026-11-12 (its final merge; see [Build scripts](../tools/blender/build-scripts.md#rebuilding)).
+- **Approach:** After a clean merge of scripts, list the functions whose signature `main` changed (`git diff <merge
+  base> origin/main -- '*.gd'`, the `func` lines), grep the branch's own calls of each (`git grep -n "<name>("`) and run
+  the suites that load them. **Watch out for:** git merges a new call and a changed signature in different hunks with no
+  conflict: #1440 gave `TwoHandStance._turn_head` an `axis` argument, #1505's new `_turn_back` still passed three, and
+  only loading the script shows it. **Seen:** gdstudio PR #1505 landing, 2026-11-14 (caught before the push; fix:
+  `Vector3.UP` passed).
+- **Approach:** When a conflict is in a section `main` moved to another page (a `Moved to` note in its old place), take
+  `main`'s file for the old page (`git checkout origin/main -- <file>`) and re-apply the branch's change of that section
+  on the new page by hand. **Watch out for:** a scripted "keep the branch's side" over the conflict markers kept the
+  branch's whole old section over `main`'s note, so the section would have lived on both pages. **Seen:** gdstudio PR
+  #1505 landing, 2026-11-14 (caught before the commit).
+- **Approach:** When two pull requests tune the same constants and a merge conflicts in the docs of a tuned value, read
+  the merged code's values too, and send a combination neither branch measured back to be measured on the merged tree.
+  **Watch out for:** the code merged with no conflict to #1505's `left_chest_turn` 10 with #1519's `left_pocket_in`
+  0.045 (#1519 had the turn at 0), a pair nobody had run ([tuned
+  together](../engines/godot/third-person/peek.md#left-shoulder-tuning)). **Seen:** gdstudio PR #1505 landing,
+  2026-11-14.
