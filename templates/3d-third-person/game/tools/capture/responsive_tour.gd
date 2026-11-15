@@ -95,6 +95,10 @@ var _clock := 0.0
 var _since_change := 0
 var _label: Label
 var _side: Camera3D
+# The side view is drawn in its own viewport over the game's: the player's keys read the game
+# camera's heading, so the side camera must never be the main viewport's.
+var _side_view: SubViewportContainer
+var _side_axis := Vector3.ZERO
 
 @onready var _player: Player = $Main/PlayerRig/Player
 @onready var _rig: PlayerCamera = $Main/PlayerRig/PlayerCamera
@@ -108,9 +112,19 @@ func _ready() -> void:
 	floor_block.size = Vector3(80.0, 1.0, 80.0)
 	floor_block.position = FLOOR_AT - Vector3(0.0, 0.5, 0.0)
 	add_child(floor_block)
+	var layer := CanvasLayer.new()
+	layer.layer = 40
+	add_child(layer)
+	_side_view = SubViewportContainer.new()
+	_side_view.stretch = true
+	_side_view.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_side_view.visible = false
+	layer.add_child(_side_view)
+	var viewport := SubViewport.new()  # The game's world: a SubViewport shares it.
+	_side_view.add_child(viewport)
 	_side = Camera3D.new()
 	_side.fov = 50.0
-	add_child(_side)
+	viewport.add_child(_side)
 	_build_label()
 	_next_sequence()
 
@@ -118,10 +132,14 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _sequence >= sequences.size():
 		return
-	if _side.current:
-		# Beside the lane the body runs along (+X and back from the start), level with the hips.
+	if sequences[_sequence][1]:
+		# Beside the lane the body runs along (the way it runs in the sequence's first step, once
+		# the follow camera has turned to its yaw), level with the hips, following it.
 		var at := _player.global_position
-		_side.global_position = Vector3(at.x, at.y + 1.1, at.z - 7.0)
+		if _step == 0 and _player.ground_speed() > 1.0:
+			_side_axis = Vector3(_player.velocity.x, 0.0, _player.velocity.z).normalized()
+		var axis := _side_axis if _side_axis != Vector3.ZERO else Vector3.BACK
+		_side.global_position = at + axis.cross(Vector3.UP) * 7.0 + Vector3(0.0, 1.1, 0.0)
 		_side.look_at(at + Vector3(0.0, 0.9, 0.0), Vector3.UP)
 	print("RESPONSETOUR ", _sequence, " ", Engine.get_frames_drawn())
 
@@ -170,10 +188,8 @@ func _next_sequence() -> void:
 		return
 	_player.teleport(SPOT, PI)
 	_rig.yaw = 0.0
-	if sequences[_sequence][1]:
-		_side.make_current()
-	else:
-		_side.clear_current()
+	_side_axis = Vector3.ZERO
+	_side_view.visible = sequences[_sequence][1]
 	_next_step()
 
 
