@@ -1,13 +1,15 @@
 ## Films the gait fitting of gdstudio #1158 from the game's own camera, driven by the actions a
-## player presses: a walk that speeds up through the walk and jog blend into a jog, a stop, a
-## sprint and its reversal, a stop out of the sprint, and a turn on the spot while aiming. A
-## label names each part and shows the ground speed, the blend's place and the walk's pace.
+## player presses: a walk that speeds up through the walk and jog blend into a jog, a stop, a jog
+## with its reversal and a pivot (kit #1157), a sprint and its reversal, a stop out of the
+## sprint, and a turn on the spot while aiming. A label names each part and shows the ground
+## speed, the blend's place, the walk's pace and, while a reversal or a pivot moves the body by its
+## clip's root (`CharacterTurnMotion`, #1442), `root`.
 ## `GAIT_OFF=1` films it with the speed matching, the momentum blend and the transitions off (the
 ## template before #1158), for a before and after. Every physics frame it prints the part, the
 ## speed, the body state and the transition's clip on a line starting `GAITTOUR`.
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
-## `gds capture frames --project game --seconds 14 --fps 30 --name gait`
+## `gds capture frames --project game --seconds 21 --fps 30 --name gait`
 ## with `--scene res://tools/capture/gait_tour.tscn`.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
@@ -19,8 +21,12 @@ const PARTS: Array[Array] = [
 	["Walk", 1.4, [&"move_forward", &"walk"]],
 	["Walk into jog (the blend)", 1.4, [&"move_forward"]],
 	["Stop", 1.0, []],
+	["Jog", 1.0, [&"move_forward"]],
+	["Jog reversal", 3.2, [&"move_back"]],
+	["Jog pivot, a quarter turn", 2.0, [&"move_left"]],
+	["Stop out of the jog", 1.0, []],
 	["Sprint", 1.3, [&"move_forward", &"sprint"]],
-	["Sprint reversal", 1.4, [&"move_back", &"sprint"]],
+	["Sprint reversal", 3.8, [&"move_back", &"sprint"]],
 	["Stop out of the sprint", 1.2, []],
 	["Turn on the spot, aiming", 2.4, [&"aim"]],
 ]
@@ -65,7 +71,7 @@ func _physics_process(delta: float) -> void:
 	var pace: float = tree.get(&"parameters/Locomotion/ground/walk/Pace/scale")
 	var speed := _player.ground_speed()
 	_label.text = (
-		"%s%s\nspeed %.2f m/s   blend at %.2f   walk pace %.2f   %s %s"
+		"%s%s\nspeed %.2f m/s   blend at %.2f   walk pace %.2f   %s %s%s"
 		% [
 			part[0],
 			"  (fitting off)" if OS.get_environment("GAIT_OFF") == "1" else "",
@@ -74,6 +80,7 @@ func _physics_process(delta: float) -> void:
 			pace,
 			_animation.body_state(),
 			_animation.gait.transitions.clip,
+			"  root" if _player.turn_motion.is_active() else "",
 		]
 	)
 	print(
@@ -101,7 +108,7 @@ func _next() -> void:
 	if _part >= PARTS.size():
 		_finish()
 		return
-	if PARTS[_part][0] == "Sprint":
+	if PARTS[_part][0] == "Sprint" or PARTS[_part][0] == "Jog":
 		# Back to the spot and round to the east, where the floor is open for the sprint.
 		_player.teleport(SPOT, 0.0)
 		_rig.yaw = -90.0

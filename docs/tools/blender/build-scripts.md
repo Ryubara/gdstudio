@@ -109,7 +109,8 @@ again ([checked in CI](#ci)).
   request. **Watch out for:** an edit that only adds arguments or plumbing still changes the code's normal form, so
   every report's `measure_sha256` goes stale and `test_measure_hash.py` fails, though no number moves. **Seen:**
   gdstudio #1494 after #1489, 2026-11-14 (the `--check` argument; fix: the six reports measured again, only the hash
-  changed); PR #1369, 11-14 (a merge: its clips unchanged, only the hashes).
+  changed); PR #1369, 11-14 (a merge: its clips unchanged, only the hashes); #1442, 11-14 (its own
+  `locomotion.glb`: measured again with the merged build, never one side taken).
 
 ## Checks in the build {#checks}
 

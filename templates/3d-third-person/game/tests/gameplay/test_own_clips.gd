@@ -44,6 +44,12 @@ const ROLLING := 0.001
 ## it: the build brings the foot down 5 mm by the frame the toes leave to keep that skin on the
 ## floor.
 const ROLL_DROP := 0.007
+## The same along the floor for a clip whose root turns (kit #1157), on every body: the build's
+## limit for a planted sole, 5 mm. A foot planted while the hips turn over it carries the
+## difference between this body's hip joints and the body the clip is solved on round with it
+## (2.6 mm on `form_male` in a reversal, 3.9 on the Quaternius pair in a 180 on the spot; under
+## 0.3 on `form_female`), which a straight clip never does (`turn-clips.md#taught`).
+const TURNING := 0.005
 ## The share of a gait's contact its foot takes to roll down onto the floor.
 const ROLL_ON := 0.25
 ## The gaits, the speed the game moves each at (`CharacterTuning`) and the clip each replaced.
@@ -57,8 +63,9 @@ const GAITS := {
 ## file to 6.6, 289,356 bytes for 43.7 s at 32 KiB pages; the jump's nine of kit #1161 to 6.8,
 ## 351,746 bytes for 50.8 s; with the strafes and lean poses of kit #1159 7,126 bytes a second,
 ## 396,903 bytes for 55.7 s; with the stops' sixteen entries and no `ik_` targets in the starts
-## and stops, gdstudio #1525, 6,819: 597,171 bytes for 87.6 s) (kit docs,
-## tools/blender/own-animation.md#budget).
+## and stops, gdstudio #1525, 6,819: 597,171 bytes for 87.6 s; with kit #1442's turns and
+## braking reversals, their `ik_` targets left out too, 6,670: 751,755 bytes for 112.7 s) (kit
+## docs, tools/blender/own-animation.md#budget).
 const BYTES_A_SECOND := 7168.0
 
 var _model: Node3D
@@ -203,13 +210,15 @@ func test_a_planted_foot_stays_on_its_place_on_the_floor() -> void:
 							% [foot, rolled.x * 1000.0, rolled.y * 1000.0]
 						)
 						print(where)
-						assert_float(rolled.x).override_failure_message(where).is_less(ROLLING)
+						var along := TURNING if _turns(record) else ROLLING
+						assert_float(rolled.x).override_failure_message(where).is_less(along)
 						assert_float(rolled.y).override_failure_message(where).is_less(ROLL_DROP)
 					else:
 						var worst := _wander(clip, record, side, contact)
 						var where := "%s: %.2f mm" % [foot, worst * 1000.0]
 						print(where)
-						assert_float(worst).override_failure_message(where).is_less(PLANTED)
+						var limit := TURNING if _turns(record) else PLANTED
+						assert_float(worst).override_failure_message(where).is_less(limit)
 
 
 # The skin of a planted foot is on the floor on every frame of its contact: flat, on its ball in
@@ -267,12 +276,11 @@ func _wander(clip: String, record: Dictionary, side: String, contact: Array) -> 
 	var worst := 0.0
 	for frame in range(ceili(flat[0]), floori(contact[1]) + 1):
 		var pose := _pose(StringName("gds/" + clip), frame / 30.0)
-		var travel := _travel_at(record, frame)
 		var bones: Array[String] = ["ball_" + side]
 		if frame <= floori(flat[1]):
 			bones.append("foot_" + side)
 		for bone in bones:
-			var place: Vector3 = (pose[bone] as Transform3D).origin + travel
+			var place := _in_world(record, frame, (pose[bone] as Transform3D).origin)
 			if not start.has(bone):
 				start[bone] = place
 			var from: Vector3 = start[bone]
@@ -285,9 +293,20 @@ func _wander(clip: String, record: Dictionary, side: String, contact: Array) -> 
 	return worst
 
 
-# Whether a clip is a start or a stop of a gait (kit #1156): its feet roll as the gait's do.
+# Whether a clip's root turns: the last key of its `turn` curve is not 0.
+func _turns(record: Dictionary) -> bool:
+	var curve: Array = record.get("turn", [])
+	return curve.size() > 0 and absf(curve[-1][1]) > 0.01
+
+
+# Whether a clip is a start or a stop of a gait (kit #1156), or a reversal or a pivot (kit #1157):
+# its feet roll as the gait's do.
 func _steps(clip: String) -> bool:
-	return clip.begins_with("Idle_To_") or clip.contains("_Stop_")
+	return (
+		clip.begins_with("Idle_To_")
+		or clip.contains("_Stop_")
+		or (clip.contains("_Turn_") and not clip.begins_with("Turn_In_Place"))
+	)
 
 
 # The same for a foot of the walk, the jog and the sprint (`GAITS`), along the floor (x) and in
@@ -303,14 +322,28 @@ func _rolling(clip: String, record: Dictionary, side: String, contact: Array) ->
 	var bones: Array[String] = ["ball_" + side]
 	for frame in range(first, last + 1):
 		var pose := _pose(StringName("gds/" + clip), frame / 30.0)
-		var travel := _travel_at(record, frame)
 		for bone: String in bones:
-			var place: Vector3 = (pose[bone] as Transform3D).origin + travel
+			var place := _in_world(record, frame, (pose[bone] as Transform3D).origin)
 			if not start.has(bone):
 				start[bone] = place
 			var moved: Vector3 = place - start[bone]
 			worst = worst.max(Vector2(Vector2(moved.x, moved.z).length(), absf(moved.y)))
 	return worst
+
+
+# A point of a clip in place put back on the floor the root travels and turns over (kit #1157:
+# a turn's root yaws, by the `turn` curve of `clips.json`, degrees to the left).
+func _in_world(record: Dictionary, frame: int, point: Vector3) -> Vector3:
+	var yaw := 0.0
+	var curve: Array = record.get("turn", [])
+	for i in range(curve.size() - 1):
+		var a: Array = curve[i]
+		var b: Array = curve[i + 1]
+		if frame >= a[0] and frame <= b[0]:
+			yaw = lerpf(a[1], b[1], (frame - a[0]) / maxf(b[0] - a[0], 1.0))
+	if curve.size() > 0 and frame > curve[-1][0]:
+		yaw = curve[-1][1]
+	return point.rotated(Vector3.UP, deg_to_rad(yaw)) + _travel_at(record, frame)
 
 
 # The root's place at a frame, from the travel curve of `clips.json` (forward is +Z, left +X).
@@ -362,9 +395,9 @@ func test_a_stance_change_begins_and_ends_on_the_poses_it_joins() -> void:
 					)
 					assert_float(rad_to_deg(turn)).override_failure_message(where).is_less(0.5)
 	# The two stance changes, a start and a stop on each foot for each of three gaits, the jog's
-	# and the sprint's eight stops between the strikes, and the three take-offs and the three
-	# landings, both ends of each.
-	assert_int(joined).is_equal((4 + 24 + 32 + 12) * MODELS.size())
+	# and the sprint's eight stops between the strikes, the ten reversals, pivots and turns on the
+	# spot (kit #1157), and the three take-offs and the three landings, both ends of each.
+	assert_int(joined).is_equal((4 + 24 + 32 + 20 + 12) * MODELS.size())
 
 
 func test_the_crouch_clips_fit_the_game() -> void:

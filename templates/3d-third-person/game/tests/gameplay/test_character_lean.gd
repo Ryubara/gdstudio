@@ -48,6 +48,8 @@ func _body_in_a_world(lean: bool, index: int, controller: CharacterController = 
 	if controller == null:
 		controller = CharacterController.new()
 	controller.lean_step = lean
+	# Both bodies walk as an AI's does, with no turn moved by a clip (an AI's controller, #1442).
+	controller.turn_clips = false
 	body.add_child(controller)
 	body.controller = controller
 	arena.add_child(body)

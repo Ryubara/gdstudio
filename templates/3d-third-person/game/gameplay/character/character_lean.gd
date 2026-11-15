@@ -77,6 +77,8 @@ static func can_take(body: Character) -> bool:
 	# A move made again (after a wall, see `move`) would ride a moving floor twice.
 	if body.get_platform_velocity() != Vector3.ZERO:
 		return false
+	if not body.turn_motion.lets_lean(body, body._wish_direction()):
+		return false
 	var settings := body.vault_settings
 	if settings != null:
 		if body.vault_motion.is_active():

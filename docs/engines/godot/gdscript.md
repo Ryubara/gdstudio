@@ -24,8 +24,8 @@ checks are in the entry. Testing traps are in [Running GdUnit4](running-gdunit.m
   `shadowed_variable_base_class` and `shadowed_global_identifier` to `2` in `[debug]` of `project.godot`, as templates
   do. **Watch out for:** the editor warned on opening 3D Third Person ("local variable "scale" is shadowing..."), which
   a headless run never shows; as errors, `gds check scripts` fails the script. **Seen:** gdstudio #836, 2026-11-08 (a
-  lambda's `_body`); #857, #877 (`name`); #902 (`hash`, `snapped`); #901 (`before`); #966 (`mesh`); #970 (`rows`); #1186
-  (`show`: a bench's web export failed).
+  lambda's `_body`); #857, #877 (`name`); #902 (`hash`, `snapped`); #901 and #1157 (`before`); #966 (`mesh`); #970
+  (`rows`); #1186 (`show`: a bench's web export failed).
 - **Approach:** Name a local or parameter after no function or member of its own script and its base classes either, and
   before giving a class a new member (one moved in from a long script too), grep the class and every script that extends
   it for locals and parameters of that name. **Watch out for:** the same errors fire for a script's own names, and a

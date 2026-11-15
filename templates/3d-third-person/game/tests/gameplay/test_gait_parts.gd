@@ -90,6 +90,7 @@ func test_the_gait_settings_defaults_are_pinned() -> void:
 		&"reversal_angle": 135.0,
 		&"turn_angle": 50.0,
 		&"standing_speed": 0.3,
+		&"transition_pace": 2.0,
 		&"momentum_blend": true,
 		&"momentum_half_life": 0.05,
 		&"momentum_speed_limit": 720.0,

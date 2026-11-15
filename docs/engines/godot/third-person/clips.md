@@ -252,73 +252,43 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `stretch` | 0.8 to 1.3 | how far a gait is slowed and sped up alone before the next blends in: the walk alone to 2.21 m/s, the walk and the jog blended to 3.2, the jog alone to 5.2 |
 | `slowest_pace` | 0.5 | the walk alone down to half its pace (0.85 m/s), fading into the idle below |
 | `transitions`, `transition_clips` | on, `GaitTransitionSet` | a start, a stop, a reversal, a pivot or a turn on the spot when the controller does one and its clip exists |
-| `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the controller's numbers that pick them |
+| `pivot_angle`, `reversal_angle`, `turn_angle`, `standing_speed` | 45, 135, 50 degrees, 0.3 m/s | the numbers that pick them; a reversal or a pivot of a body that steps with `CharacterTuning.turn_root_motion` on is picked by the step instead ([turns moved by their clip](#turn-root-motion)) |
+| `transition_pace` | 2 | the fastest a turn on the spot runs to catch the body's turn up, against its own pace (kit #1157); a reversal and a pivot no longer race the body: they move it ([turns moved by their clip](#turn-root-motion)) |
 | `momentum_blend`, `momentum_half_life`, `momentum_speed_limit` | on, 0.05 s, 720 degrees a second | a change of body state shows at once and the difference from the drawn pose dies away (`MomentumBlend`), in place of the cross-fade over `blend_time` |
 | `lean`, `lean_clips`, `lean_full_at`, `lean_time` | on, `gds/Lean_Left` and the rest, 20 m/s², 0.12 s | the lean into the acceleration, built only when the four lean clips exist |
 | `jump_choices` and the Jump group | on; `gds/Jump_Start_Run_L` and `_R` from 2.5 m/s, `gds/Jump_Rise` and `gds/Jump_Apex` at 3 m/s up and 4 down, `gds/Land_Hard` from 9 m/s of fall, `gds/Land_To_Jog` asked to run at 2.5 m/s | the jump's clips picked by the body's numbers ([the jump's clips](#jump-clips), `JumpAnimation`); off, `jump_clip`, `air_clip` and `land_clip` alone |
 | `helper_tracks` | off | the clips' `ik_` target tracks blended; off, switched off in the game (`HelperTracks`, gdstudio #1438): nothing drawn follows them, the pose is the same and the tree 4 to 5 µs a character cheaper |
 
 **What a transition clip needs** (gdstudio #1156, #1157). A name in `GaitTransitionSet` is a base: the tree plays
-`<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start),
-the foot that lands next in the gait's phase (a reversal) or the way the body turns (a pivot, a turn on the
-spot). A stop begins nearest the phase the stick is let go at: of `<base>_L`, `<base>_R` and the entries between
-them named by the gait's frame they begin on (`gds/Sprint_Stop_05`), the one whose `joins.first_frame` is nearest
-(`GaitTransitionSet.pick_entry`, gdstudio #1525; the jog and the sprint have one every two frames, so a body is
-drawn at most a frame from it). The defaults are `gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`,
-`gds/Jog_Stop`, `gds/Sprint_Stop`, `gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`,
-`gds/Turn_In_Place_90` and `gds/Turn_In_Place_180`. From its record in `clips.json` the tree reads `travel` (a start
-or a stop is played at the time its travel has covered the ground the body really covered), `turn` (a reversal, a
-pivot or a turn: the time it has turned as far as the body), and `exit_phase` (the share of the gait's cycle it ends
-on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose body has finished its
-part plays on at its own pace; a body asked for something else leaves it at once. A start is picked while the body
+`<base>_L` or `<base>_R` when it is in the libraries, else `<base>`. The side is the foot that steps off (a start)
+or the way the body turns (a reversal, a pivot, a turn on the spot: `_L` turns to the left; since kit #1442 a
+reversal is named so too, and plants the foot on the other side). A stop begins nearest the phase the stick is let
+go at: of `<base>_L`, `<base>_R` and the entries between them named by the gait's frame they begin on
+(`gds/Sprint_Stop_05`), the one whose `joins.first_frame` is nearest (`GaitTransitionSet.pick_entry`, gdstudio #1525;
+the jog and the sprint have one every two frames, so a body is drawn at most a frame from it). The defaults are
+`gds/Idle_To_Walk`, `gds/Idle_To_Jog`, `gds/Idle_To_Sprint`, `gds/Walk_Stop`, `gds/Jog_Stop`, `gds/Sprint_Stop`,
+`gds/Jog_Turn_180`, `gds/Sprint_Turn_180`, `gds/Jog_Turn_90`, `gds/Turn_In_Place_90` and `gds/Turn_In_Place_180`.
+From its record in `clips.json` the tree reads `travel` (a start or a stop is played at the time its travel has
+covered the ground the body really covered), `turn` (a turn on the spot: the time it has turned as far as the body,
+run at most `transition_pace` times its own pace; a reversal or a pivot: below), and `exit_phase` (the share of the
+gait's cycle it ends on), or else `end_foot` (`l`: the gait goes on from 0, `r` from half its cycle). A clip whose
+body has finished its part plays on at its own pace; a body asked for something else leaves it at once. A start is
+picked while the body
 stood at most `GaitTransitions.START_GRACE` (4) frames ago, since the controller's acceleration has it past
 `standing_speed` on the tick it is asked to move (gdstudio #1416); a state asked for while a clip plays (a crouch in a
 stop) is the one the machine goes on to. `tools/capture/own_blend_tour.tscn` films each start, stop and crouch from
 the game camera, printing the largest move of a bone each frame. Until the clips exist nothing
 plays and the states change as before.
 The starts and stops are GDStudio's own since kit #1156 (`locomotion.json`; each start ends as a foot strikes,
-so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are kit #1157's.
+so its `end_foot` is the phase the gait goes on from); the reversals, pivots and turns are GDStudio's own since
+kit #1157 (each moving one ends as a foot strikes; a turn on the spot ends on the idle's first pose).
 
-**How a stop moves the body** (gdstudio #1415). A body on its feet with the stick let go slows by the stop deceleration
-of the gait whose speed band it is in (`CharacterTuning` > Ground > Stops): `walk_stop_deceleration` 2.84 m/s² up to
-`walk_speed`, `run_stop_deceleration` 4.38 up to `run_speed`, `sprint_stop_deceleration` 4.57 above. At the template's
-60 ticks a second they cover each stop clip's travel: 0.48 m from the walk, 1.96 m from the jog, 4.82 m from the sprint,
-in 0.60, 1.13 and 1.67 s (0.11 and 0.18 s from the jog and the sprint before). The stop clip is played by that ground
-until the body is at rest (`GaitTransitions.STOP_DONE`, 0.02 m/s), counted from the tick the stick was let go, so its
-planted feet hold the floor (under 3 mm in `test_gait_stops.gd`). Crouched, in the air or held by an action the body
-stops by `deceleration` (36) as before. The rate is a function of the speed alone, so a predicting client and the server
-stop a body at the same place (`test_net_gait_stops.gd`), and an AI's navigator lets go that far before its goal
-([stopping](ai-navigator.md#navigator)). A game that changes a gait's speed or its stop clip sets the matching stop
-deceleration to `(v_top² - v_bottom²) / (2 × travel)` over the band; a faster stop leaves the clip's feet sliding under
-a body at rest.
+### Turns moved by their clip {#turn-root-motion}
 
-**What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
-pose's difference from the idle's first frame, so it keys every bone the idle keys, the `ik_` targets too (where
-its hands and feet are), or the difference pulls an unkeyed one back toward its rest. The template's own are
-`gds/Lean_Left`, `Lean_Right`, `Lean_Fwd` and `Lean_Back` (`assets/animation/own/clips/lean.py`); each record says
-its `lean` (`way`, degrees to the left of ahead, and the `degrees` the full pose leans) and its `reference`
-(`Lean_Ref`, within 0.3 degrees a bone of the idle's first frame). On the player at full weight the head goes 210
-to 330 mm the pose's way and the feet and targets stay within 0.1 mm (`test_own_directions.gd`).
+<!-- new section: a pointer to the section's new page, for links to the old anchor (gdstudio #1442) -->
 
-The cost, from `tools/bench/gait_cost.tscn` (`gds template bench-web 3d-third-person gait_cost --run`, headless
-Chrome on a workstation, the settings off and on in turns, players walking, blending, sprinting and stopping): 38 µs a
-frame for one character, 17 µs a character with 40 (4.28 ms off, 4.97 ms on); headless desktop, 12 µs a character
-with 40. The momentum blend reads 25 body bones a frame on each character and turns the ones that differ for 0.4 s
-after a change; the transitions ask nothing of the body while no transition clip is in the libraries.
-
-**The lean's cost** (gdstudio #1403). Built as one `AnimationNodeSub2` and two whole clips a way, the lean was the
-dearest part of the tree: the parts bench read the tree at 1.96 to 2.03 times the body's step and the script at 1.23
-to 1.25 (25 walking), and the budget case's ten walkers 1.76 to 1.92 times the calibration (1.31 to 1.46 with the
-lean off). Since #1403 each axis takes its base off once (an `AnimationNodeAdd2` at minus the axis's lean, as only
-one way of an axis leans at a time) and `LeanClips` keeps of each clip only the 23 of 61 tracks the poses move:
-the tree 1.35 to 1.38 and the script 1.09 to 1.11, the budget case 1.48 to 1.64, the drawn bones within 0.0005 mm
-of the old build (`test_gait_lean.gd`). Nothing depends on distance or sight. In headless Chrome
-(`gait_cost.py` with `lean_off,on`), the lean a character a frame:
-
-| | 10 walking | 40 walking |
-| --- | ---: | ---: |
-| Before | 32 to 37 µs (frame 1.82 to 1.92 ms) | 35 to 51 µs (7.9 to 8.9 ms) |
-| After | 14 to 26 µs (1.74 ms) | 12 to 15 µs (6.2 to 6.7 ms) |
+Moved to [Turns by root motion](turn-root-motion.md#turn-root-motion) (gdstudio #1442: this page reached the size
+limit).
 
 - **Approach:** Add every new `GaitSettings` export to `test_gait_parts.gd`'s pinned defaults in the same commit, and
   grep the tests for a state read as one clip (`get_node(state) as AnimationNodeAnimation`) when a state becomes a

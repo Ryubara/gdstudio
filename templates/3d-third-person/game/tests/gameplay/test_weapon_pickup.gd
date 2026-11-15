@@ -18,6 +18,10 @@ func before_test() -> void:
 	_arena = auto_free(PlayArena.new())
 	add_child(_arena)
 	_player = _arena.add_player(Vector3.ZERO)
+	# The walk back starts while the stop still carries the body (kit #1422), so it would be a jog
+	# reversal moved by its clip, 3.7 m on before it turns (kit #1442), and never come back over the
+	# pickup; this suite is about the pickup, not the turn.
+	_player.controller.turn_clips = false
 	_camera = Camera3D.new()
 	_camera.position = Vector3(0.0, 1.3, 3.0)
 	_arena.add_child(_camera)
