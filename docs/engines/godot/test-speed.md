@@ -93,9 +93,9 @@ job with no failing test (Deadnight #1015, `tools/ci_test_shards.py` and `tools/
 The kit does the same for 3D Third Person: the `template-tests` job of `ci.yml` runs four shards of the made game's
 suite, dealt by `.github/scripts/ci_test_shards.py` from `.github/scripts/ci_test_times.json`, and its `check` command
 ends each shard (25-minute limit) and the `template` job (40). `build-ok` stays the one required check, so a new shard
-needs no ruleset change. To refresh the times, download the `template-tests` job logs of two or more green `main`
-runs (`gh api --allow-escape-sequences repos/<owner>/<repo>/actions/jobs/<id>/logs`) and run `ci_test_shards.py update`
-on them; `report --root <game>` shows each shard's expected seconds.
+needs no ruleset change. To refresh the times, run `ci_test_shards.py update` on the `template-tests` job logs of the
+latest green `main` runs ([the commands](../../studio/ci.md#shards)); `report --root <game>` shows each shard's expected
+seconds, its share of the limit on a slow runner, and whether another shard is due.
 
 - **Approach:** Split a job by seconds before its time reaches 60 % of its limit, and when an open pull request adds a
   slow script, put its measured seconds in the times file ahead of time, so it lands in a shard of its own rather than

@@ -240,6 +240,33 @@ personal account, and it would rerun every required check, the full `ci` run inc
   for:** a report flagged all eight shards at 454 s against 440 s because its times were days old; after the refresh
   none was flagged and no shard was added. **Seen:** Deadnight, 2026-11-04 (fix: the order refresh, report, then add a
   shard).
+- **Approach:** Derive a planner's shard budget from the check it predicts, with numbers measured on green runs: the
+  warning share of the job's limit, less the setup, divided by how far a slow runner sits above the times file's
+  medians. **Watch out for:** 3D Third Person's planner flagged all four shards at 612 s against a fixed 480 s while
+  every shard but the first took 8 to 12 of its 25 minutes; the 480 s came from Deadnight's rule of thumb, and 37 of
+  351 suites still counted the 10 s default. **Seen:** gdstudio #1556, 2026-11-14 (fix: `SETUP_SECONDS` 60 and
+  `SLOW_RUNNER` 1.35 in `ci_test_shards.py`, a budget of (900 - 60) / 1.35 = 622 s, and `report` naming the one script
+  a fifth shard cannot split).
+
+**Refreshing 3D Third Person's times** (`.github/scripts/ci_test_times.json`, read by `ci_test_shards.py`): take the
+`template-tests` jobs of the five latest green push runs of `ci.yml` on `main`, download their logs into a scratch
+folder, and run `update` on them with the made game, so scripts it no longer has drop out:
+
+```bash
+for run in $(gh run list --workflow ci.yml --branch main --event push --status success --limit 5 --json databaseId -q '.[].databaseId'); do
+  for job in $(gh run view "$run" --json jobs -q '.jobs[] | select(.name | startswith("template-tests")) | .databaseId'); do
+    gh api --allow-escape-sequences "repos/<owner>/gdstudio/actions/jobs/$job/logs" > "<scratch>/$job.log"
+  done
+done
+python .github/scripts/ci_test_shards.py update <scratch>/*.log --root <game>
+python .github/scripts/ci_test_shards.py report --root <game>
+```
+
+`<game>` is the Godot project of a game made from the branch (`gds new game ... --local`, or the one `gds template
+test` prints); `update` writes each script's median over the logs. `report` then gives each shard's expected seconds,
+its share of the limit on a slow runner, and whether another shard is due: only when a shard is over the budget with
+no single script over it. When the heaviest script is over by itself, that script needs to get faster; another shard
+cannot split it. A new shard is a change to `SHARDS` and the workflow's matrix, in a pull request of its own.
 
 ## Reading a red run {#red-run}
 

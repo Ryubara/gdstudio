@@ -4,7 +4,7 @@
     python3 ci_test_shards.py report --root <game>             # the seconds each shard is expected to take
     python3 ci_test_shards.py self-test --root <game> --workflow .github/workflows/ci.yml
     python3 ci_test_shards.py check --elapsed 812 --limit-minutes 25 --log tests.log --summary "$GITHUB_STEP_SUMMARY"
-    python3 ci_test_shards.py update <job log> [<job log> ...]   # rewrite ci_test_times.json from green runs
+    python3 ci_test_shards.py update <job log> [...] [--root <game>]   # rewrite ci_test_times.json from green runs
 
 3D Third Person's GdUnit4 suite outgrew one job (kit #1492: 30 of the job's 40 minutes, cancelled at 40 on a slow
 runner). Every `tests/**/test_*.gd` of the made game is one item of work weighted by its seconds in
@@ -14,9 +14,11 @@ shard without anyone naming it. The result depends only on the file list and the
 (docs/engines/godot/test-speed.md#split-the-suite-by-seconds-not-by-folder, after Deadnight #1015).
 
 `check` ends every shard and the `template` job: a warning past 60 % of the job's limit and a failure past 80 %, so a
-drifting job is red before the limit cancels it with no failing test. To rebalance, download the `template-tests` job
-logs of two or more green `main` runs (`gh api repos/<owner>/<repo>/actions/jobs/<id>/logs`), run `update` on them and
-commit the times file; add a shard (`SHARDS` here and the workflow's matrix) when `report` flags one over the budget.
+drifting job is red before the limit cancels it with no failing test. `report` flags a shard whose expected seconds, on
+a slow runner and with the setup, would pass that warning, and says whether another shard would help or one script is
+over by itself. To refresh the times, run `update` on the `template-tests` job logs of the latest green `main` runs
+(docs/studio/ci.md#shards has the commands) and commit the times file; add a shard (`SHARDS` here and the workflow's
+matrix, in a pull request of its own) only when `report` asks for one after a refresh.
 """
 
 from __future__ import annotations
@@ -28,17 +30,21 @@ import statistics
 import sys
 from pathlib import Path
 
-# 1,392 s of suites in four green `main` runs (1,077 to 1,576 s; kit #1492), and #1369's `test_jump_weapon_hold.gd`
-# adds 526 to 877 s by itself. total / 480 s rounds up to 3, and runners differ by 1.5x from job to job: four shards
-# take 270 to 400 s of suites each, 6 to 9 minutes with the minute or two of setup.
+# 2,103 to 2,748 s of suites in five green `main` runs (kit #1556, 2026-11-14; 1,392 s in #1492), of which
+# `test_jump_weapon_hold.gd` alone takes 557 to 914 s and sits in a shard of its own. Four shards: 7 to 18 minutes each.
 SHARDS = 4
-# The `template-tests` job's `timeout-minutes`: the heaviest single script on the slowest runner seen (877 s) plus the
+# The `template-tests` job's `timeout-minutes`: the heaviest single script on the slowest runner seen (914 s) plus the
 # setup stays under 80 % of it.
 JOB_LIMIT_MINUTES = 25
 WARN_SHARE = 0.6
 FAIL_SHARE = 0.8
-# `report` flags a shard whose suites are expected to take more than this (a slow runner takes 1.5x).
-REPORT_SHARD_BUDGET = 480.0
+# Measured on those runs (#1556): a shard's steps before and after its tests took 44 to 60 s, and a shard's suites took
+# 0.67 to 1.33 times the sum of their medians in the times file.
+SETUP_SECONDS = 60.0
+SLOW_RUNNER = 1.35
+# `report` flags a shard whose median seconds, times SLOW_RUNNER plus SETUP_SECONDS, pass WARN_SHARE of the limit:
+# (0.6 * 1500 - 60) / 1.35 = 622 s.
+REPORT_SHARD_BUDGET = (WARN_SHARE * JOB_LIMIT_MINUTES * 60 - SETUP_SECONDS) / SLOW_RUNNER
 TIMES_FILE = Path(__file__).with_name("ci_test_times.json")
 JOB = "template-tests"
 
@@ -83,17 +89,40 @@ def shard_paths(names: list[str], times: dict, shard: int, shards: int = SHARDS)
     return [f"res://tests/{name}" for name in sorted(shard_of) if shard_of[name] == shard]
 
 
-def report(names: list[str], times: dict) -> str:
+def slow_share(seconds: float) -> float:
+    """The share of the job's limit a shard of `seconds` median suite time takes on a slow runner, setup included."""
+    return (seconds * SLOW_RUNNER + SETUP_SECONDS) / (JOB_LIMIT_MINUTES * 60)
+
+
+def report(names: list[str], times: dict, shards: int = SHARDS) -> str:
     weight = weights(names, times)
-    shard_of, load = deal(weight)
+    shard_of, load = deal(weight, shards)
     unknown = sorted(name for name in weight if name not in times["seconds"])
-    lines = [f"{len(weight)} scripts, {sum(weight.values()):.0f} s of suites, {SHARDS} shards"]
+    lines = [
+        f"{len(weight)} scripts, {sum(weight.values()):.0f} s of suites, {shards} shards; a shard's budget is"
+        + f" {REPORT_SHARD_BUDGET:.0f} s ({SLOW_RUNNER:g}x on a slow runner plus {SETUP_SECONDS:.0f} s of setup"
+        + f" reach {WARN_SHARE:.0%} of {JOB_LIMIT_MINUTES} minutes)"
+    ]
+    want_shard = False
     for shard, seconds in enumerate(load, start=1):
-        count = sum(1 for value in shard_of.values() if value == shard)
+        members = sorted((name for name, value in shard_of.items() if value == shard), key=lambda n: (-weight[n], n))
         flag = ""
         if seconds > REPORT_SHARD_BUDGET:
-            flag = "  <- over the budget: " + ("add a shard" if count > 1 else "one script: make it faster")
-        lines.append(f"  shard {shard}: {seconds:5.0f} s expected, {count:3d} scripts{flag}")
+            heaviest = members[0]
+            if weight[heaviest] > REPORT_SHARD_BUDGET:
+                alone = f"{heaviest} alone ({weight[heaviest]:.0f} s)"
+                flag = f"  <- over the budget: {alone}: make it faster; another shard won't help"
+            else:
+                flag, want_shard = "  <- over the budget: add a shard", True
+        lines.append(
+            f"  shard {shard}: {seconds:5.0f} s expected, {slow_share(seconds):4.0%} of the limit on a slow runner,"
+            f" {len(members):3d} scripts{flag}"
+        )
+    _, more = deal(weight, shards + 1)
+    lines.append(
+        f"Another shard: {'due' if want_shard else 'not due'}; {shards + 1} shards would take the heaviest from"
+        f" {max(load):.0f} s to {max(more):.0f} s"
+    )
     lines.append(f"{len(unknown)} scripts have no time yet (counted at {times['default_seconds']} s); the slowest:")
     for name, seconds in sorted(weight.items(), key=lambda item: (-item[1], item[0]))[:10]:
         lines.append(f"  {seconds:6.1f} s  shard {shard_of[name]}  {name}")
@@ -186,13 +215,17 @@ def check(elapsed: float, limit_minutes: float, label: str, log_text: str | None
     return code, commands, summary
 
 
-def update(logs: list[Path], times: dict) -> dict:
-    """The times file with each script's median seconds over the logs; scripts no log ran keep their old time."""
+def update(logs: list[Path], times: dict, names: list[str] | None = None) -> dict:
+    """The times file with each script's median seconds over the logs; scripts no log ran keep their old time, unless
+    `names` (the game's scripts) is given and they are not among them."""
     runs = [suite_seconds(path.read_text(encoding="utf-8", errors="replace")) for path in logs]
-    names = set().union(*runs) if runs else set()
+    ran = set().union(*runs) if runs else set()
     seconds = dict(times["seconds"])
-    for name in names:
+    for name in ran:
         seconds[name] = round(statistics.median(run[name] for run in runs if name in run), 1)
+    if names is not None:
+        kept = set(names)
+        seconds = {name: value for name, value in seconds.items() if name in kept}
     return {**times, "seconds": dict(sorted(seconds.items()))}
 
 
@@ -226,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     refresh = sub.add_parser("update")
     refresh.add_argument("logs", type=Path, nargs="+")
     refresh.add_argument("--times", type=Path, default=TIMES_FILE)
+    refresh.add_argument("--root", type=Path, help="the made game's Godot project folder: drop scripts it lost")
     args = parser.parse_args(argv)
 
     if args.command == "check":
@@ -237,8 +271,8 @@ def main(argv: list[str] | None = None) -> int:
                 out.write("\n".join(summary) + "\n\n")
         return code
     if args.command == "update":
-        data = update(args.logs, load_times(args.times))
-        args.times.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        data = update(args.logs, load_times(args.times), scripts(args.root) if args.root else None)
+        args.times.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
         print(f"{len(data['seconds'])} scripts timed in {args.times}")
         return 0
     names, times = scripts(args.root), load_times(args.times)

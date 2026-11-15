@@ -51,7 +51,9 @@ are named as such.
   41 mm there). The push is the least move no skin point forbids, so skin ahead of the stock that the move brings
   back along it counts too. The chest stands turned
   `chest_turn` (-30 degrees) from the model's front: `two_hand_stance.gd` takes the clip's own turn of the chest off
-  first, so a walk or a run that swings the shoulders keeps the left shoulder forward, and turns the head back by what
+  first, so a walk or a run that swings the shoulders keeps the left shoulder forward, each spine bone toward its own
+  share of the turn from the front (`spine_01` a third, `spine_02` two thirds) with the clip's own spread about an
+  even twist kept up to `SPINE_SPREAD` (8 degrees, eased by `tanh`; gdstudio #1379), and turns the head back by what
   it turned the chest, so the head keeps the facing the locomotion clip gives it (kit #1333); while the gun is up a
   chest leaning more than `aim_lean_limit` (25 degrees, a crouch's hunch) is raised toward it, so the head is over the
   stock and not in it. When the hand guard is still farther from the left shoulder than `arm_stretch` (0.97) of the arm,
@@ -306,9 +308,16 @@ stock test's 10 mm.
   every modifier, and name what cured which part. **Watch out for:** the stance takes the gap to `chest_turn` off in
   even thirds over `spine_01` to `spine_03`: under the library run's stop the clip's chest stood 47 degrees left, so
   `spine_02` stood 42 right and the head, riding the chest, 77 (the draw's three frames). Kit #1333 cured the head,
-  our run loops (#1275, 7 degrees of swing) the spine; a wider clip brings it back (gdstudio #1379).
-  `test_rifle_draw_trunk.gd` holds it: 30.0 and 7.2 at most on main, 43.6 and 80.9 on the old commit. **Seen:**
-  gdstudio #1327, 2026-11-12 (gone on main; the test keeps it gone).
+  gdstudio #1379 the spine (the entry below). `test_rifle_draw_trunk.gd` holds it: 30.0 and 7.2 at most on main,
+  43.6 and 80.9 on the old commit. **Seen:** gdstudio #1327, 2026-11-12 (gone on main; the test keeps it gone).
+- **Approach:** Spread a turn over a chain of bones by each bone's own share of the goal from the front (a third, two
+  thirds, all), keeping only a bounded part of the clip's own uneven twist (`SPINE_SPREAD`, eased by `tanh`), and
+  port the same step to the build that keys clips under the hold. **Watch out for:** a share of the gap added to
+  the clip's turn leaves a clip's uneven twist in the lower bones: under a chest swung 45 degrees on the top bone,
+  `spine_02` stood 49.6 degrees from the front with the chest on its 30 (28.0 now). Dropping the clip's spread
+  altogether moved the jump's aimed butt 0.2 mm past its 20 mm limit (19.9 on main, 19.7 with the bounded spread).
+  **Seen:** gdstudio #1379, 2026-11-14 (`test_rifle_draw_trunk.gd`'s `ChestSwing`; the aims' rebuilt keys moved 0.6
+  degrees at most, through the male body's hold in the aim's fit).
 - **Approach:** Sample a skin for a run-time contact over its triangles at the spacing you thin to, not at its
   vertices alone, take only the nearest level of detail (`CharacterBodies.near_meshes`), and measure again on every
   body the template wears when the bodies change. **Watch out for:** the push to the skin was built on the

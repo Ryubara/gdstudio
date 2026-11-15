@@ -12,7 +12,8 @@ extends Node
 ## - `stuck_episode`: a living character that keeps asking its navigator for a goal and moves less
 ##   than `stuck_metres` for longer than `stuck_episode_seconds`;
 ## - `stuck_share`: the stuck seconds of every character over `stuck_share` of their walking
-##   seconds (an episode counts once it is longer than `stuck_grace_seconds`);
+##   seconds (an episode counts once it is longer than `stuck_grace_seconds`; a character that dies
+##   or leaves the tree ends its episode at its last watched tick);
 ## - `idle_with_threat`: a hostile in view of its brain while its controller asks for nothing (no
 ##   reload, no weapon switch) for longer than `idle_seconds`;
 ## - `task_overdue`: the runner's active task active without a break for longer than its hard
@@ -146,6 +147,7 @@ class Watch:
 	var failed_by_reason: Dictionary[String, int] = {}
 	var alive := 0.0
 	var seen_tick := -1
+	var seen_at := 0.0
 	var probed := false
 	var ring: Array = []
 
@@ -196,6 +198,7 @@ func _physics_process(delta: float) -> void:
 		var character := node as AiCharacter
 		if character != null and character.is_inside_tree() and not character.is_dead():
 			_check(_watch_of(character), delta)
+	_close_unseen()
 	_take_errors()
 
 
@@ -225,6 +228,7 @@ func _check(watch: Watch, delta: float) -> void:
 	if watch.seen_tick != _tick - 1:
 		_begin_life(watch)
 	watch.seen_tick = _tick
+	watch.seen_at = clock
 	watch.alive += delta
 	_check_stuck(watch, delta)
 	_check_idle(watch, delta)
@@ -237,6 +241,15 @@ func _check(watch: Watch, delta: float) -> void:
 		think_us.append(spent)
 		watch.think_us.append(spent)
 		_check_beliefs(watch)
+
+
+# A character watched last tick and not this one (shot dead, back in the pool, out of the tree)
+# ends its episode at its last watched tick (kit #1548): a death a moment into an episode is no
+# stuck time, and the run's end, seconds later, is not when the episode ended.
+func _close_unseen() -> void:
+	for watch: Watch in _watches.values():
+		if watch.seen_tick == _tick - 1:
+			_end_episode(watch, watch.seen_at)
 
 
 # A character seen again after a tick out of sight (dead, back in the pool, a new spawn) starts
@@ -266,7 +279,7 @@ func _check_stuck(watch: Watch, delta: float) -> void:
 		)
 	var moved := character.global_position.distance_to(watch.anchor) > stuck_metres
 	if moved or clock - watch.goal_at > GOAL_GAP_SECONDS:
-		_end_episode(watch)
+		_end_episode(watch, clock)
 		watch.anchor = character.global_position
 		return
 	var episode := clock - watch.anchor_at
@@ -279,22 +292,23 @@ func _check_stuck(watch: Watch, delta: float) -> void:
 		)
 
 
-# Ends the episode under way: its walking seconds count as stuck when it lasted past the grace.
-func _end_episode(watch: Watch) -> void:
-	if clock - watch.anchor_at > stuck_grace_seconds:
+# Ends the episode under way at `until` (now, or the last tick its character was watched): its
+# walking seconds count as stuck when it lasted past the grace.
+func _end_episode(watch: Watch, until: float) -> void:
+	if until - watch.anchor_at > stuck_grace_seconds:
 		watch.stuck += watch.episode_walking
 		if watch.probed and watch.episode_walking > 0.0 and is_instance_valid(watch.character):
-			_print_block(watch)
-	watch.anchor_at = clock
+			_print_block(watch, until)
+	watch.anchor_at = until
 	watch.episode_walking = 0.0
 
 
-func _print_block(watch: Watch) -> void:
+func _print_block(watch: Watch, until: float) -> void:
 	var block := AiSoakProbe.block_of(
 		watch.character,
 		watch.kind,
 		watch.anchor_at,
-		clock,
+		until,
 		watch.episode_walking,
 		watch.seen_tick == _tick,
 		watch.ring,
@@ -415,8 +429,11 @@ func _take_errors() -> void:
 ## The gates the run broke at its end (the whole-run ones judged now), each with its count.
 func finish() -> Dictionary[StringName, int]:
 	_take_errors()
+	# Only the characters watched on the last tick have an episode under way: the others' ended
+	# when they left (`_close_unseen`).
 	for watch: Watch in _watches.values():
-		_end_episode(watch)
+		if watch.seen_tick == _tick:
+			_end_episode(watch, clock)
 	var walking := 0.0
 	var stuck := 0.0
 	for watch: Watch in _watches.values():
