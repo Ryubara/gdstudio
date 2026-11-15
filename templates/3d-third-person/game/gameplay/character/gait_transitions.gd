@@ -63,6 +63,9 @@ const STOP_GRACE := 0.1
 ## Degrees the way the body is asked to go may move from the way a start, a reversal or a pivot was
 ## drawn for before the clip is left (gdstudio #1565).
 const WISH_CHANGE := 40.0
+# The cosine of `WISH_CHANGE`: the check reads a dot product, no angle (it runs every frame of a
+# clip).
+const _WISH_CHANGE_COS := 0.766
 ## Seconds of a reversal's or a pivot's own time before its turn begins at which its look starts:
 ## the plant (gdstudio #1565).
 const TURN_LEAD := 0.2
@@ -172,7 +175,7 @@ func step(
 	_goal = animation.character.goal_speed
 	_speed_before = _speed_now
 	_speed_now = animation.character.ground_speed()
-	_count_standing(animation.character)
+	_count_standing()
 	_count_let_go(animation, blend, delta)
 	if _began_by_step(animation, playback) or _went_on(animation, blend, playback, delta):
 		_draw_turn(animation, delta)
@@ -221,16 +224,15 @@ static func on_foot(body: Character) -> bool:
 ## The transition the body calls for now, as `{kind, clip}`, or empty: what `step()` would start
 ## (from the goal speed `step()` read this frame).
 func pick(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary:
-	var body := animation.character
 	var standing := settings.standing_speed
-	if body.ground_speed() < standing or (_since_standing <= START_GRACE and _goal > standing):
+	if _speed_now < standing or (_since_standing <= START_GRACE and _goal > standing):
 		return _pick_standing(animation, blend)
 	return _pick_moving(animation, blend)
 
 
 # Frames since the body's ground speed was last under `standing_speed` (0 while it stands).
-func _count_standing(body: Character) -> void:
-	if settings != null and body.ground_speed() < settings.standing_speed:
+func _count_standing() -> void:
+	if settings != null and _speed_now < settings.standing_speed:
 		_since_standing = 0
 	else:
 		_since_standing += 1
@@ -254,7 +256,7 @@ func _count_let_go(animation: CharacterAnimation, blend: GaitBlend, delta: float
 	# its delta is from wherever it was last stepped, so its stop seeked to the end at once.
 	var tick := 1.0 / Engine.physics_ticks_per_second
 	_let_go_from = body.global_position - Vector3(body.velocity.x, 0.0, body.velocity.z) * tick
-	_let_go_speed = body.ground_speed()
+	_let_go_speed = _speed_now
 	_let_go_phase = blend.phase(animation.tree, CharacterAnimation.GROUND)
 
 
@@ -288,7 +290,7 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	var body := animation.character
 	var clips := settings.transition_clips
 	var player := animation.animation_player
-	var speed := body.ground_speed()
+	var speed := _speed_now
 	if _goal <= settings.standing_speed:
 		if _let_go < STOP_GRACE:
 			return {}  # Maybe a let-go between two keys: no stop yet (gdstudio #1563).
@@ -428,7 +430,7 @@ func _go_on(
 			_body_done(body) or (kind == Kind.STOP and progress >= GaitClips.travel_end(clip))
 		)
 		var next := maxf(progress, _time + (delta if done or progress < 0.0 else 0.0))
-		if kind == Kind.STOP and body.ground_speed() < standing:
+		if kind == Kind.STOP and _speed_now < standing:
 			# The body's last braking is harder than the clip's ease to rest: read by the ground alone,
 			# a jog stop's last step played at four times its pace, a hand 16 cm in a tick.
 			next = minf(next, maxf(_time + delta * STOP_PACE_MOST, progress - STOP_LAG_MOST))
@@ -442,14 +444,14 @@ func _go_on(
 # was drawn for (a new direction: the clip gives way).
 func _wish_moved(body: Character) -> bool:
 	var wish := body.move_goal.direction(body)
-	if wish.is_zero_approx():
-		return false
-	return rad_to_deg(wish.angle_to(_along)) >= WISH_CHANGE
+	var length := wish.length()
+	return length > 0.0001 and wish.dot(_along) <= _WISH_CHANGE_COS * length
 
 
 # True when the body does something the clip must give way to on this frame: it takes the aim (a
-# turn on the spot is the aim's own; a clip begun aimed keeps it), crouches, lies down, slides, or
-# an action plays (a jump leaves the feet: `on_foot()` hands over).
+# turn on the spot is the aim's own; a clip begun aimed keeps it), crouches, lies down or slides.
+# A jump, a hit, a use or a vault leaves the body's walking states (`on_foot()` hands over), and
+# the tree's action parameter (the dearest read here) is not read every frame of every clip.
 func _acted(animation: CharacterAnimation) -> bool:
 	var body := animation.character
 	return (
@@ -458,7 +460,6 @@ func _acted(animation: CharacterAnimation) -> bool:
 		or body._wants_crouch
 		or body._prone.is_prone()
 		or body._slide.active
-		or animation.is_acting()
 	)
 
 
@@ -512,9 +513,9 @@ func _body_done(body: Character) -> bool:
 			# At rest: the clip is played by the ground the body covers until the body stands
 			# (the stop decelerations of `CharacterTuning` cover the clip's travel), never on by
 			# itself under a body that still slides.
-			return body.ground_speed() < STOP_DONE
+			return _speed_now < STOP_DONE
 		Kind.START:
-			return body.ground_speed() >= _goal * 0.95
+			return _speed_now >= _goal * 0.95
 		_:
 			return (
 				absf(rad_to_deg(wrapf(body.facing - _facing, -PI, PI)))
