@@ -29,7 +29,7 @@ func before_test() -> void:
 	_bag.slot_count = 4
 	_holder.add_child(_bag)
 	_bar = Hotbar.new()
-	_bar.start_items = [_bandage] as Array[ItemDef]
+	_bar.start_items = [_bandage] as Array[Resource]
 	_holder.add_child(_bar)
 	add_child(_holder)
 	_bag.add(_bandage, 3)
