@@ -1,16 +1,20 @@
 extends SkeletonModifier3D
 ## The first of a `TwoHandHold`'s modifiers, made by it at run time. It turns the chest about the
-## model's up axis (in a slide, its own: `_chest_up`), split evenly over the hold's spine bones,
-## until the chest stands at the hold's `chest_turn` from the model's front (by `chest_weight()`:
-## not while the left hand is away for an action): the turn the clip of this frame already has is
-## taken off, so a walk or a run that swings the shoulders leaves the left shoulder forward and
-## the left hand in reach of the hand guard. The turn goes by the hold's weight (a switch eases it
-## in and out), and the head is turned back by as much, so it keeps the facing the clip gives it:
-## a run counters its swing of the shoulders in the neck, and a head left on a chest whose swing
-## was taken off swung 109 degrees from side to side at every stride (kit #1333). Then it asks the
-## hold to place the shoulder's pocket and the gun from the chest bone's pose of this frame; the
-## hold gives each arm's `HoldArm`, which runs after this, its hand's place on the gun just placed,
-## so the hands are on the gun in the pose of this very update.
+## model's up axis (in a slide, its own: `_chest_up`) until the chest stands at the hold's
+## `chest_turn` from the model's front (by `chest_weight()`: not while the left hand is away for an
+## action): the turn the clip of this frame already has is taken off, so a walk or a run that
+## swings the shoulders leaves the left shoulder forward and the left hand in reach of the hand
+## guard. Each spine bone goes toward its own share of the turn from the front (a third, two thirds,
+## all of it) with the clip's own spread about that share kept up to `SPINE_SPREAD`, not by a share
+## of the gap: a clip that swings the chest far on the top bone alone left the lower spine twisted
+## past the chest, 44 degrees under a chest on its 30 (kit #1379).
+## The turn goes by the hold's weight (a switch eases it in and out), and the head is turned back
+## by as much, so it keeps the facing the clip gives it: a run counters its swing of the shoulders
+## in the neck, and a head left on a chest whose swing was taken off swung 109 degrees from side to
+## side at every stride (kit #1333). Then it asks the hold to place the shoulder's pocket and the
+## gun from the chest bone's pose of this frame; the hold gives each arm's `HoldArm`, which runs
+## after this, its hand's place on the gun just placed, so the hands are on the gun in the pose of
+## this very update.
 
 ## The head's bone: it is turned back by the chest's turn, so the head stays on the locomotion
 ## clip. The head and not the neck under it: the neck carries skin at the collar, and turning it
@@ -20,6 +24,12 @@ const HEAD := &"Head"
 ## the hold's `carry_lean_limit`, in seconds: about a stride, so the run's own rise and fall of the
 ## trunk through a stride stays and only its standing lean is taken off.
 const LEAN_SMOOTHING := 0.5
+## How far a spine bone under the chest may stand off its share of the hold's turn, in degrees,
+## where the clip twists the spine unevenly (`_share_turn`, kit #1379): the clip's own spread about
+## an even twist is kept, eased toward this bound (`tanh`), so the template's clips (spreads of 1
+## to 5 degrees) read as before, and with `chest_turn` -30 `spine_02` stands at most 28 degrees from
+## the front under any clip (44 with the gap split evenly under a chest swung 47 degrees).
+const SPINE_SPREAD := 8.0
 
 ## The hold that made it.
 var hold: TwoHandHold
@@ -43,6 +53,10 @@ var _locals: Array[Transform3D] = []
 var _posed: Array[Transform3D] = []
 # The rest turn of the chest (the last spine bone) inverted, read once.
 var _rest_inverse := Basis.IDENTITY
+# Each spine bone's rest turn inverted, read once, and how far the clip of this update turns each
+# from the model's front, in degrees (`_share_turn`).
+var _rest_inverses: Array[Basis] = []
+var _clip_yaws := PackedFloat32Array()
 # The trunk's lean averaged over `LEAN_SMOOTHING`, in radians, and whether it has a value yet.
 var _lean := 0.0
 var _leaning := false
@@ -80,15 +94,20 @@ func _process_modification_with_delta(delta: float) -> void:
 	# a turn about the model's up axis rolled it onto its side instead (kit #1413).
 	var yaw := 0.0
 	var axis := Vector3.UP
+	var lying := 0.0
 	if top >= 0:
 		var turned := chest.basis.orthonormalized() * _rest_inverse
-		var lying := CharacterSlide.lying(hold.character)
+		lying = CharacterSlide.lying(hold.character)
 		yaw = _chest_yaw(turned, lying)
 		axis = _chest_up(turned, lying)
 	# `left_chest_turn` on the left shoulder (a left peek lean, gdstudio #1435).
 	var turn_now := lerpf(hold.chest_turn, hold.left_chest_turn, hold.side)
-	var degrees := (turn_now - yaw) * hold.chest_weight()
-	_turn_spine(skeleton, Basis(axis, deg_to_rad(degrees / _bones.size())))
+	var weight := hold.chest_weight()
+	var degrees := (turn_now - yaw) * weight
+	if _chain:
+		degrees = _share_turn(skeleton, axis, turn_now, weight, lying)
+	else:
+		_turn_spine(skeleton, Basis(axis, deg_to_rad(degrees / _bones.size())))
 	_turn_head(skeleton, top, degrees, axis)
 	_straighten_chest(skeleton, top)
 	_turn_back(skeleton, top)
@@ -108,9 +127,51 @@ func _lay_out(skeleton: Skeleton3D) -> void:
 		index += 1
 	_locals.resize(_bones.size())
 	_posed.resize(_bones.size())
+	_rest_inverses.resize(_bones.size())
+	_clip_yaws.resize(_bones.size())
+	for each in _bones.size():
+		var bone := _bones[each]
+		if bone >= 0:
+			_rest_inverses[each] = (
+				skeleton.get_bone_global_rest(bone).basis.orthonormalized().inverse()
+			)
 	if not _bones.is_empty() and _bones[-1] >= 0:
 		var rest := skeleton.get_bone_global_rest(_bones[-1]).basis.orthonormalized()
 		_rest_inverse = rest.inverse()
+
+
+# Turns each spine bone of the chain about `axis` toward its share of `turn_now` from the model's
+# front (bone `i` of `n` toward `turn_now * (i + 1) / n`) plus the clip's own spread about an even
+# twist (its turn of the bone less that share of its chest's), eased to at most `SPINE_SPREAD`; by
+# `weight` from where the clip has it. With a small spread this is the gap split evenly, as
+# before; the chest ends where that left it, and no bone under it stands farther from the front
+# than the clip's own turn of it or its share of the hold's and `SPINE_SPREAD` (kit #1379). Each
+# bone's turn now is read after its parent was turned, so it takes the parent's along. Returns
+# how far the chest was turned in all, in degrees, for the head's turn back.
+func _share_turn(
+	skeleton: Skeleton3D, axis: Vector3, turn_now: float, weight: float, lying: float
+) -> float:
+	var count := _bones.size()
+	for index in count:
+		var clip := _posed[index].basis.orthonormalized() * _rest_inverses[index]
+		_clip_yaws[index] = _chest_yaw(clip, lying)
+	var total := 0.0
+	var above := _base
+	for index in count:
+		var pose := above * _locals[index]
+		var now := _chest_yaw(pose.basis.orthonormalized() * _rest_inverses[index], lying)
+		var share := float(index + 1) / count
+		var spread := wrapf(_clip_yaws[index] - _clip_yaws[-1] * share, -180.0, 180.0)
+		spread = SPINE_SPREAD * tanh(spread / SPINE_SPREAD)
+		var wanted := lerpf(_clip_yaws[index], turn_now * share + spread, weight)
+		var degrees := wrapf(wanted - now, -180.0, 180.0)
+		total += degrees
+		var turned := Transform3D(Basis(axis, deg_to_rad(degrees)) * pose.basis, pose.origin)
+		_locals[index] = above.affine_inverse() * turned
+		skeleton.set_bone_pose(_bones[index], _locals[index])
+		_posed[index] = turned
+		above = turned
+	return total
 
 
 # Turns each spine bone by `turn` in the skeleton's space, about its own place. The poses come
