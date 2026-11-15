@@ -111,6 +111,7 @@
     "gameplay/test_gait_stops.gd": 0.8,
     "gameplay/test_gate_in_the_map.gd": 1.9,
     "gameplay/test_hand_pose_modifier.gd": 0.0,
+    "gameplay/test_hard_landing.gd": 0.6,
     "gameplay/test_held_weapon_drawn.gd": 1.3,
     "gameplay/test_helper_tracks.gd": 0.3,
     "gameplay/test_hit_and_interact_components.gd": 1.7,
