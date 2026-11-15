@@ -119,3 +119,37 @@ def test_update_takes_the_median_and_keeps_scripts_no_log_ran(tmp_path: Path):
     times.write_text(json.dumps({"default_seconds": 10, "seconds": {"test_old.gd": 5.0}}), encoding="utf-8")
     assert shards.main(["update", *map(str, logs), "--times", str(times)]) == 0
     assert json.loads(times.read_text(encoding="utf-8"))["seconds"] == {"test_a.gd": 20.0, "test_old.gd": 5.0}
+
+
+def test_the_budget_is_the_warning_share_less_setup_on_a_slow_runner():
+    assert shards.slow_share(shards.REPORT_SHARD_BUDGET) == pytest.approx(shards.WARN_SHARE)
+    assert 600 < shards.REPORT_SHARD_BUDGET < 650
+
+
+def test_the_report_asks_for_a_shard_only_when_one_would_help():
+    budget = shards.REPORT_SHARD_BUDGET
+    fits = {"default_seconds": 10, "seconds": {f"t{i}.gd": budget / 2 for i in range(8)}}
+    text = shards.report(list(fits["seconds"]), fits, shards=4)
+    assert "over the budget" not in text
+    assert "Another shard: not due" in text
+    crowded = {"default_seconds": 10, "seconds": {f"t{i}.gd": budget / 2 for i in range(12)}}
+    text = shards.report(list(crowded["seconds"]), crowded, shards=4)
+    assert "over the budget: add a shard" in text
+    assert "Another shard: due" in text
+    alone = {"default_seconds": 10, "seconds": {"slow.gd": budget + 100, "a.gd": 20.0, "b.gd": 20.0}}
+    text = shards.report(list(alone["seconds"]), alone, shards=2)
+    assert "slow.gd alone" in text and "another shard won't help" in text
+    assert "Another shard: not due" in text
+
+
+def test_update_with_the_game_drops_scripts_it_no_longer_has(tmp_path: Path):
+    game = tmp_path / "game"
+    (game / "tests").mkdir(parents=True)
+    (game / "tests" / "test_a.gd").write_text("", encoding="utf-8")
+    log = tmp_path / "run.log"
+    log.write_text("Run Test Suite: res://tests/test_a.gd\nStatistics: 1 test cases | PASSED 4s\n", encoding="utf-8")
+    times = tmp_path / "times.json"
+    times.write_text(json.dumps({"default_seconds": 10, "seconds": {"test_gone.gd": 5.0}}), encoding="utf-8")
+    assert shards.main(["update", str(log), "--times", str(times), "--root", str(game)]) == 0
+    assert json.loads(times.read_text(encoding="utf-8"))["seconds"] == {"test_a.gd": 4.0}
+    assert b"\r\n" not in times.read_bytes()
