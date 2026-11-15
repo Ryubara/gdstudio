@@ -27,7 +27,9 @@ extends Node
 ## - anything the scenario adds with `fail()` (the soak's `round`).
 ##
 ## For every gate it breaks it keeps a sample of what the character held, did and decided (its
-## beliefs, its layer stack, its last 20 decisions, its path's end, its tier): `failures`.
+## beliefs, its layer stack, its last 20 decisions, its path's end, its tier): `failures`. With
+## `probe_episodes` on it also keeps a row a tick of each probed character and makes a block of
+## each stuck episode that counts toward `stuck_share` when it ends (`AiSoakProbe`): `probe_blocks`.
 
 ## A gate broke (once per character and gate).
 signal gate_failed(gate: StringName, sample: Dictionary)
@@ -86,6 +88,14 @@ const GOAL_GAP_SECONDS := 1.0
 ## Thinks the percentile needs before it is judged.
 @export_range(1, 100000) var think_min_count := 200
 
+@export_group("Episode probe")
+## Prints a block of every tick of each counted stuck episode when it ends (`AiSoakProbe`).
+@export var probe_episodes := false
+## The kinds probed (a profile's display name, such as Civilian); empty: every kind.
+@export var probe_kinds := PackedStringArray()
+## Ticks before an episode's end a block may hold.
+@export_range(60, 36000, 60) var probe_ticks := 600
+
 @export_group("Run")
 ## Off: it keeps counting but judges nothing (a bench reads its numbers).
 @export var judging := true
@@ -100,6 +110,8 @@ var errors: Array[String] = []
 var calibrations := PackedFloat64Array()
 ## Every think's time, microseconds.
 var think_us := PackedFloat64Array()
+## The probe's block of every counted stuck episode, in the order they ended.
+var probe_blocks: Array[Dictionary] = []
 
 var _logger := ErrorCount.new()
 var _watches: Dictionary[int, Watch] = {}
@@ -134,6 +146,8 @@ class Watch:
 	var failed_by_reason: Dictionary[String, int] = {}
 	var alive := 0.0
 	var seen_tick := -1
+	var probed := false
+	var ring: Array = []
 
 
 ## Keeps the engine's errors while it watches.
@@ -198,6 +212,7 @@ func _watch_of(character: AiCharacter) -> Watch:
 	watch.thinks = character.think_count
 	var navigator := character.navigator as AiNavigator
 	watch.queries = navigator.path_queries if navigator != null else 0
+	watch.probed = probe_episodes and (probe_kinds.is_empty() or probe_kinds.has(watch.kind))
 	var tasks := character.task_runner as AiTasks
 	if tasks != null:
 		tasks.runner.task_failed.connect(_on_task_failed.bind(watch))
@@ -234,6 +249,7 @@ func _begin_life(watch: Watch) -> void:
 	watch.idle = 0.0
 	watch.task = null
 	watch.thinks = watch.character.think_count
+	watch.ring = []
 
 
 func _check_stuck(watch: Watch, delta: float) -> void:
@@ -244,6 +260,10 @@ func _check_stuck(watch: Watch, delta: float) -> void:
 		watch.goal_at = clock
 		watch.walking += delta
 		watch.episode_walking += delta
+	if watch.probed:
+		watch.ring = AiSoakProbe.push(
+			watch.ring, AiSoakProbe.row_of(character, clock, going), probe_ticks
+		)
 	var moved := character.global_position.distance_to(watch.anchor) > stuck_metres
 	if moved or clock - watch.goal_at > GOAL_GAP_SECONDS:
 		_end_episode(watch)
@@ -263,8 +283,25 @@ func _check_stuck(watch: Watch, delta: float) -> void:
 func _end_episode(watch: Watch) -> void:
 	if clock - watch.anchor_at > stuck_grace_seconds:
 		watch.stuck += watch.episode_walking
+		if watch.probed and watch.episode_walking > 0.0 and is_instance_valid(watch.character):
+			_print_block(watch)
 	watch.anchor_at = clock
 	watch.episode_walking = 0.0
+
+
+func _print_block(watch: Watch) -> void:
+	var block := AiSoakProbe.block_of(
+		watch.character,
+		watch.kind,
+		watch.anchor_at,
+		clock,
+		watch.episode_walking,
+		watch.seen_tick == _tick,
+		watch.ring,
+		probe_ticks
+	)
+	probe_blocks.append(block)
+	print(AiSoakProbe.PREFIX + JSON.stringify(block))
 
 
 func _check_idle(watch: Watch, delta: float) -> void:

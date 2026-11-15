@@ -16,12 +16,15 @@ extends Node
 ## the character held, did and decided, with `--lines` an `AI_SOAK_CHARACTER {json}` line a
 ## character (the nightly job's numbers), then quits: exit 1 when a gate broke. Open it in the
 ## editor to set the counts and the thresholds in the inspector and watch it (the overlay shows
-## the gates live).
+## the gates live). With the probe on (`--probe`, or the watch's `probe_episodes`) it also prints an
+## `AI_SOAK_EPISODE {json}` block for each stuck episode that counts, with the ticks before its end
+## (`AiSoakProbe`).
 ##
 ## Headless, from the game folder:
 ## `godot --headless --path . --fixed-fps 60 res://tools/soak/ai_soak.tscn -- --seconds 180`
 ## (options: `--seed N`, `--scale N`, `--pathing N`, `--faults stuck,idle,...|all`, `--round S`,
-## `--rescue S`, `--lines`). In a browser (`gds template bench-web 3d-third-person
+## `--rescue S`, `--lines`, `--probe [kinds]`, `--probe-ticks N`; the environment variable
+## `SOAK_PROBE` is `--probe`). In a browser (`gds template bench-web 3d-third-person
 ## tools/soak/ai_soak.tscn`, read by `tools/web_smoke/ai.py`) it takes the same options from the
 ## page's query (`?scale=4&seconds=20`) and leaves its result in `window.__ai_soak`.
 ## Docs: the kit's `docs/gamedev/bots.md#ai-soak` and `docs/engines/godot/crowds.md#ai-characters`.
@@ -142,6 +145,11 @@ func _read_options() -> void:
 	rescue_seconds = float(options.get("rescue", rescue_seconds))
 	warm_seconds = float(options.get("warm", warm_seconds))
 	character_lines = character_lines or options.has("lines")
+	_watch.probe_ticks = int(options.get("probe-ticks", _watch.probe_ticks))
+	var probe := String(options.get("probe", OS.get_environment("SOAK_PROBE")))
+	if options.has("probe") or probe != "":
+		_watch.probe_episodes = AiSoakProbe.option_on(probe)
+		_watch.probe_kinds = AiSoakProbe.option_kinds(probe)
 	if options.has("faults"):
 		_faults.faults = AiSoakFaults.parse(String(options.faults))
 
@@ -470,6 +478,8 @@ func _finish() -> void:
 		"command_hash": _hash,
 		"web": OS.has_feature("web"),
 	}
+	if _watch.probe_episodes:
+		result["probe_episodes"] = _watch.probe_blocks.size()
 	for sample in _watch.failures:
 		print("AI_SOAK_GATE " + JSON.stringify(sample))
 	if character_lines:

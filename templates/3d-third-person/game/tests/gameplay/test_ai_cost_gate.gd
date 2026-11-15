@@ -50,10 +50,13 @@ const STEP_SCORE_LIMIT := 1.48
 const STEP_SIZE_LIMIT := 1.6
 ## A think (median), microseconds a ruler millisecond, at most, by system and crowd size (a think
 ## grows with the crowd it reads). Linux: 150 CI runs read 8.7 to 13.4, 11.1 to 15.4 and 14.8 to
-## 19.6; Windows: the four desktop runs, 12.7 to 15.4, 17.4 to 20.2 and 23.6 to 26.0.
+## 19.6; Windows: the four desktop runs, 12.7 to 15.4, 17.4 to 20.2 and 23.6 to 26.0. Since the
+## flight walks only the points the navigator takes (gdstudio #1532) the 200 flee 61 % of the time
+## instead of about 40 %: 50 CI suite runs read 18.5 to 23.5 there (the median of each run's three
+## processes), the desktop 25.4 and 26.8 (the median of five processes).
 const THINK_RATIO_LIMITS := {
-	"Linux": {50: 15.5, 100: 18.0, 200: 23.0},
-	"Windows": {50: 19.0, 100: 25.0, 200: 32.0},
+	"Linux": {50: 15.5, 100: 18.0, 200: 27.5},
+	"Windows": {50: 19.0, 100: 25.0, 200: 36.0},
 }
 ## The hit history's record (median) over the director's step (median) of the same ticks, at
 ## most, by crowd size (278 CI runs read at most 0.043, 0.051 and 0.062; the desktop 0.034, 0.041

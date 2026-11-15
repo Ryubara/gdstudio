@@ -81,7 +81,7 @@ it from running while Safe.
 | `AiChase` | `chase`, Response, Move and Look | Runs to where a lost subject is believed; ends when a hostile is in view again. |
 | `AiAttack` | `engage`, Response, Move, Action and Look | Ranged with the aim model, only at a subject seen now and never through a friend; melee from the weapon's own blow reach (its category's) by pressing the melee button, as a player does ([melee](melee.md#melee)); reloads a dry magazine; `NO_AMMO` with nothing to load. Fights only with an [attack slot](#attack-slots); without one it holds, gun down, watching (`held`). |
 | `AiTakeCover` | `cover`, Response, Move, Action and Look | Runs to a cover marker facing the threat (scored, kept) and hides and peeks to shoot; only hides when Safe. A peek takes an [attack slot](#attack-slots) and gives it back when it goes down; without one it stays down. |
-| `AiFlee` | `flee`, Response, Move | Runs to the reachable point farthest from the threat until `safe_distance`; with nowhere to run it fails `NO_PATH` and the civilian rows' fallback, a cower, runs in its place (during a failure storm too). |
+| `AiFlee` | `flee`, Response, Move | Runs to the reachable point farthest from the threat until `safe_distance`, each point judged as the navigator walks it (snapped to open ground, not refused, a path ending within 1 m of it); with nowhere to run it fails `NO_PATH` and the civilian rows' fallback, a cower, runs in its place (during a failure storm too). |
 | `AiCower` | `cower`, Response, Move and Look | Crouches facing the threat until it has not been believed for `panic_recovery_seconds`. |
 | `AiGuard` | `guard`, Default, Move and Look | Holds a place, looks around while there; the guard's default and `order_hold`. |
 | `AiUseObject` | `use`, Order, Move and Action | Walks up to an `Interactable` and presses use, as a player does. |
@@ -91,6 +91,16 @@ it from running while Safe.
 **The aim** (`AiAim`, shared by Attack and TakeCover): no shot sooner than the 0.2 s reaction floor after starting on a
 target, a turn no faster than `aim_speed`, tracking noise that shrinks while on target, bursts of `burst_size` at
 `fire_interval`, and no shot at a memory or through a friend (`AiSenses.friend_in_line_of_fire()`).
+
+- **Approach:** A task that picks points for the navigator judges each by its rules: `AiRouteRules.snap_goal`, skip
+  what `AiNavigator.refuses()` holds, `AiChoice.walk_cost` with `max_gap` at `END_SLACK`, and a cap on legs given up
+  in a row (`AiFlee.MOST_FAILED_LEGS`). **Watch out for:** the flee scored a point 6 to 8 m off the mesh by the path
+  to the mesh's edge plus twice the gap, beating every point on open ground; the navigator refused it, and the
+  cornered civilian asked again every think, standing with a goal (every civilian stuck episode).
+  Skipping refused points alone let a penned civilian walk on through points the budget left unmeasured (4 paths a
+  tick, 8 points), never cowering. **Seen:** gdstudio #1532, 2026-11-14
+  (`test_a_civilian_in_a_corner_of_the_mesh_runs_along_open_ground` fails on `main`,
+  `test_a_penned_civilian_on_a_spent_path_budget_still_cowers` without the cap).
 
 ## The inspector {#inspector}
 
