@@ -22,7 +22,7 @@ catalog = Array[ExtResource("5_def")]([ExtResource("3_coin"), ExtResource("4_ban
 
 [node name="Hotbar" type="Node" parent="."]
 script = ExtResource("6_hotbar")
-start_items = Array[ExtResource("5_def")]([ExtResource("4_bandage")])
+start_items = Array[Resource]([ExtResource("4_bandage")])
 
 [node name="ItemUse" type="Node" parent="."]
 script = ExtResource("7_item_use")
