@@ -6,7 +6,8 @@ extends RefCounted
 ## Every frame on the ground it reads the body: its ground speed, the speed its last command heads
 ## for (`Character.goal_speed`), the angle between where it moves and where it is asked to go,
 ## and, aiming while standing, how far its facing is asked to turn. A body that stands and is
-## asked to move starts; one that moves and is asked to stop stops; one asked to go back the way
+## asked to move starts; one that moves and is asked to stop for `STOP_GRACE` stops (a stop is
+## the move asked for going to zero, never a change of keys); one asked to go back the way
 ## it came reverses, or pivots at a smaller angle; one that stands and aims away turns on the
 ## spot. The clip is the `GaitTransitionSet`'s for the gait (the ground blend space's point the
 ## body is in, or heads for) and the side: the foot that lands next in the gait's phase for a stop,
@@ -47,6 +48,12 @@ const STOP_DONE := 0.02
 ## its own pace, and the furthest behind its ground it may fall for it, in seconds (gdstudio #1525).
 const STOP_PACE_MOST := 2.0
 const STOP_LAG_MOST := 0.1
+## Seconds the move asked for must stay at zero before a stop is picked (gdstudio #1563): a
+## let-go between two keys (W up, S down a tick or two later) or a key let go and pressed again
+## plays no stop to cut. A stop picked after it is played from the let-go, as if picked then: the
+## gait and the foot of that moment, the ground covered since then, so it shows the frame an
+## immediate stop would show by now.
+const STOP_GRACE := 0.1
 
 var settings: GaitSettings
 ## What plays now, and its clip.
@@ -66,6 +73,13 @@ var _turn_to := 0.0
 var _pending := false
 var _motion_serial := 0
 var _since_standing := 0
+# Seconds since the move asked for went to zero (-1 while a move is asked for), and the body at
+# that moment: where it was a tick before (the stop's ground counts from there), its ground speed
+# and the ground gait's phase.
+var _let_go := -1.0
+var _let_go_from := Vector3.ZERO
+var _let_go_speed := 0.0
+var _let_go_phase := 0.0
 # The state the body machine was last asked for (`route()`): where it goes from this state when
 # it finds itself left there.
 var _asked: StringName = CharacterAnimation.GROUND
@@ -129,6 +143,7 @@ func step(
 	delta: float
 ) -> void:
 	_count_standing(animation.character)
+	_count_let_go(animation, blend, delta)
 	if _began_by_step(animation, playback) or _went_on(animation, blend, playback, delta):
 		return
 	var current := playback.get_current_node()
@@ -154,6 +169,10 @@ func step(
 	if picked.is_empty():
 		return
 	_begin(animation, picked, playback)
+	if kind == Kind.STOP:
+		# Picked `STOP_GRACE` after the let-go: at the time the ground covered since then reads.
+		_time = clampf(_progress(animation.character, blend.leg), 0.0, _length)
+		animation.tree.set(_P_SEEK, _time)
 
 
 ## True while the body stands, walks or runs: a push, a vault or a hit begins on a frame the
@@ -184,6 +203,28 @@ func _count_standing(body: Character) -> void:
 		_since_standing = 0
 	else:
 		_since_standing += 1
+
+
+# Notes the moment the move asked for goes to zero, and counts the seconds since: the stop waits
+# `STOP_GRACE` for the body to be asked to move again (one tree read, on the frame it goes).
+func _count_let_go(animation: CharacterAnimation, blend: GaitBlend, delta: float) -> void:
+	if settings == null or not _any:
+		return
+	var body := animation.character
+	if body.goal_speed > settings.standing_speed:
+		_let_go = -1.0
+		return
+	if _let_go >= 0.0:
+		_let_go += delta
+		return
+	_let_go = 0.0
+	# The stick was let go a tick before the tree saw it: the stop's ground counts from there.
+	# From the velocity, not `get_position_delta()`: a puppet is placed, never stepped, and
+	# its delta is from wherever it was last stepped, so its stop seeked to the end at once.
+	var tick := 1.0 / Engine.physics_ticks_per_second
+	_let_go_from = body.global_position - Vector3(body.velocity.x, 0.0, body.velocity.z) * tick
+	_let_go_speed = body.ground_speed()
+	_let_go_phase = blend.phase(animation.tree, CharacterAnimation.GROUND)
 
 
 # A start, or aiming away while standing, a turn on the spot.
@@ -218,9 +259,12 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	var player := animation.animation_player
 	var speed := body.ground_speed()
 	if body.goal_speed <= settings.standing_speed:
-		var stop_point := blend.main_point(CharacterAnimation.GROUND, speed)
-		var stop_gait := blend.main_gait(CharacterAnimation.GROUND, speed)
-		var stop_phase := blend.phase(animation.tree, CharacterAnimation.GROUND)
+		if _let_go < STOP_GRACE:
+			return {}  # Maybe a let-go between two keys: no stop yet (gdstudio #1563).
+		# The gait and the foot of the let-go, the moment the stop is played from.
+		var stop_point := blend.main_point(CharacterAnimation.GROUND, _let_go_speed)
+		var stop_gait := blend.main_gait(CharacterAnimation.GROUND, _let_go_speed)
+		var stop_phase := _let_go_phase
 		return _found(
 			Kind.STOP,
 			GaitTransitionSet.pick_entry(
@@ -290,13 +334,7 @@ func _begin(
 	_node.animation = clip
 	_length = animation.animation_player.get_animation(clip).length
 	_time = 0.0
-	_from = body.global_position
-	if kind == Kind.STOP:
-		# The stick was let go a tick before the tree saw it: the stop's ground counts from there.
-		# From the velocity, not `get_position_delta()`: a puppet is placed, never stepped, and
-		# its delta is from wherever it was last stepped, so its stop seeked to the end at once.
-		var tick := 1.0 / Engine.physics_ticks_per_second
-		_from -= Vector3(body.velocity.x, 0.0, body.velocity.z) * tick
+	_from = _let_go_from if kind == Kind.STOP else body.global_position
 	_facing = body.facing
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z)
 	var wish := body.move_goal.direction(body)
