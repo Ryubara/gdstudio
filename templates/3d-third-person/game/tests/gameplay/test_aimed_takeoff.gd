@@ -17,10 +17,11 @@ extends GdUnitTestSuite
 enum Part { BEFORE, TAKEOFF, AIR }
 
 const PISTOL := "res://gameplay/weapon/pistol.tres"
-## Ticks of the aim before the jog, of the jog, and of the stop clip before the jump.
+## Ticks of the aim before the jog, of the jog, and from the let-go to the jump: the stop clip
+## begins `GaitTransitions.STOP_GRACE` (6 ticks) after the let-go (gdstudio #1563) and plays 8.
 const AIM_TICKS := 20
 const JOG_TICKS := 45
-const STOP_TICKS := 8
+const STOP_TICKS := 14
 ## Ticks read from the jump press, and the updates in the jump state that are its takeoff.
 const READ_TICKS := 24
 const TAKEOFF_UPDATES := 4

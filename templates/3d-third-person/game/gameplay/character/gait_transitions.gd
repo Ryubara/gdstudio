@@ -80,6 +80,8 @@ var _let_go := -1.0
 var _let_go_from := Vector3.ZERO
 var _let_go_speed := 0.0
 var _let_go_phase := 0.0
+# `Character.goal_speed` this frame, read once in `step()` (a read costs about half a microsecond).
+var _goal := 0.0
 # The state the body machine was last asked for (`route()`): where it goes from this state when
 # it finds itself left there.
 var _asked: StringName = CharacterAnimation.GROUND
@@ -142,6 +144,7 @@ func step(
 	playback: AnimationNodeStateMachinePlayback,
 	delta: float
 ) -> void:
+	_goal = animation.character.goal_speed
 	_count_standing(animation.character)
 	_count_let_go(animation, blend, delta)
 	if _began_by_step(animation, playback) or _went_on(animation, blend, playback, delta):
@@ -185,14 +188,12 @@ static func on_foot(body: Character) -> bool:
 	)
 
 
-## The transition the body calls for now, as `{kind, clip}`, or empty: what `step()` would start.
+## The transition the body calls for now, as `{kind, clip}`, or empty: what `step()` would start
+## (from the goal speed `step()` read this frame).
 func pick(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary:
 	var body := animation.character
 	var standing := settings.standing_speed
-	if (
-		body.ground_speed() < standing
-		or (_since_standing <= START_GRACE and body.goal_speed > standing)
-	):
+	if body.ground_speed() < standing or (_since_standing <= START_GRACE and _goal > standing):
 		return _pick_standing(animation, blend)
 	return _pick_moving(animation, blend)
 
@@ -211,7 +212,7 @@ func _count_let_go(animation: CharacterAnimation, blend: GaitBlend, delta: float
 	if settings == null or not _any:
 		return
 	var body := animation.character
-	if body.goal_speed > settings.standing_speed:
+	if _goal > settings.standing_speed:
 		_let_go = -1.0
 		return
 	if _let_go >= 0.0:
@@ -232,7 +233,7 @@ func _pick_standing(animation: CharacterAnimation, blend: GaitBlend) -> Dictiona
 	var body := animation.character
 	var clips := settings.transition_clips
 	var player := animation.animation_player
-	var goal := body.goal_speed
+	var goal := _goal
 	var picked := {}
 	# An aimed walk faces the view and strafes; a start faces the way it moves, so none plays.
 	if goal > settings.standing_speed and not body.aiming:
@@ -258,7 +259,7 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	var clips := settings.transition_clips
 	var player := animation.animation_player
 	var speed := body.ground_speed()
-	if body.goal_speed <= settings.standing_speed:
+	if _goal <= settings.standing_speed:
 		if _let_go < STOP_GRACE:
 			return {}  # Maybe a let-go between two keys: no stop yet (gdstudio #1563).
 		# The gait and the foot of the let-go, the moment the stop is played from.
@@ -363,7 +364,7 @@ func _go_on(
 	if not on_foot(body):
 		_hand_over(animation, blend, playback, true)  # A state the machine has no node for (a vault).
 		return
-	var goal := body.goal_speed
+	var goal := _goal
 	var standing := settings.standing_speed
 	var cancelled := (
 		(kind == Kind.START and goal <= standing)
@@ -417,7 +418,7 @@ func _body_done(body: Character) -> bool:
 			# itself under a body that still slides.
 			return body.ground_speed() < STOP_DONE
 		Kind.START:
-			return body.ground_speed() >= body.goal_speed * 0.95
+			return body.ground_speed() >= _goal * 0.95
 		_:
 			return (
 				absf(rad_to_deg(wrapf(body.facing - _facing, -PI, PI)))
