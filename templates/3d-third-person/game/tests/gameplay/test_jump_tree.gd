@@ -241,9 +241,10 @@ func test_a_long_fall_lands_hard_and_holds_the_body_until_it_has_settled() -> vo
 	await _until_state(_command(0.0), CharacterAnimation.LAND, 120)
 	assert_str(String(_jump().landing)).is_equal(String(CharacterClips.LAND_HARD))
 	assert_float(_jump().fall_speed).is_greater_equal(9.0)
-	# Standing, the body is out of its landing state after `land_time`; the tree plays the
-	# landing through its settle to its end, then the ground state.
-	var land_time := _player.tuning.land_time
+	# Standing, the body is out of its landing state after the hard landing's hold
+	# (`hard_land_time`, gdstudio #1535); the tree plays the landing through its settle to its
+	# end, then the ground state.
+	var land_time := _player.tuning.hard_land_time
 	await _largest(_command(0.0), int(land_time * 60.0) + 6)
 	assert_int(_player.state).is_equal(Character.State.IDLE)
 	assert_str(String(_animation.body_state())).is_equal(String(CharacterAnimation.LAND))
@@ -263,7 +264,8 @@ func test_a_landing_asked_to_move_gives_the_body_back_at_its_control_frame() -> 
 	var ticks := await _until_state(walk, CharacterAnimation.GROUND, 120)
 	var left_at := ticks * CommandDriver.tick_seconds()
 	prints("JUMP_LAND hard, asked to walk: left at %.2f s (control %.2f s)" % [left_at, control])
-	assert_float(left_at).is_less_equal(maxf(control, _player.tuning.land_time) + 0.05)
+	# The controller holds the body to the control frame (gdstudio #1535): the clip is not cut.
+	assert_float(left_at).is_between(control - 0.02, control + 0.05)
 
 
 func test_a_landing_into_a_run_hands_over_to_the_jog_on_its_right_foot() -> void:

@@ -6,7 +6,9 @@
 ##
 ## The parts: a standing jump (the standing take-off, the air, the soft landing), a jog with a
 ## running jump off the left foot and one off the right (each pressed while that foot is down,
-## the landings into the run), and a drop from 3 m (the hard landing, played through its settle).
+## the landings into the run), a drop from 3 m (the hard landing, played through its settle), and
+## one with the stick pushed all the way (the controller holds the body to the hard landing's
+## control frame, gdstudio #1535, then it runs on).
 ##
 ## Every physics frame it prints one line starting `JUMPTOUR`: the frame (shown on the screen too),
 ## the part, then for Ada's own body and for Bo's puppet of her the tree's body state, the take-off
@@ -37,6 +39,8 @@ const PARTS: Array[Array] = [
 	["Stop", 60, Vector3.ZERO, ""],
 	["@east_end", 30, Vector3.ZERO, ""],
 	["Drop from 3 m", 150, Vector3.ZERO, "drop"],
+	["@east_end", 30, Vector3.ZERO, ""],
+	["Drop from 3 m, pushed west", 120, WEST, "drop"],
 ]
 const DROP := 3.0
 
