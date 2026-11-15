@@ -18,6 +18,7 @@ templates, the docs site). **Not here:** making a game (`gamedev/`, `engines/`, 
 | [Landing a pull request](landing.md) | The landing order, the refresh before a merge, auto-merge and hand merges, merging `main` into a branch. |
 | [Hooks](hooks.md) | What the hook dispatcher refuses while agents work, and the proof gate. |
 | [The hold](hooks-hold.md) | How `S-hold` stops a merge and the maintainer's switch for lifting it. |
+| [Issue order, idle issues and agent stalls](hooks-issues.md) | How the dispatcher keeps issues starting oldest first, stops the coordinator while an issue sits idle and refuses a task agent's end without a report. |
 | [Merging on a red main](hooks-red-main.md) | How the merge guard stops every merge but the fix forward while the default branch is red. |
 | [Writing a check or a guard](writing-checks.md) | What went wrong in hooks, `groundwork.py` and CI jobs, and how to write the next check. |
 | [The shell and scripted edits](shell.md) | Pipes, chains, line endings, escapes, paths and processes: the habits that keep a command from hiding its failure. |
