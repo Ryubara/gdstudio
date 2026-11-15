@@ -9,6 +9,15 @@ The job log has a timestamp per line. A suite's time is the gap between its `Run
 (its `before()` and `after()` included). Sort the gaps; the top twenty are the work. Run the whole suite locally the
 same way only when nothing else is loading the machine: a loaded machine doubles unrelated suites.
 
+- **Approach:** In a slow case, find the costly measure (a skin posed in GDScript, a raycast sweep) and check which of
+  its readings an assertion reads; measure only those, keeping any counter that picks which updates are measured
+  running through the skipped ones, so the asserted updates stay the same. Then split cases that share no helpers into
+  their own script, so the planner deals them to different shards. **Watch out for:** a recorder shared by two phases
+  measures in both: the ground's moves were read only for speeds, yet the rifle went through the skin on every third of
+  their 525 updates, two thirds of the live cases' time. **Seen:** gdstudio #1558, 2026-11-14
+  (`test_jump_weapon_hold.gd`, 421 s locally and 841 s on CI, became 103 s and 125 s in two scripts with the same
+  assertions).
+
 ## What makes a suite run at the clock's speed {#what-makes-a-suite-run-at-the-clocks-speed}
 
 | Cause | What to do |
