@@ -343,7 +343,9 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   `get_current_node()` in the update it travels, but the skeleton shows the new pose a frame later (measured at
   `skeleton_updated`, stepped by hand and in the running game alike), so the modifier starts the decaying difference
   from the last drawn pose again on each of the three frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
-  start on the frame the new pose arrives takes the whole jump. A `SkeletonModifier3D` added as an internal child at
+  start on the frame the new pose arrives takes the whole jump. It stands aside while a whole-body action plays (the
+  action cross-fades in the tree) except a carried one, whose clip shows at once and whose jump it takes (lying
+  down and getting up: [prone](third-person/moves.md#prone)). A `SkeletonModifier3D` added as an internal child at
   the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
 
 - **Approach:** Play a gait alone, slowed or sped up, for as many speeds as it looks right at, and blend two gaits

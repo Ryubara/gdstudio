@@ -342,10 +342,11 @@ frame, `CharacterTuning.hard_land_time`, kit #1535) or, landing asked to run, `L
 over to the jog on its right foot. Every choice is in the Animation's `gait_settings` (`GaitSettings` > Jump; off,
 the three clips of `jump_clip`, `air_clip` and `land_clip` alone).
 Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up
-`prone/Prone_To_Crouch` for its `exit_time`. Lying, the weapon is put away (its model hidden, the grip off) because the
-fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male mannequin's,
-kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file; the vault clips come a body the
-same way, from `vault_libraries` (kit #1294).
+`prone/Prone_To_Crouch` for its `exit_time`, each at full weight from its first frame with the momentum blend carrying
+the pose the body was in into it (gdstudio #1568). Lying, the weapon is put away (its model hidden, the grip off)
+because the fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male
+mannequin's, kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file; the vault clips
+come a body the same way, from `vault_libraries` (kit #1294).
 
 Aiming lying down plays the held weapon's prone aim clips inside the prone state, over the idle and the crawl from
 `spine_01` up, blended by the look: the `WeaponDef`'s `prone_aim_clip`, `prone_aim_up_clip` and `prone_aim_down_clip`

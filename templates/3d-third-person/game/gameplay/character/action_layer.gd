@@ -22,8 +22,12 @@ var clip: StringName = &""
 var upper_only := false
 ## True while an action played on the frame before (its end is said once).
 var was_active := false
+## True when the clip that plays now (or played last) came in with no cross-fade, the momentum
+## blend carrying the drawn pose into its first frame (`play_carried()`: lying down, getting up).
+var carried := false
 
 var _clip_node: AnimationNodeAnimation
+var _one_shot: AnimationNodeOneShot
 
 
 ## Adds the clip, its scale and seek and the one-shot to `root`; the one-shot's inputs are joined
@@ -47,6 +51,7 @@ func add_to(animation: CharacterAnimation, root: AnimationNodeBlendTree) -> void
 	var hips := TreeParts.bone_paths(player, [&"root", &"pelvis"])
 	animation.hits.prepare(action, hips, upper, arms, kept)
 	root.add_node(NODE, action, Vector2(1400, 0))
+	_one_shot = action
 
 
 ## Plays `clip_name` once on `animation`'s tree, sped up or slowed to take `duration` seconds when
@@ -61,11 +66,22 @@ func play(
 		UseLayer.begin(animation, arm, clip_name, duration, upper_body)
 	upper_only = upper_body
 	clip = clip_name
+	_fade_in(animation, false)
 	_clip_node.animation = clip_name
 	var length := animation.animation_player.get_animation(clip_name).length
 	var scale := length / duration if duration > 0.0 else 1.0
 	tree.set(_P_SCALE, scale)
 	tree.set(_P_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
+
+## Plays `clip_name` once over the whole body in `duration` seconds, at full weight from its first
+## frame: the one-shot's fade-in would show the state under it first (the prone idle under the
+## to-prone clip, upright to lying in a frame: gdstudio #1568), so `MomentumBlend` carries the
+## drawn pose into the clip instead (`carried`). For a clip that starts on the pose the body is in
+## or near (going down from a crouch, getting up from lying).
+func play_carried(animation: CharacterAnimation, clip_name: StringName, duration: float) -> void:
+	play(animation, clip_name, duration, false)
+	_fade_in(animation, true)
 
 
 ## Stops the action clip on `animation`'s tree early.
@@ -78,3 +94,10 @@ func stop(animation: CharacterAnimation) -> void:
 ## True while the action clip plays on `tree`.
 func is_active(tree: AnimationTree) -> bool:
 	return tree != null and tree.get(_P_ACTIVE)
+
+
+# The one-shot's fade-in: none for a carried clip, `action_blend_time` for the rest.
+func _fade_in(animation: CharacterAnimation, carry: bool) -> void:
+	carried = carry
+	if _one_shot != null:
+		_one_shot.fadein_time = 0.0 if carry else animation.action_blend_time
