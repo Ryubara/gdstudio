@@ -388,6 +388,12 @@ func is_acting(whole_body := false) -> bool:
 	return _actions.is_active(tree) and not (whole_body and _actions.upper_only)
 
 
+## True while a whole-body action plays that came in with no cross-fade (lying down, getting up):
+## the momentum blend carries the drawn pose into it (`ActionLayer.play_carried()`).
+func is_action_carried() -> bool:
+	return _actions.carried and is_acting(true)
+
+
 ## The action clip that played last.
 func last_action() -> StringName:
 	return _actions.clip
@@ -618,9 +624,10 @@ func crawl_pace() -> float:
 func _on_prone_changed(down: bool) -> void:
 	var prone := character.prone_tuning
 	var clip := to_prone_clip if down else to_crouch_clip
-	if prone == null or clip == &"" or not animation_player.has_animation(clip):
+	if prone == null or clip == &"" or tree == null or not animation_player.has_animation(clip):
 		return
-	play_clip(clip, prone.enter_time if down else prone.exit_time)
+	_actions.play_carried(self, clip, prone.enter_time if down else prone.exit_time)
+	action_started.emit(clip)
 
 
 func _on_interacted(_target: Node3D) -> void:
