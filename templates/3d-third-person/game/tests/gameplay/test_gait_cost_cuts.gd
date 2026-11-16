@@ -169,7 +169,7 @@ func _side_by_side(momentum: bool) -> Dictionary:
 	settings.momentum_blend = momentum
 	for index in bodies.size():
 		var animation: CharacterAnimation = bodies[index].get_node("Animation")
-		# A tree built again (the settings changed) draws its states once as it starts.
+		# The settings changed: each tree is built again, and both are held through it.
 		animation.gait_settings = settings
 		animation.gait.blend.set_undrawn = index == 1
 		animation.set_throttled(true)

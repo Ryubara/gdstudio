@@ -325,3 +325,11 @@ headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdst
   the gun, bit for bit, in 99 to 100 % of frames, so a push that gave back the last one for the same inputs saved 5
   and 12 microseconds a character at the ready and the low ready on the desktop, while every idle and walk clip worked
   it out every frame. **Seen:** gdstudio #1490, 2026-11-14 (the skip was dropped).
+- **Approach:** When a bench's whole-frame figure is a difference of two runs (`gait_cost.py`'s `on` less `off`),
+  time its parts in the web build instead: spans in the kept game, the same spans in every build compared, and an
+  `AnimationTree` timed by setting its `callback_mode_process` to manual and calling `advance()` inside a span. Then
+  read each part's `on` less `off` over three rounds or more. **Watch out for:** the gait bench's difference moved
+  10 to 40 microseconds a character between rounds on a shared machine while each part held within 2, and a clock
+  read costs about a microsecond in Chrome, so a build with eight spans inside its transitions read 5 microseconds
+  dearer there than a build with none. **Seen:** gdstudio #1569, 2026-11-15 (the first comparison had spans inside
+  only the branch's script).

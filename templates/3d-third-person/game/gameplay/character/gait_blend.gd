@@ -29,10 +29,9 @@ const CROUCH_GAITS: Array[StringName] = [&"walk"]
 const ROLL_ON := 0.25
 const TRIM_TIME := 0.15
 const TRIM_RANGE := Vector2(0.8, 1.25)
-## Seconds the crouch space is still set after the body last crouched or was drawn crouched, or
-## the tree was built: a cross-fade out of the crouch (`CharacterAnimation.blend_time`, with the
-## momentum blend off) still draws it, and so does a machine just built, once. Outside these
-## nothing draws it, so it is not set (gdstudio #1569).
+## Seconds the crouch space is still set after the body last crouched or was drawn crouched: a
+## cross-fade out of the crouch (`CharacterAnimation.blend_time`, with the momentum blend off)
+## still draws it. Outside that nothing draws it, so it is not set (gdstudio #1569).
 const CROUCH_HOLD := 0.5
 
 var settings: GaitSettings
@@ -394,8 +393,6 @@ func _build(
 		lengths.append(_length(animation, clip))
 	entry.lengths = lengths
 	_spaces[state] = entry
-	# A tree built again draws its machine's states once as it starts: set them all for a while.
-	_crouch_hold = CROUCH_HOLD
 	place_points(animation.character.tuning if animation.character != null else null)
 	return space
 

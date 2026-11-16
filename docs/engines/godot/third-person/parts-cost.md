@@ -207,6 +207,12 @@ weights and the slide.
   call skipped at rest may have a side effect another part relies on (`MeleeLayer.aim_of` keeps a flag); ask such a
   call once instead of dropping it, and keep what the first frame out of rest reads (the aim ray of the last two
   ticks). **Seen:** gdstudio #1478, 2026-11-13.
+- **Approach:** In a suite that compares two bodies side by side, make one player and drop it before the pair (the
+  suite's `before()`), and run the pair once with the shortcut on in both before you blame the shortcut. **Watch out
+  for:** the first pair a run makes draws apart for a few ticks whatever they run: with both bodies setting every
+  space, the first read 0.12 mm apart at an upper arm (0.07 mm at the pelvis, gone in 16 ticks) and every later pair
+  0, so the crouch shortcut's first test failed and a fix for a cause that was not there went in before the control
+  run showed it. **Seen:** gdstudio #1569, 2026-11-15 (`test_gait_cost_cuts.gd`).
 - **Approach:** Give every character an extra collider only if it follows nothing: `top_level`, on no layer, put in
   place for the query that needs it (`ShotHull.arm`, as `HitZones` moves its zones only for a shot). Run the AI cost
   gate and the parts bench, interleaved with main, before pushing a body added to every character. **Watch out for:**
