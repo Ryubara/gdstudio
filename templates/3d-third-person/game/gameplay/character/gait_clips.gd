@@ -29,6 +29,9 @@ static var _loaded: Dictionary = {}
 static var _looked: Dictionary = {}
 ## `contacts()` worked out once per clip and foot (`{clip: {foot: shares}}`), asked every frame.
 static var _contacts: Dictionary = {}
+## Each travel curve packed once per clip (`Travel`): a start or a stop reads it every frame it
+## plays, and walking the record's nested arrays cost 2 to 3 microseconds a read (gdstudio #1569).
+static var _travels: Dictionary = {}
 static var _hips := REFERENCE_HIPS
 
 
@@ -114,34 +117,57 @@ static func travel_at(clip: StringName, time: float) -> float:
 ## over the frames of its settle, and reading through them moved the clip 18 frames in one tick, a
 ## hand 31 cm (gdstudio #1525); the rest plays at its own pace once the body is at rest.
 static func time_at_travel(clip: StringName, distance: float) -> float:
-	var curve: Array = record(clip).get("travel", [])
-	if curve.size() < 2 or is_zero_approx(curve[-1][1] - curve[0][1]):
+	var curve := _travel(clip)
+	var forward := curve.forward
+	var count := forward.size()
+	if count < 2 or is_zero_approx(forward[count - 1] - forward[0]):
 		return -1.0
-	if distance >= curve[-1][1] - REST_TRAVEL:
-		return travel_end(clip)
-	for index in range(curve.size() - 1):
-		var a: Array = curve[index]
-		var b: Array = curve[index + 1]
-		if distance <= b[1] or index == curve.size() - 2:
-			var share := clampf((distance - a[1]) / maxf(b[1] - a[1], 0.0001), 0.0, 1.0)
-			return lerpf(a[0], b[0], share) / FPS
-	return float(curve[-1][0]) / FPS
+	if distance >= forward[count - 1] - REST_TRAVEL:
+		return curve.end
+	# The segment that ends at the first point reaching `distance`, else the last one: found by
+	# halves on a curve that never goes back (all of ours), else point by point.
+	var index := count - 2
+	if curve.rising:
+		index = clampi(forward.bsearch(distance) - 1, 0, count - 2)
+	else:
+		for each in range(count - 1):
+			if distance <= forward[each + 1]:
+				index = each
+				break
+	var share := clampf(
+		(distance - forward[index]) / maxf(forward[index + 1] - forward[index], 0.0001), 0.0, 1.0
+	)
+	return lerpf(curve.frames[index], curve.frames[index + 1], share) / FPS
 
 
 ## The time in seconds at which `clip`'s travel curve is within `REST_TRAVEL` of its end: where a
 ## stop's body is at rest and the clip plays on at its own pace. 0 without a curve.
 static func travel_end(clip: StringName) -> float:
+	return _travel(clip).end
+
+
+# The travel curve of `clip` packed (`Travel`), worked out once; empty without a curve.
+static func _travel(clip: StringName) -> Travel:
+	var cached: Travel = _travels.get(clip)
+	if cached != null:
+		return cached
+	var made := Travel.new()
 	var curve: Array = record(clip).get("travel", [])
-	if curve.is_empty():
-		return 0.0
-	for point: Array in curve:
-		if point[1] >= curve[-1][1] - REST_TRAVEL:
-			return float(point[0]) / FPS
-	return float(curve[-1][0]) / FPS
+	if not curve.is_empty():
+		made.end = float(curve[-1][0]) / FPS
+		var found := false
+		for point: Array in curve:
+			made.frames.append(float(point[0]))
+			made.forward.append(float(point[1]))
+			if made.forward.size() > 1 and made.forward[-1] < made.forward[-2]:
+				made.rising = false
+			if not found and point[1] >= curve[-1][1] - REST_TRAVEL:
+				made.end = float(point[0]) / FPS
+				found = true
+	_travels[clip] = made
+	return made
 
 
-## The time in seconds at which `clip`'s turn curve (frame, degrees) has turned `degrees` (either
-## way), held to the clip's length. -1 without a record or a curve that never turns.
 static func time_at_turn(clip: StringName, degrees: float) -> float:
 	var curve: Array = record(clip).get("turn", [])
 	if curve.size() < 2 or is_zero_approx(curve[-1][1] - curve[0][1]):
@@ -173,12 +199,14 @@ static func leg_scale(skeleton: Skeleton3D, owner: Node3D) -> float:
 static func register(clip: StringName, data: Dictionary) -> void:
 	_records[clip] = data
 	_contacts.erase(clip)
+	_travels.erase(clip)
 
 
 ## Takes away a record `register()` gave.
 static func forget(clip: StringName) -> void:
 	_records.erase(clip)
 	_contacts.erase(clip)
+	_travels.erase(clip)
 
 
 static func _load(clip: StringName) -> void:
@@ -200,3 +228,15 @@ static func _load(clip: StringName) -> void:
 			var key := StringName("%s/%s" % [library, name])
 			if not _records.has(key):
 				_records[key] = clips[name]
+
+
+## A travel curve packed for the reads of every frame (gdstudio #1569).
+class Travel:
+	extends RefCounted
+	## Each point's frame and its distance forward (m, on the reference body).
+	var frames := PackedFloat64Array()
+	var forward := PackedFloat64Array()
+	## True when the distance never goes back: the point is found by halves.
+	var rising := true
+	## `travel_end()`.
+	var end := 0.0

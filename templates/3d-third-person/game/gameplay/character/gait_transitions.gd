@@ -69,6 +69,11 @@ const _WISH_CHANGE_COS := 0.766
 ## Seconds of a reversal's or a pivot's own time before its turn begins at which its look starts:
 ## the plant (gdstudio #1565).
 const TURN_LEAD := 0.2
+# The margin on the dot product under which `_pick_moving()` works the angle out exactly, so the
+# shortcut never decides a frame near the angle.
+const _NEAR := 0.001
+# No transition: one empty dictionary shared, read-only (a moving body asks every frame).
+static var _none: Dictionary = _empty()
 
 var settings: GaitSettings
 ## The drawn turn of a reversal or a pivot played as a look (`TurnLook`).
@@ -308,13 +313,22 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 				stop_phase
 			)
 		)
-	if body.turn_motion.follows(body):
-		return {}  # The step starts its reversals and pivots (`step()` follows them).
 	var wish := body.move_goal.direction(body)
 	var moving := Vector3(body.velocity.x, 0.0, body.velocity.z).normalized()
+	# Most frames of a moving body: it goes about the way it is asked, well under both angles, read
+	# from a dot product; the angle itself is worked out only near or past one (gdstudio #1569).
+	# With `CharacterTuning.turn_root_motion` the step starts its reversals and pivots (`step()`
+	# follows them).
+	var least := minf(settings.reversal_angle, settings.pivot_angle)
+	if (
+		least > 180.0
+		or moving.dot(wish) > cos(deg_to_rad(least)) * wish.length() + _NEAR
+		or body.turn_motion.follows(body)
+	):
+		return _none
 	var angle := rad_to_deg(moving.angle_to(wish))
 	if angle < settings.reversal_angle and angle < settings.pivot_angle:
-		return {}
+		return _none
 	var point := blend.main_point(CharacterAnimation.GROUND, maxf(speed, _speed_before))
 	if angle >= settings.reversal_angle:
 		# A reversal turns over the foot it plants (#1157: planting the left foot it turns to the
@@ -351,6 +365,12 @@ static func next_foot(gait: StringName, phase: float) -> String:
 ## Where the clip is now, in seconds.
 func time() -> float:
 	return _time
+
+
+static func _empty() -> Dictionary:
+	var none := {}
+	none.make_read_only()
+	return none
 
 
 func _found(found: Kind, picked: StringName) -> Dictionary:
