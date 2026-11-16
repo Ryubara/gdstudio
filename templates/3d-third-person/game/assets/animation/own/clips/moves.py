@@ -197,10 +197,10 @@ STOP = {
     "kb_a_second": 40.0,
 }
 STOPS = {
-    # Since gdstudio #1567 the stops brake as hard as the game's body does (`rates`): the walk at rest in 0.24 s over
-    # 0.21 m, the jog in 0.43 s over 0.85 m, the sprint in 0.67 s over 2.09 m (they took 0.5, 0.93 and 1.47 s over
-    # 0.48, 1.96 and 4.82 m). The feet cannot hold the lean that braking asks for (48 degrees back at 11 m/s2), so
-    # the run stops declare how far off it they are; the hips stay nearer the root than the old stops' shares would
+    # Since gdstudio #1567 the stops brake by one rate per speed band, as the game's body does (`rates`): the root at
+    # rest in 0.20 s over 0.19 m from the walk, 0.40 s over 0.80 m from the jog, 0.60 s over 1.96 m from the sprint
+    # (it took 0.5, 0.93 and 1.47 s over 0.48, 1.96 and 4.82 m). The feet cannot hold the lean that braking asks for
+    # (51 degrees back at 12 m/s2), so the run stops declare how far off it they are; the hips stay nearer the root than the old stops' shares would
     # put them (`lean_fore`, `lean_low`), or the leg reaching for the brake step bends the foot past its range.
     "walk": {**STOP, "steps": [10, 10], "lean_limit": 7.0},
     "jog": {

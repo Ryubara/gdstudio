@@ -100,8 +100,8 @@ The gait cycles they leave are 0.67 s (jog) and 0.60 s (sprint): each clip was f
 spot (aiming while standing) is seeked by the body's turn, at most `transition_pace` (4 since #1565, 2 before) times
 its pace. Starts are played by the ground the body covers (0.67 s from a walk, 0.83 from a jog, 1.1 from a sprint in
 the matrix) and now end when the wish moves. The stops are not sped up: each stop deceleration covers its clip's
-travel so the planted feet hold the floor (`test_gait_stops.gd`), and a faster stop would need shorter stop clips
-(the sprint's 1.67 s to rest is a follow-up for the clip toolkit); any key ends a stop the next tick. Epic's Game
+travel so the planted feet hold the floor (`test_gait_stops.gd`); since gdstudio #1567 the clips themselves are short
+(below), and any key ends a stop the next tick. Epic's Game
 Animation Sample follows the capsule's own movement with its start, stop and turn clips, and its characters change
 direction by about 85 degrees at once ([a thread on the sample's root motion and trajectory](https://forums.unrealengine.com/t/how-to-perfectly-align-animation-root-motion-with-the-movercomponents-trajectory/2746566),
 [its 5.7 notes on responsiveness](https://www.unrealengine.com/en-US/tech-blog/explore-the-updates-to-the-game-animation-sample-project-in-ue-5-7));
@@ -118,17 +118,23 @@ Lyra warps the lower body's orientation to the movement rather than waiting for 
   (`tests/fixtures/move_response.gd`).
 
 **How a stop moves the body** (gdstudio #1415). A body on its feet with the stick let go slows by the stop deceleration
-of the gait whose speed band it is in (`CharacterTuning` > Ground > Stops): `walk_stop_deceleration` 2.84 m/s² up to
-`walk_speed`, `run_stop_deceleration` 4.38 up to `run_speed`, `sprint_stop_deceleration` 4.57 above. At the template's
-60 ticks a second they cover each stop clip's travel: 0.48 m from the walk, 1.96 m from the jog, 4.82 m from the sprint,
-in 0.60, 1.13 and 1.67 s (0.11 and 0.18 s from the jog and the sprint before). The stop clip is played by that ground
+of the gait whose speed band it is in (`CharacterTuning` > Ground > Stops): `walk_stop_deceleration` 6.72 m/s² up to
+`walk_speed`, `run_stop_deceleration` 10.53 up to `run_speed`, `sprint_stop_deceleration` 11.13 above (gdstudio #1567;
+2.84, 4.38 and 4.57 before). At the template's 60 ticks a second they cover each stop clip's travel: 0.19 m from the
+walk, 0.80 m from the jog, 1.96 m from the sprint, in 0.25, 0.47 and 0.70 s (0.48, 1.96 and 4.82 m in 0.60, 1.13 and
+1.67 s before; the clips brake at 10, 12 and 12 m/s² from a first frame at the gait's speed,
+[the short stops](../../../tools/blender/start-stop-clips.md#taught)). The stop clip is played by that ground
 until the body is at rest (`GaitTransitions.STOP_DONE`, 0.02 m/s), counted from the tick the stick was let go, so its
 planted feet hold the floor (under 3 mm in `test_gait_stops.gd`). Crouched, in the air or held by an action the body
 stops by `deceleration` (36) as before. The rate is a function of the speed alone, so a predicting client and the server
 stop a body at the same place (`test_net_gait_stops.gd`), and an AI's navigator lets go that far before its goal
 ([stopping](ai-navigator.md#navigator)). A game that changes a gait's speed or its stop clip sets the matching stop
-deceleration to `(v_top² - v_bottom²) / (2 × travel)` over the band; a faster stop leaves the clip's feet sliding under
-a body at rest.
+decelerations so the body covers each clip's travel: `(v_top² - v_bottom²) / (2 × travel)` over each band is the
+first guess, and the body's ticks cover less than it (the speed falls before the first tick moves it: about `v / 120`
+s of ground less), so step the controller's rule and solve each band in turn, walk first; a faster stop leaves the
+clip's feet sliding under a body at rest. While a stop waits out `STOP_GRACE` the ground space weighs its gaits at the
+let-go's speed (`GaitTransitions.held_speed()`), their paces following the ground, so the walk is not blended into a jog
+the stop clip then replaces (a planted foot jumped 10 cm onto the clip's).
 
 **What a lean clip needs** (gdstudio #1159): its first frame is the pose leaning one way; what the tree adds is that
 pose's difference from the idle's first frame, so it keys every bone the idle keys, the `ik_` targets too (where

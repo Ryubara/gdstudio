@@ -17,9 +17,10 @@ one (a pivot, a reversal, a landing into a run) starts from this -->
 
 - **The root's speed is the first input.** A start's speed is a body falling forward over its feet (its
   acceleration is `g / h` times how far the centre of mass is ahead of where the feet press, up to what stepping
-  feet can keep up), scaled until the gait's speed is reached at a frame the style names; a stop's braking comes on
-  at once, holds and eases. The root is still on the idle's frame and at the gait's speed on the gait's, which the
-  join check reads from the travel (`first_speed`, `last_speed`).
+  feet can keep up), scaled until the gait's speed is reached at a frame the style names; a stop brakes by one rate
+  per gait's speed band (`rates`, gdstudio #1567), as the game's body does, coming on over `rate_in` frames (with
+  no `rates`: on at once, held and eased by `halt`, `brake_in`, `brake_out`). The root is still on the idle's frame
+  and at the gait's speed on the gait's, which the join check reads from the travel (`first_speed`, `last_speed`).
 - **The footfalls are the second.** A style gives each step's frames and how long each foot outlasts the next
   landing (`steps`, `air`: under 0 is a flight). The last two landings of a start are the gait's own contacts,
   placed from where the gait's root would be, and the first contact of a stop is the gait's; the last two landings
@@ -174,3 +175,23 @@ that follow -->
   looks north) and name each let-go's phase from the stop entry its `STOPTOUR` lines print (`Sprint_Stop_05`); no scene
   lets go at a chosen phase yet. **Watch out for:** `own_blend_tour.tscn` cannot film it from the side: its player's
   movement follows its camera, so a side camera turns the run. **Seen:** gdstudio PR #1536, 2026-11-14.
+- **Approach:** Brake a stop clip by the game's own law (`rates`: one rate per speed band), keep its first frame at
+  the gait's speed, and set the controller's decelerations by stepping its rule at 60 ticks until the body covers each
+  clip's travel, walk first. **Watch out for:** decelerations equal to the clip's rates left the body short by 55 mm of
+  the walk's 0.21 m and 180 mm of the sprint's 2.09 m (the clip's first frame runs at speed, the body's first tick
+  already brakes), past the test's 4 %; a clip braking from frame 0 instead failed the toolkit's join speed (6.35 of
+  6.5 m/s) and `test_own_moves.gd`'s. **Seen:** gdstudio #1567, 2026-11-15 (6.72, 10.53, 11.13 for clip rates 10,
+  12, 12).
+- **Approach:** When a stop gets shorter than its gait's cycle, check every entry's landings against the frame the
+  root is at rest: before a strike the landings come after it, and late after a strike the foot in the air lands while
+  the body is fast. Give the late entries a brake step of their own (`late_from`), drop the early ones
+  (`ENTRY_AFTER`), and put a foot that lands on its standing place there whole. **Watch out for:** the jog's stop on two
+  standing landings left a foot redirected 98 % of the way from the gait's place (20 mm short of the idle's) sliding
+  into it over the settle, and the entries four and six frames after the strike landed 0.6 m ahead of the root, out
+  of the leg's reach (71 mm wander, 4 times gravity). **Seen:** gdstudio #1567, 2026-11-15.
+- **Approach:** Keep the gait blend's weights at the let-go's speed while a stop waits out its grace
+  (`GaitTransitions.held_speed()`), and measure a stop clip's planted feet from its second drawn tick. **Watch out
+  for:** a short stop slows the body to 2.95 m/s in the 0.1 s grace, so the walk had a quarter of the weight when the
+  jog stop came in, 10 cm off its planted foot; and the clip's first tick still shows the gait (the skeleton draws a
+  state a tick late), which `test_gait_stops.gd` read as a 82 to 119 mm slide. The walk's stops begin only on a
+  strike, so a walk let go mid-stride still jumps on that tick. **Seen:** gdstudio #1567, 2026-11-15.

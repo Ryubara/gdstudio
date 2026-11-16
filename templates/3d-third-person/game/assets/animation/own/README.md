@@ -856,42 +856,40 @@ row shows. Measured by the build on `form_female` (frames are `_L`, `_R`):
 | Largest change of a joint's speed in a frame | 42 degrees | 42 degrees | 58 degrees |
 | First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
 | Key bytes, the pair | 106 KB | 114 KB | 87 KB |
-| **`Walk_Stop`**: frames | 33 | 38 | 28 |
-| Seconds, metres travelled | 1.10 s, 0.48 m | 1.27 s, 0.51 m | 0.93 s, 0.38 m |
+| **`Walk_Stop`** (since gdstudio #1567): frames | 30 | 34 | 28 |
+| Seconds, metres travelled, root at rest | 1.00 s, 0.19 m, frame 6 | 1.13 s, 0.19 m, frame 6 | 0.93 s, 0.19 m, frame 6 |
 | Landings inside the clip | 2 | 2 | 2 |
-| The frame the game may cut from (`free`) | 23 | 24 | 21 |
-| Lean off the acceleration's over a step, and its declared limit | 8.8 of 10 degrees | 9.5 of 10 degrees | 8.1 of 14 degrees |
-| Fastest drop of the centre of mass with a foot down | 0.58 of gravity | 0.74 of gravity | 0.84 of gravity |
-| A planted sole wanders, `form_female` and `form_male` | 2.56 and 2.78 mm | 2.56 and 2.78 mm | 2.56 and 2.76 mm |
-| A planted sole off the floor, the same two | 0.4 and 0.4 mm | 0.4 and 0.4 mm | 0.4 and 0.4 mm |
+| The frame the game may cut from (`free`) | 20 | 20 | 20 |
+| Lean off the acceleration's over a step, and its declared limit | 4.2 of 7 degrees | 5.3 of 7 degrees | 4.2 of 7 degrees |
+| Fastest drop of the centre of mass with a foot down | 0.71 of gravity | 0.70 of gravity | 0.61 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.56 and 2.74 mm | 2.56 and 2.74 mm | 2.56 and 2.74 mm |
 | Limbs inside limbs, the worst of the four bodies | 2.1 mm | 2.1 mm | 2.1 mm |
-| Largest change of a joint's speed in a frame | 23 degrees | 19 degrees | 26 degrees |
+| Largest change of a joint's speed in a frame | 29 degrees | 29 degrees | 29 degrees |
 | First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
-| Key bytes, the pair | 56 KB | 62 KB | 45 KB |
-| **`Jog_Stop`**: frames | 50 | 54 | 37 |
-| Seconds, metres travelled | 1.67 s, 1.96 m | 1.80 s, 2.08 m | 1.23 s, 1.37 m |
-| Landings inside the clip | 4 | 4 | 3 |
-| The frame the game may cut from (`free`) | 40 | 40 | 30 |
-| Lean off the acceleration's over a step, and its declared limit | 15.2 of 17 degrees | 14.5 of 17 degrees | 23.7 of 24 degrees |
-| Fastest drop of the centre of mass with a foot down | 0.73 of gravity | 0.72 of gravity | 0.54 of gravity |
-| A planted sole wanders, `form_female` and `form_male` | 2.27 and 2.31 mm | 2.27 and 2.36 mm | 2.23 and 2.48 mm |
-| A planted sole off the floor, the same two | 0.3 and 0.3 mm | 0.3 and 0.3 mm | 0.3 and 0.3 mm |
-| Limbs inside limbs, the worst of the four bodies | 3.2 mm | 3.2 mm | 3.8 mm |
-| Largest change of a joint's speed in a frame | 27 degrees | 27 degrees | 30 degrees |
+| **`Jog_Stop`**: frames | 28 | 32 | 26 |
+| Seconds, metres travelled, root at rest | 0.93 s, 0.80 m, frame 12 | 1.07 s, 0.80 m, frame 12 | 0.87 s, 0.80 m, frame 12 |
+| Landings inside the clip | 2 | 2 | 2 |
+| The frame the game may cut from (`free`) | 18 | 18 | 18 |
+| Lean off the acceleration's over a step, and its declared limit | 39.1 of 40 degrees | 41.6 of 42 degrees | 38.9 of 40 degrees |
+| Fastest drop of the centre of mass with a foot down | 0.85 of gravity | 0.74 of gravity | 1.01 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 2.13 and 2.12 mm | 2.13 and 2.11 mm | 2.13 and 2.13 mm |
+| Limbs inside limbs, the worst of the four bodies | 3.4 mm | 3.5 mm | 3.6 mm |
+| Largest change of a joint's speed in a frame | 17 degrees | 17 degrees | 17 degrees |
 | First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
-| Key bytes, the pair | 93 KB | 99 KB | 70 KB |
-| **`Sprint_Stop`**: frames | 67 | 71 | 55 |
-| Seconds, metres travelled | 2.23 s, 4.82 m | 2.37 s, 5.01 m | 1.83 s, 3.95 m |
-| Landings inside the clip | 6 | 6 | 5 |
-| The frame the game may cut from (`free`) | 57 | 57 | 48 |
-| Lean off the acceleration's over a step, and its declared limit | 15.0 of 16 degrees | 16.4 of 17 degrees | 17.5 of 22 degrees |
-| Fastest drop of the centre of mass with a foot down | 0.58 of gravity | 0.6 of gravity | 0.59 of gravity |
-| A planted sole wanders, `form_female` and `form_male` | 2.22 and 2.22 mm | 2.22 and 2.25 mm | 2.17 and 2.28 mm |
-| A planted sole off the floor, the same two | 0.3 and 0.3 mm | 0.3 and 0.3 mm | 0.3 and 0.3 mm |
-| Limbs inside limbs, the worst of the four bodies | 4.0 mm | 4.0 mm | 4.0 mm |
-| Largest change of a joint's speed in a frame | 36 degrees | 36 degrees | 38 degrees |
+| **`Sprint_Stop`**: frames | 38 | 42 | 36 |
+| Seconds, metres travelled, root at rest | 1.27 s, 1.96 m, frame 18 | 1.40 s, 1.96 m, frame 18 | 1.20 s, 1.96 m, frame 18 |
+| Landings inside the clip | 3 | 3 | 3 |
+| The frame the game may cut from (`free`) | 28 | 28 | 28 |
+| Lean off the acceleration's over a step, and its declared limit | 47.1 of 48 degrees | 47.5 of 48 degrees | 46.0 of 48 degrees |
+| Fastest drop of the centre of mass with a foot down | 0.84 of gravity | 0.99 of gravity | 0.81 of gravity |
+| A planted sole wanders, `form_female` and `form_male` | 1.95 and 2.3 mm | 1.95 and 2.32 mm | 1.95 and 2.28 mm |
+| Limbs inside limbs, the worst of the four bodies | 4.0 mm | 3.9 mm | 4.0 mm |
+| Largest change of a joint's speed in a frame | 25 degrees | 29 degrees | 22 degrees |
 | First and last pose against the joined clips' | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees | 0.0 mm, 0.09 degrees |
-| Key bytes, the pair | 120 KB | 130 KB | 99 KB |
+
+The three stops' variants share one braking (`rates`), so the game's stop decelerations hold whichever letter is
+picked: B settles 14 frames with the trunk lagging further and swinging further past, C settles 7 to 8 frames
+with a quicker, smaller swing (the stops before #1567: 33, 50 and 67 frames over 0.48, 1.96 and 4.82 m in A).
 
 **A is shipped for all six** (`picks.json`), as the recommendation until the maintainer picks a letter per type.
 
@@ -927,8 +925,9 @@ the strike nearest it (`moves.ENTRIES`, `ENTRY_AFTER`), begun `offset` frames af
   for the clip's own landing, which moves from the gait's place toward the brake step's only as far as the frames
   left to it allow (`REDIRECT`, 8): one frame before a strike, the whole move put the foot 99 mm off the gait's
   step on the first frame.
-- **The braking and the ground are the stop's from the let-go**: every entry covers 4.818 m (the sprint) or 1.960 m
-  (the jog), so the stop decelerations of `CharacterTuning` hold for all of them and the feet stay planted.
+- **The braking and the ground are the stop's from the let-go**: every entry covers 1.957 m (the sprint) or 0.796 m
+  (the jog) since gdstudio #1567, so the stop decelerations of `CharacterTuning` hold for all of them and the feet
+  stay planted.
 - **The landings keep the strike's rhythm**: after the strike they come `offset` frames sooner and the settle is
   that much longer; before it the strike after the let-go is a brake step that reaches further ahead than the gait's
   place (its swing starts as the gait's), and the clip is `offset` frames longer.
@@ -948,6 +947,31 @@ the strike nearest it (`moves.ENTRIES`, `ENTRY_AFTER`), begun `offset` frames af
 
 The game picks the one whose first frame is nearest the gait's phase at the let-go
 (`GaitTransitionSet.pick_entry`); the walk keeps its two (its feet turn half as fast, and it has no flight).
+
+### The short stops (gdstudio #1567)
+
+The maintainer found locomotion slow: a sprint stop slid the body 4.82 m over 1.67 s. The stops now brake as hard
+as a reversal's plant reads, and by the body's own law:
+
+- **One rate per speed band** (`rates`, 10, 12 and 12 m/s2 in the walk's, the jog's and the sprint's band, coming
+  on over `rate_in`, 1.5 frames), as `CharacterTuning` slows a body let go. The root is at rest 6, 12 and 18 frames
+  in (0.20, 0.40 and 0.60 s) over 0.19, 0.80 and 1.96 m. The clip begins at the gait's speed (the join checks read
+  the first frame's speed within 2 %), and the game's body brakes from the let-go tick at 60 ticks a second, so the
+  decelerations that cover the same ground are a little lower (6.72, 10.53 and 11.13: the body at rest in 0.25, 0.47
+  and 0.70 s), found by stepping the controller's own rule and checked in `test_gait_stops.gd`.
+- **The steps.** The walk and the jog stop on the strike foot and land both others on their standing places (two
+  landings); the sprint lands one brake step 0.35 m ahead (`reach_fore`) and then the two standing places. The jog's
+  entries four and six frames after a strike (`late_from`) land the foot in the air when the gait would, as a brake
+  step 0.3 m ahead, then both standing places; an entry before a strike would land it after the body is at rest, so
+  the jog has one (`ENTRY_AFTER` 6).
+- **The weight carried on.** The lean spring swings 30 % past (`lean_lag`), so the trunk rocks forward over the
+  planted leg as the root stops, then settles back with the hips' dip.
+- **The lean the feet cannot hold.** At 12 m/s2 a body would lean 51 degrees back; the run stops are 39 (jog) and 47
+  (sprint) degrees off that over a step, declared (`lean_limit` 40 and 48, the entries 42 and 50). The hips stay nearer
+  the root than the old shares (`lean_fore` 0.12, `lean_low` 0.04): at 0.15 and 0.12 the leg reaching for the brake
+  step bent the foot past its 55 degrees.
+- **Cost.** 22 stop clips, 484 frames fewer: `locomotion.glb` imports to 661,696 bytes for 96.6 s, 6,852 bytes a
+  second, 4.4 % inside the 7,168 the test holds (6,670 and 6.9 % before: the short stops are denser a second).
 
 ### Numbers for the code (the starts and stops)
 
