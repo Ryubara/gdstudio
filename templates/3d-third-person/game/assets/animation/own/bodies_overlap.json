@@ -1,6 +1,6 @@
 {
  "clips_file": "locomotion.glb",
- "sha256": "4144024bc1e7416f54e4479b800fc05882f484b90ed80d2d4b8bfc54aa2f91ec",
+ "sha256": "c3c17a2f3aa60bde6401d569832ebc82e78a5636862f535a891ea9d1814232fd",
  "measure_sha256": "1797ff617610ae39f922b2c3d2f5d8f0c7c6869b9cbb69bba30d60fd7c1fc4f4",
  "bodies_sha256": {
   "mannequin_female": "2ee6cc3fe888d9b144afa8cc4b2ab7bfc5d13a0d5b7548df777f61f64ad65fa6",
@@ -480,7 +480,7 @@
     "pair": null
    },
    "form_male": {
-    "deepest_mm": 2.4,
+    "deepest_mm": 2.3,
     "frame": 6,
     "pair": "thigh_l in thigh_r"
    },
@@ -1075,7 +1075,7 @@
    },
    "form_male": {
     "deepest_mm": 2.1,
-    "frame": 10,
+    "frame": 38,
     "pair": "thigh_l in thigh_r"
    },
    "mannequin_female": {
@@ -1096,8 +1096,8 @@
     "pair": null
    },
    "form_male": {
-    "deepest_mm": 4.0,
-    "frame": 8,
+    "deepest_mm": 4.1,
+    "frame": 7,
     "pair": "thigh_l in thigh_r"
    },
    "mannequin_female": {
@@ -1118,7 +1118,7 @@
     "pair": null
    },
    "form_male": {
-    "deepest_mm": 3.5,
+    "deepest_mm": 3.7,
     "frame": 3,
     "pair": "thigh_l in thigh_r"
    },

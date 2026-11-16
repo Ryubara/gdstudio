@@ -156,8 +156,8 @@ STOP = {
     # m/s2 the root slows by in the walk's, the jog's and the sprint's speed band, as the game's body does with the
     # stick let go (`CharacterTuning`'s stop decelerations, set from these clips' travel); empty: `halt`,
     # `brake_in` and `brake_out` shape the braking instead (gdstudio #1567)
-    "rates": [8.0, 11.0, 11.0],
-    "rate_in": 1.0,  # frames over which those rates come on
+    "rates": [10.0, 12.0, 12.0],
+    "rate_in": 1.5,  # frames over which those rates come on
     "halt": 4,  # frames after the last landing but one the root is at rest (without `rates`)
     "brake_in": 0.2,  # the share of the braking over which it comes on
     "brake_out": 0.45,  # and the share over which it eases to rest
@@ -234,7 +234,9 @@ STOPS = {
         "lean_hips": 0.12,
         "lean_fore": 0.12,
         "lean_low": 0.04,
-        "reach_fore": 0.45,
+        # A brake step further ahead lowers the hips sooner (`lower`) and an entry four frames after the strike
+        # then leaves the gait's first step by 16 mm at a knee (0.45 m), 9 mm at 0.35.
+        "reach_fore": 0.35,
         "lean_limit": 48.0,
         "entry_lean_limit": 50.0,
         "stretch": 0.99,

@@ -1411,10 +1411,10 @@
  "sprint_stop": {
   "settle": 14,
   "lean_lag": [
-   2.5,
+   2.0,
    0.35
   ],
-  "dip": 0.055,
+  "dip": 0.05,
   "lean_limit": 48.0
  },
  "turn_in_place_90": {

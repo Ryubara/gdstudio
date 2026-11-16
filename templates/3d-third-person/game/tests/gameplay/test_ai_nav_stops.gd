@@ -110,7 +110,7 @@ func test_the_stopping_distance_is_the_stop_decelerations_ground() -> void:
 	assert_float(tuning.call(&"stop_distance", tuning.walk_speed)).is_equal_approx(walk, 0.0001)
 	var jog := walk + (pow(tuning.run_speed, 2.0) - pow(tuning.walk_speed, 2.0)) / (2.0 * run_rate)
 	assert_float(tuning.call(&"stop_distance", tuning.run_speed)).is_equal_approx(jog, 0.0001)
-	assert_float(tuning.call(&"stop_distance", tuning.sprint_speed)).is_equal_approx(1.97, 0.05)
+	assert_float(tuning.call(&"stop_distance", tuning.sprint_speed)).is_equal_approx(2.02, 0.05)
 
 
 # The farthest from its leader a follower stays arrived: once inside the band it walks again only
