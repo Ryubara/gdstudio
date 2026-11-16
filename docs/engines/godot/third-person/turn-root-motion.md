@@ -108,6 +108,31 @@ direction by about 85 degrees at once ([a thread on the sample's root motion and
 Lyra warps the lower body's orientation to the movement rather than waiting for a clip
 ([adapting Lyra's animation](https://www.unrealengine.com/tech-blog/adapting-lyra-animation-to-your-ue5-game)).
 
+**What it costs** (gdstudio #1569). In `tools/bench/gait_cost.tscn` each body stops and then walks off the other
+way while it still moves. Before #1565 the clip's root carried that as a reversal: 2.7 a body a run, the tree in the
+transition's single clip on 90 % of frames. Now it is a stop and a start picked by the tree (0.1 reversals a body, in
+a transition on 41 % of frames), and the reversal look itself costs under 0.1 µs a character a frame. The bench's
+figure (`on` less `off`, 40 players, headless Chrome) read 11 µs a character before #1565, 25 on main after it and
+23 after #1569 (medians of three rounds; single rounds spread 10 to 40); headless on the desktop 17 on main and 11
+after #1569 (three interleaved rounds, 10.6 to 13.9 against 16.6 to 20.4). Timed by part in the web build, the same
+spans in each build and the tree by `advance()` in a span (median of 4 to 8 pairs, µs a character a frame):
+
+| `on` less `off` | Script | Tree | Momentum blend |
+| --- | ---: | ---: | ---: |
+| Before #1565 | 10.8 | -9.3 | 6.5 |
+| #1565 | 19.2 | -0.5 | 8.8 |
+| #1569 | 14.3 | 0.9 | 8.1 |
+
+The tree's row is the floor: a body in a transition draws one clip, one on the ground the four synced points of its
+blend space, so the bodies parked in the root motion's clip drew 9 µs less tree than with the settings off, which no
+change of code gives back short of parking them again. The momentum blend starts more often (a stop and a start where
+one reversal was). What #1569 took off the script: the travel curves read packed and by halves (`GaitClips.Travel`,
+3.0 to 1.5 µs a read on the desktop), the crouch space left unset while nothing draws it (`GaitBlend._crouch_drawn`,
+`CROUCH_HOLD` 0.5 s after the last crouch), the planted-foot trim without its arrays and lambda, a moving body's turn
+rejected from a dot product before the angle, and the tree's action parameter read only once a clip is picked (the
+transitions) or while a start or a blend is under way (the momentum blend). Each draws the same bones
+(`test_gait_cost_cuts.gd`: two bodies side by side, one setting every space, 0.000 mm apart).
+
 - **Approach:** Measure a drawn pose's jump between ticks in `skeleton_updated`, with each tick its own engine frame,
   and hold an action's hand-off from a clip against the same action from the steady gait. **Watch out for:** read
   after `advance()`, `get_bone_global_pose` gives the tree's pose without the modifiers (the momentum blend among

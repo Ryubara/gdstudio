@@ -29,8 +29,14 @@ const CROUCH_GAITS: Array[StringName] = [&"walk"]
 const ROLL_ON := 0.25
 const TRIM_TIME := 0.15
 const TRIM_RANGE := Vector2(0.8, 1.25)
+## Seconds the crouch space is still set after the body last crouched or was drawn crouched: a
+## cross-fade out of the crouch (`CharacterAnimation.blend_time`, with the momentum blend off)
+## still draws it. Outside that nothing draws it, so it is not set (gdstudio #1569).
+const CROUCH_HOLD := 0.5
 
 var settings: GaitSettings
+## On, every space is set every frame, drawn or not (a test holds the shortcut against it).
+var set_undrawn := false
 ## The body's leg length over the reference body's (`GaitClips.leg_scale()`), read every frame.
 var leg := 1.0
 
@@ -40,6 +46,10 @@ var _trim := 1.0
 var _trim_foot := ""
 var _trim_place := Vector3.ZERO
 var _to_body := 1.0
+var _crouch_hold := 0.0
+# The skeleton whose ball bones `_balls` holds (by instance id), found once.
+var _balls_of := 0
+var _balls := PackedInt32Array([-1, -1])
 
 
 ## Builds the ground state's space: the idle point `idle` at 0, then the walk, run and sprint.
@@ -100,7 +110,10 @@ func drive(animation: CharacterAnimation, speed: float, delta: float) -> void:
 	if not is_equal_approx(scale, leg):
 		leg = scale
 		place_points(animation.character.tuning)
+	var crouch_drawn := _crouch_drawn(animation, delta)
 	for state: StringName in _spaces:
+		if state == CharacterAnimation.CROUCH and not crouch_drawn:
+			continue
 		var entry: Dictionary = _spaces[state]
 		var at := position_at(entry.speeds, speed)
 		tree.set(entry.position, at)
@@ -111,6 +124,22 @@ func drive(animation: CharacterAnimation, speed: float, delta: float) -> void:
 		var paces := paces_at(entry, speed, at)
 		for index in paces.size():
 			tree.set(entry.paces[index], paces[index] * trimmed)
+
+
+# True while the crouch space may be drawn: the body crouches (a crouch state is travelled to on
+# the tick it does, and `CharacterAnimation` sets the tree before the tree runs), the machine is in
+# it, or it was either within `CROUCH_HOLD`.
+func _crouch_drawn(animation: CharacterAnimation, delta: float) -> bool:
+	var body := animation.character
+	if (
+		set_undrawn
+		or (body != null and body.crouching)
+		or animation.body_state() == CharacterAnimation.CROUCH
+	):
+		_crouch_hold = CROUCH_HOLD
+		return true
+	_crouch_hold -= delta
+	return _crouch_hold > 0.0
 
 
 ## The ground gaits' rate trim now (1 none): while two gaits blend, the blended pose's planted
@@ -130,24 +159,36 @@ func _follow_foot(
 	at: float,
 	delta: float,
 ) -> void:
+	# A one-dimensional space blends two gaits at most: the first two that weigh.
 	var weights := gait_weights(entry.speeds, at)
-	var blended: Array[StringName] = []
+	var first := -1
+	var second := -1
 	for index in weights.size():
 		if weights[index] > 0.05:
-			blended.append(entry.clips[index])
-	if blended.size() < 2 or skeleton == null or delta <= 0.0 or not _matching() or speed < 0.5:
+			if first < 0:
+				first = index
+			elif second < 0:
+				second = index
+	if second < 0 or skeleton == null or delta <= 0.0 or not _matching() or speed < 0.5:
 		_trim = move_toward(_trim, 1.0, delta)
 		_trim_foot = ""
 		return
 	var share := phase(animation.tree, CharacterAnimation.GROUND)
+	var one: StringName = entry.clips[first]
+	var other: StringName = entry.clips[second]
 	var foot := ""
-	for side: String in ["l", "r"]:
-		if blended.all(func(clip: StringName) -> bool: return _down(clip, side, share)):
-			foot = side
+	var side := 0
+	for each: String in ["l", "r"]:
+		if _down(one, each, share) and _down(other, each, share):
+			foot = each
+			side = 0 if each == "l" else 1
 	if foot == "":
 		_trim_foot = ""
 		return
-	var bone := skeleton.find_bone("ball_" + foot)
+	if skeleton.get_instance_id() != _balls_of:
+		_balls_of = skeleton.get_instance_id()
+		_balls = PackedInt32Array([skeleton.find_bone("ball_l"), skeleton.find_bone("ball_r")])
+	var bone := _balls[side]
 	if bone < 0:
 		return
 	var place := skeleton.get_bone_global_pose(bone).origin
