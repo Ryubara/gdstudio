@@ -1224,68 +1224,25 @@
   "reach_fore": 0.36
  },
  "walk_stop": {
-  "steps": [
-   11,
-   10
-  ],
-  "halt": 3,
-  "settle": 7,
+  "settle": 8,
   "lean_lag": [
-   1.2,
-   0.1
-  ],
-  "lean_limit": 14.0
+   2.0,
+   0.15
+  ]
  },
  "jog_stop": {
-  "steps": [
-   10,
-   10,
-   10
-  ],
-  "air": [
-   -4,
-   3
-  ],
-  "gait_like": [
-   0.7,
-   0.2,
-   0.0
-  ],
-  "halt": 2,
-  "settle": 7,
+  "settle": 8,
   "lean_lag": [
-   1.2,
-   0.1
-  ],
-  "lean_limit": 24.0
+   1.5,
+   0.15
+  ]
  },
  "sprint_stop": {
-  "steps": [
-   9,
-   9,
-   10,
-   10,
-   10
-  ],
-  "air": [
-   -5,
-   -5,
-   -3,
-   3
-  ],
-  "gait_like": [
-   0.85,
-   0.6,
-   0.3,
-   0.1,
-   0.0
-  ],
-  "settle": 7,
+  "settle": 8,
   "lean_lag": [
-   1.2,
-   0.1
-  ],
-  "lean_limit": 22.0
+   1.5,
+   0.15
+  ]
  },
  "turn_in_place_90": {
   "prep": [

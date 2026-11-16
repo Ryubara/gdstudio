@@ -9,8 +9,9 @@ const SPRINT_TICKS := 80
 const REST_TICKS := 180
 ## Where the body sprints: from its spawn point towards open ground in the prototype map.
 const HEADING := Vector3(-1.0, 0.0, -0.3)
-## The least ground a sprint's stop covers (the sprint stop clip's travel is 4.82 m).
-const LEAST_STOP := 4.4
+## The least ground a sprint's stop covers (the sprint stop clip's travel is 2.09 m since gdstudio
+## #1567).
+const LEAST_STOP := 1.8
 
 var _rig: OnlineRig
 var _client: NetClient

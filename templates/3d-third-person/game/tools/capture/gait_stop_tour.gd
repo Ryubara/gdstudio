@@ -1,5 +1,5 @@
 ## Films the gait stops of gdstudio #1415 from the game's own camera, driven by the actions a
-## player presses: a jog across the view and the stick let go, then a sprint and the stick let go.
+## player presses: a walk, a jog and a sprint across the view, each with the stick let go after it.
 ## The camera looks north and the body runs east, across the view, so the ground a stop covers and
 ## the feet on the floor are seen side on, with the game's camera pulled back to 4 m. A label names
 ## each part and shows the ground speed, the ground covered since the stick was let go and the stop
@@ -8,7 +8,7 @@
 ## `STOPTOUR`.
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
-## `gds capture frames --project game --seconds 9 --fps 30 --name stops`
+## `gds capture frames --project game --seconds 10 --fps 30 --name stops`
 ## with `--scene res://tools/capture/gait_stop_tour.tscn`.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
@@ -17,6 +17,8 @@ extends Node
 const SPOT := Vector3(-2.0, 0.0, 18.0)
 ## The parts: a title, seconds, and the actions held through it.
 const PARTS: Array[Array] = [
+	["Walk", 1.3, [&"move_right", &"walk"]],
+	["Walk stop", 1.3, []],
 	["Jog", 1.3, [&"move_right"]],
 	["Jog stop", 1.8, []],
 	["Sprint", 1.5, [&"move_right", &"sprint"]],
@@ -84,7 +86,7 @@ func _next() -> void:
 		return
 	var part: Array = PARTS[_part]
 	_let_go = _player.global_position if part[2].is_empty() else Vector3.INF
-	if part[0] == "Sprint":
+	if not part[2].is_empty():
 		_player.teleport(SPOT, -PI / 2.0)
 	for action: StringName in part[2]:
 		Input.action_press(action)

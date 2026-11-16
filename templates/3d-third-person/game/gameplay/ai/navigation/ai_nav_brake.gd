@@ -2,7 +2,7 @@ class_name AiNavBrake
 extends RefCounted
 ## Where an `AiNavigator` lets go of the stick so that its body comes to rest on the goal
 ## (gdstudio #1415). A body on its feet slows over its stop clip (`CharacterTuning`'s stop
-## decelerations: 1.96 m from a jog, 4.82 m from a sprint), so a walk that let go at
+## decelerations: 0.85 m from a jog, 2.09 m from a sprint), so a walk that let go at
 ## `arrive_distance` ran on past the point by the rest of the stop. The navigator lets go once what
 ## is left of the path (to the goal, to the band of a follow, or to a link it waits at) is the
 ## ground the body's stop covers (`CharacterTuning.stop_distance`), and keeps letting go until the
