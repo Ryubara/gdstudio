@@ -162,14 +162,13 @@ step, the walking body ([the table and where it goes](../crowds.md#ai-characters
 
 Since #1059 an AI's body takes the lean tick (`CharacterLean`, chosen by `AiController.lean_step`) whenever it only
 walks or stands: the same result as the full tick with the modules that have nothing to do left out, the step climber
-run only after the move met a wall, and the controller's command built again only when a channel changes. The
-director's step for 40 walkers is 22 to 30 % shorter (0.9 ms at 1x, 4.4 to 5.5 ms at 4x on a quiet machine) and the
-4x frame 7.2 to 8.9 ms ([the module profile and the runs](../crowds.md#ai-characters)). Since #1104 it takes the aim
-and the trigger too, so a fighting body is lean on every tick but the one its aim goes up or comes down, and a fight
-has a web count of its own: 12 fighting guards at 1x, 6 at 4x
-([AI behaviour: the follow-up](ai-behaviour.md#cost-follow-up)). A part that gives an AI's body
-something to do on a walking tick (a held bit, a timer) goes in `CharacterLean.can_take()`
-([the body's modules](character.md#controller)).
+run only after the move met a wall or rose (gdstudio #1567), and the controller's command built again only when a
+channel changes. The director's step for 40 walkers is 22 to 30 % shorter (0.9 ms at 1x, 4.4 to 5.5 ms at 4x on a quiet
+machine) and the 4x frame 7.2 to 8.9 ms ([the module profile and the runs](../crowds.md#ai-characters)). Since #1104 it
+takes the aim and the trigger too, so a fighting body is lean on every tick but the one its aim goes up or comes down,
+and a fight has a web count of its own: 12 fighting guards at 1x, 6 at 4x ([AI behaviour: the
+follow-up](ai-behaviour.md#cost-follow-up)). A part that gives an AI's body something to do on a walking tick (a held
+bit, a timer) goes in `CharacterLean.can_take()` ([the body's modules](character.md#controller)).
 
 - **Approach:** Raise `web_full_cap` or lower `reduced_step_ticks` only with the bench run again in Chrome at 1x and 4x
   (`tools/bench/ai_cost_bench.py`), and read the frame's work, its ticks a frame and the calibration loop beside the
@@ -178,6 +177,11 @@ something to do on a walking tick (a held bit, a timer) goes in `CharacterLean.c
   reads 20 to 40 % slower: compare runs by the calibration loop. **Seen:** gdstudio #963, 2026-11-10; gdstudio #1046,
   2026-11-11; gdstudio #1059, 2026-11-11 (the same build read 7.2 to 8.1 ms and 8.7 to 11.6 ms at 4x hours apart:
   interleave a build of `main` in every session).
+- **Approach:** Make the lean tick's move again after the climber whenever the move rose, not only when it met a wall,
+  and rerun `test_character_lean.gd` after any change to how a body moves. **Watch out for:** a capsule rides a kerb's
+  edge on its round foot (a contact under `max_slope`, no wall) where the full tick's climber, run before the move,
+  lifts it: the two ended 0.5 mm apart at a kerb only once the shorter stops put the body there at another angle.
+  **Seen:** gdstudio #1567, 2026-11-15 (passes with the main decelerations, fails with the new ones without the fix).
 
 ## Tasks {#tasks}
 
