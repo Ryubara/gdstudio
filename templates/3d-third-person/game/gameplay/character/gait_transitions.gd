@@ -211,6 +211,17 @@ func step(
 		animation.tree.set(_P_SEEK, _time)
 
 
+## The ground speed the gait blend weighs its gaits at while a stop waits out `STOP_GRACE` (the
+## let-go's), or -1. The body brakes from the let-go and the gaits play at the ground's pace, but a
+## slower gait blended in over those ticks is a pose the stop clip does not begin on: from a jog
+## the walk had a quarter of the weight by the pick and a planted foot jumped 10 cm onto the clip's
+## (gdstudio #1567).
+func held_speed() -> float:
+	if kind == Kind.NONE and _let_go >= 0.0 and _let_go < STOP_GRACE:
+		return _let_go_speed
+	return -1.0
+
+
 ## True while the body stands, walks or runs: a push, a vault or a hit begins on a frame the
 ## machine is still in the ground state, and a start picked then would take the body from it.
 static func on_foot(body: Character) -> bool:

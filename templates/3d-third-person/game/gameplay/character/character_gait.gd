@@ -82,6 +82,7 @@ func drive(
 	speed: float,
 	delta: float
 ) -> void:
+	blend.held_speed = transitions.held_speed()
 	blend.drive(animation, speed, delta)
 	if playback != null:
 		transitions.step(animation, blend, playback, delta)

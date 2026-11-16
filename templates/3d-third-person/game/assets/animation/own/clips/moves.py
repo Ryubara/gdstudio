@@ -228,7 +228,9 @@ STOPS = {
     "sprint": {
         **STOP,
         "steps": [9, 9, 10],
-        "air": [-4, 2],
+        # The brake step leaves as the other foot lands: held two frames longer, the shin turned over it far
+        # enough that the Quaternius bodies' longer feet rolled 1.06 mm along the floor (the test holds 1).
+        "air": [-4, 0],
         "gait_like": [0.5, 0.2, 0.0],
         "lean": 0.45,
         "lean_hips": 0.12,
