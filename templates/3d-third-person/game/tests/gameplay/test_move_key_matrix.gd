@@ -15,7 +15,9 @@
 # new wish, until it is within 30 degrees of it, and until the transition clip drawn before is left;
 # random direction changes during each kind of clip (start, stop, reversal, pivot, landing); and
 # crouch, prone, aim, jump and fire pressed during each clip, which must end it at once with no
-# jump of the drawn pose. Each prints a `RESPONSE` line (to `GDS_MATRIX_OUT` too). Before the fix a
+# jump of the drawn pose. Lying down and getting up are held to the crouch's bound over what
+# their clip alone moves (gdstudio #1568); `GDS_POSE_TRACE` adds each case's moves a tick to its
+# line. Each prints a `RESPONSE` line (to `GDS_MATRIX_OUT` too). Before the fix a
 # reversal or a pivot held the body on its clip's path until its turn was made (1.5 to 2.2 s) and a
 # hard landing held it 0.67 s, every key pressed meanwhile ignored.
 extends GdUnitTestSuite
@@ -183,12 +185,18 @@ func test_spam_through_a_hard_landing() -> void:
 
 
 func _actions(gait: String) -> void:
+	var plains := {}
 	for action: String in MoveResponse.ACTION_KEYS:
 		# The same action from the steady gait: what the hand-off from a clip is held against.
 		var plain_steps: Array = [["W", 80], ["W", MoveResponse.POSE_TICKS + 4, action]]
 		plain_steps.append_array(_after_action(action))
 		var plain_samples := await _response.run(gait, 0.0, plain_steps, 0.0, true)
-		var plain := MoveResponse.peak_move(plain_samples, 1)
+		plains[action] = MoveResponse.peak_move(plain_samples, 1)
+		var bound: String = MoveResponse.BOUND_OF.get(action, action)
+		var plain: float = plains[bound]
+		var own := PackedFloat32Array()
+		if bound != action:
+			own = await _own_clip(gait, action, plain, plain_samples)
 		for kind: String in ["start", "stop", "reversal", "pivot"]:
 			var steps := _lead_in(kind)
 			var at := steps.size()
@@ -197,8 +205,32 @@ func _actions(gait: String) -> void:
 			steps.append([last[0], MoveResponse.POSE_TICKS + 4, action, turn])
 			steps.append_array(_after_action(action))
 			var samples := await _response.run(gait, 0.0, steps, 0.0, true)
-			_response.check_action("%s in a %s" % [action, kind], gait, samples, at, plain)
+			_response.check_action(
+				"%s in a %s" % [action, kind], gait, samples, at, plain, true, own
+			)
 	_report()
+
+
+# Lying down and getting up are held to the crouch's hand-off (gdstudio #1568): before, the drawn
+# body went from upright to lying in one frame and the to-prone clip lifted it. Each tick may add
+# that bound to what the clip alone moves then, read from a crouch at rest (where the clip starts
+# on the drawn pose, checked first): the clip is 0.9 s played in 0.5, and its leg sweep moves a
+# toe 0.33 m a tick. Checks lying down from the steady gait (`plain_samples`) and getting up from
+# lying still; returns the clip's own moves going down, for the cases from each transition clip.
+func _own_clip(
+	gait: String, action: String, plain: float, plain_samples: Array
+) -> PackedFloat32Array:
+	var ref_steps: Array = [["", 60], ["", 40, action], ["", 2, action], ["", 90]]
+	var ref := await _response.run("crouch", 0.0, ref_steps, 0.0, true)
+	var down := MoveResponse.moves_from(ref, 1)
+	var up := MoveResponse.moves_from(ref, 2)
+	_response.check_clip_start("lying down from a crouch at rest", gait, down)
+	_response.check_clip_start("getting up to a crouch", gait, up)
+	_response.check_action("%s from the gait" % action, gait, plain_samples, 1, plain, false, down)
+	var up_steps: Array = [["W", 80], ["", 60, action], ["", 2, action], ["", 90]]
+	var up_samples := await _response.run(gait, 0.0, up_steps, 0.0, true)
+	_response.check_action("getting up", gait, up_samples, 2, plain, false, up)
+	return down
 
 
 # Steps after an action's case that leave the body standing for the next: lying down is a toggle.

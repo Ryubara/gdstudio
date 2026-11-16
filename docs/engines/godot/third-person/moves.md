@@ -43,7 +43,9 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   `ground speed / crawl_clip_speed` (0.618 m/s, the clip's stride), backwards when the body moves away from the way it
   faces (aiming and pulling back; without aim the body turns toward the push at `turn_speed` while the crawl plays).
   `prone/Crouch_To_Prone` and `prone/Prone_To_Crouch` play over the body for `enter_time` and `exit_time` (0.9 s and
-  1.0 s clips played in 0.5 and 0.7 s), from and to the crouch idle's first pose. The clips rest the body on the
+  1.0 s clips played in 0.5 and 0.7 s), from and to the crouch idle's first pose, at full weight from their first
+  frame (`ActionLayer.play_carried()`): the action's 0.1 s cross-fade would show the prone idle under the clip
+  first, so `MomentumBlend` carries the drawn pose into the clip instead (gdstudio #1568). The clips rest the body on the
   forearms and fists, so lying puts the weapon away (`ProneAnimation.stow_share`: its model hidden and the grip off)
   until the body aims. A model whose body needs clips of its own gets them from `prone_libraries` (its scene file to a
   library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the
@@ -217,6 +219,14 @@ of the stance is sent but the command's bit; the clips are cosmetic and played i
   than methods, and split a suite at 18 tests. **Watch out for:** gdlint's twenty public methods counts every
   `func`, so three small getters took `Character` from 18 to 21 and failed the hook. **Seen:** gdstudio #1012,
   2026-11-10.
+- **Approach:** Play a whole-body clip that a stance change starts on (lying down, getting up) at full weight from
+  its first frame and let the momentum blend take the jump from the drawn pose; hold its hand-off to the crouch's
+  per-tick bound over what the clip alone moves from a crouch at rest, and check that reference starts on the drawn
+  pose too. **Watch out for:** the body machine shows the prone idle the tick the stance changes, so the one-shot's
+  fade-in drew a running body lying for a frame (1.1 to 1.6 m in a tick), from a crouch at rest too, then lifted
+  it, while the momentum blend stood aside; the clip's own leg sweep moves a toe 0.33 m a tick, over the crouch's
+  bound, so the bound is on what the hand-off adds. **Seen:** gdstudio #1568, 2026-11-15
+  (`test_move_key_matrix.gd`'s action cases, `tools/capture/prone_entry_tour.tscn`).
 
 ## Sliding {#slide}
 
