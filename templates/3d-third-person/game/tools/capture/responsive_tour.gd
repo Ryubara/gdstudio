@@ -157,7 +157,7 @@ func _physics_process(delta: float) -> void:
 	var held: Array = sequences[_sequence][2][_step][1]
 	var keys := PackedStringArray()
 	for action: String in held:
-		keys.append(NAMES[action])
+		keys.append(NAMES.get(action, action))
 	var clip := String(_animation.gait.transitions.clip).trim_prefix("gds/")
 	var shown := clip if clip != "" else String(_animation.body_state())
 	_label.text = (
