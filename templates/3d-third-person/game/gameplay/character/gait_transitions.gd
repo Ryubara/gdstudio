@@ -200,13 +200,12 @@ func step(
 		or settings.transition_clips == null
 	):
 		return
-	# The cheap checks first: reading the tree's action parameter costs more than the rest.
 	if current != CharacterAnimation.GROUND or not on_foot(animation.character):
 		return
-	if animation.is_acting():
-		return
+	# Most frames pick nothing, so the tree's action parameter is read only once a clip is picked
+	# (`pick()` changes nothing, gdstudio #1569).
 	var picked := pick(animation, blend)
-	if picked.is_empty():
+	if picked.is_empty() or animation.is_acting():
 		return
 	_begin(animation, picked, playback)
 	_start_look(animation)

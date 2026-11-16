@@ -93,7 +93,9 @@ func _process_modification_with_delta(delta: float) -> void:
 	if key != _key and _seen >= 2:
 		_settle = SETTLE_FRAMES + animation.gait.extra_settle(animation)
 	_key = key
-	if animation.is_acting(true):
+	# Read only while a start or a blend is under way: otherwise there is nothing to stop, and the
+	# tree's action parameter is the dearest read of the frame (gdstudio #1569).
+	if (_settle > 0 or _blending) and animation.is_acting(true):
 		# The action's own cross-fade covers the body, and the clip moves fast (a vault's hands):
 		# a start then would hold its motion back and lift a planted hand off its place.
 		_settle = 0
