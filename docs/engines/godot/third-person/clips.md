@@ -253,6 +253,7 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `pace_range` | 0.4 to 2 | the slowest and fastest a gait is played |
 | `stretch` | 0.8 to 1.3 | how far a gait is slowed and sped up alone before the next blends in: the walk alone to 2.21 m/s, the walk and the jog blended to 3.2, the jog alone to 5.2 |
 | `slowest_pace` | 0.5 | the walk alone down to half its pace (0.85 m/s), fading into the idle below |
+| `gait_change_time` | 0.1 s | the time the drawn blend takes to cross a seam, where two gaits' stretched ranges meet with no speeds between (the jog and the sprint at 5.2 m/s; gdstudio #1578), however fast the speed crosses it; a blend with speeds of its own follows the speed; 0, a seam is crossed at once |
 | `transitions`, `transition_clips` | on, `GaitTransitionSet` | a start, a stop, a reversal, a pivot or a turn on the spot when the controller does one and its clip exists |
 | `turn_angle`, `standing_speed` | 50 degrees, 0.3 m/s | the numbers that pick a turn on the spot and a start; a reversal and a pivot are picked by `CharacterTuning.look_reversal_angle` and `look_pivot_angle` (135, 100: a quarter turn of the keys is a steer, gdstudio #1565; on the tuning since #1574), or by the step with `turn_root_motion` on ([turns moved by their clip](turn-root-motion.md#turn-root-motion)) |
 | `transition_pace` | 4 | the fastest a turn on the spot runs to catch the body's turn up, against its own pace (kit #1157; 2 before #1565) |
@@ -303,6 +304,9 @@ kit #1157 (each moving one ends as a foot strikes; a turn on the spot ends on th
   was cut when one went up, and a one-tick let-go between two keys started a stop the next key cut 2 to 5 ticks later;
   the stop and reversal suites drove one let-go or one turn by commands. **Seen:** gdstudio #1563, 2026-11-14, found
   by the maintainer playing 3D Third Person (102 of 276 matrix cases failed on main).
+- **Approach:** Put a key a `MoveResponse` step only holds (sprint) in `HELD_KEYS`. **Watch out for:** `_actions()`
+  checks every `ACTION_KEYS` entry as an action that must end a clip, so sprint added there failed 8 cases.
+  **Seen:** gdstudio #1578, 2026-11-17.
 - **Approach:** Make a rule that ends a transition clip on a body state (an aim, a crouch) end it only when the state
   came during the clip, or block the pick under the same state. **Watch out for:** ending every clip of an aiming
   body made an aimed walk's stop begin and end on alternate frames, which only `test_aimed_takeoff.gd`'s gun speed
