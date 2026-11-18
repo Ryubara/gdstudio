@@ -159,7 +159,9 @@ every exit, kept with `--keep`, two calls at once).
   again (`gds template game`) when `project.godot` changed. **Watch out for:** the made game's `project.godot` is the
   template's with the autoloads and addon settings `gds template game` adds; copying the template's over it dropped
   `UIRouter` and the other autoloads, and every suite that loads `main.tscn` failed on parse errors with nothing of
-  the change in them. **Seen:** gdstudio #1400, 2026-11-13.
+  the change in them. **Seen:** gdstudio #1400, 2026-11-13; gdstudio #1587, 2026-11-17 (a sync by
+  `git ls-files -m` copies only files still changed, so a file put back in the worktree stayed changed in the game and
+  doubled a fix; list the files against the base commit, `git diff --name-only <base sha>`, as the entry below does).
 - **Approach:** To compare main and the branch in one kept game, write main's files from the base commit named by its
   hash (`git show <base sha>:<path>`), and list the files to swap with `git diff --name-only <base sha>`. **Watch out
   for:** a swap script that took "main" from `HEAD` ran the branch's own files as main once the branch had a commit, so

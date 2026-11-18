@@ -5,12 +5,15 @@
 # `AIM_STEP` and `AIM_TURN` while the aim comes up and goes down (the aim's own blend, over the
 # character's `aim_pose_time`); over each steady stretch of a gait (from `SETTLE` ticks after a key
 # change) it stays in a band: its places within `BAND_PLACE` of each other and its turns within
-# `BAND_TURN`. The rifle is held in both hands by its own hold and is read for the record. Keys
-# pressed as a player does, read in `skeleton_updated`; `GDS_CARRY_TRACE` prints every update.
+# `BAND_TURN`. The rifle, held in both hands by its own hold, keeps its right hand within
+# `HAND_STEP` and `RIFLE_TURN` an update while carried, through the reversals too (gdstudio #1587).
+# Keys pressed as a player does, read in `skeleton_updated`; `GDS_CARRY_TRACE` prints every update.
 #
 # Before the fix the arm followed the locomotion clips: a jog's stride turned the pistol 76 degrees
 # (down by the thigh, then level forward), a sprint's 120 (up by the head), and the gait blend's dip
-# on a turn and a reversal's look moved the hand 0.22 m and turned it 44 degrees in one update.
+# on a turn and a reversal's look moved the hand 0.22 m and turned it 44 degrees in one update. The
+# rifle's gun was turned with the model, not with the rig a reversal's look turns under it, so its
+# hands turned 13 degrees an update in the chest's space through every reversal (gdstudio #1587).
 extends GdUnitTestSuite
 
 const RIFLE := "res://gameplay/weapon/rifle.tres"
@@ -18,6 +21,8 @@ const RIFLE := "res://gameplay/weapon/rifle.tres"
 ## while the aim comes up or goes down.
 const HAND_STEP := 0.08
 const HAND_TURN := 12.0
+## The most the rifle's right hand may turn in one drawn update while carried, in degrees.
+const RIFLE_TURN := 9.0
 const AIM_STEP := 0.2
 const AIM_TURN := 24.0
 ## Updates after the aim is let go that still count as the aim going down.
@@ -38,6 +43,9 @@ const RUN: Array = [
 	["A", 60],
 	["WA", 60],
 	["SD", 70],
+	["", 50],
+	["W", 70],
+	["S", 70],
 	["", 50],
 ]
 const KEYS := {"W": KEY_W, "A": KEY_A, "S": KEY_S, "D": KEY_D}
@@ -105,6 +113,8 @@ func _check_body(body: String, weapons: Array) -> void:
 			if OS.get_environment("GDS_CARRY_TRACE") != "":
 				_trace(tag)
 			if weapon != "Pistol":
+				if carried.x > HAND_STEP or carried.y > RIFLE_TURN:
+					problems.append(line)
 				continue
 			var over := carried.x > HAND_STEP or carried.y > HAND_TURN
 			over = over or aimed.x > AIM_STEP or aimed.y > AIM_TURN

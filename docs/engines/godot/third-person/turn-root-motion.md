@@ -113,7 +113,10 @@ the server and a predicting client turn it alike. From the press (gdstudio #1574
 The sprint reversal's turn comes in two parts over two contacts (about 75 degrees, a held stride in profile, then the
 rest): sped up, the hold reads as the weight going over the planted foot for about 0.12 s. A look whose capsule faced
 round faster than the clip leaves the drawn body up to 69 degrees behind the facing mid-turn (sprint) and 46 (jog),
-back to under 3 at its end; nothing drawn follows the capsule's facing but the rig, which carries the offset.
+back to under 3 at its end. The rig carries the offset, and `CharacterModel.drawn_turn` holds it for the parts in the
+model's slot beside the rig that are drawn with the body: the rifle's hold turns by it (gdstudio #1587,
+[turned with the drawn body](rifle-hands.md#rifle-hands)). A new part placed in the slot's space at the body (not on a
+bone) turns by it too.
 
 The gait cycles they leave are 0.67 s (jog) and 0.60 s (sprint): each clip was four to six cycles long. A turn on the
 spot (aiming while standing) is seeked by the body's turn, at most `transition_pace` (4 since #1565, 2 before) times

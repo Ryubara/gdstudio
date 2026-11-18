@@ -86,6 +86,9 @@ var _clip_yaws := PackedFloat32Array()
 # The trunk's lean averaged over `LEAN_SMOOTHING`, in radians, and whether it has a value yet.
 var _lean := 0.0
 var _leaning := false
+# The hold's own place under the model's slot, read the first update the rig was not turned.
+var _hold_rest := Transform3D.IDENTITY
+var _hold_rest_read := false
 
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
@@ -99,6 +102,7 @@ func _process_modification_with_delta(delta: float) -> void:
 		return
 	if not _laid_out:
 		_lay_out(skeleton)
+	_follow_rig()
 	_step_peek_hold()
 	if _bones.is_empty():
 		hold.place(skeleton)
@@ -152,6 +156,29 @@ func _process_modification_with_delta(delta: float) -> void:
 	elif switch == _SWITCH_KEEP_OWN:
 		_keep_switch_pose(skeleton)
 	hold.place(skeleton, _posed[-1] if _chain else Transform3D(), _chain)
+
+
+# Turns the hold under the model's slot as far as the rig is drawn turned from it
+# (`CharacterModel.drawn_turn`, a reversal's or a pivot's look), about the slot's origin as the
+# rig is, so the gun, its pockets, the hands' places and the elbows' poles are in the body's space
+# as drawn. The hold sits beside the rig, not under it: left on the slot, the gun pointed where
+# the capsule faced while the chest went round with the rig, and the hands turned 13 to 26 degrees
+# and moved up to 0.3 m an update in the chest's space through a reversal (gdstudio #1587).
+func _follow_rig() -> void:
+	var slot := hold.get_parent() as CharacterModel
+	if slot == null:
+		return
+	var turn := slot.drawn_turn
+	if not _hold_rest_read:
+		if turn != 0.0:
+			return
+		_hold_rest = hold.transform
+		_hold_rest_read = true
+	var wanted := _hold_rest
+	if turn != 0.0:
+		wanted = Transform3D(Basis(Vector3.UP, turn), Vector3.ZERO) * _hold_rest
+	if not hold.transform.is_equal_approx(wanted):
+		hold.transform = wanted
 
 
 # What the stance does through a switch the lean holds in this update (gdstudio #1585): nothing

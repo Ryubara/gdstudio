@@ -39,6 +39,7 @@ func clear() -> void:
 	offset = 0.0
 	if is_instance_valid(_rig):
 		_rig.transform = _base
+		_tell(_rig, 0.0)
 	_rig = null
 
 
@@ -48,7 +49,17 @@ func _apply(rig: Node3D) -> void:
 	if rig != _rig:
 		if is_instance_valid(_rig):
 			_rig.transform = _base
+			_tell(_rig, 0.0)
 		_rig = rig
 		_base = rig.transform
 	var turned := Transform3D(Basis(Vector3.UP, offset), Vector3.ZERO)
 	rig.transform = turned * _base
+	_tell(rig, offset)
+
+
+# Tells the rig's slot how far the rig is turned (`CharacterModel.drawn_turn`), for the parts the
+# slot holds that are drawn with the body.
+func _tell(rig: Node3D, turn: float) -> void:
+	var slot := rig.get_parent() as CharacterModel
+	if slot != null:
+		slot.drawn_turn = turn

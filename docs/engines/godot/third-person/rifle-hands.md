@@ -64,6 +64,14 @@ are named as such.
   The chest's turn is read from its front about the up axis, and from the shoulders' line once the front points
   down past 44 degrees (all of it by 72, `TwoHandStance.STEEP_CHEST`): lying down, the front passing straight down
   swung the turn half a round in a tick (gdstudio #1581).
+- **Turned with the drawn body** (gdstudio #1587). The hold (`RifleHeld`) sits under the model's slot beside the rig,
+  not under it, while a reversal's or a pivot's look turns the rig under the slot ([the
+  look](turn-root-motion.md#turn-look)). `two_hand_stance.gd` turns the hold about the slot's origin by
+  `CharacterModel.drawn_turn` (which `TurnLook` sets) before it places anything, so the gun, the pockets, the hands'
+  places and the elbows' poles are in the body's space as drawn; at no turn the hold is back on its own place exactly.
+  `test_pistol_carry_run.gd` reads the right hand in the chest's space through W to S and W+A to S+D at a jog and a
+  sprint on both bodies: at most 0.034 m and 7.1 degrees an update (0.30 m and 25.6 before), under the pistol's 0.08 m
+  and the rifle's 9 degrees. Capture: `tools/capture/rifle_reversal_tour.tscn` (the game camera and the side).
 - **The carry** (kit #1348): running at the low ready the stance carries the trunk upright, to `carry_lean_limit`
   on average; how, what it measured and what it costs are on [the upright carry](rifle-carry.md#rifle-carry).
 - **The left shoulder.** On a left peek lean the stance mirrors the pocket and the gun's turn across the body and
@@ -333,6 +341,13 @@ stock test's 10 mm.
   read 5.6 microseconds and the bench 13; grouping the points alone moved nothing, since the loop over 45 groups
   cost what the points had, until a box per bone went over the groups. **Seen:** gdstudio #1291, 2026-11-12.
 
+- **Approach:** Place a held part that is not under the rig (a hold beside it in the model's slot) in the space of the
+  body as drawn: turn it with the rig by the look's turn (`CharacterModel.drawn_turn`) before it reads the skeleton.
+  **Watch out for:** the gun pointed where the capsule faced while the chest went round with the rig, so through every
+  reversal the hands turned 13 to 26 degrees and moved up to 0.3 m an update in the chest's space; turning only the
+  gun's basis was not enough, since the pockets' turn is read relative to the rig (the chest's turn conjugated by the
+  skeleton's frame) and the stock went into the chest (a 0.35 m jump in the skin's push). **Seen:** gdstudio #1587,
+  2026-11-17 (found by an agent on #1577's carry run).
 - **Approach:** Judge a hold from both sides of each hand, from above and from the game camera, in every state the
   weapon has, and test each thing a person would call wrong: a palm off the grip, a finger beside the trigger, a
   support hand under the gun and not round it, a hand that leaves the gun where the state does not ask for it, a frame
