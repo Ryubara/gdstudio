@@ -10,6 +10,10 @@ extends Node
 ## and puts the head bone where the step put the eye: the body's `full_angle()` tilt and its
 ## `eye_shift()` to the side. Its lean is the body's state (the step's, or a puppet's from the
 ## network); the bend itself is a pose on each machine. Made again when the model changes.
+##
+## Through an action over the upper body (a reload, a melee blow, an item's use, a switch) the bend
+## keeps the trunk's and the head's turns from before the action by `PeekHold.share()`, so the head
+## stays on the lean's line while the arms do the action (gdstudio #1575).
 
 const _MODIFIER := &"PeekBend"
 
@@ -18,6 +22,9 @@ const _MODIFIER := &"PeekBend"
 @export var character: Character
 ## The slot that holds the character's model.
 @export var model: CharacterModel
+## The animation whose upper-body actions the lean holds the head through (`PeekHold`); none: the
+## actions' clips take the head as they do upright.
+@export var animation: CharacterAnimation
 
 @export_group("Bend")
 ## The bones that bend, from the hips up, and each one's share of the roll (adding up to 1).
@@ -32,6 +39,7 @@ const _MODIFIER := &"PeekBend"
 @export var disabled := false
 
 var _modifier: PeekModifier
+var _hold := PeekHold.new()
 
 
 func _ready() -> void:
@@ -49,6 +57,14 @@ func modifier() -> PeekModifier:
 	return _modifier if _modifier != null and is_instance_valid(_modifier) else null
 
 
+## How far the lean holds the trunk and the head through an upper-body action now (0 none, 1 all
+## of it): `PeekHold.share`, stepped once a frame. The `AimLayer` reads it too.
+func hold_share() -> float:
+	if disabled or character == null:
+		return 0.0
+	return _hold.step(character, animation)
+
+
 ## Puts the lean on the modifier now (the frame's own `_process` does it too).
 func refresh() -> void:
 	var bend := modifier()
@@ -59,7 +75,10 @@ func refresh() -> void:
 		bend.active = share != 0.0
 	if share == 0.0:
 		bend.angle = 0.0
+		bend.hold = 0.0
+		bend.forget()
 		return
+	bend.hold = hold_share()
 	var eye := CharacterCapsule.eye_height(character)
 	var flat := character.peek_motion.eye_shift(character, eye, share)
 	var facing := model.global_basis.z if model != null else CharacterPeek.forward_of(character)

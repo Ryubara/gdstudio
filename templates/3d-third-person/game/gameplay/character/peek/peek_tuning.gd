@@ -83,6 +83,17 @@ enum InputMode {
 ## right of the head, and a left peek needs the edge about 0.2 m closer.
 @export var left_shoulder := true
 
+@export_group("Actions")
+## On: while the body leans, an action over the upper body (a reload, a rack, a melee blow or a
+## punch, an item's use, a weapon switch) is drawn on the arms, and the trunk and the head keep
+## the lean's pose as it was when the action began, so the head stays on the lean's line and level
+## (gdstudio #1575, `PeekHold`). Off: the action's clip takes the spine and the head as it does
+## upright.
+@export var action_hold := true
+## Seconds the hold takes to let go once the action is over and the aim it lowered is back up, so
+## what changed under it (a crouch, the aim's pitch) is eased into rather than shown at once.
+@export_range(0.0, 1.0, 0.01, "suffix:s") var action_release_time := 0.15
+
 @export_group("Input")
 ## Hold or toggle, when the player's settings say nothing (`PlayerInput`).
 @export var input_mode := InputMode.HOLD
