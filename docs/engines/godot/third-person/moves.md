@@ -51,8 +51,9 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   frame or two after getting up's tick) the clip holds its last frame. Getting up with crouch let go goes on from the
   crouch into `gds/Crouch_To_Stand` (`StanceAnimation`, `GaitSettings` > Stance changes, which also plays
   `gds/Stand_To_Crouch` and `gds/Crouch_To_Stand` for a crouch and a stand at rest); a move asked for ends it on its
-  frame and the body goes on from there. The splay of the knees halfway through getting up (0.84 m apart) and the
-  depth of the crouch it ends in are the clips' (gdstudio #1580). The clips rest the body on the
+  frame and the body goes on from there. Getting up draws the right knee under the hips first and kneels on it,
+  then steps the left foot up, the knees at most 0.55 m apart (0.84 before gdstudio #1580), and the pelvis eases into
+  the crouch from under it instead of rising past it and sinking back. The clips rest the body on the
   forearms and fists, so lying puts the weapon away (`ProneAnimation.stow_share`: its model hidden and the grip off)
   until the body aims. A model whose body needs clips of its own gets them from `prone_libraries` (its scene file to a
   library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the

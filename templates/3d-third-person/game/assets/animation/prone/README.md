@@ -39,7 +39,7 @@ skeleton, so they take its `form` file (add the model to `prone_libraries`).
 | `Prone_Idle_Loop` | 3.0 s (90 frames) | yes | Lying on the belly, propped on the forearms, which point inward and rest on their outer edges, the hands closed into fists near the centre line in front of the head, the right a little ahead; one slow breath and a small drift of the head. |
 | `Crawl_Fwd_Loop` | 0.933 s (28 frames) | yes | A crawl on the forearms, the body kept low: the right elbow and the left foot plant and the body is pulled over them, then the other pair. Each forearm lands pointing inward on its outer edge, its fist in front of the head and ahead of the other fist. In place. |
 | `Crouch_To_Prone` | 0.9 s (27 frames) | no | From frame 0 of `gds/Crouch_Idle` (our own crouch, `../own/`, since kit #1160): the open hands reach for the floor ahead and catch the body, the feet go back one after the other, and as the elbows come down the forearms roll onto their outer edges and the hands close. Ends on frame 0 of `Prone_Idle_Loop`. |
-| `Prone_To_Crouch` | 1.0 s (30 frames) | no | From frame 0 of `Prone_Idle_Loop`: the fists open and the hands come back beside the chest, push on flat palms, the knees draw under the body, the chest rises. Ends on frame 0 of `gds/Crouch_Idle`. |
+| `Prone_To_Crouch` | 1.0 s (30 frames) | no | From frame 0 of `Prone_Idle_Loop`: the fists open and the hands come back beside the chest, push on flat palms, the right knee draws forward under the hips and kneels, the left foot steps up in front, and the chest rises into the crouch from under it, never past its height (kit #1580: the knees at most 0.55 m apart on the `form` bodies, 0.84 m before). Ends on frame 0 of `gds/Crouch_Idle`. |
 
 All four are at 30 frames a second, the library's rate, keyed on every frame, with no root motion (the game moves the
 body), on the 65 bones of the Quaternius universal rig.
@@ -57,7 +57,8 @@ male's file is [below](#the-males-file):
 - **Where the body lies:** the origin is under the middle of the lying body. It reaches 0.96 m ahead of the origin
   lying still (the fists), 1.07 m while the open hands land going down and 1.03 m behind it (the toes); the crawl
   reaches 1.08 m ahead. The body is 0.59 m wide lying still, 0.72 m with a knee drawn up in the crawl and
-  up to 0.96 m in the transitions (a knee goes out to the side as it bends under the body).
+  up to 0.96 m going down (the front knee opens to the side to let the chest by); getting up the knees come forward
+  under the hips and stay within 0.60 m of each other side to side, which the build holds (`UP_KNEES_LIMIT`).
 - **Height:** the top of the head is 0.49 m over the floor in the idle and at most 0.52 m in the crawl; the back and
   the hips stay under 0.30 m in the idle and 0.34 m in the crawl.
 - **The arms:** a planted forearm points 40 degrees inward of straight ahead in the crawl (29.5 in the idle), with
