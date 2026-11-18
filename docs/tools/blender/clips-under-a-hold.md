@@ -227,3 +227,11 @@ entries, folded in from that pull request's `held-weapon-clips.md`, follow the a
   live reload read the left hand 14 mm and the magazine 28 mm under the floor; the base build had stopped keying
   twist bones, so the reload's join check read 127 degrees between its turned twist bones and the file's rests.
   **Seen:** gdstudio #1185 (PR #1265), 2026-11-12, after #1323 (`--idle prone_form_<body>.glb`, `rig.extra`).
+- **Approach:** When a clip moves the weapon a hold follows, move the clip's own free arm with it wherever the hold
+  blends that arm with the clip's (handing it over, taking it back), and bring a hand to a place under the weapon up
+  the hold's own line from below. **Watch out for:** the reworked pistol reload brought the gun 11 cm toward the
+  middle while the clip's left hand stayed where the library had it, so as the hold handed the hand over at 0.094 the
+  thumb went 2.2 mm into the frame; and a straight way from the belt to under the magazine put the new magazine 3.8
+  mm into the pistol at 0.35, where the hold blends the two; only the hold's tests (`test_pistol_hold.gd`,
+  `test_reload_magazine.gd`) saw either, since the build leaves out the arm the hold owns. **Seen:** gdstudio #1584,
+  2026-11-17 (`RIDE_UNTIL`, `DEEP` in `build_pistol_reload.py`).

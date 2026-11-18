@@ -15,5 +15,20 @@ The clip is keyed on the skeleton of GDStudio's own prototype body, read from
 `assets/characters/prototype/form_female.glb`; the bones it keys carry the names and parents of Quaternius's universal
 rig (CC0, credited in `assets/characters/mannequin/LICENSE.md`), which that body is built on. Its first and last pose
 is the last frame of `Pistol_Reload` from `assets/animation/universal/ual1.glb` (CC0, its own `LICENSE.md`), so it
-joins the reload. `pistol_rack.glb` carries that skeleton's bone names and rest pose and no mesh of a body. No
-third-party file is in this folder.
+joins the reload. `pistol_rack.glb` carries that skeleton's bone names and rest pose and no mesh of a body.
+
+## Pistol_Reload (gdstudio #1584)
+
+- Animation: `Pistol_Reload` (from "Universal Animation Library"), by Quaternius, reworked by GDStudio: the pistol's
+  way, the right arm, the neck and head, the chest's lean, the collarbones and the left arm from the belt on are
+  worked out new by `build_pistol_reload.py`; the timing (each frame's progress along the library's move, the
+  pistol's turn, scaled), the left arm's way to the belt, the pelvis, the legs and the fingers are Quaternius's
+- Source: `assets/animation/universal/ual1.glb` (CC0, its own `LICENSE.md` beside it, with the pack's page and hash),
+  changed by `build_pistol_reload.py` in this folder
+- Author: Quaternius (<https://quaternius.com>); the change by GDStudio contributors
+- Licence: CC0 1.0 Universal (public domain), <https://creativecommons.org/publicdomain/zero/1.0/>, as the clip it
+  comes from; GDStudio's change is given under the same terms. The script is MIT, as this kit
+- Files: `pistol_reload.glb` (the clip on the rig's bones and a one-triangle mesh that makes the importer build the
+  skeleton), `pistol_reload.json` (the numbers per frame the build measured)
+
+No third-party file is in this folder beyond the library clip reworked above.
