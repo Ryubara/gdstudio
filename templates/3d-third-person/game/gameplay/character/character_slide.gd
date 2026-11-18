@@ -29,6 +29,10 @@ var time := 0.0
 var amount := 0.0
 ## Seconds until another slide may start.
 var cooldown := 0.0
+## How far the drawn body still lies in the slide's exit, 0 to 1 (`BodyMachine.exit_lying()`, set
+## by the `CharacterAnimation` each frame; cosmetic, never stepped or sent): the body stands in
+## 0.12 s, the exit clip draws its rise over `CharacterAnimation.slide_exit_time`.
+var exit_lying := 0.0
 ## Seconds until a slide gets its entry boost again.
 var boost_cooldown := 0.0
 ## The ground speed a jump out of the slide (or a slide off an edge) carries in the air, m/s; 0
@@ -223,11 +227,13 @@ static func grip_share(body: Character, hold: WeaponDef) -> float:
 	return 1.0 - lying(body)
 
 
-## How far `body` lies in a slide now, 0 to 1, eased: 0 off it, 1 laid back.
+## How far `body` lies in a slide now, 0 to 1, eased: 0 off it, 1 laid back; while the slide's
+## exit draws the body rising, by the exit (`exit_lying`), so the rifle's grip and stance give the
+## trunk back as the drawn body rises, not as the capsule stands (gdstudio #1577).
 static func lying(body: Character) -> float:
 	if body == null:
 		return 0.0
-	return smoothstep(0.0, 1.0, body._slide.amount)
+	return maxf(smoothstep(0.0, 1.0, body._slide.amount), body._slide.exit_lying)
 
 
 ## True when a capsule `height` tall (a little thinner, lifted off the floor) fits where the body

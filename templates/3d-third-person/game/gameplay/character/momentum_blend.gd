@@ -37,7 +37,7 @@ const SETTLE_FRAMES := 3
 
 ## The node whose body state it follows (`CharacterGait.pose_key()`).
 var animation: CharacterAnimation
-## Seconds in which the difference halves.
+## Seconds in which the difference halves (a state may ask for more: `CharacterGait.half_life()`).
 var half_life := 0.05
 ## The fastest a bone's turn is carried over, in radians a second.
 var speed_limit := deg_to_rad(720.0)
@@ -59,6 +59,8 @@ var _pelvis_j0 := Vector3.ZERO
 var _t := 0.0
 var _blending := false
 var _settle := 0
+# The half-life of the blend under way.
+var _half := 0.05
 
 
 ## True while a difference is dying away.
@@ -118,6 +120,7 @@ func _begin(skeleton: Skeleton3D, delta: float) -> void:
 	_bones.clear()
 	_x0.clear()
 	_j0.clear()
+	_half = maxf(half_life, animation.gait.half_life(animation))
 	var y := _damping()
 	var limit := speed_limit if animation.gait.carries_speed(animation) else 0.0
 	for slot in _followed.size():
@@ -154,7 +157,7 @@ func _apply(skeleton: Skeleton3D, delta: float) -> void:
 	if _pelvis >= 0:
 		var moved := (_pelvis_x0 + _pelvis_j0 * _t) * decay
 		skeleton.set_bone_pose_position(_pelvis, skeleton.get_bone_pose_position(_pelvis) + moved)
-	if _t > 8.0 * half_life:
+	if _t > 8.0 * _half:
 		_blending = false
 
 
@@ -192,7 +195,7 @@ func _forget() -> void:
 
 
 func _damping() -> float:
-	return 2.0 * log(2.0) / maxf(half_life, 0.001)
+	return 2.0 * log(2.0) / maxf(_half, 0.001)
 
 
 # `turn` as an axis times its angle (radians), the short way round.

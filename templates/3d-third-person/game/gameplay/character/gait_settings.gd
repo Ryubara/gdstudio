@@ -66,6 +66,10 @@ extends Resource
 ## The fastest a bone's motion is carried into the new state, in degrees a second: a pose that
 ## jumped (a teleport, a model swap) is not flung on.
 @export_range(0.0, 3600.0, 10.0, "suffix:deg/s") var momentum_speed_limit := 720.0
+## The half-life into the slide's exit: a slide let go while the body was still dropping starts
+## the exit part way up its rise, and the drawn body's difference from it, gone in 0.05 s halves,
+## moved the head 0.1 m a tick (gdstudio #1577).
+@export_range(0.01, 0.5, 0.005, "suffix:s") var slide_exit_half_life := 0.12
 
 @export_group("Lean")
 ## Leans the body into its acceleration and its turns, from the lean poses (`lean_clips`) added
