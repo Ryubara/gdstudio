@@ -154,6 +154,11 @@ every exit, kept with `--keep`, two calls at once).
   template's with the autoloads and addon settings `gds template game` adds; copying the template's over it dropped
   `UIRouter` and the other autoloads, and every suite that loads `main.tscn` failed on parse errors with nothing of
   the change in them. **Seen:** gdstudio #1400, 2026-11-13.
+- **Approach:** To compare main and the branch in one kept game, write main's files from the base commit named by its
+  hash (`git show <base sha>:<path>`), and list the files to swap with `git diff --name-only <base sha>`. **Watch out
+  for:** a swap script that took "main" from `HEAD` ran the branch's own files as main once the branch had a commit, so
+  two of the branch's failures (a crouch stand-up hand swing, a vault log error) looked as if main had them too.
+  **Seen:** gdstudio #1577, 2026-11-17.
 - **Approach:** Run a scene of a kept game headless with `--path <the printed path>/game` and a `timeout`, and read
   the first lines before waiting. **Watch out for:** `--path` at the printed folder itself (it has no `project.godot`)
   printed only Godot's banner and never returned; three such runs sat for ten minutes until stopped by their PIDs.
