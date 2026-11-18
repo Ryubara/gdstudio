@@ -22,9 +22,10 @@ extends RefCounted
 ## only the seek moves it: to the time at which its travel curve (`GaitClips`) has covered the
 ## ground the body really covered since it began, and for a turn on the spot the time at which its
 ## turn curve has turned as far as the body. A reversal or a pivot picked here (the default: the
-## body steers itself) is a look (gdstudio #1565): the clip from `TURN_LEAD` before its turn begins
-## to its turn's end, sped up to last `GaitSettings.turn_look_time`, the drawn body turned by the
-## clip's turn (`TurnLook`). With `CharacterTuning.turn_root_motion` on, the step starts it and
+## body steers itself) is a look (gdstudio #1565): the clip from `CharacterTuning.turn_look_lead`
+## before its turn begins to its turn's end, sped up to last the tuning's look time for its gait,
+## the drawn body turned from where it was drawn to the way asked by the clip's turn curve
+## (`TurnLook`, gdstudio #1574). With `CharacterTuning.turn_root_motion` on, the step starts it and
 ## moves the body by the clip's root (`CharacterTurnMotion`, gdstudio #1442), and the clip is shown
 ## at the step's time into it. The
 ## controller stays the authority: a body that is asked to go on, or to do something else, leaves
@@ -60,15 +61,12 @@ const STOP_LAG_MOST := 0.1
 ## gait and the foot of that moment, the ground covered since then, so it shows the frame an
 ## immediate stop would show by now.
 const STOP_GRACE := 0.1
-## Degrees the way the body is asked to go may move from the way a start, a reversal or a pivot was
-## drawn for before the clip is left (gdstudio #1565).
+## Degrees the way the body is asked to go may move from the way a start was drawn for before the
+## clip is left (gdstudio #1565; a reversal's or a pivot's: `CharacterTuning.turn_look_cut_angle`).
 const WISH_CHANGE := 40.0
 # The cosine of `WISH_CHANGE`: the check reads a dot product, no angle (it runs every frame of a
 # clip).
 const _WISH_CHANGE_COS := 0.766
-## Seconds of a reversal's or a pivot's own time before its turn begins at which its look starts:
-## the plant (gdstudio #1565).
-const TURN_LEAD := 0.2
 # The margin on the dot product under which `_pick_moving()` works the angle out exactly, so the
 # shortcut never decides a frame near the angle.
 const _NEAR := 0.001
@@ -93,10 +91,22 @@ var _along := Vector3.FORWARD
 var _facing := 0.0
 var _turn_to := 0.0
 var _pending := false
-# A reversal or a pivot drawn as a look (`TurnLook`): where its time ends, its pace, its curves.
+# A reversal or a pivot drawn as a look (`TurnLook`): where its time ends, its pace, its curves,
+# the cosine of the angle that cuts it, the clip's turn at its first and last time (degrees), the
+# yaw it was drawn from and the way it turns to (radians), and the gait it was picked at (#1574).
 var _look_end := -1.0
 var _look_pace := 1.0
 var _look_curves: CharacterTurnMotion.Curves
+var _look_cut_cos := 0.766
+var _look_yaw_from := 0.0
+var _look_yaw_to := 0.0
+var _look_from := 0.0
+var _look_to := 0.0
+var _picked_gait: StringName = &""
+# The body's facing seen last frame, and the yaw drawn last frame (the facing and the rig's turn):
+# a look starts from what was drawn, however far the facing turned before the tree saw the wish.
+var _yaw_seen := 0.0
+var _drawn_before := 0.0
 # The ground speed of the frame before this one and of this one: a reversal's gait is the faster,
 # since the body's brake has slowed it by the frame the tree sees the new wish (gdstudio #1565).
 var _speed_before := 0.0
@@ -178,6 +188,8 @@ func step(
 	delta: float
 ) -> void:
 	_goal = animation.character.goal_speed
+	_drawn_before = _yaw_seen + look.offset
+	_yaw_seen = animation.character.facing
 	_speed_before = _speed_now
 	_speed_now = animation.character.ground_speed()
 	_count_standing()
@@ -318,7 +330,8 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	# from a dot product; the angle itself is worked out only near or past one (gdstudio #1569).
 	# With `CharacterTuning.turn_root_motion` the step starts its reversals and pivots (`step()`
 	# follows them).
-	var least := minf(settings.reversal_angle, settings.pivot_angle)
+	var tuning := body.tuning
+	var least := minf(tuning.look_reversal_angle, tuning.look_pivot_angle)
 	if (
 		least > 180.0
 		or moving.dot(wish) > cos(deg_to_rad(least)) * wish.length() + _NEAR
@@ -326,10 +339,11 @@ func _pick_moving(animation: CharacterAnimation, blend: GaitBlend) -> Dictionary
 	):
 		return _none
 	var angle := rad_to_deg(moving.angle_to(wish))
-	if angle < settings.reversal_angle and angle < settings.pivot_angle:
+	if angle < tuning.look_reversal_angle and angle < tuning.look_pivot_angle:
 		return _none
 	var point := blend.main_point(CharacterAnimation.GROUND, maxf(speed, _speed_before))
-	if angle >= settings.reversal_angle:
+	_picked_gait = point
+	if angle >= tuning.look_reversal_angle:
 		# A reversal turns over the foot it plants (#1157: planting the left foot it turns to the
 		# left), so the clip that turns the body's way is the one for the foot on that side.
 		var plant := "r" if moving.cross(wish).y < 0.0 else "l"
@@ -423,7 +437,8 @@ func _go_on(
 		or (kind == Kind.STOP and goal > standing)
 		or (kind == Kind.TURN and goal > standing)
 		or ((kind == Kind.REVERSAL or kind == Kind.PIVOT) and goal <= standing)
-		or (kind != Kind.STOP and kind != Kind.TURN and _wish_moved(body))
+		or (kind == Kind.START and _wish_moved(body, _WISH_CHANGE_COS))
+		or ((kind == Kind.REVERSAL or kind == Kind.PIVOT) and _wish_moved(body, _cut_cos()))
 		or _acted(animation)
 	)
 	if _look_end >= 0.0:
@@ -459,12 +474,18 @@ func _go_on(
 		_hand_over(animation, blend, playback, cancelled)
 
 
-# True when the way the body is asked to go has moved `WISH_CHANGE` or more from the way the clip
-# was drawn for (a new direction: the clip gives way).
-func _wish_moved(body: Character) -> bool:
+# True when the way the body is asked to go has moved from the way the clip was drawn for by the
+# angle whose cosine is `cut` or more (a new direction: the clip gives way).
+func _wish_moved(body: Character, cut: float) -> bool:
 	var wish := body.move_goal.direction(body)
 	var length := wish.length()
-	return length > 0.0001 and wish.dot(_along) <= _WISH_CHANGE_COS * length
+	return length > 0.0001 and wish.dot(_along) <= cut * length
+
+
+# The cosine of the angle that cuts a reversal or a pivot: the look's, or `WISH_CHANGE` on the
+# clip's root.
+func _cut_cos() -> float:
+	return _look_cut_cos if _look_end >= 0.0 else _WISH_CHANGE_COS
 
 
 # True when the body does something the clip must give way to on this frame: it takes the aim (a
@@ -482,36 +503,59 @@ func _acted(animation: CharacterAnimation) -> bool:
 	)
 
 
-# Makes the reversal or the pivot just begun a look when the step does not move the body by it:
-# from `TURN_LEAD` before its turn begins to its turn's end, at the pace that takes
-# `GaitSettings.turn_look_time` (gdstudio #1565).
+# Makes the reversal or the pivot just begun a look when the step does not move the body by it
+# (gdstudio #1565): from `CharacterTuning.turn_look_lead` before its turn begins to its turn's
+# end, at the pace that takes the tuning's look time for its kind and gait, drawn from the yaw
+# drawn last frame (gdstudio #1574). Every value is read here, so a change in the inspector shows
+# on the next turn.
 func _start_look(animation: CharacterAnimation) -> void:
 	_look_end = -1.0
 	if kind != Kind.REVERSAL and kind != Kind.PIVOT:
 		return
-	if animation.character.turn_motion.follows(animation.character):
+	var body := animation.character
+	if body.turn_motion.follows(body):
 		return
 	var curves := CharacterTurnMotion.curves_of(clip)
 	if curves == null:
 		return
+	var tuning := body.tuning
 	_look_curves = curves
-	var entry := maxf(curves.turn_from - TURN_LEAD, 0.0)
+	var entry := maxf(curves.turn_from - tuning.turn_look_lead, 0.0)
 	_look_end = minf(curves.release, _length)
-	_look_pace = maxf(_look_end - entry, 0.01) / maxf(settings.turn_look_time, 0.01)
+	var seconds := tuning.turn_look_time(kind == Kind.REVERSAL, _picked_gait)
+	_look_pace = maxf(_look_end - entry, 0.01) / maxf(seconds, 0.01)
+	_look_cut_cos = cos(deg_to_rad(tuning.turn_look_cut_angle))
+	_look_yaw_from = CharacterTurnMotion.yaw_at(curves, entry)
+	_look_yaw_to = CharacterTurnMotion.yaw_at(curves, _look_end)
+	_look_from = _drawn_before
+	_look_to = _look_from + deg_to_rad(_look_yaw_to - _look_yaw_from)
 	_time = entry
 	animation.tree.set(_P_SEEK, _time)
 
 
-# The rig turned by the look's clip turn against the body's (`TurnLook`), or eased back.
+# The rig turned so the drawn body goes from the yaw it was drawn at to the way asked, along the
+# clip's turn curve, against the body's facing (`TurnLook`), or eased back (gdstudio #1574: the
+# clip's own 90 or 180 degrees added to a facing already turned overshot the way asked).
 func _draw_turn(animation: CharacterAnimation, delta: float) -> void:
 	if _look_end < 0.0 and look.offset == 0.0:
 		return  # Most frames of most characters: no look and nothing to ease back.
+	var body := animation.character
 	var rig := animation.model.rig() if is_instance_valid(animation.model) else null
 	var wanted := NAN
 	if _look_end >= 0.0 and is_playing() and _look_curves != null:
-		var turned := deg_to_rad(CharacterTurnMotion.yaw_at(_look_curves, _time))
-		wanted = wrapf(_facing + turned - animation.character.facing, -PI, PI)
-	look.follow(rig, wanted, delta)
+		var whole := _look_yaw_to - _look_yaw_from
+		var share := 1.0
+		if absf(whole) > 0.01:
+			share = (CharacterTurnMotion.yaw_at(_look_curves, _time) - _look_yaw_from) / whole
+		var wish := body.move_goal.direction(body)
+		if not wish.is_zero_approx():
+			# The way asked now, on the side the clip turns to (straight back reads either side).
+			var asked := _look_from + angle_difference(_look_from, atan2(wish.x, wish.z))
+			if (asked - _look_from) * whole < 0.0 and absf(asked - _look_from) > PI * 0.5:
+				asked += TAU * signf(whole)
+			_look_to = asked
+		wanted = wrapf(lerpf(_look_from, _look_to, share) - body.facing, -PI, PI)
+	look.follow(rig, wanted, delta, body.tuning.turn_look_settle)
 
 
 # The clip's time for what the body has done since it began: the ground covered along the way it

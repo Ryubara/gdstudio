@@ -186,9 +186,7 @@ static func _steer(body: Character, wish: Vector3, delta: float) -> void:
 		)
 		body._present_facing()
 	elif strength > 0.0:
-		body.facing = lerp_angle(
-			body.facing, atan2(wish.x, wish.z), clampf(tuning.turn_speed * delta, 0.0, 1.0)
-		)
+		body.facing = tuning.turn_facing(body.facing, atan2(wish.x, wish.z), delta)
 		body._present_facing()
 
 
