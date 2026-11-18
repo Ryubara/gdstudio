@@ -247,15 +247,15 @@ func test_a_turn_is_picked_from_the_angle_near_it() -> void:
 	await get_tree().physics_frame
 	var animation: CharacterAnimation = body.get_node("Animation")
 	var transitions := animation.gait.transitions
-	var settings := transitions.settings
+	var settings := body.tuning
 	# Running along +z at a jog; the stick at angles either side of the pivot and the reversal.
 	for degrees: float in [
 		0.0,
 		30.0,
-		settings.pivot_angle - 0.05,
-		settings.pivot_angle + 0.05,
-		settings.reversal_angle - 0.05,
-		settings.reversal_angle + 0.05,
+		settings.look_pivot_angle - 0.05,
+		settings.look_pivot_angle + 0.05,
+		settings.look_reversal_angle - 0.05,
+		settings.look_reversal_angle + 0.05,
 		179.0
 	]:
 		body.velocity = Vector3(0.0, 0.0, 4.0)
@@ -273,9 +273,9 @@ func test_a_turn_is_picked_from_the_angle_near_it() -> void:
 		transitions._since_standing = 100
 		var picked := transitions.pick(animation, animation.gait.blend)
 		var expected := -1
-		if angle >= settings.reversal_angle:
+		if angle >= settings.look_reversal_angle:
 			expected = GaitTransitions.Kind.REVERSAL
-		elif angle >= settings.pivot_angle:
+		elif angle >= settings.look_pivot_angle:
 			expected = GaitTransitions.Kind.PIVOT
 		var got: int = picked.get("kind", -1)
 		assert_int(got).override_failure_message("%.2f degrees: %s" % [angle, picked]).is_equal(
