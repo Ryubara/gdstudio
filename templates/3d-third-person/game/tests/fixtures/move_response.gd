@@ -53,8 +53,9 @@ const ACTION_KEYS := {
 	"jump": KEY_SPACE,
 	"aim": MOUSE_BUTTON_RIGHT,
 	"fire": MOUSE_BUTTON_LEFT,
-	"sprint": KEY_SHIFT,
 }
+## Keys a step can hold that are no action of their own (not checked as one by `_actions()`).
+const HELD_KEYS := {"sprint": KEY_SHIFT}
 
 var matrix: MoveKeyMatrix
 ## Every line measured so far, and why each failing one failed.
@@ -393,7 +394,7 @@ static func _keys_of(samples: Array, step: int) -> String:
 func _press(what: String, down: bool) -> void:
 	if what == "":
 		return
-	var code: int = ACTION_KEYS[what]
+	var code: int = ACTION_KEYS.get(what, HELD_KEYS.get(what, KEY_NONE))
 	if what == "aim" or what == "fire":
 		InputSim.mouse_button(code as MouseButton, down)
 	else:

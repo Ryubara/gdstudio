@@ -302,6 +302,9 @@ kit #1157 (each moving one ends as a foot strikes; a turn on the spot ends on th
   was cut when one went up, and a one-tick let-go between two keys started a stop the next key cut 2 to 5 ticks later;
   the stop and reversal suites drove one let-go or one turn by commands. **Seen:** gdstudio #1563, 2026-11-14, found
   by the maintainer playing 3D Third Person (102 of 276 matrix cases failed on main).
+- **Approach:** Put a key a `MoveResponse` step only holds (sprint) in `HELD_KEYS`. **Watch out for:** `_actions()`
+  checks every `ACTION_KEYS` entry as an action that must end a clip, so sprint added there failed 8 cases.
+  **Seen:** gdstudio #1578, 2026-11-17.
 - **Approach:** Make a rule that ends a transition clip on a body state (an aim, a crouch) end it only when the state
   came during the clip, or block the pick under the same state. **Watch out for:** ending every clip of an aiming
   body made an aimed walk's stop begin and end on alternate frames, which only `test_aimed_takeoff.gd`'s gun speed

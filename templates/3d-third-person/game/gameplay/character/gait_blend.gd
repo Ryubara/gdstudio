@@ -114,12 +114,11 @@ func drive(animation: CharacterAnimation, speed: float, delta: float) -> void:
 		place_points(animation.character.tuning)
 	var crouch_drawn := _crouch_drawn(animation, delta)
 	for state: StringName in _spaces:
-		if state == CharacterAnimation.CROUCH and not crouch_drawn:
-			# Undrawn, it starts where its speed is when it is drawn again.
-			(_spaces[state] as Dictionary).drawn = -1.0
-			continue
 		var entry: Dictionary = _spaces[state]
+		# Followed undrawn too (a few sums), so it is drawn again where a space set every frame is.
 		var at := _follow(entry, position_at(entry.speeds, speed), delta)
+		if state == CharacterAnimation.CROUCH and not crouch_drawn:
+			continue
 		tree.set(entry.position, at)
 		var trimmed := 1.0
 		if state == CharacterAnimation.GROUND:
