@@ -1,12 +1,13 @@
 ## Films upper-body actions while leaning (gdstudio #1575) from the game camera, with the HUD: the
-## character aims the pistol and leans left, fires and reloads, then the same leaning right; then
+## character aims the pistol, fires and reloads upright (gdstudio #1584, the reload beside the
+## leaning ones), leans left, fires and reloads, then the same leaning right; then
 ## with the fists out it throws a punch leaning left and right; then the rifle's reload leaning
 ## left and right. The head (and the camera on it) should stay where the lean holds it while the
 ## arms do the action. It presses the input actions the way a player would and prints each stage
 ## (`STAGE <name> <tick>`).
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
-## `gds capture frames --project game --scene res://tools/capture/peek_action_tour.tscn --seconds 19
+## `gds capture frames --project game --scene res://tools/capture/peek_action_tour.tscn --seconds 23
 ## --fps 30`. `PEEK_HOLD=0` turns the lean's hold off (`PeekTuning.action_hold`): the actions take
 ## the head as before. `PEEK_BODY=male` films the male prototype body; `PEEK_ONLY=pistol`,
 ## `fists` or `rifle` films one weapon's stages.
@@ -26,6 +27,13 @@ const PITCH := 2.0
 ## long, and `tap` the actions pressed for one tick at a time into it (seconds).
 const STAGES: Array[Dictionary] = [
 	{"name": "pistol aim", "weapon": "pistol", "hold": [&"aim"], "seconds": 1.0},
+	{
+		"name": "pistol upright, fire, reload",
+		"weapon": "pistol",
+		"hold": [&"aim"],
+		"seconds": 3.4,
+		"tap": [[0.5, &"fire"], [0.9, &"reload"]],
+	},
 	{
 		"name": "pistol lean left, fire, reload",
 		"weapon": "pistol",

@@ -8,7 +8,8 @@ extends RefCounted
 ## `prone_reload`, its own melee blows (gdstudio #1254, `assets/animation/melee/`), the library
 ## `melee`, its own rifle clips (gdstudio #1082, `assets/animation/rifle/`), the library `rifle`,
 ## its own rack of the pistol's slide (gdstudio #1081, `assets/animation/pistol/`), the library
-## `pistol`,
+## `pistol`, its own pistol reload worked in front of the chest (gdstudio #1584, the same
+## folder), the library `pistol_reload`,
 ## and GDStudio's own clips that replace
 ## the library's one clip type at a time (gdstudio #1154, `assets/animation/own/`), the library
 ## `gds`. The looping clips lose their `_Loop` suffix on import (`Idle_Loop` is `Idle`) and loop.
@@ -74,7 +75,9 @@ const PISTOL_AIM := &"ual1/Pistol_Aim_Neutral"
 const PISTOL_AIM_UP := &"ual1/Pistol_Aim_Up"
 const PISTOL_AIM_DOWN := &"ual1/Pistol_Aim_Down"
 const PISTOL_SHOOT := &"ual1/Pistol_Shoot"
-const PISTOL_RELOAD := &"ual1/Pistol_Reload"
+## The pistol's reload (gdstudio #1584): our own, in front of the chest under a head near the aim,
+## on the library's timing. `STAND_INS` names the library's, which lifts the gun beside the head.
+const PISTOL_RELOAD := &"pistol_reload/Pistol_Reload"
 const PICK_UP := &"ual1/PickUp_Table"
 const PUNCH := &"ual1/Punch_Cross"
 const SWORD_ATTACK := &"ual1/Sword_Attack"
@@ -136,6 +139,7 @@ const STAND_INS: Dictionary[StringName, StringName] = {
 	&"fixed/Slide_Exit": &"ual2/Slide_Exit",
 	&"fixed/Sword_Dash": &"ual2/Sword_Dash",
 	&"fixed/Sword_Heavy_Combo": &"ual2/Sword_Heavy_Combo",
+	&"pistol_reload/Pistol_Reload": &"ual1/Pistol_Reload",
 }
 
 # The rifle, held in both hands: the template's own clips.
@@ -247,6 +251,7 @@ const ALL: Array[StringName] = [
 	&"prone_aim/Prone_Aim_Up",
 	&"prone_reload/Prone_Reload_Pistol",
 	&"pistol/Pistol_Rack",
+	&"pistol_reload/Pistol_Reload",
 	&"gds/Idle",
 	&"gds/Idle_To_Jog_L",
 	&"gds/Idle_To_Jog_R",
