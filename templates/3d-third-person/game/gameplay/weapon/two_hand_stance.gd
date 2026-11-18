@@ -36,6 +36,10 @@ const LEAN_SMOOTHING := 0.5
 ## to 5 degrees) read as before, and with `chest_turn` -30 `spine_02` stands at most 28 degrees from
 ## the front under any clip (44 with the gap split evenly under a chest swung 47 degrees).
 const SPINE_SPREAD := 8.0
+## How far down the chest's front points (the sine of its pitch) where its turn starts and ends
+## being read from the shoulders' line instead (`_chest_yaw`): from 44 degrees, past a crouch's
+## hunch, to 72 (gdstudio #1581). A geometric bound, not a timing.
+const STEEP_CHEST := Vector2(0.7, 0.95)
 
 ## The hold that made it.
 var hold: TwoHandHold
@@ -392,6 +396,14 @@ func spine_poses() -> Array[Transform3D]:
 static func _chest_yaw(turned: Basis, lying: float) -> float:
 	var ahead := turned * Vector3.BACK
 	var upright := rad_to_deg(atan2(ahead.x, ahead.z))
+	# A chest pitched toward the floor (lying down) points its front down, whose turn about the up
+	# axis swings half a turn in a tick as it passes straight down: there the shoulders' line,
+	# which a pitch leaves where it is, gives the turn instead (gdstudio #1581).
+	var steep := smoothstep(STEEP_CHEST.x, STEEP_CHEST.y, absf(ahead.normalized().y))
+	if steep > 0.0:
+		var across := turned * Vector3.RIGHT
+		var shoulders := rad_to_deg(atan2(-across.z, across.x))
+		upright += wrapf(shoulders - upright, -180.0, 180.0) * steep
 	var up := (turned * Vector3.UP).normalized()
 	if lying <= 0.0 or up.dot(Vector3.UP) < -0.99:
 		return upright

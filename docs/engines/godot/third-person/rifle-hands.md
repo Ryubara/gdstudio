@@ -61,6 +61,9 @@ are named as such.
   the gun where the last frame's push had it; the butt is brought to the skin after it, since the turn brings the
   chest's left side forward under the stock, and both again in the same frame only when the push moved more than 3 mm.
   What is still short then brings the gun back along its barrel (`pull_limit`, 0 now: nothing is short).
+  The chest's turn is read from its front about the up axis, and from the shoulders' line once the front points
+  down past 44 degrees (all of it by 72, `TwoHandStance.STEEP_CHEST`): lying down, the front passing straight down
+  swung the turn half a round in a tick (gdstudio #1581).
 - **Turned with the drawn body** (gdstudio #1587). The hold (`RifleHeld`) sits under the model's slot beside the rig,
   not under it, while a reversal's or a pivot's look turns the rig under the slot ([the
   look](turn-root-motion.md#turn-look)). `two_hand_stance.gd` turns the hold about the slot's origin by
