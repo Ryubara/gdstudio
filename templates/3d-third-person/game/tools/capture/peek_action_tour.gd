@@ -1,15 +1,17 @@
 ## Films upper-body actions while leaning (gdstudio #1575) from the game camera, with the HUD: the
 ## character aims the pistol and leans left, fires and reloads, then the same leaning right; then
 ## with the fists out it throws a punch leaning left and right; then the rifle's reload leaning
-## left and right. The head (and the camera on it) should stay where the lean holds it while the
-## arms do the action. It presses the input actions the way a player would and prints each stage
-## (`STAGE <name> <tick>`).
+## left and right; then with the rifle a switch to the fists and back leaning left and right
+## (gdstudio #1585). The head (and the camera on it) should stay where the lean holds it while
+## the arms do the action, and go the straight way between two weapons' stances in a switch.
+## It presses the input actions the way a player would and prints each stage (`STAGE <name>
+## <tick>`).
 ##
 ## Record it with Movie Maker through the kit (the frames land in the scratch folder):
 ## `gds capture frames --project game --scene res://tools/capture/peek_action_tour.tscn --seconds 19
 ## --fps 30`. `PEEK_HOLD=0` turns the lean's hold off (`PeekTuning.action_hold`): the actions take
 ## the head as before. `PEEK_BODY=male` films the male prototype body; `PEEK_ONLY=pistol`,
-## `fists` or `rifle` films one weapon's stages.
+## `fists` or `rifle` films one weapon's stages, `PEEK_ONLY=switch` the rifle's switches alone.
 ## It lives in tools/, which the export leaves out, and nothing in the game refers to it.
 extends Node
 
@@ -70,6 +72,29 @@ const STAGES: Array[Dictionary] = [
 		"seconds": 3.4,
 		"tap": [[0.5, &"fire"], [0.9, &"reload"]],
 	},
+	{
+		"name": "rifle aim, switch",
+		"weapon": "rifle",
+		"group": "switch",
+		"hold": [&"aim"],
+		"seconds": 1.0,
+	},
+	{
+		"name": "rifle lean left, switch to the fists and back",
+		"weapon": "rifle",
+		"group": "switch",
+		"hold": [&"aim", &"lean_left"],
+		"seconds": 3.6,
+		"tap": [[0.6, &"toggle_unarmed"], [2.0, &"toggle_unarmed"]],
+	},
+	{
+		"name": "rifle lean right, switch to the fists and back",
+		"weapon": "rifle",
+		"group": "switch",
+		"hold": [&"aim", &"lean_right"],
+		"seconds": 3.6,
+		"tap": [[0.6, &"toggle_unarmed"], [2.0, &"toggle_unarmed"]],
+	},
 ]
 
 var _stages: Array[Dictionary] = []
@@ -85,7 +110,7 @@ var _side: Camera3D
 func _ready() -> void:
 	var only := OS.get_environment("PEEK_ONLY")
 	for stage in STAGES:
-		if only == "" or stage["weapon"] == only:
+		if only == "" or stage["weapon"] == only or stage.get("group", "") == only:
 			_stages.append(stage)
 	var block := load("res://world/blocks/proto_block.tscn") as PackedScene
 	var floor_block := block.instantiate()
