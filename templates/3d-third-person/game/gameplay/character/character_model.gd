@@ -38,6 +38,13 @@ signal rig_changed(rig: Node3D)
 ## editor keeps the model's own layers.
 @export_flags_3d_render var body_layers := 1 << 1
 
+## How far the model (the rig) is turned about the up axis from its place under this slot now,
+## radians to the left: a reversal's or a pivot's look turns it under the slot (`TurnLook`, which
+## sets this). A part placed in this slot's space but drawn with the body turns by as much: the
+## rifle's hold, whose gun followed the slot while the chest went round with the rig (gdstudio
+## #1587). Cosmetic, never sent.
+var drawn_turn := 0.0
+
 var _rig: Node3D
 var _skeleton: Skeleton3D
 var _announced: Node3D
