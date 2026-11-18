@@ -30,6 +30,12 @@ landing clip and is in `LAND`), `land_time` 0.3 s, `hard_land_speed` 9 m/s, `har
 `hard_land_keep` 0 (a hard landing holds the body to its clip's control frame, keeping that share of its ground speed:
 [the jump's clips](clips.md#jump-clips), kit #1535).
 
+The turns' inspector (`Character` > `tuning` > Turns, gdstudio #1574): `brake_deceleration` 40 m/s², `turn_speed` 9
+rad/s and `turn_rate_most` 400 degrees a second (the facing on foot); Look: `look_reversal_angle` 135 and
+`look_pivot_angle` 100 degrees, `jog_reversal_look_time` 0.5 s, `sprint_reversal_look_time` 0.6 s, `pivot_look_time`
+0.4 s, `turn_look_lead` 0.2 s, `turn_look_cut_angle` 40 degrees, `turn_look_settle` 0.06 s; Root motion:
+`turn_root_motion`, `pivot_angle`, `reversal_angle`, `turn_hand_back` and the clips ([the look](turn-root-motion.md#turn-look)).
+
 ## Player {#player-part}
 
 **Where:** `gameplay/player/` (`player.gd` + `player.tscn`, `player_input.gd`, `player_command.gd`,

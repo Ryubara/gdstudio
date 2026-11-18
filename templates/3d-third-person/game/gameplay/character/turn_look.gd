@@ -6,11 +6,10 @@ extends RefCounted
 ## the planted foot, are drawn by turning the rig under the model by how far the clip has turned
 ## from where the body faced as it began, less how far the body has turned since: the drawn body
 ## turns as the clip does while the capsule already goes the new way. Out of a turn the difference
-## dies away over `HALF_LIFE`, so a turn cut by a new direction or an action never pops.
+## dies away over `CharacterTuning.turn_look_settle`, so a turn cut by a new direction or an action
+## never pops.
 ## Cosmetic: never sent, never stepped; nothing reads the rig's turn but the eye.
 
-## Seconds in which a difference left by an ended or cut turn halves.
-const HALF_LIFE := 0.04
 ## Below this (radians) the rig is put back exactly and left alone.
 const AT_REST := 0.0005
 
@@ -22,12 +21,12 @@ var _base := Transform3D.IDENTITY
 
 
 ## One frame: the rig turned `wanted` radians (from the clip that plays), or, with `wanted` NAN,
-## eased back toward none over `delta` seconds.
-func follow(rig: Node3D, wanted: float, delta: float) -> void:
+## eased back toward none over `delta` seconds, halving every `half_life` seconds.
+func follow(rig: Node3D, wanted: float, delta: float, half_life: float) -> void:
 	if not is_finite(wanted):
 		if offset == 0.0:
 			return
-		offset *= pow(0.5, delta / HALF_LIFE)
+		offset *= pow(0.5, delta / maxf(half_life, 0.001))
 		if absf(offset) < AT_REST:
 			offset = 0.0
 	else:
