@@ -19,8 +19,9 @@ extends SkeletonModifier3D
 ## While the body leans, an action over the upper body (a melee blow, an item's use) does not ease
 ## the chest's turn off, nor change the gun's raise or carry under the chest, by the lean's hold
 ## (`PeekLayer.hold_share()`, gdstudio #1575), so the trunk and the head stay where the lean put
-## them while the arms do the action. A switch still eases the turn with the arms' weight: the
-## weapon after it has its own stance.
+## them while the arms do the action. Through a switch to or from its weapon it holds the trunk
+## itself (`StanceSwitchPose`, gdstudio #1585): one blend from the pose drawn before the switch
+## toward the trunk it is given, so the head goes the straight way between the two stances.
 
 ## The head's bone: it is turned back by the chest's turn, so the head stays on the locomotion
 ## clip. The head and not the neck under it: the neck carries skin at the collar, and turning it
@@ -40,6 +41,12 @@ const SPINE_SPREAD := 8.0
 ## being read from the shoulders' line instead (`_chest_yaw`): from 44 degrees, past a crouch's
 ## hunch, to 72 (gdstudio #1581). A geometric bound, not a timing.
 const STEEP_CHEST := Vector2(0.7, 0.95)
+# What the stance does through a switch the lean holds (`_switch_step`).
+const _SWITCH_NONE := 0
+const _SWITCH_KEEP_OWN := 1
+const _SWITCH_KEEP_GIVEN := 2
+const _SWITCH_PUT_AWAY := 3
+const _SWITCH_BRING_UP := 4
 
 ## The hold that made it.
 var hold: TwoHandHold
@@ -55,6 +62,8 @@ var _peek_looked := false
 var _kept_raise := 0.0
 var _kept_carry := 0.0
 var _peek_hold := 0.0
+# The trunk held through a switch while the body leans (gdstudio #1585).
+var _switch_pose := StanceSwitchPose.new()
 # The spine (kit #1347): its bones and the skeleton's parents, read once; whether each spine bone's
 # parent is the one before it (`_chain`); and in this update the pose of the first one's parent,
 # each one's local pose and its pose in the skeleton's space. With a chain the turns and the
@@ -108,6 +117,14 @@ func _process_modification_with_delta(delta: float) -> void:
 			_posed[index] = chest
 	elif top >= 0:
 		chest = HandPoseModifier.global_pose(skeleton, top)
+	var switch := _switch_step()
+	if switch == _SWITCH_KEEP_GIVEN or switch == _SWITCH_PUT_AWAY:
+		if switch == _SWITCH_KEEP_GIVEN:
+			_keep_switch_pose(skeleton)
+		else:
+			_blend_switch_pose(skeleton, _peek_hold)
+		hold.place(skeleton, _posed[-1], true)
+		return
 	# About the chest's own up axis in a slide, not the model's: a slide lays the chest back, and
 	# a turn about the model's up axis rolled it onto its side instead (kit #1413).
 	var yaw := 0.0
@@ -130,7 +147,54 @@ func _process_modification_with_delta(delta: float) -> void:
 	_straighten_chest(skeleton, top)
 	_turn_back(skeleton, top)
 	_carry_upright(skeleton, top, delta)
+	if switch == _SWITCH_BRING_UP:
+		_blend_switch_pose(skeleton, _peek_hold)
+	elif switch == _SWITCH_KEEP_OWN:
+		_keep_switch_pose(skeleton)
 	hold.place(skeleton, _posed[-1] if _chain else Transform3D(), _chain)
+
+
+# What the stance does through a switch the lean holds in this update (gdstudio #1585): nothing
+# of it (`_SWITCH_NONE`); keep its own pose, its weapon in the hands under the hold; keep the trunk
+# it is given and add nothing, another weapon in the hands under the hold; blend toward the kept
+# pose, its weapon put away (`_SWITCH_PUT_AWAY`, its own turns off) or coming up.
+func _switch_step() -> int:
+	var lean_hold := _peek.hold() if _peek != null and is_instance_valid(_peek) else null
+	var before := lean_hold.held_before() if lean_hold != null and _chain else null
+	if before == null:
+		_switch_pose.clear()
+		return _SWITCH_NONE
+	var mine := hold.own_definition()
+	if lean_hold.stance_draw:
+		# With no weight left the stance is going off (its influence may still be the last
+		# frame's): it adds nothing.
+		if not _switch_pose.has_pose() or is_zero_approx(hold.weight()):
+			return _SWITCH_NONE
+		return _SWITCH_PUT_AWAY if mine == before else _SWITCH_BRING_UP
+	if lean_hold.drawing():
+		return _SWITCH_NONE
+	return _SWITCH_KEEP_OWN if mine == before else _SWITCH_KEEP_GIVEN
+
+
+func _keep_switch_pose(skeleton: Skeleton3D) -> void:
+	var neck := _neck_bone(skeleton)
+	_switch_pose.keep(skeleton, _locals, _posed, neck, _head)
+
+
+func _blend_switch_pose(skeleton: Skeleton3D, share: float) -> void:
+	var neck := _neck_bone(skeleton)
+	var reach := hold.weight()
+	_switch_pose.blend(skeleton, _bones, _base, _locals, _posed, neck, _head, share, reach)
+
+
+# The head's parent (the neck) when it is the chest's child, or -1; looks the head up first.
+func _neck_bone(skeleton: Skeleton3D) -> int:
+	if _head == -2:
+		_head = skeleton.find_bone(HEAD)
+	if _head < 0 or _head >= _parents.size():
+		return -1
+	var neck := _parents[_head]
+	return neck if neck >= 0 and _parents[neck] == _bones[-1] else -1
 
 
 # The lean's hold of this update, and the weights kept while there is none.
@@ -146,7 +210,7 @@ func _step_peek_hold() -> void:
 
 
 # The weight of the chest's turn: the hold's, or, by the lean's hold, the arms' weight alone (the
-# left hand away for an action and a blow do not ease it off; a switch still does, with the arms).
+# left hand away for an action and a blow do not ease it off; a switch is held by `_switch_step`).
 func _chest_weight() -> float:
 	return lerpf(hold.chest_weight(), hold.weight(), _peek_hold)
 

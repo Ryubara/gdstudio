@@ -292,15 +292,29 @@ A switch holds the old weapon's pose while it goes down and lets go as the new o
   the turn on the last muzzle through a switch to the fists, and the head keeps its turn toward a rifle's sights
   (`AimHeadModifier.sight_hold`) where a blow swings them.
 - The rifle's stance keeps its chest turn (`TwoHandStance._chest_weight()`), raise and carry against a blow or the left
-  hand's use; a switch still eases the turn with the arms.
+  hand's use.
+
+A switch to or from the rifle is held by the rifle's stance itself (gdstudio #1585, `StanceSwitchPose`). On a lean the
+stance moves the head 12 to 14 cm from where the bend alone puts it (its chest turn about the model's up axis and its
+raise of a chest the bend rolls), and through a switch two holds let go of that at once along their own curves:
+`PeekModifier` of the clips' turns it kept (with the hold's share) and the stance of its turn and raise (with the arms'
+weight, as the loadout lowers the gun), and the aim layer eased its shares a third time. The head went 32 to 36 mm off
+the straight way between the two stances leaving the rifle on a left lean, 104 to 109 mm bringing it up on a right
+lean. Now, while the next weapon comes up (`PeekHold.stance_draw`), `PeekModifier` and the aim layer's trunk keep
+nothing and the stance blends the spine, the neck and the head from the trunk it is given toward the pose drawn just
+before (its own output while the rifle was in the hands, or the other weapon's held trunk it was given), by the hold's
+share, then turns the spine about its first bone so the head is on the straight way between the two (bone by bone it
+went round an arc, 9 mm off). Putting the rifle away the blend goes with the draw; bringing it up the hold stays on
+until the rifle is up (its aim comes up with it) and lets go over `action_release_time`. The stance's turns are
+weighed past that pose by its influence (the arms' weight), so the influence brings them back to it. 4 to 7 mm now, both
+leans, both bodies, the way there and back.
 
 The arms keep each clip's own: the hands are where they were on main (the pistol reload holds the gun at eye level, 12
 to 15 cm over the head bone, a clip made for a head that drops to it). `PeekTuning.action_hold` off is the old look.
 The capture is `tools/capture/peek_action_tour.tscn` (`PEEK_HOLD=0`, `PEEK_VIEW=side`, `PEEK_ONLY`, `PEEK_BODY`).
 
-Not held yet: a rifle switch on a right lean moves the head about 10 cm as the stance's 30 degree chest turn goes with the
-arms (the turn is about the model's up axis, which swings a leaning head): gdstudio #1585. A reload clip for a level
-head: gdstudio #1584.
+Not held yet: a reload clip for a level head: gdstudio #1584. The pistol's switch to the fists leaves the straight way
+by 8 to 12 mm (the clips' trunk and the aim layer let go along different curves).
 
 - **Approach:** Hold a pose through an action by keeping the inputs to the modifiers from the update before it began
   (the clip's local turns, each modifier's share), switched on whole at the action's first update, and let go only when
@@ -316,3 +330,10 @@ head: gdstudio #1584.
   **Watch out for:** in the tick a shot leaves, `Character.aim_ray()` is the shot's ray from the camera beside the
   shoulder, so the aim point jumped for one update and the head and the spine with it (a centimetre, 1.8 degrees) at
   every shot, upright as well (`AimLayer._view_ray()`). **Seen:** gdstudio #1575, 2026-11-17.
+- **Approach:** Hold a pose through a change that several modifiers make with one blend after them, from the pose
+  drawn before toward the live one, turning the chain so the end bone stays on the straight way; switch the other holds
+  off meanwhile. **Watch out for:** easing each part by its own weight (the clips' turns by the hold, the stance by the
+  arms, the aim layer by the hold again) bent the head's way 32 to 109 mm; matching the weights left 15 to 37 mm, since
+  a leaning chain's turn is not linear in its weight; a modifier's `influence` blends a blend inside it again (take it
+  past its pose by `1 / influence`). Turning the chest about its own axis held the head too but moved the right lean's
+  muzzle 10 cm out and the arms into the chest. **Seen:** gdstudio #1585, 2026-11-17.
