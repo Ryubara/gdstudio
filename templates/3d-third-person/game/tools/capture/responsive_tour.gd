@@ -195,9 +195,13 @@ func _next_sequence() -> void:
 
 func _next_step() -> void:
 	var steps: Array = sequences[_sequence][2]
+	var held_next: Array = steps[_step + 1][1] if _step + 1 < steps.size() else []
 	if _step >= 0:
+		# An action the next step holds too stays held: let go and pressed again on one frame, a
+		# sprint reads as a fresh press (and gets a lying body up, `ProneTuning.sprint_gets_up`).
 		for action: String in steps[_step][1]:
-			Input.action_release(action)
+			if not held_next.has(action):
+				Input.action_release(action)
 	_step += 1
 	_clock = 0.0
 	_since_change = 0
@@ -205,7 +209,8 @@ func _next_step() -> void:
 		_next_sequence()
 		return
 	for action: String in steps[_step][1]:
-		Input.action_press(action)
+		if not Input.is_action_pressed(action):
+			Input.action_press(action)
 
 
 func _build_label() -> void:

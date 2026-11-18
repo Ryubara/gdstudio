@@ -43,6 +43,10 @@ extends SkeletonModifier3D
 @export_range(1, 4, 1) var passes := 2
 ## The weapon's aim pose alone, solved on in place of the drawn pose (null: the drawn pose).
 var aim_pose: AimPose
+## On with `hold_turn`: keep the turn found before as it is, not moved with the aim either: a
+## leaning body's action swings the muzzle with the hands, and the kept turn followed the swing
+## (`PeekHold`, gdstudio #1575).
+var freeze_turn := false
 ## How far the turn is the one solved on the drawn pose rather than on `aim_pose` (0 the aim pose
 ## alone, 1 the drawn pose alone): the drawn pose is the aim pose blended with the carry pose
 ## until the weapon is all the way up.
@@ -107,6 +111,8 @@ func _process_modification_with_delta(delta: float) -> void:
 		wanted = (
 			_held + Vector2(angles.y - _held_angles.y, wrapf(angles.x - _held_angles.x, -PI, PI))
 		)
+		if freeze_turn:
+			wanted = _held
 		_release = release_time
 	# How much of the last pass's correction this update takes: all of it, but while the turn eases
 	# back after a recoil only as much as it has eased (gdstudio #1369: taken whole, the last pass

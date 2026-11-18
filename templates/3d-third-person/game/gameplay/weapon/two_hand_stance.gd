@@ -15,6 +15,12 @@ extends SkeletonModifier3D
 ## gun from the chest bone's pose of this frame; the hold gives each arm's `HoldArm`, which runs
 ## after this, its hand's place on the gun just placed, so the hands are on the gun in the pose of
 ## this very update.
+##
+## While the body leans, an action over the upper body (a melee blow, an item's use) does not ease
+## the chest's turn off, nor change the gun's raise or carry under the chest, by the lean's hold
+## (`PeekLayer.hold_share()`, gdstudio #1575), so the trunk and the head stay where the lean put
+## them while the arms do the action. A switch still eases the turn with the arms' weight: the
+## weapon after it has its own stance.
 
 ## The head's bone: it is turned back by the chest's turn, so the head stays on the locomotion
 ## clip. The head and not the neck under it: the neck carries skin at the collar, and turning it
@@ -42,6 +48,13 @@ var hold: TwoHandHold
 var lean_share := 0.0
 
 var _head := -2
+# The lean that holds the chest's turn through an action, looked up once from the hold's character,
+# and how far the gun was raised and carried in the last update with no hold.
+var _peek: PeekLayer
+var _peek_looked := false
+var _kept_raise := 0.0
+var _kept_carry := 0.0
+var _peek_hold := 0.0
 # The spine (kit #1347): its bones and the skeleton's parents, read once; whether each spine bone's
 # parent is the one before it (`_chain`); and in this update the pose of the first one's parent,
 # each one's local pose and its pose in the skeleton's space. With a chain the turns and the
@@ -77,6 +90,7 @@ func _process_modification_with_delta(delta: float) -> void:
 		return
 	if not _laid_out:
 		_lay_out(skeleton)
+	_step_peek_hold()
 	if _bones.is_empty():
 		hold.place(skeleton)
 		return
@@ -106,7 +120,7 @@ func _process_modification_with_delta(delta: float) -> void:
 		axis = _chest_up(turned, lying)
 	# `left_chest_turn` on the left shoulder (a left peek lean, gdstudio #1435).
 	var turn_now := lerpf(hold.chest_turn, hold.left_chest_turn, hold.side)
-	var weight := hold.chest_weight()
+	var weight := _chest_weight()
 	var degrees := (turn_now - yaw) * weight
 	if _chain:
 		degrees = _share_turn(skeleton, axis, turn_now, weight, lying)
@@ -117,6 +131,24 @@ func _process_modification_with_delta(delta: float) -> void:
 	_turn_back(skeleton, top)
 	_carry_upright(skeleton, top, delta)
 	hold.place(skeleton, _posed[-1] if _chain else Transform3D(), _chain)
+
+
+# The lean's hold of this update, and the weights kept while there is none.
+func _step_peek_hold() -> void:
+	if not _peek_looked:
+		_peek_looked = true
+		var body := hold.character
+		_peek = body.get_node_or_null(^"PeekLayer") as PeekLayer if body != null else null
+	_peek_hold = _peek.hold_share() if _peek != null and is_instance_valid(_peek) else 0.0
+	if _peek_hold <= 0.0:
+		_kept_raise = hold.raised_amount()
+		_kept_carry = hold.carry_amount()
+
+
+# The weight of the chest's turn: the hold's, or, by the lean's hold, the arms' weight alone (the
+# left hand away for an action and a blow do not ease it off; a switch still does, with the arms).
+func _chest_weight() -> float:
+	return lerpf(hold.chest_weight(), hold.weight(), _peek_hold)
 
 
 func _lay_out(skeleton: Skeleton3D) -> void:
@@ -237,7 +269,7 @@ func _turn_back(skeleton: Skeleton3D, top: int) -> void:
 	var across := (_posed[-1].basis.orthonormalized() * _rest_inverse) * Vector3.RIGHT
 	var yaw := rad_to_deg(atan2(-across.z, across.x))
 	var turn_now := lerpf(hold.chest_turn, hold.left_chest_turn, hold.side)
-	var degrees := (turn_now - yaw) * hold.chest_weight() * lean
+	var degrees := (turn_now - yaw) * _chest_weight() * lean
 	_turn_spine(skeleton, Basis(Vector3.UP, deg_to_rad(degrees / _bones.size())))
 	_turn_head(skeleton, top, degrees, Vector3.UP)
 
@@ -246,7 +278,7 @@ func _turn_back(skeleton: Skeleton3D, top: int) -> void:
 # up (a crouch's hunch would put the stock in the collarbone and the head over the receiver),
 # split evenly over the spine bones like the turn.
 func _straighten_chest(skeleton: Skeleton3D, top: int) -> void:
-	var share := hold.raised_amount() * hold.weight()
+	var share := lerpf(hold.raised_amount(), _kept_raise, _peek_hold) * hold.weight()
 	if share <= 0.0 or top < 0:
 		return
 	var chest := _posed[-1] if _chain else HandPoseModifier.global_pose(skeleton, top)
@@ -285,7 +317,7 @@ func _neck_pose(skeleton: Skeleton3D, top: int) -> Transform3D:
 # the clip gave it, as for the chest's turn. It runs only while the carry is on, and its poses
 # come from the spine's of this update (kit #1347).
 func _carry_upright(skeleton: Skeleton3D, top: int, delta: float) -> void:
-	var share := hold.carry_amount()
+	var share := lerpf(hold.carry_amount(), _kept_carry, _peek_hold)
 	if share <= 0.0 or _head < 0 or _bones[0] < 0:
 		_leaning = false
 		return

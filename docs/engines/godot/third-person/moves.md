@@ -45,7 +45,14 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   `prone/Crouch_To_Prone` and `prone/Prone_To_Crouch` play over the body for `enter_time` and `exit_time` (0.9 s and
   1.0 s clips played in 0.5 and 0.7 s), from and to the crouch idle's first pose, at full weight from their first
   frame (`ActionLayer.play_carried()`): the action's 0.1 s cross-fade would show the prone idle under the clip
-  first, so `MomentumBlend` carries the drawn pose into the clip instead (gdstudio #1568). The clips rest the body on the
+  first, so `MomentumBlend` carries the drawn pose into the clip instead (gdstudio #1568). The clip ends the same way
+  (gdstudio #1576): no fade-out, the momentum blend started again from its last drawn pose (`ActionLayer.tick()`,
+  `carried_key()`), and while the body machine still draws the state the clip began in (the prone idle, for the
+  frame or two after getting up's tick) the clip holds its last frame. Getting up with crouch let go goes on from the
+  crouch into `gds/Crouch_To_Stand` (`StanceAnimation`, `GaitSettings` > Stance changes, which also plays
+  `gds/Stand_To_Crouch` and `gds/Crouch_To_Stand` for a crouch and a stand at rest); a move asked for ends it on its
+  frame and the body goes on from there. The splay of the knees halfway through getting up (0.84 m apart) and the
+  depth of the crouch it ends in are the clips' (gdstudio #1580). The clips rest the body on the
   forearms and fists, so lying puts the weapon away (`ProneAnimation.stow_share`: its model hidden and the grip off)
   until the body aims; the rifle's hold, skeleton modifiers after the tree, eases off and back on by the same share
   (`HoldStow`, gdstudio #1581), so no weapon's arms reach for a hidden gun. A model whose body needs clips of its own
@@ -135,6 +142,14 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   0 m up, the lens is `prone_aim_distance` 1.8 m behind it at `prone_aim_fov` 50 degrees, and the view sits
   `prone_aim_shoulder` 0.7 m to the side, from where the pistol shows beside the head. At the 12 degree look-up
   limit the lens is 0.28 m over the floor (`test_prone_aim.gd`).
+
+- **Approach:** End a whole-body clip the momentum blend carries as it began: no fade-out, the blend started again
+  from its last drawn pose, its last frame held until the next state is drawn. Hold the hand-off to a bound that
+  does not come from the code under test (getting up ends still on the crouch idle's first pose: 4 cm a tick), and
+  name the clip when what looks wrong is in its keys. **Watch out for:** getting up faded into the prone idle under
+  it, then rose to standing in six ticks (0.19 m a tick, 0.24 m with the rifle); the matrix held it to the same
+  code getting up to a crouch, which popped too, over 20 of its 42 ticks, so main passed. **Seen:** gdstudio #1576,
+  2026-11-17, found by the maintainer playing (`check_hand_off`; the splay gdstudio #1580, the rifle #1581).
 
 The defaults, from shipped third-person and squad games (the numbers are measured or published by players, not the
 studios; the template's run is 4.0 m/s and its walk 1.7):

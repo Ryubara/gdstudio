@@ -12,7 +12,7 @@ extends RefCounted
 ## the right arm, `Part.USE`). `CharacterAnimation` owns one (`hits`).
 
 ## The share of the action that plays a hit, as `part_for()` names it.
-enum Part { WHOLE, UPPER, WHOLE_BUT_ARMS, UPPER_BUT_ARMS, USE }
+enum Part { WHOLE, UPPER, WHOLE_BUT_ARMS, UPPER_BUT_ARMS, USE, WHOLE_BUT }
 
 ## The body states whose hit plays on the upper body only.
 const UPPER_BODY_STATES: Array[StringName] = [
@@ -28,6 +28,7 @@ var _upper: Array[NodePath] = []
 var _arms: Array[NodePath] = []
 var _kept: Array[NodePath] = []
 var _part := Part.WHOLE
+var _left_out: Array[NodePath] = []
 
 
 ## True when a hit in the body state `state` plays on the upper body only.
@@ -69,9 +70,16 @@ func part() -> Part:
 ## with a weapon held (`armed`) or not, or for an upper-body action (`upper_body`, `UseLayer`), and
 ## turns it off for every other action: called when a hit lands and every frame after, so a body
 ## that crouches, stands up or puts its weapon away during the stun gets the share of the clip its
-## new state takes. The paths are written only on a change.
+## new state takes. `left_out` leaves those bones out of a whole-body action that is no hit (a
+## stance change with a weapon held leaves the weapon layer its grip, and its arms while aiming:
+## `StanceAnimation`; `Part.WHOLE_BUT`). The paths are written only on a change.
 func follow(
-	tree: AnimationTree, hit: bool, state: StringName, armed: bool, upper_body: bool = false
+	tree: AnimationTree,
+	hit: bool,
+	state: StringName,
+	armed: bool,
+	upper_body: bool = false,
+	left_out: Array[NodePath] = []
 ) -> void:
 	var root := tree.tree_root as AnimationNodeBlendTree if tree != null else null
 	if root == null or not root.has_node(&"Action"):
@@ -84,9 +92,13 @@ func follow(
 		wanted = part_for(state, armed)
 	elif upper_body:
 		wanted = Part.USE
-	if wanted == _part and action.filter_enabled == (wanted != Part.WHOLE):
+	elif not left_out.is_empty():
+		wanted = Part.WHOLE_BUT
+	var same_out := wanted != Part.WHOLE_BUT or left_out == _left_out
+	if wanted == _part and same_out and action.filter_enabled == (wanted != Part.WHOLE):
 		return
 	_part = wanted
+	_left_out = left_out
 	action.filter_enabled = wanted != Part.WHOLE
 	if wanted == Part.WHOLE:
 		return
@@ -95,4 +107,5 @@ func follow(
 	for path in _whole:
 		var on := (not upper or _upper.has(path)) and not (but_arms and _arms.has(path))
 		on = on and not (wanted == Part.USE and _kept.has(path))
+		on = on and not (wanted == Part.WHOLE_BUT and _left_out.has(path))
 		action.set_filter_path(path, on)

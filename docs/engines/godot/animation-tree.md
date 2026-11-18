@@ -345,8 +345,10 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   from the last drawn pose again on each of the three frames after a change (`MomentumBlend.SETTLE_FRAMES`): the
   start on the frame the new pose arrives takes the whole jump. It stands aside while a whole-body action plays (the
   action cross-fades in the tree) except a carried one, whose clip shows at once and whose jump it takes (lying
-  down and getting up: [prone](third-person/moves.md#prone)). A `SkeletonModifier3D` added as an internal child at
-  the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`) runs first of the skeleton's modifiers.
+  down and getting up: [prone](third-person/moves.md#prone)); a carried clip's end and its stop start it again too
+  (`ActionLayer.carried_key()`), so the clip's last pose hands over as its first was taken (gdstudio #1576). A
+  `SkeletonModifier3D` added as an internal child at the front (`add_child(node, false, Node.INTERNAL_MODE_FRONT)`)
+  runs first of the skeleton's modifiers.
 
 - **Approach:** Play a gait alone, slowed or sped up, for as many speeds as it looks right at, and blend two gaits
   only across the speeds between; measure a planted foot's slide in the world in a test that steps the body and the
@@ -364,6 +366,14 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   offset, which a blend begun a frame early still showed.
   **Seen:** gdstudio #1439, 2026-11-13 (fixed by kit #1427's `SETTLE_FRAMES`; `test_slide_end_blend.gd`, 0.16 to
   0.18 m after).
+- **Approach:** Never start the momentum blend against a pose the body is leaving for a frame (an old state still
+  drawn under a clip that ends): hold the clip's last frame until the new state is drawn, and give a state whose pose
+  arrives late more frames of starts again (`CharacterGait.extra_settle()`), only where it is late. **Watch out for:**
+  each start loses about 8 % of its difference on its first frame at a 0.05 s half-life, so starts against the lying
+  idle moved a toe 0.18 m in a frame; and every start again holds the drawn pose back, so more of them into lying down
+  delayed the to-prone clip's arms and they caught up 0.25 m in a frame. Standing up from a crouch walk into a jog
+  drew the ground's pose on the fourth frame, after the three starts (a hand 0.20 m). **Seen:** gdstudio #1576,
+  2026-11-17 (`ActionLayer.tick`; the crouch's extra starts on into the ground too).
 - **Approach:** Feed each `AnimationNodeBlendTree` node's output to one input only; a pose used twice (the base of
   four additive differences) is two nodes. **Watch out for:** `connect_node` from an output already connected logs
   `Condition "output == p_output_node" is true` and leaves the second input empty, with nothing else said.

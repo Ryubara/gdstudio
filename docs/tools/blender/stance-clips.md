@@ -83,7 +83,8 @@ in every shipped clip since the reference body has them, and nothing in the game
   measured `Weapon.no_muzzle_offset` on the old `Idle` and tightened its test from 50 mm to 5: each side passed alone
   and the two together put the aimed muzzle 6.2 mm from the offset, so the pull request's check went red in a weapon
   suite no clip change had touched. **Seen:** gdstudio #1160 (PR #1285), 2026-11-12 (the offset measured again:
-  0.2 mm off; and once more after #1262 moved the pistol's seat, 6 mm off until measured).
+  0.2 mm off; and once more after #1262 moved the pistol's seat, 6 mm off until measured); gdstudio #1576,
+  2026-11-17 (playing the stance clips at rest slowed the drawn stand, and `test_shot_hull.gd` needed the old rise).
 - **Approach:** Before pushing a merge, fetch again and run the suites main added since the last merge on the branch's
   clips; a test that reads a pose (the head on the neck, a muzzle, a hand) was fitted to the clip main plays.
   **Watch out for:** main (#1353) landed a head test between this branch's local run and its push: on the library's

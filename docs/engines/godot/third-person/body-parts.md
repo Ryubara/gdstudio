@@ -143,9 +143,9 @@ and shots go 0.35 m out, the feet stay; stepped, predicted, sent.
 
 Inspector: `Character` > Peek > `peek_tuning` (`side_offset`, `max_angle`, `crouch_max_angle`, `pivot_share`,
 `lean_time`, `while_crouched`, `move_speed`, `shape_radius`, `shape_start`, `wall_margin`, `input_mode`,
-`left_shoulder`); `PeekLayer` `chain`, `chain_weights`, `keep`, `head`, `disabled`; `LeftShoulder` `pistol_shift`,
-`disabled`; `RifleHeld` `left_chest_turn`, `left_pocket_in`, `RightPoleLeft`. [The peek lean](peek.md#peek),
-[left](peek.md#left-shoulder).
+`left_shoulder`, `action_hold`, `action_release_time`); `PeekLayer` `chain`, `chain_weights`, `keep`, `head`,
+`disabled`; `LeftShoulder` `pistol_shift`, `disabled`; `RifleHeld` `left_chest_turn`, `left_pocket_in`,
+`RightPoleLeft`. [The peek lean](peek.md#peek), [left](peek.md#left-shoulder), [actions](peek.md#lean-actions).
 
 ## Hit zones {#hit-zones-part}
 
