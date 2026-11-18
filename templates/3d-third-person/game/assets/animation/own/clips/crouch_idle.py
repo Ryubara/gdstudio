@@ -22,6 +22,8 @@ says so: a pair is `[left, right]`.
   collarbones, the fingers move (the hanging hand's more), and the head drifts (or looks, holds and looks back).
 """
 
+import math
+
 import numpy as np
 
 from gdsanim import maths, overlap
@@ -47,6 +49,14 @@ DEFAULTS = {
     "share": 0.67,  # the share of the weight on the left (front, flat) foot at rest
     "shift": 0.05,  # how far the share moves to each side over the loop
     "shift_settle": [0.0, 0.0],  # the weight's own spring: frames it trails, and the share it swings past by
+    # How the weight goes between the feet. 0 frames: one slow wave a loop. More: it rests on the front foot for
+    # `hold_front` of the loop, goes back onto the rear foot over that many frames, rests there for `hold_back` and
+    # comes forward again, as the standing idle's shift does (kit #1580: the wave read as frozen).
+    "shift_frames": 0,
+    "shift_sharp": 0.0,  # 0 eases a shift over all its frames; toward 1 it holds, snaps and holds
+    "hold_front": 0.3,  # the share of the loop resting on the front foot before the shift back
+    "hold_back": 0.3,  # and on the rear foot before the shift forward
+    "settle": [0.0, 0.0],  # the share of the leg's length it folds further as the weight arrives on the front foot, the rear
     "ahead": 0.426,  # where the weight is between the heel (0) and the toe (1) of the flat foot
     "sway": 0.003,  # metres the weight drifts toward the toes and back, twice a loop
     "pelvis": [12.0, -11.0, -5.0],  # the pelvis's turn: pitch forward, yaw to the left, lean to the left
@@ -138,9 +148,38 @@ def describe(rig, style, name: str = "Crouch_Idle", joined=None) -> Clip:
     stand = feet(rig, style, frames, joined, numbers=n)
 
     # The weight: +1 toward the left (front) foot, -1 toward the right, once a loop.
-    side = overlap.follow(
-        [maths.wave(float(f), frames, 0.0) for f in range(frames + 1)], n["shift_settle"][0], n["shift_settle"][1], True
-    )
+    shift, sharp = float(n["shift_frames"]), n["shift_sharp"]
+    go_back = n["hold_front"] * frames
+    go_front = go_back + shift + n["hold_back"] * frames
+    assert go_front + shift <= frames, "the holds and the two shifts are longer than the loop"
+
+    def raw(f: float) -> float:
+        if shift <= 0.0:
+            return maths.wave(f, frames, 0.0)
+        if f < go_back:
+            return 1.0
+        if f < go_back + shift:
+            return 1.0 - 2.0 * maths.ease((f - go_back) / shift, sharp)
+        if f < go_front:
+            return -1.0
+        if f < go_front + shift:
+            return -1.0 + 2.0 * maths.ease((f - go_front) / shift, sharp)
+        return 1.0
+
+    def sink(f: float) -> float:
+        """The share the leg folds further: the body gives a little as the weight arrives on a foot and comes back up."""
+        if shift <= 0.0:
+            return 0.0
+        front, back = n["settle"]
+        arrive_back, arrive_front = go_back + shift, (go_front + shift) % frames
+        out = 0.0
+        for at, depth in ((arrive_back, back), (arrive_front, front)):
+            d = (f - at + 0.5 * frames) % frames - 0.5 * frames  # frames since it arrived, round the loop
+            if -0.5 * shift < d < 1.5 * shift:
+                out += depth * 0.5 * (1.0 - math.cos(2.0 * math.pi * (d + 0.5 * shift) / (2.0 * shift)))
+        return out
+
+    side = overlap.follow([raw(float(f)) for f in range(frames + 1)], n["shift_settle"][0], n["shift_settle"][1], True)
 
     def look(f: float) -> float:
         drift = 0.7 * maths.wave(f, frames, 0.3) + 0.3 * maths.wave(f, frames / 2.0, 0.1)
@@ -221,7 +260,7 @@ def describe(rig, style, name: str = "Crouch_Idle", joined=None) -> Clip:
         plan=stand,
         spec=spec,
         balance=balance,
-        stretch=n["fold"],
+        stretch=(lambda f: n["fold"] - sink(float(f))) if n["shift_frames"] > 0 else n["fold"],
         chains=overlap.chains_from(style.overlap("crouch_idle"), parts),
         kind="stand",
         declared={"ceiling": CEILING, "heel_up": heel_up(n)},

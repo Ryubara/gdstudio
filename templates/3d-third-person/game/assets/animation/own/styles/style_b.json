@@ -54,18 +54,18 @@
   ],
   "foot_wide": [
    0.0,
-   0.1
+   0.05
   ],
   "heel": [
    0.0,
    54.0
   ],
   "knee_out": [
-   8.0,
-   6.0
+   5.0,
+   -2.0
   ],
   "share": 0.64,
-  "shift": 0.04,
+  "shift": 0.042,
   "shift_settle": [
    6.0,
    0.12
@@ -81,15 +81,15 @@
    6.0
   ],
   "head": [
-   26.0,
+   29.0,
    -7.0,
    4.0
   ],
   "hip_tip": 2.0,
   "hip_turn": 3.0,
-  "head_yaw": 8.0,
+  "head_yaw": 10.0,
   "breath_ribs": 1.6,
-  "breath_clavicle": 2.0,
+  "breath_clavicle": 2.2,
   "arm_swing": [
    50.0,
    40.0
@@ -141,6 +141,14 @@
   "foot_turn": [
    0.0,
    26.0
+  ],
+  "shift_frames": 72,
+  "hold_front": 0.28,
+  "hold_back": 0.22,
+  "shift_sharp": 0.15,
+  "settle": [
+   0.004,
+   0.006
   ]
  },
  "crouch_walk": {

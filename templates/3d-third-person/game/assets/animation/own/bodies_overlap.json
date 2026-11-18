@@ -1,6 +1,6 @@
 {
  "clips_file": "locomotion.glb",
- "sha256": "846d1c5d9121da7a3e4307d9000e13f967fae89f2048fc983dd8ad9e6b55773d",
+ "sha256": "f4096364fd7531c1ec64928315e15fe47d3e5f0ed88d83b956f3bc725832ec62",
  "measure_sha256": "1797ff617610ae39f922b2c3d2f5d8f0c7c6869b9cbb69bba30d60fd7c1fc4f4",
  "bodies_sha256": {
   "mannequin_female": "2ee6cc3fe888d9b144afa8cc4b2ab7bfc5d13a0d5b7548df777f61f64ad65fa6",
@@ -13,9 +13,9 @@
  "clips": {
   "Crouch_Idle_Loop": {
    "form_female": {
-    "deepest_mm": 0.0,
-    "frame": null,
-    "pair": null
+    "deepest_mm": 4.2,
+    "frame": 229,
+    "pair": "calf_l in lowerarm_l"
    },
    "form_male": {
     "deepest_mm": 0.0,
@@ -28,7 +28,7 @@
     "pair": null
    },
    "mannequin_male": {
-    "deepest_mm": 4.3,
+    "deepest_mm": 1.1,
     "frame": 228,
     "pair": "lowerarm_l in thigh_l"
    }

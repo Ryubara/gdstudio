@@ -187,6 +187,19 @@ UP_TURN = None
 # By side, the way a knee points while it is bent under the body in the transitions (ahead, out to its side, up);
 # None points both (0.3, 1.0, -0.25).
 UNDER_KNEE = None
+# Coming up, by side, the way a knee points while it draws under the body (ahead, out to its side, up), and the
+# frame it gets there: the knees come forward under the hips, a little apart, not out to the sides (kit #1580: with
+# `UNDER_KNEE` the knees spread 0.84 m apart halfway up, against 0.31 m lying and 0.52 m in the crouch, a frog).
+# None draws them as `UNDER_KNEE` does going down.
+UP_KNEE = {"l": ((1.0, 0.36, -0.35), 16), "r": ((0.75, 0.16, -0.45), 11)}
+# Coming up, the pelvis's place (forward, left, up from the crouch's) a few frames before it arrives, and that frame:
+# the rise eases into the crouch from under it and never passes its height (kit #1580: it rose 35 mm over the crouch
+# and sank back into it, which read as dropping into a deep squat). None keeps the old overshoot.
+UP_ARRIVE = ((0.015, 0.0, -0.012), 22)
+# Coming up, the most the knees may be apart side to side (metres, `calf_l` to `calf_r`) and the most the pelvis may
+# rise over the crouch's height on its way into it (metres); None leaves either unchecked.
+UP_KNEES_LIMIT = 0.60
+UP_OVERSHOOT_LIMIT = 0.002
 TURN_SHARE = {
     "pelvis": 0.3,
     "spine_01": 0.5,
@@ -256,6 +269,8 @@ BODIES = {
         },
         "FLOOR_PARTS": ("hand", "lowerarm", "thigh", "calf"),
         "PLAYED_BY": ("male",),
+        # his thicker knee kneels on the floor sooner: the right knee points less far down as it draws under
+        "UP_KNEE": {"l": ((1.0, 0.36, -0.35), 16), "r": ((0.85, 0.18, -0.3), 11)},
     },
     "form_female": {
         "OTHER": "form_male",
@@ -1573,8 +1588,11 @@ def build_transitions(rig, solver, anchor, crouch, clips):
             (5, p["pelvis"] + vec(0.0, 0.0, 0.01)),
             (10, vec(-0.03, 0.0, 0.31)),
             (15, vec(-0.12, 0.01, 0.42)),
-            (21, c["pelvis"] + vec(0.03, 0.0, 0.035)),
-            (25, c["pelvis"]),
+            *(
+                [(UP_ARRIVE[1], c["pelvis"] + vec(*UP_ARRIVE[0])), (26, c["pelvis"])]
+                if UP_ARRIVE
+                else [(21, c["pelvis"] + vec(0.03, 0.0, 0.035)), (25, c["pelvis"])]
+            ),
             (n, c["pelvis"]),
         ],
         "trunk": {
@@ -1686,10 +1704,15 @@ def build_transitions(rig, solver, anchor, crouch, clips):
         (n, l0),
     ]
     for s, sign in SIDES:
+        drawn, drawn_f = (
+            (unit(vec(UP_KNEE[s][0][0], sign * UP_KNEE[s][0][1], UP_KNEE[s][0][2])), UP_KNEE[s][1])
+            if UP_KNEE
+            else (under_knee[s], 13)
+        )
         keys["knee"][s] = [
             (0, lying_knee[s]),
             (6, lying_knee[s]),
-            (13, under_knee[s]),
+            (drawn_f, drawn),
             (24, crouch_knee[s]),
             (n, crouch_knee[s]),
         ]
@@ -2193,6 +2216,27 @@ def main():
             if turn > 0.05 or apart > 0.0005:
                 failures.append(f"{what}: off by {turn:.3f} degrees and {apart:.4f} m")
         down, up = clips["Crouch_To_Prone"], clips["Prone_To_Crouch"]
+        # Coming up, the legs stay under the body and the pelvis eases into the crouch from under it (kit #1580).
+        knees = [
+            abs(float(w["calf_l"][0, 3] - w["calf_r"][0, 3]))
+            for w in (rig.world(pose["local"], pose["pelvis"]) for pose in up)
+        ]
+        rise = max(float(pose["pelvis"][2]) for pose in up) - float(crouch["pelvis"][2])
+        report["up"] = {
+            "knees_apart_most": round(max(knees), 4),
+            "knees_apart_frame": int(np.argmax(knees)),
+            "pelvis_over_crouch": round(rise, 4),
+        }
+        if UP_KNEES_LIMIT and max(knees) > UP_KNEES_LIMIT:
+            failures.append(
+                f"Prone_To_Crouch: the knees are {max(knees):.3f} m apart at frame {int(np.argmax(knees))}"
+                f" (the limit is {UP_KNEES_LIMIT} m): draw them under the body (`UP_KNEE`)"
+            )
+        if UP_OVERSHOOT_LIMIT is not None and rise > UP_OVERSHOOT_LIMIT:
+            failures.append(
+                f"Prone_To_Crouch: the pelvis rises {rise * 1000:.0f} mm over the crouch's height and sinks back"
+                f" (the limit is {UP_OVERSHOOT_LIMIT * 1000:.0f} mm; `UP_ARRIVE`)"
+            )
         planted = {}
         for s, _ in SIDES:
             flat, rolls, lies, pushes = hand_frames(s)
