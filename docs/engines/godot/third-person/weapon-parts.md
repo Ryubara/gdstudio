@@ -46,7 +46,7 @@ its `Health` runs out. The `Crosshair` is `ui/hud/crosshair.tscn`.
 ## Weapon hold {#weapon-hold-part}
 
 **Where:** `gameplay/weapon/hold/` (`weapon_hold.tscn`, `WeaponHold`, `SupportHandPlan`, `HandPose`, `HandPoseModifier`,
-`HoldArm`, `HoldFit`, `FreeHand`, `TorsoSkin`), `tools/hold/`
+`HoldArm`, `HoldFit`, `FreeHand`, `TorsoSkin`, `HoldArmCarry`, `ArmCarrySteady`, `ArmCarry`), `tools/hold/`
 
 Closes the hands on the pistol after the clips: the right hand's fingers and wrist, the index finger onto the trigger as
 the character aims (by a solved pose between, clear of the left thumb), the left hand on the gun while it aims or fires,
@@ -74,6 +74,38 @@ markers, `carry_release` and `carry_arrive` are the female's; the rifle's `TwoHa
 microseconds a character carried and 12.6 aimed over 40; cosmetic, never networked ([the rule and the
 numbers](../../../tools/blender/weapons.md#the-third-person-template-pistol), [the two-handed
 grip](../../../tools/blender/weapon-hands/two-handed-pistol-grip.md)).
+
+**The carry's steady arm** (gdstudio #1577). Carried in one hand (`CharacterAnimation.Carry.HAND_ONLY`) the arms
+follow the locomotion clips and the pistol rides the forearm. `weapon_hold.tscn`'s `ArmCarry` node (`HoldArmCarry`)
+makes an `ArmCarrySteady` on the skeleton right before the grip and weighs it from the hold's weights (the weapon
+held, less the aim, a reload or the rack, and the left hand let go; none for a character posed by hand): each arm
+bone's carry follows the clip's rotation over `follow_half_life` (0.3 s), and the bone is drawn at that carry turned
+by `stride_share` (0.35) of the clip's swing about it, eased under `limit` (30 degrees) and settled over
+`swing_half_life` (0.06 s); the other arm keeps `free_share` (0.7) under `free_limit` (50). The numbers are an
+`ArmCarry` resource, `pistol_arm_carry.tres`, tuned live. While its weight falls the carry closes on the pose under it
+as fast, so the aim comes up on its own blend. `test_pistol_carry_run.gd` walks, jogs and sprints through turns of 90
+and 180 degrees, a stop, a start and an aim on both bodies and reads the gun hand in the chest's space: about 0.03 m
+and 6 degrees an update while carried, at most 0.078 m and 8.3 degrees on the update a walk starts or stops (0.235 m and
+44.5 before: the gait blend's dip on a turn and the reversal's look),
+and over each steady stretch within 0.26 m and 52 degrees (0.53 m and 120 at a sprint before: down by the thigh, level
+forward, up by the head). The rifle is held by its own hold; its hand turns 29 degrees in an update as a jog's reversal
+begins, before and after this (a follow-up issue). Capture: `tools/capture/pistol_run_tour.tscn`.
+
+- **Approach:** To make a weapon carried in one hand read as one carry, steady the arm bones after the tree: let each
+  follow its clip's average and keep a share of the swing about it, and fade the steadying with the aim by closing the
+  carry on the pose under it as the weight falls. **Watch out for:** a hand-only carry puts a pointing pose's wrist on a
+  swinging forearm, so every stride, a reversal's sped-up look and the gait blend's dip on a turn threw the gun about
+  (the numbers above); a carry that lagged the pose under it while it faded held the arm down until the aim was nearly
+  up and moved it the rest in a tick (0.23 m). **Seen:** gdstudio #1577, 2026-11-17 (found by playing; fix:
+  `ArmCarrySteady`, `HoldArmCarry`).
+- **Approach:** Weigh the steady arm by a moving share as well as the hold (`moving_speed` 1 m/s, rising at once,
+  falling over 0.6 s), and place its modifier right before the grip on every update (`HoldArmCarry.keep_before()`).
+  **Watch out for:** a carry held while standing still swung the hands 0.16 m on a stand-up from the crouch and put the
+  rifle's hands 0.43 m off during a weapon switch; the modifier's place among the skeleton's modifiers changes the pose
+  (placed first of all: a 0.07 m jump; placed once, a body swap rebuilt the grip and left the steady after it on the
+  male body: the same jump); a "fresh" test by a gap in frames broke under the animation throttle, so the carry resets
+  when its weight reaches zero instead. **Seen:** gdstudio #1577 / PR #1582, 2026-11-17 (full suite on an early
+  commit: `test_own_clip_blends.gd`, `test_rifle_hold.gd`).
 
 ## Slide rack {#slide-rack-part}
 

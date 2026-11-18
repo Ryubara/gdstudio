@@ -134,6 +134,13 @@ const _P_PLAYBACK := StringName("parameters/%s/playback" % _MACHINE)
 	set(value):
 		slide_exit_clip = value
 		_rebuild()
+## Seconds the slide's exit clip is stretched to (0: its own length, 0.5 s). Its rise from lying
+## to the run took a quarter of a second at its own pace and read as a pop (gdstudio #1577);
+## the body under it runs from the first tick (only the drawn rise is slower).
+@export_range(0.0, 2.0, 0.01, "suffix:s") var slide_exit_time := 0.85:
+	set(value):
+		slide_exit_time = value
+		_rebuild()
 ## Walking into a prop.
 @export var push_clip: StringName = CharacterClips.PUSH:
 	set(value):
@@ -376,6 +383,7 @@ func _drive(delta: float) -> void:
 	gait.drive(self, _playback, speed, delta)
 	_prone_look.step_crawl_share(speed, blend_time, delta)
 	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
+	character._slide.exit_lying = BodyMachine.exit_lying(self)
 	_weapons.drive(self, _brace, _prone_look, _vault_look, up, delta)
 	var active := _actions.is_active(tree)
 	# A carried clip ends on the frame it runs out, handing over through the momentum blend.
@@ -653,6 +661,8 @@ func _on_state_changed(state: Character.State) -> void:
 	var to := BodyMachine.state_for(state, body_state())
 	if to != &"" and _playback != null:
 		_playback.travel(gait.route(to))
+		if to == SLIDE_EXIT:
+			BodyMachine.seek_exit(self)
 
 
 ## How fast and which way the crawl clip plays now (1 its own pace; below zero backwards).

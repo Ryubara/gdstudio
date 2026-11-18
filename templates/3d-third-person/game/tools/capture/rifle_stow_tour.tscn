@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/capture/rifle_stow_tour.gd" id="1_stow"]
+[ext_resource type="PackedScene" path="res://main.tscn" id="2_main"]
+
+[node name="RifleStowTour" type="Node"]
+script = ExtResource("1_stow")
+
+[node name="Main" parent="." instance=ExtResource("2_main")]
