@@ -46,7 +46,8 @@ func test_every_number_has_its_default_pinned() -> void:
 		&"acceleration": 28.0,
 		&"deceleration": 36.0,
 		&"brake_deceleration": 40.0,
-		&"turn_speed": 12.0,
+		&"turn_speed": 9.0,
+		&"turn_rate_most": 400.0,
 		&"walk_below_push": 0.45,
 		&"least_walk_share": 0.5,
 		&"run_above_walk": 0.35,
@@ -94,6 +95,14 @@ func test_every_number_has_its_default_pinned() -> void:
 		&"hard_land_time": 20.0 / 30.0,
 		&"hard_land_keep": 0.0,
 		&"stand_speed": 0.15,
+		&"look_reversal_angle": 135.0,
+		&"look_pivot_angle": 100.0,
+		&"jog_reversal_look_time": 0.5,
+		&"sprint_reversal_look_time": 0.6,
+		&"pivot_look_time": 0.4,
+		&"turn_look_lead": 0.2,
+		&"turn_look_cut_angle": 40.0,
+		&"turn_look_settle": 0.06,
 		&"turn_root_motion": false,
 		&"pivot_angle": 60.0,
 		&"reversal_angle": 135.0,
@@ -159,6 +168,7 @@ func test_deceleration_sets_how_fast_it_stops_crouched() -> void:
 
 
 func test_turn_speed_sets_how_fast_it_faces_where_it_goes() -> void:
+	_tuning.turn_rate_most = 0.0
 	_tuning.turn_speed = 1.0
 	InputSim.key(KEY_D, true)
 	await _ticks(6)
@@ -171,6 +181,25 @@ func test_turn_speed_sets_how_fast_it_faces_where_it_goes() -> void:
 	var fast := absf(angle_difference(_player.facing, PI / 2.0))
 	assert_float(slow).is_greater(1.0)
 	assert_float(fast).is_less(0.3)
+
+
+func test_turn_rate_most_caps_how_fast_it_faces_where_it_goes() -> void:
+	# From facing +z (PI is away from the view), D asks for a quarter turn; at 300 degrees a second
+	# six ticks turn it 30 degrees, at no limit `turn_speed` alone turns it further (gdstudio #1574).
+	_tuning.turn_speed = 40.0
+	_tuning.turn_rate_most = 300.0
+	_player.facing = PI
+	InputSim.key(KEY_D, true)
+	await _ticks(6)
+	var capped := absf(angle_difference(PI, _player.facing))
+	InputSim.key(KEY_D, false)
+	_player.facing = PI
+	_tuning.turn_rate_most = 0.0
+	InputSim.key(KEY_D, true)
+	await _ticks(6)
+	var free := absf(angle_difference(PI, _player.facing))
+	assert_float(rad_to_deg(capped)).is_between(25.0, 31.0)
+	assert_float(rad_to_deg(free)).is_greater(70.0)
 
 
 func test_jump_height_and_rise_time_change_the_jump_at_once() -> void:

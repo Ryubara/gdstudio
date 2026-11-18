@@ -809,8 +809,11 @@ func _steer(wish: Vector3, delta: float) -> void:
 		facing = lerp_angle(facing, view_yaw + PI, clampf(aim_turn * delta, 0.0, 1.0))
 		_present_facing()
 	elif strength > 0.0 and _action_lock <= 0.0:
-		var turn := prone_tuning.turn_speed if _prone.is_prone() else tuning.turn_speed
-		facing = lerp_angle(facing, atan2(wish.x, wish.z), clampf(turn * delta, 0.0, 1.0))
+		var way := atan2(wish.x, wish.z)
+		if _prone.is_prone():
+			facing = lerp_angle(facing, way, clampf(prone_tuning.turn_speed * delta, 0.0, 1.0))
+		else:
+			facing = tuning.turn_facing(facing, way, delta)  # At most `turn_rate_most`: #1574.
 		_present_facing()
 
 
