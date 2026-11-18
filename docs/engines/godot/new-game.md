@@ -271,8 +271,9 @@ another game with no `.import`: the full local run was green and CI's step faile
   2026-11-14.
 - **Approach:** Point `gds capture frames --project` and Godot's `--path` at the kept game's `game/` folder (`<printed
   path>/game`), not at the folder `--keep` or `gds template game` prints. **Watch out for:** the printed path is the
-  game's repository and its Godot project is the `game/` inside, so a capture given the repository found no project.
-  **Seen:** gdstudio PR #1530, 2026-11-14.
+  game's repository and its Godot project is the `game/` inside, so a capture given the repository found no project,
+  and a headless soak given it printed nothing and waited, using no processor, until its timeout killed it (four
+  runs of 300 s lost). **Seen:** gdstudio PR #1530, 2026-11-14; #1591, 2026-11-17.
 
 ## With `--local` {#with-local}
 
