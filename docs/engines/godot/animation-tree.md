@@ -357,13 +357,13 @@ any speed, or how a state change keeps its motion, which 3D Third Person needed 
   idle and the walk slid 13.6 mm across; the test at the three points alone passed. **Seen:** gdstudio #1158,
   2026-11-12 (`test_gait_speed_match.gd`: every speed under 7 mm after the stretch and the trim; 167 mm between the
   jog and the sprint before).
-- **Approach:** Give every blend between gaits a time as well as a speed band: draw the space at a position that
-  follows the speed's by at most one point in a set time (`GaitSettings.gait_change_time`), and test a speed-up
-  through each seam on every drawn update at several places in the stride. **Watch out for:** the jog alone up to
-  4.0 times 1.3 and the sprint alone from 6.5 times 0.8 met at 5.2 m/s with no blend between, so the body's 28 m/s²
-  swapped the legs in one tick: a foot moved 0.16 to 0.33 m there against the jog's 0.10 (0.17 to 0.25 from a crouch
-  walk); the speed tests held steady speeds. **Seen:** gdstudio #1578, 2026-11-17
-  (`test_speeding_up_into_a_sprint`: 0.12 to 0.17 m after).
+- **Approach:** Where two stretched gaits meet with no speeds between (a seam), cross it over a set time
+  (`GaitSettings.gait_change_time`) and leave a blend with speeds of its own on the speed; test a speed-up through each
+  seam on every drawn update at several places in the stride. **Watch out for:** the jog alone up to 4.0 times 1.3 and
+  the sprint alone from 6.5 times 0.8 met at 5.2 m/s, so the body's 28 m/s² swapped the legs in one tick: a foot
+  0.16 to 0.33 m against the jog's 0.10; the speed tests held steady speeds. Timing every blend instead slowed the walk
+  to jog too, and a hand fading out of a crouch walk moved 0.18 m in a tick, not 0.12. **Seen:** gdstudio #1578,
+  2026-11-17 (`test_sprint_speed_up.gd`: 0.12 to 0.16 m after).
 - **Approach:** Start a blend that reads the pose a state change hands over from on the update the new state's pose
   is drawn, not the update the playback names it, and test it on every drawn update (`skeleton_updated`) for a
   joint moving further in one update than the blend lets it. **Watch out for:** `MomentumBlend` began on the update

@@ -333,10 +333,10 @@ saved into a scene file. The body is a state machine: `ground` (a blend space on
 `prone/Prone_Idle` and `prone/Crawl_Fwd` from `assets/animation/prone/`: the crawl replaces the idle over `blend_time`
 as soon as the body moves and plays at `ground speed / crawl_clip_speed` (0.618 m/s, its stride), backwards when the
 body moves away from the way it faces), `jump`, `fall`, `land`, `push` and the slide's three clips (`slide_start`, which
-runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs into `ground`). The ground
-and crouch spaces are drawn at a position that follows the speed's by at most one gait to the next in
-`GaitSettings.gait_change_time` (0.1 s, kit #1578): the jog alone reaches 5.2 m/s where the sprint alone starts, so
-speeding up into a sprint blends the legs over six ticks instead of swapping them in one. The jump's three states
+runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs into `ground`). The jog
+alone reaches 5.2 m/s where the sprint alone starts, so the ground space crosses that seam over
+`GaitSettings.gait_change_time` (0.1 s, kit #1578): speeding up into a sprint blends the legs over six ticks instead
+of swapping them in one. The jump's three states
 pick their clips by the body's numbers (`JumpAnimation`, kit #1371): `jump` the standing take-off, or from
 2.5 m/s the run's take-off off the foot that is down (`Jump_Start_Run_L` or `_R`); `fall` the rise, the top and the fall
 blended by vertical speed; `land` the soft landing, the hard one from 9 m/s of fall (`Land_Hard`, played through its
