@@ -11,8 +11,8 @@ extends SkeletonModifier3D
 ## stride and a gait's carry still comes in, but a swing never throws the gun about; a swing that
 ## turns about in a tick or two is drawn over a few (`swing_half_life`). Made and
 ## weighed by the hold's `HoldArmCarry` node: all of it while the weapon is carried, none as it is
-## aimed, reloaded or let go, so it fades with the aim's own blend. Before the grip, which turns
-## the wrist and holds the arm out after it. Cosmetic, never sent; a few quaternion steps for six
+## aimed, reloaded or let go, so it fades with the aim's own blend. Right before the grip
+## (`keep_before()`). Cosmetic, never sent; a few quaternion steps for six
 ## bones.
 
 const NAME := &"HoldArmSteady"
@@ -26,13 +26,15 @@ var _free: Array[bool] = []
 var _carry: Array[Quaternion] = []
 var _swing := PackedVector3Array()
 var _count := -1
-var _last_frame := -1
+# True until the next frame it draws after it was off (made, or weighed to nothing): the carry
+# starts again from the clip's arm. Not counted in frames: a throttled character draws every few.
+var _fresh := true
 
 
-## The modifier on `skeleton` for `numbers`, made in place of `made` (the last one, or null),
-## right before `before` (the grip) when there is one.
+## The modifier on `skeleton` for `numbers`, made in place of `made` (the last one, or null), right
+## before `grip` (the hold's grip) when there is one (`keep_before()`).
 static func attach(
-	skeleton: Skeleton3D, numbers: ArmCarry, made: ArmCarrySteady, before: Node
+	skeleton: Skeleton3D, numbers: ArmCarry, made: ArmCarrySteady, grip: Node
 ) -> ArmCarrySteady:
 	if made != null and is_instance_valid(made):
 		made.get_parent().remove_child(made)
@@ -45,9 +47,20 @@ static func attach(
 	steady.active = false
 	steady.influence = 0.0
 	skeleton.add_child(steady)
-	if before != null and before.get_parent() == skeleton:
-		skeleton.move_child(steady, before.get_index())
+	steady.keep_before(grip)
 	return steady
+
+
+## Moves it right before `grip` when it is behind it on the same skeleton: the grip turns the
+## wrist and holds the arm out after it. Put first of all, before the momentum blend's neighbours,
+## the hand moved 0.07 m in the update its weight came on; after the grip (a body swapped in builds
+## the grip again) it worked on the grip's arm.
+func keep_before(grip: Node) -> void:
+	if grip == null or grip.get_parent() != get_parent():
+		return
+	var at := grip.get_index()
+	if get_index() > at:
+		get_parent().move_child(self, at)
 
 
 ## Sets the weight (0 off), written only when it changes, since the setters make the skeleton work.
@@ -56,6 +69,8 @@ func weigh(weight: float) -> void:
 		influence = weight
 	if active != (weight > 0.0):
 		active = weight > 0.0
+	if weight <= 0.0:
+		_fresh = true
 
 
 func _skeleton_changed(_old: Skeleton3D, _new: Skeleton3D) -> void:
@@ -68,10 +83,9 @@ func _process_modification_with_delta(delta: float) -> void:
 		return
 	if _count != skeleton.get_bone_count():
 		_find(skeleton)
-	var frame := Engine.get_process_frames()
 	# Off for a while (aimed, put away): the carry starts again from the clip's arm.
-	var fresh := _last_frame < 0 or frame - _last_frame > 2
-	_last_frame = frame
+	var fresh := _fresh
+	_fresh = false
 	# Fading out (the aim, a reload coming in) the carry and its swing close on the pose under them
 	# as fast as the weight goes: held back, the arm stayed down until the aim was nearly up and
 	# then went the rest in a tick (0.23 m).
@@ -111,7 +125,7 @@ func _find(skeleton: Skeleton3D) -> void:
 				_free.append(bones == settings.free_bones)
 	_carry.resize(_bones.size())
 	_swing.resize(_bones.size())
-	_last_frame = -1
+	_fresh = true
 
 
 # `turn` as an axis times its angle (radians), the short way round.

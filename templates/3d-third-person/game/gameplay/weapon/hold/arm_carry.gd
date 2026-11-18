@@ -15,6 +15,15 @@ extends Resource
 ## swing that turns about in a tick or two (the gait blend's dip on a turn, a cut clip) is drawn
 ## over a few, while a stride's swing keeps its timing within a few hundredths of a second.
 @export_range(0.0, 0.5, 0.005, "suffix:s") var swing_half_life := 0.06
+## The ground speed from which the carry holds the arms fully (m/s); below it by the speed's share,
+## so a body standing, crouching or getting up keeps its clips' arms: their trunk moves the arm,
+## and a carry held over a stand-up from the crouch swung the hands 0.16 m in a frame.
+@export_range(0.05, 6.0, 0.05, "suffix:m/s") var moving_speed := 1.0
+## Seconds that share takes to rise from none to all, and to fall: a reversal slows the body nearly
+## to a stop for a few ticks, and a share that followed the speed at once let its look fling the
+## arm again; risen at once on a start the hand moved 0.07 m in a tick.
+@export_range(0.0, 2.0, 0.01, "suffix:s") var moving_rise_time := 0.0
+@export_range(0.0, 2.0, 0.01, "suffix:s") var moving_fall_time := 0.6
 ## The share of the clip's swing about the carry the carrying arm keeps (1: the clip's own arm).
 @export_range(0.0, 1.0, 0.01) var stride_share := 0.35
 ## The most the carrying arm's bones swing off the carry, in degrees, eased (`tanh`) toward it.
