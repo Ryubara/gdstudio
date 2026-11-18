@@ -121,6 +121,12 @@ func test_a_puppets_tracer_ends_on_the_drawn_part_not_the_hull() -> void:
 
 
 func test_a_body_standing_up_is_hit_at_its_drawn_head() -> void:
+	# A stand at rest draws `gds/Crouch_To_Stand` since gdstudio #1576, which rises slower than the
+	# capsule: with the stance clips off the pose stands up by the momentum blend alone, faster than
+	# the capsule grows, which is the case this measures.
+	var settings := CharacterGait.settings_of(_animation).duplicate() as GaitSettings
+	settings.stance_clips = false
+	_animation.gait_settings = settings
 	await _steps(_crouch(), 40)
 	# Let go: the pose is upright long before the capsule has grown to the standing height.
 	var head_over := [0.0]

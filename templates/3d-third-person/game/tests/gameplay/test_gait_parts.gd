@@ -108,6 +108,11 @@ func test_the_gait_settings_defaults_are_pinned() -> void:
 		&"hard_land_speed": 9.0,
 		&"run_land_clip": CharacterClips.LAND_TO_JOG,
 		&"run_land_speed": 2.5,
+		&"stance_clips": true,
+		&"stand_to_crouch_clip": CharacterClips.STAND_TO_CROUCH,
+		&"crouch_to_stand_clip": CharacterClips.CROUCH_TO_STAND,
+		&"stand_to_crouch_time": 0.5,
+		&"crouch_to_stand_time": 0.53,
 		&"helper_tracks": false,
 	}
 	assert_array(ExportPins.differences(fresh, pins)).is_empty()
