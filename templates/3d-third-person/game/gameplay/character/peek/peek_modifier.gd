@@ -8,6 +8,11 @@ extends SkeletonModifier3D
 ## same shift the body's eye point and its shape take in the step, so what a shot meets and what
 ## the camera sees agree with what is drawn. A second pass corrects the first's guess. Each bone is
 ## written once. `PeekLayer` makes it and sets `angle` and `shift`; at 0 it is off.
+##
+## Through an action over the upper body it keeps the clips' turns of the chain above the first
+## bone and of the head as they were when the action began, by `hold` (`PeekHold`, gdstudio
+## #1575): the action's clip owns the spine and the head, and rolled as it is the head dropped and
+## turned to the hands. The arms keep the action's clip.
 
 ## The bones that bend by default, from the hips up.
 const CHAIN: Array[StringName] = [&"pelvis", &"spine_01", &"spine_02", &"spine_03", &"neck_01"]
@@ -38,6 +43,14 @@ var shift := Vector3.ZERO
 var facing := Vector3.BACK
 ## The roll the last update used, radians (for a test).
 var solved_angle := 0.0
+## How much of the clips' turns of the chain above its first bone and of the head are the ones
+## kept from the last update with no hold (0 the clips', 1 the kept ones): `PeekHold.share()`.
+var hold := 0.0
+
+# The clips' turns of the chain's bones and the head kept from the last update with no hold.
+var _kept_turns: Array[Quaternion] = []
+# Their places on their parents (a clip may move a bone a little, not only turn it).
+var _kept_places := PackedVector3Array()
 
 var _bones: PackedInt32Array = []
 var _kept: PackedInt32Array = []
@@ -59,6 +72,10 @@ func _process_modification_with_delta(_delta: float) -> void:
 	for bone in _bones:
 		locals.append(skeleton.get_bone_pose(bone))
 	var head_local := skeleton.get_bone_pose(_head)
+	if hold > 0.0:
+		head_local = _held(base, locals, head_local)
+	else:
+		_keep(base, locals, head_local)
 	var to_skeleton := skeleton.global_basis.inverse()
 	# The skeleton's axes may be turned and scaled inside the model.
 	var forward := (to_skeleton * facing).normalized()
@@ -84,7 +101,61 @@ func _process_modification_with_delta(_delta: float) -> void:
 		var spin := (undo * local.basis.orthonormalized()).get_rotation_quaternion()
 		skeleton.set_bone_pose_rotation(bone, spin)
 		skeleton.set_bone_pose_position(bone, undo * local.origin)
+	if hold > 0.0:
+		for index in range(1, _bones.size()):
+			skeleton.set_bone_pose_position(_bones[index], locals[index].origin)
+		skeleton.set_bone_pose_position(_head, head_local.origin)
+		skeleton.set_bone_pose_rotation(_head, head_local.basis.get_rotation_quaternion())
 	solved_angle = roll
+
+
+## Lets go of the kept turns: the next update with no hold keeps them again (the lean ended).
+func forget() -> void:
+	_kept_turns.clear()
+	_kept_places.clear()
+
+
+# Keeps the clips' turns and places of the chain and the head of this update: the second bone's
+# turn and its place from the first in the skeleton's space (the first, the pelvis, stays the
+# legs': its sway is not the upper body's, as `AimBrace` has it while aiming), the others' and the
+# head's on their parents.
+func _keep(base: Transform3D, locals: Array[Transform3D], head_local: Transform3D) -> void:
+	_kept_turns.resize(locals.size() + 1)
+	_kept_places.resize(locals.size() + 1)
+	var above := base.basis.get_rotation_quaternion()
+	for index in locals.size():
+		var turn := locals[index].basis.get_rotation_quaternion()
+		_kept_turns[index] = above * turn if index == 1 else turn
+		_kept_places[index] = above * locals[index].origin if index == 1 else locals[index].origin
+		above = above * turn
+	_kept_turns[locals.size()] = head_local.basis.get_rotation_quaternion()
+	_kept_places[locals.size()] = head_local.origin
+
+
+# Turns the chain above its first bone (in `locals`, in place) and the head toward the kept turns
+# by `hold`, and returns the head's pose. With nothing kept yet (the lean began in an action), it
+# keeps this update's.
+func _held(base: Transform3D, locals: Array[Transform3D], head_local: Transform3D) -> Transform3D:
+	if _kept_turns.size() != locals.size() + 1:
+		_keep(base, locals, head_local)
+	for index in range(1, locals.size()):
+		var kept := _kept_turns[index]
+		var place := _kept_places[index]
+		if index == 1:
+			var under := (
+				base.basis.get_rotation_quaternion() * locals[0].basis.get_rotation_quaternion()
+			)
+			kept = under.inverse() * kept
+			place = under.inverse() * place
+		locals[index] = _toward(locals[index], kept, place)
+	var last := locals.size()
+	return _toward(head_local, _kept_turns[last], _kept_places[last])
+
+
+func _toward(local: Transform3D, kept: Quaternion, place: Vector3) -> Transform3D:
+	var share := clampf(hold, 0.0, 1.0)
+	var turn := local.basis.get_rotation_quaternion().slerp(kept, share)
+	return Transform3D(Basis(turn).scaled(local.basis.get_scale()), local.origin.lerp(place, share))
 
 
 # The chain's local poses with each bone turned its share of `roll` about `axis` (skeleton space).

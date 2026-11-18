@@ -30,6 +30,11 @@ extends Node
 ## does not aim (the fists, no muzzle), the chest leans at most `upright_max_lean` forward while
 ## aiming, so a crouch's folded trunk stands up and the head stays in the shoulder camera's frame.
 ## It is on by the head's weight, and off lying.
+##
+## While the body leans, an action over the upper body does not take the three away
+## (`PeekHold`, gdstudio #1575): each keeps the share it had when the action began, the spine's
+## turn is kept as it was (`hold_turn`), and the head looks level along the aim rather than to a
+## weapon's sights the action moves, so the head stays on the lean's line.
 
 const _MODIFIER := &"AimOffset"
 const _HEAD_MODIFIER := &"AimHead"
@@ -48,6 +53,9 @@ const _PRONE_PITCH := (
 @export var animation: CharacterAnimation
 ## The hold whose grip turns the wrist first and whose support arm follows the turned weapon.
 @export var hold: WeaponHold
+## The lean that holds the three shares through an upper-body action (`PeekHold`); none: an action
+## takes them away whether the body leans or not.
+@export var peek: PeekLayer
 
 @export_group("Aim")
 ## The bones that turn, from the hips up, and each one's share of the turn (adding up to 1).
@@ -104,7 +112,13 @@ var _upright: AimUprightModifier
 var _eye_of: WeaponDef
 var _eye: Node3D
 var _ray_before := PackedVector3Array()
+# The character's eye point (its `CameraTarget`), where the aim ray starts between shots.
+var _eye_point: Node3D
 var _ray_now := PackedVector3Array()
+# How far a lean holds the shares through an action now (`PeekHold.share()`), and the shares kept
+# from the last refresh with no hold: the spine's turn, the head's, the upright's.
+var _hold := 0.0
+var _kept := Vector3.ZERO
 
 
 func _ready() -> void:
@@ -121,7 +135,7 @@ func _physics_process(_delta: float) -> void:
 	if character == null:
 		return
 	_ray_before = _ray_now
-	_ray_now = character.aim_ray()
+	_ray_now = _view_ray()
 
 
 func _process(_delta: float) -> void:
@@ -147,19 +161,28 @@ func upright_modifier() -> AimUprightModifier:
 ## head's weight, with a weapon the spine's turn does not aim (no muzzle or no aim clip), less how
 ## far the body lies.
 func upright_weight() -> float:
+	return lerpf(_upright_now(), _kept.z, _hold)
+
+
+func _upright_now() -> float:
 	if upright_disabled or character == null or character.weapon == null:
 		return 0.0
 	var definition := character.weapon.definition
 	if character.weapon.muzzle != null and definition != null and definition.aim_clip != &"":
 		return 0.0
-	return head_weight() * (1.0 - smoothstep(0.0, 1.0, character.prone_amount))
+	return _head_now() * (1.0 - smoothstep(0.0, 1.0, character.prone_amount))
 
 
 ## The share the head looks along the aim by now (0 the clips' head, 1 all the way): the aim,
 ## from the aim pose's weight or the character's `aim_amount` eased, less a reload. A melee blow's
 ## aim is not an aim (`MeleeLayer.aim_of`): the blow's clip keeps its own head, where an aimed
-## rifle's head looked along the sights of a rifle the clip was swinging (gdstudio #1288).
+## rifle's head looked along the sights of a rifle the clip was swinging (gdstudio #1288). Leaning,
+## an action keeps the share there was before it (`PeekHold`).
 func head_weight() -> float:
+	return lerpf(_head_now(), _kept.y, _hold)
+
+
+func _head_now() -> float:
 	if head_disabled or character == null or animation == null or animation.tree == null:
 		return 0.0
 	if not animation.tree.active or character.aim_limits == null:
@@ -170,8 +193,20 @@ func head_weight() -> float:
 
 
 ## The share the layer is on by now (0 off, 1 the whole turn): the aim's weight, less a reload,
-## and 0 in a move whose limits are off.
+## and 0 in a move whose limits are off. Leaning, an action keeps the share there was before it
+## (`PeekHold`) while the weapon still has a muzzle to turn.
 func weight() -> float:
+	var now := _weight_now()
+	if _hold <= 0.0 or character == null or character.aim_limits == null:
+		return now
+	# A switch to a weapon with no muzzle (the fists) keeps the turn on the last muzzle.
+	var aim := modifier()
+	if aim == null or aim.muzzle == null or not is_instance_valid(aim.muzzle):
+		return now
+	return lerpf(now, _kept.x, _hold)
+
+
+func _weight_now() -> float:
 	if disabled or character == null or animation == null or animation.tree == null:
 		return 0.0
 	if not animation.tree.active or character.weapon == null or character.weapon.muzzle == null:
@@ -186,8 +221,13 @@ func weight() -> float:
 ## aimed and the three modifiers off, as the last refresh left them) it writes nothing: each of
 ## the three would stay off, so nothing drawn changes (kit #1478).
 func refresh() -> void:
+	_hold = peek.hold_share() if peek != null else 0.0
+	if _hold <= 0.0:
+		_kept = Vector3.ZERO
 	if is_at_rest():
 		return
+	if _hold <= 0.0:
+		_kept = Vector3(_weight_now(), _head_now(), _upright_now())
 	_refresh_head()
 	_refresh_upright()
 	var aim := modifier()
@@ -200,10 +240,13 @@ func refresh() -> void:
 		aim.active = share > 0.0
 	if share <= 0.0:
 		return
-	aim.muzzle = character.weapon.muzzle
+	if character.weapon.muzzle != null or _hold <= 0.0:
+		aim.muzzle = character.weapon.muzzle
 	aim.limits = character.aim_limits
 	aim.target = aim_point(Engine.get_physics_interpolation_fraction())
-	aim.hold_turn = animation.is_shooting() or animation.is_reloading() or _racking()
+	var shooting := animation.is_shooting()
+	aim.hold_turn = shooting or animation.is_reloading() or _racking() or _hold > 0.0
+	aim.freeze_turn = _hold > 0.0 and not shooting
 	aim.release_time = release_time
 	_pose_aim(aim)
 
@@ -306,6 +349,7 @@ func _refresh_head() -> void:
 	looking.max_turn = head_max_turn
 	looking.target = aim_point(Engine.get_physics_interpolation_fraction())
 	looking.eye = _sight_eye(looking)
+	looking.sight_hold = _hold
 
 
 # The marker the head's eye goes to with the weapon in the hands, or null for a level head. The
@@ -327,6 +371,22 @@ func _sight_eye(looking: AimHeadModifier) -> Node3D:
 			skeleton.move_child(looking, index)
 			break
 	return _eye
+
+
+# The character's aim ray from its eye along its view (gdstudio #1575). In the tick a shot leaves,
+# `Character.aim_ray()` is the shot's own ray, from the camera beside the shoulder: the aim point at
+# `converge_distance` jumped for that one update, and the head and the spine with it (a centimetre
+# and 1.8 degrees, at every shot).
+func _view_ray() -> PackedVector3Array:
+	var ray := character.aim_ray()
+	if not character.last_command.has_shot:
+		return ray
+	if _eye_point == null or not is_instance_valid(_eye_point):
+		_eye_point = character.get_node_or_null(^"CameraTarget") as Node3D
+	if _eye_point == null:
+		return ray
+	var along := CommandCodec.direction_from_angles(character.view_yaw, character.view_pitch)
+	return PackedVector3Array([_eye_point.global_position, along])
 
 
 ## The point the muzzle is turned toward, `fraction` of the way from the step before the last to
