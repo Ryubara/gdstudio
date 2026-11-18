@@ -207,6 +207,10 @@ weights and the slide.
   call skipped at rest may have a side effect another part relies on (`MeleeLayer.aim_of` keeps a flag); ask such a
   call once instead of dropping it, and keep what the first frame out of rest reads (the aim ray of the last two
   ticks). **Seen:** gdstudio #1478, 2026-11-13.
+- **Approach:** Keep a value that follows over frames (the gait blend's drawn position) following while the node it
+  feeds is skipped; skip only the set. **Watch out for:** resetting it while skipped brought the crouch space back from
+  where the speed was, not where a space set every frame was: 129 mm apart in `test_gait_cost_cuts.gd`. **Seen:**
+  gdstudio #1578, 2026-11-17.
 - **Approach:** In a suite that compares two bodies side by side, make one player and drop it before the pair (the
   suite's `before()`), and run the pair once with the shortcut on in both before you blame the shortcut. **Watch out
   for:** the first pair a run makes draws apart for a few ticks whatever they run: with both bodies setting every

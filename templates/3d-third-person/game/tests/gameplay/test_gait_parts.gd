@@ -84,6 +84,7 @@ func test_the_gait_settings_defaults_are_pinned() -> void:
 		&"pace_range": Vector2(0.4, 2.0),
 		&"stretch": Vector2(0.8, 1.3),
 		&"slowest_pace": 0.5,
+		&"gait_change_time": 0.1,
 		&"transitions": true,
 		&"transition_clips": null,
 		&"turn_angle": 50.0,
