@@ -294,13 +294,7 @@ func _stance_changes(
 	]
 	var end := roundi(_matrix.player.prone_tuning.exit_time * Engine.physics_ticks_per_second)
 	# Standing up into a sprint speeds through the seam where the sprint blends in over the jog,
-	# which jumps a foot 0.24 to 0.33 m in a tick with no stance change (gdstudio #1578): there the
-	# get-ups are checked to their hand-off and a little after, and the one through the crouch walk
-	# is left out, until that is fixed.
-	var window := {}
-	if gait == "sprint":
-		cases.remove_at(cases.size() - 1)
-		window["prone to stand"] = end + MoveResponse.HAND_OFF_TICKS + 2
+	# checked in full since gdstudio #1578 (before, a foot jumped 0.24 to 0.33 m in a tick there).
 	# A crouch pressed in a sprint is a slide (`moves.md#slide`), not a stance change.
 	if gait != "sprint":
 		cases.append(
@@ -316,8 +310,7 @@ func _stance_changes(
 			steps.append_array([["", 2, "prone"], ["", 90]])
 		var samples := await _response.run(gait, 0.0, steps, 0.0, true)
 		var label := "%s, %s, %s" % [case[0], "still" if keys == "" else "moving " + keys, weapon]
-		var ticks: int = window.get(case[0], t)
-		_response.check_action(label, gait, samples, case[2], plain, false, case[3], ticks)
+		_response.check_action(label, gait, samples, case[2], plain, false, case[3], t)
 		# Getting up in place: its clip's end hands over to the stance under it with no pop. The
 		# rifle's hold takes the trunk back from the clip there (its grip is the upper body), which
 		# the momentum blend carries but for a few centimetres.
