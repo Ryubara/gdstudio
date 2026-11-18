@@ -47,10 +47,11 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   frame (`ActionLayer.play_carried()`): the action's 0.1 s cross-fade would show the prone idle under the clip
   first, so `MomentumBlend` carries the drawn pose into the clip instead (gdstudio #1568). The clips rest the body on the
   forearms and fists, so lying puts the weapon away (`ProneAnimation.stow_share`: its model hidden and the grip off)
-  until the body aims. A model whose body needs clips of its own gets them from `prone_libraries` (its scene file to a
-  library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the
-  pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`), cosmetic and
-  never sent.
+  until the body aims; the rifle's hold, skeleton modifiers after the tree, eases off and back on by the same share
+  (`HoldStow`, gdstudio #1581), so no weapon's arms reach for a hidden gun. A model whose body needs clips of its own
+  gets them from `prone_libraries` (its scene file to a library with the same clip names), swapped in when the model is
+  set or replaced, in the game only. The share, the pace, the weapon and the library swap are `ProneAnimation`
+  (`gameplay/character/prone_animation.gd`), cosmetic and never sent.
 - **One clip file a body.** A clip that rests limbs on the floor fits one body's bone lengths and skin, so each of
   the template's bodies has the four clips solved on itself (kit #1293), and so has each Quaternius mannequin (kit
   #1090): `character_dressed.tscn` holds `prone_form_female.glb` as the library `prone` (the player, the friendlies
@@ -227,6 +228,13 @@ of the stance is sent but the command's bit; the clips are cosmetic and played i
   it, while the momentum blend stood aside; the clip's own leg sweep moves a toe 0.33 m a tick, over the crouch's
   bound, so the bound is on what the hand-off adds. **Seen:** gdstudio #1568, 2026-11-15
   (`test_move_key_matrix.gd`'s action cases, `tools/capture/prone_entry_tour.tscn`).
+- **Approach:** Bound a weapon's stance change by another weapon's same change (the rifle's lie-down by the pistol's,
+  plus 0.04 m a tick), measured in `skeleton_updated`, and find which modifier jumps by turning them off one at a time
+  before trusting a cause. **Watch out for:** a reference made from the clip under test played alone held the jump it
+  should have caught; and the rifle's 0.48 m head jump halfway down, first blamed on the stow hiding the rifle, stayed
+  with the hiding turned off: it was the hold's stance, still on, whose chest turn read about the model's up axis
+  swung half a turn as the chest's front passed straight down. **Seen:** gdstudio #1581, 2026-11-17
+  (`test_rifle_stow_pose.gd`, `tools/capture/rifle_stow_tour.tscn`).
 
 ## Sliding {#slide}
 

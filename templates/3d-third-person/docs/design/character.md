@@ -137,7 +137,7 @@ defaults come from shipped games, with the sources in the kit's `docs/engines/go
 | Group | Settings (default) |
 | --- | --- |
 | Crawl | crawl speed (1.0 m/s), the share of it backwards (0.7) and sideways (0.8), acceleration (10) and deceleration (12), turn speed on the ground (3 rad/s), crawling while going down and up (off) |
-| Getting down and up | the time to lie down (0.5 s) and to get up to crouch (0.7 s), the time off a ledge before a lying body gets up (0.15 s) |
+| Getting down and up | the time to lie down (0.5 s) and to get up to crouch (0.7 s), the time off a ledge before a lying body gets up (0.15 s); the weapon in the hands (the pistol's grip, the rifle's two-hand hold) is put away and brought back over the same times |
 | Body | the lying capsule's height (0.6 m) and radius (0.28 m), the camera target's height lying (0.55 m) |
 | Aim | aiming (on) and firing (on) lying down, the share of the weapon's spread (0.5), the share of the crawl kept aiming (0.5), the aim turn (6 rad/s), how far it looks up (12 degrees) and down (40) |
 | Input | toggle, hold, or a hold of crouch (`crouch_hold_time`, 0.5 s) with a press of crouch to get up; a jump press (on) and a sprint press (on) get up |
