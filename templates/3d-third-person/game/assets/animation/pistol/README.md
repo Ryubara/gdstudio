@@ -1,6 +1,7 @@
 # Pistol clips
 
-One clip of GDStudio's own for the pistol, made from nothing (kit #1081) because the Universal Animation Library's
+Two clips of GDStudio's own for the pistol: the reload, reworked from the library's (gdstudio #1584, [below](#the-reload)),
+and the rack of the slide, made from nothing (kit #1081) because the Universal Animation Library's
 `Pistol_Reload` has no rack of the slide. It is in `pistol_rack.glb`, which Godot imports as an `AnimationLibrary` the
 same way as `assets/animation/universal/`: add it to an `AnimationPlayer` as the library `pistol` and the clip is
 `pistol/Pistol_Rack`. The dressed character holds it (`character_dressed.tscn`), and a reload of an empty pistol
@@ -160,6 +161,64 @@ into another on either body posed as the game draws it, each with its own hold, 
 the two `SlideRack` files. `tools/capture/rack_closeups.tscn` prints the hands' numbers on every frame and films
 the moments from six sides (`RACK_CARRY=0` with the pistol where the clip has it, `RACK_FINGERS=0` with the clip's
 own fingers).
+
+## The reload
+
+`pistol_reload.glb`, imported as the library `pistol_reload`: `pistol_reload/Pistol_Reload`, the pistol's
+`reload_clip` (`gameplay/weapon/pistol.tres`, `CharacterClips.PISTOL_RELOAD`; the library's own stays in `ual1` and
+is named in `CharacterClips.STAND_INS`).
+
+| Clip | Length | Loops | What it is |
+| --- | --- | --- | --- |
+| `Pistol_Reload` | 1.667 s (50 frames), the library's | no | A magazine change worked in front of the chest. Over the game's fade in the pistol comes in toward the body's middle and the head turns to a level look on the aim; the pistol settles at the upper chest a little right of the middle, its muzzle tipped up and canted so the magazine well faces the left hand; the old magazine drops, the left hand goes to the belt, comes up from below the magazine's line and seats it with the library's jolt; the head glances down at the well (at most 11 degrees off the level look) and comes back as the pistol goes out to the aim over the fade out. Starts and ends on the library's first and last frame (the aim pose), which `Pistol_Rack` starts and ends on. |
+
+**Why it is not the library's.** The library's reload lifts the pistol beside the head and turns the head about 45
+degrees down and round to it. Since a lean holds the head level through an action (gdstudio #1575), a left lean
+showed the gun over the head: the lean's roll lifts the right shoulder and the clip took the gun further right and
+up. One clip serves the lean and upright, measured both ways, so no lean variant is needed: the lean lifts the side
+away from it, so a gun near the body's middle and low rises little on either lean.
+
+**Measured in the game** (`tests/gameplay/test_pistol_reload_height.gd`, from the `Head` bone along the world's up,
+every drawn frame; the chin is 11 mm (female) and 12 mm (male) under the head bone; the muzzle between the fades,
+shares 0.1 to 0.87; the head off the level look it had aimed):
+
+| | Library: hand, muzzle, head | This clip: hand, muzzle, head |
+| --- | --- | --- |
+| Female upright | -89 mm, +185 mm, 47 deg | -127 mm, -70 mm, 11 deg |
+| Female leaning left | +143 mm, +290 mm | -47 mm, -47 mm |
+| Female leaning right | -219 mm, -86 mm | -168 mm, -18 mm |
+| Male upright | -95 mm, +184 mm, 47 deg | -137 mm, -82 mm, 11 deg |
+| Male leaning left | +146 mm, +309 mm | -47 mm, -53 mm |
+| Male leaning right | -246 mm, -94 mm | -199 mm, -43 mm |
+
+The test holds the hand 40 mm under the head bone all through, the muzzle under the chin between the fades and the
+head within 15 degrees upright. The highest hand on a lean is at the fades, where the left lean's cross of the pistol
+to the left eye (`LeftShoulderCross`) gives way to the clip by the reload's weight.
+
+**The beats** stay the library's shares (`SupportHandPlan`, `WeaponHold`'s Reload group): the left hand lets go
+0.02 to 0.1, the magazine drops at 0.2, the left hand takes the new one at the belt at 0.25, reaches 0.3 to 0.4,
+inserts 0.4 to 0.54 and returns 0.71 to 0.88; the sounds at 0.2, 0.6 and 0.85.
+
+**How it is made:**
+
+```text
+blender -b --factory-startup -P assets/animation/pistol/build_pistol_reload.py -- --out <abs>/pistol_reload.glb --report <abs>/pistol_reload.json
+```
+
+From the library it takes, frame by frame, the pistol's progress along its move (eased out, so the gun leaves the aim
+sooner), the pistol's turn (`TILT`, 0.45 of it: at 0.9 the muzzle still rose 26 cm over the wrist in the game), the
+left arm's way to the belt (the hold's carry fingers were solved on that pose), the pelvis, the legs and the fingers.
+It works out new the pistol's place (`STATION`, the move to the middle over the fades, `GATHER_REACH` and
+`RETURN_LATE` for the way back), the right arm reached to it, the left arm riding with the pistol until it heads for
+the belt and coming up the magazine's line from below (`DEEP`), the neck and head (the aim head modifier's level look
+over the fades, `NECK_SHARE`, and `HEAD_TURN`'s glance), the chest's lean and the collarbones. It fails before it
+exports when the clip does not start and end on the library's frames, an arm stops short, the right hand is less than
+60 mm under the head bone (upright, on the female it is keyed on), the head is drawn more than 20 degrees off the
+level look, or a part of the body goes more than 5 mm into another on either body (`../limb_overlap.py`: 0.0 mm on
+both; the left hand and forearm are not judged where the hold has them, 17.5 and 9.1 mm there, which
+`test_pistol_hold.gd` measures as the game draws them). `check_clip_builds.py` runs it with `--check`. Build it
+again after the hold's seat, its markers or its magazine approach change, and run `test_pistol_reload_height.gd`,
+`test_pistol_hold.gd` and `test_reload_magazine.gd`.
 
 ## Where it comes from
 

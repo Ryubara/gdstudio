@@ -92,6 +92,10 @@ BUILDS = {
     "fixed": ("fixed/build_fixed_clips.py", []),
     "melee": ("melee/build_melee.py", []),
     "pistol_rack": ("pistol/build_pistol_rack.py", ["--out", ANIM / "pistol/pistol_rack.glb"]),
+    "pistol_reload": (
+        "pistol/build_pistol_reload.py",
+        ["--out", ANIM / "pistol/pistol_reload.glb", "--report", ANIM / "pistol/pistol_reload.json"],
+    ),
     # The limb measure's reports that no build writes: one a prone file, and the vault's Quaternius pair.
     "overlap_prone": ("limb_overlap.py", overlap(P / "prone.glb", [FEMALE], P / "prone_overlap.json")),
     "overlap_prone_male": ("limb_overlap.py", overlap(P / "prone_male.glb", [MALE], P / "prone_male_overlap.json")),

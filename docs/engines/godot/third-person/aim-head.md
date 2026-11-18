@@ -60,6 +60,12 @@ Crouched with the fists, the chest under it is stood up first to at most 30 degr
   cheek leaned on the sights, a neck and head blended against each other between the up and down poses); measuring the
   head on its neck alone hides it, since most of the lean is the chest's: read the head's roll against the world's up
   and where it faces against the aim too. **Seen:** gdstudio #1334, 2026-11-12 (`test_aim_head.gd`).
+- **Approach:** Give a one-shot clip that takes the upper body from the aim (a reload) the aim head modifier's level
+  look over its fade in and out, and judge its head against that look, not against the aim clip's own first frame.
+  **Watch out for:** the modifier fades out by the reload's weight, so the clip's head shows: the library's aim pose
+  under it tips the head 19 degrees down and rolls it 10, and a clip built to stay near its own aim pose read 36
+  degrees off the aimed head in the game while the build read 17. **Seen:** gdstudio #1584, 2026-11-17
+  (`build_pistol_reload.py`: `NECK_SHARE`, the turn over `FADE_IN` and `FADE_OUT`).
 - **Approach:** Give the head's rule a goal per weapon, on the weapon's definition, and run every weapon's
   clips and captures through a change to it. **Watch out for:** a level-head rule erases a shouldered weapon's
   cheek weld: made for the pistol's crooked head, it stood the rifle's head upright, the eye 158 to 167 mm off the

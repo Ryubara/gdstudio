@@ -20,6 +20,7 @@ const LIBRARIES: Dictionary[String, String] = {
 	"prone_reload_male": "res://assets/animation/prone/prone_reload_male.glb",
 	"prone_aim_male": "res://assets/animation/prone/prone_aim_male.glb",
 	"pistol": "res://assets/animation/pistol/pistol_rack.glb",
+	"pistol_reload": "res://assets/animation/pistol/pistol_reload.glb",
 	"gds": "res://assets/animation/own/locomotion.glb",
 	"melee": "res://assets/animation/melee/melee.glb",
 }

@@ -309,12 +309,16 @@ until the rifle is up (its aim comes up with it) and lets go over `action_releas
 weighed past that pose by its influence (the arms' weight), so the influence brings them back to it. 4 to 7 mm now, both
 leans, both bodies, the way there and back.
 
-The arms keep each clip's own: the hands are where they were on main (the pistol reload holds the gun at eye level, 12
-to 15 cm over the head bone, a clip made for a head that drops to it). `PeekTuning.action_hold` off is the old look.
-The capture is `tools/capture/peek_action_tour.tscn` (`PEEK_HOLD=0`, `PEEK_VIEW=side`, `PEEK_ONLY`, `PEEK_BODY`).
+The arms keep each clip's own. The library's pistol reload held the gun beside the head for a head that drops to it,
+so on a left lean it sat over the held head (the right hand 14 cm over the head bone, the muzzle 29 to 31 cm); the
+pistol's reload is our own since gdstudio #1584, worked in front of the chest with a level head, and one clip serves
+both leans and upright: the hand 47 mm under the head bone at most leaning left, the muzzle under the chin (the
+template's `assets/animation/pistol/README.md`, `test_pistol_reload_height.gd`). `PeekTuning.action_hold` off is the
+old look. The capture is `tools/capture/peek_action_tour.tscn` (`PEEK_HOLD=0`, `PEEK_VIEW=side`, `PEEK_ONLY`,
+`PEEK_BODY`; it reloads the pistol upright first).
 
-Not held yet: a reload clip for a level head: gdstudio #1584. The pistol's switch to the fists leaves the straight way
-by 8 to 12 mm (the clips' trunk and the aim layer let go along different curves).
+Not held yet: the pistol's switch to the fists leaves the straight way by 8 to 12 mm (the clips' trunk and the aim
+layer let go along different curves).
 
 - **Approach:** Hold a pose through an action by keeping the inputs to the modifiers from the update before it began
   (the clip's local turns, each modifier's share), switched on whole at the action's first update, and let go only when
@@ -323,6 +327,14 @@ by 8 to 12 mm (the clips' trunk and the aim layer let go along different curves)
   `spine_01` rode the idle's pelvis sway (9 mm over a bandage); and the first update of a use already had its
   `UseTurn`, so a hold switched on a frame late kept the turned chest (5 to 30 mm for the whole use). **Seen:** gdstudio
   #1575, 2026-11-17.
+- **Approach:** Shape an upper-body clip that plays under a held lean by the world's up on both leans as well as
+  upright, against the head bone, for the hand and the weapon's highest point, and keep what is held near the body's
+  middle and low. **Watch out for:** the lean's roll lifts the side away from it, so a gun at the right shoulder rose
+  23 cm against the head on a left lean while it stayed 9 cm under it upright; moving it to the middle lifted it on
+  the right lean instead; and on a left lean the hand peaked where the reload fades in and out, as the pistol's cross
+  to the left eye gives way by the reload's weight faster than a clip on the library's pace brings the gun in.
+  **Seen:** gdstudio #1584, 2026-11-17 (`build_pistol_reload.py`: the move to the middle over the fades, the way back
+  later).
 - **Approach:** Read a bone's drawn pose only inside `skeleton_updated`, and keep a frame's last update when several come
   in one frame. **Watch out for:** read after the update, the skeleton showed the clips' pose with no modifier: a
   reference taken there put the lean's 0.3 m into every reading. **Seen:** gdstudio #1575, 2026-11-17.
