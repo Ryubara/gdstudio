@@ -3,7 +3,7 @@
   "units": "metres and seconds from the clip's start; places are [left, forward, up] from the character's root; reach is how far the striking point is in front of the chest (the spine_03 joint) at contact",
   "measured": {
     "file": "melee.glb",
-    "sha256": "c53e8c68ad958f7dc0e6e6b30a80d3c8ceabca3686c574ccdd08d46759b91876",
+    "sha256": "12e56219bc130872978cc5d4350a20b77eecfd21618d171ac36af2e86cd0c815",
     "overlap_limit_mm": 5.0,
     "gun_limit_mm": 5.0,
     "join_limit_mm": 10.0,
@@ -922,40 +922,40 @@
       "joins": "Rifle_Idle_Loop",
       "what": "the butt swung up and forward in an arc into the jaw, the muzzle pulled down and back by the left hand",
       "contact": 0.3,
-      "hit_start": 0.2547,
-      "hit_end": 0.4359,
+      "hit_start": 0.2573,
+      "hit_end": 0.4366,
       "striking_bone": "hand_r",
       "striking_point": "the rifle's heel (rifle_points, in the Rifle node's space)",
-      "reach": 0.633,
+      "reach": 0.637,
       "point_at_contact": [
-        -0.1212,
-        0.6416,
-        1.5106
+        -0.1202,
+        0.6506,
+        1.5486
       ],
-      "into_contact_m_s": 3.79,
+      "into_contact_m_s": 3.93,
       "male": {
-        "reach": 0.672,
+        "reach": 0.675,
         "point": [
-          -0.1435,
-          0.6811,
-          1.5369
+          -0.1424,
+          0.6903,
+          1.5776
         ],
-        "hit_start": 0.2562,
-        "hit_end": 0.4341
+        "hit_start": 0.2588,
+        "hit_end": 0.435
       },
       "checks": {
         "join_mm": {
           "first": [
-            0.02,
+            0.0,
             "lowerarm_l"
           ],
           "last": [
-            0.02,
+            0.0,
             "lowerarm_l"
           ]
         },
         "straightest_arm": [
-          0.951,
+          0.965,
           6,
           "l"
         ],
@@ -974,15 +974,15 @@
           ]
         },
         "wrist_bend_deg": [
-          42.4,
+          46.7,
           11,
           "r"
         ],
         "overlap_mm": {
           "female": [
-            0.8,
-            3,
-            "lowerarm_l in pelvis"
+            0.0,
+            null,
+            null
           ],
           "male": [
             1.9,
@@ -992,9 +992,9 @@
         },
         "gun_in_body_mm": {
           "female": [
-            1.3,
-            3,
-            "rifle in upperarm_r"
+            3.5,
+            1,
+            "rifle in chest"
           ],
           "male": [
             0.0,
@@ -1025,7 +1025,7 @@
             1
           ],
           "male": [
-            16.4,
+            12.0,
             1
           ]
         },
@@ -1049,15 +1049,15 @@
             3
           ],
           "upperarm_l": [
-            0.52,
+            0.62,
             3
           ],
           "lowerarm_l": [
-            5.8,
-            6
+            5.54,
+            17
           ],
           "hand_l": [
-            2.22,
+            1.88,
             3
           ],
           "upperarm_r": [
@@ -1065,15 +1065,15 @@
             3
           ],
           "lowerarm_r": [
-            2.75,
-            7
+            2.92,
+            8
           ],
           "hand_r": [
-            2.45,
+            2.4,
             3
           ]
         },
-        "start_speed_m_s": 1.95
+        "start_speed_m_s": 2.31
       },
       "notes": "the reference: a short drop of the butt by the right hip, then up through the jaw"
     },
@@ -1086,42 +1086,42 @@
       "joins": "Rifle_Idle_Loop",
       "what": "the butt lifted beside the right shoulder, the muzzle down by the left hip, then driven a short way straight out and back like a jab",
       "contact": 0.3,
-      "hit_start": 0.256,
-      "hit_end": 0.4368,
+      "hit_start": 0.2573,
+      "hit_end": 0.4378,
       "striking_bone": "hand_r",
       "striking_point": "the rifle's heel (rifle_points, in the Rifle node's space)",
-      "reach": 0.635,
+      "reach": 0.638,
       "point_at_contact": [
-        -0.1449,
-        0.6428,
-        1.5191
+        -0.1439,
+        0.6518,
+        1.5571
       ],
-      "into_contact_m_s": 3.54,
+      "into_contact_m_s": 3.73,
       "male": {
-        "reach": 0.672,
+        "reach": 0.675,
         "point": [
-          -0.1672,
-          0.681,
-          1.5463
+          -0.1662,
+          0.6902,
+          1.587
         ],
-        "hit_start": 0.2584,
-        "hit_end": 0.4341
+        "hit_start": 0.2596,
+        "hit_end": 0.4353
       },
       "checks": {
         "join_mm": {
           "first": [
-            0.02,
+            0.0,
             "lowerarm_l"
           ],
           "last": [
-            0.02,
+            0.0,
             "lowerarm_l"
           ]
         },
         "straightest_arm": [
-          0.849,
-          9,
-          "r"
+          0.846,
+          10,
+          "l"
         ],
         "wind_up_lean_back": {
           "chest_deg": [
@@ -1138,9 +1138,9 @@
           ]
         },
         "wrist_bend_deg": [
-          39.4,
-          6,
-          "l"
+          41.7,
+          9,
+          "r"
         ],
         "overlap_mm": {
           "female": [
@@ -1185,11 +1185,11 @@
         },
         "gun_nearest_head_or_trunk_mm": {
           "female": [
-            11.8,
-            0
+            11.6,
+            6
           ],
           "male": [
-            16.8,
+            11.8,
             6
           ]
         },
@@ -1217,11 +1217,11 @@
             6
           ],
           "lowerarm_l": [
-            5.11,
-            1
+            5.55,
+            2
           ],
           "hand_l": [
-            2.06,
+            2.17,
             6
           ],
           "upperarm_r": [
@@ -1229,15 +1229,15 @@
             9
           ],
           "lowerarm_r": [
-            2.27,
-            2
+            3.57,
+            3
           ],
           "hand_r": [
-            1.86,
+            1.97,
             9
           ]
         },
-        "start_speed_m_s": 1.06
+        "start_speed_m_s": 0.64
       },
       "notes": "the reference: lifted in four frames, out in four, the chest turning a little behind it"
     },
@@ -1250,42 +1250,42 @@
       "joins": "Rifle_Idle_Loop",
       "what": "the rifle swung level from the right across the front behind a turn of the chest and smashed forward, the receiver's right flat leading",
       "contact": 0.3,
-      "hit_start": 0.2533,
-      "hit_end": 0.4402,
+      "hit_start": 0.2516,
+      "hit_end": 0.4447,
       "striking_bone": "hand_r",
       "striking_point": "the rifle's side (rifle_points, in the Rifle node's space)",
-      "reach": 0.593,
+      "reach": 0.596,
       "point_at_contact": [
-        0.0542,
-        0.6013,
-        1.4899
+        0.0552,
+        0.6103,
+        1.5279
       ],
-      "into_contact_m_s": 3.72,
+      "into_contact_m_s": 3.49,
       "male": {
-        "reach": 0.638,
+        "reach": 0.641,
         "point": [
-          0.039,
-          0.6473,
-          1.5258
+          0.0401,
+          0.6565,
+          1.5664
         ],
-        "hit_start": 0.2559,
-        "hit_end": 0.4374
+        "hit_start": 0.2543,
+        "hit_end": 0.4415
       },
       "checks": {
         "join_mm": {
           "first": [
-            0.02,
+            0.0,
             "lowerarm_l"
           ],
           "last": [
-            0.02,
+            0.0,
             "lowerarm_l"
           ]
         },
         "straightest_arm": [
-          0.893,
+          0.917,
           11,
-          "r"
+          "l"
         ],
         "wind_up_lean_back": {
           "chest_deg": [
@@ -1302,7 +1302,7 @@
           ]
         },
         "wrist_bend_deg": [
-          53.8,
+          55.6,
           3,
           "l"
         ],
@@ -1320,14 +1320,14 @@
         },
         "gun_in_body_mm": {
           "female": [
-            3.8,
-            4,
-            "rifle in lowerarm_l"
+            0.0,
+            null,
+            null
           ],
           "male": [
-            2.2,
-            4,
-            "rifle in lowerarm_l"
+            0.0,
+            null,
+            null
           ]
         },
         "joined_pose_mm": {
@@ -1349,11 +1349,11 @@
         },
         "gun_nearest_head_or_trunk_mm": {
           "female": [
-            11.8,
+            14.7,
             0
           ],
           "male": [
-            36.0,
+            36.9,
             0
           ]
         },
@@ -1377,15 +1377,15 @@
             6
           ],
           "upperarm_l": [
-            0.5,
+            0.49,
             6
           ],
           "lowerarm_l": [
-            5.71,
+            5.61,
             4
           ],
           "hand_l": [
-            1.7,
+            1.58,
             5
           ],
           "upperarm_r": [
@@ -1393,22 +1393,22 @@
             6
           ],
           "lowerarm_r": [
-            1.92,
+            1.71,
             8
           ],
           "hand_r": [
-            1.77,
+            1.64,
             8
           ]
         },
-        "start_speed_m_s": 1.07
+        "start_speed_m_s": 1.08
       },
       "notes": "the reference: the rifle raised level and drawn to the right, swung across at the chin's height"
     }
   },
   "review": {
     "file": "review/melee_rifle.glb",
-    "sha256": "037b40771ef1336e304251b6c75d3dbcf4d7a9d4a7517d9d3387104a44c93283",
+    "sha256": "d8a4414f6fe00f38df2f3e4cb07a1cd3f8b6d795085080bc980189acae954a51",
     "clips": {
       "Melee_Rifle_Butt_Jab_A": {
         "variant": "A",
@@ -1419,42 +1419,42 @@
         "joins": "Rifle_Idle_Loop",
         "what": "the butt lifted beside the right shoulder, the muzzle down by the left hip, then driven a short way straight out and back like a jab",
         "contact": 0.3,
-        "hit_start": 0.256,
-        "hit_end": 0.4368,
+        "hit_start": 0.2573,
+        "hit_end": 0.4378,
         "striking_bone": "hand_r",
         "striking_point": "the rifle's heel (rifle_points, in the Rifle node's space)",
-        "reach": 0.635,
+        "reach": 0.638,
         "point_at_contact": [
-          -0.1449,
-          0.6428,
-          1.5191
+          -0.1439,
+          0.6518,
+          1.5571
         ],
-        "into_contact_m_s": 3.54,
+        "into_contact_m_s": 3.73,
         "male": {
-          "reach": 0.672,
+          "reach": 0.675,
           "point": [
-            -0.1672,
-            0.681,
-            1.5463
+            -0.1662,
+            0.6902,
+            1.587
           ],
-          "hit_start": 0.2584,
-          "hit_end": 0.4341
+          "hit_start": 0.2596,
+          "hit_end": 0.4353
         },
         "checks": {
           "join_mm": {
             "first": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ],
             "last": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ]
           },
           "straightest_arm": [
-            0.849,
-            9,
-            "r"
+            0.846,
+            10,
+            "l"
           ],
           "wind_up_lean_back": {
             "chest_deg": [
@@ -1471,9 +1471,9 @@
             ]
           },
           "wrist_bend_deg": [
-            39.4,
-            6,
-            "l"
+            41.7,
+            9,
+            "r"
           ],
           "overlap_mm": {
             "female": [
@@ -1518,11 +1518,11 @@
           },
           "gun_nearest_head_or_trunk_mm": {
             "female": [
-              11.8,
-              0
+              11.6,
+              6
             ],
             "male": [
-              16.8,
+              11.8,
               6
             ]
           },
@@ -1550,11 +1550,11 @@
               6
             ],
             "lowerarm_l": [
-              5.11,
-              1
+              5.55,
+              2
             ],
             "hand_l": [
-              2.06,
+              2.17,
               6
             ],
             "upperarm_r": [
@@ -1562,15 +1562,15 @@
               9
             ],
             "lowerarm_r": [
-              2.27,
-              2
+              3.57,
+              3
             ],
             "hand_r": [
-              1.86,
+              1.97,
               9
             ]
           },
-          "start_speed_m_s": 1.06
+          "start_speed_m_s": 0.64
         },
         "notes": "the reference: lifted in four frames, out in four, the chest turning a little behind it"
       },
@@ -1583,42 +1583,42 @@
         "joins": "Rifle_Idle_Loop",
         "what": "the butt lifted beside the right shoulder, the muzzle down by the left hip, then driven a short way straight out and back like a jab",
         "contact": 0.3,
-        "hit_start": 0.268,
-        "hit_end": 0.4372,
+        "hit_start": 0.2692,
+        "hit_end": 0.4382,
         "striking_bone": "hand_r",
         "striking_point": "the rifle's heel (rifle_points, in the Rifle node's space)",
-        "reach": 0.628,
+        "reach": 0.631,
         "point_at_contact": [
-          -0.1446,
-          0.6366,
-          1.5049
+          -0.1436,
+          0.6456,
+          1.5429
         ],
-        "into_contact_m_s": 3.58,
+        "into_contact_m_s": 3.57,
         "male": {
-          "reach": 0.665,
+          "reach": 0.668,
           "point": [
-            -0.1672,
-            0.6744,
-            1.5312
+            -0.1661,
+            0.6836,
+            1.5718
           ],
-          "hit_start": 0.2704,
-          "hit_end": 0.4346
+          "hit_start": 0.2715,
+          "hit_end": 0.4356
         },
         "checks": {
           "join_mm": {
             "first": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ],
             "last": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ]
           },
           "straightest_arm": [
-            0.861,
-            9,
-            "r"
+            0.863,
+            10,
+            "l"
           ],
           "wind_up_lean_back": {
             "chest_deg": [
@@ -1635,7 +1635,7 @@
             ]
           },
           "wrist_bend_deg": [
-            35.1,
+            38.6,
             9,
             "r"
           ],
@@ -1682,11 +1682,11 @@
           },
           "gun_nearest_head_or_trunk_mm": {
             "female": [
-              11.8,
+              14.7,
               0
             ],
             "male": [
-              36.0,
+              36.9,
               0
             ]
           },
@@ -1710,15 +1710,15 @@
               9
             ],
             "upperarm_l": [
-              0.41,
+              0.39,
               6
             ],
             "lowerarm_l": [
-              5.35,
-              1
+              5.47,
+              18
             ],
             "hand_l": [
-              2.9,
+              3.06,
               7
             ],
             "upperarm_r": [
@@ -1726,15 +1726,15 @@
               9
             ],
             "lowerarm_r": [
-              3.24,
-              7
+              3.65,
+              3
             ],
             "hand_r": [
-              2.95,
+              3.1,
               9
             ]
           },
-          "start_speed_m_s": 1.16
+          "start_speed_m_s": 0.77
         },
         "notes": "high: lifted by the cheek and driven a little down into the face, the lift a frame slower"
       },
@@ -1747,42 +1747,42 @@
         "joins": "Rifle_Idle_Loop",
         "what": "the butt lifted beside the right shoulder, the muzzle down by the left hip, then driven a short way straight out and back like a jab",
         "contact": 0.3,
-        "hit_start": 0.257,
-        "hit_end": 0.4376,
+        "hit_start": 0.2595,
+        "hit_end": 0.4389,
         "striking_bone": "hand_r",
         "striking_point": "the rifle's heel (rifle_points, in the Rifle node's space)",
-        "reach": 0.63,
+        "reach": 0.633,
         "point_at_contact": [
-          -0.1445,
-          0.6386,
-          1.5334
+          -0.1435,
+          0.6476,
+          1.5714
         ],
-        "into_contact_m_s": 3.69,
+        "into_contact_m_s": 4.06,
         "male": {
-          "reach": 0.668,
+          "reach": 0.672,
           "point": [
-            -0.1663,
-            0.6775,
-            1.5619
+            -0.1652,
+            0.6867,
+            1.6025
           ],
-          "hit_start": 0.2594,
-          "hit_end": 0.4348
+          "hit_start": 0.2616,
+          "hit_end": 0.4361
         },
         "checks": {
           "join_mm": {
             "first": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ],
             "last": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ]
           },
           "straightest_arm": [
-            0.792,
-            9,
-            "r"
+            0.83,
+            10,
+            "l"
           ],
           "wind_up_lean_back": {
             "chest_deg": [
@@ -1799,7 +1799,7 @@
             ]
           },
           "wrist_bend_deg": [
-            35.2,
+            39.8,
             9,
             "r"
           ],
@@ -1846,11 +1846,11 @@
           },
           "gun_nearest_head_or_trunk_mm": {
             "female": [
-              9.2,
+              3.7,
               6
             ],
             "male": [
-              25.6,
+              19.9,
               6
             ]
           },
@@ -1874,15 +1874,15 @@
               8
             ],
             "upperarm_l": [
-              0.43,
+              0.42,
               6
             ],
             "lowerarm_l": [
-              4.92,
+              5.31,
               18
             ],
             "hand_l": [
-              2.09,
+              2.34,
               6
             ],
             "upperarm_r": [
@@ -1890,15 +1890,15 @@
               9
             ],
             "lowerarm_r": [
-              2.07,
-              6
+              3.12,
+              3
             ],
             "hand_r": [
-              1.95,
+              2.16,
               9
             ]
           },
-          "start_speed_m_s": 0.62
+          "start_speed_m_s": 0.3
         },
         "notes": "low: lifted only to the ribs and driven up into the chin, the chest turning more"
       },
@@ -1911,40 +1911,40 @@
         "joins": "Rifle_Idle_Loop",
         "what": "the butt swung up and forward in an arc into the jaw, the muzzle pulled down and back by the left hand",
         "contact": 0.3,
-        "hit_start": 0.2547,
-        "hit_end": 0.4359,
+        "hit_start": 0.2573,
+        "hit_end": 0.4366,
         "striking_bone": "hand_r",
         "striking_point": "the rifle's heel (rifle_points, in the Rifle node's space)",
-        "reach": 0.633,
+        "reach": 0.637,
         "point_at_contact": [
-          -0.1212,
-          0.6416,
-          1.5106
+          -0.1202,
+          0.6506,
+          1.5486
         ],
-        "into_contact_m_s": 3.79,
+        "into_contact_m_s": 3.93,
         "male": {
-          "reach": 0.672,
+          "reach": 0.675,
           "point": [
-            -0.1435,
-            0.6811,
-            1.5369
+            -0.1424,
+            0.6903,
+            1.5776
           ],
-          "hit_start": 0.2562,
-          "hit_end": 0.4341
+          "hit_start": 0.2588,
+          "hit_end": 0.435
         },
         "checks": {
           "join_mm": {
             "first": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ],
             "last": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ]
           },
           "straightest_arm": [
-            0.951,
+            0.965,
             6,
             "l"
           ],
@@ -1963,15 +1963,15 @@
             ]
           },
           "wrist_bend_deg": [
-            42.4,
+            46.7,
             11,
             "r"
           ],
           "overlap_mm": {
             "female": [
-              0.8,
-              3,
-              "lowerarm_l in pelvis"
+              0.0,
+              null,
+              null
             ],
             "male": [
               1.9,
@@ -1981,9 +1981,9 @@
           },
           "gun_in_body_mm": {
             "female": [
-              1.3,
-              3,
-              "rifle in upperarm_r"
+              3.5,
+              1,
+              "rifle in chest"
             ],
             "male": [
               0.0,
@@ -2014,7 +2014,7 @@
               1
             ],
             "male": [
-              16.4,
+              12.0,
               1
             ]
           },
@@ -2038,15 +2038,15 @@
               3
             ],
             "upperarm_l": [
-              0.52,
+              0.62,
               3
             ],
             "lowerarm_l": [
-              5.8,
-              6
+              5.54,
+              17
             ],
             "hand_l": [
-              2.22,
+              1.88,
               3
             ],
             "upperarm_r": [
@@ -2054,15 +2054,15 @@
               3
             ],
             "lowerarm_r": [
-              2.75,
-              7
+              2.92,
+              8
             ],
             "hand_r": [
-              2.45,
+              2.4,
               3
             ]
           },
-          "start_speed_m_s": 1.95
+          "start_speed_m_s": 2.31
         },
         "notes": "the reference: a short drop of the butt by the right hip, then up through the jaw"
       },
@@ -2075,40 +2075,40 @@
         "joins": "Rifle_Idle_Loop",
         "what": "the butt swung up and forward in an arc into the jaw, the muzzle pulled down and back by the left hand",
         "contact": 0.3,
-        "hit_start": 0.2596,
-        "hit_end": 0.4347,
+        "hit_start": 0.2614,
+        "hit_end": 0.4356,
         "striking_bone": "hand_r",
         "striking_point": "the rifle's heel (rifle_points, in the Rifle node's space)",
-        "reach": 0.639,
+        "reach": 0.642,
         "point_at_contact": [
-          -0.1214,
-          0.6476,
-          1.5247
+          -0.1204,
+          0.6566,
+          1.5627
         ],
-        "into_contact_m_s": 4.21,
+        "into_contact_m_s": 4.36,
         "male": {
-          "reach": 0.678,
+          "reach": 0.682,
           "point": [
-            -0.1432,
-            0.6876,
-            1.5535
+            -0.1421,
+            0.6968,
+            1.5942
           ],
-          "hit_start": 0.2609,
-          "hit_end": 0.4328
+          "hit_start": 0.2627,
+          "hit_end": 0.4339
         },
         "checks": {
           "join_mm": {
             "first": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ],
             "last": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ]
           },
           "straightest_arm": [
-            0.939,
+            0.954,
             6,
             "l"
           ],
@@ -2127,15 +2127,15 @@
             ]
           },
           "wrist_bend_deg": [
-            44.5,
+            49.1,
             11,
             "r"
           ],
           "overlap_mm": {
             "female": [
-              1.0,
-              3,
-              "lowerarm_l in pelvis"
+              0.0,
+              null,
+              null
             ],
             "male": [
               1.9,
@@ -2145,7 +2145,7 @@
           },
           "gun_in_body_mm": {
             "female": [
-              1.9,
+              3.9,
               3,
               "rifle in upperarm_r"
             ],
@@ -2174,11 +2174,11 @@
           },
           "gun_nearest_head_or_trunk_mm": {
             "female": [
-              0.3,
+              0.0,
               1
             ],
             "male": [
-              17.0,
+              12.6,
               1
             ]
           },
@@ -2202,15 +2202,15 @@
               3
             ],
             "upperarm_l": [
-              0.5,
+              0.61,
               3
             ],
             "lowerarm_l": [
-              5.97,
-              6
+              5.49,
+              17
             ],
             "hand_l": [
-              2.03,
+              1.68,
               3
             ],
             "upperarm_r": [
@@ -2218,15 +2218,15 @@
               3
             ],
             "lowerarm_r": [
-              2.83,
-              5
+              3.74,
+              8
             ],
             "hand_r": [
-              2.2,
+              2.16,
               3
             ]
           },
-          "start_speed_m_s": 1.95
+          "start_speed_m_s": 2.31
         },
         "notes": "high: the same drop, the arc carried up to the temple, the chest rolling further into it"
       },
@@ -2239,40 +2239,40 @@
         "joins": "Rifle_Idle_Loop",
         "what": "the butt swung up and forward in an arc into the jaw, the muzzle pulled down and back by the left hand",
         "contact": 0.2667,
-        "hit_start": 0.2217,
-        "hit_end": 0.4047,
+        "hit_start": 0.2242,
+        "hit_end": 0.4055,
         "striking_bone": "hand_r",
         "striking_point": "the rifle's heel (rifle_points, in the Rifle node's space)",
-        "reach": 0.614,
+        "reach": 0.617,
         "point_at_contact": [
-          -0.1258,
-          0.6218,
-          1.4997
+          -0.1248,
+          0.6308,
+          1.5377
         ],
-        "into_contact_m_s": 3.41,
+        "into_contact_m_s": 3.53,
         "male": {
-          "reach": 0.651,
+          "reach": 0.654,
           "point": [
-            -0.1484,
-            0.6597,
-            1.5244
+            -0.1473,
+            0.669,
+            1.5651
           ],
-          "hit_start": 0.2231,
-          "hit_end": 0.4027
+          "hit_start": 0.2257,
+          "hit_end": 0.4036
         },
         "checks": {
           "join_mm": {
             "first": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ],
             "last": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ]
           },
           "straightest_arm": [
-            0.939,
+            0.953,
             5,
             "l"
           ],
@@ -2291,7 +2291,7 @@
             ]
           },
           "wrist_bend_deg": [
-            38.0,
+            41.9,
             10,
             "r"
           ],
@@ -2338,12 +2338,12 @@
           },
           "gun_nearest_head_or_trunk_mm": {
             "female": [
-              7.9,
+              10.2,
               1
             ],
             "male": [
-              22.5,
-              2
+              27.6,
+              1
             ]
           },
           "left_hand_off_rifle_mm": {
@@ -2366,15 +2366,15 @@
               2
             ],
             "upperarm_l": [
-              0.45,
+              0.66,
               2
             ],
             "lowerarm_l": [
-              5.32,
-              5
+              4.87,
+              16
             ],
             "hand_l": [
-              1.66,
+              1.13,
               2
             ],
             "upperarm_r": [
@@ -2382,15 +2382,15 @@
               2
             ],
             "lowerarm_r": [
-              2.74,
-              5
+              3.09,
+              7
             ],
             "hand_r": [
-              1.87,
+              2.18,
               2
             ]
           },
-          "start_speed_m_s": 1.49
+          "start_speed_m_s": 2.33
         },
         "notes": "short: no drop, the butt rising straight up from the low ready into the chin, a frame sooner"
       },
@@ -2403,42 +2403,42 @@
         "joins": "Rifle_Idle_Loop",
         "what": "the rifle swung level from the right across the front behind a turn of the chest and smashed forward, the receiver's right flat leading",
         "contact": 0.3,
-        "hit_start": 0.2533,
-        "hit_end": 0.4402,
+        "hit_start": 0.2516,
+        "hit_end": 0.4447,
         "striking_bone": "hand_r",
         "striking_point": "the rifle's side (rifle_points, in the Rifle node's space)",
-        "reach": 0.593,
+        "reach": 0.596,
         "point_at_contact": [
-          0.0542,
-          0.6013,
-          1.4899
+          0.0552,
+          0.6103,
+          1.5279
         ],
-        "into_contact_m_s": 3.72,
+        "into_contact_m_s": 3.49,
         "male": {
-          "reach": 0.638,
+          "reach": 0.641,
           "point": [
-            0.039,
-            0.6473,
-            1.5258
+            0.0401,
+            0.6565,
+            1.5664
           ],
-          "hit_start": 0.2559,
-          "hit_end": 0.4374
+          "hit_start": 0.2543,
+          "hit_end": 0.4415
         },
         "checks": {
           "join_mm": {
             "first": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ],
             "last": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ]
           },
           "straightest_arm": [
-            0.893,
+            0.917,
             11,
-            "r"
+            "l"
           ],
           "wind_up_lean_back": {
             "chest_deg": [
@@ -2455,7 +2455,7 @@
             ]
           },
           "wrist_bend_deg": [
-            53.8,
+            55.6,
             3,
             "l"
           ],
@@ -2473,14 +2473,14 @@
           },
           "gun_in_body_mm": {
             "female": [
-              3.8,
-              4,
-              "rifle in lowerarm_l"
+              0.0,
+              null,
+              null
             ],
             "male": [
-              2.2,
-              4,
-              "rifle in lowerarm_l"
+              0.0,
+              null,
+              null
             ]
           },
           "joined_pose_mm": {
@@ -2502,11 +2502,11 @@
           },
           "gun_nearest_head_or_trunk_mm": {
             "female": [
-              11.8,
+              14.7,
               0
             ],
             "male": [
-              36.0,
+              36.9,
               0
             ]
           },
@@ -2530,15 +2530,15 @@
               6
             ],
             "upperarm_l": [
-              0.5,
+              0.49,
               6
             ],
             "lowerarm_l": [
-              5.71,
+              5.61,
               4
             ],
             "hand_l": [
-              1.7,
+              1.58,
               5
             ],
             "upperarm_r": [
@@ -2546,15 +2546,15 @@
               6
             ],
             "lowerarm_r": [
-              1.92,
+              1.71,
               8
             ],
             "hand_r": [
-              1.77,
+              1.64,
               8
             ]
           },
-          "start_speed_m_s": 1.07
+          "start_speed_m_s": 1.08
         },
         "notes": "the reference: the rifle raised level and drawn to the right, swung across at the chin's height"
       },
@@ -2567,42 +2567,42 @@
         "joins": "Rifle_Idle_Loop",
         "what": "the rifle swung level from the right across the front behind a turn of the chest and smashed forward, the receiver's right flat leading",
         "contact": 0.3,
-        "hit_start": 0.2557,
-        "hit_end": 0.4377,
+        "hit_start": 0.2543,
+        "hit_end": 0.4421,
         "striking_bone": "hand_r",
         "striking_point": "the rifle's side (rifle_points, in the Rifle node's space)",
-        "reach": 0.588,
+        "reach": 0.591,
         "point_at_contact": [
-          0.0676,
-          0.5961,
-          1.4898
+          0.0686,
+          0.6051,
+          1.5278
         ],
-        "into_contact_m_s": 3.92,
+        "into_contact_m_s": 3.7,
         "male": {
-          "reach": 0.634,
+          "reach": 0.637,
           "point": [
-            0.054,
-            0.6432,
-            1.5256
+            0.0551,
+            0.6524,
+            1.5662
           ],
-          "hit_start": 0.2582,
-          "hit_end": 0.4346
+          "hit_start": 0.257,
+          "hit_end": 0.4385
         },
         "checks": {
           "join_mm": {
             "first": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ],
             "last": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ]
           },
           "straightest_arm": [
-            0.865,
+            0.914,
             9,
-            "r"
+            "l"
           ],
           "wind_up_lean_back": {
             "chest_deg": [
@@ -2619,7 +2619,7 @@
             ]
           },
           "wrist_bend_deg": [
-            53.3,
+            55.2,
             3,
             "l"
           ],
@@ -2637,14 +2637,14 @@
           },
           "gun_in_body_mm": {
             "female": [
-              3.4,
-              4,
-              "rifle in lowerarm_l"
+              0.0,
+              null,
+              null
             ],
             "male": [
-              1.9,
-              4,
-              "rifle in lowerarm_l"
+              0.0,
+              null,
+              null
             ]
           },
           "joined_pose_mm": {
@@ -2666,11 +2666,11 @@
           },
           "gun_nearest_head_or_trunk_mm": {
             "female": [
-              11.8,
+              14.7,
               0
             ],
             "male": [
-              36.0,
+              36.9,
               0
             ]
           },
@@ -2694,15 +2694,15 @@
               6
             ],
             "upperarm_l": [
-              0.6,
+              0.57,
               6
             ],
             "lowerarm_l": [
-              5.68,
+              5.57,
               4
             ],
             "hand_l": [
-              1.8,
+              1.68,
               5
             ],
             "upperarm_r": [
@@ -2710,11 +2710,11 @@
               6
             ],
             "lowerarm_r": [
-              1.99,
+              1.77,
               8
             ],
             "hand_r": [
-              1.82,
+              1.68,
               8
             ]
           },
@@ -2731,40 +2731,40 @@
         "joins": "Rifle_Idle_Loop",
         "what": "the rifle swung level from the right across the front behind a turn of the chest and smashed forward, the receiver's right flat leading",
         "contact": 0.3,
-        "hit_start": 0.2564,
-        "hit_end": 0.4389,
+        "hit_start": 0.2545,
+        "hit_end": 0.4433,
         "striking_bone": "hand_r",
         "striking_point": "the rifle's side (rifle_points, in the Rifle node's space)",
-        "reach": 0.582,
+        "reach": 0.585,
         "point_at_contact": [
-          0.0508,
-          0.5898,
-          1.5358
+          0.0518,
+          0.5988,
+          1.5738
         ],
-        "into_contact_m_s": 3.88,
+        "into_contact_m_s": 3.61,
         "male": {
-          "reach": 0.625,
+          "reach": 0.629,
           "point": [
-            0.0352,
-            0.6345,
-            1.5755
+            0.0363,
+            0.6437,
+            1.6161
           ],
-          "hit_start": 0.2587,
-          "hit_end": 0.4363
+          "hit_start": 0.257,
+          "hit_end": 0.4404
         },
         "checks": {
           "join_mm": {
             "first": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ],
             "last": [
-              0.02,
+              0.0,
               "lowerarm_l"
             ]
           },
           "straightest_arm": [
-            0.899,
+            0.947,
             11,
             "l"
           ],
@@ -2783,7 +2783,7 @@
             ]
           },
           "wrist_bend_deg": [
-            52.7,
+            54.7,
             3,
             "l"
           ],
@@ -2801,14 +2801,14 @@
           },
           "gun_in_body_mm": {
             "female": [
-              4.1,
-              4,
-              "rifle in lowerarm_l"
+              0.0,
+              null,
+              null
             ],
             "male": [
-              2.7,
-              4,
-              "rifle in lowerarm_l"
+              0.0,
+              null,
+              null
             ]
           },
           "joined_pose_mm": {
@@ -2830,11 +2830,11 @@
           },
           "gun_nearest_head_or_trunk_mm": {
             "female": [
-              11.8,
+              14.7,
               0
             ],
             "male": [
-              36.0,
+              36.9,
               0
             ]
           },
@@ -2858,15 +2858,15 @@
               6
             ],
             "upperarm_l": [
-              0.47,
+              0.45,
               6
             ],
             "lowerarm_l": [
-              5.52,
-              17
+              5.3,
+              4
             ],
             "hand_l": [
-              1.82,
+              1.68,
               5
             ],
             "upperarm_r": [
@@ -2874,15 +2874,15 @@
               6
             ],
             "lowerarm_r": [
-              1.88,
+              1.66,
               8
             ],
             "hand_r": [
-              1.72,
+              1.58,
               8
             ]
           },
-          "start_speed_m_s": 0.97
+          "start_speed_m_s": 0.98
         },
         "notes": "rising: from the waist up into the chin, the rifle levelling as it comes"
       }

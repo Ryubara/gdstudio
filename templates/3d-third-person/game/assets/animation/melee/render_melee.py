@@ -8,7 +8,10 @@ both hands for the rifle's (each body's own hold on it):
 - `<clip>_<body>_review.png`: eight frames (the start, the wind-up, the three frames into contact, the
   follow-through, the way back, the end) in three rows: side, front, top;
 - `<clip>_<body>_close.png`: the upper body close, from three frames before contact to two after, from the
-  striking side, from the front quarter and from the front.
+  striking side, from the front quarter and from the front;
+- `<clip>_<body>_hand_side.png` and `_hand_below.png` (the rifle's blows): the left hand on the hand guard close,
+  every frame, from the left and from below, the camera following the hand, so the support hand's grip can be read
+  through the whole blow.
 
 Every tile carries its frame number in the top left corner.
 """
@@ -123,7 +126,7 @@ def render(rig, clips, actions, out, bodies=("female", "male"), every_frame=True
     for obj in rig.gun.objects + rig.rifle.objects:
         obj.color = (0.16, 0.16, 0.18, 1.0)
     camera = _camera()
-    _floor()
+    floor = _floor()
     arm = rig.arm
     for clip, action in zip(clips, actions):
         arm.animation_data.action = action
@@ -191,4 +194,20 @@ def render(rig, clips, actions, out, bodies=("female", "male"), every_frame=True
                     _aim(camera, place, target, 1.25)
                     tiles.append(_shot(out / "tile.png", (440, 440), frame))
             _sheet(tiles, len(near), out / f"{clip.name}_{body.name}_close.png")
+            if clip.weapon != "rifle":
+                continue
+            floor.hide_render = True  # the view from below looks up through it
+            hand_views = (("side", (2.0, -0.6, 0.4), (0, 0, 1)), ("below", (0.3, -0.6, -2.0), (0, -1, 0)))
+            for view, offset, up in hand_views:
+                tiles = []
+                for frame in range(clip.frames + 1):
+                    pose(frame)
+                    at = body.arm.matrix_world @ body.arm.pose.bones["hand_l"].matrix.translation
+                    _aim(camera, at + Vector(offset), at, 0.32)
+                    if up != (0, 0, 1):  # from below: the character's front up the picture
+                        direction = -Vector(offset).normalized()
+                        camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+                    tiles.append(_shot(out / "tile.png", (300, 300), frame))
+                _sheet(tiles, 8, out / f"{clip.name}_{body.name}_hand_{view}.png")
+            floor.hide_render = False
     scene.frame_set(0)
