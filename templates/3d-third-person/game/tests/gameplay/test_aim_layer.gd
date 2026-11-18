@@ -229,6 +229,7 @@ func test_every_aim_limit_is_pinned() -> void:
 		&"model": _player.model,
 		&"animation": _player.get_node("Animation"),
 		&"hold": _player.get_node("WeaponHold"),
+		&"peek": _player.get_node("PeekLayer"),
 		&"chain": [&"spine_01", &"spine_02", &"spine_03"] as Array[StringName],
 		&"chain_weights": PackedFloat32Array([0.3, 0.3, 0.4]),
 		&"converge_distance": 15.0,
