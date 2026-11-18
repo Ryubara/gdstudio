@@ -4,6 +4,12 @@
 # each in a fresh process (an instance id is a process-wide counter). With the noise maker's
 # phase from its instance id the two hashes differed (2810472258 and 35031318); at 60 s they
 # still matched, so the run is the full 120 s.
+#
+# The fixture puts the soak in the tree before the engine's first frame, as the plain run's
+# command line does (kit #1591): it used `change_scene_to_file`, a frame later, and on one commit
+# (a977e1358) that alone moved the hash on Windows, with no object made (`--objects 0` gave the
+# same "after it" hash): the first ragdoll stepped a last bit apart four ticks in. A failure runs
+# `--objects 0` too and names which of the two moved the run.
 extends GdUnitTestSuite
 
 const SOAK := "res://tools/soak/ai_soak.tscn"
@@ -18,15 +24,24 @@ func test_an_extra_object_leaves_the_run_unchanged() -> void:
 	var extra_run := _soak_process(PackedStringArray(["-s", AFTER_OBJECTS]), ["--objects", "1"])
 	assert_bool(plain.has("command_hash")).override_failure_message(str(plain)).is_true()
 	assert_bool(extra_run.has("command_hash")).override_failure_message(str(extra_run)).is_true()
-	(
-		assert_int(int(extra_run.command_hash))
-		. override_failure_message(
-			(
-				"one more object changed the AI's run: %d plain, %d after it"
-				% [int(plain.command_hash), int(extra_run.command_hash)]
-			)
+	var message := ""
+	if int(extra_run.command_hash) != int(plain.command_hash):
+		var none := _soak_process(PackedStringArray(["-s", AFTER_OBJECTS]), ["--objects", "0"])
+		message = (
+			"one more object changed the AI's run: %d plain, %d after it, %s with no object (%s)"
+			% [
+				int(plain.command_hash),
+				int(extra_run.command_hash),
+				str(int(none.get("command_hash", -1))),
+				(
+					"the fixture's start moved it"
+					if int(none.get("command_hash", -1)) != int(plain.command_hash)
+					else "an instance id moved it"
+				),
+			]
 		)
-		. is_equal(int(plain.command_hash))
+	assert_int(int(extra_run.command_hash)).override_failure_message(message).is_equal(
+		int(plain.command_hash)
 	)
 	assert_int(int(extra_run.error_count)).is_zero()
 
