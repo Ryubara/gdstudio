@@ -80,7 +80,8 @@ It is part of the body's step (`CharacterSlide`, `gameplay/character/character_s
 body by sending a command with `crouch` at speed, and `CharacterState.slide` holds its state. Every number is in its
 `SlideTuning` (`gameplay/player/slide_tuning.tres`, the Player's `slide_tuning`; below); the camera's slide view is on
 `PlayerCamera` (Slide group: 5 degrees wider over a quarter of a second); the clips are `CharacterAnimation`'s
-`slide_start_clip`, `slide_clip` and `slide_exit_clip`. Turn it off with its `enabled`. Where the numbers come from
+`slide_start_clip`, `slide_clip` and `slide_exit_clip` (the exit stretched to `slide_exit_time`, 0.85 s, so the body
+rises into the run over most of a second). Turn it off with its `enabled`. Where the numbers come from
 (shipped games' slides, with sources) is in the kit's `docs/engines/godot/third-person/character.md` (Sliding).
 
 ## Commands: what moves the body {#commands}
@@ -137,7 +138,7 @@ defaults come from shipped games, with the sources in the kit's `docs/engines/go
 | Group | Settings (default) |
 | --- | --- |
 | Crawl | crawl speed (1.0 m/s), the share of it backwards (0.7) and sideways (0.8), acceleration (10) and deceleration (12), turn speed on the ground (3 rad/s), crawling while going down and up (off) |
-| Getting down and up | the time to lie down (0.5 s) and to get up to crouch (0.7 s), the time off a ledge before a lying body gets up (0.15 s) |
+| Getting down and up | the time to lie down (0.5 s) and to get up to crouch (0.7 s), the time off a ledge before a lying body gets up (0.15 s); the weapon in the hands (the pistol's grip, the rifle's two-hand hold) is put away and brought back over the same times |
 | Body | the lying capsule's height (0.6 m) and radius (0.28 m), the camera target's height lying (0.55 m) |
 | Aim | aiming (on) and firing (on) lying down, the share of the weapon's spread (0.5), the share of the crawl kept aiming (0.5), the aim turn (6 rad/s), how far it looks up (12 degrees) and down (40) |
 | Input | toggle, hold, or a hold of crouch (`crouch_hold_time`, 0.5 s) with a press of crouch to get up; a jump press (on) and a sprint press (on) get up |
@@ -333,8 +334,11 @@ saved into a scene file. The body is a state machine: `ground` (a blend space on
 `prone/Prone_Idle` and `prone/Crawl_Fwd` from `assets/animation/prone/`: the crawl replaces the idle over `blend_time`
 as soon as the body moves and plays at `ground speed / crawl_clip_speed` (0.618 m/s, its stride), backwards when the
 body moves away from the way it faces), `jump`, `fall`, `land`, `push` and the slide's three clips (`slide_start`, which
-runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs into `ground`). The jump's
-three states pick their clips by the body's numbers (`JumpAnimation`, kit #1371): `jump` the standing take-off, or from
+runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs into `ground`). The jog
+alone reaches 5.2 m/s where the sprint alone starts, so the ground space crosses that seam over
+`GaitSettings.gait_change_time` (0.1 s, kit #1578): speeding up into a sprint blends the legs over six ticks instead
+of swapping them in one. The jump's three states
+pick their clips by the body's numbers (`JumpAnimation`, kit #1371): `jump` the standing take-off, or from
 2.5 m/s the run's take-off off the foot that is down (`Jump_Start_Run_L` or `_R`); `fall` the rise, the top and the fall
 blended by vertical speed; `land` the soft landing, the hard one from 9 m/s of fall (`Land_Hard`, played through its
 settle while the body stands; the controller holds the body until its control frame, `CharacterTuning.hard_land_time`,
@@ -444,6 +448,7 @@ is tuned in its inspector while the game runs:
 | `support_marker` | `SupportHand` | The weapon's child the left hand's bone is brought to; move the marker in `pistol_held.tscn` and the hand follows. |
 | `support_arm`, `support_elbow` | the left arm's three bones, (0.6, 0.6, 0.2) | The bones that reach, and where the elbow points in the model's space. |
 | `carry_arm`, `carry_arm_out` | `upperarm_r`, 8 deg | The weapon's arm and how far it is held out from the body while the weapon is carried, so the grip's foot clears the thigh; it goes back as the character aims or reloads. |
+| `ArmCarry` node: `settings` | `pistol_arm_carry.tres` | Keeps the carried pistol on one carry while running: each arm bone follows its clip's average (0.3 s) and keeps a share of its swing (0.35, at most 30 degrees; the other arm 0.7, at most 50), so the gun moves with the stride and is never thrown up by the head or out to the side. It fades as the character aims. |
 | `open_pose`, `support_way` | `pistol_open_pose.tres`, (0.008, -0.03, 0.051) | The left hand's way off the pistol and back onto it: its fingers opened where it holds, and the line the opened hand leaves along, in the weapon's space, to where the clip's arm takes it. Both are solved together. |
 | `free_release_time`, `free_return_time` | 0.2 s, 0.12 s | How long the left hand takes off the weapon, and back onto it, for an action that reaches with it and leaves the aim up (`free_hand(seconds)`). Using a door or a lever takes the aim down for its time, which lets the hand go by itself; the rifle's hold (`TwoHandHold`, Free hand group) lets its left hand go for the same reach and takes the gun down in the right hand (`free_pitch` 50 deg, `free_yaw` 0, `free_clearance`, 0.16 s and 0.26 s). |
 | `magazine_pose` | `pistol_magazine_pose.tres` | The left hand's fingers while the heel of its palm pushes the magazine in. |

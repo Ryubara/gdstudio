@@ -253,11 +253,13 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `pace_range` | 0.4 to 2 | the slowest and fastest a gait is played |
 | `stretch` | 0.8 to 1.3 | how far a gait is slowed and sped up alone before the next blends in: the walk alone to 2.21 m/s, the walk and the jog blended to 3.2, the jog alone to 5.2 |
 | `slowest_pace` | 0.5 | the walk alone down to half its pace (0.85 m/s), fading into the idle below |
+| `gait_change_time` | 0.1 s | the time the drawn blend takes to cross a seam, where two gaits' stretched ranges meet with no speeds between (the jog and the sprint at 5.2 m/s; gdstudio #1578), however fast the speed crosses it; a blend with speeds of its own follows the speed; 0, a seam is crossed at once |
 | `transitions`, `transition_clips` | on, `GaitTransitionSet` | a start, a stop, a reversal, a pivot or a turn on the spot when the controller does one and its clip exists |
 | `turn_angle`, `standing_speed` | 50 degrees, 0.3 m/s | the numbers that pick a turn on the spot and a start; a reversal and a pivot are picked by `CharacterTuning.look_reversal_angle` and `look_pivot_angle` (135, 100: a quarter turn of the keys is a steer, gdstudio #1565; on the tuning since #1574), or by the step with `turn_root_motion` on ([turns moved by their clip](turn-root-motion.md#turn-root-motion)) |
 | `transition_pace` | 4 | the fastest a turn on the spot runs to catch the body's turn up, against its own pace (kit #1157; 2 before #1565) |
 | (moved) | | how long a reversal or a pivot is drawn, and all that shapes it, is on `CharacterTuning` > Turns > Look since gdstudio #1574 ([the look](turn-root-motion.md#turn-look)) |
 | `momentum_blend`, `momentum_half_life`, `momentum_speed_limit` | on, 0.05 s, 720 degrees a second | a change of body state shows at once and the difference from the drawn pose dies away (`MomentumBlend`), in place of the cross-fade over `blend_time` |
+| `slide_exit_half_life` | 0.12 s | the half-life into the slide's exit, which carries no speed in ([the exit](moves.md#slide), gdstudio #1577) |
 | `lean`, `lean_clips`, `lean_full_at`, `lean_time` | on, `gds/Lean_Left` and the rest, 20 m/s², 0.12 s | the lean into the acceleration, built only when the four lean clips exist |
 | `jump_choices` and the Jump group | on; `gds/Jump_Start_Run_L` and `_R` from 2.5 m/s, `gds/Jump_Rise` and `gds/Jump_Apex` at 3 m/s up and 4 down, `gds/Land_Hard` from 9 m/s of fall, `gds/Land_To_Jog` asked to run at 2.5 m/s | the jump's clips picked by the body's numbers ([the jump's clips](#jump-clips), `JumpAnimation`); off, `jump_clip`, `air_clip` and `land_clip` alone |
 | `stance_clips`, `stand_to_crouch_clip`, `crouch_to_stand_clip`, `stand_to_crouch_time`, `crouch_to_stand_time` | on, `gds/Stand_To_Crouch`, `gds/Crouch_To_Stand`, 0.5 s, 0.53 s | a crouch and a stand at rest drawn by their clips, carried (no cross-fade; the momentum blend takes the pose in and out), and getting up with crouch let go going on into the stand's clip; a move, jump or slide asked for ends the clip on its frame, and a moving body changes stance by the momentum blend alone (`StanceAnimation`, gdstudio #1576). The times keep the drop and the rise under gravity's pace; the capsule changes in `crouch_time` whatever they are |
@@ -302,6 +304,9 @@ kit #1157 (each moving one ends as a foot strikes; a turn on the spot ends on th
   was cut when one went up, and a one-tick let-go between two keys started a stop the next key cut 2 to 5 ticks later;
   the stop and reversal suites drove one let-go or one turn by commands. **Seen:** gdstudio #1563, 2026-11-14, found
   by the maintainer playing 3D Third Person (102 of 276 matrix cases failed on main).
+- **Approach:** Put a key a `MoveResponse` step only holds (sprint) in `HELD_KEYS`. **Watch out for:** `_actions()`
+  checks every `ACTION_KEYS` entry as an action that must end a clip, so sprint added there failed 8 cases.
+  **Seen:** gdstudio #1578, 2026-11-17.
 - **Approach:** Make a rule that ends a transition clip on a body state (an aim, a crouch) end it only when the state
   came during the clip, or block the pick under the same state. **Watch out for:** ending every clip of an aiming
   body made an aimed walk's stop begin and end on alternate frames, which only `test_aimed_takeoff.gd`'s gun speed

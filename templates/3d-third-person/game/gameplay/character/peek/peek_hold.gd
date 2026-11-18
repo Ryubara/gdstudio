@@ -31,6 +31,11 @@ const _AIM_BACK := 0.02
 
 ## The share the lean holds the trunk and the head by now (0 none, 1 all of it).
 var share := 0.0
+## True while a switch's next weapon comes up and the weapon before it or the next one has a
+## two-hand stance (`TwoHandStance`), and after it until the hold has let go: the stance then
+## holds the trunk itself, from the pose drawn before it (gdstudio #1585), and `PeekModifier` and
+## the aim layer's trunk keep nothing.
+var stance_draw := false
 
 # The hold is on (an action began and is not over, or the aim it lowered is not back).
 var _engaged := false
@@ -38,6 +43,9 @@ var _engaged := false
 var _drawing := false
 # The weapon held when the hold came on.
 var _held_before: WeaponDef
+# A switch's next weapon has a two-hand stance: the hold stays on while it comes up and lets go
+# after (its aim comes up with it, so the pose it ends on is only there once it is up).
+var _bring_up := false
 # How much of the hold is left as it lets go (1 on, 0 gone).
 var _envelope := 0.0
 # The aim pose's weight before the action, and in the last update with no action.
@@ -75,13 +83,17 @@ func step(body: Character, animation: CharacterAnimation) -> float:
 		_engaged = true
 		_held_before = held
 		_aim_before = maxf(_aim_last, aim)
+		stance_draw = false
 	if _engaged and held != _held_before:
 		# A switch: the weapon after it has its own stance, so the hold goes as it comes up.
 		_engaged = false
 		_drawing = true
+		_bring_up = _has_stance(body, held)
+		stance_draw = _bring_up or _has_stance(body, _held_before)
 	if _drawing:
 		var lowered := body.loadout.lowered_amount() if body.loadout != null else 0.0
-		_envelope = minf(_envelope, lowered)
+		if not _bring_up:
+			_envelope = minf(_envelope, lowered)
 		_drawing = lowered > 0.0
 	elif _engaged and action <= 0.0:
 		# The command's buttons: an item's use holds `aim_held` off while it runs.
@@ -94,8 +106,19 @@ func step(body: Character, animation: CharacterAnimation) -> float:
 	elif not _drawing and _envelope > 0.0:
 		var time := tuning.action_release_time
 		_envelope = maxf(_envelope - delta / time, 0.0) if time > 0.0 else 0.0
+	stance_draw = stance_draw and (_drawing or _envelope > 0.0)
 	share = smoothstep(0.0, 1.0, lean) * smoothstep(0.0, 1.0, _envelope)
 	return share
+
+
+## The weapon held when the hold came on (the one a switch puts away), or null.
+func held_before() -> WeaponDef:
+	return _held_before if _engaged or _drawing or stance_draw else null
+
+
+## True while the hold holds a switch's next weapon coming up (the weapon before it is put away).
+func drawing() -> bool:
+	return _drawing
 
 
 ## How much of the upper body an action holds now (0 none, 1 all of it): the most of the reload's,
@@ -126,8 +149,18 @@ func _using(body: Character) -> bool:
 func _reset() -> void:
 	_engaged = false
 	_drawing = false
+	_bring_up = false
+	stance_draw = false
 	_envelope = 0.0
 	_aim_last = 0.0
+
+
+# True when `definition`'s view on `body`'s model is a `TwoHandHold` (it has a stance).
+static func _has_stance(body: Character, definition: WeaponDef) -> bool:
+	var loadout := body.loadout
+	if definition == null or loadout == null or loadout.model == null:
+		return false
+	return loadout.model.get_node_or_null(definition.view) is TwoHandHold
 
 
 # How much of the upper body the action one-shot holds while it plays an upper-body clip (an item's

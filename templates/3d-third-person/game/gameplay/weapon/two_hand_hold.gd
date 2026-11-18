@@ -316,9 +316,10 @@ var _clavicle_index := -1
 var _spine_indices := PackedInt32Array()
 var _left_indices := PackedInt32Array()
 # What was last written to the modifiers and to `Pivot`'s visibility (-1: never), so a frame
-# writes only what changed (kit #1347).
+# writes only what changed (kit #1347); how much of the hold lying keeps (gdstudio #1581).
 var _weights := HoldWeights.new()
 var _pivot_shown := -1
+var _stow := HoldStow.new()
 # The left forearm's and hand's length this update; the low ready's turn and what it was worked
 # out from.
 var _arm := 0.0
@@ -450,10 +451,11 @@ func refresh() -> void:
 		_pivot.visible = alive
 		_pivot_shown = int(alive)
 	var far := fingers_far and fingers_far_distance > 0.0
-	var fingers := 1.0 if shown and not far else 0.0
+	var kept := _stow.step(character)
+	var fingers := kept if shown and not far else 0.0
 	# Both arms go to the clip while the gun is put away for an action (a high vault: gdstudio
 	# #1409), the left one alone while an action reaches with it.
-	_weights.weigh(_modifiers, alive, _reach, fingers, _freed, _blow.amount, not shown)
+	_weights.weigh(_modifiers, alive, _reach * kept, fingers, _freed, _blow.amount, not shown)
 	if _fingers.size() < 2:
 		return
 	# The finger is on the trigger while the gun is up, and off it through a reload.
@@ -675,7 +677,7 @@ func chest_weight() -> float:
 func _reach_now() -> float:
 	if character == null or _loadout == null:
 		return 1.0
-	var mine := _definition()
+	var mine := own_definition()
 	if _loadout.held_definition() == mine:
 		return 1.0
 	if not _loadout.is_switching():
@@ -690,14 +692,14 @@ func _reach_now() -> float:
 func _down_now() -> float:
 	if character == null or _loadout == null:
 		return posed_lowered
-	if _loadout.held_definition() == _definition():
+	if _loadout.held_definition() == own_definition():
 		return _loadout.lowered_amount()
 	return 1.0
 
 
-# The weapon definition this hold is the view of, or null: looked for again after the slots
-# changed (or their count, for slots set by hand) and while it is not found.
-func _definition() -> WeaponDef:
+## The weapon definition this hold is the view of, or null: looked for again after the slots
+## changed (or their count, for slots set by hand) and while it is not found.
+func own_definition() -> WeaponDef:
 	if _loadout == null or _loadout.model == null:
 		return null
 	if _mine != null and _mine_slots == _loadout.slots.size():
@@ -722,7 +724,7 @@ func _fingers_far() -> bool:
 
 func _on_weapon_changed(definition: WeaponDef) -> void:
 	# Hidden for the next weapon: the arms leave the gun's places as that one comes up.
-	_leaving = _reach >= 1.0 and definition != _definition() and _loadout.is_switching()
+	_leaving = _reach >= 1.0 and definition != own_definition() and _loadout.is_switching()
 
 
 func _on_switch_finished() -> void:

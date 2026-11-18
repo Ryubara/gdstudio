@@ -54,10 +54,11 @@ crouch (`crouch_hold_time`) with a press of crouch to get up; a jump or a sprint
   frame and the body goes on from there. The splay of the knees halfway through getting up (0.84 m apart) and the
   depth of the crouch it ends in are the clips' (gdstudio #1580). The clips rest the body on the
   forearms and fists, so lying puts the weapon away (`ProneAnimation.stow_share`: its model hidden and the grip off)
-  until the body aims. A model whose body needs clips of its own gets them from `prone_libraries` (its scene file to a
-  library with the same clip names), swapped in when the model is set or replaced, in the game only. The share, the
-  pace, the weapon and the library swap are `ProneAnimation` (`gameplay/character/prone_animation.gd`), cosmetic and
-  never sent.
+  until the body aims; the rifle's hold, skeleton modifiers after the tree, eases off and back on by the same share
+  (`HoldStow`, gdstudio #1581), so no weapon's arms reach for a hidden gun. A model whose body needs clips of its own
+  gets them from `prone_libraries` (its scene file to a library with the same clip names), swapped in when the model is
+  set or replaced, in the game only. The share, the pace, the weapon and the library swap are `ProneAnimation`
+  (`gameplay/character/prone_animation.gd`), cosmetic and never sent.
 - **One clip file a body.** A clip that rests limbs on the floor fits one body's bone lengths and skin, so each of
   the template's bodies has the four clips solved on itself (kit #1293), and so has each Quaternius mannequin (kit
   #1090): `character_dressed.tscn` holds `prone_form_female.glb` as the library `prone` (the player, the friendlies
@@ -242,6 +243,13 @@ of the stance is sent but the command's bit; the clips are cosmetic and played i
   it, while the momentum blend stood aside; the clip's own leg sweep moves a toe 0.33 m a tick, over the crouch's
   bound, so the bound is on what the hand-off adds. **Seen:** gdstudio #1568, 2026-11-15
   (`test_move_key_matrix.gd`'s action cases, `tools/capture/prone_entry_tour.tscn`).
+- **Approach:** Bound a weapon's stance change by another weapon's same change (the rifle's lie-down by the pistol's,
+  plus 0.04 m a tick), measured in `skeleton_updated`, and find which modifier jumps by turning them off one at a time
+  before trusting a cause. **Watch out for:** a reference made from the clip under test played alone held the jump it
+  should have caught; and the rifle's 0.48 m head jump halfway down, first blamed on the stow hiding the rifle, stayed
+  with the hiding turned off: it was the hold's stance, still on, whose chest turn read about the model's up axis
+  swung half a turn as the chest's front passed straight down. **Seen:** gdstudio #1581, 2026-11-17
+  (`test_rifle_stow_pose.gd`, `tools/capture/rifle_stow_tour.tscn`).
 
 ## Sliding {#slide}
 
@@ -308,6 +316,20 @@ The tests are `tests/gameplay/test_slide.gd` (keys, commands, snapshots, a ramp,
 into the crouch with each weapon on both bodies and fails on a joint that jumps (the slide's end into the crouch
 popped in one frame until kit #1439: [the momentum blend's late start](../animation-tree.md#gait-fitting)).
 
+**The exit into the run** (gdstudio #1577). The capsule stands in `drop_time` (0.12 s) and runs on from the first tick;
+only the drawn body rises. `CharacterAnimation.slide_exit_time` (0.85 s, 0 for the clip's own 0.5 s) stretches the
+exit clip, whose rise from lying to the run took about a quarter of a second at its own pace and read as a pop; a slide
+let go while the body was still dropping starts the exit where its pelvis is as high as the drawn one
+(`BodyMachine.seek_exit()`, past its lowest; within `EXIT_LYING`, 0.15 m, of the lowest it starts at its first frame),
+the momentum blend carries no speed into the exit and halves the difference in `GaitSettings.slide_exit_half_life`
+(0.12 s), and the rifle's grip and stance give the trunk back as the drawn body rises (`CharacterSlide.exit_lying`,
+eased over the exit's rise), not as the capsule stands. `test_slide_exit_blend.gd` lets go of crouch after 6, 12, 24
+and 48 ticks of a slide, running on and with every key let go, with the pistol and the rifle on both bodies, and holds
+the trunk's move a drawn update through the exit and its hand-off to the crouch's own hand-off from a jog (#1570's
+bound, 0.092 m female and 0.096 male, measured in the same run): 0.080 m at most, against 0.149 (a slide let go after
+six ticks dropped the trunk to the floor and lifted it again) and up to 0.229 with the rifle before. The capture is
+`tools/capture/pistol_run_tour.tscn`.
+
 What it costs (`tools/bench/player_step_bench.tscn`, which presses crouch at a sprint for 40 of every 240 ticks, so its
 bodies slide): 40 bodies stepped by commands took 30.2 and 32.3 µs a body a tick with the slide on and 32.7 and 30.1
 with it off, within the spread between runs on a shared machine. A slide adds no node and no draw call, and makes a
@@ -331,3 +353,10 @@ here differs between the two.
   in the default hold mode for as long as the slide must last. **Watch out for:** on the map the spawn stands on a 1 m
   platform, so a slide north flew off its edge in half a second and ended; a test that tapped crouch ended its slide on
   the next tick. **Seen:** gdstudio #1011, 2026-11-10 (`test_slide_live.gd`).
+- **Approach:** Judge a hand-off by the trunk's move a drawn update and by how long the rise lasts, and start a clip
+  that plays from a pose (the exit from lying) where it meets the drawn body; read a bone's height in the skeleton's
+  space, through its parent's pose. **Watch out for:** the exit's own move a tick was at the crouch's bound, yet it rose
+  0.9 m in a quarter of a second and read as a pop; the pelvis track's `y` is in the root's axes (it ran from -0.01 to
+  -0.16 while the body stood up), so the first seek matched nothing; seeking from a body that lies landed in another
+  pose (0.12 m a tick), so the seek is only for a body still up. **Seen:** gdstudio #1577, 2026-11-17 (found by
+  playing; fix: `slide_exit_time`, `seek_exit()`, `slide_exit_half_life`, `exit_lying`).

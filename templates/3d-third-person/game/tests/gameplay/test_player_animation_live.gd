@@ -63,6 +63,7 @@ func test_every_export_has_its_default_pinned() -> void:
 		&"slide_start_clip": CharacterClips.SLIDE_START,
 		&"slide_clip": CharacterClips.SLIDE,
 		&"slide_exit_clip": CharacterClips.SLIDE_EXIT,
+		&"slide_exit_time": 0.85,
 		&"push_clip": CharacterClips.PUSH,
 		&"interact_clip": CharacterClips.INTERACT,
 		&"hit_clip": CharacterClips.HIT,
