@@ -257,3 +257,61 @@ it from the front too (`PEEK_VIEW=front`, `PEEK_BODY=male`).
   **Watch out for:** the peek tour's crouched shots met the boards' lower edge (0.5 m below the middle at 10 m), so a
   10 degree change of the left shoulder's chest turn made the crouched left shot miss below; the pitch is now
   `CROUCHED_PITCH`. **Seen:** gdstudio #1436, 2026-11-13.
+
+## Actions while leaning {#lean-actions}
+
+<!-- new section: the page covered the lean's bend, the weapon's side and the rifle's arms; nothing said what an action
+     over the upper body does to a leaning head, which the maintainer found by playing (gdstudio #1575) -->
+
+A peek is for looking past cover, so the head (and the camera on it) stays where the lean put it while the hands do an
+action. On main it did not: every upper-body action is a one-shot that owns all bones from `spine_01` up, the neck and
+the head among them (`WeaponLayers`' reload, `RackLayer`, `MeleeLayer`, the action one-shot's upper-body clips with
+their `UseTurn`), and the aim layer gives way to it (`AimLayer`'s spine turn and level head fade out by a reload's
+share, a blow raises no aim, an item's use and a switch lower it). The bend rolls whatever is left, so the head went
+where each clip put its own. Measured from the pelvis in the model's frame, leaning, aimed, the worst drawn frame
+(`test_peek_lean_actions.gd`, female body):
+
+| Action | Main: moved, turned | Now |
+| --- | --- | --- |
+| Pistol reload | 32 to 39 mm, 72 to 77 deg | 0.02 mm, 0 deg |
+| Pistol melee, fists punch | 66 to 177 mm | 0.02 mm, 1.7 to 2.9 mm |
+| Bandage (pistol, rifle, fists) | 70 to 240 mm, 36 to 64 deg | 0.03 to 1.1 mm, under 0.3 deg |
+| Rifle reload, melee | 38 to 100 mm, 26 to 68 deg | under 0.6 mm |
+| Pistol shot | 10 mm, 1.8 deg (one frame) | 1.6 mm |
+
+Now the lean holds the trunk and the head through the action, by `PeekHold` (`PeekLayer.hold_share()`): how far the body
+leans, eased, while the hold is on. It comes on whole in the update the action begins (the clip has no weight yet, and an
+item's use counts from its first tick, since its `UseTurn` turns the chest before the tree shows the clip), stays on
+until the action is over and the aim it lowered is back, then lets go over `PeekTuning.action_release_time` (0.15 s).
+A switch holds the old weapon's pose while it goes down and lets go as the new one comes up. While it is on:
+
+- `PeekModifier` keeps the clips' turns and places of `spine_02` up to the head from before the action, and of
+  `spine_01` in the skeleton's space (the pelvis stays the legs', whose sway `AimBrace` keeps off an aim).
+- `AimLayer` keeps its three shares (spine turn, level head, upright) as they were, freezes the spine's turn
+  (`AimOffsetModifier.freeze_turn`: the kept turn otherwise followed the muzzle the hands swing) but for a shot, keeps
+  the turn on the last muzzle through a switch to the fists, and the head keeps its turn toward a rifle's sights
+  (`AimHeadModifier.sight_hold`) where a blow swings them.
+- The rifle's stance keeps its chest turn (`TwoHandStance._chest_weight()`), raise and carry against a blow or the left
+  hand's use; a switch still eases the turn with the arms.
+
+The arms keep each clip's own: the hands are where they were on main (the pistol reload holds the gun at eye level, 12
+to 15 cm over the head bone, a clip made for a head that drops to it). `PeekTuning.action_hold` off is the old look.
+The capture is `tools/capture/peek_action_tour.tscn` (`PEEK_HOLD=0`, `PEEK_VIEW=side`, `PEEK_ONLY`, `PEEK_BODY`).
+
+Not held yet: a rifle switch on a right lean moves the head about 10 cm as the stance's 30 degree chest turn goes with the
+arms (the turn is about the model's up axis, which swings a leaning head), gdstudio follow-up.
+
+- **Approach:** Hold a pose through an action by keeping the inputs to the modifiers from the update before it began
+  (the clip's local turns, each modifier's share), switched on whole at the action's first update, and let go only when
+  what the action lowered is back. **Watch out for:** blending the kept shares in by the action's own fade multiplied
+  the fade twice (the head weight dipped to 0.75 and the head turned 11 to 18 degrees at the ends); a kept local turn of
+  `spine_01` rode the idle's pelvis sway (9 mm over a bandage); and the first update of a use already had its
+  `UseTurn`, so a hold switched on a frame late kept the turned chest (5 to 30 mm for the whole use). **Seen:** gdstudio
+  #1575, 2026-11-17.
+- **Approach:** Read a bone's drawn pose only inside `skeleton_updated`, and keep a frame's last update when several come
+  in one frame. **Watch out for:** read after the update, the skeleton showed the clips' pose with no modifier: a
+  reference taken there put the lean's 0.3 m into every reading. **Seen:** gdstudio #1575, 2026-11-17.
+- **Approach:** Aim a cosmetic aim layer along the view's ray from the eye in every tick, the shot's tick too.
+  **Watch out for:** in the tick a shot leaves, `Character.aim_ray()` is the shot's ray from the camera beside the
+  shoulder, so the aim point jumped for one update and the head and the spine with it (a centimetre, 1.8 degrees) at
+  every shot, upright as well (`AimLayer._view_ray()`). **Seen:** gdstudio #1575, 2026-11-17.
