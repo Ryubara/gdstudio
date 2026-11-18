@@ -65,3 +65,12 @@ hides this; compare the raw floats. See also [navigation in tests](navigation-in
   from `get_instance_id()` changes the run. **Seen:** gdstudio #971 (PR #1248), 2026-11-11 (the soak's replay case
   compares two processes); gdstudio #1543, 2026-11-14 (one more `RefCounted` changed the AI soak's seed 11 through
   `AiNoiseMaker`'s check phase).
+- **Approach:** Start every run a repeat test compares in the same way: a scene named on the command line enters the
+  tree before the engine's first frame, so a `-s` main loop that starts the same scene adds it in `_initialize`
+  (`root.add_child`, then `current_scene`), never with `change_scene_to_file`; a run that changes only the start
+  tells a harness difference from the one under test. **Watch out for:** with Jolt
+  the physics space keeps its history: the same scene added after one step of the empty space steps a ragdoll a
+  last bit apart within four ticks, which grows into another run; waits of 0 to 5 frames read alike, and Godot
+  Physics reads the same either way. It shows on some commits and platforms only.
+  **Seen:** gdstudio #1591, 2026-11-17 (`tests/fixtures/soak_after_objects.gd`; "one more object" broke the AI soak's
+  check with no object made).
