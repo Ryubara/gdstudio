@@ -253,6 +253,7 @@ does it is on [AnimationTree](../animation-tree.md#gait-fitting). All of it is c
 | `pace_range` | 0.4 to 2 | the slowest and fastest a gait is played |
 | `stretch` | 0.8 to 1.3 | how far a gait is slowed and sped up alone before the next blends in: the walk alone to 2.21 m/s, the walk and the jog blended to 3.2, the jog alone to 5.2 |
 | `slowest_pace` | 0.5 | the walk alone down to half its pace (0.85 m/s), fading into the idle below |
+| `gait_change_time` | 0.1 s | the least time the drawn blend takes from one gait to the next, however fast the speed crosses them (the jog and the sprint meet at 5.2 m/s with no blend between; gdstudio #1578); 0, the blend follows the speed |
 | `transitions`, `transition_clips` | on, `GaitTransitionSet` | a start, a stop, a reversal, a pivot or a turn on the spot when the controller does one and its clip exists |
 | `turn_angle`, `standing_speed` | 50 degrees, 0.3 m/s | the numbers that pick a turn on the spot and a start; a reversal and a pivot are picked by `CharacterTuning.look_reversal_angle` and `look_pivot_angle` (135, 100: a quarter turn of the keys is a steer, gdstudio #1565; on the tuning since #1574), or by the step with `turn_root_motion` on ([turns moved by their clip](turn-root-motion.md#turn-root-motion)) |
 | `transition_pace` | 4 | the fastest a turn on the spot runs to catch the body's turn up, against its own pace (kit #1157; 2 before #1565) |
