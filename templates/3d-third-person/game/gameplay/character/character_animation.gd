@@ -257,6 +257,12 @@ var melee := MeleeLayer.new()  # The melee blow's one-shot (gdstudio #1254).
 var hits := HitLayer.new()  # where a hit's clip plays: stance and weapon (gdstudio #1292, #1345)
 var rack := RackLayer.new()  # The slide's rack after an empty reload (gdstudio #1337).
 var gait := CharacterGait.new()  # speed matching, transitions, momentum, lean (gdstudio #1158)
+## The one-shot of the actions (`ActionLayer`), for the parts that play or follow its clips (the
+## momentum blend, `StanceAnimation`). Read only.
+var actions: ActionLayer:
+	get:
+		return _actions
+
 var _body := BodyMachine.new()  # the body's state machine (gdstudio #1287)
 var _weapons := WeaponLayers.new()  # grip, aim, shots and reload, built and driven
 var _actions := ActionLayer.new()  # the one-shot of the actions over the whole or upper body
@@ -264,6 +270,10 @@ var _clock := TreeClock.new()  # the tree moving itself, or a throttle moving it
 var _tuning: CharacterTuning  # its speeds are the blend spaces' (its `changed` is connected)
 var _prone_look := ProneAnimation.new()  # the crawl, the weapon put away, a model's own clips
 var _vault_look := VaultAnimation.new()  # a vault timed by its clip and its landing step
+var _stance := StanceAnimation.new()  # a crouch and a stand at rest drawn by their clips
+var _grip_out: Array[NodePath] = []  # the held weapon's grip bones, left out of a stance clip
+var _grip_arms_out: Array[NodePath] = []  # and both arms, while aiming
+var _grip_of: WeaponDef  # the weapon the two lists are for
 var _watched_hold: WeaponDef
 var _playback: AnimationNodeStateMachinePlayback
 var _dead := false
@@ -368,9 +378,18 @@ func _drive(delta: float) -> void:
 	var up := _look_up_at(Engine.get_physics_interpolation_fraction())
 	_weapons.drive(self, _brace, _prone_look, _vault_look, up, delta)
 	var active := _actions.is_active(tree)
+	# A carried clip ends on the frame it runs out, handing over through the momentum blend.
+	var ended := _actions.tick(self, delta, _stance.follows(self, _actions.clip))
+	if ended != &"":
+		action_finished.emit(ended)
+		_actions.was_active = false
+		active = false
+	_stance.drive(self, ended, _actions.clip if active else &"", active)
 	var hit := active and _actions.clip == hit_clip
 	var armed := _weapons.weights.x > 0.0
-	hits.follow(tree, hit, body_state(), armed, active and _actions.upper_only)
+	hits.follow(
+		tree, hit, body_state(), armed, active and _actions.upper_only, _stance_left_out(armed)
+	)
 	if _actions.was_active and not active:
 		action_finished.emit(_actions.clip)
 	_actions.was_active = active
@@ -392,6 +411,25 @@ func is_acting(whole_body := false) -> bool:
 ## the momentum blend carries the drawn pose into it (`ActionLayer.play_carried()`).
 func is_action_carried() -> bool:
 	return _actions.carried and is_acting(true)
+
+
+# The bones a stance clip leaves to the weapon layer (`StanceAnimation`): none unless one plays with
+# a weapon held; then the weapon's grip bones, and both arms while it aims.
+func _stance_left_out(armed: bool) -> Array[NodePath]:
+	var none: Array[NodePath] = []
+	if not armed or _actions.carried_key() < 0:
+		return none
+	if not StanceAnimation.is_stance_clip(CharacterGait.settings_of(self), _actions.clip):
+		return none
+	var hold := held_definition()
+	if hold != _grip_of:
+		_grip_of = hold
+		_grip_out = TreeParts.bone_paths(animation_player, hold.grip_bones if hold != null else [])
+		_grip_arms_out = _grip_out.duplicate()
+		for path in TreeParts.bone_paths(animation_player, [&"clavicle_l", &"clavicle_r"]):
+			if not _grip_arms_out.has(path):
+				_grip_arms_out.append(path)
+	return _grip_arms_out if _weapons.weights.y > 0.0 else _grip_out
 
 
 ## The action clip that played last.
@@ -517,6 +555,7 @@ func _get_configuration_warnings() -> PackedStringArray:
 
 func _build() -> void:
 	_watch_hold()
+	_grip_of = null  # the rig may be another: the stance clip's bones are found again
 	tree.anim_player = tree.get_path_to(animation_player)
 	var root := _build_root()
 	gait.decorate(self, root, _body.machine)

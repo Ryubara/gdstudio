@@ -240,6 +240,154 @@ func _after_action(action: String) -> Array:
 	return [["", 60]]
 
 
+# Every stance change, each way (gdstudio #1576), from standing still or moving with `keys`: no
+# drawn bone moves further in a tick than the crouch's hand-off from the same gait allows (`plain`,
+# from the steady gait, or the crouch from rest at a stand), on top of what the stance clip alone
+# moves then (`_stance_clips()`), over `MoveResponse.STANCE_TICKS` from the press: the whole clip
+# and its end. Before the fix getting up ended on the crouch idle and the one-shot's 0.1 s fade-out
+# put the standing idle under it, the drawn body rising 0.4 m in six ticks with nothing carried.
+func _stance_changes(
+	gait: String, keys: String, plain: float, clips: Dictionary, weapon := "pistol"
+) -> void:
+	var t := MoveResponse.STANCE_TICKS
+	# Into the steady gait first (its start clip over), or a moment standing still.
+	var lead := 60 if keys == "" else 80
+	var cases: Array = [
+		["stand to prone", [[keys, lead], [keys, 2, "prone"], [keys, t]], 1, clips.down],
+		[
+			"prone to stand",
+			[[keys, 10], [keys, 2, "prone"], ["", 80], ["", 2, "prone"], [keys, t]],
+			3,
+			clips.up,
+		],
+		[
+			"crouch to prone",
+			[[keys, lead, "crouch"], [keys, 2, "crouch+prone"], [keys, t, "crouch"]],
+			1,
+			clips.down,
+		],
+		[
+			"prone to crouch",
+			[
+				["", 10],
+				["", 2, "prone"],
+				["", 80, "crouch"],
+				["", 2, "crouch+prone"],
+				[keys, t, "crouch"]
+			],
+			3,
+			clips.up,
+		],
+		[
+			"prone to crouch to stand",
+			[
+				["", 10],
+				["", 2, "prone"],
+				["", 80, "crouch"],
+				["", 2, "crouch+prone"],
+				[keys, 50, "crouch"],
+				[keys, t - 50],
+			],
+			3,
+			clips.up,
+		],
+	]
+	var end := roundi(_matrix.player.prone_tuning.exit_time * Engine.physics_ticks_per_second)
+	# Standing up into a sprint speeds through the seam where the sprint blends in over the jog,
+	# checked in full since gdstudio #1578 (before, a foot jumped 0.24 to 0.33 m in a tick there).
+	# A crouch pressed in a sprint is a slide (`moves.md#slide`), not a stance change.
+	if gait != "sprint":
+		cases.append(
+			["stand to crouch", [[keys, lead], [keys, t, "crouch"]], 1, PackedFloat32Array()]
+		)
+		cases.append(
+			["crouch to stand", [[keys, lead, "crouch"], [keys, t]], 1, PackedFloat32Array()]
+		)
+	for case: Array in cases:
+		var steps: Array = case[1].duplicate()
+		# Leave the body standing for the next case.
+		if _lies_after(steps):
+			steps.append_array([["", 2, "prone"], ["", 90]])
+		var samples := await _response.run(gait, 0.0, steps, 0.0, true)
+		var label := "%s, %s, %s" % [case[0], "still" if keys == "" else "moving " + keys, weapon]
+		_response.check_action(label, gait, samples, case[2], plain, false, case[3], t)
+		# Getting up in place: its clip's end hands over to the stance under it with no pop. The
+		# rifle's hold takes the trunk back from the clip there (its grip is the upper body), which
+		# the momentum blend carries but for a few centimetres.
+		if keys == "" and String(case[0]).begins_with("prone to"):
+			var extra := MoveResponse.POSE_JUMP_PLUS if weapon == "rifle" else 0.0
+			_response.check_hand_off(label, gait, samples, case[2], end, extra)
+
+
+# True when `steps` leave the body lying (an odd number of prone presses).
+static func _lies_after(steps: Array) -> bool:
+	var presses := 0
+	for step: Array in steps:
+		if step.size() > 2 and String(step[2]).contains("prone"):
+			presses += 1
+	return presses % 2 == 1
+
+
+# What the stance clips alone move a tick, read from a crouch at rest, where each starts on the
+# drawn pose (checked, but with the rifle, whose hold carries the trunk: the clips start on the
+# crouch idle's own trunk, 0.06 m from the rifle's): lying down (`down`) and getting up to the
+# crouch (`up`), over `STANCE_TICKS`.
+func _stance_clips(gait: String, checked := true) -> Dictionary:
+	var t := MoveResponse.STANCE_TICKS
+	var ref_steps: Array = [["", 60], ["", t, "prone"], ["", 2, "prone"], ["", t]]
+	var ref := await _response.run("crouch", 0.0, ref_steps, 0.0, true)
+	var down := MoveResponse.moves_from(ref, 1, t)
+	var up := MoveResponse.moves_from(ref, 2, t)
+	if checked:
+		_response.check_clip_start("lying down from a crouch at rest", gait, down)
+		_response.check_clip_start("getting up to a crouch", gait, up)
+	return {"down": down, "up": up}
+
+
+# The crouch's hand-off from `keys` held at `gait` (the bound of every stance change there): its
+# `peak_move()` from the steady gait, or from standing still.
+func _crouch_bound(gait: String, keys: String) -> float:
+	var steps: Array = [[keys, 80], [keys, MoveResponse.POSE_TICKS + 4, "crouch"], [keys, 60]]
+	var samples := await _response.run(gait, 0.0, steps, 0.0, true)
+	return MoveResponse.peak_move(samples, 1)
+
+
+func test_stance_changes_standing_still() -> void:
+	var clips := await _stance_clips("jog")
+	await _stance_changes("jog", "", await _crouch_bound("jog", ""), clips)
+	_report()
+
+
+func test_stance_changes_with_the_rifle_and_the_fists() -> void:
+	_matrix.player.loadout.give(load("res://gameplay/weapon/rifle.tres") as WeaponDef, 30)
+	var clips := await _stance_clips("jog", false)
+	assert_str(String(_matrix.player.weapon.definition.resource_path)).ends_with("rifle.tres")
+	await _stance_changes("jog", "", await _crouch_bound("jog", ""), clips, "rifle")
+	_matrix.player.loadout.toggle_unarmed()
+	clips = await _stance_clips("jog")
+	await _stance_changes("jog", "", await _crouch_bound("jog", ""), clips, "fists")
+	_report()
+
+
+func test_stance_changes_at_a_walk() -> void:
+	var clips := await _stance_clips("walk")
+	await _stance_changes("walk", "W", await _crouch_bound("walk", "W"), clips)
+	_report()
+
+
+func test_stance_changes_at_a_jog() -> void:
+	var clips := await _stance_clips("jog")
+	await _stance_changes("jog", "W", await _crouch_bound("jog", "W"), clips)
+	_report()
+
+
+func test_stance_changes_at_a_sprint() -> void:
+	var clips := await _stance_clips("sprint")
+	# A crouch in a sprint slides: the jog's crouch bounds the sprint's stance changes.
+	await _stance_changes("sprint", "W", await _crouch_bound("jog", "W"), clips)
+	_report()
+
+
 func test_actions_end_each_clip_at_a_jog() -> void:
 	await _actions("jog")
 
@@ -267,24 +415,3 @@ func _report() -> void:
 	_response.lines.clear()
 	_response.failures.clear()
 	assert_array(failed).is_empty()
-
-
-# Speeding up into a sprint from a steady jog and from a crouch walk (crouch let go as sprint is
-# pressed), the sprint press at several places in the stride (gdstudio #1578): no drawn bone moves
-# further in a tick than the steady jog's largest allows (`MoveResponse.POSE_JUMP_SHARE` and
-# `POSE_JUMP_PLUS`). Where the jog alone (to 5.2 m/s) meets the sprint alone (from 5.2) the blend
-# had no speeds between, the body crossed it in one tick and a foot moved 0.16 to 0.33 m there
-# (0.17 to 0.25 from the crouch walk); the ground blend now takes `gait_change_time` over it.
-func test_speeding_up_into_a_sprint() -> void:
-	var jog: Array = [["W", 80], ["W", MoveResponse.POSE_TICKS + 4]]
-	var plain := MoveResponse.peak_move(await _response.run("jog", 0.0, jog, 0.0, true), 1)
-	for lead: int in [80, 83, 86, 89, 92, 95, 98, 101]:
-		for from: String in ["jog", "crouch walk"]:
-			var held := "crouch" if from == "crouch walk" else ""
-			var steps: Array = [
-				["W", lead, held], ["W", MoveResponse.POSE_TICKS + 4, "sprint"], ["", 60]
-			]
-			var samples := await _response.run("jog", 0.0, steps, 0.0, true)
-			var label := "%s to sprint, pressed at tick %d" % [from, lead]
-			_response.check_action(label, "jog", samples, 1, plain, false)
-	_report()

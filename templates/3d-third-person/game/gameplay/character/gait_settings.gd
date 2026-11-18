@@ -106,6 +106,25 @@ extends Resource
 @export var run_land_clip: StringName = CharacterClips.LAND_TO_JOG
 @export_range(0.0, 12.0, 0.05, "suffix:m/s") var run_land_speed := 2.5
 
+@export_group("Stance changes")
+## Draws a crouch and a stand at rest with their own clips, carried over the body (no cross-fade:
+## the momentum blend takes the drawn pose in and out), and goes on from getting up (which ends
+## crouched) into the stand's clip (`StanceAnimation`, gdstudio #1576). A moving body, and any move,
+## jump or slide asked for during the clip, changes stance by the momentum blend alone. Off, every
+## crouch and stand is the momentum blend (the template before #1576).
+@export var stance_clips := true
+## The clip a body at rest crouches with: from the idle's first pose to the crouch idle's.
+@export var stand_to_crouch_clip: StringName = CharacterClips.STAND_TO_CROUCH
+## The clip a body at rest stands up with: from the crouch idle's first pose to the idle's.
+@export var crouch_to_stand_clip: StringName = CharacterClips.CROUCH_TO_STAND
+## How long the crouch's clip is drawn (its own pace: 0.67 s, its drop at 0.54 of gravity; at
+## 0.5 s it drops at 0.96, and shorter asks more than a fall). The capsule is down in the tuning's
+## `crouch_time` (0.2 s) whatever this is: only the look takes longer.
+@export_range(0.1, 2.0, 0.01, "suffix:s") var stand_to_crouch_time := 0.5
+## How long the stand's clip is drawn (its own pace: 0.53 s, its rise stopping at 0.94 of gravity;
+## shorter throws the body up past standing).
+@export_range(0.1, 2.0, 0.01, "suffix:s") var crouch_to_stand_time := 0.53
+
 @export_group("Helper bones")
 ## Blends the clips' tracks of the rig's helper bones (the `ik_` foot and hand targets), which
 ## nothing drawn follows. Off: they are switched off in the game (`HelperTracks`), the same pose

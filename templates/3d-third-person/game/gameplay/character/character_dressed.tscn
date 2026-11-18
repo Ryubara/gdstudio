@@ -266,17 +266,19 @@ model = NodePath("../Model")
 seat = NodePath("../Model/PistolHeld")
 animation = NodePath("../Animation")
 
-[node name="AimLayer" type="Node" parent="." node_paths=PackedStringArray("character", "model", "animation", "hold")]
+[node name="AimLayer" type="Node" parent="." node_paths=PackedStringArray("character", "model", "animation", "hold", "peek")]
 script = ExtResource("15_aim")
 character = NodePath("..")
 model = NodePath("../Model")
 animation = NodePath("../Animation")
 hold = NodePath("../WeaponHold")
+peek = NodePath("../PeekLayer")
 
-[node name="PeekLayer" type="Node" parent="." node_paths=PackedStringArray("character", "model")]
+[node name="PeekLayer" type="Node" parent="." node_paths=PackedStringArray("character", "model", "animation")]
 script = ExtResource("16_peek")
 character = NodePath("..")
 model = NodePath("../Model")
+animation = NodePath("../Animation")
 
 [node name="LeftShoulder" type="Node" parent="." node_paths=PackedStringArray("character", "model", "hold", "aim")]
 script = ExtResource("17_left_shoulder")

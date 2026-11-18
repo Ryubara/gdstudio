@@ -332,24 +332,26 @@ saved into a scene file. The body is a state machine: `ground` (a blend space on
 `crouch` (a blend space of the crouch idle and the crouch walk), `prone` (the template's own prone idle and crawl,
 `prone/Prone_Idle` and `prone/Crawl_Fwd` from `assets/animation/prone/`: the crawl replaces the idle over `blend_time`
 as soon as the body moves and plays at `ground speed / crawl_clip_speed` (0.618 m/s, its stride), backwards when the
-body moves away from the way it faces), `jump`, `fall`, `land`, `push` and the slide's three clips (`slide_start`,
-which runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs into `ground`).
-The ground and crouch spaces are drawn at a position that follows the speed's by at most one gait to the next in
+body moves away from the way it faces), `jump`, `fall`, `land`, `push` and the slide's three clips (`slide_start`, which
+runs into the `slide` loop, and `slide_exit`, played when a slide ends standing, which runs into `ground`). The ground
+and crouch spaces are drawn at a position that follows the speed's by at most one gait to the next in
 `GaitSettings.gait_change_time` (0.1 s, kit #1578): the jog alone reaches 5.2 m/s where the sprint alone starts, so
-speeding up into a sprint blends the legs over six ticks instead of swapping them in one.
-The jump's three states pick their clips by the body's numbers (`JumpAnimation`, kit #1371): `jump` the standing
-take-off, or from 2.5 m/s the run's take-off off the foot that is down (`Jump_Start_Run_L` or `_R`); `fall` the rise,
-the top and the fall blended by vertical speed; `land` the soft landing, the hard one from 9 m/s of fall
-(`Land_Hard`, played through its settle while the body stands; the controller holds the body until its control
-frame, `CharacterTuning.hard_land_time`, kit #1535) or, landing asked to run, `Land_To_Jog`, which hands
-over to the jog on its right foot. Every choice is in the Animation's `gait_settings` (`GaitSettings` > Jump; off,
-the three clips of `jump_clip`, `air_clip` and `land_clip` alone).
-Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up
+speeding up into a sprint blends the legs over six ticks instead of swapping them in one. The jump's three states
+pick their clips by the body's numbers (`JumpAnimation`, kit #1371): `jump` the standing take-off, or from
+2.5 m/s the run's take-off off the foot that is down (`Jump_Start_Run_L` or `_R`); `fall` the rise, the top and the fall
+blended by vertical speed; `land` the soft landing, the hard one from 9 m/s of fall (`Land_Hard`, played through its
+settle while the body stands; the controller holds the body until its control frame, `CharacterTuning.hard_land_time`,
+kit #1535) or, landing asked to run, `Land_To_Jog`, which hands over to the jog on its right foot. Every choice is in
+the Animation's `gait_settings` (`GaitSettings` > Jump; off, the three clips of `jump_clip`, `air_clip` and `land_clip`
+alone). Going down plays `prone/Crouch_To_Prone` over the body for the prone tuning's `enter_time`, getting up
 `prone/Prone_To_Crouch` for its `exit_time`, each at full weight from its first frame with the momentum blend carrying
-the pose the body was in into it (gdstudio #1568). Lying, the weapon is put away (its model hidden, the grip off)
-because the fists carry the body; aiming brings it back. A model whose body needs prone clips of its own (the male
-mannequin's, kit #1090) gets them from the Animation's `prone_libraries`, by the model's scene file; the vault clips
-come a body the same way, from `vault_libraries` (kit #1294).
+the pose the body was in into it (gdstudio #1568), and its last pose out into the state under it (gdstudio #1576). A
+crouch or a stand at rest plays `gds/Stand_To_Crouch` or `gds/Crouch_To_Stand` the same way, and getting up with crouch
+let go goes on from the crouch into `gds/Crouch_To_Stand`; a move, a jump or a slide asked for meanwhile ends the clip
+on its frame (the Animation's `gait_settings`, `GaitSettings` > Stance changes). Lying, the weapon is put away (its
+model hidden, the grip off) because the fists carry the body; aiming brings it back. A model whose body needs prone
+clips of its own (the male mannequin's, kit #1090) gets them from the Animation's `prone_libraries`, by the model's
+scene file; the vault clips come a body the same way, from `vault_libraries` (kit #1294).
 
 Aiming lying down plays the held weapon's prone aim clips inside the prone state, over the idle and the crawl from
 `spine_01` up, blended by the look: the `WeaponDef`'s `prone_aim_clip`, `prone_aim_up_clip` and `prone_aim_down_clip`

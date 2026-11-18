@@ -72,6 +72,13 @@ const _SIGHT_STEP := 0.001
 
 ## Where the aiming eye belongs on the weapon, its -Z along the sight line; null: a level head.
 var eye: Node3D
+## How much of the turn toward `eye` (past the level look) is the one kept from the last update
+## with none (0 this update's, 1 the kept one): a leaning body's action moves the weapon, and the
+## head keeps the cheek where it was on the lean (`PeekHold`, gdstudio #1575).
+var sight_hold := 0.0
+
+# The turn toward the sights past the level look, kept from the last update with no `sight_hold`.
+var _sight_kept := Quaternion.IDENTITY
 
 var _neck := -2
 var _head := -1
@@ -103,9 +110,16 @@ func _process_modification_with_delta(_delta: float) -> void:
 	var wanted := _looking(skeleton.global_transform.affine_inverse() * target - head_line.origin)
 	# The turn from the line to the look, in the skeleton's space, held within `max_turn`.
 	var turn := (wanted * lined.inverse()).normalized()
-	if eye != null and is_instance_valid(eye) and eye.is_inside_tree():
+	var level := turn
+	var sighting := eye != null and is_instance_valid(eye) and eye.is_inside_tree()
+	if sighting and sight_hold < 1.0:
 		var place := skeleton.global_transform.affine_inverse() * eye.global_transform
 		turn = _to_sights(turn, neck_line, lined, head_pose.origin, place)
+	if sight_hold <= 0.0:
+		_sight_kept = (turn * level.inverse()).normalized()
+	else:
+		var past := (turn * level.inverse()).normalized().slerp(_sight_kept, sight_hold)
+		turn = (past * level).normalized()
 	turn = _held(turn)
 	var neck_turn := Quaternion.IDENTITY.slerp(turn, neck_share)
 	var chest_turn := chest.basis.get_rotation_quaternion()
