@@ -35,6 +35,7 @@ own tests measure).
 import argparse
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -46,8 +47,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.dont_write_bytecode = True  # Blender ignores PYTHONDONTWRITEBYTECODE
 
-import build_pistol_rack as rack  # noqa: E402
-import hold_files  # noqa: E402  (on the path through build_pistol_rack)
+import build_pistol_rack as rack
+import hold_files  # on the path through build_pistol_rack
 
 GAME = rack.GAME
 FPS = 30
@@ -207,7 +208,7 @@ class Reload:
         return (RETURN_FROM + (1.0 - RETURN_FROM) * t**RETURN_LATE) * FRAMES
 
     def _sample(self, values, at):
-        low = min(int(math.floor(at)), FRAMES)
+        low = min(math.floor(at), FRAMES)
         high = min(low + 1, FRAMES)
         t = at - low
         return values[low] * (1.0 - t) + values[high] * t
@@ -216,7 +217,7 @@ class Reload:
         """The pistol's place in the character's space on a frame."""
         g0 = self.guns[0]
         at = self.library_at(f)
-        low = min(int(math.floor(at)), FRAMES)
+        low = min(math.floor(at), FRAMES)
         turn = rack.slerp(self.turns[low], self.turns[min(low + 1, FRAMES)], at - low)
         out = np.eye(4)
         out[:3, :3] = g0[:3, :3] @ rotvec_scaled(turn, TILT)
@@ -329,11 +330,9 @@ def held_scene():
     """The magazine marker of the default body's hold and the hold's magazine approach, from the scene files."""
     held = (GAME / "assets" / "weapons" / "pistol" / "pistol_held.tscn").read_text(encoding="utf-8")
     block = held.split('[node name="MagazineHand"', 1)[1].split("[node", 1)[0]
-    import re
-
     place = hold_files._place(re.search(r"transform = Transform3D\(([^)]*)\)", block).group(1))
     hold = (GAME / "gameplay" / "weapon" / "hold" / "weapon_hold.tscn").read_text(encoding="utf-8")
-    approach = [float(v) for v in re.search(r"^magazine_approach = Vector3\(([^)]*)\)", hold, re.M).group(1).split(",")]
+    approach = [float(v) for v in re.search(r"^magazine_approach = Vector3\(([^)]*)\)", hold, re.MULTILINE).group(1).split(",")]
     return {"magazine_hand": place, "magazine_approach": np.array(approach)}
 
 
