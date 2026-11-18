@@ -170,6 +170,12 @@ transitions) or while a start or a blend is under way (the momentum blend). Each
   frames into the crouch alone fixed it (`CharacterGait.CROUCH_SETTLE`); five for every state moved the aimed
   take-off's blend past `test_aimed_takeoff.gd`'s bound. **Seen:** gdstudio #1565, 2026-11-15
   (`tests/fixtures/move_response.gd`).
+- **Approach:** When an action's own clip moves a bone faster than the hand-off bound (a leg sweep), bound what the
+  hand-off adds: each tick may move what the clip alone moves then, read from the clip played from rest, plus the
+  bound; and check that reference starts on the drawn pose (its first ticks under 0.04 m). **Watch out for:** the
+  bound above reads as a raw move a tick, and the to-prone clip moves a toe 0.33 m a tick, more than the crouch's
+  whole bound, so no hand-off could pass it ([prone](moves.md#prone)). **Seen:** gdstudio #1568 (PR #1570),
+  2026-11-15.
 
 **How a stop moves the body** (gdstudio #1415). A body on its feet with the stick let go slows by the stop deceleration
 of the gait whose speed band it is in (`CharacterTuning` > Ground > Stops): `walk_stop_deceleration` 2.84 m/s² up to

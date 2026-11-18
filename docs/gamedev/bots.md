@@ -212,9 +212,18 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   (`AiNoiseMaker.check_phase`, #1550; from its instance id before, one more `RefCounted.new()` changed seed 11 at
   120 s). `tests/fixtures/soak_after_objects.gd` runs the soak after `--objects N` objects (`godot --headless --path .
   --fixed-fps 60 -s res://tests/fixtures/soak_after_objects.gd -- --seed 11 --objects 1`), and
-  `test_ai_soak_objects.gd` compares its hash with the plain run's. Any edit of a script the soak loads still moves a
-  run (the watch's new exports and lines moved seed 40 off main's hash, the same once the phase was fixed), so a
-  soak-script change can make a nightly seed meet a fault main has on other seeds (#1547).
+  `test_ai_soak_objects.gd` compares its hash with the plain run's. The fixture adds the soak to the tree in
+  `_initialize`, before the engine's first frame, as the plain run's command line does: it once started it with
+  `change_scene_to_file`, a frame later, and with Jolt that alone moves a run (#1591: on a977e1358, Windows, seed 11
+  read 1806454534 plain and 3471119156 after `--objects 0`, 1 or 5, and after waits of 0 to 5 frames; the first
+  ragdoll's pelvis was a last bit apart four ticks after it went limp, its corpse settled at another tick and the
+  spawner released it then; under Godot Physics both starts read the same). Whether it shows is luck of the commit and
+  the platform: main and CI read the same that day, so the check passed alone and failed in one full run, which ran a
+  different commit than the runs alone. A failure now runs `--objects 0` as well and says whether the start or an
+  instance id moved the run ([fixed-step repeatability](../engines/godot/fixed-step-repeatability.md#the-test)).
+  Any edit of a script the soak loads still moves a run (the watch's new exports and lines moved seed 40 off main's
+  hash, the same once the phase was fixed), so a soak-script change can make a nightly seed meet a fault main has on
+  other seeds (#1547).
 - **Probe:** `--probe` (every kind), `--probe Civilian,Grunt` (those kinds, by profile name) or the environment variable
   `SOAK_PROBE` (same values; the watch's `probe_episodes` in the inspector) keeps a row a tick of each probed character
   and prints an `AI_SOAK_EPISODE {json}` block when a stuck episode that counts toward `stuck_share` ends: the

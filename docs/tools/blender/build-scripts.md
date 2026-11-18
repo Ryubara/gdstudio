@@ -49,6 +49,11 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   the layout test refuses (run probes with `python -B`). **Seen:** gdstudio #1150, 2026-11-11 (fix: the probes
   moved to the scratch folder; the cache folder was deleted before the push); gdstudio #1151, 2026-11-11 (the same
   numpy failure from a script in the shared temp folder).
+- **Approach:** Run the own clips' `build_own.py` from its folder with `uv run --with numpy python -B build_own.py
+  ... --blender "$(gds tool path blender)"`, as its README and [the toolkit](clip-toolkit.md) say. **Watch out
+  for:** the kit's project (`uv run --project <kit>/python`) has no numpy, so the build starts and the first clip
+  module fails on `import numpy`. **Seen:** gdstudio PR #1442 (its refresh: `ship locomotion --check` after a merge
+  of main), 2026-11-14.
 - **Approach:** Keep a Python package inside a game free of `__init__.py` (a folder of modules imports as a
   namespace package), and set `sys.dont_write_bytecode = True` in a Blender script before it imports a module of
   the game (or start Blender with `--python-expr "import sys; sys.dont_write_bytecode = True"` before `-P`).
@@ -69,9 +74,9 @@ given `--out out` wrote somewhere else (make it absolute in the shell, `"$(pwd)/
   templates/repo/ruff.toml <files>` and the same with `ruff format` (120 columns). **Watch out for:** the kit's ruff
   pre-commit hooks cover only `python/` and `.claude/hooks/`, so a template script is never linted in the kit, and
   ruff run on it without `--config` finds no settings above it and wraps at 88. **Seen:** gdstudio #1150 (PR #1165),
-  2026-11-11; gdstudio #1084, 2026-11-11 (a bare `ruff format` rewrapped the hold's solver; formatted again at 120);
-  gdstudio #1293, 2026-11-11 (a bare `ruff format` rewrapped the 120-column `limb_overlap.py`, 150 lines of noise in
-  the commit, put back by hand; the prone build scripts are still wrapped at 88); #1052, 11-12.
+  #1084 and #1293, 2026-11-11 (a bare `ruff format` rewrapped the hold's solver, formatted again at 120, and the
+  120-column `limb_overlap.py`, 150 lines of noise in the commit put back by hand; the prone build scripts are still
+  wrapped at 88); #1052, 11-12; PR #1592, 11-17 (main's `build_pistol_rack.py` fails it, 8 errors).
 
 ## Rebuilding a committed file {#rebuilding}
 

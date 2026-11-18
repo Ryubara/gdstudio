@@ -98,6 +98,11 @@ and 73 KB down in the freeze run's 35 s connection (about 1.2 and 2.1 KB/s) for 
 - **Approach:** Run the browser half with `--gpu` whenever the page draws AI puppets (`net_play_smoke.py --gpu --ai N`).
   **Watch out for:** SwiftShader drew 40 puppets at 7 frames a second, far under the floor above, while the GPU page
   passed every gate at 42. **Seen:** gdstudio #970, 2026-11-11.
+- **Approach:** When the `stalls` case fails once just over its line on a change that cannot touch the client, rerun
+  the same head once, name the reading in the pull request, and file an issue on a second reading over the line.
+  **Watch out for:** #1110 made the stall run repeatable, yet a docs-only pull request read a worst error of 4.075 m
+  a stall against 4.0 on CI (main 10af5611, after #1442) and passed on the rerun of the same head. **Seen:**
+  gdstudio PR #1562, 2026-11-14.
 - **Approach:** Before comparing a browser client with a native one, trace each answer taken whole after a resync
   (its error, the stalls since the last answer taken), and judge it per stall (`Reconciler.resync`,
   `worst_stall_error`). **Watch out for:** every page answer past 3 m came in its first three seconds, after two to
