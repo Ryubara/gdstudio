@@ -298,6 +298,11 @@ headless Chrome on a workstation, and the hit zones bench ran with `--run` (gdst
   turning it off saved 34 (warm data, an early return the first run made possible); each span's clock read is a call
   into JavaScript (about a microsecond); one round each moved a row 5 to 10 microseconds. **Seen:** gdstudio #1347,
   2026-11-12 (the kept game in the temporary folder was gone between two exports).
+- **Approach:** Before costing a hold change in Chrome, check the bench draws it: `gait_cost.tscn`'s players carry no
+  weapon, and `hold_cost.tscn` plays clips in place with no gait; until a gait bench carries one, cost the steady
+  state with `hold_cost`'s walk runs and say in the pull request that the gait's turns, starts and stops are
+  unmeasured. **Watch out for:** the gait bench read no change for the pistol carry's steady arm because its weight
+  was zero on every player. **Seen:** gdstudio #1577 (PR #1582), 2026-11-17.
 - **Approach:** In a before and after of two builds, swap which build runs first in each round (A B, then B A), and
   read the median of the rounds. When the bench's own probe takes the pair of runs to compare as an argument (the
   fourth of `gait_cost.py`: `off,on` by default, `lean_off,on` for the lean alone), compare one part in one build

@@ -121,7 +121,7 @@ Part of [the character and its model](character.md) and [the 3D Third Person tem
   the count in `test_character_clips.gd`. **Watch out for:** `test_every_listed_clip_exists_and_every_clip_is_listed`
   counts every clip of every library on the player, so a library added only to `character_dressed.tscn` passes every
   targeted suite and fails only in the full run. **Seen:** kit #1254, the six melee clips (90 to 96, then 99
-  beside the three vault clips of #1239).
+  beside the three vault clips of #1239); PR #1592, 2026-11-17 (`pistol_reload`).
 - **Approach:** Take a track out of every character's blend by switching it off in the shared clips
   (`Animation.track_set_enabled(track, false)`, once per library at run time: `HelperTracks`); the mixer makes no
   cache for a track no clip has on, and skips it in the blend. **Watch out for:** `remove_track` on a clip of a
@@ -311,6 +311,10 @@ kit #1157 (each moving one ends as a foot strikes; a turn on the spot ends on th
   came during the clip, or block the pick under the same state. **Watch out for:** ending every clip of an aiming
   body made an aimed walk's stop begin and end on alternate frames, which only `test_aimed_takeoff.gd`'s gun speed
   caught. **Seen:** gdstudio #1565, 2026-11-15 (`GaitTransitions._acted`, a clip begun aimed keeps its aim).
+- **Approach:** Read a drawn pose while tuning a gait setting in `skeleton_updated`, each tick its own frame, as
+  [the look](turn-root-motion.md#turn-look) does. **Watch out for:** `get_bone_global_pose` read after `advance()`
+  is the tree's pose before the skeleton's modifiers, the momentum blend among them, so a jump read there is not
+  the one drawn. **Seen:** gdstudio #1565 (PR #1566), 2026-11-15.
 
 ### Turns moved by their clip {#turn-root-motion}
 

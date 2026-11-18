@@ -321,6 +321,10 @@ they exist.
   before the push: it pins the sections `gds brief` proposes for sample issues. **Watch out for:** a link added to a
   row of `own-animation.md#waves` lifted that section into issue #1435's six and pushed `parts-cost.md#parts-cost`
   out, red on every `test` job. **Seen:** gdstudio #1371, 2026-11-14.
+- **Approach:** Pull the kit checkout (`git -C <workspace>/repos/gdstudio pull --ff-only`) before a prompt's `Read:`
+  lines name a section that a landing has just added. **Watch out for:** the Agent hook checks each `Read:` anchor
+  against the kit checkout's docs, not `origin/main`, so prompts naming `turn-root-motion.md#turn-look` minutes
+  after #1566 added it were refused. **Seen:** gdstudio #1568 and #1569, 2026-11-15 (coordinator's prompts).
 
 ## The report {#the-report}
 
