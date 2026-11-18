@@ -53,6 +53,7 @@ const ACTION_KEYS := {
 	"jump": KEY_SPACE,
 	"aim": MOUSE_BUTTON_RIGHT,
 	"fire": MOUSE_BUTTON_LEFT,
+	"sprint": KEY_SHIFT,
 }
 
 var matrix: MoveKeyMatrix

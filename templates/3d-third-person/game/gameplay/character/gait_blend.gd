@@ -12,7 +12,9 @@ extends RefCounted
 ## below the walk the walk keeps its own pace while the idle fades out (its planted feet weigh
 ## nothing in the stride), and between two gaits the feet of both move at the ground's speed, so
 ## a foot planted in both stays where it landed. The gaits share one phase: they start together
-## at the left foot's landing, and each covers a cycle in the same time.
+## at the left foot's landing, and each covers a cycle in the same time. The drawn position follows
+## the speed's no faster than a gait to the next in `GaitSettings.gait_change_time` (gdstudio
+## #1578: where two stretched gaits meet, a speed crossing them changed the pose in one tick).
 ##
 ## A clip with no record (a library clip put back as a stand-in) sits at the tuning's speed for
 ## its gait and plays at its own pace there, as the template's gaits did before.
@@ -113,9 +115,11 @@ func drive(animation: CharacterAnimation, speed: float, delta: float) -> void:
 	var crouch_drawn := _crouch_drawn(animation, delta)
 	for state: StringName in _spaces:
 		if state == CharacterAnimation.CROUCH and not crouch_drawn:
+			# Undrawn, it starts where its speed is when it is drawn again.
+			(_spaces[state] as Dictionary).drawn = -1.0
 			continue
 		var entry: Dictionary = _spaces[state]
-		var at := position_at(entry.speeds, speed)
+		var at := _follow(entry, position_at(entry.speeds, speed), delta)
 		tree.set(entry.position, at)
 		var trimmed := 1.0
 		if state == CharacterAnimation.GROUND:
@@ -124,6 +128,42 @@ func drive(animation: CharacterAnimation, speed: float, delta: float) -> void:
 		var paces := paces_at(entry, speed, at)
 		for index in paces.size():
 			tree.set(entry.paces[index], paces[index] * trimmed)
+
+
+# The position `entry`'s space is drawn at this frame: toward `target` (`position_at()`) by at most
+# a gait's step in `gait_change_time`, counted in steps between the points (`_steps_at()`), so a
+# speed that crosses a seam in a tick still blends the pose over that time.
+func _follow(entry: Dictionary, target: float, delta: float) -> float:
+	var drawn: float = entry.drawn
+	var time := settings.gait_change_time if settings != null else 0.0
+	if drawn < 0.0 or time <= 0.0 or delta <= 0.0:
+		entry.drawn = target
+		return target
+	var speeds: PackedFloat32Array = entry.speeds
+	var steps := move_toward(_steps_at(speeds, drawn), _steps_at(speeds, target), delta / time)
+	entry.drawn = _position_of(speeds, steps)
+	return entry.drawn
+
+
+# How many points a space whose gaits sit at `speeds` (the idle at 0) is past at position `at`:
+# 1 at the first gait, 1.5 halfway to the second, and on past the last at its spacing from 0.
+static func _steps_at(speeds: PackedFloat32Array, at: float) -> float:
+	var below := 0.0
+	for index in speeds.size():
+		if at <= speeds[index]:
+			return index + (at - below) / maxf(speeds[index] - below, 0.0001)
+		below = speeds[index]
+	return speeds.size() + (at - below) / maxf(below, 0.0001)
+
+
+# The position `steps` points into a space whose gaits sit at `speeds` (`_steps_at()` undone).
+static func _position_of(speeds: PackedFloat32Array, steps: float) -> float:
+	var below := 0.0
+	for index in speeds.size():
+		if steps <= index + 1:
+			return below + (steps - index) * (speeds[index] - below)
+		below = speeds[index]
+	return below + (steps - speeds.size()) * below
 
 
 # True while the crouch space may be drawn: the body crouches (a crouch state is travelled to on
@@ -377,6 +417,7 @@ func _build(
 		"speeds": PackedFloat32Array(),
 		"lengths": PackedFloat32Array(),
 		"position": StringName(base + "blend_position"),
+		"drawn": -1.0,
 		"paces": [],
 		"seeks": [],
 		"positions": [],

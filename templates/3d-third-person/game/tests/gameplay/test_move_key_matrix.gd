@@ -267,3 +267,24 @@ func _report() -> void:
 	_response.lines.clear()
 	_response.failures.clear()
 	assert_array(failed).is_empty()
+
+
+# Speeding up into a sprint from a steady jog and from a crouch walk (crouch let go as sprint is
+# pressed), the sprint press at several places in the stride (gdstudio #1578): no drawn bone moves
+# further in a tick than the steady jog's largest allows (`MoveResponse.POSE_JUMP_SHARE` and
+# `POSE_JUMP_PLUS`). Where the jog alone (to 5.2 m/s) meets the sprint alone (from 5.2) the blend
+# had no speeds between, the body crossed it in one tick and a foot moved 0.16 to 0.33 m there
+# (0.17 to 0.25 from the crouch walk); the ground blend now takes `gait_change_time` over it.
+func test_speeding_up_into_a_sprint() -> void:
+	var jog: Array = [["W", 80], ["W", MoveResponse.POSE_TICKS + 4]]
+	var plain := MoveResponse.peak_move(await _response.run("jog", 0.0, jog, 0.0, true), 1)
+	for lead: int in [80, 83, 86, 89, 92, 95, 98, 101]:
+		for from: String in ["jog", "crouch walk"]:
+			var held := "crouch" if from == "crouch walk" else ""
+			var steps: Array = [
+				["W", lead, held], ["W", MoveResponse.POSE_TICKS + 4, "sprint"], ["", 60]
+			]
+			var samples := await _response.run("jog", 0.0, steps, 0.0, true)
+			var label := "%s to sprint, pressed at tick %d" % [from, lead]
+			_response.check_action(label, "jog", samples, 1, plain, false)
+	_report()

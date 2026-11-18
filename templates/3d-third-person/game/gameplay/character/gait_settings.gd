@@ -26,6 +26,12 @@ extends Resource
 @export var stretch := Vector2(0.8, 1.3)
 ## The slowest pace the first gait plays at on its own; below it the gait fades into the idle.
 @export_range(0.1, 1.0, 0.01) var slowest_pace := 0.5
+## The least time the drawn blend takes to go from one gait to the next (the idle to the walk, the
+## walk to the jog, the jog to the sprint), however fast the body's speed crosses them. Where the
+## stretched gaits meet (the jog alone to 5.2 m/s, the sprint alone from 5.2) the blend has no
+## speeds between, and the body's 28 m/s² crossed it in one tick: the pose went from the jog's to
+## the sprint's at once, a foot 0.28 m in a tick (gdstudio #1578). 0: the blend follows the speed.
+@export_range(0.0, 0.5, 0.01, "suffix:s") var gait_change_time := 0.1
 
 @export_group("Transitions")
 ## Plays a start, a stop, a reversal, a pivot or a turn on the spot when the controller does one
