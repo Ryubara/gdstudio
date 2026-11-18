@@ -92,6 +92,7 @@ func test_the_gait_settings_defaults_are_pinned() -> void:
 		&"momentum_blend": true,
 		&"momentum_half_life": 0.05,
 		&"momentum_speed_limit": 720.0,
+		&"slide_exit_half_life": 0.12,
 		&"lean": true,
 		&"lean_clips": fresh.lean_clips,
 		&"lean_full_at": 20.0,

@@ -61,6 +61,9 @@ are named as such.
   the gun where the last frame's push had it; the butt is brought to the skin after it, since the turn brings the
   chest's left side forward under the stock, and both again in the same frame only when the push moved more than 3 mm.
   What is still short then brings the gun back along its barrel (`pull_limit`, 0 now: nothing is short).
+  The chest's turn is read from its front about the up axis, and from the shoulders' line once the front points
+  down past 44 degrees (all of it by 72, `TwoHandStance.STEEP_CHEST`): lying down, the front passing straight down
+  swung the turn half a round in a tick (gdstudio #1581).
 - **The carry** (kit #1348): running at the low ready the stance carries the trunk upright, to `carry_lean_limit`
   on average; how, what it measured and what it costs are on [the upright carry](rifle-carry.md#rifle-carry).
 - **The left shoulder.** On a left peek lean the stance mirrors the pocket and the gun's turn across the body and
