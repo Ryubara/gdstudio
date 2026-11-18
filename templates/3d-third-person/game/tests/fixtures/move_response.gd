@@ -44,6 +44,12 @@ const BOUND_OF := {"prone": "crouch"}
 ## Ticks from the press in which a clip that starts on the drawn pose (lying down from a crouch at
 ## rest) moves no bone more than `POSE_JUMP_PLUS`: a cross-fade from the state under it shows there.
 const CLIP_START_TICKS := 3
+## Ticks from a stance key's press that a stance change is checked over (gdstudio #1576): the
+## longest clip (getting up, 0.7 s), the crouch's stand after it and the hand-off at each end.
+const STANCE_TICKS := 110
+## Ticks after a carried clip's end over which its hand-off to the state under it is checked
+## (`check_hand_off()`).
+const HAND_OFF_TICKS := 6
 ## Seed of the spam cases' random keys.
 const SEED := 1565
 const DIRECTIONS := ["W", "WD", "D", "SD", "S", "AS", "A", "WA"]
@@ -237,11 +243,11 @@ static func peak_move(samples: Array, step: int) -> float:
 	return peak
 
 
-## The largest move of a drawn bone in each tick over `POSE_TICKS` ticks from `step` on.
-static func moves_from(samples: Array, step: int) -> PackedFloat32Array:
+## The largest move of a drawn bone in each tick over `ticks` ticks (`POSE_TICKS`) from `step` on.
+static func moves_from(samples: Array, step: int, ticks := POSE_TICKS) -> PackedFloat32Array:
 	var moves := PackedFloat32Array()
 	for sample: Dictionary in samples:
-		if sample.step >= step and moves.size() < POSE_TICKS:
+		if sample.step >= step and moves.size() < ticks:
 			moves.append(sample.jump)
 	return moves
 
@@ -266,7 +272,8 @@ func check_clip_start(name: String, gait: String, moves: PackedFloat32Array) -> 
 ## Without `in_clip` no transition clip need be drawn (an action from the steady gait or a stance).
 ## `own` is what the action's own clip moves a tick from the press on (`moves_from()` of it played
 ## where it starts on the drawn pose), added to the allowance tick by tick (lying down: gdstudio
-## #1568); the line then gives the largest move over it.
+## #1568); the line then gives the largest move over it. `ticks` is how many ticks from the press
+## are checked (`POSE_TICKS`; a stance change's whole clip and its hand-off: `STANCE_TICKS`).
 func check_action(
 	name: String,
 	gait: String,
@@ -274,7 +281,8 @@ func check_action(
 	step: int,
 	plain := 0.0,
 	in_clip := true,
-	own := PackedFloat32Array()
+	own := PackedFloat32Array(),
+	ticks := POSE_TICKS
 ) -> void:
 	var why: PackedStringArray = []
 	var at := -1
@@ -290,7 +298,7 @@ func check_action(
 	var peak := 0.0
 	var peak_bone := ""
 	var over := 0.0
-	for index in range(at, mini(at + POSE_TICKS, samples.size())):
+	for index in range(at, mini(at + ticks, samples.size())):
 		var sample: Dictionary = samples[index]
 		var clip_move: float = own[index - at] if index - at < own.size() else 0.0
 		if sample.jump - clip_move > over or peak_bone == "":
@@ -323,10 +331,43 @@ func check_action(
 		why.append("a bone moved %.3f m in a tick after %s" % [peak, samples[at].press])
 	if OS.get_environment("GDS_POSE_TRACE") != "":
 		var trace: PackedStringArray = []
-		for index in range(maxi(at - 2, 0), mini(at + POSE_TICKS, samples.size())):
+		for index in range(maxi(at - 2, 0), mini(at + ticks, samples.size())):
 			trace.append("%.3f %s" % [samples[index].jump, samples[index].jump_bone])
 		part += " | trace from t-2: " + ", ".join(trace)
 	_note(name, gait, 0.0, [part], why)
+
+
+## Checks the hand-off at the end of a carried clip that ends still, on the first pose of the stance
+## it was made to end on (getting up: `prone/Prone_To_Crouch` ends on the crouch idle's first pose,
+## every bone within 1 mm, gdstudio #1576), `end` ticks after the press at `step`, on a body that
+## stays where it is: over `HAND_OFF_TICKS` ticks from the end no drawn bone moves further in a tick
+## than `POSE_JUMP_PLUS` (and `extra` more). The bound does not come from the code under test.
+## Before the fix the one-shot's 0.1 s fade-out drew the crouch idle rising into the standing idle
+## there (0.12 m a tick with the pistol, 0.24 with the rifle).
+func check_hand_off(
+	name: String, gait: String, samples: Array, step: int, end: int, extra := 0.0
+) -> void:
+	var why: PackedStringArray = []
+	var at := -1
+	for index in samples.size():
+		if samples[index].step == step:
+			at = index
+			break
+	var allowed := POSE_JUMP_PLUS + extra
+	var peak := 0.0
+	var peak_bone := ""
+	for index in range(at + end, mini(at + end + HAND_OFF_TICKS, samples.size())):
+		var sample: Dictionary = samples[index]
+		if sample.jump > peak:
+			peak = sample.jump
+			peak_bone = "%s t+%d" % [sample.jump_bone, index - at]
+	if peak > allowed:
+		why.append("a bone moved %.3f m in a tick as the clip ended" % peak)
+	var part := (
+		"clip end t+%d: bone move a tick %.3f m (%s; allowed %.3f)"
+		% [end, peak, peak_bone, allowed]
+	)
+	_note(name + ", its end", gait, 0.0, [part], why)
 
 
 ## Random direction changes, every 3 to 7 ticks, `count` of them, from a seeded generator.
@@ -389,14 +430,17 @@ static func _keys_of(samples: Array, step: int) -> String:
 	return "?"
 
 
+# Presses or lets go of `what`: an action of `ACTION_KEYS`, or several joined by `+`
+# (`crouch+prone`: crouch held while prone is pressed).
 func _press(what: String, down: bool) -> void:
 	if what == "":
 		return
-	var code: int = ACTION_KEYS[what]
-	if what == "aim" or what == "fire":
-		InputSim.mouse_button(code as MouseButton, down)
-	else:
-		InputSim.key(code as Key, down)
+	for part in what.split("+"):
+		var code: int = ACTION_KEYS[part]
+		if part == "aim" or part == "fire":
+			InputSim.mouse_button(code as MouseButton, down)
+		else:
+			InputSim.key(code as Key, down)
 
 
 # Every drawn bone's place in the model's frame, as the skeleton's last update drew it (the body's

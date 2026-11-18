@@ -25,7 +25,9 @@ extends SkeletonModifier3D
 ## (gdstudio #1416). Nothing while an action clip covers the whole body
 ## (`CharacterAnimation.is_acting(true)`): the action cross-fades in the tree, unless it came in
 ## carried (`CharacterAnimation.is_action_carried()`: lying down and getting up, whose clip shows at
-## once and whose jump from the drawn pose this blend takes, gdstudio #1568).
+## once and whose jump from the drawn pose this blend takes, gdstudio #1568). A carried clip's
+## start, its end and its stop are changes too (`ActionLayer.carried_key()`): the clip hands its
+## last drawn pose to the state under it as it took the first (gdstudio #1576).
 
 ## Parts of the bone names it leaves to the clip alone.
 const SKIPPED: Array[String] = [
@@ -93,7 +95,8 @@ func _process_modification_with_delta(delta: float) -> void:
 	if _count != skeleton.get_bone_count():
 		_forget()
 		_follow(skeleton)
-	var key: Variant = animation.gait.pose_key(animation)
+	var pose := animation.gait.pose_key(animation)
+	var key := Vector3i(pose.x, pose.y, animation.actions.carried_key())
 	if key != _key and _seen >= 2:
 		_settle = SETTLE_FRAMES + animation.gait.extra_settle(animation)
 	_key = key

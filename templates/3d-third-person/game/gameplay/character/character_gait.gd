@@ -18,6 +18,8 @@ var transitions := GaitTransitions.new()
 var jump := JumpAnimation.new()  # the take-off, the air and the landing (gdstudio #1371)
 var lean := GaitLean.new()
 var momentum: MomentumBlend
+# The body state the momentum blend last started for (`extra_settle()`).
+var _settled_from: StringName = &""
 
 
 ## The settings in use: `animation`'s, else the template's defaults.
@@ -123,12 +125,21 @@ func half_life(animation: CharacterAnimation) -> float:
 
 
 ## Frames more than `MomentumBlend.SETTLE_FRAMES` the momentum blend starts again after a change
-## (`JumpAnimation.extra_settle()`), and `CROUCH_SETTLE` more into the crouch: its pose reaches the
-## skeleton a frame or two later than the blend's own frames, and a stop cut by a crouch moved a
-## toe 0.25 m in one frame (gdstudio #1565).
+## (`JumpAnimation.extra_settle()`), and `CROUCH_SETTLE` more into the crouch and from it to the
+## ground: those poses reach the skeleton a frame or two later than the blend's own frames; a stop
+## cut by a crouch moved a toe 0.25 m in one frame (gdstudio #1565), and standing up from a crouch
+## walk into a jog a hand 0.20 m on the fourth frame (gdstudio #1576). Not into lying down: each
+## start holds the drawn pose back, and the to-prone clip's arms then caught up 0.25 m in a frame.
+## Called once a change.
 func extra_settle(animation: CharacterAnimation) -> int:
 	var state := animation.body_state()
-	return jump.extra_settle(state) + (CROUCH_SETTLE if state == CharacterAnimation.CROUCH else 0)
+	var crouch := state == CharacterAnimation.CROUCH
+	crouch = (
+		crouch
+		or (_settled_from == CharacterAnimation.CROUCH and state == CharacterAnimation.GROUND)
+	)
+	_settled_from = state
+	return jump.extra_settle(state) + (CROUCH_SETTLE if crouch else 0)
 
 
 func _take(animation: CharacterAnimation) -> void:
