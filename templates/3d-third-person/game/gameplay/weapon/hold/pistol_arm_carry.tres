@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="ArmCarry" format=3]
+
+[ext_resource type="Script" path="res://gameplay/weapon/hold/arm_carry.gd" id="1_carry"]
+
+[resource]
+script = ExtResource("1_carry")

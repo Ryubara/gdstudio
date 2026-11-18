@@ -102,7 +102,8 @@ func test_the_animation_plays_the_start_the_loop_and_the_exit() -> void:
 	await InputSim.ticks(get_tree(), 3)
 	await get_tree().process_frame
 	assert_str(String(_animation.body_state())).is_equal("slide_exit")
-	await InputSim.ticks(get_tree(), 50)
+	# The exit is stretched to `slide_exit_time` (0.85 s, gdstudio #1577).
+	await InputSim.ticks(get_tree(), 70)
 	await get_tree().process_frame
 	assert_str(String(_animation.body_state())).is_equal("ground")
 
