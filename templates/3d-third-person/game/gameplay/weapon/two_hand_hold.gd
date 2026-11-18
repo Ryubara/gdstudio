@@ -316,9 +316,10 @@ var _clavicle_index := -1
 var _spine_indices := PackedInt32Array()
 var _left_indices := PackedInt32Array()
 # What was last written to the modifiers and to `Pivot`'s visibility (-1: never), so a frame
-# writes only what changed (kit #1347).
+# writes only what changed (kit #1347); how much of the hold lying keeps (gdstudio #1581).
 var _weights := HoldWeights.new()
 var _pivot_shown := -1
+var _stow := HoldStow.new()
 # The left forearm's and hand's length this update; the low ready's turn and what it was worked
 # out from.
 var _arm := 0.0
@@ -450,10 +451,11 @@ func refresh() -> void:
 		_pivot.visible = alive
 		_pivot_shown = int(alive)
 	var far := fingers_far and fingers_far_distance > 0.0
-	var fingers := 1.0 if shown and not far else 0.0
+	var kept := _stow.step(character)
+	var fingers := kept if shown and not far else 0.0
 	# Both arms go to the clip while the gun is put away for an action (a high vault: gdstudio
 	# #1409), the left one alone while an action reaches with it.
-	_weights.weigh(_modifiers, alive, _reach, fingers, _freed, _blow.amount, not shown)
+	_weights.weigh(_modifiers, alive, _reach * kept, fingers, _freed, _blow.amount, not shown)
 	if _fingers.size() < 2:
 		return
 	# The finger is on the trigger while the gun is up, and off it through a reload.
