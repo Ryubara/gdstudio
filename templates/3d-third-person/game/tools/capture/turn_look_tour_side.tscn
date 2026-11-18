@@ -1,10 +1,9 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://tools/capture/turn_look_tour.gd" id="1_tour"]
+[ext_resource type="Script" path="res://tools/capture/turn_look_tour_side.gd" id="1_tour"]
 [ext_resource type="PackedScene" path="res://main.tscn" id="2_main"]
 
 [node name="TurnLookTourSide" type="Node"]
 script = ExtResource("1_tour")
-side_view = true
 
 [node name="Main" parent="." instance=ExtResource("2_main")]
