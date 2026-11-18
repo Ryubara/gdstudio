@@ -65,6 +65,12 @@ func hold_share() -> float:
 	return _hold.step(character, animation)
 
 
+## The lean's `PeekHold`, stepped once a frame by `hold_share()` (a stance reads how a switch is
+## held from it, gdstudio #1585).
+func hold() -> PeekHold:
+	return _hold
+
+
 ## Puts the lean on the modifier now (the frame's own `_process` does it too).
 func refresh() -> void:
 	var bend := modifier()
@@ -78,7 +84,9 @@ func refresh() -> void:
 		bend.hold = 0.0
 		bend.forget()
 		return
-	bend.hold = hold_share()
+	var held := hold_share()
+	# A two-hand stance holds the trunk itself while a switch's next weapon comes up.
+	bend.hold = 0.0 if _hold.stance_draw else held
 	var eye := CharacterCapsule.eye_height(character)
 	var flat := character.peek_motion.eye_shift(character, eye, share)
 	var facing := model.global_basis.z if model != null else CharacterPeek.forward_of(character)

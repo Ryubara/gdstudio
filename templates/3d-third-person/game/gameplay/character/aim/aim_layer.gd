@@ -118,6 +118,10 @@ var _ray_now := PackedVector3Array()
 # How far a lean holds the shares through an action now (`PeekHold.share()`), and the shares kept
 # from the last refresh with no hold: the spine's turn, the head's, the upright's.
 var _hold := 0.0
+# The hold on the trunk's shares (the spine's turn, the upright): none while a two-hand stance
+# holds the trunk through a switch itself (`PeekHold.stance_draw`, gdstudio #1585), which a second
+# hold here would ease twice.
+var _trunk_hold := 0.0
 var _kept := Vector3.ZERO
 
 
@@ -161,7 +165,7 @@ func upright_modifier() -> AimUprightModifier:
 ## head's weight, with a weapon the spine's turn does not aim (no muzzle or no aim clip), less how
 ## far the body lies.
 func upright_weight() -> float:
-	return lerpf(_upright_now(), _kept.z, _hold)
+	return lerpf(_upright_now(), _kept.z, _trunk_hold)
 
 
 func _upright_now() -> float:
@@ -197,13 +201,13 @@ func _head_now() -> float:
 ## (`PeekHold`) while the weapon still has a muzzle to turn.
 func weight() -> float:
 	var now := _weight_now()
-	if _hold <= 0.0 or character == null or character.aim_limits == null:
+	if _trunk_hold <= 0.0 or character == null or character.aim_limits == null:
 		return now
 	# A switch to a weapon with no muzzle (the fists) keeps the turn on the last muzzle.
 	var aim := modifier()
 	if aim == null or aim.muzzle == null or not is_instance_valid(aim.muzzle):
 		return now
-	return lerpf(now, _kept.x, _hold)
+	return lerpf(now, _kept.x, _trunk_hold)
 
 
 func _weight_now() -> float:
@@ -222,6 +226,7 @@ func _weight_now() -> float:
 ## the three would stay off, so nothing drawn changes (kit #1478).
 func refresh() -> void:
 	_hold = peek.hold_share() if peek != null else 0.0
+	_trunk_hold = 0.0 if _hold <= 0.0 or peek.hold().stance_draw else _hold
 	if _hold <= 0.0:
 		_kept = Vector3.ZERO
 	if is_at_rest():
@@ -240,13 +245,13 @@ func refresh() -> void:
 		aim.active = share > 0.0
 	if share <= 0.0:
 		return
-	if character.weapon.muzzle != null or _hold <= 0.0:
+	if character.weapon.muzzle != null or _trunk_hold <= 0.0:
 		aim.muzzle = character.weapon.muzzle
 	aim.limits = character.aim_limits
 	aim.target = aim_point(Engine.get_physics_interpolation_fraction())
 	var shooting := animation.is_shooting()
-	aim.hold_turn = shooting or animation.is_reloading() or _racking() or _hold > 0.0
-	aim.freeze_turn = _hold > 0.0 and not shooting
+	aim.hold_turn = shooting or animation.is_reloading() or _racking() or _trunk_hold > 0.0
+	aim.freeze_turn = _trunk_hold > 0.0 and not shooting
 	aim.release_time = release_time
 	_pose_aim(aim)
 
