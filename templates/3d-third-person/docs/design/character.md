@@ -80,7 +80,8 @@ It is part of the body's step (`CharacterSlide`, `gameplay/character/character_s
 body by sending a command with `crouch` at speed, and `CharacterState.slide` holds its state. Every number is in its
 `SlideTuning` (`gameplay/player/slide_tuning.tres`, the Player's `slide_tuning`; below); the camera's slide view is on
 `PlayerCamera` (Slide group: 5 degrees wider over a quarter of a second); the clips are `CharacterAnimation`'s
-`slide_start_clip`, `slide_clip` and `slide_exit_clip`. Turn it off with its `enabled`. Where the numbers come from
+`slide_start_clip`, `slide_clip` and `slide_exit_clip` (the exit stretched to `slide_exit_time`, 0.85 s, so the body
+rises into the run over most of a second). Turn it off with its `enabled`. Where the numbers come from
 (shipped games' slides, with sources) is in the kit's `docs/engines/godot/third-person/character.md` (Sliding).
 
 ## Commands: what moves the body {#commands}
@@ -442,6 +443,7 @@ is tuned in its inspector while the game runs:
 | `support_marker` | `SupportHand` | The weapon's child the left hand's bone is brought to; move the marker in `pistol_held.tscn` and the hand follows. |
 | `support_arm`, `support_elbow` | the left arm's three bones, (0.6, 0.6, 0.2) | The bones that reach, and where the elbow points in the model's space. |
 | `carry_arm`, `carry_arm_out` | `upperarm_r`, 8 deg | The weapon's arm and how far it is held out from the body while the weapon is carried, so the grip's foot clears the thigh; it goes back as the character aims or reloads. |
+| `ArmCarry` node: `settings` | `pistol_arm_carry.tres` | Keeps the carried pistol on one carry while running: each arm bone follows its clip's average (0.3 s) and keeps a share of its swing (0.35, at most 30 degrees; the other arm 0.7, at most 50), so the gun moves with the stride and is never thrown up by the head or out to the side. It fades as the character aims. |
 | `open_pose`, `support_way` | `pistol_open_pose.tres`, (0.008, -0.03, 0.051) | The left hand's way off the pistol and back onto it: its fingers opened where it holds, and the line the opened hand leaves along, in the weapon's space, to where the clip's arm takes it. Both are solved together. |
 | `free_release_time`, `free_return_time` | 0.2 s, 0.12 s | How long the left hand takes off the weapon, and back onto it, for an action that reaches with it and leaves the aim up (`free_hand(seconds)`). Using a door or a lever takes the aim down for its time, which lets the hand go by itself; the rifle's hold (`TwoHandHold`, Free hand group) lets its left hand go for the same reach and takes the gun down in the right hand (`free_pitch` 50 deg, `free_yaw` 0, `free_clearance`, 0.16 s and 0.26 s). |
 | `magazine_pose` | `pistol_magazine_pose.tres` | The left hand's fingers while the heel of its palm pushes the magazine in. |
