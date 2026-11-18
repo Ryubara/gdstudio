@@ -675,7 +675,7 @@ func chest_weight() -> float:
 func _reach_now() -> float:
 	if character == null or _loadout == null:
 		return 1.0
-	var mine := _definition()
+	var mine := own_definition()
 	if _loadout.held_definition() == mine:
 		return 1.0
 	if not _loadout.is_switching():
@@ -690,14 +690,14 @@ func _reach_now() -> float:
 func _down_now() -> float:
 	if character == null or _loadout == null:
 		return posed_lowered
-	if _loadout.held_definition() == _definition():
+	if _loadout.held_definition() == own_definition():
 		return _loadout.lowered_amount()
 	return 1.0
 
 
-# The weapon definition this hold is the view of, or null: looked for again after the slots
-# changed (or their count, for slots set by hand) and while it is not found.
-func _definition() -> WeaponDef:
+## The weapon definition this hold is the view of, or null: looked for again after the slots
+## changed (or their count, for slots set by hand) and while it is not found.
+func own_definition() -> WeaponDef:
 	if _loadout == null or _loadout.model == null:
 		return null
 	if _mine != null and _mine_slots == _loadout.slots.size():
@@ -722,7 +722,7 @@ func _fingers_far() -> bool:
 
 func _on_weapon_changed(definition: WeaponDef) -> void:
 	# Hidden for the next weapon: the arms leave the gun's places as that one comes up.
-	_leaving = _reach >= 1.0 and definition != _definition() and _loadout.is_switching()
+	_leaving = _reach >= 1.0 and definition != own_definition() and _loadout.is_switching()
 
 
 func _on_switch_finished() -> void:

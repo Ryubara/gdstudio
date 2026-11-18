@@ -4,7 +4,8 @@
 # bandage, a switch; the pistol, the rifle and the fists, both bodies) runs over the upper body,
 # and in every drawn frame (read in `skeleton_updated`) the head bone stays within `HEAD_SLACK` of
 # where it was just before, from the pelvis in the model's frame, turned no more than `HEAD_TURN`.
-# A switch ends on the other weapon's stance, so it is held to the straight way between the two.
+# A switch ends on the other weapon's stance, so it is held to the straight way between the two,
+# both ways (to the fists and back).
 # On main the pistol's reload dropped the head 3 to 4 cm and turned it 70 degrees to the gun.
 extends GdUnitTestSuite
 
@@ -14,6 +15,9 @@ const HEAD_SLACK := 0.006
 ## How far a switch's head may leave the straight way between the two weapons' stances, metres:
 ## the old weapon's pose is held while it goes down and eased into the new one's as it comes up.
 const SWITCH_SLACK := 0.012
+## The same for a switch to or from the rifle, whose stance holds the trunk through it itself
+## (gdstudio #1585: on main 32 to 109 mm, the chest's turn and raise let go along their own curve).
+const RIFLE_SWITCH_SLACK := 0.010
 ## How far the head may turn off where the lean held it before the action, degrees.
 const HEAD_TURN := 1.5
 ## Ticks for the lean and the aim to settle before the action.
@@ -57,6 +61,7 @@ func test_the_head_stays_on_the_lean_through_each_action(
 		["female", "rifle", "reload"],
 		["female", "rifle", "fire"],
 		["female", "rifle", "melee"],
+		["female", "rifle", "switch"],
 		["female", "rifle", "use"],
 		["female", "fists", "melee"],
 		["female", "fists", "use"],
@@ -64,6 +69,7 @@ func test_the_head_stays_on_the_lean_through_each_action(
 		["male", "pistol", "melee"],
 		["male", "rifle", "reload"],
 		["male", "rifle", "melee"],
+		["male", "rifle", "switch"],
 		["male", "fists", "melee"],
 	]
 ) -> void:
@@ -74,29 +80,45 @@ func test_the_head_stays_on_the_lean_through_each_action(
 		InputSim.key(key, true)
 		await InputSim.ticks(get_tree(), SETTLE)
 		assert_float(absf(_player.peek_motion.amount)).override_failure_message(tag).is_equal(1.0)
-		# Read only in the update: outside it the skeleton shows the clips' pose, no modifier.
-		await _skeleton.skeleton_updated
-		_reference = _head_pose()
-		_samples.clear()
-		_skeleton.skeleton_updated.connect(_on_updated)
-		await _run(action, weapon)
-		_skeleton.skeleton_updated.disconnect(_on_updated)
-		var worst := _worst(action == "switch")
-		prints("lean action head", tag, "moved mm", worst.x * 1000.0, "turned", worst.y)
-		(
-			assert_float(worst.x)
-			. override_failure_message(
-				"%s: the head moved %.1f mm off the lean" % [tag, worst.x * 1000.0]
-			)
-			. is_less(SWITCH_SLACK if action == "switch" else HEAD_SLACK)
-		)
-		(
-			assert_float(worst.y)
-			. override_failure_message("%s: the head turned %.1f degrees" % [tag, worst.y])
-			. is_less(HEAD_TURN)
-		)
+		await _measure(tag, action, weapon)
+		if action == "switch":
+			# And back to the weapon it began with, so each lean starts from it.
+			await _measure(tag + " back", action, weapon)
 		InputSim.key(key, false)
 		await InputSim.ticks(get_tree(), SETTLE)
+
+
+# Runs `action` and checks the head's worst drawn frame against the place before it (for a switch,
+# against the straight way to the place after it).
+func _measure(tag: String, action: String, weapon: String) -> void:
+	# Read only in the update: outside it the skeleton shows the clips' pose, no modifier.
+	await _skeleton.skeleton_updated
+	_reference = _head_pose()
+	_samples.clear()
+	_skeleton.skeleton_updated.connect(_on_updated)
+	await _run(action, weapon)
+	_skeleton.skeleton_updated.disconnect(_on_updated)
+	var worst := _worst(action == "switch")
+	prints("lean action head", tag, "moved mm", worst.x * 1000.0, "turned", worst.y)
+	(
+		assert_float(worst.x)
+		. override_failure_message(
+			"%s: the head moved %.1f mm off the lean" % [tag, worst.x * 1000.0]
+		)
+		. is_less(_slack(action, weapon))
+	)
+	(
+		assert_float(worst.y)
+		. override_failure_message("%s: the head turned %.1f degrees" % [tag, worst.y])
+		. is_less(HEAD_TURN)
+	)
+
+
+# How far the head may leave the lean (or a switch's straight way) through `action`.
+func _slack(action: String, weapon: String) -> float:
+	if action != "switch":
+		return HEAD_SLACK
+	return RIFLE_SWITCH_SLACK if weapon == "rifle" else SWITCH_SLACK
 
 
 func _player_in_arena(body: String, weapon: String) -> void:
