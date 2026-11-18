@@ -139,7 +139,10 @@ static func move(body: Character, delta: float) -> void:
 	body.velocity *= ticks
 	body.move_and_slide()
 	body.velocity /= ticks
-	if body.is_on_wall():
+	# Rising, the move may have ridden a kerb's edge on the capsule's round foot (a contact under
+	# `max_slope`, no wall) where the climber, ahead of the move in the full tick, lifts the body:
+	# made again after the climber too (gdstudio #1567: 0.5 mm up a kerb after a short stop).
+	if body.is_on_wall() or body.global_position.y > start.origin.y + 0.0001:
 		body.global_transform = start
 		body.velocity = before
 		body._climb(delta)

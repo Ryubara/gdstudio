@@ -158,9 +158,10 @@ func test_a_stall_walks_the_client_body_as_the_server_walked_its_own() -> void:
 			assert_int(_client.reconciler.lost).is_equal(0)
 	# Measured: 0.000 m walked (no snap: the answer after each stall is already exact); with the walk
 	# taken out 0.170 m and a snap, 13.8 m, two snaps and one body lost since the turns of kit #1442,
-	# 0.022 m since gdstudio #1565 (the body steers back by itself, braking, not on a turn clip).
+	# 0.022 m since gdstudio #1565 (the body steers back by itself, braking, not on a turn clip),
+	# 0.005 m since gdstudio #1567 (the stood server body stops in 0.25 s from a walk, 0.6 before).
 	assert_float(corrected[true]).is_less(0.02)
-	assert_float(corrected[false]).is_greater(0.01)
+	assert_float(corrected[false]).is_greater(0.003)
 
 
 func test_the_client_body_is_tuned_as_the_server_body() -> void:

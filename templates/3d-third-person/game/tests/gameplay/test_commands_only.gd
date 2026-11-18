@@ -49,7 +49,7 @@ func test_commands_walk_it_to_the_gate_and_use_it() -> void:
 	await _run(PlayerCommand.new(), 10)
 	assert_bool(gate.is_open()).is_false()
 	# The gate opens by itself for a character that walks up to it (3 m), +Z from here.
-	# At a walk, whose stop is short (a jog's covers 1.96 m since gdstudio #1415).
+	# At a walk, whose stop is short (a jog's covers 0.85 m, gdstudio #1415 and #1567).
 	var toward := CommandDriver.walking(Vector3.BACK)
 	toward.walk = true
 	await _run(toward, 40)

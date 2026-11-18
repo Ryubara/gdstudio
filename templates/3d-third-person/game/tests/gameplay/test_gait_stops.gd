@@ -88,13 +88,20 @@ func _stop(run: Array) -> Dictionary:
 		_player.step(let_go, step)
 		_animation.advance(step)
 		var clip := transitions.clip
+		var first_tick := false
 		if clip != &"" and found.clip == &"":
 			found.clip = clip
+			first_tick = true
 		if clip == &"" or clip != found.clip:
 			if _player.ground_speed() < AT_REST:
 				break
 			continue
 		found.clip_time = transitions.time()
+		if first_tick:
+			# The skeleton shows a state a tick after the machine changes to it
+			# (`MomentumBlend.SETTLE_FRAMES`): this tick is still the gait's pose, which the walk,
+			# with stops on its strikes only, can have a half cycle off (gdstudio #1567).
+			continue
 		var record := GaitClips.record(clip)
 		var frame := transitions.time() * GaitClips.FPS
 		for side: String in balls:

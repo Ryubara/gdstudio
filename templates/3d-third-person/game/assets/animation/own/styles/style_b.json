@@ -364,16 +364,16 @@
    "Lean 12.4 degrees off (declared 20): the longer clip pushes less hard."
   ],
   "walk_stop": [
-   "38 frames over 0.51 m: the root is at rest a frame later, the trunk rocks back three frames late and 30 % past, and the settle is 14 frames.",
-   "Lean 9.5 degrees off (declared 10)."
+   "34 frames over 0.19 m: the same braking as A, the trunk 2.5 frames late and 35 % past, a 14 frame settle.",
+   "Lean 5.3 degrees off (declared 7)."
   ],
   "jog_stop": [
-   "54 frames over 2.08 m: the same four landings, the root at rest two frames later, the hips 50 mm down, a 14 frame settle with the trunk swinging past.",
-   "Lean 14.5 degrees off (declared 17)."
+   "32 frames over 0.80 m: the same braking and landings as A, the hips 45 mm down, a 14 frame settle with the trunk swinging past.",
+   "Lean 41.6 degrees off (declared 42): the trunk's late swing adds to it."
   ],
   "sprint_stop": [
-   "71 frames over 5.01 m: six landings, the hips 65 mm down, a 14 frame settle.",
-   "Lean 16.4 degrees off (declared 17): the trunk's late swing back adds to it."
+   "42 frames over 1.96 m: the same braking and landings as A, the hips 55 mm down, a 14 frame settle.",
+   "Lean 47.5 degrees off (declared 48). Tried: the trunk 3 frames late and the hips 65 mm down: the centre of mass dropped at 4 times gravity."
   ],
   "turn_in_place_90": [
    "Slower and looser: 59 and 57 frames; the hips turn late on a skewed curve (`yaw_turn` 0.55) while the head runs 9 degrees past them, the arms open 13 and 14 degrees, and the steps before each foot's last land 0.12 m wider than the idle's places.",
@@ -1392,36 +1392,30 @@
   "dip": 0.06
  },
  "walk_stop": {
-  "steps": [
-   12,
-   12
-  ],
-  "halt": 7,
   "settle": 14,
   "lean_lag": [
-   3.0,
-   0.3
+   2.5,
+   0.35
   ],
   "dip": 0.03
  },
  "jog_stop": {
   "settle": 14,
   "lean_lag": [
-   3.0,
-   0.3
+   2.5,
+   0.35
   ],
-  "dip": 0.05,
-  "halt": 4
+  "dip": 0.045,
+  "lean_limit": 42.0
  },
  "sprint_stop": {
   "settle": 14,
   "lean_lag": [
-   3.0,
-   0.3
+   2.0,
+   0.35
   ],
-  "dip": 0.065,
-  "halt": 4,
-  "lean_limit": 17.0
+  "dip": 0.05,
+  "lean_limit": 48.0
  },
  "turn_in_place_90": {
   "prep": [

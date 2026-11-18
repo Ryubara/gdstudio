@@ -1,9 +1,9 @@
 # An AI that runs or sprints to a point comes to rest on it (gdstudio #1415): since a body on its
-# feet slows over its stop clip (`CharacterTuning.stop_deceleration`, 1.96 m from a jog and 4.82
-# m from a sprint), the navigator lets go of the stick once what is left of the path is the
-# body's stopping distance (`CharacterTuning.stop_distance`), not at `arrive_distance`. Every
-# stock task's walk (a patrol point, a cover point, a spot to look at) is a `go_to`, measured here
-# at a jog and a sprint, straight and round a corner; a follower comes to rest inside its band
+# feet slows over its stop clip (`CharacterTuning.stop_deceleration`, 0.85 m from a jog and 2.09 m
+# from a sprint since gdstudio #1567), the navigator lets go of the stick once what is left of the
+# path is the body's stopping distance (`CharacterTuning.stop_distance`), not at `arrive_distance`.
+# Every stock task's walk (a patrol point, a cover point, a spot to look at) is a `go_to`, measured
+# here at a jog and a sprint, straight and round a corner; a follower comes to rest inside its band
 # and so counts as arrived (gdstudio #1529).
 #
 # Before, it let go at 0.5 m and ran on past the point by the rest of the stop. A follower let
@@ -110,7 +110,7 @@ func test_the_stopping_distance_is_the_stop_decelerations_ground() -> void:
 	assert_float(tuning.call(&"stop_distance", tuning.walk_speed)).is_equal_approx(walk, 0.0001)
 	var jog := walk + (pow(tuning.run_speed, 2.0) - pow(tuning.walk_speed, 2.0)) / (2.0 * run_rate)
 	assert_float(tuning.call(&"stop_distance", tuning.run_speed)).is_equal_approx(jog, 0.0001)
-	assert_float(tuning.call(&"stop_distance", tuning.sprint_speed)).is_equal_approx(4.80, 0.08)
+	assert_float(tuning.call(&"stop_distance", tuning.sprint_speed)).is_equal_approx(2.02, 0.05)
 
 
 # The farthest from its leader a follower stays arrived: once inside the band it walks again only

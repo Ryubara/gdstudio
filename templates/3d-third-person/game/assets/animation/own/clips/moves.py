@@ -152,8 +152,13 @@ STOP = {
     "air": [3],  # frames each foot stays down after the next has landed; under 0 the body is in the air
     "gait_like": [0.5, 0.0],  # how far each landing's foot is the gait's (0: a slow, flat step)
     "settle": 10,  # frames after the last landing: the trunk, the arms and the head come to rest
-    "brake_from": 1,  # the frame the root begins to slow
-    "halt": 4,  # frames after the last landing but one the root is at rest
+    "brake_from": 0,  # the frame the root begins to slow
+    # m/s2 the root slows by in the walk's, the jog's and the sprint's speed band, as the game's body does with the
+    # stick let go (`CharacterTuning`'s stop decelerations, set from these clips' travel); empty: `halt`,
+    # `brake_in` and `brake_out` shape the braking instead (gdstudio #1567)
+    "rates": [10.0, 12.0, 12.0],
+    "rate_in": 1.5,  # frames over which those rates come on
+    "halt": 4,  # frames after the last landing but one the root is at rest (without `rates`)
     "brake_in": 0.2,  # the share of the braking over which it comes on
     "brake_out": 0.45,  # and the share over which it eases to rest
     "drive": 1.0,  # the share of the braking's lean the feet take: they land that far ahead of a steady step
@@ -162,7 +167,9 @@ STOP = {
     "lean_head": 0.1,
     "lean_fore": 0.15,  # the share of the lean the hips take by staying behind the root (the feet go ahead)
     "lean_low": 0.12,  # and the share by which they come down
-    "lean_lag": [2.0, 0.2],  # the lean follows the braking through a spring: frames late, share past
+    # the lean follows the braking through a spring: frames late, share past (the weight carried on over the planted
+    # leg once the root is at rest)
+    "lean_lag": [2.0, 0.3],
     "dip": 0.02,  # metres the hips sink as the legs take the stop
     "dip_at": 2,  # frames after the root is at rest the hips are lowest
     "bob": 0.5,  # the share of the gait's rise and fall the steps after the first have
@@ -179,35 +186,62 @@ STOP = {
     "speed_limit": 40.0,
     "lean_limit": 8.0,
     "entry_lean_limit": 8.0,  # the same for an entry off the strike (`ENTRIES`), whose landings meet the braking sooner
+    # An entry this many frames or more after the strike (0: none) takes `late_steps`, `late_air` and
+    # `late_gait_like` for its landings: in a stop shorter than the gait's cycle the foot in the air lands so soon
+    # that it brakes, where the strike's own stop puts it on its standing place (gdstudio #1567)
+    "late_from": 0,
+    "late_steps": [],
+    "late_air": [],
+    "late_gait_like": [],
     "keys_kept": 0.9,
     "kb_a_second": 40.0,
 }
 STOPS = {
-    "walk": {**STOP, "steps": [12, 11], "halt": 6, "lean_limit": 10.0},
+    # Since gdstudio #1567 the stops brake by one rate per speed band, as the game's body does (`rates`): the root at
+    # rest in 0.20 s over 0.19 m from the walk, 0.40 s over 0.80 m from the jog, 0.60 s over 1.96 m from the sprint
+    # (it took 0.5, 0.93 and 1.47 s over 0.48, 1.96 and 4.82 m). The feet cannot hold the lean that braking asks for
+    # (51 degrees back at 12 m/s2), so the run stops declare how far off it they are; the hips stay nearer the root than the old stops' shares would
+    # put them (`lean_fore`, `lean_low`), or the leg reaching for the brake step bends the foot past its range.
+    "walk": {**STOP, "steps": [10, 10], "lean_limit": 7.0},
     "jog": {
         **STOP,
-        "steps": [10, 10, 10, 10],
-        "air": [-4, -3, 3],
-        "gait_like": [0.8, 0.5, 0.2, 0.0],
-        "lean_limit": 17.0,
-        # Two frames before a strike the strike lands too soon to reach the brake step's place (`REDIRECT`), and
-        # the body passes over a foot under it while it brakes: 18.3 to 18.6 degrees (gdstudio #1525).
-        "entry_lean_limit": 19.0,
-        "halt": 2,
+        "steps": [9, 9],
+        "air": [-1],
+        "gait_like": [0.4, 0.0],
+        # Four and six frames after the strike the other foot lands six and four frames in, when the gait would
+        # land it, still at speed: it brakes, no further than `reach_fore` ahead, and both feet then step to their
+        # standing places. Only these entries have a brake step; the stop on the strike lands on the standing places.
+        "late_from": 4,
+        "late_steps": [10, 9, 9],
+        "late_air": [-3, 0],
+        "late_gait_like": [0.6, 0.2, 0.0],
+        "lean": 0.45,
+        "lean_hips": 0.12,
+        "lean_fore": 0.12,
+        "lean_low": 0.04,
+        "reach_fore": 0.3,
+        "lean_limit": 40.0,
+        "entry_lean_limit": 42.0,
         "dip": 0.035,
         "speed_limit": 55.0,
     },
     "sprint": {
         **STOP,
-        "steps": [9, 9, 9, 10, 10, 10],
-        "air": [-5, -5, -4, -2, 3],
-        "gait_like": [0.9, 0.75, 0.55, 0.35, 0.15, 0.0],
-        "lean_limit": 16.0,
-        # Two frames after a strike the first brake step lands two frames sooner, at 6.3 m/s against 6.0, and its
-        # contact carries the body further past the foot: 16.5 degrees (gdstudio #1525).
-        "entry_lean_limit": 17.0,
+        "steps": [9, 9, 10],
+        # The brake step leaves as the other foot lands: held two frames longer, the shin turned over it far
+        # enough that the Quaternius bodies' longer feet rolled 1.06 mm along the floor (the test holds 1).
+        "air": [-4, 0],
+        "gait_like": [0.5, 0.2, 0.0],
+        "lean": 0.45,
+        "lean_hips": 0.12,
+        "lean_fore": 0.12,
+        "lean_low": 0.04,
+        # A brake step further ahead lowers the hips sooner (`lower`) and an entry four frames after the strike
+        # then leaves the gait's first step by 16 mm at a knee (0.45 m), 9 mm at 0.35.
+        "reach_fore": 0.35,
+        "lean_limit": 48.0,
+        "entry_lean_limit": 50.0,
         "stretch": 0.99,
-        "halt": 2,
         "dip": 0.05,
         "speed_limit": 80.0,
     },
@@ -226,7 +260,10 @@ HALF = {"jog": 10, "sprint": 9}
 ## strike, before it. Every landing of an entry after its strike comes that much sooner against the same braking,
 ## and a stance that long at speed covers more ground than the lean can hold (the sprint at 8 frames after: 21.5
 ## degrees off the acceleration's lean, against 16).
-ENTRY_AFTER = {"jog": 4, "sprint": 4}
+## Since gdstudio #1567 the jog's stop has two landings, both on the standing places, and the body is at rest 13
+## frames after the let-go: an entry before the strike would land the strike after the body is at rest, so the jog's
+## entries are all after it but one.
+ENTRY_AFTER = {"jog": 6, "sprint": 4}
 ## Frames of swing a foot in the air at a stop's first frame needs to land on the clip's own place, not the gait's.
 REDIRECT = 8.0
 
@@ -301,6 +338,15 @@ class Move:
         ## Frames of the gait's cycle from the strike to where a stop's entry begins (`ENTRIES`): 0 on the strike,
         ## over 0 after it, under 0 before it (the foot that strikes is still on its way down).
         self.offset = int(offset)
+        if not start and numbers["late_from"] and self.offset >= numbers["late_from"]:
+            numbers = {
+                **numbers,
+                "steps": numbers["late_steps"],
+                "air": numbers["late_air"],
+                "gait_like": numbers["late_gait_like"],
+            }
+            self.n = numbers
+        self.joined = joined
         self.g, self.lags = picked_gait(rig, joined, kind)
         g, n = self.g, numbers
         self.cycle, self.half, self.contact, self.v = g.frames, g.frames // 2, g.contact, g.n["speed"]
@@ -391,10 +437,24 @@ class Move:
             y = run(scale) / self.v
             soft = np.where(y < ease, y, y - (y - ease) ** 2 / (4.0 * (1.0 - ease)))
             speed = self.v * np.where(y >= 2.0 - ease, 1.0, soft)
+        elif n["rates"]:
+            # The game's body slows by one rate per gait's speed band with the stick let go, so the clip does too:
+            # the ground and the time it takes to rest are the body's (gdstudio #1567).
+            a = float(n["brake_from"])
+            edges = [picked_gait(self.rig, self.joined, kind)[0].n["speed"] for kind in ("walk", "jog")]
+            rates = [float(x) for x in n["rates"]]
+            speed, v = np.zeros(count), self.v
+            for i in range(count):
+                speed[i] = v
+                rate = rates[2] if v > edges[1] + 1e-6 else rates[1] if v > edges[0] + 1e-6 else rates[0]
+                v = max(v - rate * maths.smooth((t[i] - a) / max(n["rate_in"], 1e-6)) * dt, 0.0)
+            rest = int(np.argmax(speed <= 0.0)) if speed[-1] <= 0.0 else count
+            self.halt = rest / 10.0
+            assert speed[0] == self.v and self.halt <= self.frames - 1, "the root is at rest a frame before the end"
         else:
             a = float(n["brake_from"])
             b = float(self.strikes[-2] + n["halt"]) if self.landings > 1 else float(self.strikes[-1])
-            assert a >= 1.0 and b <= self.frames - 1, "the root is at speed on the first frame and still on the last"
+            assert a >= 0.0 and b <= self.frames - 1, "the root is at speed on the first frame and still on the last"
             rise, fall = n["brake_in"], n["brake_out"]
             u = np.clip((t - a) / (b - a), 0.0, 1.0)
             brake = np.array([maths.smooth(x / rise) * maths.smooth((1.0 - x) / fall) for x in u])
@@ -564,6 +624,12 @@ class Move:
         for s, ghost in self.ghosts.items():
             first = next(t for t in treads[s] if t.land > 0.0)
             share = maths.smooth(min(first.land / REDIRECT, 1.0))
+            if first.standing:
+                # A foot that lands on its standing place stays there to the end, where the clip is the idle's own
+                # pose: any of the gait's place left in it slides the foot over the settle (20 mm a jog stop two
+                # frames after the strike, gdstudio #1567). A short stop's landings come before a swing's
+                # `REDIRECT` frames, and the gait's next place is near the standing one by then.
+                share = 1.0
             first.place = tuple(g + (c - g) * share for g, c in zip(ghost.place, first.place, strict=True))
             first.yaw = ghost.yaw + (first.yaw - ghost.yaw) * share
         self.treads = treads

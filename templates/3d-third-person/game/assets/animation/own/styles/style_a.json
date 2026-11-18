@@ -185,16 +185,16 @@
    "Could not be done: the lean inside 5 degrees (15.1, declared 20): 6.5 m/s in 1.6 s is over 4 m/s2 on average with the feet no further than 0.40 m behind. The hips come down so the legs that push can reach the floor."
   ],
   "walk_stop": [
-   "Shipped as the recommendation until a letter is picked. 33 frames over 0.48 m: the striking foot brakes, the other lands just ahead of it on its standing place, the first closes beside it, and the body settles for 10 frames.",
-   "Could not be done: the lean inside 5 degrees (8.8, declared 10): the root is at rest 18 frames in, sooner than a body leaning back that little can stop. Tried: the striking foot kept as the idle's: it stands 37 mm narrower and 5 degrees straighter than the idle's foot, so it steps once more."
+   "Shipped as the recommendation until a letter is picked. 30 frames, the root at rest 6 frames in over 0.19 m: the striking foot plants and takes the stop, the other closes beside it on its standing place, the first settles back onto its own, and the trunk rocks 30 % past.",
+   "Lean 4.2 degrees off (declared 7). Braking at 10 m/s2 since gdstudio #1567, as the body does."
   ],
   "jog_stop": [
-   "Shipped as the recommendation until a letter is picked. 50 frames over 1.96 m and four landings after the strike: two brake steps that land up to 0.5 m ahead of the root, then the two standing places; the hips sink 35 mm as the legs take it.",
-   "Could not be done: the lean inside 5 degrees (15.2, declared 17): braking that hard asks for near 30 degrees of lean back, and the trunk takes 40 % of it so the body does not sit down."
+   "Shipped as the recommendation until a letter is picked. 28 frames, the root at rest 12 frames in over 0.80 m: one plant on the striking foot, then both standing places; the trunk is carried on over the planted leg and the hips sink 35 mm.",
+   "Could not be done: the lean inside 5 degrees (39.1, declared 40): braking at 12 m/s2 asks for 51 degrees of lean back."
   ],
   "sprint_stop": [
-   "Shipped as the recommendation until a letter is picked. 67 frames over 4.82 m and six landings after the strike; the first three contacts are as short as the sprint's (4 to 5 frames), then the steps lengthen on the floor as the speed goes.",
-   "Could not be done: the lean inside 5 degrees (15.0, declared 16). Tried: a brake step held 6 frames at 6 m/s: it covered more ground than two legs span and the pelvis went under the floor."
+   "Shipped as the recommendation until a letter is picked. 38 frames, the root at rest 18 frames in over 1.96 m: one brake step 0.35 m ahead, then both standing places; the trunk swings 30 % past as the root stops.",
+   "Could not be done: the lean inside 5 degrees (47.1, declared 48). Tried: the brake step 0.45 m ahead lowered the hips so soon that an entry four frames after the strike left the gait's first step by 16 mm at a knee."
   ],
   "turn_in_place_90": [
    "Shipped as the recommendation until a letter is picked. 46 and 44 frames (1.5 s): the head leads the hips by 3 frames and the chest by 1.5; the foot on the turn's side steps half the angle, the other all of it, then the first finishes: three steps, as people take (2.95 over 1.72 s for a 180, Khobkhun et al. 2021).",

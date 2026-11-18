@@ -43,12 +43,13 @@ extends Resource
 ## `walk_speed`: the walk's stop. Each gait's stop slows the body over the ground its stop clip's
 ## feet cover (`gds/Walk_Stop`, `gds/Jog_Stop`, `gds/Sprint_Stop` in `locomotion.json`), so the
 ## clip plays to its end as the body comes to rest; a faster stop leaves the clip's feet sliding.
-## The defaults cover 0.48 m from the walk, 1.96 m from the jog and 4.82 m from the sprint.
-@export_range(0.5, 80.0, 0.01, "suffix:m/s²") var walk_stop_deceleration := 2.84
+## The defaults are the rates the clips brake by (gdstudio #1567): 0.21 m from the walk in 0.24 s,
+## 0.85 m from the jog in 0.43 s and 2.09 m from the sprint in 0.67 s.
+@export_range(0.5, 80.0, 0.01, "suffix:m/s²") var walk_stop_deceleration := 6.72
 ## The same between `walk_speed` and `run_speed`: the jog's stop, after which the walk's slows it.
-@export_range(0.5, 80.0, 0.01, "suffix:m/s²") var run_stop_deceleration := 4.38
+@export_range(0.5, 80.0, 0.01, "suffix:m/s²") var run_stop_deceleration := 10.53
 ## The same above `run_speed`: the sprint's stop, after which the jog's and the walk's slow it.
-@export_range(0.5, 80.0, 0.01, "suffix:m/s²") var sprint_stop_deceleration := 4.57
+@export_range(0.5, 80.0, 0.01, "suffix:m/s²") var sprint_stop_deceleration := 11.13
 
 @export_group("Jump")
 ## How high a standing jump rises when the button is held.

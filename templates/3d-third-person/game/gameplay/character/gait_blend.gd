@@ -39,6 +39,9 @@ var settings: GaitSettings
 var set_undrawn := false
 ## The body's leg length over the reference body's (`GaitClips.leg_scale()`), read every frame.
 var leg := 1.0
+## The ground speed the ground space's gaits are weighed at in place of the body's, or -1
+## (`GaitTransitions.held_speed()`: a stop waiting out its grace); their paces follow the ground.
+var held_speed := -1.0
 
 var _spaces := {}  # machine state -> {space, gaits, clips, speeds, lengths, path}
 # The trim of the ground gaits' rate while two of them blend, from the planted foot itself.
@@ -115,7 +118,8 @@ func drive(animation: CharacterAnimation, speed: float, delta: float) -> void:
 		if state == CharacterAnimation.CROUCH and not crouch_drawn:
 			continue
 		var entry: Dictionary = _spaces[state]
-		var at := position_at(entry.speeds, speed)
+		var held := state == CharacterAnimation.GROUND and held_speed >= 0.0
+		var at := position_at(entry.speeds, held_speed if held else speed)
 		tree.set(entry.position, at)
 		var trimmed := 1.0
 		if state == CharacterAnimation.GROUND:

@@ -56,7 +56,8 @@ far character stepped every 4th tick walks the same path.
   asked and real speed, at least `steer_seconds` (0.05 s) and at most 0.5 s, or `steer_seconds` with avoidance on.
   Between two steers the body keeps its push; a body pushed off the stretch asks for a path (above). `steers` counts
   them.
-- **Stopping.** A body on its feet slows over its stop clip (1.96 m from a jog, 4.82 m from a sprint:
+- **Stopping.** A body on its feet slows over its stop clip (0.80 m from a jog, 1.96 m from a sprint since
+  gdstudio #1567, 1.96 and 4.82 m before:
   [the stops](clips.md#gait-settings)), so the navigator lets go once what is left of the path (to the goal, to a
   follow's band, or to a link it waits at) is the ground the body's stop covers (`CharacterTuning.stop_distance`), and
   keeps letting go until the body is at rest short of it or the goal moves on; it steers at every step within that
