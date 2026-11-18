@@ -234,7 +234,8 @@ of the stance is sent but the command's bit; the clips are cosmetic and played i
 - **Approach:** When a body gains a stance, expose its reads as read-only properties (`var prone: bool: get:`) rather
   than methods, and split a suite at 18 tests. **Watch out for:** gdlint's twenty public methods counts every
   `func`, so three small getters took `Character` from 18 to 21 and failed the hook. **Seen:** gdstudio #1012,
-  2026-11-10.
+  2026-11-10; #1578 (PR #1588), 11-17 (`test_move_key_matrix.gd` at twenty, so the new cases got
+  `test_sprint_speed_up.gd`).
 - **Approach:** Play a whole-body clip that a stance change starts on (lying down, getting up) at full weight from
   its first frame and let the momentum blend take the jump from the drawn pose; hold its hand-off to the crouch's
   per-tick bound over what the clip alone moves from a crouch at rest, and check that reference starts on the drawn
@@ -250,6 +251,11 @@ of the stance is sent but the command's bit; the clips are cosmetic and played i
   with the hiding turned off: it was the hold's stance, still on, whose chest turn read about the model's up axis
   swung half a turn as the chest's front passed straight down. **Seen:** gdstudio #1581, 2026-11-17
   (`test_rifle_stow_pose.gd`, `tools/capture/rifle_stow_tour.tscn`).
+- **Approach:** Film a stance change with `tools/capture/stance_tour.tscn` (each change from the side, then from the
+  game's camera, with `RESPONSETOUR` frame lines to cut by), and for a closer look at the legs crop the recorded
+  frames by name ([strips](../../../studio/capture.md#sheet)). **Watch out for:** the tour frames the whole body
+  from distances fixed in code (`responsive_tour.gd`: the side camera 7 m off at 50 degrees, the follow camera at
+  4.5 m), with no setting to come closer. **Seen:** gdstudio #1580 (PR #1590), 2026-11-17.
 
 ## Sliding {#slide}
 

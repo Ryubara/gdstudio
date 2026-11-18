@@ -133,6 +133,12 @@ read as `legs` and frame 20001, and a folder starting at `16.png` is fine too; b
 recorded another way are renamed to that pattern first: a folder whose PNG files are named otherwise (`walk-front.png`)
 has no frames, and the error lists the files it skipped.
 
+- **Approach:** Build a strip of chosen ticks from a Movie Maker folder by the frames' names (PIL: open
+  `<name><number:08d>.png` for each tick, crop and paste), or tile the folder with `gds capture sheet --every`.
+  **Watch out for:** an ffmpeg `tile` over the folder picked frames other than the ticks the strip was meant to show,
+  so a before and after strip compared different moments. **Seen:** gdstudio PR #1570, 2026-11-15 (a PIL script
+  in the task's scratch made the strips).
+
 ## clip {#clip}
 
 Encodes the folder's frames into `<name>.mp4` (H.264, `yuv420p`, no audio) or, with `--gif`, `<name>.gif`. Which
@@ -256,6 +262,11 @@ the new one (2 and 0).
   check reads the bones at one point of the update and can pass while the drawn frame is wrong: the rifle hands were
   drawn off the rifle for one or two frames at landings with the pose checks green. **Seen:** gdstudio #1369, 2026-11-13
   (open as gdstudio #1464).
+- **Approach:** Film from a second camera (a side view) through a `SubViewport` of its own that shares the game's
+  world, over the game in a `CanvasLayer` (`tools/capture/responsive_tour.gd`), and leave the window's camera to the
+  game. **Watch out for:** `PlayerInput` reads the move keys against the viewport's current camera, so a side camera
+  made current turned the player's keys with it and the body ran where the keys did not ask. **Seen:** gdstudio
+  #1111, 2026-11-11 ([prone](../engines/godot/third-person/moves.md#prone)); #1565 (PR #1566), 2026-11-15.
 
 ## Attaching {#attaching}
 
@@ -372,6 +383,14 @@ that agents run it -->
   to try it had become the default proof. **Seen:** Deadnight, 2026-11-01 (fix: agents prove features with GdUnit4 input
   simulation, autopilot bots, audio analysis and browser probes, and the `Stop` hook holds back a visual change without
   a capture ([Hooks](hooks.md#proof))).
+- **Approach:** Prove feel work (a turn, a stance change, a carry, a lean) by watching it at full speed before it
+  lands: main and the change side by side in one real-time recording, beside the recording or frames the report came
+  from; and put every time that shapes the move on the inspector, never in a const. **Watch out for:** #1566 and
+  #1570 proved responsiveness and per-tick bounds by numbers and every check passed, but nobody watched them play;
+  playing, the maintainer found five faults in one review (turns far too fast, the head moving with a lean reload,
+  stance pops, the slide exit pop, the pistol carry swinging), and the turn timing could not be tuned without code.
+  **Seen:** gdstudio #1574 to #1577, 2026-11-17 (fixes: PRs #1579, #1582, #1583, #1586, each with real-time before
+  and after clips; [found by playing](corrections-log/found-by-playing.md)).
 
 ## Before captures {#before-captures}
 

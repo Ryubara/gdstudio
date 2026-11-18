@@ -327,3 +327,9 @@ idle-with-threat seconds, think p50 and p99, path queries, tasks failed by reaso
   parses everything, and two games made from different trees differ in more than the change; a change to the watch
   alone is proved by equal `command_hash` lines before and after. **Seen:** gdstudio #1548 (PR #1551), #1552,
   2026-11-14 (seeds 1 to 8 and 11, the old and the new watch in one game).
+- **Approach:** Until #1591 is fixed, take a single `test_ai_soak_objects.gd` failure in a full local `gds template
+  test` (the plain and the one-more-object hashes differ) that passes alone and on CI as #1591, and name it in the
+  pull request; one that fails alone or on CI is yours. **Watch out for:** the suite holds the hash in a run of its
+  own, and nothing yet says whether it must hold after the 360 suites of a full local run: there it differed once
+  (1806454534 against 3471119156) and passed four times alone on the same head. **Seen:** gdstudio #1577 (PR
+  #1582), 2026-11-17 (open as #1591).

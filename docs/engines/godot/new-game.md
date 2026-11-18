@@ -149,6 +149,12 @@ every exit, kept with `--keep`, two calls at once).
   its captures are made. **Watch out for:** every agent's kept games and logs sit side by side in the user's temp
   folder as `gds-tt-*`; a cleanup by that glob deleted other agents' kept games, some mid-run, before it was
   stopped. **Seen:** gdstudio #1156, 2026-11-12.
+- **Approach:** After a `gds template test` was killed through its shell (a timeout, a stopped background task),
+  find what it left by its own names: its folder on the run's `workspace` line, and its Godot processes by their
+  command lines (`Get-CimInstance Win32_Process -Filter "Name like 'godot%'"`, the ones naming that folder); stop
+  those and `gds template clean` that folder alone. **Watch out for:** killing the shell leaves the Godot it started
+  running and its `gds-tt-*` folder in the temporary folder, beside other agents' runs of the same prefix.
+  **Seen:** gdstudio PR #1442, 2026-11-14.
 - **Approach:** To try a change in a kept game, copy the template's changed scripts and scenes over and make the game
   again (`gds template game`) when `project.godot` changed. **Watch out for:** the made game's `project.godot` is the
   template's with the autoloads and addon settings `gds template game` adds; copying the template's over it dropped

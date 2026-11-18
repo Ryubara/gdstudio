@@ -375,6 +375,12 @@ transitions to the Universal Animation Library's crouch, on the Quaternius unive
   meet. **Watch out for:** on the same pose the limb check read touching hands 3 to 4 mm deeper than `HandContact`,
   and `measure("l", true)` reads the left hand into the right, never the right into the left. **Seen:** gdstudio
   #1081 (PR #1103), 2026-11-11.
+- **Approach:** Give a transition's knees their own direction each way (going down, coming up), and judge the way up
+  from behind by numbers held in the build: the knees apart side to side (`calf_l` to `calf_r`) against the lying
+  pose's and the crouch's, and the pelvis against the height it ends at. **Watch out for:** the prone get-up drew
+  its knees with the way down's one value (`UNDER_KNEE`), so they spread 0.84 m apart halfway up against 0.31 m
+  lying and 0.52 m crouched (a frog), and the pelvis rose 35 mm past the crouch before sinking into it. **Seen:**
+  gdstudio #1580 (PR #1590, open: `UP_KNEE`, `UP_KNEES_LIMIT` 0.60 m, `UP_OVERSHOOT_LIMIT` 2 mm), 2026-11-17.
 
 ### Clips under a hold that carries the weapon {#clips-under-a-hold}
 
