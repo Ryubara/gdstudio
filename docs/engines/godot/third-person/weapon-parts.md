@@ -88,8 +88,9 @@ and 180 degrees, a stop, a start and an aim on both bodies and reads the gun han
 and 6 degrees an update while carried, at most 0.078 m and 8.3 degrees on the update a walk starts or stops (0.235 m and
 44.5 before: the gait blend's dip on a turn and the reversal's look),
 and over each steady stretch within 0.26 m and 52 degrees (0.53 m and 120 at a sprint before: down by the thigh, level
-forward, up by the head). The rifle is held by its own hold; its hand turns 29 degrees in an update as a jog's reversal
-begins, before and after this (a follow-up issue). Capture: `tools/capture/pistol_run_tour.tscn`.
+forward, up by the head). The rifle is held by its own hold and is gated at the same 0.08 m and 9 degrees an update
+since gdstudio #1587, a W to S reversal added to the run ([the rifle turned with the rig](rifle-hands.md#rifle-hands)).
+Capture: `tools/capture/pistol_run_tour.tscn`.
 
 - **Approach:** To make a weapon carried in one hand read as one carry, steady the arm bones after the tree: let each
   follow its clip's average and keep a share of the swing about it, and fade the steadying with the aim by closing the
