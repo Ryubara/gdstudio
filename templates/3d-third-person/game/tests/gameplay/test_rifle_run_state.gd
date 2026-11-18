@@ -13,9 +13,12 @@ extends GdUnitTestSuite
 
 const RIFLE := "res://gameplay/weapon/rifle.tres"
 ## The strides of its clip a gait is read over, after `SETTLE` ticks for the blends to end: whole
-## strides, so two means of the same gait do not differ by where in the stride they started.
+## strides, so two means of the same gait do not differ by where in the stride they started. The
+## carried pistol's steady arm (gdstudio #1577) starts again from the clip's arm when the pistol
+## comes out and follows its average over 0.3 s halves: after 40 ticks the right hand's mean
+## still differed by 8 to 9 mm with where it started.
 const STRIDES := 3
-const SETTLE := 40
+const SETTLE := 100
 ## Ticks a start from standing may still play after `SETTLE` (two seconds at most).
 const START_TICKS := 120
 ## How far two means of the same gait may differ: degrees for a lean or a turn, metres for the

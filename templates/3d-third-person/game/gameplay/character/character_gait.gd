@@ -109,9 +109,19 @@ func pose_key(animation: CharacterAnimation) -> Vector2i:
 
 
 ## Whether the momentum blend carries the drawn pose's speed into the state it starts for (false
-## for a take-off: `JumpAnimation.carries_speed()`).
+## for a take-off: `JumpAnimation.carries_speed()`, and for the slide's exit: a body still dropping
+## into the slide carried its fall into the rise, the head 0.10 m a tick, gdstudio #1577).
 func carries_speed(animation: CharacterAnimation) -> bool:
-	return jump.carries_speed(animation.body_state())
+	var state := animation.body_state()
+	return jump.carries_speed(state) and state != CharacterAnimation.SLIDE_EXIT
+
+
+## The momentum blend's half-life for a change into the state the body is in now, in seconds.
+func half_life(animation: CharacterAnimation) -> float:
+	var settings := settings_of(animation)
+	if animation.body_state() == CharacterAnimation.SLIDE_EXIT:
+		return settings.slide_exit_half_life
+	return settings.momentum_half_life
 
 
 ## Frames more than `MomentumBlend.SETTLE_FRAMES` the momentum blend starts again after a change
