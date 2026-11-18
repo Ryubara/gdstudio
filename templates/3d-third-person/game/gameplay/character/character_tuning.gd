@@ -31,14 +31,6 @@ extends Resource
 @export_range(1.0, 80.0, 0.5, "suffix:m/s²") var acceleration := 28.0
 ## How fast the character stops when the stick is let go.
 @export_range(1.0, 80.0, 0.5, "suffix:m/s²") var deceleration := 36.0
-## How fast a body on its feet with the stick pushed sheds the part of its velocity that is not the
-## way it is asked to go (gdstudio #1565): the brake of a reversal (the part going back) and the
-## side slip of a cut (the part across), while the part along the wish speeds up by `acceleration`.
-## A sprint reversal (6.5 m/s) brakes to a stand in 0.16 s and 0.53 m and runs the new way at once.
-## 0: the whole velocity moves toward the goal by `acceleration` (as before #1565).
-@export_range(0.0, 120.0, 0.5, "suffix:m/s²") var brake_deceleration := 40.0
-## How fast the body turns to face where it goes.
-@export_range(1.0, 40.0, 0.5, "suffix:rad/s") var turn_speed := 12.0
 ## A move stick pushed less than this share of the way walks instead of running.
 @export_range(0.0, 1.0, 0.01) var walk_below_push := 0.45
 ## The least share of the walking (or crouching) speed a light push of the stick gives, so a
@@ -194,15 +186,51 @@ extends Resource
 @export_range(0.0, 1.0, 0.01, "suffix:m/s") var stand_speed := 0.15
 
 @export_group("Turns")
+## How fast a body on its feet with the stick pushed sheds the part of its velocity that is not the
+## way it is asked to go (gdstudio #1565): the brake of a reversal (the part going back) and the
+## side slip of a cut (the part across), while the part along the wish speeds up by `acceleration`.
+## A sprint reversal (6.5 m/s) brakes to a stand in 0.16 s and 0.53 m and runs the new way at once.
+## 0: the whole velocity moves toward the goal by `acceleration` (as before #1565).
+@export_range(0.0, 120.0, 0.5, "suffix:m/s²") var brake_deceleration := 40.0
+## How fast the body on foot turns to face where it goes (aiming: `aim_turn_speed`): the share of
+## the turn left that it turns in a second, at most `turn_rate_most`.
+@export_range(1.0, 40.0, 0.5, "suffix:rad/s") var turn_speed := 9.0
+## The fastest the body on foot turns to face where it goes (gdstudio #1574): a quarter turn of the
+## keys takes about 0.3 s, never a snap. 0: no limit (only `turn_speed`, as before #1574).
+@export_range(0.0, 1440.0, 5.0, "suffix:deg/s") var turn_rate_most := 400.0
+@export_subgroup("Look")
+## Degrees between where a running body moves and where the stick asks it to go from which a
+## reversal is drawn over it, and from `look_pivot_angle` a pivot (a quarter turn of the keys is a
+## steer: the default is above 90, gdstudio #1565). The body itself steers either way.
+@export_range(90.0, 180.0, 1.0, "suffix:deg") var look_reversal_angle := 135.0
+@export_range(10.0, 180.0, 1.0, "suffix:deg") var look_pivot_angle := 100.0
+## Seconds a jog reversal is drawn, from the plant to facing the new way (gdstudio #1574): the
+## clip from `turn_look_lead` before its turn to its turn's end, sped up to last this long.
+@export_range(0.1, 2.0, 0.01, "suffix:s") var jog_reversal_look_time := 0.5
+## Seconds a sprint reversal is drawn, as above: a faster body plants harder and turns longer.
+@export_range(0.1, 2.0, 0.01, "suffix:s") var sprint_reversal_look_time := 0.6
+## Seconds a pivot (a cut off at a jog) is drawn, as above.
+@export_range(0.1, 2.0, 0.01, "suffix:s") var pivot_look_time := 0.4
+## Seconds of the clip's own time before its turn begins from which the look plays: the plant and
+## the weight going over it.
+@export_range(0.0, 0.6, 0.01, "suffix:s") var turn_look_lead := 0.2
+## Degrees the stick may move from the way a reversal or a pivot was drawn for before the look
+## gives way to it (the drawn body follows the stick's way within it).
+@export_range(10.0, 60.0, 1.0, "suffix:deg") var turn_look_cut_angle := 40.0
+## Seconds in which the drawn body's turn left by a look that was cut (or ran past the facing)
+## halves as it eases onto the body's facing.
+@export_range(0.01, 0.3, 0.01, "suffix:s") var turn_look_settle := 0.06
+@export_subgroup("Root motion")
 ## Moves a body that reverses or cuts off at a run by its clip's own root (`CharacterTurnMotion`,
 ## gdstudio #1442): it keeps going the old way while it brakes over the planted foot, turns, and
 ## speeds up the new way. The body's path is the clip's until its turn is made or the stick asks for
 ## another way (gdstudio #1565), so it answers the stick late (1.5 to 2.2 s at a jog and a sprint):
 ## off by default. Off: the body steers by `brake_deceleration` and `acceleration` and turns at
-## `turn_speed`, and the clip is drawn over it as a short look (`GaitSettings.turn_look_time`).
+## `turn_speed`, and the clip is drawn over it as a short look (the Look group).
 @export var turn_root_motion := false
-## Degrees between where a running body moves and where the stick asks it to go from which it
-## cuts off (a pivot clip), and from `reversal_angle` reverses.
+## With `turn_root_motion`: degrees between where a running body moves and where the stick asks it
+## to go from which it cuts off on the clip's root (a pivot clip), and from `reversal_angle`
+## reverses.
 @export_range(10.0, 180.0, 1.0, "suffix:deg") var pivot_angle := 60.0
 @export_range(90.0, 180.0, 1.0, "suffix:deg") var reversal_angle := 135.0
 ## Seconds over which the body's own steering takes over from the clip's velocity once its turn is
@@ -287,6 +315,24 @@ func steer_toward(
 	var brake := maxf(brake_deceleration, rate)
 	along = move_toward(along, goal.length(), (brake if along < 0.0 else rate) * delta)
 	return way * along + across.move_toward(Vector3.ZERO, brake * delta)
+
+
+## `facing` (radians) turned toward `target` over `delta` seconds on foot: by `turn_speed`'s share
+## of what is left, at most `turn_rate_most` (gdstudio #1574). Shared by the body's step and the
+## AI's lean tick, so the server and a predicting client turn it alike.
+func turn_facing(facing: float, target: float, delta: float) -> float:
+	var step := angle_difference(facing, target) * clampf(turn_speed * delta, 0.0, 1.0)
+	if turn_rate_most > 0.0:
+		var most := deg_to_rad(turn_rate_most) * delta
+		step = clampf(step, -most, most)
+	return facing + step
+
+
+## The seconds a reversal or a pivot of `gait` (`run`, `sprint`) is drawn (the Look group).
+func turn_look_time(reversal: bool, gait: StringName) -> float:
+	if not reversal:
+		return pivot_look_time
+	return sprint_reversal_look_time if gait == &"sprint" else jog_reversal_look_time
 
 
 ## How fast a body on its feet with the stick let go slows at ground speed `speed`: the stop

@@ -34,11 +34,6 @@ extends Resource
 @export var transitions := true
 ## The clips for each transition, by gait and planting foot.
 @export var transition_clips: GaitTransitionSet
-## Degrees between where the body moves and where it is asked to: from this a moving body plays a
-## pivot, and from `reversal_angle` a reversal. A quarter turn of the keys (W to D, W+A to W+D) is
-## a steer under the lean, never a pivot (gdstudio #1565): the default is above 90.
-@export_range(10.0, 180.0, 1.0, "suffix:deg") var pivot_angle := 100.0
-@export_range(90.0, 180.0, 1.0, "suffix:deg") var reversal_angle := 135.0
 ## Degrees a standing body's facing must be asked to turn before it plays a turn on the spot.
 @export_range(10.0, 180.0, 1.0, "suffix:deg") var turn_angle := 50.0
 ## Below this ground speed the body is standing for the transitions (m/s).
@@ -46,12 +41,6 @@ extends Resource
 ## The fastest a turn on the spot's clip runs to catch up with the body, against its own pace
 ## (2 before gdstudio #1565: a half turn took 0.9 s after a body that turned in 0.15 s).
 @export_range(1.0, 8.0, 0.1) var transition_pace := 4.0
-## Seconds a reversal or a pivot is drawn over a body that steers itself (gdstudio #1565): the clip
-## from its plant (`TURN_LEAD` before its turn begins) to its turn's end, sped up to last this
-## long, the drawn body turned by the clip's own turn (`TurnLook`); the body's velocity and facing
-## answer the stick from the first tick. 1.0 to 1.6 s of each clip at their own pace.
-@export_range(0.05, 2.0, 0.01, "suffix:s") var turn_look_time := 0.3
-
 @export_group("Momentum blend")
 ## Starts each body state from the pose and the motion the last one left and lets the difference
 ## die away (`MomentumBlend`, a `SkeletonModifier3D`), in place of the state machine's cross-fade.

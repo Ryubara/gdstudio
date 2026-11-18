@@ -81,20 +81,39 @@ The body brakes and turns by the controller: the part of its velocity across or 
 run is as before (`CharacterTuning.steer_toward`, shared by the AI's lean tick). A sprint reversal brakes in 0.16 s
 over 0.53 m and runs the new way at full speed about 0.4 s after the press (on the clip's root: 6.3 m on, the turn
 made at 2.23 s); a quarter turn of the keys is within 30 degrees in 5 to 7 ticks. `GaitTransitions` picks the
-reversal (from `GaitSettings.reversal_angle`, 135) or the pivot (`pivot_angle`, 100: a quarter turn of the keys is a
-steer) on the frame the wish turns, the gait from the speed of the frame before (the brake has slowed it by then), and
-plays the clip from `GaitTransitions.TURN_LEAD` (0.2 s) before its turn begins to its turn's end, sped up to last
-`GaitSettings.turn_look_time` (0.3 s); `TurnLook` turns the rig under the model by the clip's own turn curve less the
-body's turn since it began, so the hips swing round over the planted foot while the capsule already goes the new way,
-and eases any difference left by an end or a cut out over 0.04 s. A wish that moves 40 degrees or more from the one it
-was drawn for, or an aim taken, a crouch, lying down, a slide or an action ends it that frame; the momentum blend
-smooths the cut. Cosmetic: never sent; a puppet draws it from its own velocity and goal.
+reversal (from `CharacterTuning.look_reversal_angle`, 135) or the pivot (`look_pivot_angle`, 100: a quarter turn of the
+keys is a steer) on the frame the wish turns, the gait from the speed of the frame before (the brake has slowed it by
+then), and plays the clip from `turn_look_lead` (0.2 s) before its turn begins to its turn's end, sped up to last the
+gait's look time (`jog_reversal_look_time` 0.5 s, `sprint_reversal_look_time` 0.6, `pivot_look_time` 0.4). `TurnLook`
+turns the rig under the model so the drawn body goes from the yaw drawn on the frame before to the way asked, along the
+share of the clip's turn curve played, against the capsule's facing: the hips swing round over the planted foot while
+the capsule already goes the new way. A difference left by an end or a cut halves every `turn_look_settle` (0.06 s).
+A wish that moves `turn_look_cut_angle` (40 degrees) or more from the one it was drawn for, or an aim taken, a crouch,
+lying down, a slide or an action ends it that frame; the momentum blend smooths the cut. Every one of these is read
+when a turn begins, so a change in the inspector shows on the next turn (`test_turn_look_tuning.gd`). Cosmetic: never
+sent; a puppet draws it from its own velocity and goal.
+
+On foot the capsule faces where it goes at `turn_speed` (9 rad/s, the share of the turn left a second) and at most
+`turn_rate_most` (400 degrees a second; `CharacterTuning.turn_facing`, shared with the AI's lean tick): simulation, so
+the server and a predicting client turn it alike. From the press (gdstudio #1574, `test_turn_look_tuning.gd`'s
+`TURNTIME` lines, the velocity answering on the first tick in every case):
+
+| From the press | Half way round | Within 10 degrees of the new way | Before #1574 |
+| --- | ---: | ---: | ---: |
+| Jog reversal (W to S) | 0.35 s | 0.48 s | 0.12 s, 0.27 s |
+| Sprint reversal (W to S) | 0.42 s | 0.57 s | 0.12 s, 0.27 s |
+| Quarter turn of the keys (W+A to W+D, a steer) | 0.13 s | 0.28 s | 0.08 s, 0.17 s |
 
 | Clip | Length | Its turn (from the plant) | On the clip's root (opt-in) | The look (default) |
 | --- | ---: | ---: | ---: | ---: |
-| `gds/Jog_Turn_180_*` | 2.90 s | 0.70 to 1.83 s | committed 1.83 s | 1.33 s of clip in 0.3 s (4.4 times) |
-| `gds/Sprint_Turn_180_*` | 3.53 s | 0.97 to 2.23 s | committed 2.23 s | 1.47 s in 0.3 s (4.9 times) |
-| `gds/Jog_Turn_90_*` | 2.73 s | 0.60 to 1.53 s | committed 1.53 s | 1.13 s in 0.3 s (3.8 times) |
+| `gds/Jog_Turn_180_*` | 2.90 s | 0.70 to 1.83 s | committed 1.83 s | 1.33 s of clip in 0.5 s (2.7 times) |
+| `gds/Sprint_Turn_180_*` | 3.53 s | 0.97 to 2.23 s | committed 2.23 s | 1.47 s in 0.6 s (2.4 times) |
+| `gds/Jog_Turn_90_*` | 2.73 s | 0.60 to 1.53 s | committed 1.53 s | 1.13 s in 0.4 s (2.8 times) |
+
+The sprint reversal's turn comes in two parts over two contacts (about 75 degrees, a held stride in profile, then the
+rest): sped up, the hold reads as the weight going over the planted foot for about 0.12 s. A look whose capsule faced
+round faster than the clip leaves the drawn body up to 69 degrees behind the facing mid-turn (sprint) and 46 (jog),
+back to under 3 at its end; nothing drawn follows the capsule's facing but the rig, which carries the offset.
 
 The gait cycles they leave are 0.67 s (jog) and 0.60 s (sprint): each clip was four to six cycles long. A turn on the
 spot (aiming while standing) is seeked by the body's turn, at most `transition_pace` (4 since #1565, 2 before) times
@@ -133,6 +152,13 @@ rejected from a dot product before the angle, and the tree's action parameter re
 transitions) or while a start or a blend is under way (the momentum blend). Each draws the same bones
 (`test_gait_cost_cuts.gd`: two bodies side by side, one setting every space, 0.000 mm apart).
 
+- **Approach:** Set a drawn turn's pace by the time from the press to facing the new way, measured on the real input
+  for each gait and a quarter turn, and draw it from the yaw shown on the frame before to the way asked, scaled along
+  the clip's turn curve; put every number that shapes it on the character's tuning, read when the turn begins.
+  **Watch out for:** a look sped up to 0.3 s turned the body round in 0.17 to 0.27 s, faster than a body can, and
+  the clip's own 180 degrees added to a facing that had already turned (the tree saw the wish a frame or more late)
+  overshot the way asked; an uncapped exponential facing turned a quarter of the keys half way in 5 ticks.
+  **Seen:** gdstudio #1574, 2026-11-17, found by the maintainer playing 3D Third Person after #1566.
 - **Approach:** Measure a drawn pose's jump between ticks in `skeleton_updated`, with each tick its own engine frame,
   and hold an action's hand-off from a clip against the same action from the steady gait. **Watch out for:** read
   after `advance()`, `get_bone_global_pose` gives the tree's pose without the modifiers (the momentum blend among
