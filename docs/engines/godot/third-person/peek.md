@@ -299,7 +299,8 @@ to 15 cm over the head bone, a clip made for a head that drops to it). `PeekTuni
 The capture is `tools/capture/peek_action_tour.tscn` (`PEEK_HOLD=0`, `PEEK_VIEW=side`, `PEEK_ONLY`, `PEEK_BODY`).
 
 Not held yet: a rifle switch on a right lean moves the head about 10 cm as the stance's 30 degree chest turn goes with the
-arms (the turn is about the model's up axis, which swings a leaning head), gdstudio follow-up.
+arms (the turn is about the model's up axis, which swings a leaning head): gdstudio #1585. A reload clip for a level
+head: gdstudio #1584.
 
 - **Approach:** Hold a pose through an action by keeping the inputs to the modifiers from the update before it began
   (the clip's local turns, each modifier's share), switched on whole at the action's first update, and let go only when
