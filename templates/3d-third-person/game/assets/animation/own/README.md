@@ -295,6 +295,25 @@ tuned for idle A the walk's forearm went 50 to 70 mm into a thigh or the pelvis.
 rebuilds the walk, the stance changes and the prone transitions on its pose. In every variant the left foot keeps
 its standing place, so one step of the right foot makes the stance.
 
+### The crouch idle made alive (kit #1580)
+
+The maintainer, playing, read the shipped crouch idle (B) as frozen and getting up from prone as dropping into a deep
+squat. Measured on `form_female` (the bones, from the first pose, over the whole loop):
+
+| `Crouch_Idle` B | Before | After | `Idle` A |
+| --- | --- | --- | --- |
+| Pelvis, head from the first pose | 35, 35 mm | 69, 65 mm | 73, 71 mm |
+| Pelvis, head at their fastest | 0.023, 0.025 m/s | 0.051, 0.049 m/s | 0.055, 0.054 m/s |
+| The weight | one sine a loop, share 0.64 plus or minus 0.04 | rests on the front foot 3.0 s, back over 2.4 s, rests 2.3 s, forward again; 0.04 each way, the legs giving 0.4 and 0.6 % of their length as it arrives | |
+| Knees apart, side to side | 0.52 m | 0.47 m | |
+| Pelvis height | 0.470 m (52 % of standing) | 0.480 m (53 %) | 0.909 m |
+| Highest vertex, `form_male`, Quaternius male | 1.068, 1.097 m | 1.064, 1.093 m | |
+
+**The depth is kept.** `ual1/Crouch_Idle` on the same body has its pelvis at 0.469 m, as deep as ours, and the
+capsule (1.1 m) caps the head: a higher pelvis folds the trunk further than its 84 degrees. What read as a deep squat
+was the get-up's pelvis rising 35 mm past the crouch and sinking back into it, and the knees spread wide from
+behind; both are fixed in the prone clips (`../prone/README.md`), and the crouch's knees are 5 cm closer.
+
 ### The crouch's numbers for the code
 
 - `Crouch_Walk` is in place at 1.5 m/s (`speed`), the left foot lands at frame 0 and the right half a stride later

@@ -91,3 +91,19 @@ in every shipped clip since the reference body has them, and nothing in the game
   crouch the aimed head rolls under 8 degrees on the neck, on our crouch, whose shoulders turn 17 degrees over a trunk
   folded 84, it reads 15.4 while level in the world, so 240 assertions failed in CI only. **Seen:** gdstudio #1160
   (PR #1285), 2026-11-12 (fix: `AimLayer.head_crouch_neck_share`, 0.5: 10.9 each; the crouch's limit is 12).
+- **Approach:** Measure a transition into a crouch as a player sees it from behind: the knees' spacing side to side
+  and the pelvis's height on every frame, and let the build fail a splay or a rise past the crouch
+  (`UP_KNEES_LIMIT`, `UP_OVERSHOOT_LIMIT` in `build_prone_clips.py`). Draw knees that fold under a low body forward
+  and down, and let the kneeling one touch the floor. **Watch out for:** getting up aimed both bent knees out to the
+  side, so halfway up they were 0.84 m apart (0.31 lying, 0.52 crouched), and its pelvis rose 35 mm over the crouch
+  and sank back, which read as a deep squat; a pole aimed further down kneels into the floor (15 mm on
+  `form_female`, 16 on the thicker-kneed Quaternius male), so a body may have its own `UP_KNEE`. **Seen:** gdstudio
+  #1580, 2026-11-17, found by the maintainer playing (0.55 m at most now, no rise past the crouch).
+- **Approach:** Make a held crouch live as the standing idle does: rest on one foot, shift onto the other, rest and
+  come back (`shift_frames`, `hold_front`, `hold_back`, `settle` in `clips/crouch_idle.py`), and compare pelvis and
+  head travel from the first pose and top speed with the idle's. Read the depth beside the library's crouch before
+  changing it. **Watch out for:** one slow sine of the weight over 10.7 s moved the pelvis 35 mm at 0.023 m/s and
+  read as frozen beside the idle's 73 mm at 0.055; more shift lifted the Quaternius male's head 11 mm over the 1.1 m
+  capsule, and narrower knees put the resting forearm 6 mm into its shin. The library's crouch is as deep as ours
+  (pelvis 0.47 m, 52 % of standing) and the capsule caps the head. **Seen:** gdstudio #1580, 2026-11-17 (69 and
+  65 mm at 0.051 and 0.049 m/s, knees 0.47 m apart, the depth kept).
