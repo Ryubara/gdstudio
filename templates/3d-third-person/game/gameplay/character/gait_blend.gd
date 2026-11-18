@@ -144,6 +144,8 @@ func drive(animation: CharacterAnimation, speed: float, delta: float) -> void:
 # crouch walk into a jog moved a hand 0.18 m in a tick, not 0.12.
 func _follow(entry: Dictionary, target: float, delta: float, current: bool) -> float:
 	var drawn: float = entry.drawn
+	if drawn == target:
+		return target  # At rest on the speed's own position: most frames, nothing to work out.
 	var time := settings.gait_change_time if settings != null else 0.0
 	var speeds: PackedFloat32Array = entry.speeds
 	var from := _steps_at(speeds, drawn)
