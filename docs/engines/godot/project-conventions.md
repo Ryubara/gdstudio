@@ -47,7 +47,7 @@ game/
   Deadnight #415, 2026-11-02 (fix: a test pins each file's defaults and flags a new export); gdstudio #904,
   2026-11-10 (`MenuScene.server_scene` added without its pin; `grep -rl <Class> tests` finds the pin suite);
   gdstudio #1255, 2026-11-11 (new `WeaponDef` fields unpinned: grep the tests for `pistol.tres` too); #1438, 11-13
-  (`GaitSettings`, `test_gait_parts.gd`).
+  (`GaitSettings`, `test_gait_parts.gd`); #1575, 11-17 (`AimLayer.peek`, a node export).
 - **Approach:** Before adding more than a few lines to a script within about 100 lines of gdlint's 1000-line limit
   (`wc -l`), put the new logic in a class of its own with one call in the old file, and lint after `gds merge-main` so
   the count is the merged head's. **Watch out for:** the night server and the rules sat at 998 and 997 lines, and a
